@@ -4,11 +4,11 @@
 
 | Item | Description |
 |---|---|
-| Course |  |
-| Class |  |
+| Course |SWP391|
+| Class | SE20A11 |
 | Semester | SU26 |
-| Group |  |
-| Topic |  |
+| Group | 05 |
+| Topic |  The Listening City System  |
 | Repository |  |
 
 ---
@@ -17,11 +17,11 @@
 
 | No | Student ID | Full Name | GitHub Username | Role | Main Responsibility |
 |---:|---|---|---|---|---|
-| 1 |  |  |  | Leader |  |
-| 2 |  |  |  | Member |  |
-| 3 |  |  |  | Member |  |
-| 4 |  |  |  | Member |  |
-| 5 |  |  |  | Member |  |
+| 1 | DE190182 | Trần Minh Vĩ | MinhVi24 | Leader |  |
+| 2 | DE190357 | Nguyễn Hoàng Trọng | de190357nguyenhoangtrong | Member |  |
+| 3 | DE190714 | Phạm Tuấn Việt | tuanviet-code | Member |  |
+| 4 | DE190210 | Phan Thanh Bình | thanhbinh1304 | Member |  |
+| 5 | DE191029 | Phạm Bá Trí | tri7726 | Member |  |
 
 ---
 

@@ -66,16 +66,16 @@ cần PostgreSQL/PGVector. Để test pipeline logic:
 
 ```bash
 # Test đơn giản với GET
-curl "http://localhost:8080/api/rag/query-simple?q=て形とは何ですか&docType=grammar&lang=ja"
+curl "http://localhost:8080/api/rag/query-simple?q=cam_bien_giao_thong&docType=traffic&lang=vi"
 
 # Test full với POST
 curl -X POST http://localhost:8080/api/rag/query \
   -H "Content-Type: application/json" \
   -d '{
-    "question": "て形 dùng khi nào?",
+    "question": "Cảm biến giao thông hoạt động thế nào?",
     "options": {
-      "docType": "grammar",
-      "language": "ja",
+      "docType": "traffic",
+      "language": "vi",
       "topK": 5,
       "allowedPermissions": ["PUBLIC"],
       "useHyDE": false,

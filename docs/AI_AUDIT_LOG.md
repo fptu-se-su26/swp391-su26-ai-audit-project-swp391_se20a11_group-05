@@ -123,6 +123,68 @@ Hiểu sâu sắc hơn về kiến trúc RAG nâng cao (GraphRAG, Hybrid Search)
 
 ---
 
+### Lần sử dụng AI số 2
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-05-20 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Thiết kế kiến trúc & Lập kế hoạch bảo mật nâng cao (Passwordless OTP & MFA) |
+| Phần việc liên quan | Security Architecture / Planning |
+| Mức độ sử dụng | Sinh chính nội dung |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+nâng cấp cái chức năng đăng nhập đăng kí đi , và hỏi xíu làm thêm mã xác nhận sms để xác minh tài khoản đc ko cihr hỏi ko code -> lập kế hoạch chi tiết
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+Tóm tắt nội dung AI đã trả lời hoặc gợi ý.
+
+```text
+- AI đề xuất giải pháp Đăng nhập không mật khẩu (Passwordless/Magic Link OTP) qua SMS cho người dân và Xác thực 2 yếu tố (MFA TOTP) qua Google Authenticator cho Cán bộ Kiểm toán.
+- AI đề xuất sử dụng Firebase Phone Auth miễn phí cho đồ án sinh viên để gửi SMS OTP.
+- AI lập kế hoạch triển khai chi tiết gồm 3 Giai đoạn: Phase 1 (Firebase & Passwordless), Phase 2 (MFA TOTP Spring Boot), Phase 3 (Security Rate Limiting & Mock OTP bypass).
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+Mô tả rõ phần nào được sử dụng lại từ gợi ý của AI.
+
+```text
+- Sử dụng toàn bộ bản kế hoạch triển khai chi tiết (implementation_plan.md) để lên lộ trình code cho tuần tiếp theo.
+- Sử dụng sơ đồ Sequence Diagram kiến trúc xác thực đa lớp.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+Mô tả sinh viên/nhóm đã thay đổi, kiểm tra, sửa lỗi hoặc cải tiến gì so với gợi ý ban đầu của AI.
+
+```text
+- Tự cấu hình cờ Mock OTP và lưu trữ các biến môi trường cấu hình Firebase trong dự án thực tế.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Sẽ được cập nhật sau khi push lên Git |
+| File liên quan | implementation_plan.md, task.md |
+| Screenshot | Sơ đồ Sequence Diagram có trong kế hoạch triển khai |
+| Kết quả chạy/test | Đã lên kế hoạch kiểm thử tự động và tích hợp |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+Sinh viên/nhóm học được gì sau lần sử dụng AI này?
+
+```text
+Hiểu rõ kiến trúc bảo mật tiêu chuẩn doanh nghiệp cho dịch vụ hành chính công đô thị, cách thức hoạt động của giao thức mã hóa TOTP (RFC 6238) để tự phát sinh mã QR code mà không phụ thuộc dịch vụ bên thứ ba.
+```
+
+---
+
 ## 5. Bảng tổng hợp mức độ sử dụng AI
 
 Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.

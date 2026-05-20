@@ -30,7 +30,7 @@ Hệ thống **"Đà Nẵng Lắng Nghe"** là một nền tảng chuyển đổ
 
 ### 1.5 Tài liệu tham khảo (References)
 - *IEEE Std 830-1998, Recommended Practice for Software Requirements Specifications.*
-- Các ấn phẩm nghiên cứu học thuật của Springer về Smart Cities, Hybrid RAG, và Edge AI (Xem chi tiết tại [Báo cáo Tổng hợp Paper](file:///d:/swp391-su26-ai-audit-project-swp391_se20a11_group-05/docs/Paper/Paper_Synthesis.md)).
+- Các ấn phẩm nghiên cứu học thuật của Springer về Smart Cities, Hybrid RAG, và Edge AI (Xem chi tiết tại [Báo cáo Tổng hợp Paper](file:///d:/swp391-su26-ai-audit-project-swp391_se20a11_group-05/Download/Paper_Synthesis.md)).
 
 ---
 

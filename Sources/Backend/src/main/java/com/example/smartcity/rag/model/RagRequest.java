@@ -11,8 +11,8 @@ import jakarta.validation.constraints.Size;
  *
  * POST /api/rag/query
  * {
- *   "question": "Ngữ pháp て形 dùng khi nào?",
- *   "options": { "docType": "grammar", "language": "ja", "topK": 10 }
+ *   "question": "Cảm biến giao thông hoạt động thế nào?",
+ *   "options": { "docType": "traffic", "language": "vi", "topK": 10 }
  * }
  */
 public record RagRequest(

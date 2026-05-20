@@ -78,7 +78,7 @@ public class BM25Retriever {
      * Trích xuất keyword chính từ câu hỏi bằng heuristic đơn giản.
      * Loại bỏ stop words tiếng Việt và giữ lại từ có nghĩa nhất.
      *
-     * TODO: Thay bằng NLP tokenizer (JMdicts cho tiếng Nhật, VnCoreNLP cho tiếng Việt)
+     * TODO: Thay bằng NLP tokenizer (VnCoreNLP cho tiếng Việt, Lucene StandardAnalyzer cho tiếng Anh)
      */
     private String extractPrimaryKeyword(String query) {
         // Stop words tiếng Việt phổ biến

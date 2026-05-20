@@ -5,12 +5,12 @@
 | Thông tin | Nội dung |
 |---|---|
 | Môn học |  |
-| Mã môn học |  |
-| Lớp |  |
-| Học kỳ |  |
-| Tên bài tập / Project |  |
-| Tên sinh viên / Nhóm |  |
-| MSSV / Danh sách MSSV |  |
+| Mã môn học | SWP391 |
+| Lớp | SE20A11 |
+| Học kỳ | SU26 |
+| Tên bài tập / Project | Hệ thống "Đà Nẵng Lắng Nghe" (The Listening City System) |
+| Tên sinh viên / Nhóm | Phan Thanh Bình / Nhóm 05 |
+| MSSV / Danh sách MSSV | De19021E |
 | Giảng viên hướng dẫn |  |
 | Ngày bắt đầu |  |
 | Ngày hoàn thành |  |
@@ -21,12 +21,12 @@
 
 Đánh dấu các công cụ AI đã sử dụng trong quá trình thực hiện bài tập/project.
 
-- [ ] ChatGPT
-- [ ] Gemini
-- [ ] Claude
+- [x] ChatGPT
+- [x] Gemini
+- [x] Claude
 - [ ] GitHub Copilot
 - [ ] Cursor
-- [ ] Antigravity
+- [x] Antigravity
 - [ ] Perplexity
 - [ ] Microsoft Copilot
 - [ ] Công cụ khác: ....................................

@@ -99,6 +99,20 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Firebase Admin SDK cho Passwordless Login SMS/Email -->
+        <dependency>
+            <groupId>com.google.firebase</groupId>
+            <artifactId>firebase-admin</artifactId>
+            <version>9.2.0</version>
+        </dependency>
+
+        <!-- Google Authenticator (TOTP) cho Cán bộ / Thanh tra -->
+        <dependency>
+            <groupId>dev.samstevens.totp</groupId>
+            <artifactId>totp-spring-boot-starter</artifactId>
+            <version>1.7.1</version>
+        </dependency>
+
         <!-- ═══════════════════════════════════════════════════════════ -->
         <!-- HYBRID RAG MODULE DEPENDENCIES                              -->
         <!-- ═══════════════════════════════════════════════════════════ -->

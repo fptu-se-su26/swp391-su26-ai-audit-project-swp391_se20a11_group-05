@@ -291,6 +291,138 @@ Viết tại đây...
 
 ---
 
+### Prompt số 3
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-05-20 |
+| Công cụ AI | Antigravity |
+| Mục đích | Triển khai mã nguồn MFA và Passwordless Login |
+| Phần việc liên quan | Coding / Security |
+| Mức độ sử dụng | Hỏi sinh code |
+
+#### 5.1. Prompt nguyên văn
+
+```text
+Dựa trên bản Kế hoạch Kiến trúc (Implementation Plan) đã thống nhất, hãy tiến hành thực thi mã nguồn Backend Spring Boot. Nhiệm vụ bao gồm: thiết lập cấu hình Firebase Admin SDK, tạo Service xử lý Google Authenticator (TOTP), và tái cấu trúc luồng đăng nhập trong AuthController để tích hợp cả 2 phương thức bảo mật này.
+```
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Sau khi AI đề xuất giải pháp kiến trúc Firebase OTP và MFA rất hợp lý, sinh viên yêu cầu AI bắt tay vào viết code thực tế cho Backend Spring Boot, nhưng trước đó phải log lại quá trình lên file báo cáo.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI yêu cầu được lập Implementation Plan chi tiết trước khi code vì đây là thay đổi lớn, bao gồm tạo các file Service, sửa Entity và cập nhật pom.xml. Đồng thời AI cập nhật các file log (AI_AUDIT_LOG, CHANGELOG, PROMPTS, REFLECTION) theo đúng yêu cầu.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Áp dụng toàn bộ kế hoạch để code thực tế.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Xác nhận luồng xử lý do AI gợi ý và yêu cầu AI cập nhật log trước khi code.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [ ] Cần hỏi lại AI nhiều lần
+- [ ] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| File liên quan | implementation_plan.md |
+| Ghi chú khác | AI làm việc cực kỳ hệ thống và an toàn |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Không có.
+```
+
+---
+
+### Prompt số 4
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-05-20 |
+| Công cụ AI | Antigravity |
+| Mục đích | So sánh và cấu hình Cloud Database |
+| Phần việc liên quan | Architecture / Database / Config |
+| Mức độ sử dụng | Hỏi đánh giá kiến trúc và cấu hình |
+
+#### 5.1. Prompt nguyên văn
+
+```text
+Hãy lập bảng đánh giá (Evaluation Matrix) so sánh chi tiết các dịch vụ Managed PostgreSQL Cloud hiện nay (như Supabase, Neon.tech, Render, hoặc tự host VPS). Tiêu chí bắt buộc là phải hỗ trợ extension PGVector cho module RAG. Nếu phân tích cho thấy Supabase là tối ưu nhất cho đồ án sinh viên, hãy tiến hành viết file cấu hình `application-supabase.properties` cho Spring Boot, lưu ý tối ưu cấu hình JDBC cho kết nối Transaction Pooler.
+```
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Cần chọn giải pháp triển khai Cloud Database PostgreSQL có hỗ trợ PGVector cho dự án để demo. Cần AI đưa ra đánh giá khách quan giữa Supabase và các phương án khác, sau đó tiến hành cấu hình vào Spring Boot.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI cung cấp bảng so sánh chi tiết giữa Supabase, Neon.tech, Render và VPS. AI chốt dùng Supabase nhưng lưu ý tạo riêng file application-supabase.properties với cấu hình Connection Pooler (chuỗi ?prepareThreshold=0) thay vì sửa file cũ.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Đã áp dụng file cấu hình mới `application-supabase.properties` cho môi trường deploy.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Chủ động yêu cầu AI giữ nguyên cấu hình local và chỉ thêm cấu hình mới, cập nhật đầy đủ Log AI.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [ ] Cần hỏi lại AI nhiều lần
+- [ ] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| File liên quan | application-supabase.properties |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Rất hữu ích khi hiểu được cách các Cloud Database tích hợp với Spring Boot.
+```
+
+---
+
 ## 6. Prompt quan trọng nhất
 
 Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.

@@ -12,6 +12,9 @@ import com.example.smartcity.modules.auth.service.MfaService;
 import com.example.smartcity.modules.user.entity.Role;
 import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.user.repository.UserRepository;
+import com.example.smartcity.modules.auth.service.SmsService;
+import com.example.smartcity.modules.auth.payload.request.SmsSendRequest;
+import com.example.smartcity.modules.auth.payload.request.SmsVerifyRequest;
 import com.example.smartcity.security.jwt.JwtTokenProvider;
 import com.google.firebase.auth.FirebaseToken;
 import jakarta.validation.Valid;
@@ -41,6 +44,7 @@ public class AuthController {
     private final JwtTokenProvider tokenProvider;
     private final MfaService mfaService;
     private final FirebaseService firebaseService;
+    private final SmsService smsService;
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<?>> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
@@ -183,5 +187,20 @@ public class AuthController {
 
         User result = userRepository.save(user);
         return ResponseEntity.ok(ApiResponse.success("Đăng ký thành công", result));
+    }
+
+    @PostMapping("/sms/send")
+    public ResponseEntity<ApiResponse<String>> sendSmsOtp(@Valid @RequestBody SmsSendRequest request) {
+        String message = smsService.generateAndSendOtp(request.getPhoneNumber());
+        return ResponseEntity.ok(ApiResponse.success(message, null));
+    }
+
+    @PostMapping("/sms/verify")
+    public ResponseEntity<ApiResponse<String>> verifySmsOtp(@Valid @RequestBody SmsVerifyRequest request) {
+        smsService.verifyOtp(request.getPhoneNumber(), request.getOtpCode());
+        
+        // Sau khi xác minh thành công, có thể trả về một Token tạm thời 
+        // hoặc cho phép người dùng chuyển qua màn hình đăng ký/đăng nhập.
+        return ResponseEntity.ok(ApiResponse.success("Xác minh số điện thoại thành công", request.getPhoneNumber()));
     }
 }

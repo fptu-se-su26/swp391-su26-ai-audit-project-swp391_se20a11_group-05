@@ -1,366 +1,109 @@
-# AI Audit Log
+# AI Audit Log (RBL Insight Framework - AI Reflection 30%)
 
-## 1. Thông tin chung
+## I. Thông tin chung
 
 | Thông tin | Nội dung |
 |---|---|
-| Môn học |  |
-| Mã môn học |  |
-| Lớp |  |
-| Học kỳ |  |
-| Tên bài tập / Project |  |
-| Tên sinh viên / Nhóm |  |
-| MSSV / Danh sách MSSV |  |
-| Giảng viên hướng dẫn |  |
-| Ngày bắt đầu |  |
-| Ngày hoàn thành |  |
+| Môn học | Xây dựng ứng dụng hướng đối tượng |
+| Mã môn học | SWP391 |
+| Lớp | SE20A11 |
+| Học kỳ | SU26 |
+| Tên bài tập / Project | Hệ thống "Đà Nẵng Lắng Nghe" (The Listening City System) |
+| Tên sinh viên / Nhóm | Phạm Bá Trí / Nhóm 05 |
+| MSSV / Danh sách MSSV | DE191029 |
+| Giảng viên hướng dẫn | Trần Lệ Bích |
+| Ngày bắt đầu | 2026-05-18 |
+| Ngày hoàn thành | 2026-05-20 |
 
 ---
 
-## 2. Công cụ AI đã sử dụng
+## II. Nhật ký sử dụng AI (Core Prompts)
 
-Đánh dấu các công cụ AI đã sử dụng trong quá trình thực hiện bài tập/project.
+### Entry #: 001
+**Prompt Type:** VERIFICATION
+**Stage/Component:** Research stage (RBL) + Abstraction (CT)
+**Problem/Context:** Nhóm cần tìm kiếm, chọn lọc và tổng hợp 10 bài báo học thuật chuyên sâu về Hybrid RAG và Computer Vision/OCR trên Springer để làm nền tảng lý thuyết và đặc tả SRS cho hệ thống kiểm toán thông minh Đà Nẵng.
+**Prompt to AI:** "Đóng vai trò là một Chuyên gia Nghiên cứu AI (AI Researcher), hãy truy cập cơ sở dữ liệu Springer Nature để tìm kiếm và chọn lọc 10 bài báo học thuật mới nhất về hai chủ đề: Kiến trúc Hệ thống RAG nâng cao (Hybrid RAG) và Tự động hóa xử lý hình ảnh tại biên (Edge Computer Vision & OCR). Sau đó, hãy tổng hợp các bài báo này thành một báo cáo phân tích, đồng thời phác thảo các mục Introduction và Scope cho tài liệu Đặc tả Yêu cầu (SRS)."
+**AI Response (Summary):** AI đã đề xuất danh sách 10 bài báo từ Springer Nature về Hybrid RAG và Edge Computer Vision. Đồng thời, AI tự động sinh ra một file báo cáo tổng hợp chuyên sâu bằng tiếng Việt, phác thảo cấu trúc tài liệu SRS (Introduction, Scope, Existing Systems) và tạo ảnh mockup UI Dashboard.
 
-- [ ] ChatGPT
-- [ ] Gemini
-- [ ] Claude
-- [ ] GitHub Copilot
-- [ ] Cursor
-- [ ] Antigravity
-- [ ] Perplexity
-- [ ] Microsoft Copilot
-- [ ] Công cụ khác: ....................................
-
----
-
-## 3. Mục tiêu sử dụng AI
-
-Mô tả ngắn gọn sinh viên/nhóm đã sử dụng AI để hỗ trợ những công việc nào.
-
-Ví dụ:
-
-- Phân tích yêu cầu bài toán
-- Gợi ý ý tưởng giải pháp
-- Thiết kế database
-- Thiết kế giao diện
-- Viết code mẫu
-- Debug lỗi
-- Tối ưu code
-- Viết test case
-- Kiểm tra bảo mật
-- Viết báo cáo
-- Chuẩn bị slide thuyết trình
-- Tìm hiểu công nghệ mới
-
-### Mô tả mục tiêu sử dụng AI
-
-```text
-Viết tại đây...
-
-## 4. Nhật ký sử dụng AI chi tiết
-
-> Mỗi lần sử dụng AI cho một phần quan trọng của bài tập/project, sinh viên cần ghi lại theo mẫu bên dưới.  
-> Sinh viên/nhóm có thể nhân bản mẫu “Lần sử dụng AI” nhiều lần tùy theo số lần sử dụng AI thực tế.
+**Human Delta & Reflection:**
+- **Critical Thinking:** AI đã tổng hợp thông tin rất tốt, nhưng một số đường link (DOI) và tên bài báo cụ thể trên Springer đôi khi bị sai định dạng (hallucination nhẹ về URL/DOI). Nếu sử dụng trực tiếp có thể dẫn đến việc trích dẫn tài liệu giả mạo.
+- **Contextualization:** Trong thực tế học thuật, mọi trích dẫn đều phải có thể truy xuất được (traceable). Hơn nữa, việc đánh giá hệ thống hiện tại phải sát với thực trạng cổng 1022 của Đà Nẵng chứ không chỉ là lý thuyết chung chung.
+- **Creative Synthesis:** Tôi đã trực tiếp nhấp vào toàn bộ 10 liên kết Springer Link để kiểm chứng thực tế và cập nhật lại tay các đường link bị hỏng. Đồng thời, tôi đã rà soát văn phong pháp lý trong bản SRS do AI sinh ra để đảm bảo nó phản ánh đúng yêu cầu đặc thù của thành phố Đà Nẵng.
+- **Decision Ownership:** Quyết định sử dụng toàn bộ cấu trúc SRS và nội dung phân tích Hybrid RAG của AI, nhưng tự tay đính chính nguồn trích dẫn và chuẩn hóa format thư mục. Đây là bước quan trọng để định hình toàn bộ kiến trúc tài liệu và giới hạn phạm vi (Scope) của dự án.
 
 ---
 
-### Lần sử dụng AI số 1
+### Entry #: 002
+**Prompt Type:** DECISION
+**Stage/Component:** Abstraction (CT) + Decomposition
+**Problem/Context:** Cần nâng cấp hệ thống đăng nhập/đăng ký hiện tại vốn chỉ dùng username/password cơ bản sang các phương thức bảo mật cao cấp hơn cho hệ thống hành chính công.
+**Prompt to AI:** "Đóng vai trò là một Kiến trúc sư Hệ thống (System Architect), hãy đề xuất giải pháp nâng cấp module Đăng nhập/Đăng ký của dự án thành phố thông minh để đạt chuẩn bảo mật Enterprise. Cụ thể, hãy phân tích tính khả thi của việc tích hợp Xác thực không mật khẩu (Passwordless qua SMS OTP) và Xác thực đa yếu tố (MFA). Yêu cầu không sinh code, chỉ phân tích kiến trúc và lập Kế hoạch triển khai (Implementation Plan) chi tiết."
+**AI Response (Summary):** AI đề xuất phân chia luồng bảo mật theo mức độ rủi ro (Risk-based Authentication): Người dân dùng đăng nhập không mật khẩu (Passwordless OTP) qua SMS/Email; còn Cán bộ/Thanh tra dùng xác thực đa yếu tố (MFA - Google Authenticator). AI cũng đề xuất dùng Firebase Phone Auth miễn phí.
 
-| Nội dung | Thông tin |
-|---|---|
-| Ngày sử dụng |  |
-| Công cụ AI | ChatGPT / Gemini / Claude / GitHub Copilot / Cursor / Antigravity / Khác |
-| Mục đích sử dụng |  |
-| Phần việc liên quan | Requirement / Design / Database / Frontend / Backend / Testing / Debug / Report / Presentation / Other |
-| Mức độ sử dụng | Hỗ trợ ý tưởng / Hỗ trợ một phần / Hỗ trợ nhiều / Sinh chính nội dung |
-
-#### 4.1. Prompt đã sử dụng
-
-```text
-Dán nguyên văn prompt đã hỏi AI tại đây.
-```
-
-#### 4.2. Kết quả AI gợi ý
-
-Tóm tắt nội dung AI đã trả lời hoặc gợi ý.
-
-```text
-Viết tại đây...
-```
-
-#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
-
-Mô tả rõ phần nào được sử dụng lại từ gợi ý của AI.
-
-```text
-Viết tại đây...
-```
-
-#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
-
-Mô tả sinh viên/nhóm đã thay đổi, kiểm tra, sửa lỗi hoặc cải tiến gì so với gợi ý ban đầu của AI.
-
-```text
-Viết tại đây...
-```
-
-#### 4.5. Minh chứng
-
-| Loại minh chứng | Nội dung |
-|---|---|
-| Link commit |  |
-| File liên quan |  |
-| Screenshot |  |
-| Kết quả chạy/test |  |
-| Link video demo |  |
-| Ghi chú khác |  |
-
-#### 4.6. Nhận xét cá nhân/nhóm
-
-Sinh viên/nhóm học được gì sau lần sử dụng AI này?
-
-```text
-Viết tại đây...
-```
+**Human Delta & Reflection:**
+- **Critical Thinking:** AI đề xuất rất chuẩn xác về mặt nguyên lý bảo mật Enterprise. Tuy nhiên, việc áp dụng thẳng Firebase cho gửi tin nhắn SMS có thể gặp khó khăn về giới hạn quota miễn phí hoặc bắt buộc liên kết thẻ tín dụng của Firebase hiện tại (Oversimplification rủi ro vận hành).
+- **Contextualization:** Đặc thù hệ thống hành chính (Smart City) đòi hỏi người dân (thường dễ quên mật khẩu) phải truy cập dễ dàng, trong khi cán bộ có quyền truy cập dữ liệu nhạy cảm phải bị kiểm soát chặt. Kiến trúc hai luồng bảo mật là giải pháp bám sát thực tế nhất.
+- **Creative Synthesis:** Tôi đồng ý với kiến trúc này nhưng dự định sẽ cài đặt thêm cờ "Mock OTP" hoặc cơ chế dự phòng gửi OTP qua Email (JavaMailSender) thay vì phụ thuộc 100% vào Firebase SMS để tránh rủi ro sập hệ thống khi hết hạn mức test.
+- **Decision Ownership:** Chốt triển khai kiến trúc Risk-based Authentication. Đây là quyết định thay đổi bản chất cốt lõi của flow đăng nhập (Architecture level), nâng tầm dự án đồ án sinh viên tiệm cận với dự án thực tế của chính phủ điện tử.
 
 ---
 
-### Lần sử dụng AI số 2
+### Entry #: 003
+**Prompt Type:** PROBLEM-SOLVING
+**Stage/Component:** Algorithms (CT) + Pattern Recognition
+**Problem/Context:** Cần chuyển đổi bản kế hoạch kiến trúc Risk-based Authentication trên giấy thành mã nguồn thực tế (Spring Boot) nhưng hệ thống có quá nhiều thành phần và luồng dữ liệu (Entity, JWT, Controller).
+**Prompt to AI:** "Dựa trên bản Kế hoạch Kiến trúc (Implementation Plan) đã thống nhất, hãy tiến hành thực thi mã nguồn Backend Spring Boot. Nhiệm vụ bao gồm: thiết lập cấu hình Firebase Admin SDK, tạo Service xử lý Google Authenticator (TOTP), và tái cấu trúc luồng đăng nhập trong AuthController để tích hợp cả 2 phương thức bảo mật này."
+**AI Response (Summary):** AI không vội sinh code ngay mà yêu cầu được tạo một "Implementation Plan" chi tiết trước. AI vạch ra các thư viện cần thêm (`firebase-admin`, `totp-spring-boot-starter`), các trường cần bổ sung vào Entity, và cấu trúc Controller/Service.
 
-| Nội dung | Thông tin |
-|---|---|
-| Ngày sử dụng |  |
-| Công cụ AI | ChatGPT / Gemini / Claude / GitHub Copilot / Cursor / Antigravity / Khác |
-| Mục đích sử dụng |  |
-| Phần việc liên quan | Requirement / Design / Database / Frontend / Backend / Testing / Debug / Report / Presentation / Other |
-| Mức độ sử dụng | Hỗ trợ ý tưởng / Hỗ trợ một phần / Hỗ trợ nhiều / Sinh chính nội dung |
+**Human Delta & Reflection:**
+- **Critical Thinking:** AI xử lý rất thông minh khi không sinh ra hàng loạt file code ngay lập tức mà yêu cầu chốt Implementation Plan. Điều này giúp ngăn chặn rủi ro làm hỏng code base hiện tại (nếu sinh code vô tội vạ).
+- **Contextualization:** Trong quy trình kỹ thuật phần mềm (Software Engineering), việc lập kế hoạch thay đổi kiến trúc (Architecture Change) luôn phải đi trước việc viết code. Nếu tự viết hoặc để AI viết ngay, sẽ rất khó debug nếu phát sinh lỗi tích hợp bảo mật Spring Security.
+- **Creative Synthesis:** Tôi đã đọc và kiểm tra Implementation Plan do AI tạo ra, xác nhận luồng xử lý TOTP và xử lý Firebase ID token rất chuẩn mực. Tôi cũng tự chuẩn bị cấu hình `serviceAccountKey.json` thực tế để cấp quyền cho Firebase Admin SDK.
+- **Decision Ownership:** Quyết định phê duyệt Implementation Plan do AI đề xuất làm kim chỉ nam để triển khai code. Việc có plan rõ ràng giúp kiểm soát hoàn toàn kiến trúc MFA, đảm bảo tính năng không phá vỡ luồng login cũ.
 
-#### 4.1. Prompt đã sử dụng
+### Entry #: 004
+**Prompt Type:** DECISION
+**Stage/Component:** Architecture (CT) + Infrastructure
+**Problem/Context:** Nhóm cần chọn một dịch vụ Cloud Database có hỗ trợ PostgreSQL + PGVector để deploy dự án, cân nhắc giữa Supabase và các lựa chọn khác.
+**Prompt to AI:** "Hãy lập bảng đánh giá (Evaluation Matrix) so sánh chi tiết các dịch vụ Managed PostgreSQL Cloud hiện nay (như Supabase, Neon.tech, Render, hoặc tự host VPS). Tiêu chí bắt buộc là phải hỗ trợ extension PGVector cho module RAG. Nếu phân tích cho thấy Supabase là tối ưu nhất cho đồ án sinh viên, hãy tiến hành viết file cấu hình `application-supabase.properties` cho Spring Boot, lưu ý tối ưu cấu hình JDBC cho kết nối Transaction Pooler."
+**AI Response (Summary):** AI lập bảng so sánh chi tiết giữa Supabase, Neon.tech, Render và tự host VPS. AI khẳng định Supabase là lựa chọn tuyệt vời (có giao diện đẹp, pgvector) nhưng cũng chỉ ra Neon.tech tối ưu hơn về serverless (không bị pause sau 7 ngày). Sau đó AI tạo riêng file `application-supabase.properties` tích hợp cấu hình kết nối chuẩn (`?prepareThreshold=0` cho pooler).
 
-```text
-Dán nguyên văn prompt đã hỏi AI tại đây.
-```
-
-#### 4.2. Kết quả AI gợi ý
-
-```text
-Viết tại đây...
-```
-
-#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
-
-```text
-Viết tại đây...
-```
-
-#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
-
-```text
-Viết tại đây...
-```
-
-#### 4.5. Minh chứng
-
-| Loại minh chứng | Nội dung |
-|---|---|
-| Link commit |  |
-| File liên quan |  |
-| Screenshot |  |
-| Kết quả chạy/test |  |
-| Link video demo |  |
-| Ghi chú khác |  |
-
-#### 4.6. Nhận xét cá nhân/nhóm
-
-```text
-Viết tại đây...
-```
+**Human Delta & Reflection:**
+- **Critical Thinking:** AI so sánh rất thực tế và chỉ ra điểm yếu chí mạng của gói Free Supabase (bị pause sau 7 ngày nếu không dùng). Việc cấu hình `prepareThreshold=0` là một kiến thức chuyên sâu về Transaction Pooler (PgBouncer) của Supabase mà nếu tự làm, sinh viên rất dễ bị lỗi kết nối với Spring Boot (JPA).
+- **Contextualization:** Trong bối cảnh làm đồ án môn học, việc demo trước hội đồng không thể chấp nhận rủi ro bị "pause" database giữa chừng. Nhưng vì Supabase có giao diện Table Editor rất đẹp để báo cáo, nó vẫn đáng giá.
+- **Creative Synthesis:** Đã đọc bảng so sánh và quyết định dùng Supabase vì tiện lợi. Yêu cầu AI không sửa cấu hình cũ mà tạo hẳn một profile riêng `application-supabase.properties` để linh hoạt chuyển đổi giữa môi trường local và cloud chỉ bằng 1 dòng lệnh biến môi trường.
+- **Decision Ownership:** Chốt chọn Supabase làm Cloud Database chính thức và quản lý thông qua profile Spring Boot riêng biệt để không ảnh hưởng đến local dev.
 
 ---
 
-### Lần sử dụng AI số 3
+## III. Phát hiện Hallucination (Hallucination Detection)
 
-| Nội dung | Thông tin |
-|---|---|
-| Ngày sử dụng |  |
-| Công cụ AI | ChatGPT / Gemini / Claude / GitHub Copilot / Cursor / Antigravity / Khác |
-| Mục đích sử dụng |  |
-| Phần việc liên quan | Requirement / Design / Database / Frontend / Backend / Testing / Debug / Report / Presentation / Other |
-| Mức độ sử dụng | Hỗ trợ ý tưởng / Hỗ trợ một phần / Hỗ trợ nhiều / Sinh chính nội dung |
-
-#### 4.1. Prompt đã sử dụng
-
-```text
-Dán nguyên văn prompt đã hỏi AI tại đây.
-```
-
-#### 4.2. Kết quả AI gợi ý
-
-```text
-Viết tại đây...
-```
-
-#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
-
-```text
-Viết tại đây...
-```
-
-#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
-
-```text
-Viết tại đây...
-```
-
-#### 4.5. Minh chứng
-
-| Loại minh chứng | Nội dung |
-|---|---|
-| Link commit |  |
-| File liên quan |  |
-| Screenshot |  |
-| Kết quả chạy/test |  |
-| Link video demo |  |
-| Ghi chú khác |  |
-
-#### 4.6. Nhận xét cá nhân/nhóm
-
-```text
-Viết tại đây...
-```
+- **Trường hợp:** Khi yêu cầu AI tìm kiếm và tổng hợp 10 bài báo khoa học trên Springer (Entry 001).
+- **Loại Hallucination:** Fabrication (Tạo liên kết hỏng) / Outdated Info.
+- **Chi tiết:** AI đã đưa ra một số đường link bài báo cụ thể trên `link.springer.com` với mã DOI trông rất hợp lý. Tuy nhiên, khi nhấp vào thực tế để kiểm chứng (Verification), một vài đường link trả về lỗi 404 Not Found hoặc trỏ tới bài báo không đúng chuyên ngành Hybrid RAG.
+- **Cách khắc phục (Corrective Action):** Tôi không copy-paste mù quáng (copy-paste mà không kiểm chứng) mà đã tự tay nhấp vào từng liên kết. Đối với các link bị lỗi, tôi đã dùng Google Scholar và công cụ tìm kiếm nội bộ của SpringerLink với các từ khóa từ bài báo AI gợi ý để tìm ra URL thực sự, sau đó thay thế thủ công vào trong báo cáo Markdown. Điều này đảm bảo tính toàn vẹn học thuật cho đồ án.
 
 ---
 
-## 5. Bảng tổng hợp mức độ sử dụng AI
+## IV. Checklist tự kiểm tra (Đã hoàn thành)
 
-Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.
-
-| Hạng mục | Không dùng AI | AI hỗ trợ ít | AI hỗ trợ nhiều | AI sinh chính | Ghi chú |
-|---|:---:|:---:|:---:|:---:|---|
-| Phân tích yêu cầu |  |  |  |  |  |
-| Viết user story/use case |  |  |  |  |  |
-| Thiết kế database |  |  |  |  |  |
-| Thiết kế kiến trúc hệ thống |  |  |  |  |  |
-| Thiết kế giao diện |  |  |  |  |  |
-| Code frontend |  |  |  |  |  |
-| Code backend |  |  |  |  |  |
-| Debug lỗi |  |  |  |  |  |
-| Viết test case |  |  |  |  |  |
-| Kiểm thử sản phẩm |  |  |  |  |  |
-| Tối ưu code |  |  |  |  |  |
-| Viết báo cáo |  |  |  |  |  |
-| Làm slide thuyết trình |  |  |  |  |  |
+- [x] Mỗi entry đều chứa quyết định thay đổi bản chất project (Core Prompts).
+- [x] Không lưu các prompt hỏi syntax cơ bản (Auxiliary).
+- [x] Cấu trúc đúng 7 phần theo quy định mới nhất.
+- [x] Mục Human Delta & Reflection trả lời đầy đủ 4 câu hỏi (Critical Thinking, Contextualization, Creative Synthesis, Decision Ownership).
+- [x] Ghi nhận tối thiểu 1 trường hợp phát hiện AI Hallucination.
 
 ---
 
-## 6. Các lỗi hoặc hạn chế từ AI
-
-Ghi lại các trường hợp AI trả lời sai, thiếu, chưa phù hợp hoặc sinh code không chạy.
-
-| STT | Lỗi/hạn chế từ AI | Cách phát hiện | Cách xử lý/cải tiến |
-|---:|---|---|---|
-| 1 |  |  |  |
-| 2 |  |  |  |
-| 3 |  |  |  |
-
----
-
-## 7. Kiểm chứng kết quả AI
-
-Mô tả cách sinh viên/nhóm kiểm tra lại kết quả do AI gợi ý.
-
-Có thể bao gồm:
-
-- Chạy thử chương trình
-- Viết test case
-- So sánh với yêu cầu đề bài
-- Kiểm tra output
-- Đối chiếu tài liệu môn học
-- Hỏi lại giảng viên
-- Review cùng thành viên nhóm
-- Kiểm tra lỗi bảo mật
-- Kiểm tra bằng dữ liệu mẫu
-- So sánh trước và sau khi dùng AI
-
-### Nội dung kiểm chứng
-
-```text
-Viết tại đây...
-```
-
----
-
-## 8. Đóng góp cá nhân hoặc đóng góp nhóm
-
-### 8.1. Đối với bài cá nhân
-
-Mô tả phần sinh viên tự làm, phần AI hỗ trợ và phần đã tự cải tiến.
-
-```text
-Viết tại đây...
-```
-
-### 8.2. Đối với bài nhóm
-
-| Thành viên | MSSV | Nhiệm vụ chính | Có sử dụng AI không? | Minh chứng đóng góp |
-|---|---|---|---|---|
-|  |  |  | Có / Không |  |
-|  |  |  | Có / Không |  |
-|  |  |  | Có / Không |  |
-|  |  |  | Có / Không |  |
-
----
-
-## 9. Reflection cuối bài
-
-### 9.1. AI đã hỗ trợ em/nhóm ở điểm nào?
-
-```text
-Viết tại đây...
-```
-
-### 9.2. Phần nào em/nhóm không sử dụng theo gợi ý của AI? Vì sao?
-
-```text
-Viết tại đây...
-```
-
-### 9.3. Em/nhóm đã kiểm tra tính đúng đắn của kết quả AI như thế nào?
-
-```text
-Viết tại đây...
-```
-
-### 9.4. Nếu không có AI, phần nào sẽ khó khăn nhất?
-
-```text
-Viết tại đây...
-```
-
-### 9.5. Sau bài tập/project này, em/nhóm học được gì về môn học?
-
-```text
-Viết tại đây...
-```
-
-### 9.6. Sau bài tập/project này, em/nhóm học được gì về cách sử dụng AI có trách nhiệm?
-
-```text
-Viết tại đây...
-```
-
----
-
-## 10. Cam kết học thuật
+## V. Cam kết học thuật
 
 Sinh viên/nhóm cam kết rằng:
 
-- Nội dung AI hỗ trợ đã được ghi nhận trung thực.
-- Không nộp nguyên văn kết quả AI mà không kiểm tra.
-- Có khả năng giải thích các phần đã nộp.
-- Chịu trách nhiệm về tính đúng đắn của sản phẩm cuối cùng.
-- Hiểu rằng việc sử dụng AI không khai báo có thể ảnh hưởng đến kết quả đánh giá.
+- AI Audit Log này KHÔNG phải là lịch sử chat copy-paste vô nghĩa.
+- Các ghi chép phản ánh chính xác quá trình tư duy, kiểm chứng và ra quyết định của sinh viên.
+- Chịu trách nhiệm hoàn toàn trước Hội đồng Bảo vệ (Oral Vivas) nếu bị phát hiện gian lận hoặc thiếu trung thực.
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-|  |  |
+| Phạm Bá Trí | 2026-05-20 |

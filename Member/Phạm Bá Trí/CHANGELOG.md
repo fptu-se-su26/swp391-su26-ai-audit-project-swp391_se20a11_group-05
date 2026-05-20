@@ -4,32 +4,22 @@
 
 File này dùng để ghi lại các thay đổi quan trọng trong quá trình thực hiện bài tập, lab, assignment hoặc project.
 
-Nguyên tắc ghi changelog:
-
-- Chỉ ghi những gì đã hoàn thành thật sự.
-- Không ghi kế hoạch nếu chưa thực hiện.
-- Mỗi thay đổi nên có ngày, nội dung, người thực hiện và minh chứng.
-- Nếu có AI hỗ trợ, cần ghi rõ AI đã hỗ trợ phần nào.
-- Nếu có commit GitHub, cần ghi link commit.
-- Nếu có lỗi đã sửa, cần ghi rõ lỗi, nguyên nhân và cách xử lý.
-
 ---
 
 ## 2. Thông tin project
 
 | Thông tin | Nội dung |
 |---|---|
-| Môn học |  |
-| Mã môn học |  |
-| Lớp |  |
-| Học kỳ |  |
-| Tên bài tập / Project |  |
-| Tên sinh viên / Nhóm |  |
-| MSSV / Danh sách MSSV |  |
-| Giảng viên hướng dẫn |  |
-| Repository URL |  |
-| Ngày bắt đầu |  |
-| Ngày hoàn thành |  |
+| Môn học | Xây dựng ứng dụng hướng đối tượng |
+| Mã môn học | SWP391 |
+| Lớp | SE20A11 |
+| Học kỳ | SU26 |
+| Tên bài tập / Project | Hệ thống "Đà Nẵng Lắng Nghe" (The Listening City System) |
+| Tên sinh viên / Nhóm | Phạm Bá Trí / Nhóm 05 |
+| MSSV / Danh sách MSSV | DE191029 |
+| Repository URL | https://github.com/swp391-su26-ai-audit-project-swp391_se20a11_group-05 |
+| Ngày bắt đầu | 2026-05-18 |
+| Ngày hoàn thành | 2026-05-20 |
 
 ---
 
@@ -37,406 +27,118 @@ Nguyên tắc ghi changelog:
 
 | Phiên bản/Giai đoạn | Thời gian | Nội dung chính | Trạng thái |
 |---|---|---|---|
-| Phase 01 |  | Khởi tạo project | Not Started / In Progress / Completed |
-| Phase 02 |  | Phân tích yêu cầu | Not Started / In Progress / Completed |
-| Phase 03 |  | Thiết kế hệ thống | Not Started / In Progress / Completed |
-| Phase 04 |  | Implementation | Not Started / In Progress / Completed |
-| Phase 05 |  | Testing & Debug | Not Started / In Progress / Completed |
-| Phase 06 |  | Hoàn thiện báo cáo và demo | Not Started / In Progress / Completed |
+| Phase 01 | 18/05 - 20/05 | Khởi tạo dự án và Phân tích tài liệu khoa học | Completed |
+| Phase 02 | 20/05 - 22/05 | Phác thảo đặc tả yêu cầu phần mềm (SRS Phase 1) | Completed |
 
 ---
 
-# [Phase 01] Khởi tạo project
+# [Phase 01] Khởi tạo dự án & Phân tích tài liệu (Week 2)
 
 ## Ngày thực hiện
 
 ```text
-DD/MM/YYYY
+20/05/2026
 ```
 
 ## Đã hoàn thành
 
-- [ ] Tạo repository
-- [ ] Tạo cấu trúc thư mục project
-- [ ] Tạo file README.md
-- [ ] Tạo thư mục `docs/`
-- [ ] Tạo file `AI_AUDIT_LOG.md`
-- [ ] Tạo file `PROMPTS.md`
-- [ ] Tạo file `REFLECTION.md`
-- [ ] Tạo file `CHANGELOG.md`
-- [ ] Khởi tạo source code ban đầu
-- [ ] Cài đặt thư viện/công cụ cần thiết
-- [ ] Cấu hình môi trường chạy project
+- [x] Tạo thư mục `docs/Paper/` trên Classroom Git
+- [x] Tổng hợp và bóc tách thông tin 10 bài báo học thuật Springer
+- [x] Phân tích, nhận định & đánh giá 10 bài báo qua tài liệu tổng hợp chuyên sâu
+- [x] Soạn thảo đặc tả SRS Phần 1 (Introduction, Product Scope)
+- [x] Soạn thảo SRS Phần 2.5 (Các hệ thống hiện tại - so sánh chi tiết với 1022 Đà Nẵng)
+- [x] Tạo hình ảnh UI Mockup Dashboard cho phân hệ Kiểm toán Đô thị
+- [x] Cập nhật đầy đủ `AI_AUDIT_LOG.md` và `CHANGELOG.md` cho cá nhân & nhóm
 
 ## Thay đổi chi tiết
 
 | STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
 |---:|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
+| 1 | Tạo thư mục chứa 10 paper summaries | Phạm Bá Trí | `docs/Paper/` | [Paper_01.md đến Paper_10.md](file:///d:/swp391-su26-ai-audit-project-swp391_se20a11_group-05/docs/Paper/) |
+| 2 | Viết báo cáo học thuật tổng hợp tuần 2 | Phạm Bá Trí | `docs/Paper/Paper_Synthesis.md` | [Paper_Synthesis.md](file:///d:/swp391-su26-ai-audit-project-swp391_se20a11_group-05/docs/Paper/Paper_Synthesis.md) |
+| 3 | Tạo đặc tả yêu cầu SRS chính thức cho hệ thống | Phạm Bá Trí | `docs/SRS.md` | [SRS.md](file:///d:/swp391-su26-ai-audit-project-swp391_se20a11_group-05/docs/SRS.md) |
+| 4 | Thiết kế Dashboard Mockup và nhúng vào SRS | Phạm Bá Trí | `docs/listening_city_dashboard.png` | [listening_city_dashboard.png](file:///d:/swp391-su26-ai-audit-project-swp391_se20a11_group-05/docs/listening_city_dashboard.png) |
+| 5 | Hoàn thiện AI Audit Log theo quy định | Phạm Bá Trí | `docs/AI_AUDIT_LOG.md` | [AI_AUDIT_LOG.md](file:///d:/swp391-su26-ai-audit-project-swp391_se20a11_group-05/docs/AI_AUDIT_LOG.md) |
+| 6 | Thiết kế kế hoạch nâng cấp bảo mật hệ thống (OTP & MFA) | Phạm Bá Trí | `docs/AI_AUDIT_LOG.md` | [AI_AUDIT_LOG.md](file:///d:/swp391-su26-ai-audit-project-swp391_se20a11_group-05/docs/AI_AUDIT_LOG.md) |
+
 
 ## AI có hỗ trợ không?
 
-- [ ] Có
+- [x] Có
 - [ ] Không
 
-Nếu có, mô tả AI đã hỗ trợ phần nào:
+Mô tả AI đã hỗ trợ phần nào:
 
 ```text
-Viết tại đây...
+Antigravity hỗ trợ đề xuất tài liệu học thuật SpringerLink, viết báo cáo tổng hợp bằng tiếng Việt chuẩn quy cách nghiên cứu, cấu trúc file đặc tả yêu cầu SRS và sinh ảnh mockup UI chất lượng cao.
 ```
 
 ## Commit/Screenshot minh chứng
 
 ```text
-Dán link commit, screenshot hoặc mô tả minh chứng tại đây...
-```
-
-## Ghi chú
-
-```text
-Viết tại đây...
+Xem chi tiết ảnh giao diện tại docs/listening_city_dashboard.png.
 ```
 
 ---
 
-# [Phase 02] Phân tích yêu cầu
+# [Phase 03] Triển khai bảo mật nâng cao (Firebase Passwordless & MFA)
 
 ## Ngày thực hiện
 
 ```text
-DD/MM/YYYY
+20/05/2026
 ```
 
 ## Đã hoàn thành
 
-- [ ] Xác định problem statement
-- [ ] Xác định user roles
-- [ ] Viết user stories
-- [ ] Viết use cases
-- [ ] Xác định functional requirements
-- [ ] Xác định non-functional requirements
-- [ ] Xác định business rules
-- [ ] Xác định acceptance criteria
-- [ ] Review yêu cầu với giảng viên/nhóm
-- [ ] Chỉnh sửa yêu cầu sau feedback
+- [ ] Cập nhật `pom.xml` với các thư viện Firebase Admin và TOTP
+- [ ] Thêm cấu hình MFA vào Entity `User.java`
+- [ ] Xây dựng `FirebaseService` và `MfaService`
+- [ ] Tích hợp API đăng nhập và xác thực đa lớp vào `AuthController`
+- [x] Lập kế hoạch triển khai (Implementation Plan)
 
 ## Thay đổi chi tiết
 
-| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
-|---:|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
-
-## AI có hỗ trợ không?
-
-- [ ] Có
-- [ ] Không
-
-Nếu có, mô tả AI đã hỗ trợ phần nào:
-
-```text
-Viết tại đây...
-```
-
-## Commit/Screenshot minh chứng
-
-```text
-Dán link commit, screenshot hoặc mô tả minh chứng tại đây...
-```
-
-## Ghi chú
-
-```text
-Viết tại đây...
-```
-
----
-
-# [Phase 03] Thiết kế hệ thống
-
-## Ngày thực hiện
-
-```text
-DD/MM/YYYY
-```
-
-## Đã hoàn thành
-
-- [ ] Thiết kế kiến trúc tổng quan
-- [ ] Thiết kế database/ERD
-- [ ] Thiết kế API
-- [ ] Thiết kế giao diện/wireframe
-- [ ] Thiết kế flow xử lý
-- [ ] Thiết kế class diagram
-- [ ] Thiết kế sequence diagram
-- [ ] Thiết kế security/authorization flow
-- [ ] Review thiết kế
-- [ ] Chỉnh sửa thiết kế sau feedback
-
-## Thay đổi chi tiết
-
-| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
-|---:|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
-
-## AI có hỗ trợ không?
-
-- [ ] Có
-- [ ] Không
-
-Nếu có, mô tả AI đã hỗ trợ phần nào:
-
-```text
-Viết tại đây...
-```
-
-## Commit/Screenshot minh chứng
-
-```text
-Dán link commit, screenshot hoặc mô tả minh chứng tại đây...
-```
-
-## Ghi chú
-
-```text
-Viết tại đây...
-```
-
----
-
-# [Phase 04] Implementation
-
-## Ngày thực hiện
-
-```text
-DD/MM/YYYY
-```
-
-## Đã hoàn thành
-
-- [ ] Tạo project structure
-- [ ] Cài đặt database connection
-- [ ] Xây dựng backend
-- [ ] Xây dựng frontend
-- [ ] Xây dựng authentication/authorization
-- [ ] Xử lý CRUD
-- [ ] Xử lý validation
-- [ ] Tích hợp API
-- [ ] Xử lý upload/download file
-- [ ] Xử lý lỗi
-- [ ] Tối ưu giao diện
-- [ ] Cập nhật README hướng dẫn chạy
-
-## Thay đổi chi tiết
-
-| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
-|---:|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
-| 4 |  |  |  |  |
-| 5 |  |  |  |  |
-
-## AI có hỗ trợ không?
-
-- [ ] Có
-- [ ] Không
-
-Nếu có, mô tả AI đã hỗ trợ phần nào:
-
-```text
-Viết tại đây...
-```
-
-## Commit/Screenshot minh chứng
-
-```text
-Dán link commit, screenshot hoặc mô tả minh chứng tại đây...
-```
-
-## Ghi chú
-
-```text
-Viết tại đây...
-```
-
----
-
-# [Phase 05] Testing & Debug
-
-## Ngày thực hiện
-
-```text
-DD/MM/YYYY
-```
-
-## Đã hoàn thành
-
-- [ ] Viết test case
-- [ ] Chạy test chức năng chính
-- [ ] Kiểm tra output
-- [ ] Kiểm tra validation
-- [ ] Kiểm tra lỗi giao diện
-- [ ] Kiểm tra lỗi database
-- [ ] Kiểm tra phân quyền
-- [ ] Kiểm tra bảo mật cơ bản
-- [ ] Fix bug
-- [ ] Chạy lại sau khi fix bug
-- [ ] Ghi nhận kết quả test
-
-## Danh sách lỗi đã xử lý
-
-| STT | Lỗi phát hiện | Nguyên nhân | Cách xử lý | Trạng thái |
-|---:|---|---|---|---|
-| 1 |  |  |  | Open / Fixed / Pending |
-| 2 |  |  |  | Open / Fixed / Pending |
-| 3 |  |  |  | Open / Fixed / Pending |
-| 4 |  |  |  | Open / Fixed / Pending |
-| 5 |  |  |  | Open / Fixed / Pending |
-
-## Thay đổi chi tiết
-
-| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
-|---:|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
-
-## AI có hỗ trợ không?
-
-- [ ] Có
-- [ ] Không
-
-Nếu có, mô tả AI đã hỗ trợ phần nào:
-
-```text
-Viết tại đây...
-```
-
-## Commit/Screenshot minh chứng
-
-```text
-Dán link commit, screenshot hoặc mô tả minh chứng tại đây...
-```
-
-## Ghi chú
-
-```text
-Viết tại đây...
-```
-
----
-
-# [Phase 06] Hoàn thiện báo cáo và demo
-
-## Ngày thực hiện
-
-```text
-DD/MM/YYYY
-```
-
-## Đã hoàn thành
-
-- [ ] Hoàn thiện source code
-- [ ] Hoàn thiện README.md
-- [ ] Hoàn thiện report
-- [ ] Hoàn thiện slide
-- [ ] Hoàn thiện video demo
-- [ ] Kiểm tra lại `AI_AUDIT_LOG.md`
-- [ ] Kiểm tra lại `PROMPTS.md`
-- [ ] Hoàn thiện `REFLECTION.md`
-- [ ] Kiểm tra lại `CHANGELOG.md`
-- [ ] Đóng gói bài nộp
-
-## Thay đổi chi tiết
-
-| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
-|---:|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
-
-## AI có hỗ trợ không?
-
-- [ ] Có
-- [ ] Không
-
-Nếu có, mô tả AI đã hỗ trợ phần nào:
-
-```text
-Viết tại đây...
-```
-
-## Commit/Screenshot minh chứng
-
-```text
-Dán link commit, screenshot hoặc mô tả minh chứng tại đây...
-```
-
-## Ghi chú
-
-```text
-Viết tại đây...
-```
-
----
-
-# 4. Tổng kết thay đổi cuối project
-
-## 4.1. Các chức năng đã hoàn thành
-
-| STT | Chức năng | Trạng thái | Minh chứng | Ghi chú |
-|---:|---|---|---|---|
-| 1 |  | Completed / Partial / Not Completed |  |  |
-| 2 |  | Completed / Partial / Not Completed |  |  |
-| 3 |  | Completed / Partial / Not Completed |  |  |
-| 4 |  | Completed / Partial / Not Completed |  |  |
-| 5 |  | Completed / Partial / Not Completed |  |  |
-
----
-
-## 4.2. Các chức năng chưa hoàn thành
-
-| STT | Chức năng | Lý do chưa hoàn thành | Hướng cải thiện |
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan |
 |---:|---|---|---|
-| 1 |  |  |  |
-| 2 |  |  |  |
-| 3 |  |  |  |
+| 1 | Cập nhật Audit Log cho quá trình Code MFA | Phạm Bá Trí | `Member/Phạm Bá Trí/AI_AUDIT_LOG.md` |
+| 2 | Lên kế hoạch triển khai code backend | Phạm Bá Trí | `implementation_plan.md` |
 
----
+## AI có hỗ trợ không?
 
-## 4.3. Tổng hợp AI hỗ trợ trong project
+- [x] Có
+- [ ] Không
 
-| Hạng mục | AI có hỗ trợ không? | Mức độ hỗ trợ | Ghi chú |
-|---|---|---|---|
-| Requirement | Có / Không | Ít / Trung bình / Nhiều |  |
-| Design | Có / Không | Ít / Trung bình / Nhiều |  |
-| Database | Có / Không | Ít / Trung bình / Nhiều |  |
-| Coding | Có / Không | Ít / Trung bình / Nhiều |  |
-| Debug | Có / Không | Ít / Trung bình / Nhiều |  |
-| Testing | Có / Không | Ít / Trung bình / Nhiều |  |
-| Report | Có / Không | Ít / Trung bình / Nhiều |  |
-| Presentation | Có / Không | Ít / Trung bình / Nhiều |  |
-
----
-
-## 4.4. Bài học rút ra
+Mô tả AI đã hỗ trợ phần nào:
 
 ```text
-Viết tại đây...
+AI lập Implementation Plan và hỗ trợ viết code tích hợp MFA và Firebase Auth cho Spring Boot.
 ```
 
 ---
 
-## 4.5. Hướng cải thiện tiếp theo
+## [Phase 04] - 2026-05-20 - Triển khai cấu hình Supabase Cloud DB
+
+### Thêm mới (Added)
+- Tạo profile Spring Boot riêng `application-supabase.properties` phục vụ deploy Supabase.
+- Tích hợp kết nối Supabase PostgreSQL với tham số `?prepareThreshold=0` hỗ trợ Transaction Pooler.
+
+### Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan |
+|---:|---|---|---|
+| 1 | Cấu hình Supabase Cloud | Phạm Bá Trí | `application-supabase.properties` |
+| 2 | Cập nhật Audit Log cho quá trình cấu hình Cloud | Phạm Bá Trí | `Member/Phạm Bá Trí/AI_AUDIT_LOG.md` |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Mô tả AI đã hỗ trợ phần nào:
 
 ```text
-Viết tại đây...
+AI đánh giá so sánh Supabase với Neon.tech và hỗ trợ tạo file cấu hình profile cho Spring Boot kết nối với Supabase.
 ```
 
 ---
@@ -447,4 +149,4 @@ Sinh viên/nhóm cam kết rằng nội dung changelog phản ánh đúng các t
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-|  |  |
+| Phạm Bá Trí | 2026-05-20 |

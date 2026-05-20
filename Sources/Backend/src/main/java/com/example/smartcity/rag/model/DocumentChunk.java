@@ -17,8 +17,8 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "document_chunks", indexes = {
-    @Index(name = "idx_chunks_doctype", columnList = "doc_type"),
-    @Index(name = "idx_chunks_lang",    columnList = "language")
+        @Index(name = "idx_chunks_doctype", columnList = "doc_type"),
+        @Index(name = "idx_chunks_lang", columnList = "language")
 })
 @Data
 @Builder
@@ -37,13 +37,13 @@ public class DocumentChunk {
     /**
      * Vector embedding (1536 chiều — khớp với text-embedding-3-small / Gemini).
      * NOTE: Annotation @Column(columnDefinition = "vector(1536)") chỉ hoạt động
-     *       khi PostgreSQL có pgvector extension. Khi dùng H2 (test), bỏ qua.
+     * khi PostgreSQL có pgvector extension. Khi dùng H2 (test), bỏ qua.
      */
     @Column(name = "embedding", columnDefinition = "float[]")
     private float[] embedding;
 
     // ──────────────────────────────────────────────────────────────
-    //  METADATA — BẮT BUỘC để lọc trước khi tìm kiếm (Pre-filter)
+    // METADATA — BẮT BUỘC để lọc trước khi tìm kiếm (Pre-filter)
     // ──────────────────────────────────────────────────────────────
 
     /** URL / đường dẫn tài liệu gốc */
@@ -76,8 +76,7 @@ public class DocumentChunk {
 
     /** Tags tự do để lọc nhanh thêm */
     @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "document_chunk_tags",
-                     joinColumns = @JoinColumn(name = "chunk_id"))
+    @CollectionTable(name = "document_chunk_tags", joinColumns = @JoinColumn(name = "chunk_id"))
     @Column(name = "tag")
     private List<String> tags;
 
@@ -95,11 +94,8 @@ public class DocumentChunk {
     }
 
     public enum PermissionLevel {
-        PUBLIC,        // Tất cả user
-        TEACHER_ONLY,  // Chỉ giáo viên
-        ADMIN_ONLY     // Chỉ admin
+        PUBLIC, // Tất cả user
+        STAFF_ONLY, // Chỉ staff
+        ADMIN_ONLY // Chỉ admin
     }
 }
-
-
-

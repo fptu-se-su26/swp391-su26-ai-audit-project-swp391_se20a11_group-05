@@ -59,6 +59,8 @@ File này dùng để ghi lại các thay đổi quan trọng trong quá trình 
 | 3 | Tạo đặc tả yêu cầu SRS chính thức cho hệ thống | Phạm Bá Trí | `docs/SRS.md` | [SRS.md](file:///d:/swp391-su26-ai-audit-project-swp391_se20a11_group-05/docs/SRS.md) |
 | 4 | Thiết kế Dashboard Mockup và nhúng vào SRS | Phạm Bá Trí | `docs/listening_city_dashboard.png` | [listening_city_dashboard.png](file:///d:/swp391-su26-ai-audit-project-swp391_se20a11_group-05/docs/listening_city_dashboard.png) |
 | 5 | Hoàn thiện AI Audit Log theo quy định | Phạm Bá Trí | `docs/AI_AUDIT_LOG.md` | [AI_AUDIT_LOG.md](file:///d:/swp391-su26-ai-audit-project-swp391_se20a11_group-05/docs/AI_AUDIT_LOG.md) |
+| 6 | Thiết kế kế hoạch nâng cấp bảo mật hệ thống (OTP & MFA) | Phạm Bá Trí | `docs/AI_AUDIT_LOG.md` | [AI_AUDIT_LOG.md](file:///d:/swp391-su26-ai-audit-project-swp391_se20a11_group-05/docs/AI_AUDIT_LOG.md) |
+
 
 ## AI có hỗ trợ không?
 

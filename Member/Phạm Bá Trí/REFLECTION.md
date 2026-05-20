@@ -373,6 +373,20 @@ Viết tại đây...
 
 ---
 
+### 9.7. Bài học từ việc yêu cầu AI sinh code (Triển khai MFA)
+
+```text
+Khi tính năng quá lớn (cập nhật bảo mật toàn hệ thống), không nên bắt AI sinh code ngay lập tức. Việc AI chủ động yêu cầu lập "Implementation Plan" giúp sinh viên kiểm soát kiến trúc, hiểu rõ những file nào sẽ bị sửa và logic xử lý thế nào trước khi chạy code thực tế. Điều này rất đúng với quy trình Kỹ thuật phần mềm (Software Engineering).
+```
+
+### 9.8. Bài học từ việc chọn Cloud Database (Supabase vs Neon)
+
+```text
+Qua việc yêu cầu AI phân tích và cấu hình Supabase, nhóm nhận thấy rằng kiến thức về Infrastructure cũng rất quan trọng. Khi kết nối Spring Boot với các dịch vụ Cloud như Supabase (dùng PgBouncer Pooler), ta phải hiểu rõ cấu trúc URL (thêm ?prepareThreshold=0) thay vì chỉ copy-paste như làm việc với PostgreSQL chạy trên localhost. Việc tách riêng file `application-supabase.properties` là một best practice giúp quản lý môi trường dễ dàng.
+```
+
+---
+
 ## 17. Cam kết Reflection
 
 Em/nhóm cam kết rằng nội dung reflection này phản ánh trung thực quá trình sử dụng AI và quá trình học tập trong bài tập/project.

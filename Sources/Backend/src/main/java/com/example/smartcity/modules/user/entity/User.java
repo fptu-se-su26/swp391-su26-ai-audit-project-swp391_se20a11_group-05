@@ -30,6 +30,12 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private boolean isActive = true;
 
+    @Column(name = "mfa_secret")
+    private String mfaSecret;
+
+    @Column(name = "is_mfa_enabled", nullable = false)
+    private boolean isMfaEnabled = false;
+
     public User() {
     }
 
@@ -63,6 +69,12 @@ public class User extends BaseEntity {
 
     public boolean isActive() { return isActive; }
     public void setActive(boolean active) { isActive = active; }
+
+    public String getMfaSecret() { return mfaSecret; }
+    public void setMfaSecret(String mfaSecret) { this.mfaSecret = mfaSecret; }
+
+    public boolean isMfaEnabled() { return isMfaEnabled; }
+    public void setMfaEnabled(boolean mfaEnabled) { this.isMfaEnabled = mfaEnabled; }
 }
 
 

@@ -42,7 +42,7 @@ File này dùng để ghi lại các thay đổi quan trọng trong quá trình 
 
 ## Đã hoàn thành
 
-- [x] Tạo thư mục `Paper/` trên Classroom Git
+- [x] Tạo thư mục `docs/Paper/` trên Classroom Git
 - [x] Tổng hợp và bóc tách thông tin 10 bài báo học thuật Springer
 - [x] Phân tích, nhận định & đánh giá 10 bài báo qua tài liệu tổng hợp chuyên sâu
 - [x] Soạn thảo đặc tả SRS Phần 1 (Introduction, Product Scope)
@@ -54,8 +54,8 @@ File này dùng để ghi lại các thay đổi quan trọng trong quá trình 
 
 | STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
 |---:|---|---|---|---|
-| 1 | Tạo thư mục chứa 10 paper summaries | Phạm Bá Trí | `Paper/` | [Paper_01.md đến Paper_10.md](file:///d:/swp391-su26-ai-audit-project-swp391_se20a11_group-05/Paper/) |
-| 2 | Viết báo cáo học thuật tổng hợp tuần 2 | Phạm Bá Trí | `Paper/Paper_Synthesis.md` | [Paper_Synthesis.md](file:///d:/swp391-su26-ai-audit-project-swp391_se20a11_group-05/Paper/Paper_Synthesis.md) |
+| 1 | Tạo thư mục chứa 10 paper summaries | Phạm Bá Trí | `docs/Paper/` | [Paper_01.md đến Paper_10.md](file:///d:/swp391-su26-ai-audit-project-swp391_se20a11_group-05/docs/Paper/) |
+| 2 | Viết báo cáo học thuật tổng hợp tuần 2 | Phạm Bá Trí | `docs/Paper/Paper_Synthesis.md` | [Paper_Synthesis.md](file:///d:/swp391-su26-ai-audit-project-swp391_se20a11_group-05/docs/Paper/Paper_Synthesis.md) |
 | 3 | Tạo đặc tả yêu cầu SRS chính thức cho hệ thống | Phạm Bá Trí | `docs/SRS.md` | [SRS.md](file:///d:/swp391-su26-ai-audit-project-swp391_se20a11_group-05/docs/SRS.md) |
 | 4 | Thiết kế Dashboard Mockup và nhúng vào SRS | Phạm Bá Trí | `docs/listening_city_dashboard.png` | [listening_city_dashboard.png](file:///d:/swp391-su26-ai-audit-project-swp391_se20a11_group-05/docs/listening_city_dashboard.png) |
 | 5 | Hoàn thiện AI Audit Log theo quy định | Phạm Bá Trí | `docs/AI_AUDIT_LOG.md` | [AI_AUDIT_LOG.md](file:///d:/swp391-su26-ai-audit-project-swp391_se20a11_group-05/docs/AI_AUDIT_LOG.md) |

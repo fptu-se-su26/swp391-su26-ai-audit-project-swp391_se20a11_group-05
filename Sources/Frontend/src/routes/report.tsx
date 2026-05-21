@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
-import { feedbackApi, ApiError } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import { feedbackApi, categoryApi, ApiError, type CategoryResponse } from "@/lib/api";
 import { Camera, Video, MapPin, Mic, Check, ArrowLeft, ArrowRight, Loader2, AlertCircle } from "lucide-react";
 
 export const Route = createFileRoute("/report")({
@@ -16,6 +17,7 @@ export const Route = createFileRoute("/report")({
 
 function ReportPage() {
   const { t, locale } = useI18n();
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -23,13 +25,25 @@ function ReportPage() {
   const [error, setError] = useState<string | null>(null);
   const [trackingCode, setTrackingCode] = useState("");
 
+  // Categories từ Backend
+  const [categories, setCategories] = useState<CategoryResponse[]>([]);
+  const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
+
   // Form data
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("infra");
   const [useGps, setUseGps] = useState(false);
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
+
+  useEffect(() => {
+    categoryApi.getAll().then((cats) => {
+      setCategories(cats);
+      if (cats.length > 0) setCategoryId(cats[0].id);
+    }).catch(() => {
+      // Backend offline → không cần categories
+    });
+  }, []);
 
   const detectLocation = () => {
     if ("geolocation" in navigator) {
@@ -60,7 +74,8 @@ function ReportPage() {
         latitude: latitude ?? undefined,
         longitude: longitude ?? undefined,
         addressDetails: useGps ? `${latitude}, ${longitude}` : undefined,
-        citizenId: 1, // TODO: lấy từ auth context
+        categoryId: categoryId,
+        citizenId: 1, // TODO: thay bằng user.id từ JWT khi Backend expose userId
       });
       setTrackingCode(result.trackingCode || "FB-XXXXXXXX");
       setSubmitted(true);
@@ -164,9 +179,9 @@ function ReportPage() {
                   <button
                     key={c.id}
                     type="button"
-                    onClick={() => setCategory(c.id)}
+                    onClick={() => setCategoryId(parseInt(c.id) || 1)}
                     className={`p-3 rounded-lg border-2 text-left font-semibold transition-all ${
-                      category === c.id ? "border-gov-blue bg-gov-blue/5" : "border-slate-200 hover:border-gov-blue/40"
+                      categoryId === parseInt(c.id) ? "border-gov-blue bg-gov-blue/5" : "border-slate-200 hover:border-gov-blue/40"
                     }`}
                   >
                     {locale === "vi" ? c.vi : c.en}

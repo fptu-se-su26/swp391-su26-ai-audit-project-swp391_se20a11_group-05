@@ -3,8 +3,6 @@ package com.example.smartcity.rag.ingestion;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -30,8 +28,6 @@ public class EmbeddingClientFacade {
 
     /** Số chiều vector — phải khớp với cột `vector(1536)` trong PostgreSQL */
     private static final int VECTOR_DIM = 1536;
-
-    private final Random random = new Random();
 
     /**
      * Embed một đoạn văn bản đơn lẻ.

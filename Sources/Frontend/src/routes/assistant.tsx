@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
-import { chatbotApi, ApiError } from "@/lib/api";
+import { ragApi, ApiError } from "@/lib/api";
 import { Bot, Phone, Send, User, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/assistant")({
@@ -47,20 +47,20 @@ function AssistantPage() {
     const userText = input.trim();
 
     // Add user message
-    setMessages((m) => [...m, { role: "user", text: userText }]);
+    setMessages((m: Msg[]) => [...m, { role: "user", text: userText }]);
     setInput("");
     setSending(true);
 
     // Add loading indicator
-    setMessages((m) => [...m, { role: "bot", text: "", isLoading: true }]);
+    setMessages((m: Msg[]) => [...m, { role: "bot", text: "", isLoading: true }]);
 
     try {
       // Gọi API thực: GET /api/rag/chatbot?q=...&userId=1
-      const result = await chatbotApi.ask(userText, 1);
+      const result = await ragApi.chatbot(userText, 1);
 
       // Remove loading and add real response
-      setMessages((m) => {
-        const filtered = m.filter((msg) => !msg.isLoading);
+      setMessages((m: Msg[]) => {
+        const filtered = m.filter((msg: Msg) => !msg.isLoading);
         return [
           ...filtered,
           {
@@ -73,10 +73,10 @@ function AssistantPage() {
       });
     } catch (err) {
       // Remove loading indicator
-      setMessages((m) => m.filter((msg) => !msg.isLoading));
+      setMessages((m: Msg[]) => m.filter((msg: Msg) => !msg.isLoading));
 
       if (err instanceof ApiError) {
-        setMessages((m) => [
+        setMessages((m: Msg[]) => [
           ...m,
           {
             role: "bot",
@@ -87,7 +87,7 @@ function AssistantPage() {
         ]);
       } else {
         // Fallback mock when backend is offline
-        setMessages((m) => [
+        setMessages((m: Msg[]) => [
           ...m,
           {
             role: "bot",
@@ -120,7 +120,7 @@ function AssistantPage() {
 
       {/* Chat Messages */}
       <div className="card-civic p-5 md:p-6 min-h-[400px] max-h-[60vh] overflow-y-auto space-y-4 mb-4">
-        {messages.map((m, i) => (
+        {messages.map((m: Msg, i: number) => (
           <div key={i} className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : ""}`}>
             <div className={`w-10 h-10 rounded-full grid place-items-center shrink-0 ${m.role === "user" ? "bg-gov-gold text-gov-blue-deep" : "bg-gov-blue text-white"}`}>
               {m.role === "user" ? <User size={20} /> : <Bot size={20} />}
@@ -144,7 +144,7 @@ function AssistantPage() {
                   {/* Hotline buttons */}
                   {m.hotlines && (
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {m.hotlines.map((h) => (
+                      {m.hotlines.map((h: { label: string; tel: string }) => (
                         <a
                           key={h.tel}
                           href={`tel:${h.tel}`}
@@ -165,12 +165,12 @@ function AssistantPage() {
 
       {/* Input */}
       <form
-        onSubmit={(e) => { e.preventDefault(); send(); }}
+        onSubmit={(e: React.FormEvent) => { e.preventDefault(); send(); }}
         className="flex gap-3"
       >
         <input
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)}
           placeholder={t("assistant.placeholder")}
           disabled={sending}
           className="flex-1 min-h-[52px] px-4 rounded-lg border-2 border-slate-200 text-base focus:border-gov-blue outline-none bg-white disabled:opacity-50"

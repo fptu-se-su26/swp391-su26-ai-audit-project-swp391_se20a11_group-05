@@ -94,7 +94,7 @@ export function Header() {
             </div>
           ) : (
             <Link
-              to="/login"
+              to={"/login" as any}
               className="hidden md:inline-flex min-h-[44px] items-center px-4 rounded-md bg-gov-gold text-gov-blue-deep font-bold text-sm hover:brightness-105"
             >
               {t("nav.login")}
@@ -193,7 +193,7 @@ export function Header() {
               </button>
             ) : (
               <Link
-                to="/login"
+                to={"/login" as any}
                 onClick={() => setOpen(false)}
                 className="block min-h-[48px] px-4 py-3 rounded-md bg-gov-gold text-gov-blue-deep font-bold"
               >

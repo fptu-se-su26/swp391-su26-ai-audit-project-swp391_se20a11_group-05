@@ -30,7 +30,7 @@ public class RagExceptionHandler {
     @ExceptionHandler(NoContextFoundException.class)
     public ProblemDetail handleNoContext(NoContextFoundException ex) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(
-            HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+            HttpStatus.valueOf(422), ex.getMessage());
         pd.setTitle("Không tìm thấy ngữ cảnh phù hợp");
         pd.setProperty("timestamp", Instant.now());
         pd.setProperty("suggestion", "Thử diễn đạt câu hỏi theo cách khác, hoặc kiểm tra lại docType và language.");

@@ -7,7 +7,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
+
 
 import java.time.Duration;
 import java.util.List;
@@ -88,7 +88,6 @@ public class GeminiAdapter implements AiProviderAdapter {
                 .toFuture();
     }
 
-    @SuppressWarnings("unchecked")
     private String parseGeminiResponse(Map<?, ?> response) {
         try {
             List<?> candidates = (List<?>) response.get("candidates");

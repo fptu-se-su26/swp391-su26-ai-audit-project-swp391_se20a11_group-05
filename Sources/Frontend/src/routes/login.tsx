@@ -74,7 +74,7 @@ function LoginPage() {
           org: opt.org,
           token: data.token,
         });
-        navigate({ to: redirect || opt.redirect });
+        navigate({ to: (redirect || opt.redirect) as any });
       }
     } catch (err) {
       if (err instanceof ApiError) {
@@ -87,7 +87,7 @@ function LoginPage() {
         // Fallback: Demo mode khi backend chưa chạy
         setError(null);
         login({ name: opt.demoUser, role: selected, org: opt.org });
-        navigate({ to: redirect || opt.redirect });
+        navigate({ to: (redirect || opt.redirect) as any });
       }
     } finally {
       setLoading(false);
@@ -108,7 +108,7 @@ function LoginPage() {
         org: opt.org,
         token: data.token,
       });
-      navigate({ to: redirect || opt.redirect });
+      navigate({ to: (redirect || opt.redirect) as any });
     } catch (err) {
       if (err instanceof ApiError) {
         setError(locale === "vi" ? "Mã xác thực không đúng" : "Invalid MFA code");
@@ -244,7 +244,7 @@ function LoginPage() {
         )}
 
         <div className="mt-6 text-center">
-          <Link to="/" className="text-gov-blue font-semibold hover:underline">
+          <Link to={"/register" as any} className="text-gov-blue font-semibold hover:underline">
             {t("login.register")}
           </Link>
         </div>

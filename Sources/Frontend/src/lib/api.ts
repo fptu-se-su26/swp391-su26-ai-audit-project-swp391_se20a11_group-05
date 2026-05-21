@@ -1,18 +1,30 @@
 /**
- * API Client — Kết nối Frontend với Backend Spring Boot.
+ * API Client — Kết nối Frontend ↔ Backend Spring Boot (Port 8081)
  *
- * Features:
- *   - Proxy mode: trong dev, Vite proxy /api/* → Backend (cùng URL, không cần CORS)
- *   - Auto-attach JWT token từ localStorage
- *   - Type-safe request/response
- *   - Error handling thống nhất
+ * Cơ chế hoạt động:
+ *  - DEV:  Vite proxy chuyển /api/* → http://localhost:8081 (không bị CORS)
+ *  - PROD: Đặt biến môi trường VITE_API_BASE=https://api.yourdomain.com
+ *
+ * Tính năng:
+ *  - Auto-attach JWT Bearer token từ localStorage
+ *  - Xử lý lỗi tập trung (ApiError)
+ *  - Type-safe: Interface TypeScript đồng bộ 100% với Java DTOs
+ *
+ * Controllers đồng bộ:
+ *  - AuthController    → /api/auth/*
+ *  - FeedbackController → /api/feedbacks/*
+ *  - CategoryController → /api/categories/*
+ *  - RagController     → /api/rag/*
+ *  - AiController      → /api/ai/*
  */
 
-// Trong dev: dùng proxy (empty = same origin) → Vite forward /api/* tới Backend
-// Trong production: set VITE_API_BASE nếu cần
-const API_BASE = (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) || "";
+// ─── Base URL ────────────────────────────────────────────────
+// Dev: để trống → Vite proxy tự forward /api/* sang Backend port 8081
+// Prod: set env VITE_API_BASE=https://your-backend-domain.com
+const API_BASE: string =
+  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) || "";
 
-// ─── Token Management ────────────────────────────────────────
+// ─── JWT Token Management ─────────────────────────────────────
 const TOKEN_KEY = "dn_jwt_token";
 
 export function getToken(): string | null {
@@ -28,12 +40,14 @@ export function removeToken() {
   if (typeof window !== "undefined") localStorage.removeItem(TOKEN_KEY);
 }
 
-// ─── Generic Fetch Wrapper ───────────────────────────────────
+// ─── Generic Fetch Wrapper ────────────────────────────────────
 
 interface ApiOptions extends RequestInit {
+  /** Bỏ qua việc gắn Authorization header (dùng cho login/register) */
   skipAuth?: boolean;
 }
 
+/** Lỗi trả về từ Backend khi status != 2xx */
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -53,7 +67,7 @@ async function apiFetch<T>(endpoint: string, options: ApiOptions = {}): Promise<
     ...(fetchOptions.headers as Record<string, string>),
   };
 
-  // Auto-attach JWT token
+  // Gắn JWT token tự động nếu có
   if (!skipAuth) {
     const token = getToken();
     if (token) {
@@ -66,7 +80,6 @@ async function apiFetch<T>(endpoint: string, options: ApiOptions = {}): Promise<
     headers,
   });
 
-  // Handle non-JSON responses
   const contentType = response.headers.get("content-type");
   const isJson = contentType?.includes("application/json");
 
@@ -74,34 +87,77 @@ async function apiFetch<T>(endpoint: string, options: ApiOptions = {}): Promise<
     const errorData = isJson ? await response.json().catch(() => null) : null;
     throw new ApiError(
       response.status,
-      errorData?.message || `API Error: ${response.status} ${response.statusText}`,
+      errorData?.message || `Lỗi ${response.status}: ${response.statusText}`,
       errorData,
     );
   }
 
-  if (isJson) {
-    return response.json() as Promise<T>;
-  }
+  if (response.status === 204) return undefined as T; // No Content
+
+  if (isJson) return response.json() as Promise<T>;
   return response.text() as unknown as T;
 }
 
-// ─── API Response Types ──────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// TYPE DEFINITIONS — Đồng bộ với Java DTOs/Entities/Enums
+// ═══════════════════════════════════════════════════════════════
 
-/** Backend chuẩn hóa response: ApiResponse<T> */
+// ─── Wrapper chung của Backend ApiResponse<T> ─────────────────
+/**
+ * Backend trả về cấu trúc: { success, message, data }
+ * Sử dụng cho AuthController (login, register, mfa, firebase)
+ */
 export interface ApiResponse<T> {
   success: boolean;
   message: string;
   data: T;
 }
 
-/** JWT token response từ backend */
+// ─── Auth Types ───────────────────────────────────────────────
+
+/**
+ * Đồng bộ với: TokenResponse.java
+ * Fields: token, tokenType ("Bearer"), username, role
+ */
 export interface TokenResponse {
   token: string;
+  tokenType: string; // luôn = "Bearer"
   username: string;
-  role: string;
+  role: BackendRole;
 }
 
-/** Feedback response từ backend */
+/**
+ * Phản hồi khi user cần MFA (isHighRiskRole = true)
+ * Backend trả: { username, mfaRequired: true, mfaSetupRequired: boolean }
+ */
+export interface MfaRequiredResponse {
+  username: string;
+  mfaRequired: true;
+  mfaSetupRequired: boolean;
+}
+
+/**
+ * Đồng bộ với: Role.java enum
+ * CITIZEN | WARD_STAFF | POLICE | SUPER_ADMIN
+ */
+export type BackendRole = "CITIZEN" | "WARD_STAFF" | "POLICE" | "SUPER_ADMIN";
+
+// ─── Feedback Types ───────────────────────────────────────────
+
+/**
+ * Đồng bộ với: FeedbackStatus.java enum
+ */
+export type FeedbackStatus =
+  | "PENDING"       // Mới gửi, chờ phân loại
+  | "ASSIGNED"      // Đã phân công về Phường/Công an
+  | "IN_PROGRESS"   // Cán bộ đang xử lý
+  | "WAITING_INFO"  // Cần người dân bổ sung thông tin
+  | "RESOLVED"      // Đã xử lý xong
+  | "REJECTED";     // Từ chối xử lý
+
+/**
+ * Đồng bộ với: FeedbackResponse.java
+ */
 export interface FeedbackResponse {
   id: number;
   trackingCode: string;
@@ -110,15 +166,17 @@ export interface FeedbackResponse {
   latitude: number | null;
   longitude: number | null;
   addressDetails: string | null;
-  status: string;
+  status: FeedbackStatus;
   categoryName: string | null;
   citizenName: string | null;
   assigneeName: string | null;
-  createdAt: string;
+  createdAt: string; // ISO 8601 (LocalDateTime serialized)
   updatedAt: string;
 }
 
-/** Feedback create request */
+/**
+ * Đồng bộ với: FeedbackRequest.java
+ */
 export interface FeedbackRequest {
   title: string;
   description: string;
@@ -126,39 +184,118 @@ export interface FeedbackRequest {
   longitude?: number;
   addressDetails?: string;
   categoryId?: number;
-  citizenId: number;
+  citizenId: number; // Tạm thời, sau thay bằng userId từ JWT
 }
 
-/** RAG/Chatbot response */
+// ─── Category Types ───────────────────────────────────────────
+
+/**
+ * Đồng bộ với: CategoryDTO.java
+ */
+export interface CategoryResponse {
+  id: number;
+  name: string;
+  description: string;
+}
+
+// ─── RAG / Chatbot Types ──────────────────────────────────────
+
+/**
+ * Đồng bộ với: Citation.java (model)
+ */
+export interface Citation {
+  source: string;
+  content: string;
+}
+
+/**
+ * Đồng bộ với: RetrievalMeta.java (model)
+ */
+export interface RetrievalMeta {
+  totalChunksRetrieved: number;
+  afterFusion: number;
+  afterGrading: number;
+  latencyMs: number;
+  provider: string;
+  useHyDE: boolean;
+  useMultiQuery: boolean;
+}
+
+/**
+ * Đồng bộ với: RagResponse.java (record)
+ * POST /api/rag/query → trả về đây
+ */
+export interface RagResponse {
+  answer: string;
+  citations: Citation[];
+  meta: RetrievalMeta;
+}
+
+/**
+ * Đồng bộ với: RetrievalOptions.java (record)
+ */
+export interface RetrievalOptions {
+  docType: string;
+  language: string;
+  topK?: number;
+  allowedPermissions?: string[];
+  useHyDE?: boolean;
+  useMultiQuery?: boolean;
+}
+
+/**
+ * Đồng bộ với: RagRequest.java (record)
+ * POST /api/rag/query body
+ */
+export interface RagQueryRequest {
+  question: string;
+  options: RetrievalOptions;
+}
+
+/**
+ * Đồng bộ với: ChatbotService.ask() → Map<String, Object>
+ * GET /api/rag/chatbot → trả về đây
+ */
 export interface ChatbotResponse {
   answer: string;
-  citations: Array<{ source: string; content: string }>;
+  citations: Citation[];
   latencyMs: number;
   provider: string;
   userId: number;
   chatId: string;
 }
 
-// ─── AUTH API ────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// API METHODS — Mapping 1-1 với Backend Controllers
+// ═══════════════════════════════════════════════════════════════
+
+// ─── AUTH API (/api/auth) ─────────────────────────────────────
+// Đồng bộ với: AuthController.java
 
 export const authApi = {
+  /**
+   * POST /api/auth/login
+   * Body: { username, password }
+   * Response: ApiResponse<TokenResponse | MfaRequiredResponse>
+   */
   login: (username: string, password: string) =>
-    apiFetch<ApiResponse<TokenResponse | { username: string; mfaRequired: boolean; mfaSetupRequired: boolean }>>(
-      "/api/auth/login",
-      {
-        method: "POST",
-        body: JSON.stringify({ username, password }),
-        skipAuth: true,
-      },
-    ),
+    apiFetch<ApiResponse<TokenResponse | MfaRequiredResponse>>("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+      skipAuth: true,
+    }),
 
+  /**
+   * POST /api/auth/register
+   * Body: { username, password, fullName, phoneNumber, email, role: BackendRole }
+   */
   register: (data: {
     username: string;
     password: string;
     fullName: string;
-    phoneNumber: string;
+    phoneNumber?: string;
     email: string;
-    role: string;
+    role: BackendRole;
   }) =>
     apiFetch<ApiResponse<unknown>>("/api/auth/register", {
       method: "POST",
@@ -166,6 +303,23 @@ export const authApi = {
       skipAuth: true,
     }),
 
+  /**
+   * POST /api/auth/mfa/setup
+   * Body: { username, password }
+   * Response: ApiResponse<string> — URI để render QR Code cho Google Authenticator
+   */
+  mfaSetup: (username: string, password: string) =>
+    apiFetch<ApiResponse<string>>("/api/auth/mfa/setup", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+      skipAuth: true,
+    }),
+
+  /**
+   * POST /api/auth/mfa/verify
+   * Body: { username, password, mfaCode }
+   * Response: ApiResponse<TokenResponse>
+   */
   mfaVerify: (username: string, password: string, mfaCode: string) =>
     apiFetch<ApiResponse<TokenResponse>>("/api/auth/mfa/verify", {
       method: "POST",
@@ -173,19 +327,30 @@ export const authApi = {
       skipAuth: true,
     }),
 
-  mfaSetup: (username: string, password: string) =>
-    apiFetch<ApiResponse<string>>("/api/auth/mfa/setup", {
+  /**
+   * POST /api/auth/firebase-login
+   * Body: { firebaseToken }
+   * Response: ApiResponse<TokenResponse>
+   */
+  firebaseLogin: (firebaseToken: string) =>
+    apiFetch<ApiResponse<TokenResponse>>("/api/auth/firebase-login", {
       method: "POST",
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ firebaseToken }),
       skipAuth: true,
     }),
 };
 
-// ─── FEEDBACK API ────────────────────────────────────────────
+// ─── FEEDBACK API (/api/feedbacks) ───────────────────────────
+// Đồng bộ với: FeedbackController.java
 
 export const feedbackApi = {
+  /** GET /api/feedbacks → FeedbackResponse[] */
   getAll: () => apiFetch<FeedbackResponse[]>("/api/feedbacks"),
 
+  /** GET /api/feedbacks/{id} → FeedbackResponse */
+  getById: (id: string | number) => apiFetch<FeedbackResponse>(`/api/feedbacks/${id}`),
+
+  /** POST /api/feedbacks → FeedbackResponse (có trackingCode tự sinh) */
   create: (data: FeedbackRequest) =>
     apiFetch<FeedbackResponse>("/api/feedbacks", {
       method: "POST",
@@ -193,30 +358,89 @@ export const feedbackApi = {
     }),
 };
 
-// ─── CHATBOT / RAG API ───────────────────────────────────────
+// ─── CATEGORY API (/api/categories) ──────────────────────────
+// Đồng bộ với: CategoryController.java
 
-export const chatbotApi = {
-  ask: (question: string, userId: number = 1) =>
+export const categoryApi = {
+  /** GET /api/categories → CategoryResponse[] */
+  getAll: () => apiFetch<CategoryResponse[]>("/api/categories"),
+
+  /** POST /api/categories → CategoryResponse */
+  create: (name: string, description?: string) =>
+    apiFetch<CategoryResponse>("/api/categories", {
+      method: "POST",
+      body: JSON.stringify({ name, description }),
+    }),
+};
+
+// ─── RAG API (/api/rag) ───────────────────────────────────────
+// Đồng bộ với: RagController.java
+
+export const ragApi = {
+  /**
+   * POST /api/rag/query
+   * Pipeline 8 bước: QueryTransform → HybridSearch → RRF → SelfRAG → LLM → Citation
+   */
+  query: (question: string, options?: Partial<RetrievalOptions>) =>
+    apiFetch<RagResponse>("/api/rag/query", {
+      method: "POST",
+      body: JSON.stringify({
+        question,
+        options: {
+          docType: "danang-policy",
+          language: "vi",
+          topK: 10,
+          allowedPermissions: ["PUBLIC"],
+          useHyDE: false,
+          useMultiQuery: false,
+          ...options,
+        },
+      } satisfies RagQueryRequest),
+    }),
+
+  /** GET /api/rag/query-simple?q=...&docType=danang-policy&lang=vi */
+  querySimple: (q: string, docType = "danang-policy", lang = "vi") =>
+    apiFetch<RagResponse>(
+      `/api/rag/query-simple?q=${encodeURIComponent(q)}&docType=${encodeURIComponent(docType)}&lang=${encodeURIComponent(lang)}`,
+    ),
+
+  /** GET /api/rag/stats → { totalChunks, byDocType, status } */
+  stats: () => apiFetch<Record<string, unknown>>("/api/rag/stats"),
+
+  /**
+   * GET /api/rag/chatbot?q=...&userId=1
+   * Hỏi chatbot Đà Nẵng. Kết quả được lưu vào ChatHistory.
+   */
+  chatbot: (question: string, userId: number = 1) =>
     apiFetch<ChatbotResponse>(
       `/api/rag/chatbot?q=${encodeURIComponent(question)}&userId=${userId}`,
     ),
 
-  getHistory: (userId: number = 1) =>
+  /** GET /api/rag/chat-history?userId=1 — Lấy 20 câu gần nhất */
+  chatHistory: (userId: number = 1) =>
     apiFetch<unknown[]>(`/api/rag/chat-history?userId=${userId}`),
 
-  getStats: () => apiFetch<unknown>("/api/rag/chat-stats"),
+  /** GET /api/rag/chat-stats */
+  chatStats: () => apiFetch<Record<string, unknown>>("/api/rag/chat-stats"),
 };
 
-// ─── AI API ──────────────────────────────────────────────────
+// ─── AI ORCHESTRATOR API (/api/ai) ───────────────────────────
+// Đồng bộ với: AiController.java
 
 export const aiApi = {
+  /** GET /api/ai/router?message=...&userId=... */
   router: (message: string, userId: string = "User123") =>
     apiFetch<string>(
       `/api/ai/router?message=${encodeURIComponent(message)}&userId=${encodeURIComponent(userId)}`,
     ),
 
+  /** GET /api/ai/racing?message=...&userId=... */
   racing: (message: string, userId: string = "User123") =>
     apiFetch<string>(
       `/api/ai/racing?message=${encodeURIComponent(message)}&userId=${encodeURIComponent(userId)}`,
     ),
+
+  /** GET /api/ai/clear-session?userId=... */
+  clearSession: (userId: string = "User123") =>
+    apiFetch<string>(`/api/ai/clear-session?userId=${encodeURIComponent(userId)}`),
 };

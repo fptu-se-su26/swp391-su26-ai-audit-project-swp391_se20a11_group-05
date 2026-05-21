@@ -19,9 +19,11 @@ export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
+import { type ReportStatus } from "@/lib/mock-data";
+
 /** Map backend status → frontend status for StatusBadge */
-function mapStatus(backendStatus: string): string {
-  const map: Record<string, string> = {
+function mapStatus(backendStatus: string): ReportStatus {
+  const map: Record<string, ReportStatus> = {
     PENDING: "pending",
     ASSIGNED: "inProgress",
     IN_PROGRESS: "inProgress",

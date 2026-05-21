@@ -2,7 +2,7 @@ package com.example.smartcity.modules.user.entity;
 
 import jakarta.persistence.*;
 import com.example.smartcity.common.base.BaseEntity;
-import java.time.LocalDateTime;
+
 
 @Entity
 @Table(name = "users")

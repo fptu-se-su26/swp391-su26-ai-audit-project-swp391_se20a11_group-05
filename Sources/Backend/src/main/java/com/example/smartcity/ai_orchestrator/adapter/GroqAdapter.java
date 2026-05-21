@@ -131,7 +131,6 @@ public class GroqAdapter implements AiProviderAdapter {
         });
     }
 
-    @SuppressWarnings("unchecked")
     private String parseResponse(Map<?, ?> response) {
         try {
             List<?> choices = (List<?>) response.get("choices");

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as WardRouteImport } from './routes/ward'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ReportRouteImport } from './routes/report'
+import { Route as RegisterRouteImport } from './routes/register'
 import { Route as PoliceRouteImport } from './routes/police'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CityAdminRouteImport } from './routes/city-admin'
@@ -33,6 +34,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const ReportRoute = ReportRouteImport.update({
   id: '/report',
   path: '/report',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PoliceRoute = PoliceRouteImport.update({
@@ -77,6 +83,7 @@ export interface FileRoutesByFullPath {
   '/city-admin': typeof CityAdminRoute
   '/login': typeof LoginRoute
   '/police': typeof PoliceRoute
+  '/register': typeof RegisterRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/ward': typeof WardRoute
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/city-admin': typeof CityAdminRoute
   '/login': typeof LoginRoute
   '/police': typeof PoliceRoute
+  '/register': typeof RegisterRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/ward': typeof WardRoute
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/city-admin': typeof CityAdminRoute
   '/login': typeof LoginRoute
   '/police': typeof PoliceRoute
+  '/register': typeof RegisterRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/ward': typeof WardRoute
@@ -116,6 +125,7 @@ export interface FileRouteTypes {
     | '/city-admin'
     | '/login'
     | '/police'
+    | '/register'
     | '/report'
     | '/sitemap.xml'
     | '/ward'
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/city-admin'
     | '/login'
     | '/police'
+    | '/register'
     | '/report'
     | '/sitemap.xml'
     | '/ward'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/city-admin'
     | '/login'
     | '/police'
+    | '/register'
     | '/report'
     | '/sitemap.xml'
     | '/ward'
@@ -153,6 +165,7 @@ export interface RootRouteChildren {
   CityAdminRoute: typeof CityAdminRoute
   LoginRoute: typeof LoginRoute
   PoliceRoute: typeof PoliceRoute
+  RegisterRoute: typeof RegisterRoute
   ReportRoute: typeof ReportRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   WardRoute: typeof WardRoute
@@ -181,6 +194,13 @@ declare module '@tanstack/react-router' {
       path: '/report'
       fullPath: '/report'
       preLoaderRoute: typeof ReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/police': {
@@ -241,6 +261,7 @@ const rootRouteChildren: RootRouteChildren = {
   CityAdminRoute: CityAdminRoute,
   LoginRoute: LoginRoute,
   PoliceRoute: PoliceRoute,
+  RegisterRoute: RegisterRoute,
   ReportRoute: ReportRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   WardRoute: WardRoute,
@@ -250,13 +271,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

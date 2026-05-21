@@ -5,7 +5,6 @@ import com.example.smartcity.ai_orchestrator.cache.AiSessionManager;
 import com.example.smartcity.ai_orchestrator.circuitbreaker.ProviderCircuitBreaker;
 import com.example.smartcity.ai_orchestrator.metrics.OrchestratorMetrics;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -39,7 +38,6 @@ public class AiRouterService {
     // Một Circuit Breaker per provider
     private final Map<String, ProviderCircuitBreaker> breakers = new ConcurrentHashMap<>();
 
-    @Autowired
     public AiRouterService(List<AiProviderAdapter> providers,
                            AiSessionManager sessionManager,
                            OrchestratorMetrics metrics) {

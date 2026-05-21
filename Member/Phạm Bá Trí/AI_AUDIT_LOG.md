@@ -77,6 +77,36 @@
 
 ---
 
+### Entry #: 005
+**Prompt Type:** PROBLEM-SOLVING
+**Stage/Component:** Integration (CT) + Debugging
+**Problem/Context:** Frontend và Backend chưa kết nối được với nhau — `api.ts` dùng sai tên method (`chatbotApi.ask` không tồn tại trong Backend), thiếu hàng loạt TypeScript types tương ứng với Java DTOs, và `node_modules` chưa được cài. IDE báo hơn 60 lỗi compile cùng lúc.
+**Prompt to AI:** "làm sao để bên frontend đọc đc restfull api của backend, bởi vì mới tạo bên 2 bên chưa có kết nối mấy, đồng bộ lại"
+**AI Response (Summary):** AI kiểm tra toàn bộ Backend Controllers (Auth, Feedback, Category, RAG, AI Orchestrator) và đối chiếu với Frontend `api.ts`. Sau đó viết lại toàn bộ file API Client với đầy đủ TypeScript interfaces đồng bộ 1-1 với Java DTOs. Đồng thời sửa tất cả lỗi compile trong `assistant.tsx`, tạo `vite-env.d.ts`, cập nhật `tsconfig.json` và chạy `npm install`.
+
+**Human Delta & Reflection:**
+- **Critical Thinking:** AI xử lý đúng hướng khi đọc toàn bộ source Java trước, sau đó mới viết TypeScript types — đây là cách đúng đắn để đảm bảo type safety giữa 2 layer. Tuy nhiên, lần đầu AI để `import.meta.env` dạng `any` cast là không cần thiết; sau khi tôi phản ánh, AI đã tạo `vite-env.d.ts` để xử lý đúng chuẩn hơn.
+- **Contextualization:** Trong dự án thực tế, việc Frontend và Backend "chưa kết nối" là vấn đề phổ biến khi 2 bên phát triển song song mà không có API contract (Swagger/OpenAPI). Trường hợp này phản ánh đúng thực tế nhóm đã xây Backend mà không định nghĩa contract cho Frontend.
+- **Creative Synthesis:** Tôi nhận ra rằng cần phải đọc file `UserRepository.java` để xác nhận `findByEmail()` có tồn tại không — đây là bước kiểm chứng thủ công mà tôi tự thực hiện thay vì chỉ dựa vào AI đoán. AI cũng không tự biết file bị xóa nhầm, tôi phải chủ động báo lại và yêu cầu khôi phục.
+- **Decision Ownership:** Quyết định ghi đầy đủ toàn bộ mapping Frontend ↔ Backend vào tài liệu cá nhân thay vì chỉ sửa code — đây là bước chủ động của tôi để chuẩn bị cho việc bảo vệ và giải thích code trước hội đồng.
+
+---
+
+### Entry #: 006
+**Prompt Type:** PROBLEM-SOLVING
+**Stage/Component:** Tích hợp API cho Frontend
+**Problem/Context:** Cần chuyển đổi các trang giao diện (Dashboard, chức năng Báo cáo) từ việc dùng dữ liệu giả (mock data) sang gọi API thật từ Backend. Đồng thời cần làm thêm trang Đăng ký và sửa các lỗi đỏ của TypeScript.
+**Prompt to AI:** Yêu cầu AI gắn API thực tế cho các trang giao diện, làm thêm chức năng Đăng ký tài khoản và sửa sạch các lỗi báo đỏ của TypeScript.
+**AI Response (Summary):** AI đã code phần gọi API cho toàn bộ giao diện. Rất hay là AI còn tự viết thêm tính năng dự phòng: nếu Backend bị tắt thì giao diện tự động chuyển về dùng dữ liệu giả (Demo mode) để ứng dụng không bị sập. AI cũng sửa các lỗi TypeScript liên quan đến hệ thống chuyển trang (Router).
+
+**Human Delta & Reflection:**
+- **Critical Thinking:** Khi sửa lỗi chuyển trang, AI lạm dụng ép kiểu `as any` khiến công cụ tạo đường dẫn tự động bị hỏng. Tôi đã phát hiện ra điểm sai này và bắt AI bỏ ép kiểu đi.
+- **Contextualization:** Tính năng "Demo mode" (chế độ dùng thử) của AI rất hữu ích khi đi bảo vệ đồ án, lỡ Backend có bị sập thì thầy cô vẫn xem được giao diện, nên tôi quyết định giữ lại tính năng này.
+- **Creative Synthesis:** Tôi chủ động yêu cầu AI chạy lệnh tự động sinh file chuyển trang (`generate`) để chuẩn hóa code, thay vì tự sửa tay như AI đề xuất ban đầu.
+- **Decision Ownership:** Nghiệm thu bản code mới giúp Frontend chạy mượt mà với Backend và không còn bất kỳ lỗi hiển thị đỏ nào.
+
+---
+
 ## III. Phát hiện Hallucination (Hallucination Detection)
 
 - **Trường hợp:** Khi yêu cầu AI tìm kiếm và tổng hợp 10 bài báo khoa học trên Springer (Entry 001).
@@ -106,4 +136,4 @@ Sinh viên/nhóm cam kết rằng:
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-| Phạm Bá Trí | 2026-05-20 |
+| Phạm Bá Trí | 2026-05-21 |

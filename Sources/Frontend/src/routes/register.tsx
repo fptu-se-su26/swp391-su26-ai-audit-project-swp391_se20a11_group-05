@@ -1,9 +1,16 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
-import { authApi, ApiError } from "@/lib/api";
-import { UserPlus, Loader2, AlertCircle } from "lucide-react";
-import { Role, FRONTEND_TO_BACKEND_ROLE, ROLE_LABEL } from "@/lib/auth";
+import { ApiError } from "@/lib/api";
+import { useRegisterMutation } from "@/lib/hooks";
+import { UserPlus, Loader2 } from "lucide-react";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/register")({
   head: () => ({
@@ -15,174 +22,248 @@ export const Route = createFileRoute("/register")({
   component: RegisterPage,
 });
 
+const registerSchema = z.object({
+  username: z.string().min(3, "Tên đăng nhập phải có ít nhất 3 ký tự"),
+  password: z.string().min(6, "Mật khẩu phải có ít nhất 6 ký tự"),
+  email: z.union([z.string().email("Email không hợp lệ"), z.literal("")]),
+  phone: z.union([
+    z.string().regex(/^0\d{9}$/, "Số điện thoại không hợp lệ (10 số, bắt đầu bằng 0)"),
+    z.literal(""),
+  ]),
+});
+
+type RegisterFormValues = z.infer<typeof registerSchema>;
+
+function PasswordStrengthIndicator({ password }: { password: string }) {
+  const { locale } = useI18n();
+
+  const checks = [
+    { label: "Độ dài", passed: password.length >= 6 },
+    { label: "Số", passed: /\d/.test(password) },
+    { label: "Ký tự đặc biệt", passed: /[!@#$%^&*(),.?":{}|<>]/.test(password) },
+  ];
+
+  const passedCount = checks.filter((c) => c.passed).length;
+
+  const strengthLabel =
+    password.length === 0
+      ? ""
+      : passedCount <= 1
+        ? locale === "vi" ? "Yếu" : "Weak"
+        : passedCount === 2
+          ? locale === "vi" ? "Trung bình" : "Medium"
+          : locale === "vi" ? "Mạnh" : "Strong";
+
+  return (
+    <div className="space-y-1.5 mt-2">
+      <div className="flex gap-1.5">
+        {checks.map((check, i) => (
+          <div
+            key={i}
+            className={`h-1.5 flex-1 rounded-full transition-colors duration-200 ${
+              password.length === 0
+                ? "bg-gray-200"
+                : check.passed
+                  ? "bg-green-500"
+                  : "bg-red-300"
+            }`}
+          />
+        ))}
+      </div>
+      {password.length > 0 && (
+        <p className="text-xs text-muted-foreground">{strengthLabel}</p>
+      )}
+    </div>
+  );
+}
+
 function RegisterPage() {
   const { t, locale } = useI18n();
   const navigate = useNavigate();
 
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [role, setRole] = useState<Role>("citizen");
+  const registerMutation = useRegisterMutation();
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const form = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      username: "",
+      password: "",
+      email: "",
+      phone: "",
+    },
+  });
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
+  const watchedPassword = form.watch("password");
 
+  const handleRegister = async (values: RegisterFormValues) => {
     try {
-      await authApi.register({
-        username,
-        password,
-        fullName: username,
-        email: email || "",
-        phoneNumber: phone || "",
-        role: FRONTEND_TO_BACKEND_ROLE[role] as any,
+      await registerMutation.mutateAsync({
+        username: values.username,
+        password: values.password,
+        fullName: values.username,
+        email: values.email || "",
+        phoneNumber: values.phone || "",
       });
-      setSuccess(true);
+      toast.success(
+        locale === "vi" ? "Đăng ký thành công!" : "Registration successful!",
+        {
+          description:
+            locale === "vi"
+              ? "Đang chuyển hướng đến trang đăng nhập..."
+              : "Redirecting to login...",
+        },
+      );
       setTimeout(() => {
         navigate({ to: "/login" as any });
-      }, 2000);
+      }, 1500);
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.message);
+        toast.error(err.message);
       } else {
-        setError(locale === "vi" ? "Lỗi kết nối. Backend chưa chạy?" : "Connection error. Backend running?");
+        toast.error(
+          locale === "vi"
+            ? "Lỗi kết nối. Backend chưa chạy?"
+            : "Connection error. Backend running?",
+        );
       }
-    } finally {
-      setLoading(false);
     }
   };
 
-  if (success) {
-    return (
-      <div className="max-w-md mx-auto px-4 py-20 text-center">
-        <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-          <UserPlus size={40} />
-        </div>
-        <h1 className="text-2xl font-bold mb-2">
-          {locale === "vi" ? "Đăng ký thành công!" : "Registration successful!"}
-        </h1>
-        <p className="text-ink-soft mb-6">
-          {locale === "vi" ? "Đang chuyển hướng đến trang đăng nhập..." : "Redirecting to login..."}
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-2xl mx-auto px-4 py-12 md:py-16">
-      <div className="card-civic p-6 md:p-10 border-t-4 border-gov-gold">
-        <div className="text-center mb-8">
-          <h1 className="font-heading text-3xl md:text-4xl text-gov-blue mb-2">
-            {locale === "vi" ? "Đăng ký tài khoản" : "Create Account"}
-          </h1>
-          <p className="text-ink-soft">
-            {locale === "vi" ? "Tham gia hệ thống phản ánh đô thị Đà Nẵng" : "Join Da Nang urban reporting system"}
+    <div className="max-w-md mx-auto px-4 py-12 md:py-24 animate-fade-in">
+      <Card className="border-t-4 border-t-gov-gold shadow-lg card-civic-hover">
+        <CardHeader className="text-center pb-4">
+          <p className="text-gov-gold uppercase tracking-[0.2em] text-xs font-bold mb-2">
+            {locale === "vi" ? "Cổng đăng ký" : "Registration"}
           </p>
-        </div>
+          <CardTitle className="font-heading text-3xl md:text-4xl text-gov-blue">
+            {locale === "vi" ? "Đăng ký tài khoản" : "Create Account"}
+          </CardTitle>
+          <CardDescription className="text-base mt-2">
+            {locale === "vi"
+              ? "Tham gia hệ thống phản ánh đô thị Đà Nẵng"
+              : "Join Da Nang urban reporting system"}
+          </CardDescription>
+        </CardHeader>
 
-        {error && (
-          <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 flex items-center gap-3 text-red-700">
-            <AlertCircle size={20} className="shrink-0" />
-            <span className="text-sm">{error}</span>
-          </div>
-        )}
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleRegister)} className="space-y-5">
+              <div className="grid md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="username"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {locale === "vi" ? "Tên đăng nhập" : "Username"} *
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder={locale === "vi" ? "Nhập tên đăng nhập" : "Enter username"}
+                          className="h-12"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-        <form onSubmit={handleRegister} className="space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-bold mb-2">
-                {locale === "vi" ? "Tên đăng nhập" : "Username"} *
-              </label>
-              <input
-                type="text"
-                required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full min-h-[52px] px-4 rounded-lg border-2 border-slate-200 text-base focus:border-gov-blue outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-bold mb-2">
-                {locale === "vi" ? "Mật khẩu" : "Password"} *
-              </label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full min-h-[52px] px-4 rounded-lg border-2 border-slate-200 text-base focus:border-gov-blue outline-none"
-              />
-            </div>
-          </div>
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {locale === "vi" ? "Mật khẩu" : "Password"} *
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="••••••••"
+                          className="h-12"
+                          {...field}
+                        />
+                      </FormControl>
+                      <PasswordStrengthIndicator password={watchedPassword} />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-bold mb-2">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full min-h-[52px] px-4 rounded-lg border-2 border-slate-200 text-base focus:border-gov-blue outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-bold mb-2">
-                {locale === "vi" ? "Số điện thoại" : "Phone number"}
-              </label>
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full min-h-[52px] px-4 rounded-lg border-2 border-slate-200 text-base focus:border-gov-blue outline-none"
-              />
-            </div>
-          </div>
+              <div className="grid md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          placeholder="email@example.com"
+                          className="h-12"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-          <div>
-            <label className="block text-sm font-bold mb-2">
-              {locale === "vi" ? "Vai trò" : "Role"}
-            </label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as Role)}
-              className="w-full min-h-[52px] px-4 rounded-lg border-2 border-slate-200 text-base focus:border-gov-blue outline-none bg-white"
-            >
-              <option value="citizen">{ROLE_LABEL["citizen"][locale]}</option>
-              <option value="ward">{ROLE_LABEL["ward"][locale]}</option>
-              <option value="police">{ROLE_LABEL["police"][locale]}</option>
-            </select>
-            <p className="text-xs text-ink-soft mt-1">
-              * Chức năng chọn vai trò cán bộ chỉ dành cho mục đích demo môn học.
-            </p>
-          </div>
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {locale === "vi" ? "Số điện thoại" : "Phone number"}
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="tel"
+                          placeholder="0912345678"
+                          className="h-12"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
-          <div className="pt-4">
-            <button
-              type="submit"
-              disabled={loading || !username || !password}
-              className="btn-civic btn-civic-primary w-full text-lg disabled:opacity-50"
-            >
-              {loading ? <Loader2 size={20} className="animate-spin" /> : <UserPlus size={20} />}
-              {locale === "vi" ? "Đăng ký" : "Register"}
-            </button>
-          </div>
-        </form>
+              <Button
+                type="submit"
+                size="lg"
+                disabled={registerMutation.isPending}
+                className="w-full text-base mt-2"
+              >
+                {registerMutation.isPending ? (
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                ) : (
+                  <UserPlus className="mr-2 h-5 w-5" />
+                )}
+                {locale === "vi" ? "Đăng ký" : "Register"}
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
 
-        <div className="mt-6 text-center">
-          <span className="text-ink-soft">
+        <CardFooter className="justify-center border-t pt-6">
+          <span className="text-ink-soft text-sm">
             {locale === "vi" ? "Đã có tài khoản? " : "Already have an account? "}
           </span>
-          <Link to={"/login" as any} className="text-gov-blue font-semibold hover:underline">
+          <Link
+            to={"/login" as any}
+            className="text-primary font-semibold hover:underline text-sm"
+          >
             {locale === "vi" ? "Đăng nhập" : "Login"}
           </Link>
-        </div>
-      </div>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

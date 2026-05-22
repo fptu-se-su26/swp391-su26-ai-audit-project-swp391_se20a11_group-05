@@ -23,6 +23,12 @@ public interface AiProviderAdapter {
      * Dùng cho Latency-Aware Balancing & Auto-Fallback.
      */
     boolean isHealthy();
+
+    /**
+     * [TÍNH NĂNG MỚI] Gửi yêu cầu tới AI và trả về luồng dữ liệu (Stream) từng chữ một (SSE).
+     * Giúp giảm Perceived Latency (độ trễ cảm nhận) xuống dưới 1s.
+     */
+    reactor.core.publisher.Flux<String> generateStream(String systemPrompt, String userMessage);
 }
 
 

@@ -152,6 +152,71 @@ public class GroqAdapter implements AiProviderAdapter {
         return keyPool.isConfigured() && !keyPool.isPoolExhausted();
     }
 
+    @Override
+    public reactor.core.publisher.Flux<String> generateStream(String systemPrompt, String userMessage) {
+        if (!keyPool.isConfigured()) {
+            return reactor.core.publisher.Flux.just("[MOCK] Groq chưa có API key: " + userMessage);
+        }
+
+        String apiKey = safeNextKey();
+        if (apiKey == null) {
+            return reactor.core.publisher.Flux.error(new GroqKeyPool.PoolExhaustedException("Không còn key ACTIVE"));
+        }
+
+        Map<String, Object> body = Map.of(
+            "model", model,
+            "messages", List.of(
+                Map.of("role", "system", "content", systemPrompt),
+                Map.of("role", "user",   "content", userMessage)
+            ),
+            "temperature", 0.3,
+            "max_tokens",  1024,
+            "stream", true // Bật chế độ Streaming của Groq
+        );
+
+        return webClient.post()
+                .uri("/chat/completions")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
+                .bodyValue(body)
+                .retrieve()
+                .bodyToFlux(String.class)
+                .map(this::parseStreamChunk)
+                .filter(chunk -> !chunk.isEmpty())
+                .onErrorResume(e -> reactor.core.publisher.Flux.just("\n[Lỗi kết nối Stream: " + e.getMessage() + "]"));
+    }
+
+    /**
+     * Groq SSE format:
+     * data: {"id":"...","choices":[{"delta":{"content":"Hello"}}]}
+     * data: [DONE]
+     */
+    private String parseStreamChunk(String chunk) {
+        if (chunk == null || chunk.isBlank() || chunk.equals("[DONE]")) return "";
+        try {
+            // Loại bỏ tiền tố "data: " nếu có (Spring WebClient thường lấy trực tiếp JSON object nếu cấu hình MediaType text/event-stream, nhưng đôi khi vẫn còn)
+            if (chunk.startsWith("data: ")) {
+                chunk = chunk.substring(6).trim();
+            }
+            if (chunk.equals("[DONE]")) return "";
+
+            // Tạm dùng Regex thay vì ObjectMapper để parse nhanh đoạn chữ (vì Jackson đôi khi báo lỗi nếu chunk bị cắt ngang)
+            // Lấy nội dung trong "content":"..."
+            int contentIndex = chunk.indexOf("\"content\":\"");
+            if (contentIndex == -1) return "";
+            
+            int startIndex = contentIndex + 11;
+            int endIndex = chunk.indexOf("\"", startIndex);
+            if (endIndex == -1) return "";
+            
+            // Xử lý ký tự đặc biệt (VD: \n, \")
+            String content = chunk.substring(startIndex, endIndex);
+            content = content.replace("\\n", "\n").replace("\\\"", "\"").replace("\\t", "\t");
+            return content;
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
     public List<Map<String, Object>> getPoolStats() { return keyPool.getStats(); }
     public void resetPool() { keyPool.resetAll(); }
 }

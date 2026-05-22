@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { getToken, setToken, removeToken } from "./api";
+import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
+import { getToken, setToken, removeToken, setOnUnauthorized } from "./api";
 
 /**
  * Role mapping — Backend dùng UPPER_CASE, Frontend dùng lowercase.
@@ -62,13 +62,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       /* ignore */
     }
+
+    // Auto-logout when backend returns 401
+    setOnUnauthorized(() => {
+      setUser(null);
+      if (typeof window !== "undefined") {
+        localStorage.removeItem(STORAGE_KEY);
+        removeToken();
+      }
+    });
   }, []);
 
   const login = (u: AuthUser) => {
     setUser(u);
     if (typeof window !== "undefined") {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
-      // Also store JWT token separately for API calls
       if (u.token) {
         setToken(u.token);
       }

@@ -115,6 +115,67 @@ public class GeminiAdapter implements AiProviderAdapter {
         keyPool.resetAllToActive();
     }
 
+    @Override
+    public reactor.core.publisher.Flux<String> generateStream(String systemPrompt, String userMessage) {
+        if (!keyPool.isConfigured()) {
+            return reactor.core.publisher.Flux.just(buildMockFallback(userMessage));
+        }
+
+        String apiKey = keyPool.nextKey();
+        if (apiKey == null) {
+            return reactor.core.publisher.Flux.just(buildMockFallback(userMessage));
+        }
+
+        Map<String, Object> body = Map.of(
+            "system_instruction", Map.of("parts", List.of(Map.of("text", systemPrompt))),
+            "contents", List.of(
+                Map.of("role", "user", "parts", List.of(Map.of("text", userMessage)))
+            ),
+            "generationConfig", Map.of("temperature", 0.3, "maxOutputTokens", 1024)
+        );
+
+        return webClient.post()
+                .uri("/v1beta/models/" + model + ":streamGenerateContent?alt=sse&key=" + apiKey)
+                .bodyValue(body)
+                .retrieve()
+                .bodyToFlux(String.class)
+                .map(this::parseGeminiStreamChunk)
+                .filter(chunk -> !chunk.isEmpty())
+                .onErrorResume(e -> reactor.core.publisher.Flux.just("\n[Lỗi kết nối Stream Gemini: " + e.getMessage() + "]"));
+    }
+
+    /**
+     * Parse chunks từ streamGenerateContent của Gemini
+     */
+    private String parseGeminiStreamChunk(String chunk) {
+        if (chunk == null || chunk.isBlank()) return "";
+        try {
+            if (chunk.startsWith("data: ")) {
+                chunk = chunk.substring(6).trim();
+            }
+            if (chunk.isBlank() || chunk.equals("[DONE]")) return "";
+
+            // Tạm dùng Regex thay vì ObjectMapper để parse nhanh đoạn chữ
+            int textIndex = chunk.indexOf("\"text\": \"");
+            if (textIndex == -1) return "";
+            
+            int startIndex = textIndex + 9;
+            int endIndex = chunk.indexOf("\"", startIndex);
+            // Handle escaped quotes inside the text
+            while (endIndex != -1 && chunk.charAt(endIndex - 1) == '\\') {
+                endIndex = chunk.indexOf("\"", endIndex + 1);
+            }
+            
+            if (endIndex == -1) return "";
+            
+            String content = chunk.substring(startIndex, endIndex);
+            content = content.replace("\\n", "\n").replace("\\\"", "\"").replace("\\t", "\t");
+            return content;
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
     private String buildMockFallback(String userMessage) {
         return "⏳ Tất cả AI provider đang tạm thời quá tải. Vui lòng thử lại sau 1-2 phút. (Câu hỏi: "
                 + userMessage.substring(0, Math.min(60, userMessage.length())) + "...)";

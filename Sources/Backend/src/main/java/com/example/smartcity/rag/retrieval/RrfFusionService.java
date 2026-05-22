@@ -100,7 +100,7 @@ public class RrfFusionService {
             DocumentChunk chunk = list.get(rank);
             UUID id = chunk.getId();
             double rrfScore = 1.0 / (RRF_K + rank + 1);  // rank+1 vì 0-indexed
-            scores.merge(id, rrfScore, Double::sum);       // Cộng dồn nếu đã có
+            scores.merge(id, rrfScore, (a, b) -> a + b);       // Cộng dồn nếu đã có
             chunkMap.put(id, chunk);                       // Lưu object
         }
     }

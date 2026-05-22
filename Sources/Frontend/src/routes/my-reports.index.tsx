@@ -1,11 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
-import { feedbackApi, type FeedbackResponse } from "@/lib/api";
+import { useFeedbacks } from "@/lib/hooks";
 import { StatusBadge } from "@/components/site/StatusBadge";
-import { MapPin, RefreshCw, Loader2, LogIn } from "lucide-react";
+import { EmptyState, ErrorState, NotLoggedIn } from "@/components/site/EmptyState";
+import { DemoBanner } from "@/components/site/DemoBanner";
+import { MapPin, RefreshCw, Loader2 } from "lucide-react";
 import { reports as mockReports, type ReportStatus } from "@/lib/mock-data";
+import { toast } from "sonner";
+import { useEffect } from "react";
 
 export const Route = createFileRoute("/my-reports/")(({
   head: () => ({
@@ -35,50 +38,26 @@ function MyReports() {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  const [apiFeedbacks, setApiFeedbacks] = useState<FeedbackResponse[]>([]);
-  const [apiLoaded, setApiLoaded] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const { data: feedbacksPage, isLoading, isFetching, refetch, error, isError } = useFeedbacks(0, 50);
 
+  // Toast API errors
   useEffect(() => {
-    loadFeedbacks();
-  }, []);
-
-  const loadFeedbacks = async () => {
-    setLoading(true);
-    try {
-      const data = await feedbackApi.getAll();
-      setApiFeedbacks(data);
-      setApiLoaded(true);
-    } catch {
-      setApiLoaded(false);
-    } finally {
-      setLoading(false);
+    if (isError && error) {
+      toast.error(error instanceof Error ? error.message : "Failed to load reports", { id: "reports-error" });
     }
-  };
+  }, [isError, error]);
+
+  const hasApiData = !!feedbacksPage && feedbacksPage.content.length > 0;
+  const apiFeedbacks = feedbacksPage?.content ?? [];
 
   // Nếu chưa đăng nhập → hiện thông báo
   if (!isAuthenticated) {
-    return (
-      <div className="max-w-2xl mx-auto px-4 py-20 text-center">
-        <LogIn size={48} className="mx-auto mb-4 text-gov-blue" />
-        <h1 className="font-heading text-3xl text-gov-blue mb-3">
-          {locale === "vi" ? "Vui lòng đăng nhập" : "Please log in"}
-        </h1>
-        <p className="text-ink-soft mb-6">
-          {locale === "vi"
-            ? "Bạn cần đăng nhập để xem các phản ánh của mình."
-            : "You need to log in to view your reports."}
-        </p>
-        <Link to={"/login" as any} className="btn-civic btn-civic-primary">
-          {locale === "vi" ? "Đăng nhập ngay" : "Log in"}
-        </Link>
-      </div>
-    );
+    return <NotLoggedIn />;
   }
 
   // Dữ liệu hiển thị: API nếu có, fallback mock
-  const displayItems = apiLoaded ? apiFeedbacks : mockReports;
-  const isUsingMock = !apiLoaded;
+  const displayItems = hasApiData ? apiFeedbacks : mockReports;
+  const isUsingMock = !hasApiData;
 
   return (
     <div className="max-w-5xl mx-auto px-4 md:px-8 py-10 md:py-14">
@@ -93,46 +72,45 @@ function MyReports() {
           )}
         </div>
         <button
-          onClick={loadFeedbacks}
-          disabled={loading}
+          onClick={() => refetch()}
+          disabled={isFetching}
           className="btn-civic btn-civic-ghost flex items-center gap-2 min-h-[44px]"
         >
-          {loading ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />}
+          {isFetching ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />}
           {locale === "vi" ? "Làm mới" : "Refresh"}
         </button>
       </div>
 
       {/* Trạng thái kết nối */}
-      {isUsingMock && (
-        <div className="mb-6 px-4 py-3 rounded-xl border border-amber-300 bg-amber-50 text-amber-800 text-sm flex items-center gap-2">
-          ⚠️ {locale === "vi"
-            ? "Đang hiển thị dữ liệu demo — chưa kết nối Backend."
-            : "Showing demo data — Backend not connected."}
-        </div>
+      {isUsingMock && !isError && <DemoBanner />}
+
+      {isError && !isLoading && (
+        <ErrorState
+          message={error instanceof Error ? error.message : (locale === "vi" ? "Không thể tải dữ liệu từ máy chủ" : "Failed to load data from server")}
+          onRetry={() => refetch()}
+          compact
+        />
       )}
 
-      {loading && (
+      {isLoading && (
         <div className="flex items-center justify-center py-20">
           <Loader2 size={40} className="animate-spin text-gov-blue" />
         </div>
       )}
 
-      {!loading && displayItems.length === 0 && (
-        <div className="text-center py-20">
-          <p className="text-ink-soft text-lg mb-4">
-            {locale === "vi" ? "Chưa có phản ánh nào." : "No reports yet."}
-          </p>
-          <Link to="/report" className="btn-civic btn-civic-primary">
-            {locale === "vi" ? "Gửi phản ánh đầu tiên" : "Submit your first report"}
-          </Link>
-        </div>
+      {!isLoading && displayItems.length === 0 && (
+        <EmptyState
+          title={locale === "vi" ? "Chưa có phản ánh nào" : "No reports yet"}
+          description={locale === "vi" ? "Hãy gửi phản ánh đầu tiên của bạn về các vấn đề đô thị tại Đà Nẵng." : "Submit your first report about urban issues in Da Nang."}
+          action={<Link to="/report" className="btn-civic btn-civic-primary">{locale === "vi" ? "Gửi phản ánh đầu tiên" : "Submit your first report"}</Link>}
+        />
       )}
 
       <div className="space-y-4">
-        {!loading && apiLoaded && apiFeedbacks.map((r) => (
+        {!isLoading && hasApiData && apiFeedbacks.map((r, idx) => (
           <div
             key={r.id}
-            className="card-civic p-5 md:p-6 flex flex-col sm:flex-row gap-5"
+            className={`card-civic p-5 md:p-6 flex flex-col sm:flex-row gap-5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 animate-fade-in-up stagger-${Math.min(idx + 1, 4)}`}
           >
             <div className="flex-1">
               <div className="flex flex-wrap items-start gap-2 mb-2">
@@ -154,12 +132,12 @@ function MyReports() {
         ))}
 
         {/* Fallback mock items khi chưa kết nối */}
-        {!loading && !apiLoaded && mockReports.map((r) => (
+        {!isLoading && !hasApiData && mockReports.map((r, idx) => (
           <Link
             key={r.id}
             to="/my-reports/$id"
             params={{ id: r.id }}
-            className="card-civic p-5 md:p-6 flex flex-col sm:flex-row gap-5 hover:shadow-md transition-shadow"
+            className={`card-civic p-5 md:p-6 flex flex-col sm:flex-row gap-5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 animate-fade-in-up stagger-${Math.min(idx + 1, 4)}`}
           >
             <img
               src={r.image}

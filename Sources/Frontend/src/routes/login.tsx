@@ -1,9 +1,18 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
-import { useAuth, ROLE_LABEL, mapBackendRole, type Role } from "@/lib/auth";
-import { authApi, ApiError } from "@/lib/api";
-import { LogIn, Building2, Shield, Landmark, User, Loader2, AlertCircle } from "lucide-react";
+import { useAuth, mapBackendRole } from "@/lib/auth";
+import { ApiError } from "@/lib/api";
+import { useLoginMutation, useMfaVerifyMutation } from "@/lib/hooks";
+import { LogIn, Loader2, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const Route = createFileRoute("/login")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -18,237 +27,222 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
-const ROLE_OPTIONS: { role: Role; icon: typeof User; demoUser: string; demoPass: string; org: string; redirect: string }[] = [
-  { role: "citizen", icon: User, demoUser: "citizen1", demoPass: "123456", org: "Người dân Đà Nẵng", redirect: "/" },
-  { role: "ward", icon: Building2, demoUser: "ward_staff1", demoPass: "123456", org: "UBND Phường Hải Châu I", redirect: "/ward" },
-  { role: "police", icon: Shield, demoUser: "police1", demoPass: "123456", org: "Công an TP. Đà Nẵng", redirect: "/police" },
-  { role: "city_admin", icon: Landmark, demoUser: "admin", demoPass: "admin123", org: "UBND TP. Đà Nẵng — IOC", redirect: "/city-admin" },
-];
+const loginSchema = z.object({
+  username: z.string().min(3, "Tên đăng nhập phải có ít nhất 3 ký tự"),
+  password: z.string().min(3, "Mật khẩu không được để trống"),
+});
+
+const mfaSchema = z.object({
+  mfaCode: z.string().length(6, "Mã MFA phải có đúng 6 chữ số").regex(/^\d+$/, "Mã MFA chỉ chứa số"),
+});
 
 function LoginPage() {
   const { t, locale } = useI18n();
   const { login } = useAuth();
   const navigate = useNavigate();
   const { redirect } = useSearch({ from: "/login" });
-  const [selected, setSelected] = useState<Role>("citizen");
-  const [username, setUsername] = useState("citizen1");
-  const [password, setPassword] = useState("123456");
-  const [loading, setLoading] = useState(false);
+
   const [error, setError] = useState<string | null>(null);
   const [mfaRequired, setMfaRequired] = useState(false);
-  const [mfaCode, setMfaCode] = useState("");
+  const [savedUsername, setSavedUsername] = useState("");
+  const [savedPassword, setSavedPassword] = useState("");
 
-  const opt = ROLE_OPTIONS.find((o) => o.role === selected)!;
+  const loginMutation = useLoginMutation();
+  const mfaVerifyMutation = useMfaVerifyMutation();
 
-  // Auto-fill demo credentials when role changes
-  const selectRole = (role: Role) => {
-    setSelected(role);
-    const roleOpt = ROLE_OPTIONS.find((o) => o.role === role)!;
-    setUsername(roleOpt.demoUser);
-    setPassword(roleOpt.demoPass);
+  const loginForm = useForm<z.infer<typeof loginSchema>>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { username: "", password: "" },
+  });
+
+  const mfaForm = useForm<z.infer<typeof mfaSchema>>({
+    resolver: zodResolver(mfaSchema),
+    defaultValues: { mfaCode: "" },
+  });
+
+  const handleLoginSubmit = async (values: z.infer<typeof loginSchema>) => {
     setError(null);
-    setMfaRequired(false);
-  };
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
 
     try {
-      const result = await authApi.login(username, password);
+      const result = await loginMutation.mutateAsync(values);
       const data = result.data;
 
-      // Check if MFA is required
       if ("mfaRequired" in data && data.mfaRequired) {
+        setSavedUsername(values.username);
+        setSavedPassword(values.password);
         setMfaRequired(true);
-        setLoading(false);
         return;
       }
 
-      // Direct login success — has token
       if ("token" in data && data.token) {
-        login({
-          name: data.username,
-          role: mapBackendRole(data.role),
-          org: opt.org,
-          token: data.token,
-        });
-        navigate({ to: (redirect || opt.redirect) as any });
+        processSuccessfulLogin(data);
       }
     } catch (err) {
-      if (err instanceof ApiError) {
-        if (err.status === 401) {
-          setError(locale === "vi" ? "Sai tài khoản hoặc mật khẩu" : "Invalid username or password");
-        } else {
-          setError(err.message);
-        }
-      } else {
-        // Fallback: Demo mode khi backend chưa chạy
-        setError(null);
-        login({ name: opt.demoUser, role: selected, org: opt.org });
-        navigate({ to: (redirect || opt.redirect) as any });
-      }
-    } finally {
-      setLoading(false);
+      const msg = err instanceof ApiError
+        ? (err.status === 401 ? "Sai tài khoản hoặc mật khẩu" : err.message)
+        : "Lỗi kết nối máy chủ";
+      setError(msg);
+      toast.error(msg);
     }
   };
 
-  const handleMfaVerify = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleMfaSubmit = async (values: z.infer<typeof mfaSchema>) => {
     setError(null);
-    setLoading(true);
 
     try {
-      const result = await authApi.mfaVerify(username, password, mfaCode);
-      const data = result.data;
-      login({
-        name: data.username,
-        role: mapBackendRole(data.role),
-        org: opt.org,
-        token: data.token,
+      const result = await mfaVerifyMutation.mutateAsync({
+        username: savedUsername,
+        password: savedPassword,
+        mfaCode: values.mfaCode,
       });
-      navigate({ to: (redirect || opt.redirect) as any });
+      processSuccessfulLogin(result.data);
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(locale === "vi" ? "Mã xác thực không đúng" : "Invalid MFA code");
+        setError("Mã xác thực không đúng");
       } else {
-        setError(locale === "vi" ? "Lỗi kết nối" : "Connection error");
+        setError("Lỗi kết nối máy chủ");
       }
-    } finally {
-      setLoading(false);
     }
+  };
+
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const processSuccessfulLogin = (data: any) => {
+    const backendRole = mapBackendRole(data.role);
+    let org = "Người dân Đà Nẵng";
+    if (backendRole === "ward") org = "UBND Phường Hải Châu I";
+    else if (backendRole === "police") org = "Công an TP. Đà Nẵng";
+    else if (backendRole === "city_admin") org = "UBND TP. Đà Nẵng — IOC";
+
+    login({
+      name: data.username,
+      role: backendRole,
+      org: org,
+      token: data.token,
+    });
+
+    let targetRoute = "/";
+    if (backendRole === "ward") targetRoute = "/ward";
+    else if (backendRole === "police") targetRoute = "/police";
+    else if (backendRole === "city_admin") targetRoute = "/city-admin";
+
+    navigate({ to: (redirect || targetRoute) as any });
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-12 md:py-16">
-      <div className="card-civic p-6 md:p-10 border-t-4 border-gov-gold">
-        <div className="text-center mb-8">
+    <div className="max-w-md mx-auto px-4 py-12 md:py-24 animate-fade-in-up">
+      <Card className="border-t-4 border-t-gov-gold shadow-lg hover:shadow-xl transition-shadow duration-200">
+        <CardHeader className="text-center pb-4">
           <p className="text-gov-gold uppercase tracking-[0.2em] text-xs font-bold mb-2">
-            Cổng đăng nhập / Authentication
+            Cổng đăng nhập
           </p>
-          <h1 className="font-heading text-3xl md:text-4xl text-gov-blue">{t("login.title")}</h1>
-          <p className="text-ink-soft mt-2">
+          <CardTitle className="font-heading text-3xl md:text-4xl text-gov-blue">
+            {t("login.title")}
+          </CardTitle>
+          <CardDescription className="text-base mt-2">
             {locale === "vi"
-              ? "Chọn vai trò và đăng nhập. Nếu backend chưa chạy → tự động vào chế độ demo."
-              : "Select a role and sign in. If backend is not running → auto-fallback to demo mode."}
-          </p>
-        </div>
+              ? "Đăng nhập để sử dụng các dịch vụ đô thị thông minh."
+              : "Sign in to access smart city services."}
+          </CardDescription>
+        </CardHeader>
 
-        {/* Role Selection */}
-        <div className="grid sm:grid-cols-2 gap-3 mb-7">
-          {ROLE_OPTIONS.map((o) => {
-            const Icon = o.icon;
-            const active = selected === o.role;
-            return (
-              <button
-                key={o.role}
-                type="button"
-                onClick={() => selectRole(o.role)}
-                className={`text-left p-4 rounded-xl border-2 transition-all flex gap-3 items-start min-h-[88px] ${
-                  active
-                    ? "border-gov-blue bg-gov-blue/5 shadow-sm"
-                    : "border-slate-200 bg-white hover:border-gov-blue/40"
-                }`}
-                aria-pressed={active}
-              >
-                <div
-                  className={`w-11 h-11 rounded-lg grid place-items-center shrink-0 ${
-                    active ? "bg-gov-blue text-white" : "bg-slate-100 text-gov-blue"
-                  }`}
-                >
-                  <Icon size={22} />
+        <CardContent>
+          {error && (
+            <div className="mb-6 p-4 rounded-lg bg-destructive/10 border border-destructive/20 flex items-center gap-3 text-destructive">
+              <AlertCircle size={20} className="shrink-0" />
+              <span className="text-sm font-medium">{error}</span>
+            </div>
+          )}
+
+          {mfaRequired ? (
+            <Form {...mfaForm}>
+              <form onSubmit={mfaForm.handleSubmit(handleMfaSubmit)} className="space-y-6">
+                <div className="text-center p-4 bg-primary/5 rounded-lg border border-primary/20 mb-2">
+                  <p className="text-primary font-semibold">Xác thực 2 bước (MFA)</p>
+                  <p className="text-sm text-muted-foreground mt-1">Mở Google Authenticator và nhập mã 6 số</p>
                 </div>
-                <div>
-                  <div className="font-bold text-ink">{ROLE_LABEL[o.role][locale]}</div>
-                  <div className="text-xs text-ink-soft mt-0.5">{o.org}</div>
+
+                <FormField
+                  control={mfaForm.control}
+                  name="mfaCode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Mã xác thực</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="000000"
+                          maxLength={6}
+                          className="text-center text-2xl tracking-[0.5em] font-mono h-14"
+                          {...field}
+                          autoFocus
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="flex flex-col gap-3">
+                  <Button type="submit" size="lg" disabled={mfaVerifyMutation.isPending} className="w-full text-base">
+                    {mfaVerifyMutation.isPending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <LogIn className="mr-2 h-5 w-5" />}
+                    Xác nhận
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => { setMfaRequired(false); mfaForm.reset(); }}
+                    className="w-full"
+                  >
+                    Quay lại
+                  </Button>
                 </div>
-              </button>
-            );
-          })}
-        </div>
+              </form>
+            </Form>
+          ) : (
+            <Form {...loginForm}>
+              <form onSubmit={loginForm.handleSubmit(handleLoginSubmit)} className="space-y-5">
+                <FormField
+                  control={loginForm.control}
+                  name="username"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("login.phone")}</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Nhập tên đăng nhập" className="h-12" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-        {/* Error message */}
-        {error && (
-          <div className="mb-4 p-4 rounded-lg bg-red-50 border border-red-200 flex items-center gap-3 text-red-700">
-            <AlertCircle size={20} className="shrink-0" />
-            <span className="text-sm">{error}</span>
-          </div>
-        )}
+                <FormField
+                  control={loginForm.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("login.password")}</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="••••••••" className="h-12" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-        {/* MFA Form */}
-        {mfaRequired ? (
-          <form className="space-y-4" onSubmit={handleMfaVerify}>
-            <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200 mb-4">
-              <p className="text-gov-blue font-semibold">
-                {locale === "vi" ? "Xác thực 2 bước (MFA)" : "Two-factor Authentication (MFA)"}
-              </p>
-              <p className="text-sm text-ink-soft mt-1">
-                {locale === "vi"
-                  ? "Mở Google Authenticator và nhập mã 6 số"
-                  : "Open Google Authenticator and enter the 6-digit code"}
-              </p>
-            </div>
-            <div>
-              <label className="block text-sm font-bold mb-2">
-                {locale === "vi" ? "Mã xác thực" : "Verification code"}
-              </label>
-              <input
-                type="text"
-                value={mfaCode}
-                onChange={(e) => setMfaCode(e.target.value)}
-                maxLength={6}
-                pattern="[0-9]{6}"
-                className="w-full min-h-[52px] px-4 rounded-lg border-2 border-slate-200 text-base focus:border-gov-blue outline-none text-center text-2xl tracking-[0.5em] font-mono"
-                placeholder="000000"
-                autoFocus
-              />
-            </div>
-            <button type="submit" disabled={loading || mfaCode.length !== 6} className="btn-civic btn-civic-primary w-full text-lg disabled:opacity-50">
-              {loading ? <Loader2 size={20} className="animate-spin" /> : <LogIn size={20} />}
-              {locale === "vi" ? "Xác nhận" : "Verify"}
-            </button>
-            <button type="button" onClick={() => { setMfaRequired(false); setMfaCode(""); }} className="btn-civic btn-civic-ghost w-full">
-              {locale === "vi" ? "Quay lại" : "Back"}
-            </button>
-          </form>
-        ) : (
-          /* Login Form */
-          <form className="space-y-4" onSubmit={handleLogin}>
-            <div>
-              <label className="block text-sm font-bold mb-2">{t("login.phone")}</label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full min-h-[52px] px-4 rounded-lg border-2 border-slate-200 text-base focus:border-gov-blue outline-none"
-                placeholder="username"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-bold mb-2">{t("login.password")}</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full min-h-[52px] px-4 rounded-lg border-2 border-slate-200 text-base focus:border-gov-blue outline-none"
-              />
-            </div>
-            <button type="submit" disabled={loading} className="btn-civic btn-civic-primary w-full text-lg disabled:opacity-50">
-              {loading ? <Loader2 size={20} className="animate-spin" /> : <LogIn size={20} />}
-              {locale === "vi"
-                ? `Đăng nhập với vai trò ${ROLE_LABEL[selected].vi}`
-                : `Sign in as ${ROLE_LABEL[selected].en}`}
-            </button>
-          </form>
-        )}
+                <Button type="submit" size="lg" disabled={loginMutation.isPending} className="w-full text-base mt-2">
+                  {loginMutation.isPending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <LogIn className="mr-2 h-5 w-5" />}
+                  {locale === "vi" ? "Đăng nhập" : "Sign in"}
+                </Button>
+              </form>
+            </Form>
+          )}
+        </CardContent>
 
-        <div className="mt-6 text-center">
-          <Link to={"/register" as any} className="text-gov-blue font-semibold hover:underline">
+        <CardFooter className="justify-center border-t pt-6">
+          <Link to={"/register" as any} className="text-primary font-semibold hover:underline text-sm">
             {t("login.register")}
           </Link>
-        </div>
-      </div>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

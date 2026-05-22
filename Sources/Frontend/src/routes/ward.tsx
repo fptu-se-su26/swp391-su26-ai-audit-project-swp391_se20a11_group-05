@@ -1,13 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { useI18n } from "@/lib/i18n";
-import { feedbackApi, type FeedbackResponse } from "@/lib/api";
+import { useFeedbacks } from "@/lib/hooks";
 import { reports as mockReports, type ReportStatus } from "@/lib/mock-data";
 import { StatusBadge } from "@/components/site/StatusBadge";
+import { DemoBanner } from "@/components/site/DemoBanner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { RoleGuard } from "@/components/site/RoleGuard";
 import { StaffShell } from "@/components/site/StaffShell";
-import danangMap from "@/assets/danang-map.jpg";
-import { Check, Loader2, MapPin, MessageSquare, RefreshCw, X } from "lucide-react";
+import { Check, Loader2, MapPin, MessageSquare, RefreshCw, X, FileText } from "lucide-react";
+
+const CivicMap = lazy(() => import("@/components/site/CivicMap").then(m => ({ default: m.CivicMap })));
 
 export const Route = createFileRoute("/ward")({
   head: () => ({
@@ -19,40 +22,36 @@ export const Route = createFileRoute("/ward")({
   component: WardDashboard,
 });
 
+function mapStatus(s: string): ReportStatus {
+  const m: Record<string, ReportStatus> = {
+    PENDING: "pending", ASSIGNED: "inProgress", IN_PROGRESS: "inProgress",
+    WAITING_INFO: "pending", RESOLVED: "resolved", REJECTED: "urgent",
+  };
+  return m[s] || "pending";
+}
+
+import type { FeedbackResponse } from "@/lib/api";
+
 function WardDashboard() {
   const { t, locale } = useI18n();
+  const { data: feedbacksPage, isLoading, isFetching, refetch } = useFeedbacks(0, 50);
 
-  const [apiFeedbacks, setApiFeedbacks] = useState<FeedbackResponse[]>([]);
-  const [apiLoaded, setApiLoaded] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [selectedId, setSelectedId] = useState<string | number | null>(null);
 
-  useEffect(() => { loadData(); }, []);
+  const hasApiData = !!feedbacksPage && feedbacksPage.content.length > 0;
+  const apiFeedbacks = feedbacksPage?.content ?? [];
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const data = await feedbackApi.getAll();
-      setApiFeedbacks(data);
-      setApiLoaded(true);
-      if (data.length > 0) setSelectedId(data[0].id);
-    } catch {
-      setApiLoaded(false);
-      if (mockReports.length > 0) setSelectedId(mockReports[0].id);
-    } finally {
-      setLoading(false);
+  // Auto-select first item when data loads
+  useEffect(() => {
+    if (selectedId !== null) return;
+    if (hasApiData && apiFeedbacks.length > 0) {
+      setSelectedId(apiFeedbacks[0].id);
+    } else if (!hasApiData && mockReports.length > 0) {
+      setSelectedId(mockReports[0].id);
     }
-  };
+  }, [hasApiData, apiFeedbacks, selectedId]);
 
-  const mapStatus = (s: string): ReportStatus => {
-    const m: Record<string, ReportStatus> = {
-      PENDING: "pending", ASSIGNED: "inProgress", IN_PROGRESS: "inProgress",
-      WAITING_INFO: "pending", RESOLVED: "resolved", REJECTED: "urgent",
-    };
-    return m[s] || "pending";
-  };
-
-  const selected = apiLoaded
+  const selected = hasApiData
     ? apiFeedbacks.find((r) => r.id === selectedId)
     : mockReports.find((r) => r.id === selectedId);
 
@@ -64,6 +63,9 @@ function WardDashboard() {
         title={t("ward.title")}
         org="UBND Phường Hải Châu I · Quận Hải Châu"
       >
+        {/* Demo banner */}
+        {!hasApiData && !isLoading && <DemoBanner />}
+
         {/* Toolbar */}
         <div className="flex flex-wrap items-end justify-between gap-2 mb-6">
           <div className="flex gap-2">
@@ -79,13 +81,8 @@ function WardDashboard() {
             ))}
           </div>
           <div className="flex items-center gap-3">
-            {!apiLoaded && (
-              <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">
-                ⚠️ Demo mode
-              </span>
-            )}
-            <button onClick={loadData} disabled={loading} className="btn-civic btn-civic-ghost flex items-center gap-2">
-              {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+            <button onClick={() => refetch()} disabled={isFetching} className="btn-civic btn-civic-ghost flex items-center gap-2">
+              {isFetching ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
               {locale === "vi" ? "Làm mới" : "Refresh"}
             </button>
           </div>
@@ -93,35 +90,57 @@ function WardDashboard() {
 
         <div className="grid lg:grid-cols-12 gap-6">
           {/* Left: map + list */}
-          <section className="lg:col-span-7">
+          <section className="lg:col-span-7 animate-slide-in-right">
             <div className="card-civic p-0 overflow-hidden mb-6">
               <div className="bg-gov-blue text-white p-4 flex items-center justify-between">
                 <h2 className="text-white font-heading text-xl">Bản đồ nhiệt khu vực</h2>
                 <span className="text-xs font-mono uppercase tracking-widest bg-white/10 px-3 py-1 rounded">Live</span>
               </div>
-              <img src={danangMap} alt="Da Nang heatmap" loading="lazy" width={1024} height={1024} className="w-full h-72 md:h-96 object-cover" />
+              <Suspense fallback={<div className="w-full h-72 md:h-96 bg-slate-100 animate-pulse" />}>
+                <CivicMap
+                  center={[16.062, 108.222]}
+                  zoom={14}
+                  markers={[
+                    { position: [16.062, 108.222], title: mockReports[0].title.vi, status: mockReports[0].status },
+                    { position: [16.080, 108.155], title: mockReports[1].title.vi, status: mockReports[1].status },
+                    { position: [16.078, 108.158], title: mockReports[2].title.vi, status: mockReports[2].status },
+                    { position: [16.060, 108.228], title: mockReports[3].title.vi, status: mockReports[3].status },
+                  ]}
+                />
+              </Suspense>
             </div>
 
             <h2 className="text-2xl mb-4">
               {t("ward.incoming")}
-              {apiLoaded && <span className="ml-2 text-base font-normal text-ink-soft">({apiFeedbacks.length})</span>}
+              {hasApiData && <span className="ml-2 text-base font-normal text-ink-soft">({apiFeedbacks.length})</span>}
             </h2>
 
-            {loading && (
-              <div className="flex items-center justify-center py-10">
-                <Loader2 size={32} className="animate-spin text-gov-blue" />
+            {isLoading && (
+              <div className="space-y-3">
+                {[1, 2, 3].map((s) => (
+                  <div key={s} className="card-civic p-4 flex gap-4">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-6 w-16 rounded" />
+                        <Skeleton className="h-6 w-24 rounded ml-auto" />
+                      </div>
+                      <Skeleton className="h-5 w-3/4 rounded" />
+                      <Skeleton className="h-4 w-1/2 rounded" />
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 
             <div className="space-y-3">
               {/* API data list */}
-              {!loading && apiLoaded && apiFeedbacks.map((r) => (
+              {!isLoading && hasApiData && apiFeedbacks.map((r, idx) => (
                 <button
                   key={r.id}
                   onClick={() => setSelectedId(r.id)}
-                  className={`w-full text-left card-civic p-4 flex gap-4 transition-all ${
-                    selectedId === r.id ? "ring-2 ring-gov-blue" : "hover:shadow-md"
-                  }`}
+                  className={`w-full text-left card-civic p-4 flex gap-4 transition-all duration-200 ${
+                    selectedId === r.id ? "ring-2 ring-gov-blue" : "hover:shadow-md hover:-translate-y-0.5"
+                  } animate-fade-in-up stagger-${(idx % 4) + 1}`}
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
@@ -139,13 +158,13 @@ function WardDashboard() {
               ))}
 
               {/* Mock fallback list */}
-              {!loading && !apiLoaded && mockReports.map((r) => (
+              {!isLoading && !hasApiData && mockReports.map((r, idx) => (
                 <button
                   key={r.id}
                   onClick={() => setSelectedId(r.id)}
-                  className={`w-full text-left card-civic p-4 flex gap-4 transition-all ${
-                    selectedId === r.id ? "ring-2 ring-gov-blue" : "hover:shadow-md"
-                  }`}
+                  className={`w-full text-left card-civic p-4 flex gap-4 transition-all duration-200 ${
+                    selectedId === r.id ? "ring-2 ring-gov-blue" : "hover:shadow-md hover:-translate-y-0.5"
+                  } animate-fade-in-up stagger-${(idx % 4) + 1}`}
                 >
                   <img src={r.image} alt="" loading="lazy" width={120} height={120} className="w-20 h-20 rounded-md object-cover" />
                   <div className="flex-1 min-w-0">
@@ -165,9 +184,9 @@ function WardDashboard() {
 
           {/* Right: detail panel */}
           <aside className="lg:col-span-5">
-            {selected && (
-              <div className="card-civic p-6 sticky top-32">
-                {apiLoaded ? (
+            {selected ? (
+              <div className="animate-fade-in card-civic p-6 sticky top-32">
+                {hasApiData ? (
                   <>
                     <div className="flex items-start justify-between gap-3 mb-4">
                       <StatusBadge status={mapStatus((selected as FeedbackResponse).status)} />
@@ -205,10 +224,10 @@ function WardDashboard() {
                 )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <button className="btn-civic btn-civic-primary" style={{ background: "var(--status-success)" }}>
+                  <button className="btn-civic bg-[var(--status-success)] text-white border-[var(--status-success)] hover:brightness-110 transition-all shadow-lg shadow-green-500/25">
                     <Check size={20} /> {t("ward.accept")}
                   </button>
-                  <button className="btn-civic btn-civic-ghost" style={{ borderColor: "var(--status-danger)", color: "var(--status-danger)" }}>
+                  <button className="btn-civic border-[var(--status-danger)] text-[var(--status-danger)] hover:bg-[var(--status-danger)]/10 transition-all">
                     <X size={20} /> {t("ward.reject")}
                   </button>
                   <button className="btn-civic btn-civic-ghost sm:col-span-2">
@@ -218,6 +237,18 @@ function WardDashboard() {
                     <Check size={20} /> {t("ward.resolve")}
                   </button>
                 </div>
+              </div>
+            ) : (
+              <div className="animate-fade-in card-civic p-10 sticky top-32 flex flex-col items-center justify-center text-center">
+                <FileText size={48} className="text-slate-300 mb-4" />
+                <h3 className="text-lg font-semibold text-ink-soft mb-1">
+                  {locale === "vi" ? "Chưa chọn phản ánh" : "No report selected"}
+                </h3>
+                <p className="text-sm text-ink-soft/60">
+                  {locale === "vi"
+                    ? "Chọn một phản ánh từ danh sách bên trái để xem chi tiết."
+                    : "Select a report from the list on the left to view details."}
+                </p>
               </div>
             )}
           </aside>

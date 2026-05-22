@@ -107,6 +107,21 @@
 
 ---
 
+### Entry #: 007
+**Prompt Type:** ARCHITECTURE-DESIGN
+**Stage/Component:** AI Orchestrator
+**Problem/Context:** Đánh giá mã nguồn hiện tại của module `ai_orchestrator` và yêu cầu AI tư vấn phương án nâng cấp kiến trúc lên chuẩn Enterprise, đặc biệt là chiến lược dự phòng lỗi (Resilience) và tối ưu chi phí (Caching).
+**Prompt to AI:** Yêu cầu AI đề xuất các hướng nâng cấp thiết kế (chỉ thảo luận, không viết code) và gợi ý thêm chiến lược: *"thay đổi api của grog khác rồi mới tới api của gemini"*.
+**AI Response (Summary):** AI đưa ra 5 hướng nâng cấp, bao gồm Semantic Caching (Bộ nhớ đệm ngữ nghĩa) và Waterfall Fallback (Chuyển hướng thác đổ). Dựa trên gợi ý của tôi, AI phân tích cơ chế 3 tầng phòng thủ hoàn hảo: (1) Đổi Key tự động trong Groq Pool -> (2) Fallback chéo sang Gemini -> (3) Ngắt mạch bằng Circuit Breaker.
+
+**Human Delta & Reflection:**
+- **Critical Thinking:** Thay vì tiếp nhận giải pháp của AI một cách bị động, tôi đã chủ động đề xuất luồng xử lý thực tế: "thử hết API Key của Groq trước khi chuyển sang Gemini" để tiết kiệm chi phí. Điều này chứng tỏ sự nhạy bén trong việc tối ưu hóa tài nguyên.
+- **Contextualization:** Trong bối cảnh đồ án dùng nhiều API Key miễn phí có giới hạn rate-limit (như Groq), thiết kế 3 tầng phòng thủ này đảm bảo hệ thống luôn trả về kết quả (100% Uptime) khi chạy Demo cho hội đồng.
+- **Creative Synthesis:** Cùng AI tổng hợp và chốt lại bản thiết kế kiến trúc chịu lỗi cực cao (Resilience Design Pattern) mà không cần viết lại toàn bộ core logic đang có.
+- **Decision Ownership:** Quyết định phê duyệt thiết kế kiến trúc mới và lưu lại vào nhật ký kiểm toán. Đây là minh chứng cho năng lực thiết kế hệ thống (System Design) chứ không chỉ dừng ở mức độ lập trình.
+
+---
+
 ## III. Phát hiện Hallucination (Hallucination Detection)
 
 - **Trường hợp:** Khi yêu cầu AI tìm kiếm và tổng hợp 10 bài báo khoa học trên Springer (Entry 001).

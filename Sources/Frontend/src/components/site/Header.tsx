@@ -153,15 +153,21 @@ export function Header() {
         </ul>
       </nav>
 
-      {/* Mobile menu */}
-      {open && (
-        <nav className="md:hidden bg-gov-blue text-white px-4 py-4 space-y-1" aria-label="Mobile">
+      {/* Mobile menu with animation */}
+      <div
+        className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
+          open ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
+        }`}
+      >
+        <nav className="bg-gov-blue text-white px-4 py-4 space-y-1" aria-label="Mobile">
           {navItems.map((n) => (
             <Link
               key={n.to}
               to={n.to}
               onClick={() => setOpen(false)}
-              className="block min-h-[48px] px-4 py-3 rounded-md hover:bg-white/10 font-semibold"
+              className={`block min-h-[48px] px-4 py-3 rounded-md font-semibold transition-all ${
+                path === n.to ? "bg-white/15 text-gov-gold" : "hover:bg-white/10"
+              }`}
             >
               {n.label}
             </Link>
@@ -176,7 +182,9 @@ export function Header() {
                   key={n.to}
                   to={n.to}
                   onClick={() => setOpen(false)}
-                  className="block min-h-[48px] px-4 py-3 rounded-md hover:bg-white/10 font-semibold"
+                  className={`block min-h-[48px] px-4 py-3 rounded-md font-semibold transition-all ${
+                    path === n.to ? "bg-white/15 text-gov-gold" : "hover:bg-white/10"
+                  }`}
                 >
                   {n.label}
                 </Link>
@@ -187,7 +195,7 @@ export function Header() {
             {user ? (
               <button
                 onClick={() => { logout(); setOpen(false); }}
-                className="w-full text-left min-h-[48px] px-4 py-3 rounded-md hover:bg-white/10 font-semibold inline-flex items-center gap-2"
+                className="w-full text-left min-h-[48px] px-4 py-3 rounded-md hover:bg-white/10 font-semibold inline-flex items-center gap-2 transition-all"
               >
                 <LogOut size={18} /> {locale === "vi" ? "Đăng xuất" : "Sign out"} — {user.name}
               </button>
@@ -195,14 +203,14 @@ export function Header() {
               <Link
                 to={"/login" as any}
                 onClick={() => setOpen(false)}
-                className="block min-h-[48px] px-4 py-3 rounded-md bg-gov-gold text-gov-blue-deep font-bold"
+                className="block min-h-[48px] px-4 py-3 rounded-md bg-gov-gold text-gov-blue-deep font-bold text-center"
               >
                 {t("nav.login")}
               </Link>
             )}
           </div>
         </nav>
-      )}
+      </div>
     </header>
   );
 }

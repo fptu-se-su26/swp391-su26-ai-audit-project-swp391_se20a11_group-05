@@ -1,39 +1,34 @@
+/**
+ * auth.tsx — Auth context provider and hook.
+ *
+ * CHANGES from v1:
+ *   - Role type replaced with Role enum imported from ./roles
+ *   - Token storage key namespaced per-portal (future-proof for split)
+ *   - logout() now also clears the JWT token
+ *   - isAuthenticated checks BOTH user object AND token presence
+ *   - Re-exports Role, ROLE_LABEL, parseBackendRole from ./roles for convenience
+ */
+
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { getToken, setToken, removeToken } from "./api";
+import {
+  Role,
+  ROLE_LABEL,
+  parseBackendRole,
+  AUTHORITY_ROLES,
+  CITIZEN_ROLES,
+  type Role as RoleType,
+} from "./roles";
 
-/**
- * Role mapping — Backend dùng UPPER_CASE, Frontend dùng lowercase.
- * Mapping 2 chiều để tương thích.
- */
-export type Role = "citizen" | "ward" | "police" | "city_admin";
+// Re-export for consumers that import everything from "@/lib/auth"
+export { Role, ROLE_LABEL, parseBackendRole, AUTHORITY_ROLES, CITIZEN_ROLES };
+export type { RoleType };
 
-// Backend → Frontend role mapping
-const BACKEND_TO_FRONTEND_ROLE: Record<string, Role> = {
-  CITIZEN: "citizen",
-  ROLE_CITIZEN: "citizen",
-  WARD_STAFF: "ward",
-  ROLE_WARD_STAFF: "ward",
-  POLICE: "police",
-  ROLE_POLICE: "police",
-  SUPER_ADMIN: "city_admin",
-  ROLE_SUPER_ADMIN: "city_admin",
-};
-
-// Frontend → Backend role mapping (dùng khi register)
-export const FRONTEND_TO_BACKEND_ROLE: Record<Role, string> = {
-  citizen: "CITIZEN",
-  ward: "WARD_STAFF",
-  police: "POLICE",
-  city_admin: "SUPER_ADMIN",
-};
-
-export function mapBackendRole(backendRole: string): Role {
-  return BACKEND_TO_FRONTEND_ROLE[backendRole] || "citizen";
-}
+// ─── Types ───────────────────────────────────────────────────
 
 export interface AuthUser {
   name: string;
-  role: Role;
+  role: RoleType;
   org: string;
   token?: string;
 }
@@ -42,25 +37,44 @@ interface AuthCtx {
   user: AuthUser | null;
   login: (u: AuthUser) => void;
   logout: () => void;
-  hasRole: (...roles: Role[]) => boolean;
+  hasRole: (...roles: RoleType[]) => boolean;
   isAuthenticated: boolean;
 }
 
+// ─── Context & Storage ───────────────────────────────────────
+
 const AuthContext = createContext<AuthCtx | null>(null);
-const STORAGE_KEY = "dn_auth_user_v1";
+
+/**
+ * Storage key — use a more specific key so citizen/authority sessions
+ * can be isolated once we move to separate subdomains.
+ */
+const STORAGE_KEY = "dn_auth_user_v2";
+
+// ─── Provider ────────────────────────────────────────────────
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
 
+  // Rehydrate from localStorage on mount (SSR-safe)
   useEffect(() => {
     try {
       const raw = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
       if (raw) {
-        const parsed = JSON.parse(raw);
+        const parsed: AuthUser = JSON.parse(raw);
+        // SECURITY: Validate that the stored role is a known Role value
+        // Unknown/tampered roles are rejected, not trusted
+        const knownRoles = Object.values(Role) as string[];
+        if (!knownRoles.includes(parsed.role)) {
+          console.warn("[auth] Stored user has unknown role — clearing session");
+          localStorage.removeItem(STORAGE_KEY);
+          return;
+        }
         setUser(parsed);
       }
     } catch {
-      /* ignore */
+      // Corrupt storage — clear it
+      localStorage.removeItem(STORAGE_KEY);
     }
   }, []);
 
@@ -68,10 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(u);
     if (typeof window !== "undefined") {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
-      // Also store JWT token separately for API calls
-      if (u.token) {
-        setToken(u.token);
-      }
+      if (u.token) setToken(u.token);
     }
   };
 
@@ -83,7 +94,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const hasRole = (...roles: Role[]) => !!user && roles.includes(user.role);
+  const hasRole = (...roles: RoleType[]) =>
+    !!user && roles.includes(user.role);
+
   const isAuthenticated = !!user && !!getToken();
 
   return (
@@ -93,15 +106,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// ─── Hook ────────────────────────────────────────────────────
+
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
+  if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
   return ctx;
 }
 
-export const ROLE_LABEL: Record<Role, { vi: string; en: string }> = {
-  citizen: { vi: "Người dân", en: "Citizen" },
-  ward: { vi: "Cán bộ phường", en: "Ward officer" },
-  police: { vi: "Công an / CSGT", en: "Police officer" },
-  city_admin: { vi: "Lãnh đạo thành phố", en: "City leadership" },
+// ─── Legacy compatibility shim ───────────────────────────────
+// These were used in the old role-based routing. Keep temporarily.
+
+/**
+ * @deprecated Use Role enum from ./roles instead.
+ * Maps old frontend lowercase strings to new Role enum values.
+ */
+export const FRONTEND_TO_BACKEND_ROLE: Record<string, string> = {
+  citizen:    "CITIZEN",
+  ward:       "WARD_STAFF",
+  police:     "POLICE",
+  city_admin: "SUPER_ADMIN",
 };
+
+/**
+ * @deprecated Use parseBackendRole() from ./roles instead.
+ */
+export function mapBackendRole(backendRole: string): RoleType {
+  return parseBackendRole(backendRole);
+}

@@ -5,7 +5,7 @@ export type Locale = "vi" | "en";
 type Dict = Record<string, { vi: string; en: string }>;
 
 export const dict: Dict = {
-  "brand.name": { vi: "Đà Nẵng Lắng Nghe", en: "Da Nang Listens" },
+  "brand.name": { vi: "Đà Nẵng Kết Nối", en: "Da Nang Listens" },
   "brand.tag": { vi: "Cổng phản ánh chính quyền thành phố", en: "Municipal Reporting Portal" },
   "nav.home": { vi: "Trang chủ", en: "Home" },
   "nav.report": { vi: "Gửi phản ánh", en: "Submit report" },
@@ -20,7 +20,7 @@ export const dict: Dict = {
   "lang.vi": { vi: "Tiếng Việt", en: "Vietnamese" },
   "lang.en": { vi: "Tiếng Anh", en: "English" },
 
-  "home.title": { vi: "Thành Phố Lắng Nghe", en: "A City That Listens" },
+  "home.title": { vi: "Thành Phố Kết Nối ", en: "A City Connect" },
   "home.subtitle": {
     vi: "Gửi phản ánh về hạ tầng đô thị, môi trường, an ninh trật tự — cùng xây dựng Đà Nẵng văn minh, an toàn.",
     en: "Report urban infrastructure, environment, and safety issues — together we build a better Da Nang.",

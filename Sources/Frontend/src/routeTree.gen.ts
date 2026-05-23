@@ -9,23 +9,19 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as WardRouteImport } from './routes/ward'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ReportRouteImport } from './routes/report'
-import { Route as RegisterRouteImport } from './routes/register'
-import { Route as PoliceRouteImport } from './routes/police'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as CityAdminRouteImport } from './routes/city-admin'
-import { Route as AssistantRouteImport } from './routes/assistant'
+import { Route as AuthorityLoginRouteImport } from './routes/authority-login'
+import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MyReportsIndexRouteImport } from './routes/my-reports.index'
 import { Route as MyReportsIdRouteImport } from './routes/my-reports.$id'
+import { Route as AuthWardRouteImport } from './routes/_auth.ward'
+import { Route as AuthPoliceRouteImport } from './routes/_auth.police'
+import { Route as AuthCityAdminRouteImport } from './routes/_auth.city-admin'
+import { Route as AuthAssistantRouteImport } from './routes/_auth.assistant'
 
-const WardRoute = WardRouteImport.update({
-  id: '/ward',
-  path: '/ward',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -36,29 +32,18 @@ const ReportRoute = ReportRouteImport.update({
   path: '/report',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RegisterRoute = RegisterRouteImport.update({
-  id: '/register',
-  path: '/register',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PoliceRoute = PoliceRouteImport.update({
-  id: '/police',
-  path: '/police',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CityAdminRoute = CityAdminRouteImport.update({
-  id: '/city-admin',
-  path: '/city-admin',
+const AuthorityLoginRoute = AuthorityLoginRouteImport.update({
+  id: '/authority-login',
+  path: '/authority-login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AssistantRoute = AssistantRouteImport.update({
-  id: '/assistant',
-  path: '/assistant',
+const AuthRoute = AuthRouteImport.update({
+  id: '/_auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -76,44 +61,65 @@ const MyReportsIdRoute = MyReportsIdRouteImport.update({
   path: '/my-reports/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthWardRoute = AuthWardRouteImport.update({
+  id: '/ward',
+  path: '/ward',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthPoliceRoute = AuthPoliceRouteImport.update({
+  id: '/police',
+  path: '/police',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthCityAdminRoute = AuthCityAdminRouteImport.update({
+  id: '/city-admin',
+  path: '/city-admin',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthAssistantRoute = AuthAssistantRouteImport.update({
+  id: '/assistant',
+  path: '/assistant',
+  getParentRoute: () => AuthRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/assistant': typeof AssistantRoute
-  '/city-admin': typeof CityAdminRoute
+  '/authority-login': typeof AuthorityLoginRoute
   '/login': typeof LoginRoute
-  '/police': typeof PoliceRoute
-  '/register': typeof RegisterRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/ward': typeof WardRoute
+  '/assistant': typeof AuthAssistantRoute
+  '/city-admin': typeof AuthCityAdminRoute
+  '/police': typeof AuthPoliceRoute
+  '/ward': typeof AuthWardRoute
   '/my-reports/$id': typeof MyReportsIdRoute
   '/my-reports/': typeof MyReportsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/assistant': typeof AssistantRoute
-  '/city-admin': typeof CityAdminRoute
+  '/authority-login': typeof AuthorityLoginRoute
   '/login': typeof LoginRoute
-  '/police': typeof PoliceRoute
-  '/register': typeof RegisterRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/ward': typeof WardRoute
+  '/assistant': typeof AuthAssistantRoute
+  '/city-admin': typeof AuthCityAdminRoute
+  '/police': typeof AuthPoliceRoute
+  '/ward': typeof AuthWardRoute
   '/my-reports/$id': typeof MyReportsIdRoute
   '/my-reports': typeof MyReportsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/assistant': typeof AssistantRoute
-  '/city-admin': typeof CityAdminRoute
+  '/_auth': typeof AuthRouteWithChildren
+  '/authority-login': typeof AuthorityLoginRoute
   '/login': typeof LoginRoute
-  '/police': typeof PoliceRoute
-  '/register': typeof RegisterRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/ward': typeof WardRoute
+  '/_auth/assistant': typeof AuthAssistantRoute
+  '/_auth/city-admin': typeof AuthCityAdminRoute
+  '/_auth/police': typeof AuthPoliceRoute
+  '/_auth/ward': typeof AuthWardRoute
   '/my-reports/$id': typeof MyReportsIdRoute
   '/my-reports/': typeof MyReportsIndexRoute
 }
@@ -121,67 +127,58 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/assistant'
-    | '/city-admin'
+    | '/authority-login'
     | '/login'
-    | '/police'
-    | '/register'
     | '/report'
     | '/sitemap.xml'
+    | '/assistant'
+    | '/city-admin'
+    | '/police'
     | '/ward'
     | '/my-reports/$id'
     | '/my-reports/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/assistant'
-    | '/city-admin'
+    | '/authority-login'
     | '/login'
-    | '/police'
-    | '/register'
     | '/report'
     | '/sitemap.xml'
+    | '/assistant'
+    | '/city-admin'
+    | '/police'
     | '/ward'
     | '/my-reports/$id'
     | '/my-reports'
   id:
     | '__root__'
     | '/'
-    | '/assistant'
-    | '/city-admin'
+    | '/_auth'
+    | '/authority-login'
     | '/login'
-    | '/police'
-    | '/register'
     | '/report'
     | '/sitemap.xml'
-    | '/ward'
+    | '/_auth/assistant'
+    | '/_auth/city-admin'
+    | '/_auth/police'
+    | '/_auth/ward'
     | '/my-reports/$id'
     | '/my-reports/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AssistantRoute: typeof AssistantRoute
-  CityAdminRoute: typeof CityAdminRoute
+  AuthRoute: typeof AuthRouteWithChildren
+  AuthorityLoginRoute: typeof AuthorityLoginRoute
   LoginRoute: typeof LoginRoute
-  PoliceRoute: typeof PoliceRoute
-  RegisterRoute: typeof RegisterRoute
   ReportRoute: typeof ReportRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
-  WardRoute: typeof WardRoute
   MyReportsIdRoute: typeof MyReportsIdRoute
   MyReportsIndexRoute: typeof MyReportsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/ward': {
-      id: '/ward'
-      path: '/ward'
-      fullPath: '/ward'
-      preLoaderRoute: typeof WardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
@@ -196,20 +193,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/register': {
-      id: '/register'
-      path: '/register'
-      fullPath: '/register'
-      preLoaderRoute: typeof RegisterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/police': {
-      id: '/police'
-      path: '/police'
-      fullPath: '/police'
-      preLoaderRoute: typeof PoliceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -217,18 +200,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/city-admin': {
-      id: '/city-admin'
-      path: '/city-admin'
-      fullPath: '/city-admin'
-      preLoaderRoute: typeof CityAdminRouteImport
+    '/authority-login': {
+      id: '/authority-login'
+      path: '/authority-login'
+      fullPath: '/authority-login'
+      preLoaderRoute: typeof AuthorityLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/assistant': {
-      id: '/assistant'
-      path: '/assistant'
-      fullPath: '/assistant'
-      preLoaderRoute: typeof AssistantRouteImport
+    '/_auth': {
+      id: '/_auth'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -252,19 +235,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MyReportsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_auth/ward': {
+      id: '/_auth/ward'
+      path: '/ward'
+      fullPath: '/ward'
+      preLoaderRoute: typeof AuthWardRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/police': {
+      id: '/_auth/police'
+      path: '/police'
+      fullPath: '/police'
+      preLoaderRoute: typeof AuthPoliceRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/city-admin': {
+      id: '/_auth/city-admin'
+      path: '/city-admin'
+      fullPath: '/city-admin'
+      preLoaderRoute: typeof AuthCityAdminRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/assistant': {
+      id: '/_auth/assistant'
+      path: '/assistant'
+      fullPath: '/assistant'
+      preLoaderRoute: typeof AuthAssistantRouteImport
+      parentRoute: typeof AuthRoute
+    }
   }
 }
 
+interface AuthRouteChildren {
+  AuthAssistantRoute: typeof AuthAssistantRoute
+  AuthCityAdminRoute: typeof AuthCityAdminRoute
+  AuthPoliceRoute: typeof AuthPoliceRoute
+  AuthWardRoute: typeof AuthWardRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthAssistantRoute: AuthAssistantRoute,
+  AuthCityAdminRoute: AuthCityAdminRoute,
+  AuthPoliceRoute: AuthPoliceRoute,
+  AuthWardRoute: AuthWardRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AssistantRoute: AssistantRoute,
-  CityAdminRoute: CityAdminRoute,
+  AuthRoute: AuthRouteWithChildren,
+  AuthorityLoginRoute: AuthorityLoginRoute,
   LoginRoute: LoginRoute,
-  PoliceRoute: PoliceRoute,
-  RegisterRoute: RegisterRoute,
   ReportRoute: ReportRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
-  WardRoute: WardRoute,
   MyReportsIdRoute: MyReportsIdRoute,
   MyReportsIndexRoute: MyReportsIndexRoute,
 }

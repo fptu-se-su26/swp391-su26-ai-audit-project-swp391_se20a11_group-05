@@ -1,0 +1,54 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>SmartCity - MFA Setup QR Codes</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #f5f5f5; display: flex; justify-content: center; padding: 40px; }
+  .container { background: white; border-radius: 16px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); max-width: 900px; width: 100%; }
+  h1 { text-align: center; color: #1e3a8a; margin-bottom: 8px; }
+  p.subtitle { text-align: center; color: #666; margin-bottom: 40px; }
+  .accounts { display: flex; gap: 32px; justify-content: center; flex-wrap: wrap; }
+  .account { text-align: center; background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 24px; }
+  .account img { width: 200px; height: 200px; border: 4px solid #1e3a8a; border-radius: 8px; }
+  .account h2 { color: #1e3a8a; margin: 16px 0 4px; font-size: 18px; }
+  .account .creds { background: #dbeafe; padding: 8px 16px; border-radius: 8px; margin-top: 12px; }
+  .account .creds span { font-family: monospace; font-weight: bold; font-size: 16px; color: #1e40af; }
+  .steps { margin-top: 40px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 24px; }
+  .steps ol { margin: 0; padding-left: 24px; color: #166534; }
+  .steps li { margin-bottom: 8px; font-size: 15px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🔐 SmartCity — MFA Setup</h1>
+  <p class="subtitle">Quét QR bằng Google Authenticator để lấy mã đăng nhập</p>
+  <div class="accounts">
+    <div class="account">
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAV4AAAFeAQAAAADlUEq3AAADB0lEQVR4Xu2ZQXajMBBE28+LLHMEjuKjwdE4CkfI0ot57umqEo7A4GTWU70IIH2xKFerWyTy9/En9iNvwnAfhvsw3IfhPv4P+BGMx/X+udzykvcYcorrPeI2ZT0hroYPYdzl9OB0jX18DRjIXG5Y87kihg9gSvqIoubxUnDESNVjLNXrEobfw9f8ilXZSbaVbw3/ANdd1nhZtLyZUarzDYbfwuBkUY5VjOsaqi7E8CuM2ebGpmx/4aThQ3gNCFzZrcCOmLVNbuY3D4ah8wfTOlmAH9ofYcoFfU1Wodn8KIb3Fh25FaIA5zPJb7qE4RNYbd+kKpIX7YhoaKqvqRdVkncbo+Eebt1f3cGbWBoybM4qzoE5w8dwshwztBSmxBua3IaPYR5qb3BqKTvqsDEm0xoWZaH59rPhHqaWgd7lCQcEZmnh4G4rMLzCTdlUOcZWyE4m8IaSeZjHzY9ieKtzTpgOralcR3YHa7R8a/gMrvFn93fHmSNbQyPDbnU2vMI1DTdKWQTyGU8t5Re+yPABnCgmqsoLiwmUxRvaUgwSM7yH4U3orERunQyVnZXdLQy/wKkDmiRFHZbcrRwz5futwPA3TElz0prpAovWNORuc/NmKzC8hZnB/L9ZwdgmE2e49u1ll92GO5gFGN5EPrO0UFk5FVxvUcNddvMjQaJpSRZg6gy5SdCwho9hpfWDeyAlXXT0qOCBV6obfoXZwrTPeTnhSU7dGdbwCbxKGmpogue0eVwbRMMnMA8bym5+ZsG8fItCU2H4GAbFzQ+U9kB4k1SbM3wGM4Nb98dLAIbq8O3QW9TwLmERqCIDnIrS8pQboUJj+BVuwWKCmgJlJ66pKGpvUcN7nTFd3R8PvFQWvoVT68nwCYy7pJaLkhzexODMYoJBEIYP4Dv7Z1VlHd7WTkY/geH3MPq9SuTQGjBDZvvaQtUNn8IqJspu9DWFjxgcqiobPoHrz3cxYXajmLTvzIB7nQ13cDC4ZlYi58QTCJrADz0ZPoJ/G4b7MNyH4T4M92G4j3+D/wKB6EOVw4D5kwAAAABJRU5ErkJggg==" alt="QR ward_staff1">
+      <h2>🏢 Cán bộ phường</h2>
+      <div class="creds">User: <span>ward_staff1</span><br>Pass: <span>123456</span></div>
+    </div>
+    <div class="account">
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAV4AAAFeAQAAAADlUEq3AAADIklEQVR4Xu2aO5biMBBFxSEg7CV4KV6avTSW4iUQEvRBU/eVoAUWTE88rwJsS1cKnutndZf6e/suryMfzHBvhnsz3Jvh3v4P+FZktV7LdF7i7mvTgC7Hq+6Phocwd3VlzXRm+iueYuRS5rjwlIjhARxaxvg3gi4xfimoDswcchv+CIua11JOMbayMBz2UA3/HW7eGNPBBVXrVhYc1vAHOH4iuglrEmPofC5KkwT5LroNd3CRAW946stFk4aH8MM0jYtGabkp1ts7SDO8g6VzZMSjnBJJN0ZOl0iM9VsXYt3wECasW5DHWMjNFKqzQ8gtM7yHj2TEckiKxBjFJBMjLnqZkjU8hrfW/aFspaZoh3DY5qmG38CVjlkCz5V4jjW3oGIowjp0XuW+hndw/D5amNrieU2HvUe34TH80BlbWLqpr+GxzbGl4QEsb1xC2ZYK68Z0JkbEfy7Hhjs4tIy2TzmQj42qIKclpLRgGjS8hyMVMl20ZmlNYA6uhTO+WeIb3sOqvFGA5Y2lwRndS8Vvn13UcB/dhbqBzjFNFdG0OplKOU7xDe9htJSFzlGO+RChd9GaJv6PzoZf4UkXUuGBs2S6P50ctG36VGC4gyuVlz9k5McGLWHBbydFPnKLMryD6WQ0XqkiCmuckuhmI8TvaorhDqbyxrSSX5aPLWvKdE7ffP5qM9zpnG544BwPFz0BS2AKzetLMfzkohnWkrSqfKTfljkFfo5uwz18UreCzVqzqaa09sbwB/jx1cYXyP14NPy2FPw2HdbwGzgfIj8quulkJDcu+iO34QHMAL4JRUaMClNpqueVTSIx5maGBzBNS9aUXEoVUU2pHDAbfg9zu7b8mFXkfnJAG429+LPhhJvdlB8X9S4zU/cWZuMAwfAIblo2gVVT9HRRRsylmOE9DNXOkhXI95qC36bOht/BV8oHl6nqXwU0p+8RvYMsLYY/wXgjJ1SxBp03dX/3cwTDH+Cq6K5clkcdZoeRzoYFcytYOsdSiolUz5MDnb0YHsBEMFXkSjFhfNMTayqxfoYyPIB/a4Z7M9yb4d4M92a4t3+D/wBn7evpDXHA5AAAAABJRU5ErkJggg==" alt="QR police1">
+      <h2>🛡️ Công an</h2>
+      <div class="creds">User: <span>police1</span><br>Pass: <span>123456</span></div>
+    </div>
+    <div class="account">
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAV4AAAFeAQAAAADlUEq3AAADGUlEQVR4Xu2YMZriMAxGxTfFlHOEHIWjJUfjKBxhSwo+tHq/BJiJl52tVypwLD+nEJL1O+Y/t6t997yxhkdreLSGR2t4tP8DvpksJmGrfVy+zrb69fOXHbeYafGj4SnMk283+/Sz2YHJyW6i1hi+7kjDEzj8x839YsuJZShm4QSONzT8Fo5MjZBuQdri28GVqTk0/B72rO5IUcoaKjK14b/A8RPVnQNn4PnII3ucPYU0vIeJL7GMkFY9j4MWG57Cd7t+8nvgRFQzibyt/6DWG/4OK86IFnKT4ddyskHQRKNRj254AiNh1oTxiZJtEoFHf6ZowyOsZXqKUlR+nBFg3+IhhvI0vIOjnheVtZQM8IljsqqbFG14DpOiiBbd0/xwRQQ6MGqaNd/GdtzwE1ZuRiw1xBkZe/LydrY8HxXuhmcwGll6LxZXzQw/uUmKytnwDJaDWFLkmY26czCr/2Boxw0PsKsBG7lJZONh0cGIU9Qp/42Gd3AsU8GHTErcMSPAyJtceyqZhl9gHX733GQ5I6u8zeDzhob3sEvvRR9WIdeeLHl9eyFvH3Fu+BV+1DOiJQK9IKOlZPQijsmGpzDCOfoG9ZxFHrxmhpIpGd3wBC79HBPK2qhu9eEs61I5DU/hykb5q7VUdWstROAQ54YHWBRJKUFDIWuoN3gdkw1PYRxrqBVai+5pZhX1nOWehmcwnRctGI98bUldQ3Vn5Tf8B5j8QypnO35Elplbw29hM1ucyGY7ztzU15b1eUw2PIN5IqT3dmxQHJPHrfaMt7aGX++wLiWD3nNRyBu04C27sqzhGQxFSJWpVd3qMHUwjina8AtMA1aRP2R07cH5Pc4NP+Aywh1whBsRiIc3fKjfPOPc8AgrlvhV5IJ1T8sT8UKtI6obnsAEMa+4LMtWbc21874BNXyHL4Z+1nIMnIgbPUX62Vgb49zwHlZuIgIB6nuVV2vZxbnhlzg7nddSC2a4vb4j8NDwDOax4rxx9QhYSYmoDqduIA3PYFIyO++dIs76QpV7Nv02vIN/ag2P1vBoDY/W8GgNj/Zv8G9Ukpv0ihIk9wAAAABJRU5ErkJggg==" alt="QR admin">
+      <h2>🏛️ Lãnh đạo thành phố</h2>
+      <div class="creds">User: <span>admin</span><br>Pass: <span>admin123</span></div>
+    </div>
+  </div>
+  <div class="steps">
+    <strong>📱 Hướng dẫn setup MFA:</strong>
+    <ol>
+      <li>Cài app <strong>Google Authenticator</strong> trên điện thoại</li>
+      <li>Mở app → nhấn dấu <strong>+</strong> → chọn <strong>Quét mã QR</strong></li>
+      <li>Quét QR của tài khoản bạn muốn sử dụng</li>
+      <li>App sẽ hiện mã 6 số thay đổi mỗi 30 giây — nhập vào ô xác thực khi đăng nhập</li>
+    </ol>
+  </div>
+</div>
+</body>
+</html>

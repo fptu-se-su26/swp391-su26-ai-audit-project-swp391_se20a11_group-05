@@ -1,18 +1,40 @@
-import { createFileRoute } from "@tanstack/react-router";
+/**
+ * _auth.ward.tsx — Ward Staff Dashboard
+ *
+ * Protected by TWO independent guards:
+ *   1. _auth.tsx layout → checks user is authenticated + is an AUTHORITY role
+ *   2. This route's beforeLoad → checks specifically for WARD_STAFF
+ *
+ * Any other authority role (POLICE, SUPER_ADMIN) navigating here gets
+ * redirected to /login — they cannot view ward operations.
+ */
+
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { reports } from "@/lib/mock-data";
 import { StatusBadge } from "@/components/site/StatusBadge";
-import { RoleGuard } from "@/components/site/RoleGuard";
 import { StaffShell } from "@/components/site/StaffShell";
+import { Role } from "@/lib/roles";
 import danangMap from "@/assets/danang-map.jpg";
 import { Check, MapPin, MessageSquare, X } from "lucide-react";
 
-export const Route = createFileRoute("/ward")({
+export const Route = createFileRoute("/_auth/ward")({
+  beforeLoad: ({ context }) => {
+    // context.currentUser is set by _auth.tsx layout — always present here
+    const { currentUser } = context as { currentUser: { name: string; role: string; org: string } };
+
+    // SECURITY: Narrow check — only WARD_STAFF may access this route
+    if (currentUser.role !== Role.WARD_STAFF) {
+      throw redirect({ to: "/login", search: { error: "forbidden" } });
+    }
+  },
   head: () => ({
     meta: [
       { title: "Cổng cán bộ phường — UBND Hải Châu I" },
       { name: "description", content: "Bảng điều khiển dành cho cán bộ phường: tiếp nhận, xử lý, hoàn thành phản ánh." },
+      // SECURITY: Prevent indexing of staff portals
+      { name: "robots", content: "noindex, nofollow" },
     ],
   }),
   component: WardDashboard,
@@ -23,25 +45,24 @@ function WardDashboard() {
   const [selected, setSelected] = useState(reports[0]);
 
   return (
-    <RoleGuard roles={["ward", "city_admin"]}>
-      <StaffShell
-        accent="blue"
-        eyebrow={locale === "vi" ? "Cổng cán bộ phường" : "Ward officer portal"}
-        title={t("ward.title")}
-        org="UBND Phường Hải Châu I · Quận Hải Châu"
-      >
-        <div className="flex flex-wrap items-end justify-end gap-2 mb-6">
-          {["Hôm nay", "Tuần này", "Tháng này"].map((p, i) => (
-            <button
-              key={p}
-              className={`min-h-[44px] px-4 rounded-md font-semibold text-sm border ${
-                i === 0 ? "bg-gov-blue text-white border-gov-blue" : "bg-white border-slate-200"
-              }`}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
+    <StaffShell
+      accent="blue"
+      eyebrow={locale === "vi" ? "Cổng cán bộ phường" : "Ward officer portal"}
+      title={t("ward.title")}
+      org="UBND Phường Hải Châu I · Quận Hải Châu"
+    >
+      <div className="flex flex-wrap items-end justify-end gap-2 mb-6">
+        {["Hôm nay", "Tuần này", "Tháng này"].map((p, i) => (
+          <button
+            key={p}
+            className={`min-h-[44px] px-4 rounded-md font-semibold text-sm border ${
+              i === 0 ? "bg-gov-blue text-white border-gov-blue" : "bg-white border-slate-200"
+            }`}
+          >
+            {p}
+          </button>
+        ))}
+      </div>
 
       <div className="grid lg:grid-cols-12 gap-6">
         <section className="lg:col-span-7">
@@ -123,8 +144,7 @@ function WardDashboard() {
             </div>
           </div>
         </aside>
-        </div>
-      </StaffShell>
-    </RoleGuard>
+      </div>
+    </StaffShell>
   );
 }

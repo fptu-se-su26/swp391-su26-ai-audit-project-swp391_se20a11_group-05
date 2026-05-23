@@ -1,23 +1,33 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { lazy, Suspense } from "react";
+/**
+ * _auth.city-admin.tsx — City Leadership / Super Admin Dashboard
+ *
+ * Protected by TWO independent guards:
+ *   1. _auth.tsx layout → checks AUTHORITY_ROLES membership
+ *   2. This route's beforeLoad → checks specifically for SUPER_ADMIN
+ */
+
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
-import { useFeedbacks } from "@/lib/hooks";
-import { kpis as mockKpis, wardPerformance, reports as mockReports } from "@/lib/mock-data";
-import { DemoBanner } from "@/components/site/DemoBanner";
-import { Skeleton } from "@/components/ui/skeleton";
-import { RoleGuard } from "@/components/site/RoleGuard";
+import { kpis, wardPerformance } from "@/lib/mock-data";
 import { StaffShell } from "@/components/site/StaffShell";
-import { DonutChart, HorizontalBarChart, Sparkline, textClassToHex } from "@/components/site/KpiChart";
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
-import { Download, Settings, Users, Loader2, TrendingUp } from "lucide-react";
+import { Role } from "@/lib/roles";
+import adminHeatmap from "@/assets/admin-heatmap.jpg";
+import { Download, Settings, Users } from "lucide-react";
 
-const CivicMap = lazy(() => import("@/components/site/CivicMap").then(m => ({ default: m.CivicMap })));
+export const Route = createFileRoute("/_auth/city-admin")({
+  beforeLoad: ({ context }) => {
+    const { currentUser } = context as { currentUser: { role: string } };
 
-export const Route = createFileRoute("/city-admin")({
+    // SECURITY: Only SUPER_ADMIN may access the city leadership dashboard
+    if (currentUser.role !== Role.SUPER_ADMIN) {
+      throw redirect({ to: "/login", search: { error: "forbidden" } });
+    }
+  },
   head: () => ({
     meta: [
-      { title: "Bảng điều hành Lãnh đạo Thành phố — Đà Nẵng Lắng Nghe" },
+      { title: "Bảng điều hành Lãnh đạo Thành phố — Đà Nẵng Kết Nối" },
       { name: "description", content: "Bảng điều hành cấp thành phố: KPI, hiệu suất phường, xuất báo cáo." },
+      { name: "robots", content: "noindex, nofollow" },
     ],
   }),
   component: CityAdmin,
@@ -41,29 +51,23 @@ function CityAdmin() {
   const isApi = !!apiKpis;
 
   return (
-    <RoleGuard roles={["city_admin"]}>
-      <StaffShell
-        accent="gold"
-        eyebrow={locale === "vi" ? "Lãnh đạo thành phố" : "City leadership"}
-        title={t("city.title")}
-        org="UBND Thành phố Đà Nẵng · Trung tâm IOC"
-      >
-        {!isApi && !isLoading && <DemoBanner />}
-
-        <div className="flex flex-wrap justify-between gap-2 mb-6">
-          <div />
-          <div className="flex gap-2">
-            <button className="btn-civic btn-civic-ghost">
-              <Users size={18} /> Quản lý tài khoản
-            </button>
-            <button className="btn-civic btn-civic-ghost">
-              <Settings size={18} /> Cấu hình
-            </button>
-            <button className="btn-civic btn-civic-primary">
-              <Download size={18} /> {t("city.export")}
-            </button>
-          </div>
-        </div>
+    <StaffShell
+      accent="gold"
+      eyebrow={locale === "vi" ? "Lãnh đạo thành phố" : "City leadership"}
+      title={t("city.title")}
+      org="UBND Thành phố Đà Nẵng · Trung tâm IOC"
+    >
+      <div className="flex flex-wrap justify-end gap-2 mb-6">
+        <button className="btn-civic btn-civic-ghost">
+          <Users size={18} /> Quản lý tài khoản
+        </button>
+        <button className="btn-civic btn-civic-ghost">
+          <Settings size={18} /> Cấu hình
+        </button>
+        <button className="btn-civic btn-civic-primary">
+          <Download size={18} /> {t("city.export")}
+        </button>
+      </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -218,7 +222,6 @@ function CityAdmin() {
           ))}
         </div>
       </div>
-      </StaffShell>
-    </RoleGuard>
+    </StaffShell>
   );
 }

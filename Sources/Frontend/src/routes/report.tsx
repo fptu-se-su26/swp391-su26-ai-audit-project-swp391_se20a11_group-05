@@ -10,7 +10,7 @@ import { Camera, Video, MapPin, Mic, Check, ArrowLeft, ArrowRight, Loader2, Buil
 export const Route = createFileRoute("/report")({
   head: () => ({
     meta: [
-      { title: "Gửi phản ánh — Đà Nẵng Lắng Nghe" },
+      { title: "Gửi phản ánh — Đà Nẵng Kết Nối" },
       { name: "description", content: "Gửi phản ánh sự cố đô thị qua 3 bước: ảnh/video, vị trí, mô tả bằng giọng nói." },
     ],
   }),

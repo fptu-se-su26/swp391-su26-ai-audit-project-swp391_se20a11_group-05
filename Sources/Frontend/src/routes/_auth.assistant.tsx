@@ -1,15 +1,38 @@
-import { createFileRoute } from "@tanstack/react-router";
+/**
+ * _auth.assistant.tsx — AI Assistant (internal staff tool)
+ *
+ * Accessible to ALL authority roles (WARD_STAFF, POLICE, SUPER_ADMIN).
+ * The _auth.tsx layout already validated AUTHORITY_ROLES membership,
+ * so this route only needs to confirm any authority role is present.
+ *
+ * Note: The assistant is NOT accessible to CITIZEN — they use the
+ * public-facing chatbot on the citizen portal (/assistant).
+ */
+
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
-import { ragApi, ApiError } from "@/lib/api";
-import ReactMarkdown from "react-markdown";
-import { Bot, Phone, Send, User, Loader2, ChevronDown } from "lucide-react";
+import { chatbotApi, ApiError } from "@/lib/api";
+import { AUTHORITY_ROLES } from "@/lib/roles";
+import { parseBackendRole } from "@/lib/roles";
+import { Bot, Phone, Send, User, Loader2 } from "lucide-react";
 
-export const Route = createFileRoute("/assistant")({
+export const Route = createFileRoute("/_auth/assistant")({
+  beforeLoad: ({ context }) => {
+    const { currentUser } = context as { currentUser: { role: string } };
+    const role = parseBackendRole(currentUser.role);
+
+    // Allow any authority role — the layout already checked, but this is
+    // the defense-in-depth second check
+    if (!AUTHORITY_ROLES.has(role)) {
+      throw redirect({ to: "/login" });
+    }
+  },
   head: () => ({
     meta: [
-      { title: "Trợ lý AI Khẩn cấp — Đà Nẵng Lắng Nghe" },
-      { name: "description", content: "Hỏi đáp về tình huống khẩn cấp, quy trình hành chính, đường dây nóng tại Đà Nẵng." },
+      { title: "Trợ lý AI Nội bộ — Đà Nẵng Kết Nối" },
+      { name: "description", content: "Hỏi đáp nội bộ cho cán bộ về quy trình hành chính và tình huống khẩn cấp." },
+      { name: "robots", content: "noindex, nofollow" },
     ],
   }),
   component: AssistantPage,
@@ -39,8 +62,8 @@ function AssistantPage() {
     {
       role: "bot",
       text: locale === "vi"
-        ? "Xin chào! Tôi là Trợ lý AI của Đà Nẵng Lắng Nghe. Tôi có thể hỗ trợ bạn giải đáp thắc mắc về thủ tục hành chính, phản ánh đô thị và tình huống khẩn cấp. Bạn cần hỗ trợ gì hôm nay?"
-        : "Hello! I'm Da Nang's AI Assistant. I can help you with civic procedures, urban reports, and emergencies. How can I help you today?",
+        ? "Xin chào! Tôi là Trợ lý AI nội bộ của Đà Nẵng Kết Nối. Tôi có thể hỗ trợ cán bộ giải đáp thắc mắc về thủ tục hành chính, phản ánh đô thị và tình huống khẩn cấp. Bạn cần hỗ trợ gì hôm nay?"
+        : "Hello! I'm Da Nang's internal AI Assistant. I can help staff with civic procedures, urban reports, and emergencies. How can I help you today?",
     },
   ]);
   const [input, setInput] = useState("");
@@ -50,7 +73,6 @@ function AssistantPage() {
   // Only the initial greeting — show suggested chips
   const isNewConversation = messages.length === 1 && messages[0].role === "bot" && !messages[0].isLoading;
 
-  // Auto-scroll khi có tin nhắn mới
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -90,42 +112,18 @@ function AssistantPage() {
     const userText = (text ?? input).trim();
     if (!userText || sending) return;
 
-    // Add user message
-    setMessages((m: Msg[]) => [...m, { role: "user", text: userText }]);
-    if (!text) setInput("");
+    setMessages((m) => [...m, { role: "user", text: userText }]);
+    setInput("");
     setSending(true);
-
-    // Add loading indicator
-    setMessages((m: Msg[]) => [...m, { role: "bot", text: "", isLoading: true }]);
+    setMessages((m) => [...m, { role: "bot", text: "", isLoading: true }]);
 
     try {
-      // Lấy token nếu có
-      const token = typeof window !== "undefined" ? localStorage.getItem("dn_jwt_token") : null;
-      const headers: Record<string, string> = {};
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
-      // Đổi API endpoint sang /api/rag/stream
-      const response = await fetch(`/api/rag/stream?q=${encodeURIComponent(userText)}&userId=1`, {
-        method: "GET",
-        headers: headers
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      // Xóa loading và chuẩn bị khung tin nhắn trống cho bot
-      setMessages((m: Msg[]) => {
-        const filtered = m.filter((msg: Msg) => !msg.isLoading);
+      const result = await chatbotApi.ask(userText, 1);
+      setMessages((m) => {
+        const filtered = m.filter((msg) => !msg.isLoading);
         return [
           ...filtered,
-          {
-            role: "bot",
-            text: "",
-            provider: "GROQ Stream (RAG)",
-          },
+          { role: "bot", text: result.answer, provider: result.provider, latency: result.latencyMs },
         ];
       });
 
@@ -162,19 +160,33 @@ function AssistantPage() {
         }
       }
     } catch (err) {
-      // Remove loading indicator
-      setMessages((m: Msg[]) => m.filter((msg: Msg) => !msg.isLoading));
+      setMessages((m) => m.filter((msg) => !msg.isLoading));
 
-      setMessages((m: Msg[]) => [
-        ...m,
-        {
-          role: "bot",
-          text: locale === "vi"
-            ? `⚠️ Lỗi kết nối tới AI. Hệ thống đang bận. Vui lòng thử lại sau.`
-            : `⚠️ AI connection error. System is busy. Please try later.`,
-        },
-      ]);
-      console.error(err);
+      if (err instanceof ApiError) {
+        setMessages((m) => [
+          ...m,
+          {
+            role: "bot",
+            text: locale === "vi"
+              ? `⚠️ Lỗi kết nối tới AI (${err.status}). Vui lòng thử lại sau.`
+              : `⚠️ AI connection error (${err.status}). Please try again later.`,
+          },
+        ]);
+      } else {
+        setMessages((m) => [
+          ...m,
+          {
+            role: "bot",
+            text: locale === "vi"
+              ? "⚠️ Backend chưa kết nối. Đây là chế độ demo.\n\nNếu bạn cần hỗ trợ khẩn cấp, vui lòng gọi đường dây nóng 1022."
+              : "⚠️ Backend is not connected. This is demo mode.\n\nFor emergencies, please call hotline 1022.",
+            hotlines: [
+              { label: locale === "vi" ? "Đường dây nóng 1022" : "Hotline 1022", tel: "1022" },
+              { label: locale === "vi" ? "PCCC / Cứu hỏa" : "Fire/Rescue", tel: "114" },
+            ],
+          },
+        ]);
+      }
     } finally {
       setSending(false);
     }
@@ -220,30 +232,7 @@ function AssistantPage() {
                 </div>
               ) : (
                 <>
-                  {m.text && (
-                    <div className="prose prose-sm max-w-none prose-headings:text-ink prose-p:text-ink prose-a:text-gov-blue prose-strong:text-ink">
-                      <ReactMarkdown
-                        components={{
-                          code({ className, children, ...props }) {
-                            const match = /language-(\w+)/.exec(className || "");
-                            const isInline = !match;
-                            return isInline ? (
-                              <code className="bg-slate-200 text-ink px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
-                                {children}
-                              </code>
-                            ) : (
-                              <pre className="bg-slate-800 text-slate-100 p-4 rounded-lg overflow-x-auto text-sm font-mono my-2">
-                                <code {...props}>{children}</code>
-                              </pre>
-                            );
-                          },
-                        }}
-                      >
-                        {m.text}
-                      </ReactMarkdown>
-                    </div>
-                  )}
-                  {/* Provider/latency badge */}
+                  <p className="whitespace-pre-wrap">{m.text}</p>
                   {m.provider && (
                     <div className="mt-2 flex items-center gap-2 text-xs">
                       <span className="bg-gov-blue/10 text-gov-blue-dark px-2 py-0.5 rounded font-medium dark:bg-gov-blue/20 dark:text-blue-300">
@@ -254,7 +243,6 @@ function AssistantPage() {
                       )}
                     </div>
                   )}
-                  {/* Hotline buttons */}
                   {m.hotlines && (
                     <div className="mt-3 flex flex-wrap gap-2">
                       {m.hotlines.map((h: { label: string; tel: string }) => (
@@ -303,10 +291,7 @@ function AssistantPage() {
       )}
 
       {/* Input */}
-      <form
-        onSubmit={(e: React.FormEvent) => { e.preventDefault(); send(); }}
-        className="flex gap-3"
-      >
+      <form onSubmit={(e) => { e.preventDefault(); send(); }} className="flex gap-3">
         <input
           value={input}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)}

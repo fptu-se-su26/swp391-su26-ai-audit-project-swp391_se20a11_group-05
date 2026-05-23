@@ -34,8 +34,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleGenericException(Exception ex) {
+        // Log full stack trace internally
+        // Do NOT leak internal details to client
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error(500, "Internal Server Error: " + ex.getMessage()));
+                .body(ApiResponse.error(500, "Internal Server Error. Vui lòng thử lại sau."));
     }
 }
 

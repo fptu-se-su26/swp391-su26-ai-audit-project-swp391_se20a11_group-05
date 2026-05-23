@@ -423,6 +423,74 @@ Rất hữu ích khi hiểu được cách các Cloud Database tích hợp với
 
 ---
 
+### Prompt số 5
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-05-21 |
+| Công cụ AI | Antigravity |
+| Mục đích | Đồng bộ hóa Frontend ↔ Backend REST API, sửa lỗi compile |
+| Phần việc liên quan | Coding / Debug / Integration |
+| Mức độ sử dụng | Hỏi debug / Hỏi sinh code / Hỏi tối ưu |
+
+#### 5.1. Prompt nguyên văn
+
+```text
+làm sao để bên frontend đọc đc restfull api của backend, bởi vì mới tạo bên 2 bên chưa có kết nối mấy, đồng bộ lại
+```
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Frontend (React + TypeScript) và Backend (Spring Boot) được phát triển song song nhưng chưa có sự đồng bộ về API contract. File api.ts dùng sai tên method, thiếu TypeScript types, và node_modules chưa được cài. IDE báo hơn 60 lỗi compile cùng một lúc làm ảnh hưởng đến tiến độ phát triển.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI đọc toàn bộ Backend Controllers (AuthController, FeedbackController, CategoryController, RagController, AiController) và Java DTOs, sau đó viết lại hoàn toàn api.ts với đầy đủ TypeScript interfaces đồng bộ 1-1. AI còn sửa lỗi import sai (chatbotApi → ragApi) trong assistant.tsx, tạo vite-env.d.ts, cập nhật tsconfig.json, chạy npm install (510 packages) và dọn sạch unused imports/deprecated API trong Backend.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Toàn bộ api.ts được viết lại với đầy đủ types: BackendRole, FeedbackStatus, CategoryResponse, RagQueryRequest, ChatbotResponse, v.v. Các API được tổ chức thành authApi, feedbackApi, categoryApi, ragApi, aiApi — mapping đúng với từng Controller Java tương ứng.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Tôi đã tự kiểm tra lại file UserRepository.java để xác nhận findByEmail() thực sự chưa có trước khi AI thêm vào — thay vì tin ngay vào AI. Khi phát hiện file bị xóa nhầm, tôi chủ động báo lại để AI khôi phục đúng. Tôi cũng quyết định ghi lại toàn bộ mapping Frontend ↔ Backend vào tài liệu cá nhân để chuẩn bị cho phần bảo vệ đồ án.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| File liên quan | `Sources/Frontend/src/lib/api.ts`, `Sources/Frontend/src/routes/assistant.tsx` |
+| File liên quan | `Sources/Backend/.../UserRepository.java`, `vite-env.d.ts`, `tsconfig.json` |
+| Kết quả chạy/test | npm install thành công — 510 packages, 0 error |
+| Ghi chú khác | Toàn bộ 60+ lỗi compile đã được giải quyết |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Prompt ban đầu rất ngắn gọn nhưng AI xử lý tốt nhờ đọc toàn bộ codebase. Bài học: prompt không nhất thiết phải dài, nhưng cần rõ vấn đề cốt lõi. Việc kiểm chứng lại từng file thủ công (thay vì tin 100% vào AI) là thói quen tốt cần duy trì.
+```
+
+---
+
 ## 6. Prompt quan trọng nhất
 
 Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.
@@ -430,31 +498,31 @@ Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.
 ### 6.1. Prompt được chọn
 
 ```text
-Dán prompt quan trọng nhất tại đây.
+Yêu cầu AI nâng cấp toàn bộ các trang Dashboard (Ward, Police, City Admin) và trang người dùng (Report, My Reports) để đọc dữ liệu từ RESTful API thực tế thay vì mock data, đồng thời viết thêm chức năng Đăng ký (Register) và xử lý triệt để các lỗi biên dịch TypeScript.
 ```
 
 ### 6.2. Vì sao prompt này quan trọng?
 
 ```text
-Viết tại đây...
+Prompt này yêu cầu thay đổi hoàn toàn kiến trúc Frontend, chuyển giao từ giai đoạn "chạy giả lập" (Mock Data) sang "chạy thực tế" với hệ thống Spring Boot. Đặc biệt việc yêu cầu "xử lý triệt để lỗi TypeScript" buộc AI phải chạy trình biên dịch `tsc` thay vì chỉ sửa code "trên giấy".
 ```
 
 ### 6.3. Kết quả prompt này mang lại
 
 ```text
-Viết tại đây...
+AI đã viết lại toàn bộ logic cho 5 trang quan trọng, kết nối thành công với `feedbackApi` và `categoryApi`. Khi gặp lỗi TypeScript (đặc biệt liên quan đến TanStack Router Navigation), AI đã biết tự chạy lệnh `npx @tanstack/router-cli generate` để tự động khởi tạo lại cây định tuyến đường dẫn (route tree), đưa hệ thống về trạng thái 0 lỗi compile (Exit Code: 0).
 ```
 
 ### 6.4. Sinh viên/nhóm đã kiểm tra kết quả như thế nào?
 
 ```text
-Viết tại đây...
+Theo dõi Terminal log để đảm bảo lệnh `npm run tsc --noEmit` thực sự chạy ra Exit code 0 và không còn cảnh báo đỏ nào trên màn hình Console. Test thử trang Dashboard khi tắt Backend để xem giao diện có sập không (Cơ chế fallback sang "Demo mode" hoạt động tốt).
 ```
 
 ### 6.5. Sinh viên/nhóm đã cải tiến gì từ kết quả AI?
 
 ```text
-Viết tại đây...
+AI định sử dụng ép kiểu `as any` (Ví dụ `<Link to={"/register" as any}>`) để ép qua mặt bộ biên dịch TypeScript. Tuy nhiên tôi nhận ra như vậy là phá vỡ nguyên lý của thư viện TanStack. Tôi đã yêu cầu AI bỏ các đoạn ép kiểu này và chạy lại trình Router Generator để sinh ra đường dẫn gốc hợp lệ.
 ```
 
 ---

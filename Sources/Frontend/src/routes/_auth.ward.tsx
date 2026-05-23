@@ -12,7 +12,8 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
-import { reports } from "@/lib/mock-data";
+import { useFeedbacks } from "@/lib/hooks";
+import { reports as mockReports, type ReportStatus } from "@/lib/mock-data";
 import { StatusBadge } from "@/components/site/StatusBadge";
 import { StaffShell } from "@/components/site/StaffShell";
 import { Role } from "@/lib/roles";
@@ -40,9 +41,38 @@ export const Route = createFileRoute("/_auth/ward")({
   component: WardDashboard,
 });
 
+function mapStatus(s: string): ReportStatus {
+  const m: Record<string, ReportStatus> = {
+    PENDING: "pending", ASSIGNED: "inProgress", IN_PROGRESS: "inProgress",
+    WAITING_INFO: "pending", RESOLVED: "resolved", REJECTED: "urgent",
+  };
+  return m[s] || "pending";
+}
+
+import type { FeedbackResponse } from "@/lib/api";
+
 function WardDashboard() {
   const { t, locale } = useI18n();
-  const [selected, setSelected] = useState(reports[0]);
+  const { data: feedbacksPage, isLoading, isFetching, refetch } = useFeedbacks(0, 50);
+
+  const [selectedId, setSelectedId] = useState<string | number | null>(null);
+
+  const hasApiData = !!feedbacksPage && feedbacksPage.content.length > 0;
+  const apiFeedbacks = feedbacksPage?.content ?? [];
+
+  // Auto-select first item when data loads
+  useEffect(() => {
+    if (selectedId !== null) return;
+    if (hasApiData && apiFeedbacks.length > 0) {
+      setSelectedId(apiFeedbacks[0].id);
+    } else if (!hasApiData && mockReports.length > 0) {
+      setSelectedId(mockReports[0].id);
+    }
+  }, [hasApiData, apiFeedbacks, selectedId]);
+
+  const selected = hasApiData
+    ? apiFeedbacks.find((r) => r.id === selectedId)
+    : mockReports.find((r) => r.id === selectedId);
 
   return (
     <StaffShell
@@ -64,84 +94,25 @@ function WardDashboard() {
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-12 gap-6">
-        <section className="lg:col-span-7">
-          <div className="card-civic p-0 overflow-hidden mb-6">
-            <div className="bg-gov-blue text-white p-4 flex items-center justify-between">
-              <h2 className="text-white font-heading text-xl">Bản đồ nhiệt khu vực</h2>
-              <span className="text-xs font-mono uppercase tracking-widest bg-white/10 px-3 py-1 rounded">Live</span>
-            </div>
-            <img
-              src={danangMap}
-              alt="Da Nang heatmap"
-              loading="lazy"
-              width={1024}
-              height={1024}
-              className="w-full h-72 md:h-96 object-cover"
-            />
-          </div>
-
-          <h2 className="text-2xl mb-4">{t("ward.incoming")}</h2>
-          <div className="space-y-3">
-            {reports.map((r) => (
+        {/* Toolbar */}
+        <div className="flex flex-wrap items-end justify-between gap-2 mb-6">
+          <div className="flex gap-2">
+            {["Hôm nay", "Tuần này", "Tháng này"].map((p, i) => (
               <button
-                key={r.id}
-                onClick={() => setSelected(r)}
-                className={`w-full text-left card-civic p-4 flex gap-4 transition-all ${
-                  selected.id === r.id ? "ring-2 ring-gov-blue" : "hover:shadow-md"
+                key={p}
+                className={`min-h-[44px] px-4 rounded-md font-semibold text-sm border ${
+                  i === 0 ? "bg-gov-blue text-white border-gov-blue" : "bg-white border-slate-200"
                 }`}
               >
-                <img src={r.image} alt="" loading="lazy" width={120} height={120} className="w-20 h-20 rounded-md object-cover" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <StatusBadge status={r.status} />
-                    <span className="text-xs text-ink-soft ml-auto">{r.createdAt}</span>
-                  </div>
-                  <div className="font-bold text-ink truncate">{r.title[locale]}</div>
-                  <div className="text-sm text-ink-soft flex items-center gap-1.5 mt-1">
-                    <MapPin size={14} /> {r.district} · {r.ward}
-                  </div>
-                </div>
+                {p}
               </button>
             ))}
           </div>
-        </section>
-
-        <aside className="lg:col-span-5">
-          <div className="card-civic p-6 sticky top-32">
-            <div className="flex items-start justify-between gap-3 mb-4">
-              <StatusBadge status={selected.status} />
-              <span className="font-mono text-sm text-ink-soft">{selected.id}</span>
-            </div>
-            <h3 className="text-xl font-bold mb-2 text-ink font-sans">{selected.title[locale]}</h3>
-            <p className="text-ink-soft mb-4 leading-relaxed">{selected.description[locale]}</p>
-            <img
-              src={selected.image}
-              alt={selected.title[locale]}
-              loading="lazy"
-              width={800}
-              height={800}
-              className="w-full aspect-video object-cover rounded-lg mb-4"
-            />
-            <div className="space-y-2 text-sm text-ink mb-6">
-              <div><span className="font-semibold text-ink-soft">Vị trí:</span> {selected.address[locale]}</div>
-              <div><span className="font-semibold text-ink-soft">Người gửi:</span> {selected.reporter}</div>
-              <div><span className="font-semibold text-ink-soft">Loại:</span> {selected.category}</div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <button className="btn-civic btn-civic-primary" style={{ background: "var(--status-success)" }}>
-                <Check size={20} /> {t("ward.accept")}
-              </button>
-              <button className="btn-civic btn-civic-ghost" style={{ borderColor: "var(--status-danger)", color: "var(--status-danger)" }}>
-                <X size={20} /> {t("ward.reject")}
-              </button>
-              <button className="btn-civic btn-civic-ghost sm:col-span-2">
-                <MessageSquare size={20} /> Nhắn cho người dân
-              </button>
-              <button className="btn-civic btn-civic-primary sm:col-span-2">
-                <Check size={20} /> {t("ward.resolve")}
-              </button>
-            </div>
+          <div className="flex items-center gap-3">
+            <button onClick={() => refetch()} disabled={isFetching} className="btn-civic btn-civic-ghost flex items-center gap-2">
+              {isFetching ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+              {locale === "vi" ? "Làm mới" : "Refresh"}
+            </button>
           </div>
         </aside>
       </div>

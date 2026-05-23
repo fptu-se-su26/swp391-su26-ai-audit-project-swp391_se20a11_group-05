@@ -3,6 +3,7 @@ package com.example.smartcity.security.jwt;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -16,11 +17,18 @@ import java.util.Date;
 @Slf4j
 public class JwtTokenProvider {
 
-    // Default secret for development, should ideally be in application.properties
-    private final String jwtSecret = "SecretKeyToGenerateJWTTokenNeedToBeAtLeast256BitsLongForHS256Algorithm";
-    private final long jwtExpirationInMs = 604800000; // 7 days
+    @Value("${jwt.secret:}")
+    private String jwtSecret;
+
+    @Value("${jwt.expiration-ms:604800000}")
+    private long jwtExpirationInMs; // 7 days default
 
     private Key getSigningKey() {
+        if (jwtSecret == null || jwtSecret.isBlank()) {
+            log.error("JWT_SECRET environment variable is not set! Using INSECURE default. Set JWT_SECRET in application.properties or environment.");
+            String fallback = "SecretKeyToGenerateJWTTokenNeedToBeAtLeast256BitsLongForHS256Algorithm";
+            return Keys.hmacShaKeyFor(fallback.getBytes(StandardCharsets.UTF_8));
+        }
         return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
 

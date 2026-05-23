@@ -1,29 +1,32 @@
 package com.example.smartcity.modules.feedback.controller;
 
+import com.example.smartcity.common.base.BaseGenericController;
+import com.example.smartcity.common.base.BaseMapper;
+import com.example.smartcity.common.base.BaseService;
 import com.example.smartcity.modules.feedback.dto.CategoryDTO;
+import com.example.smartcity.modules.feedback.entity.Category;
+import com.example.smartcity.modules.feedback.mapper.CategoryMapper;
 import com.example.smartcity.modules.feedback.service.CategoryService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/categories")
 @RequiredArgsConstructor
-public class CategoryController {
+public class CategoryController extends BaseGenericController<Category, CategoryDTO, Long> {
 
     private final CategoryService categoryService;
+    private final CategoryMapper categoryMapper;
 
-    @GetMapping
-    public ResponseEntity<List<CategoryDTO>> getAllCategories() {
-        return ResponseEntity.ok(categoryService.getAllCategories());
+    @Override
+    protected BaseService<Category, Long> getService() {
+        return categoryService;
     }
 
-    @PostMapping
-    public ResponseEntity<CategoryDTO> createCategory(@RequestBody CategoryDTO request) {
-        CategoryDTO created = categoryService.createCategory(request);
-        return ResponseEntity.ok(created);
+    @Override
+    protected BaseMapper<Category, CategoryDTO> getMapper() {
+        return categoryMapper;
     }
 }
 

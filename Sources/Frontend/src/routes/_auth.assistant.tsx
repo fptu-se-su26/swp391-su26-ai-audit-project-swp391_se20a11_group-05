@@ -47,9 +47,17 @@ interface Msg {
   isLoading?: boolean;
 }
 
+const SUGGESTED_QUESTIONS = [
+  { vi: "Số điện thoại khẩn cấp?", en: "Emergency numbers?" },
+  { vi: "Làm sao báo ổ gà?", en: "How to report pothole?" },
+  { vi: "Quy trình xử lý phản ánh?", en: "Report processing flow?" },
+  { vi: "Đường dây nóng 1022", en: "Hotline 1022" },
+];
+
 function AssistantPage() {
   const { t, locale } = useI18n();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "bot",
@@ -60,14 +68,49 @@ function AssistantPage() {
   ]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
+
+  // Only the initial greeting — show suggested chips
+  const isNewConversation = messages.length === 1 && messages[0].role === "bot" && !messages[0].isLoading;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const send = async () => {
-    if (!input.trim() || sending) return;
-    const userText = input.trim();
+  // Load saved messages from sessionStorage on mount
+  useEffect(() => {
+    const saved = sessionStorage.getItem("assistant_messages");
+    if (saved) {
+      try {
+        setMessages(JSON.parse(saved));
+      } catch {
+        // ignore invalid JSON
+      }
+    }
+  }, []);
+
+  // Persist messages to sessionStorage on each update
+  useEffect(() => {
+    if (messages.length > 1) {
+      sessionStorage.setItem("assistant_messages", JSON.stringify(messages));
+    }
+  }, [messages]);
+
+  // Track scroll position for scroll-to-bottom button
+  const handleScroll = () => {
+    const el = chatContainerRef.current;
+    if (!el) return;
+    const threshold = 100;
+    setShowScrollBtn(el.scrollHeight - el.scrollTop - el.clientHeight > threshold);
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const send = async (text?: string) => {
+    const userText = (text ?? input).trim();
+    if (!userText || sending) return;
 
     setMessages((m) => [...m, { role: "user", text: userText }]);
     setInput("");
@@ -83,6 +126,39 @@ function AssistantPage() {
           { role: "bot", text: result.answer, provider: result.provider, latency: result.latencyMs },
         ];
       });
+
+      // Stream data (Hiệu ứng gõ phím)
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder("utf-8");
+
+      if (reader) {
+        let done = false;
+        let accumulatedText = "";
+
+        while (!done) {
+          const { value, done: readerDone } = await reader.read();
+          done = readerDone;
+
+          if (value) {
+            // Decode phần raw byte thành chuỗi
+            let chunkStr = decoder.decode(value, { stream: true });
+
+            // Lọc các tiền tố "data: " của SSE (Spring WebFlux đôi lúc trả ra data:)
+            chunkStr = chunkStr.replace(/^data:/gm, "").trim();
+
+            if (chunkStr) {
+              accumulatedText += chunkStr + " ";
+
+              // Cập nhật text liên tục cho tin nhắn cuối cùng
+              setMessages((m: Msg[]) => {
+                const newArr = [...m];
+                newArr[newArr.length - 1].text = accumulatedText;
+                return newArr;
+              });
+            }
+          }
+        }
+      }
     } catch (err) {
       setMessages((m) => m.filter((msg) => !msg.isLoading));
 
@@ -118,7 +194,7 @@ function AssistantPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 md:px-8 py-10 md:py-14">
-      <div className="flex items-center gap-4 mb-6">
+      <div className="animate-scale-in flex items-center gap-4 mb-6">
         <div className="w-14 h-14 rounded-full bg-gov-blue grid place-items-center text-white">
           <Bot size={28} />
         </div>
@@ -129,30 +205,47 @@ function AssistantPage() {
       </div>
 
       {/* Chat Messages */}
-      <div className="card-civic p-5 md:p-6 min-h-[400px] max-h-[60vh] overflow-y-auto space-y-4 mb-4">
-        {messages.map((m, i) => (
-          <div key={i} className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : ""}`}>
+      <div
+        ref={chatContainerRef}
+        onScroll={handleScroll}
+        className="animate-fade-in card-civic p-5 md:p-6 min-h-[400px] max-h-[60vh] overflow-y-auto space-y-4 mb-4 relative"
+      >
+        {messages.map((m: Msg, i: number) => (
+          <div
+            key={i}
+            className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : ""} ${
+              m.role === "bot" ? "animate-fade-in-up" : "animate-slide-in-right"
+            }`}
+          >
             <div className={`w-10 h-10 rounded-full grid place-items-center shrink-0 ${m.role === "user" ? "bg-gov-gold text-gov-blue-deep" : "bg-gov-blue text-white"}`}>
               {m.role === "user" ? <User size={20} /> : <Bot size={20} />}
             </div>
             <div className={`max-w-[80%] p-4 rounded-2xl text-base leading-relaxed ${m.role === "user" ? "bg-gov-blue text-white rounded-tr-sm" : "bg-slate-100 text-ink rounded-tl-sm"}`}>
               {m.isLoading ? (
-                <div className="flex items-center gap-2 text-ink-soft">
-                  <Loader2 size={18} className="animate-spin" />
-                  <span>{locale === "vi" ? "AI đang xử lý..." : "AI is thinking..."}</span>
+                <div className="flex items-center gap-1.5 text-ink-soft">
+                  <div className="flex gap-1">
+                    <span className="w-2 h-2 rounded-full bg-gov-blue/40 animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <span className="w-2 h-2 rounded-full bg-gov-blue/40 animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <span className="w-2 h-2 rounded-full bg-gov-blue/40 animate-bounce" style={{ animationDelay: "300ms" }} />
+                  </div>
+                  <span className="text-sm">{locale === "vi" ? "AI đang xử lý..." : "AI is thinking..."}</span>
                 </div>
               ) : (
                 <>
                   <p className="whitespace-pre-wrap">{m.text}</p>
                   {m.provider && (
-                    <div className="mt-2 flex items-center gap-2 text-xs opacity-60">
-                      <span className="bg-black/10 px-2 py-0.5 rounded">🤖 {m.provider}</span>
-                      {m.latency && <span>{m.latency}ms</span>}
+                    <div className="mt-2 flex items-center gap-2 text-xs">
+                      <span className="bg-gov-blue/10 text-gov-blue-dark px-2 py-0.5 rounded font-medium dark:bg-gov-blue/20 dark:text-blue-300">
+                        {m.provider}
+                      </span>
+                      {m.latency && (
+                        <span className="text-ink-soft/60">{m.latency}ms</span>
+                      )}
                     </div>
                   )}
                   {m.hotlines && (
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {m.hotlines.map((h) => (
+                      {m.hotlines.map((h: { label: string; tel: string }) => (
                         <a
                           key={h.tel}
                           href={`tel:${h.tel}`}
@@ -171,11 +264,37 @@ function AssistantPage() {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Scroll to bottom button */}
+      {showScrollBtn && (
+        <button
+          onClick={scrollToBottom}
+          className="animate-fade-in fixed bottom-36 right-8 z-10 w-12 h-12 rounded-full bg-gov-blue text-white shadow-lg grid place-items-center hover:bg-gov-blue-dark transition-colors"
+          aria-label="Scroll to bottom"
+        >
+          <ChevronDown size={24} />
+        </button>
+      )}
+
+      {/* Suggested questions chips */}
+      {isNewConversation && (
+        <div className="animate-fade-in-up mb-4 flex flex-wrap gap-2">
+          {SUGGESTED_QUESTIONS.map((q, i) => (
+            <button
+              key={i}
+              onClick={() => send(q[locale as keyof typeof q] || q.en)}
+              className="px-4 py-2 rounded-full border border-gov-blue/30 text-sm text-gov-blue bg-white hover:bg-gov-blue/10 hover:border-gov-blue transition-colors"
+            >
+              {q[locale as keyof typeof q] || q.en}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Input */}
       <form onSubmit={(e) => { e.preventDefault(); send(); }} className="flex gap-3">
         <input
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)}
           placeholder={t("assistant.placeholder")}
           disabled={sending}
           className="flex-1 min-h-[52px] px-4 rounded-lg border-2 border-slate-200 text-base focus:border-gov-blue outline-none bg-white disabled:opacity-50"

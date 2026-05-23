@@ -54,8 +54,11 @@ public class ChatbotService {
         log.info("📨 [Chatbot] userId={} | question='{}'", userId, question);
 
         // 1. Load User (để lưu FK vào ChatHistory)
-        User user = userRepo.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng ID=" + userId));
+        User user = userRepo.findById(userId).orElseGet(() -> {
+            log.warn("⚠️ Không tìm thấy user ID={}, lấy user đầu tiên trong DB làm fallback", userId);
+            return userRepo.findAll().stream().findFirst()
+                    .orElseThrow(() -> new EntityNotFoundException("DB không có bất kỳ user nào để lưu ChatHistory"));
+        });
 
         // 2. Gọi Hybrid RAG pipeline
         RetrievalOptions options = RetrievalOptions.defaults(DANANG_DOC_TYPE, LANGUAGE);
@@ -65,7 +68,7 @@ public class ChatbotService {
         long latencyMs = System.currentTimeMillis() - start;
 
         // 3. Lưu vào ChatHistory (JPA)
-        ChatHistory history = ChatHistory.builder()
+          ChatHistory history = ChatHistory.builder()
                 .user(user)
                 .question(question)
                 .answer(ragResponse.answer())
@@ -111,6 +114,47 @@ public class ChatbotService {
                 .map(row -> Map.of("provider", row[0], "count", row[1]))
                 .toList()
         );
+    }
+
+    /**
+     * Hỏi chatbot dưới dạng luồng (Stream) và lưu lịch sử.
+     */
+    @Transactional
+    public reactor.core.publisher.Flux<String> askStream(Long userId, String question) {
+        log.info("📨 [Chatbot Stream] userId={} | question='{}'", userId, question);
+
+        // 1. Load User (để lưu FK vào ChatHistory)
+        User user = userRepo.findById(userId).orElseGet(() -> {
+            log.warn("⚠️ Không tìm thấy user ID={}, lấy user đầu tiên trong DB làm fallback", userId);
+            return userRepo.findAll().stream().findFirst()
+                    .orElseThrow(() -> new EntityNotFoundException("DB không có bất kỳ user nào để lưu ChatHistory"));
+        });
+
+        // 2. Gọi Hybrid RAG pipeline stream
+        RetrievalOptions options = RetrievalOptions.defaults(DANANG_DOC_TYPE, LANGUAGE);
+        RagRequest request = new RagRequest(question, options);
+        
+        long start = System.currentTimeMillis();
+        StringBuilder fullAnswer = new StringBuilder();
+
+        return ragOrchestrator.streamQuery(request)
+                .doOnNext(fullAnswer::append)
+                .doOnComplete(() -> {
+                    long latencyMs = System.currentTimeMillis() - start;
+                    // Lưu lịch sử khi stream xong
+                    ChatHistory history = ChatHistory.builder()
+                            .user(user)
+                            .question(question)
+                            .answer(fullAnswer.toString())
+                            .docType(DANANG_DOC_TYPE)
+                            .aiProvider("STREAM")
+                            .latencyMs(latencyMs)
+                            .build();
+
+                    chatHistoryRepository.save(history);
+                    log.info("✅ [Chatbot Stream] Hoàn tất và đã lưu ChatHistory id={} | latency={}ms",
+                            history.getId(), latencyMs);
+                });
     }
 }
 

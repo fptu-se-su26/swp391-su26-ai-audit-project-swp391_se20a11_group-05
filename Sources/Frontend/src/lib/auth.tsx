@@ -76,6 +76,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Corrupt storage — clear it
       localStorage.removeItem(STORAGE_KEY);
     }
+
+    // Auto-logout when backend returns 401
+    setOnUnauthorized(() => {
+      setUser(null);
+      if (typeof window !== "undefined") {
+        localStorage.removeItem(STORAGE_KEY);
+        removeToken();
+      }
+    });
   }, []);
 
   const login = (u: AuthUser) => {

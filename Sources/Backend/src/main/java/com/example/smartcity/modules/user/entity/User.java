@@ -2,7 +2,8 @@ package com.example.smartcity.modules.user.entity;
 
 import jakarta.persistence.*;
 import com.example.smartcity.common.base.BaseEntity;
-import java.time.LocalDateTime;
+import com.example.smartcity.modules.core.entity.Ward;
+
 
 @Entity
 @Table(name = "users")
@@ -29,6 +30,10 @@ public class User extends BaseEntity {
 
     @Column(nullable = false)
     private boolean isActive = true;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ward_id")
+    private Ward ward;
 
     @Column(name = "mfa_secret")
     private String mfaSecret;
@@ -75,6 +80,9 @@ public class User extends BaseEntity {
 
     public boolean isMfaEnabled() { return isMfaEnabled; }
     public void setMfaEnabled(boolean mfaEnabled) { this.isMfaEnabled = mfaEnabled; }
+
+    public Ward getWard() { return ward; }
+    public void setWard(Ward ward) { this.ward = ward; }
 }
 
 

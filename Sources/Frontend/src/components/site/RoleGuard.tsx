@@ -47,9 +47,9 @@ export function RoleGuard({ roles, children }: Props) {
             </span>
           </div>
         ) : null}
-        <Link to="/login" className="btn-civic btn-civic-primary w-full">
-          <LogIn size={20} />
-          {locale === "vi" ? "Đăng nhập với tài khoản cán bộ" : "Sign in with staff account"}
+        <Link to={"/login" as any} className="btn-civic btn-civic-primary w-full">
+          <Lock size={18} />
+          {locale === "vi" ? "Chuyển đến trang Đăng nhập" : "Go to Login"}
         </Link>
         <Link to="/" className="block mt-3 text-sm text-gov-blue font-semibold hover:underline">
           {locale === "vi" ? "← Về trang chủ" : "← Back to home"}

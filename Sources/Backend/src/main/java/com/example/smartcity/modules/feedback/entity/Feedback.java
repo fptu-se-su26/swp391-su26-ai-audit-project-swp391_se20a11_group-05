@@ -1,17 +1,14 @@
 package com.example.smartcity.modules.feedback.entity;
 
+import com.example.smartcity.common.base.BaseEntity;
 import com.example.smartcity.modules.user.entity.User;
+import com.example.smartcity.modules.core.entity.Ward;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "feedbacks")
-public class Feedback {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class Feedback extends BaseEntity {
 
     @Column(nullable = false, unique = true, length = 20)
     private String trackingCode; 
@@ -37,6 +34,10 @@ public class Feedback {
     private Category category;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ward_id", nullable = false)
+    private Ward ward;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "citizen_id", nullable = false)
     private User citizen;
 
@@ -44,16 +45,8 @@ public class Feedback {
     @JoinColumn(name = "assignee_id")
     private User assignee;
 
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
-
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt = LocalDateTime.now();
-
     public Feedback() {}
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
     public String getTrackingCode() { return trackingCode; }
     public void setTrackingCode(String trackingCode) { this.trackingCode = trackingCode; }
     public String getTitle() { return title; }
@@ -70,14 +63,12 @@ public class Feedback {
     public void setStatus(FeedbackStatus status) { this.status = status; }
     public Category getCategory() { return category; }
     public void setCategory(Category category) { this.category = category; }
+    public Ward getWard() { return ward; }
+    public void setWard(Ward ward) { this.ward = ward; }
     public User getCitizen() { return citizen; }
     public void setCitizen(User citizen) { this.citizen = citizen; }
     public User getAssignee() { return assignee; }
     public void setAssignee(User assignee) { this.assignee = assignee; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }
 
 

@@ -166,7 +166,7 @@ public class HybridRagOrchestrator {
                 isGrounded);
 
         log.info("✅ [{}] Hoàn tất pipeline trong {} ms | Grounded: {}",
-                isRagMode ? "RAG" : "GENERAL", totalLatency, isGrounded);
+                hasContext ? "RAG" : "GENERAL", totalLatency, isGrounded);
         log.info("═══════════════════════════════════════════════════════");
 
         return new RagResponse(answer, citations, meta);

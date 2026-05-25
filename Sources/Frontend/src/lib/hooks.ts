@@ -63,6 +63,26 @@ export function useCreateFeedback() {
   });
 }
 
+export function useChangeFeedbackStatus() {
+  const queryClient = useQueryClient();
+  return useMutation<FeedbackResponse, Error, { id: number | string; status: string; note?: string }>({
+    mutationFn: ({ id, status, note }) => feedbackApi.changeStatus(id, status, note),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
+    },
+  });
+}
+
+export function useAssignFeedback() {
+  const queryClient = useQueryClient();
+  return useMutation<FeedbackResponse, Error, { id: number | string; assigneeId: number }>({
+    mutationFn: ({ id, assigneeId }) => feedbackApi.assignFeedback(id, assigneeId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
+    },
+  });
+}
+
 // ─── Category Hooks ──────────────────────────────────────────
 
 export function useCategories() {
@@ -75,10 +95,10 @@ export function useCategories() {
 
 // ─── RAG / Chatbot Hooks ─────────────────────────────────────
 
-export function useChatbot(question: string, enabled = false) {
+export function useChatbot(question: string, userId: string | number, enabled = false) {
   return useQuery<ChatbotResponse>({
     queryKey: queryKeys.rag.chatbot(question),
-    queryFn: () => ragApi.chatbot(question),
+    queryFn: () => ragApi.chatbot(question, userId),
     enabled: enabled && question.length > 0,
   });
 }
@@ -93,7 +113,7 @@ export function useRagStats() {
 // ─── Auth Hooks ──────────────────────────────────────────────
 
 export function useLoginMutation() {
-  return useMutation<ApiResponse<TokenResponse | MfaRequiredResponse>, Error, {
+  return useMutation<TokenResponse | MfaRequiredResponse, Error, {
     username: string;
     password: string;
   }>({
@@ -111,17 +131,15 @@ export function useRegisterMutation() {
 }
 
 export function useMfaVerifyMutation() {
-  return useMutation({
-    mutationFn: ({
-      username, password, mfaCode,
-    }: { username: string; password: string; mfaCode: string }) =>
+  return useMutation<TokenResponse, Error, { username: string; password: string; mfaCode: string }>({
+    mutationFn: ({ username, password, mfaCode }) =>
       authApi.mfaVerify(username, password, mfaCode),
   });
 }
 
 export function useMfaSetupMutation() {
-  return useMutation({
-    mutationFn: ({ username, password }: { username: string; password: string }) =>
+  return useMutation<string, Error, { username: string; password: string }>({
+    mutationFn: ({ username, password }) =>
       authApi.mfaSetup(username, password),
   });
 }

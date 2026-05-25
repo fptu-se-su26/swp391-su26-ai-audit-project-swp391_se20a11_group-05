@@ -127,6 +127,20 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
     }
 
     if (response.status === 204) return undefined as T;
+
+    // Tự động bóc vỏ ApiResponse từ Backend (nếu có)
+    if (isJson && body && typeof body === "object" && !Array.isArray(body)) {
+      if ("status" in body && "message" in body) {
+        // Backend trả về chuẩn { status, message, data }
+        if (body.status >= 400) {
+          const error = new ApiError(body.status, body.message, body.data);
+          if (error.isUnauthorized && onUnauthorized) onUnauthorized();
+          throw error;
+        }
+        return body.data as T;
+      }
+    }
+
     return (isJson ? body : await response.text()) as T;
   } catch (error) {
     if (error instanceof ApiError) throw error;
@@ -170,7 +184,7 @@ export type BackendRole = "CITIZEN" | "WARD_STAFF" | "POLICE" | "SUPER_ADMIN";
 
 export type FeedbackStatus =
   | "PENDING" | "ASSIGNED" | "IN_PROGRESS"
-  | "WAITING_INFO" | "RESOLVED" | "REJECTED";
+  | "WAITING_INFO" | "RESOLVED" | "REJECTED" | "PRE_EMPTIVE";
 
 export interface FeedbackResponse {
   id: number;
@@ -255,7 +269,7 @@ export interface ChatbotResponse {
 
 export const authApi = {
   login: (username: string, password: string) =>
-    request<ApiResponse<TokenResponse | MfaRequiredResponse>>("/api/auth/login", {
+    request<TokenResponse | MfaRequiredResponse>("/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ username, password }),
       skipAuth: true,
@@ -265,28 +279,28 @@ export const authApi = {
     username: string; password: string; fullName: string;
     phoneNumber?: string; email: string;
   }) =>
-    request<ApiResponse<unknown>>("/api/auth/register", {
+    request<unknown>("/api/auth/register", {
       method: "POST",
       body: JSON.stringify(data),
       skipAuth: true,
     }),
 
   mfaSetup: (username: string, password: string) =>
-    request<ApiResponse<string>>("/api/auth/mfa/setup", {
+    request<string>("/api/auth/mfa/setup", {
       method: "POST",
       body: JSON.stringify({ username, password }),
       skipAuth: true,
     }),
 
   mfaVerify: (username: string, password: string, mfaCode: string) =>
-    request<ApiResponse<TokenResponse>>("/api/auth/mfa/verify", {
+    request<TokenResponse>("/api/auth/mfa/verify", {
       method: "POST",
       body: JSON.stringify({ username, password, mfaCode }),
       skipAuth: true,
     }),
 
   firebaseLogin: (firebaseToken: string) =>
-    request<ApiResponse<TokenResponse>>("/api/auth/firebase-login", {
+    request<TokenResponse>("/api/auth/firebase-login", {
       method: "POST",
       body: JSON.stringify({ firebaseToken }),
       skipAuth: true,
@@ -307,6 +321,22 @@ export const feedbackApi = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+
+  // New: state machine endpoints
+  changeStatus: (id: number | string, status: string, note?: string) =>
+    request<FeedbackResponse>(`/api/feedbacks/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status, note }),
+    }),
+
+  assignFeedback: (id: number | string, assigneeId: number) =>
+    request<FeedbackResponse>(`/api/feedbacks/${id}/assign`, {
+      method: "PATCH",
+      body: JSON.stringify({ assigneeId }),
+    }),
+
+  getLogs: (id: number | string) =>
+    request<unknown[]>(`/api/feedbacks/${id}/logs`),
 };
 
 export const categoryApi = {
@@ -320,13 +350,13 @@ export const categoryApi = {
 };
 
 export const ragApi = {
-  query: (question: string) =>
+  query: (question: string, options?: Record<string, unknown>) =>
     request<RagResponse>("/api/rag/query", {
       method: "POST",
       body: JSON.stringify({
         question,
-        options: {
-          docType: "danang-policy",
+        options: options || {
+          docType: "traffic",
           language: "vi",
           topK: 10,
           allowedPermissions: ["PUBLIC"],
@@ -334,20 +364,116 @@ export const ragApi = {
       }),
     }),
 
-  chatbot: (question: string, userId: number = 1) =>
+  chatbot: (question: string, userId: string | number) =>
     request<ChatbotResponse>(
       `/api/rag/chatbot?q=${encodeURIComponent(question)}&userId=${userId}`,
     ),
 
-  chatHistory: (userId: number = 1) =>
+  chatHistory: (userId: string | number) =>
     request<unknown[]>(`/api/rag/chat-history?userId=${userId}`),
 
   stats: () => request<Record<string, unknown>>("/api/rag/stats"),
 };
 
 export const aiApi = {
-  router: (message: string, userId: string = "User123") =>
-    request<string>(
+  router: (message: string, userId: string) =>
+    request<Record<string, unknown>>(
       `/api/ai/router?message=${encodeURIComponent(message)}&userId=${encodeURIComponent(userId)}`,
     ),
+};
+
+// ─── Weather / Predictive Incident Types ──────────────────────
+
+export interface CurrentWeather {
+  temperature: number;
+  precipitation: number;
+  windspeed: number;
+  relativeHumidity: number;
+  weatherDescription: string;
+}
+
+export interface HourlyForecast {
+  time: string;
+  temperature: number;
+  precipitation: number;
+  windspeed: number;
+}
+
+export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+export type AlertLevel = "NORMAL" | "WATCH" | "WARNING" | "DANGER";
+export type IncidentType = "FLOOD" | "FALLEN_TREE" | "ROAD_DAMAGE" | "POWER_OUTAGE";
+
+export interface PredictedHotspot {
+  wardName: string;
+  latitude: number;
+  longitude: number;
+  incidentType: IncidentType;
+  incidentLabel: string;
+  riskLevel: RiskLevel;
+  riskScore: number;
+  reason: string;
+}
+
+export interface WeatherForecastResponse {
+  current: CurrentWeather;
+  next24Hours: HourlyForecast[];
+  predictedHotspots: PredictedHotspot[] | null;
+  alertLevel: AlertLevel;
+  alertMessage: string;
+}
+
+export const weatherApi = {
+  /** Dự báo đầy đủ kèm điểm nguy cơ — chỉ dành cho cán bộ */
+  getForecast: () =>
+    request<WeatherForecastResponse>("/api/weather/forecast"),
+
+  /** Dự báo cơ bản — dành cho người dân, không cần đăng nhập */
+  getPublicForecast: () =>
+    request<WeatherForecastResponse>("/api/weather/forecast/public", { skipAuth: true }),
+};
+
+// ─── Analytics Types ─────────────────────────────────────────
+
+export interface KpiData {
+  total: number;
+  resolved: number;
+  pending: number;
+  satisfactionRate: string;
+}
+
+export interface WardPerformance {
+  name: string;
+  resolved: number;
+  satisfactionPct: number;
+}
+
+export interface MonthlyTrend {
+  month: string;
+  total: number;
+  resolved: number;
+}
+
+export interface DispatchAgency {
+  name: string;
+  pendingCount: number;
+  status: string;
+}
+
+export const analyticsApi = {
+  kpi: () => request<KpiData>("/api/analytics/kpi"),
+  wardPerformance: () => request<WardPerformance[]>("/api/analytics/ward-performance"),
+  monthlyTrend: (months = 12) => request<MonthlyTrend[]>(`/api/analytics/monthly-trend?months=${months}`),
+  dispatch: () => request<DispatchAgency[]>("/api/analytics/dispatch"),
+};
+
+// ─── Ward API ────────────────────────────────────────────────
+
+export interface Ward {
+  id: number;
+  name: string;
+}
+
+export const wardApi = {
+  getAll: () => request<Ward[]>("/api/wards"),
+  search: (name: string) => request<Ward[]>(`/api/wards/search?name=${encodeURIComponent(name)}`),
 };

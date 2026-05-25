@@ -6,7 +6,8 @@ public enum FeedbackStatus {
     IN_PROGRESS,    // Cán bộ đã tiếp nhận và đang xử lý (UC20, UC30)
     WAITING_INFO,   // Cán bộ yêu cầu người dân bổ sung thêm thông tin (UC22)
     RESOLVED,       // Đã xử lý xong, có kết quả (UC23, UC25)
-    REJECTED        // Từ chối xử lý (do sai sự thật, spam, không thuộc thẩm quyền) (UC21)
+    REJECTED,       // Từ chối xử lý (do sai sự thật, spam, không thuộc thẩm quyền) (UC21)
+    PRE_EMPTIVE     // Phiếu công việc dự phòng do AI Weather Engine tự động tạo trước khi sự cố xảy ra
 }
 
 

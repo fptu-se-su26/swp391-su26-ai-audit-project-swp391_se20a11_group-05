@@ -5,10 +5,11 @@ import { useFeedbacks } from "@/lib/hooks";
 import { StatusBadge } from "@/components/site/StatusBadge";
 import { EmptyState, ErrorState, NotLoggedIn } from "@/components/site/EmptyState";
 import { DemoBanner } from "@/components/site/DemoBanner";
-import { MapPin, RefreshCw, Loader2 } from "lucide-react";
-import { reports as mockReports, type ReportStatus } from "@/lib/mock-data";
+import { MapPin, RefreshCw, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { reports as mockReports } from "@/lib/mock-data";
+import { mapStatus } from "@/lib/status";
 import { toast } from "sonner";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/my-reports/")(({
   head: () => ({
@@ -20,25 +21,15 @@ export const Route = createFileRoute("/my-reports/")(({
   component: MyReports,
 }));
 
-/** Map backend status → màu StatusBadge */
-function mapStatus(s: string): ReportStatus {
-  const m: Record<string, ReportStatus> = {
-    PENDING: "pending",
-    ASSIGNED: "inProgress",
-    IN_PROGRESS: "inProgress",
-    WAITING_INFO: "pending",
-    RESOLVED: "resolved",
-    REJECTED: "urgent",
-  };
-  return m[s] || "pending";
-}
-
 function MyReports() {
   const { t, locale } = useI18n();
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  const { data: feedbacksPage, isLoading, isFetching, refetch, error, isError } = useFeedbacks(0, 50);
+  const [page, setPage] = useState(0);
+  const pageSize = 10;
+
+  const { data: feedbacksPage, isLoading, isFetching, refetch, error, isError } = useFeedbacks(page, pageSize);
 
   // Toast API errors
   useEffect(() => {
@@ -162,6 +153,39 @@ function MyReports() {
           </Link>
         ))}
       </div>
+
+      {/* Pagination */}
+      {hasApiData && feedbacksPage && feedbacksPage.totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-8">
+          <button
+            onClick={() => setPage(p => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="btn-civic btn-civic-ghost disabled:opacity-30"
+          >
+            <ChevronLeft size={18} /> {locale === "vi" ? "Trước" : "Prev"}
+          </button>
+          {Array.from({ length: Math.min(feedbacksPage.totalPages, 5) }, (_, i) => (
+            <button
+              key={i}
+              onClick={() => setPage(i)}
+              className={`min-w-[40px] min-h-[40px] rounded-lg font-semibold text-sm border transition-all ${
+                i === page
+                  ? "bg-gov-blue text-white border-gov-blue"
+                  : "bg-white border-slate-200 hover:border-gov-blue"
+              }`}
+            >
+              {i + 1}
+            </button>
+          ))}
+          <button
+            onClick={() => setPage(p => Math.min((feedbacksPage.totalPages || 1) - 1, p + 1))}
+            disabled={page >= (feedbacksPage.totalPages || 1) - 1}
+            className="btn-civic btn-civic-ghost disabled:opacity-30"
+          >
+            {locale === "vi" ? "Sau" : "Next"} <ChevronRight size={18} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

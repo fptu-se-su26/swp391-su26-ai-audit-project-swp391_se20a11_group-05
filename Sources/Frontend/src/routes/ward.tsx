@@ -1,14 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, lazy, Suspense } from "react";
 import { useI18n } from "@/lib/i18n";
-import { useFeedbacks } from "@/lib/hooks";
+import { useFeedbacks, useChangeFeedbackStatus, useAssignFeedback } from "@/lib/hooks";
 import { reports as mockReports, type ReportStatus } from "@/lib/mock-data";
 import { StatusBadge } from "@/components/site/StatusBadge";
 import { DemoBanner } from "@/components/site/DemoBanner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RoleGuard } from "@/components/site/RoleGuard";
 import { StaffShell } from "@/components/site/StaffShell";
-import { Check, Loader2, MapPin, MessageSquare, RefreshCw, X, FileText } from "lucide-react";
+import { mapStatus } from "@/lib/status";
+import { Check, Loader2, MapPin, MessageSquare, RefreshCw, X, FileText, Send } from "lucide-react";
+import { toast } from "sonner";
 
 const CivicMap = lazy(() => import("@/components/site/CivicMap").then(m => ({ default: m.CivicMap })));
 
@@ -22,19 +24,13 @@ export const Route = createFileRoute("/ward")({
   component: WardDashboard,
 });
 
-function mapStatus(s: string): ReportStatus {
-  const m: Record<string, ReportStatus> = {
-    PENDING: "pending", ASSIGNED: "inProgress", IN_PROGRESS: "inProgress",
-    WAITING_INFO: "pending", RESOLVED: "resolved", REJECTED: "urgent",
-  };
-  return m[s] || "pending";
-}
-
 import type { FeedbackResponse } from "@/lib/api";
 
 function WardDashboard() {
   const { t, locale } = useI18n();
   const { data: feedbacksPage, isLoading, isFetching, refetch } = useFeedbacks(0, 50);
+  const changeStatus = useChangeFeedbackStatus();
+  const assignFeedback = useAssignFeedback();
 
   const [selectedId, setSelectedId] = useState<string | number | null>(null);
 
@@ -55,6 +51,39 @@ function WardDashboard() {
     ? apiFeedbacks.find((r) => r.id === selectedId)
     : mockReports.find((r) => r.id === selectedId);
 
+  const handleAccept = async () => {
+    if (!selected || !hasApiData) return;
+    const fb = selected as FeedbackResponse;
+    try {
+      await changeStatus.mutateAsync({ id: fb.id, status: "IN_PROGRESS", note: "Đã tiếp nhận xử lý" });
+      toast.success(locale === "vi" ? "Đã tiếp nhận phản ánh" : "Report accepted");
+    } catch {
+      toast.error(locale === "vi" ? "Không thể tiếp nhận" : "Cannot accept");
+    }
+  };
+
+  const handleReject = async () => {
+    if (!selected || !hasApiData) return;
+    const fb = selected as FeedbackResponse;
+    try {
+      await changeStatus.mutateAsync({ id: fb.id, status: "REJECTED", note: "Từ chối xử lý" });
+      toast.success(locale === "vi" ? "Đã từ chối phản ánh" : "Report rejected");
+    } catch {
+      toast.error(locale === "vi" ? "Không thể từ chối" : "Cannot reject");
+    }
+  };
+
+  const handleResolve = async () => {
+    if (!selected || !hasApiData) return;
+    const fb = selected as FeedbackResponse;
+    try {
+      await changeStatus.mutateAsync({ id: fb.id, status: "RESOLVED", note: "Đã xử lý xong" });
+      toast.success(locale === "vi" ? "Đã hoàn thành xử lý" : "Report resolved");
+    } catch {
+      toast.error(locale === "vi" ? "Không thể hoàn thành" : "Cannot resolve");
+    }
+  };
+
   return (
     <RoleGuard roles={["ward", "city_admin"]}>
       <StaffShell
@@ -63,7 +92,6 @@ function WardDashboard() {
         title={t("ward.title")}
         org="UBND Phường Hải Châu I · Quận Hải Châu"
       >
-        {/* Demo banner */}
         {!hasApiData && !isLoading && <DemoBanner />}
 
         {/* Toolbar */}
@@ -224,16 +252,29 @@ function WardDashboard() {
                 )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <button className="btn-civic bg-[var(--status-success)] text-white border-[var(--status-success)] hover:brightness-110 transition-all shadow-lg shadow-green-500/25">
-                    <Check size={20} /> {t("ward.accept")}
+                  <button
+                    onClick={handleAccept}
+                    disabled={changeStatus.isPending}
+                    className="btn-civic bg-[var(--status-success)] text-white border-[var(--status-success)] hover:brightness-110 transition-all shadow-lg shadow-green-500/25 disabled:opacity-50"
+                  >
+                    {changeStatus.isPending ? <Loader2 size={20} className="animate-spin" /> : <Check size={20} />}
+                    {t("ward.accept")}
                   </button>
-                  <button className="btn-civic border-[var(--status-danger)] text-[var(--status-danger)] hover:bg-[var(--status-danger)]/10 transition-all">
+                  <button
+                    onClick={handleReject}
+                    disabled={changeStatus.isPending}
+                    className="btn-civic border-[var(--status-danger)] text-[var(--status-danger)] hover:bg-[var(--status-danger)]/10 transition-all disabled:opacity-50"
+                  >
                     <X size={20} /> {t("ward.reject")}
                   </button>
                   <button className="btn-civic btn-civic-ghost sm:col-span-2">
                     <MessageSquare size={20} /> Nhắn cho người dân
                   </button>
-                  <button className="btn-civic btn-civic-primary sm:col-span-2">
+                  <button
+                    onClick={handleResolve}
+                    disabled={changeStatus.isPending}
+                    className="btn-civic btn-civic-primary sm:col-span-2"
+                  >
                     <Check size={20} /> {t("ward.resolve")}
                   </button>
                 </div>

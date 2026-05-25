@@ -399,6 +399,30 @@ Khi 2 đầu Frontend và Backend phát triển song song mà thiếu API contra
 - Kinh nghiệm: Luôn xây dựng cơ chế Fallback (Dự phòng) cho Frontend. Trong quá trình phát triển (hoặc khi Demo môn học), Backend có thể bị sập. Việc tự động lùi về Mock Data với cờ cảnh báo (Warning UI) giúp ứng dụng luôn chạy mượt mà trước mắt người dùng và giảng viên.
 ```
 
+### 9.11. Bài học về Tư duy Kiến trúc API và Agentic Workflow
+
+```text
+- Vấn đề: Trả về HTML trong môi trường REST API là một lỗi ngớ ngẩn (chặn đứng mọi Frontend). Việc bắt lỗi Validation nhưng ném Status 200 là lỗi phổ biến làm Frontend phải parse message mệt mỏi.
+- Giải pháp: Sử dụng GlobalExceptionHandler chung và Wrapper ApiResponse để thống nhất mọi ngõ ra thành kiểu JSON duy nhất.
+- Kinh nghiệm: Việc nâng cấp RAG lên "Enterprise" không nằm ở việc thêm nhiều thư viện, mà nằm ở Tư duy Hệ thống (System Architecture). Hiểu được sự khác biệt giữa Zod (Data Schema) và Multi-Agent (Autonomous System) giúp tôi tự tin trình bày và bảo vệ kiến trúc dự án trước những giảng viên khó tính nhất.
+```
+
+### 9.12. Bài học về Chiến lược phát triển AI (Train vs API & Multimodal RAG)
+
+```text
+- Vấn đề: Phân vân giữa việc tự huấn luyện (train) một mô hình Computer Vision để nhận diện sự cố từ ảnh phản ánh, hay tận dụng AI có sẵn. Ngoài ra còn nhầm lẫn giữa Hybrid RAG và Multimodal RAG.
+- Giải pháp từ AI: AI giải thích cặn kẽ rằng Hybrid RAG là "lai thuật toán" (nâng cấp chiều sâu tìm kiếm văn bản), còn Multimodal RAG là "lai định dạng" (nâng cấp chiều rộng để hiểu cả Ảnh, Video). Việc sinh viên tự train model thường gặp rào cản Data Starvation (thiếu dữ liệu) và GPU yếu.
+- Kinh nghiệm: Tư duy của một Software Architect là biết khi nào nên mượn sức mạnh (đứng trên vai người khổng lồ). Bằng cách dùng Gemini Vision API, dự án dễ dàng nâng cấp lên "Hybrid Multimodal RAG" - có khả năng đọc ảnh báo cáo sự cố ngay lập tức mà không tốn công sức train model thừa thãi. Đó mới là tính thực tiễn của chuẩn Enterprise.
+```
+
+### 9.13. Bài học về Phản biện Kiến trúc (Critical Thinking trong System Design)
+
+```text
+- Vấn đề: Khi thiết kế tính năng "Tự động điều phối bằng AI" (Auto-Dispatch), nhóm tự đặt ra câu hỏi phản biện chí mạng: "Chức năng này có thừa thãi không khi người dân gọi điện 113/114 sẽ nhanh hơn?". Nếu không trả lời được, đồ án sẽ bị đánh giá là "Làm màu công nghệ mà thiếu tính thực tiễn".
+- Giải pháp từ AI: AI giúp nhóm chỉ ra ranh giới rõ ràng: Gọi điện dành cho "Tình huống sinh tử", còn App sinh ra để giải quyết "Nỗi đau vận hành đô thị" (Báo động giả, không biết gọi cho cơ quan nào khi cây đổ/sập cống, nghẽn mạng tổng đài khi sự cố lớn xảy ra, và lưu trữ bản đồ nhiệt Heatmap).
+- Kinh nghiệm: Một Kỹ sư phần mềm giỏi không chỉ biết code, mà phải biết "Bảo vệ" (Defend) sản phẩm của mình bằng tư duy logic và thực tế kinh doanh/xã hội. AI không chỉ giúp nhóm code, mà còn đóng vai trò là "Người phản biện" (Devil's Advocate) để nhóm mài giũa lập luận trước khi bước vào bảo vệ chính thức.
+```
+
 ---
 
 ## 17. Cam kết Reflection

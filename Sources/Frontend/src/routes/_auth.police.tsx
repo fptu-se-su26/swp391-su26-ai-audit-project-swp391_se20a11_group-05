@@ -9,14 +9,15 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
 import { useFeedbacks } from "@/lib/hooks";
-import { reports as mockReports, type ReportStatus } from "@/lib/mock-data";
+import { reports as mockReports } from "@/lib/mock-data";
 import { StatusBadge } from "@/components/site/StatusBadge";
 import { StaffShell } from "@/components/site/StaffShell";
-import { Role } from "@/lib/roles";
+import { mapStatus } from "@/lib/status";
+import { Sparkline, textClassToHex } from "@/components/site/KpiChart";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
 import { AlertTriangle, Megaphone, ScanLine, Video, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sparkline, textClassToHex } from "@/components/site/KpiChart";
-import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar } from "recharts";
+import { Role } from "@/lib/roles";
 
 export const Route = createFileRoute("/_auth/police")({
   beforeLoad: ({ context }) => {
@@ -219,10 +220,4 @@ function PolicePage() {
   );
 }
 
-function mapStatus(s: string): ReportStatus {
-  const m: Record<string, ReportStatus> = {
-    PENDING: "pending", ASSIGNED: "inProgress", IN_PROGRESS: "inProgress",
-    WAITING_INFO: "pending", RESOLVED: "resolved", REJECTED: "urgent",
-  };
-  return m[s] || "pending";
-}
+

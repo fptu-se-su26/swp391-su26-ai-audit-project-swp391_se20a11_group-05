@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkline, textClassToHex } from "@/components/site/KpiChart";
 import { Camera, MapPin, User, RefreshCw, Loader2 } from "lucide-react";
 import { lazy, Suspense } from "react";
+import { mapStatus } from "@/lib/status";
 
 const CivicMap = lazy(() => import("@/components/site/CivicMap").then(m => ({ default: m.CivicMap })));
 
@@ -22,21 +23,6 @@ export const Route = createFileRoute("/")({
   }),
   component: HomePage,
 });
-
-import { type ReportStatus } from "@/lib/mock-data";
-
-/** Map backend status → frontend status for StatusBadge */
-function mapStatus(backendStatus: string): ReportStatus {
-  const map: Record<string, ReportStatus> = {
-    PENDING: "pending",
-    ASSIGNED: "inProgress",
-    IN_PROGRESS: "inProgress",
-    WAITING_INFO: "pending",
-    RESOLVED: "resolved",
-    REJECTED: "urgent",
-  };
-  return map[backendStatus] || "pending";
-}
 
 function HomePage() {
   const { t, locale } = useI18n();

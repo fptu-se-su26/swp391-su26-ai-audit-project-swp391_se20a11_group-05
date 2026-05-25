@@ -131,17 +131,17 @@ public class RagController {
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Object>> stats() {
         long totalChunks = chunkRepository.count();
-        long grammarChunks    = chunkRepository.countByDocType("grammar");
-        long vocabChunks      = chunkRepository.countByDocType("vocabulary");
-        long kanjiChunks      = chunkRepository.countByDocType("kanji");
+        long trafficChunks    = chunkRepository.countByDocType("traffic");
+        long environmentChunks = chunkRepository.countByDocType("environment");
+        long governanceChunks = chunkRepository.countByDocType("governance");
         long danangPolicyChunks  = chunkRepository.countByDocType("danang-policy");
 
         return ResponseEntity.ok(Map.of(
             "totalChunks",   totalChunks,
             "byDocType", Map.of(
-                "grammar",    grammarChunks,
-                "vocabulary", vocabChunks,
-                "kanji",      kanjiChunks,
+                "traffic",    trafficChunks,
+                "environment", environmentChunks,
+                "governance", governanceChunks,
                 "danang-policy", danangPolicyChunks
             ),
             "status", totalChunks > 0 ? "ready" : "empty — upload tài liệu trước"

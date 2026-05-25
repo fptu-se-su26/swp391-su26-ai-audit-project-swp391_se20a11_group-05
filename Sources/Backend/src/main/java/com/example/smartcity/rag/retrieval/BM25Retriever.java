@@ -14,20 +14,10 @@ import java.util.List;
  * Ưu điểm: Bắt chính xác từ khóa đặc thù (tên riêng, mã code, ngữ pháp cụ thể).
  * Nhược điểm: Không hiểu ngữ nghĩa, bỏ sót đồng nghĩa.
  *
- * Implementation hiện tại: LIKE query (JPQL) — Fallback đơn giản.
  *
- * TODO: Tích hợp Hibernate Search + Lucene để có BM25 thật sự:
- * <pre>
- *   // 1. Thêm @FullTextField vào DocumentChunk.content
- *   // 2. Dùng SearchSession (Hibernate Search) để tìm kiếm BM25 chuẩn:
- *   return searchSession.search(DocumentChunk.class)
- *       .where(f -> f.bool()
- *           .must(f.match().field("content").matching(query).boost(2.0f))
- *           .filter(f.match().field("docType").matching(docType))
- *       )
- *       .sort(f -> f.score())
- *       .fetchHits(k);
- * </pre>
+ * Implementation hiện tại: Native PostgreSQL Full-Text Search (tsvector).
+ * Cung cấp thuật toán BM25 gốc trực tiếp từ Database (Supabase) mà không cần 
+ * cài đặt thêm Hibernate Search hay Apache Lucene nặng nề.
  */
 @Service
 @RequiredArgsConstructor
@@ -91,18 +81,15 @@ public class BM25Retriever {
 
         String lower = query.toLowerCase();
         for (String sw : stopWords) {
-            lower = lower.replace(sw, " ");
+            // Dùng (?U)\b để hỗ trợ word boundary cho tiếng Việt Unicode, tránh thay thế chữ cái bên trong từ khác
+            lower = lower.replaceAll("(?U)\\b" + sw + "\\b", " ");
         }
 
-        // Lấy cụm từ dài nhất còn lại (heuristic: thường là keyword chính)
-        String[] words = lower.trim().split("\\s+");
-        String best = "";
-        for (String w : words) {
-            if (w.length() > best.length()) best = w;
-        }
+        // Giữ lại toàn bộ cụm từ khóa có nghĩa thay vì chỉ lấy 1 từ dài nhất (làm sai lệch thuật toán BM25)
+        String cleanedQuery = lower.trim().replaceAll("\\s+", " ");
 
-        // Fallback: dùng toàn bộ query nếu không trích được
-        return best.isEmpty() ? query : best;
+        // Fallback: dùng toàn bộ query nếu chuỗi rỗng (bị xóa sạch bởi stop words)
+        return cleanedQuery.isEmpty() ? query : cleanedQuery;
     }
 }
 

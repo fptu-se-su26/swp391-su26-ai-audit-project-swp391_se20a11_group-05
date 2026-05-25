@@ -18,6 +18,11 @@ import com.example.smartcity.common.base.BaseMapper;
 import com.example.smartcity.common.base.BaseService;
 import com.example.smartcity.modules.feedback.entity.Feedback;
 import com.example.smartcity.modules.feedback.mapper.FeedbackMapper;
+import com.example.smartcity.modules.feedback.dto.StatusChangeRequest;
+import com.example.smartcity.modules.feedback.dto.AssignRequest;
+import com.example.smartcity.modules.feedback.dto.FeedbackLogResponse;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/feedbacks")
@@ -37,7 +42,6 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
         return feedbackMapper;
     }
 
-    // Ghi đè hoặc thêm mới API đặc thù nghiệp vụ (VD: Lấy theo username)
     @GetMapping("/my-feedbacks")
     public ResponseEntity<Page<FeedbackResponse>> getAllFeedbacks(
             Authentication authentication,
@@ -55,8 +59,29 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
         Feedback saved = feedbackService.createFeedback(request, username);
         return ResponseEntity.ok(feedbackMapper.toDto(saved));
     }
+
+    // ═══ State Machine Endpoints ═════════════════════════════════
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<FeedbackResponse> changeStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody StatusChangeRequest request,
+            Authentication authentication) {
+        Feedback updated = feedbackService.changeStatus(id, request.getStatus(), request.getNote(), authentication.getName());
+        return ResponseEntity.ok(feedbackMapper.toDto(updated));
+    }
+
+    @PatchMapping("/{id}/assign")
+    public ResponseEntity<FeedbackResponse> assignFeedback(
+            @PathVariable Long id,
+            @Valid @RequestBody AssignRequest request,
+            Authentication authentication) {
+        Feedback updated = feedbackService.assignFeedback(id, request.getAssigneeId(), authentication.getName());
+        return ResponseEntity.ok(feedbackMapper.toDto(updated));
+    }
+
+    @GetMapping("/{id}/logs")
+    public ResponseEntity<List<FeedbackLogResponse>> getLogs(@PathVariable Long id) {
+        return ResponseEntity.ok(feedbackService.getFeedbackLogs(id));
+    }
 }
-
-
-
-

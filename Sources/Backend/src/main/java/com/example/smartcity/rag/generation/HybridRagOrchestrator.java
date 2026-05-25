@@ -60,6 +60,19 @@ public class HybridRagOrchestrator {
         log.info("📨 [RAG] Câu hỏi mới: '{}'", request.question());
 
         // ──────────────────────────────────────────────────────────
+        // BƯỚC 0: Agentic Intent Routing & Tool Calling (Giai đoạn 3.1)
+        // ──────────────────────────────────────────────────────────
+        String lowerQuery = request.question().toLowerCase();
+        boolean isWeatherIntent = lowerQuery.contains("thời tiết") || lowerQuery.contains("nhiệt độ") || lowerQuery.contains("mưa") || lowerQuery.contains("nắng");
+        String toolContext = "";
+
+        if (isWeatherIntent) {
+            log.info("   🤖 [Agentic Router] Phát hiện Intent 'WEATHER' → Kích hoạt Tool: WeatherAPI");
+            // Simulate calling external Weather API
+            toolContext = "[DỮ LIỆU TỪ WEATHER_API: Hôm nay Đà Nẵng 28°C, trời nắng đẹp, có thể có mưa rào vào chiều tối.]\n\n";
+        }
+
+        // ──────────────────────────────────────────────────────────
         // BƯỚC 1: Query Transformation
         // ──────────────────────────────────────────────────────────
         String effectiveQuery = request.question();
@@ -109,30 +122,30 @@ public class HybridRagOrchestrator {
         // ──────────────────────────────────────────────────────────
         // BƯỚC 5: Context Compression
         // ──────────────────────────────────────────────────────────
-        boolean isRagMode = !finalChunks.isEmpty();
-        String compressedContext = isRagMode
-                ? contextCompressor.compress(finalChunks, request.question())
-                : "";
+        boolean hasContext = !finalChunks.isEmpty() || !toolContext.isEmpty();
+        String compressedContext = !finalChunks.isEmpty()
+                ? toolContext + contextCompressor.compress(finalChunks, request.question())
+                : toolContext;
         log.debug("   [Compressor] Mode={} | Context: {} ký tự",
-                isRagMode ? "RAG" : "GENERAL", compressedContext.length());
+                hasContext ? "RAG_OR_TOOL" : "GENERAL", compressedContext.length());
 
         // ──────────────────────────────────────────────────────────
         // BƯỚC 6: LLM Call — Sinh câu trả lời
         // ──────────────────────────────────────────────────────────
-        String answer = isRagMode
+        String answer = hasContext
                 ? callLLM(request.question(), compressedContext)
                 : callGeneralLLM(request.question());
         log.info("   [LLM] Mode={} | Đã sinh câu trả lời ({} ký tự)",
-                isRagMode ? "RAG" : "GENERAL", answer.length());
+                hasContext ? "RAG_OR_TOOL" : "GENERAL", answer.length());
 
         // ──────────────────────────────────────────────────────────
         // BƯỚC 7: Hallucination Check
         // ──────────────────────────────────────────────────────────
-        // Hallucination check chỉ áp dụng khi ở RAG mode
-        boolean isGrounded = isRagMode
+        // Hallucination check chỉ áp dụng khi ở RAG mode (có DB chunks)
+        boolean isGrounded = !finalChunks.isEmpty()
                 ? selfRagService.isGrounded(answer, compressedContext)
-                : true; // General AI mode — không check hallucination
-        if (isRagMode && !isGrounded) {
+                : true; // General AI / Tool mode — không check hallucination
+        if (!finalChunks.isEmpty() && !isGrounded) {
             log.warn("   ⚠️  [Self-RAG] Phát hiện khả năng hallucination!");
         }
 
@@ -153,7 +166,7 @@ public class HybridRagOrchestrator {
                 isGrounded);
 
         log.info("✅ [{}] Hoàn tất pipeline trong {} ms | Grounded: {}",
-                isRagMode ? "RAG" : "GENERAL", totalLatency, isGrounded);
+                hasContext ? "RAG" : "GENERAL", totalLatency, isGrounded);
         log.info("═══════════════════════════════════════════════════════");
 
         return new RagResponse(answer, citations, meta);

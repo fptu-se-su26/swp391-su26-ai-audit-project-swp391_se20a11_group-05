@@ -15,8 +15,9 @@ import { StaffShell } from "@/components/site/StaffShell";
 import { mapStatus } from "@/lib/status";
 import { Sparkline, textClassToHex } from "@/components/site/KpiChart";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
-import { Role } from "@/lib/roles";
 import { AlertTriangle, Megaphone, ScanLine, Video, Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Role } from "@/lib/roles";
 
 export const Route = createFileRoute("/_auth/police")({
   beforeLoad: ({ context }) => {
@@ -214,8 +215,7 @@ function PolicePage() {
               </BarChart>
             </ResponsiveContainer>
           </div>
-        ))}
-      </div>
+        </div>
     </StaffShell>
   );
 }

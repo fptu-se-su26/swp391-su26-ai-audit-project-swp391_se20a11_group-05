@@ -258,13 +258,16 @@ Antigravity hỗ trợ logic thay thế dữ liệu giả lập (mock data) bằ
 - [x] **Thiết kế System Architecture**: Cùng AI phân tích và thiết kế kiến trúc
       chuẩn Enterprise cho hệ thống Chatbot/RAG với 3 tầng phòng thủ (Key Pool
       -> Fallback Model -> Circuit Breaker).
-- [x] **Triển khai Semantic Caching**: Lập trình file `SemanticCacheService.java`
-      sử dụng thuật toán Cosine Similarity và cấu trúc dữ liệu
-      `ConcurrentLinkedDeque` ----LRU Cache in-memory.
-- [x] **Tính năng Self-Healing (Tự phục hồi)**: Nếu Router gọi Groq mà Circuit Breaker báo đứt mạch, Router lập tức "bẻ lái" gửi request đó sang Gemini một cách thầm lặng. Thay đổi API của Groq khác (Key Rotation) rồi mới tới API của Gemini, giúp trải nghiệm luôn mượt mà 100%.
+- [x] **Triển khai Semantic Caching**: Lập trình file
+      `SemanticCacheService.java` sử dụng thuật toán Cosine Similarity và cấu
+      trúc dữ liệu `ConcurrentLinkedDeque` ----LRU Cache in-memory.
+- [x] **Tính năng Self-Healing (Tự phục hồi)**: Nếu Router gọi Groq mà Circuit
+      Breaker báo đứt mạch, Router lập tức "bẻ lái" gửi request đó sang Gemini
+      một cách thầm lặng. Thay đổi API của Groq khác (Key Rotation) rồi mới tới
+      API của Gemini, giúp trải nghiệm luôn mượt mà 100%.
 - [x] **Tích hợp Controller**: Gắn Semantic Cache vào ngõ vào `/api/ai/router`
-      của `AiController.java`, giúp hệ thống phát hiện câu hỏi trùng lặp ngữ nghĩa
-      để trả về kết quả 10ms (không cần gọi LLM).
+      của `AiController.java`, giúp hệ thống phát hiện câu hỏi trùng lặp ngữ
+      nghĩa để trả về kết quả 10ms (không cần gọi LLM).
 - [x] **Kiểm thử**: Biên dịch hệ thống thành công không phát sinh lỗi (Exit Code
       0).
 
@@ -285,6 +288,201 @@ Mô tả AI đã hỗ trợ phần nào:
 
 ```text
 Antigravity đóng vai trò chuyên gia tư vấn thiết kế hệ thống (System Design). Đưa ra các gợi ý về cấu trúc bộ nhớ đệm Semantic Cache và viết mã triển khai thuật toán tính khoảng cách Cosine Similarity. AI cũng tự động gộp module mới vào AiController một cách an toàn và tự biên dịch kiểm thử.
+```
+
+---
+
+# [Phase 07] Fix Kiến trúc REST API & Global Exception Handling
+
+## Ngày thực hiện
+
+```text
+24/05/2026
+```
+
+## Đã hoàn thành
+
+- [x] **Chuẩn hóa Giao tiếp Frontend-Backend:** Sửa lỗi nghiêm trọng trong
+      `AiController.java` trả về mã HTML (`<h1 style='color:red'>...</h1>`)
+      thành JSON chuẩn thông qua `ApiResponse.error()`.
+- [x] **Xử lý ngoại lệ tập trung:** Nâng cấp `GlobalExceptionHandler` để đảm bảo
+      lỗi Validation (ví dụ: Bad Request) trả về HTTP Status 400 (thay vì 200
+      giả tạo).
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi                                     | Người thực hiện | File/Module liên quan         |
+| --: | ----------------------------------------------------- | --------------- | ----------------------------- |
+|   1 | Cập nhật hàm `error` đính kèm chi tiết dữ liệu (data) | Phạm Bá Trí     | `ApiResponse.java`            |
+|   2 | Fix HTTP Status code 400 trong Exception Handler      | Phạm Bá Trí     | `GlobalExceptionHandler.java` |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI Audit toàn bộ dự án, chỉ ra lỗi ngớ ngẩn (trả HTML thay vì JSON trong REST API) và hướng dẫn cách thiết lập Global Exception Handling chuẩn Enterprise, giúp 2 đội Dev Frontend và Backend làm việc độc lập mà không bao giờ bị lệch kiểu dữ liệu.
+```
+
+---
+
+# [Phase 08] Sửa thuật toán BM25 & Triển khai Agentic Tool Calling (Giai đoạn 3.1)
+
+## Ngày thực hiện
+
+```text
+24/05/2026
+```
+
+## Đã hoàn thành
+
+- [x] **Fix Thuật toán Trích xuất Keyword:** Sửa logic sai lầm trong
+      `BM25Retriever.java` (thuật toán cũ chỉ lấy từ dài nhất làm từ khóa),
+      chuyển sang giữ nguyên toàn bộ cụm từ có nghĩa sau khi lọc stop-words để
+      truyền cho PostgreSQL `tsquery`.
+- [x] **Agentic Intent Routing (Giai đoạn 3.1):** Nâng cấp
+      `HybridRagOrchestrator` từ một cỗ máy tuyến tính thành một Tác nhân AI
+      (Agent).
+- [x] **Tích hợp Tool Gọi Ngoại vi:** Tự động phát hiện ý định hỏi Thời tiết
+      (Weather Intent) để mô phỏng gọi WeatherAPI, lấy dữ liệu nạp vào
+      `toolContext` cho LLM trả lời.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi                                           | Người thực hiện | File/Module liên quan            |
+| --: | ----------------------------------------------------------- | --------------- | -------------------------------- |
+|   1 | Fix thuật toán Keyword Extraction dùng Regex `(?U)\b`       | Phạm Bá Trí     | `BM25Retriever.java`             |
+|   2 | Bổ sung Agentic Router và Tool Context cho RAG Orchestrator | Phạm Bá Trí     | `HybridRagOrchestrator.java`     |
+|   3 | Lập kế hoạch Nâng cấp "RAG Enterprise Upgrade Plan"         | Phạm Bá Trí     | `rag_enterprise_upgrade_plan.md` |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI sửa lỗi logic thuật toán trích xuất keyword, đồng thời viết code triển khai tính năng Agentic Tool Calling "Hack não", biến Orchestrator thành một Agent có khả năng nhận định câu hỏi và gọi công cụ bên ngoài (VD: Thời tiết) rồi ghép vào Context để trả lời thông minh, khắc phục điểm mù dữ liệu của Database RAG.
+```
+
+---
+
+# [Phase 09] Kiến trúc Multimodal RAG & Hoạch định Phân tích Hình ảnh
+
+## Ngày thực hiện
+
+```text
+25/05/2026
+```
+
+## Đã hoàn thành
+
+- [x] **Quyết định Chiến lược Kiến trúc:** Loại bỏ kế hoạch tự huấn luyện
+      (train) mô hình Computer Vision truyền thống cho bài toán Citizen
+      Feedback.
+- [x] **Áp dụng Multimodal RAG:** Định hình kiến trúc Hybrid Multimodal RAG, sử
+      dụng Gemini Vision API để thực hiện Zero-shot extraction trực tiếp từ hình
+      ảnh do người dân cung cấp.
+- [x] **Bổ sung tài liệu học thuật:** Tích hợp lý thuyết phân biệt Hybrid RAG
+      (chiều sâu thuật toán) và Multimodal RAG (chiều rộng dữ liệu) vào Audit
+      Log.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi                                    | Người thực hiện | File/Module liên quan |
+| --: | ---------------------------------------------------- | --------------- | --------------------- |
+|   1 | Cập nhật chiến lược AI vào AI_AUDIT_LOG              | Phạm Bá Trí     | `AI_AUDIT_LOG.md`     |
+|   2 | Thêm prompt phân tích Multimodal RAG vào PROMPTS log | Phạm Bá Trí     | `PROMPTS.md`          |
+|   3 | Cập nhật bài học lý thuyết vào REFLECTION log        | Phạm Bá Trí     | `REFLECTION.md`       |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI cung cấp góc nhìn của một System Architect, phân biệt rõ bản chất của Hybrid RAG và Multimodal RAG. Đưa ra lời khuyên "đứng trên vai người khổng lồ", tận dụng Gemini Vision thay vì lãng phí tài nguyên tự huấn luyện AI cục bộ.
+```
+
+---
+
+# [Phase 10] Thiết kế Kiến trúc Auto-Dispatch & Lập luận Phản biện
+
+## Ngày thực hiện
+
+```text
+25/05/2026
+```
+
+## Đã hoàn thành
+
+- [x] **Xây dựng kịch bản phản biện (Defense):** Chuẩn bị luận điểm bảo vệ tính
+      thực tiễn của hệ thống Auto-Dispatch (App) so với phương thức gọi điện
+      thoại truyền thống.
+- [x] **Xác định Use Case lõi:** Định nghĩa rõ các tình huống "Cấp bách nhưng
+      không khẩn cấp" (Cây đổ, vỡ ống nước, sập cống) mà App có ưu thế vượt trội
+      so với hotline 113/114.
+- [x] **Bổ sung Audit Log:** Cập nhật tài liệu kiểm toán AI với các luận điểm
+      phản biện kiến trúc.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi                                        | Người thực hiện | File/Module liên quan |
+| --: | -------------------------------------------------------- | --------------- | --------------------- |
+|   1 | Thêm phiên lập luận phản biện kiến trúc vào AI_AUDIT_LOG | Phạm Bá Trí     | `AI_AUDIT_LOG.md`     |
+|   2 | Thêm Prompt số 8 (System Defense) vào PROMPTS log        | Phạm Bá Trí     | `PROMPTS.md`          |
+|   3 | Đúc kết bài học về Critical Thinking vào REFLECTION      | Phạm Bá Trí     | `REFLECTION.md`       |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI cung cấp 3 góc nhìn phản biện xuất sắc để bảo vệ đồ án: Chống báo động giả (nhờ GPS/Ảnh), Giải quyết sự cố vô danh (người dân không biết số hotline), và Khắc phục nghẽn mạng (gom nhóm báo cáo bằng AI/GIS).
+```
+
+---
+
+# [Phase 12] Triển khai Code Tính năng Auto-Dispatch (Tự động Điều phối sự cố bằng AI & PostGIS)
+
+## Ngày thực hiện
+
+```text
+25/05/2026
+```
+
+## Đã hoàn thành
+
+- [x] **Lập trình Service AI Auto-Dispatch:** Khởi tạo `AutoDispatchService.java` hoạt động hoàn toàn bất đồng bộ (`@Async`). Tự động đọc description/ảnh khi người dân nộp Feedback và gọi Gemini API để phân loại mức độ khẩn cấp (Zero-shot classification).
+- [x] **Giả lập Luồng PostGIS & Bắn thông báo:** Tích hợp logic tìm kiếm lực lượng gần nhất (`Role.POLICE`) và gán sự cố (`ASSIGNED`). Lập tức phát đi Websocket Notification thông báo khẩn.
+- [x] **Audit Log Automation:** AI tự động ghi log vào bảng `feedback_history` với thông báo chuẩn mực: "Phân loại 'KHẨN CẤP' qua Gemini Vision API. PostGIS tự động điều phối tới...".
+- [x] **Tích hợp Non-blocking:** Gắn service vào `FeedbackService.java` ở bước tạo Feedback mà không làm chậm trải nghiệm của người dân (Web không bị treo do chờ gọi AI).
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi                                         | Người thực hiện | File/Module liên quan         |
+| --: | --------------------------------------------------------- | --------------- | ----------------------------- |
+|   1 | Khởi tạo service AutoDispatch                             | Phạm Bá Trí     | `AutoDispatchService.java`    |
+|   2 | Inject service vào luồng tạo báo cáo (createFeedback)     | Phạm Bá Trí     | `FeedbackService.java`        |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI cung cấp bộ code khung siêu chuẩn mực cho `AutoDispatchService.java`. Vừa hỗ trợ Async (non-blocking) vừa xử lý Try-Catch gọi Gemini API mượt mà, sẵn sàng demo chức năng "Chủ động điều phối" (Proactive AI) trong ngày bảo vệ.
 ```
 
 ---

@@ -12,6 +12,8 @@ import com.example.smartcity.modules.feedback.service.FeedbackService;
 import com.example.smartcity.modules.user.entity.Role;
 import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.user.repository.UserRepository;
+import com.example.smartcity.modules.feedback.repository.FeedbackLogRepository;
+import com.example.smartcity.modules.notification.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,6 +39,8 @@ class FeedbackServiceTest {
     @Mock private CategoryRepository categoryRepository;
     @Mock private UserRepository userRepository;
     @Mock private WardRepository wardRepository;
+    @Mock private FeedbackLogRepository feedbackLogRepository;
+    @Mock private NotificationService notificationService;
 
     private FeedbackService feedbackService;
 
@@ -49,8 +53,8 @@ class FeedbackServiceTest {
 
     @BeforeEach
     void setUp() {
-        feedbackService = new FeedbackService(feedbackRepository, categoryRepository,
-                userRepository, wardRepository);
+        feedbackService = new FeedbackService(feedbackRepository, feedbackLogRepository,
+                notificationService, categoryRepository, userRepository, wardRepository);
 
         citizen = new User("citizen1", "encoded", "Người Dân", "0905123456",
                 "citizen@example.com", Role.CITIZEN);

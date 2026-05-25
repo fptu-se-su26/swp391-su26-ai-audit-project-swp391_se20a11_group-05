@@ -1,4 +1,5 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { useFeedbacks } from "@/lib/hooks";
@@ -6,12 +7,12 @@ import { StatusBadge } from "@/components/site/StatusBadge";
 import { EmptyState, ErrorState, NotLoggedIn } from "@/components/site/EmptyState";
 import { DemoBanner } from "@/components/site/DemoBanner";
 import { MapPin, RefreshCw, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
-import { reports as mockReports } from "@/lib/mock-data";
+import { reports as mockReports, type ReportStatus } from "@/lib/mock-data";
 import { mapStatus } from "@/lib/status";
 import { toast } from "sonner";
-import { useEffect, useState } from "react";
 import { Role, AUTHORITY_ROLES, parseBackendRole } from "@/lib/roles";
 import { getToken } from "@/lib/api";
+import { useState } from "react";
 
 export const Route = createFileRoute("/my-reports/")({
   /**
@@ -56,7 +57,7 @@ export const Route = createFileRoute("/my-reports/")({
     ],
   }),
   component: MyReports,
-}));
+});
 
 function MyReports() {
   const { t, locale } = useI18n();

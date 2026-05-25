@@ -7,6 +7,8 @@ import com.example.smartcity.modules.auth.payload.TokenResponse;
 import com.example.smartcity.modules.auth.service.AuthService;
 import com.example.smartcity.modules.auth.service.MfaService;
 import com.example.smartcity.modules.auth.service.FirebaseService;
+import com.example.smartcity.modules.auth.service.SmsService;
+import com.example.smartcity.security.jwt.TokenBlacklistService;
 import com.example.smartcity.modules.user.entity.Role;
 import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.user.repository.UserRepository;
@@ -38,13 +40,15 @@ class AuthServiceTest {
     @Mock private JwtTokenProvider tokenProvider;
     @Mock private MfaService mfaService;
     @Mock private FirebaseService firebaseService;
+    @Mock private TokenBlacklistService blacklistService;
+    @Mock private SmsService smsService;
 
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
         authService = new AuthService(authenticationManager, userRepository, passwordEncoder,
-                tokenProvider, mfaService, firebaseService);
+                tokenProvider, mfaService, firebaseService, blacklistService, smsService);
     }
 
     @Test

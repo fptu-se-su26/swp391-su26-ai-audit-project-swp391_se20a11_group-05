@@ -12,7 +12,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
-import { ragApi, chatbotApi, ApiError, type Citation } from "@/lib/api";
+import { ragApi, ApiError, type Citation } from "@/lib/api";
 import { AUTHORITY_ROLES, parseBackendRole } from "@/lib/roles";
 import ReactMarkdown from "react-markdown";
 import { Bot, Phone, Send, User, Loader2, ChevronDown, BookOpen } from "lucide-react";
@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_auth/assistant")({
     // Allow any authority role — the layout already checked, but this is
     // the defense-in-depth second check
     if (!AUTHORITY_ROLES.has(role)) {
-      throw redirect({ to: "/login" });
+      throw redirect({ to: "/login", search: { error: "forbidden" } });
     }
   },
   head: () => ({
@@ -119,7 +119,7 @@ function AssistantPage() {
     setMessages((m) => [...m, { role: "bot", text: "", isLoading: true }]);
 
     try {
-      const result = await chatbotApi.ask(userText, 1);
+      const result = await ragApi.chatbot(userText, 1);
       setMessages((m) => {
         const filtered = m.filter((msg) => !msg.isLoading);
         return [
@@ -127,33 +127,6 @@ function AssistantPage() {
           { role: "bot", text: result.answer, provider: result.provider, latency: result.latencyMs },
         ];
       });
-
-      // Stream data (Hiệu ứng gõ phím)
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder("utf-8");
-
-      if (reader) {
-        let done = false;
-        let accumulatedText = "";
-
-        while (!done) {
-          const { value, done: readerDone } = await reader.read();
-          done = readerDone;
-
-          if (value) {
-            let chunkStr = decoder.decode(value, { stream: true });
-            chunkStr = chunkStr.replace(/^data:/gm, "").trim();
-            if (chunkStr) {
-              accumulatedText += chunkStr + " ";
-              setMessages((m: Msg[]) => {
-                const newArr = [...m];
-                newArr[newArr.length - 1].text = accumulatedText;
-                return newArr;
-              });
-            }
-          }
-        }
-      }
 
       // Fetch citations after stream completes
       try {

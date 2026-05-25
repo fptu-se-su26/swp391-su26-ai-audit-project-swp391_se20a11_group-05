@@ -13,7 +13,10 @@ import { reports as mockReports, type ReportStatus } from "@/lib/mock-data";
 import { StatusBadge } from "@/components/site/StatusBadge";
 import { StaffShell } from "@/components/site/StaffShell";
 import { Role } from "@/lib/roles";
-import { AlertTriangle, Megaphone, ScanLine, Video } from "lucide-react";
+import { AlertTriangle, Megaphone, ScanLine, Video, Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Sparkline, textClassToHex } from "@/components/site/KpiChart";
+import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar } from "recharts";
 
 export const Route = createFileRoute("/_auth/police")({
   beforeLoad: ({ context }) => {
@@ -211,8 +214,7 @@ function PolicePage() {
               </BarChart>
             </ResponsiveContainer>
           </div>
-        ))}
-      </div>
+        </div>
     </StaffShell>
   );
 }

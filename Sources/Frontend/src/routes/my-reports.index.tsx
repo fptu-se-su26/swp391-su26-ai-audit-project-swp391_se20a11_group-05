@@ -1,11 +1,16 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { useFeedbacks } from "@/lib/hooks";
 import { StatusBadge } from "@/components/site/StatusBadge";
-import { MapPin } from "lucide-react";
+import { MapPin, Loader2, RefreshCw } from "lucide-react";
 import { Role, AUTHORITY_ROLES, parseBackendRole } from "@/lib/roles";
 import { getToken } from "@/lib/api";
+import { toast } from "sonner";
+import { DemoBanner } from "@/components/site/DemoBanner";
+import { NotLoggedIn, ErrorState, EmptyState } from "@/components/site/EmptyState";
+import { reports as mockReports, type ReportStatus } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/my-reports/")({
   /**
@@ -50,7 +55,7 @@ export const Route = createFileRoute("/my-reports/")({
     ],
   }),
   component: MyReports,
-}));
+});
 
 /** Map backend status → màu StatusBadge */
 function mapStatus(s: string): ReportStatus {

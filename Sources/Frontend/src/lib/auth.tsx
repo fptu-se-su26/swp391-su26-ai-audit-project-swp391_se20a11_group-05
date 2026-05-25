@@ -10,7 +10,7 @@
  */
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { getToken, setToken, removeToken } from "./api";
+import { getToken, setToken, removeToken, setOnUnauthorized } from "./api";
 import {
   Role,
   ROLE_LABEL,

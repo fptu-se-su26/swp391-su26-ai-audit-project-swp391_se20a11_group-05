@@ -1,35 +1,41 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, redirect } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
 import { useFeedbackDetail } from "@/lib/hooks";
 import { reports as mockReports } from "@/lib/mock-data";
 import { StatusBadge } from "@/components/site/StatusBadge";
-import { DemoBanner } from "@/components/site/DemoBanner";
-import { EmptyState } from "@/components/site/EmptyState";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Check, Clock, MapPin, User, SearchX } from "lucide-react";
+import { ArrowLeft, Check, Clock, MapPin, User } from "lucide-react";
+import { Role, AUTHORITY_ROLES, parseBackendRole } from "@/lib/roles";
+import { getToken } from "@/lib/api";
 
 export const Route = createFileRoute("/my-reports/$id")({
+  beforeLoad: async ({ params }) => {
+    const token = typeof window !== "undefined" ? getToken() : null;
+    const raw = typeof window !== "undefined"
+      ? localStorage.getItem("dn_auth_user_v2")
+      : null;
+
+    if (!token || !raw) {
+      throw redirect({ to: "/login", search: { redirect: `/my-reports/${params.id}` } });
+    }
+
+    let user: { role: string } | null = null;
+    try { user = JSON.parse(raw); } catch { /* ignore */ }
+    if (!user) throw redirect({ to: "/login" });
+
+    const role = parseBackendRole(user.role);
+    if (AUTHORITY_ROLES.has(role) || role !== Role.CITIZEN) {
+      throw redirect({ to: "/login" });
+    }
+  },
   head: ({ params }) => ({
     meta: [
-      { title: `Phản ánh ${params.id} — Đà Nẵng Lắng Nghe` },
+      { title: `Phản ánh ${params.id} — Đà Nẵng Kết Nối` },
       { name: "description", content: `Trạng thái phản ánh ${params.id} và lịch sử xử lý.` },
     ],
   }),
   component: ReportDetail,
 });
 
-/** Map backend status → frontend timeline stage */
-function mapTimelineStage(backendStatus: string) {
-  const m: Record<string, "pending" | "inProgress" | "resolved" | "urgent"> = {
-    PENDING: "pending",
-    ASSIGNED: "inProgress",
-    IN_PROGRESS: "inProgress",
-    WAITING_INFO: "pending",
-    RESOLVED: "resolved",
-    REJECTED: "urgent",
-  };
-  return m[backendStatus] || "pending";
-}
 
 function ReportDetail() {
   const { id } = Route.useParams();

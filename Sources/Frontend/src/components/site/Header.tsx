@@ -1,8 +1,10 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useI18n, useFontScale } from "@/lib/i18n";
-import { useAuth, ROLE_LABEL } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
+import { ROLE_LABEL, Role } from "@/lib/roles";
 import { Menu, X, LogOut } from "lucide-react";
 import { useState } from "react";
+import logoUrl from "@/assets/logo.png";
 
 export function Header() {
   const { locale, setLocale, t } = useI18n();
@@ -19,10 +21,11 @@ export function Header() {
   ];
 
   // Role-aware staff links — only show portals the user can access
+  // SECURITY: Uses Role enum constants — never inline role strings
   const staffItemsAll = [
-    { to: "/ward", label: t("nav.ward"), roles: ["ward", "city_admin"] as const },
-    { to: "/police", label: t("nav.police"), roles: ["police", "city_admin"] as const },
-    { to: "/city-admin", label: t("nav.cityAdmin"), roles: ["city_admin"] as const },
+    { to: "/ward",       label: t("nav.ward"),      roles: [Role.WARD_STAFF, Role.SUPER_ADMIN] as const },
+    { to: "/police",     label: t("nav.police"),    roles: [Role.POLICE, Role.SUPER_ADMIN] as const },
+    { to: "/city-admin", label: t("nav.cityAdmin"), roles: [Role.SUPER_ADMIN] as const },
   ];
   const staffItems = staffItemsAll.filter((i) => hasRole(...i.roles));
 
@@ -31,12 +34,10 @@ export function Header() {
       {/* Top utility bar */}
       <div className="bg-gov-blue-deep text-white px-4 md:px-8 py-3 flex flex-wrap justify-between items-center gap-3">
         <Link to="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-md bg-gov-gold/20 border border-gov-gold/40 grid place-items-center font-heading font-bold text-gov-gold">
-            ĐN
-          </div>
+          <img src={logoUrl} alt="Đà Nẵng Kết Nối" className="h-14 w-auto object-contain" />
           <div className="flex flex-col leading-tight">
             <span className="text-base md:text-lg font-bold tracking-tight uppercase">
-              <span className="text-gov-gold">Đà Nẵng</span> Lắng Nghe
+              <span className="text-gov-gold">Đà Nẵng</span> Kết Nối
             </span>
             <span className="text-[11px] text-white/60 uppercase tracking-widest">{t("brand.tag")}</span>
           </div>

@@ -1,22 +1,37 @@
-import { createFileRoute } from "@tanstack/react-router";
+/**
+ * _auth.police.tsx — Police & Traffic Agency Dashboard
+ *
+ * Protected by TWO independent guards:
+ *   1. _auth.tsx layout → checks AUTHORITY_ROLES membership
+ *   2. This route's beforeLoad → checks specifically for POLICE role
+ */
+
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
 import { useFeedbacks } from "@/lib/hooks";
 import { reports as mockReports } from "@/lib/mock-data";
 import { StatusBadge } from "@/components/site/StatusBadge";
-import { DemoBanner } from "@/components/site/DemoBanner";
-import { Skeleton } from "@/components/ui/skeleton";
-import { RoleGuard } from "@/components/site/RoleGuard";
 import { StaffShell } from "@/components/site/StaffShell";
 import { mapStatus } from "@/lib/status";
 import { Sparkline, textClassToHex } from "@/components/site/KpiChart";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
+import { Role } from "@/lib/roles";
 import { AlertTriangle, Megaphone, ScanLine, Video, Loader2 } from "lucide-react";
 
-export const Route = createFileRoute("/police")({
+export const Route = createFileRoute("/_auth/police")({
+  beforeLoad: ({ context }) => {
+    const { currentUser } = context as { currentUser: { role: string } };
+
+    // SECURITY: Only POLICE may access this route
+    if (currentUser.role !== Role.POLICE) {
+      throw redirect({ to: "/login", search: { error: "forbidden" } });
+    }
+  },
   head: () => ({
     meta: [
-      { title: "Cổng Công an & CSGT — Đà Nẵng Lắng Nghe" },
+      { title: "Cổng Công an & CSGT — Đà Nẵng Kết Nối" },
       { name: "description", content: "Cổng dành cho lực lượng Công an, CSGT, PCCC — giám sát giao thông và an ninh." },
+      { name: "robots", content: "noindex, nofollow" },
     ],
   }),
   component: PolicePage,
@@ -34,20 +49,17 @@ function PolicePage() {
   const trafficReports = mockReports.filter((r) => r.category === "traffic" || r.status === "urgent");
 
   return (
-    <RoleGuard roles={["police", "city_admin"]}>
-      <StaffShell
-        accent="red"
-        eyebrow={locale === "vi" ? "Lực lượng phản ứng nhanh" : "Emergency forces"}
-        title={t("police.title")}
-        org="Công an Thành phố Đà Nẵng · CSGT · PCCC"
-      >
-        {!hasApiData && !isLoading && <DemoBanner />}
-
-        <div className="flex items-center justify-end mb-6">
-          <button className="btn-civic bg-[var(--status-danger)] text-white border-[var(--status-danger)] hover:brightness-110 hover:scale-[1.02] transition-all duration-200 animate-fade-in shadow-lg shadow-red-500/25">
-            <Megaphone size={20} /> {t("police.broadcast")}
-          </button>
-        </div>
+    <StaffShell
+      accent="red"
+      eyebrow={locale === "vi" ? "Lực lượng phản ứng nhanh" : "Emergency forces"}
+      title={t("police.title")}
+      org="Công an Thành phố Đà Nẵng · CSGT · PCCC"
+    >
+      <div className="flex justify-end mb-6">
+        <button className="btn-civic btn-civic-primary" style={{ background: "var(--status-danger)" }}>
+          <Megaphone size={20} /> {t("police.broadcast")}
+        </button>
+      </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
           {[
@@ -202,9 +214,9 @@ function PolicePage() {
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
-      </StaffShell>
-    </RoleGuard>
+        ))}
+      </div>
+    </StaffShell>
   );
 }
 

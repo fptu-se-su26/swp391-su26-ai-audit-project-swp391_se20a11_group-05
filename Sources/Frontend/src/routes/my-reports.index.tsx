@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { useFeedbacks } from "@/lib/hooks";
@@ -10,11 +10,48 @@ import { reports as mockReports } from "@/lib/mock-data";
 import { mapStatus } from "@/lib/status";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
+import { Role, AUTHORITY_ROLES, parseBackendRole } from "@/lib/roles";
+import { getToken } from "@/lib/api";
 
-export const Route = createFileRoute("/my-reports/")(({
+export const Route = createFileRoute("/my-reports/")({
+  /**
+   * beforeLoad guard — citizen portal protected route.
+   *
+   * SECURITY:
+   *   - Unauthenticated users → redirect to /login
+   *   - Authority staff navigating here → redirect to /login (not a threat,
+   *     but they should not access citizen report history)
+   */
+  beforeLoad: async () => {
+    const token = typeof window !== "undefined" ? getToken() : null;
+    const raw = typeof window !== "undefined"
+      ? localStorage.getItem("dn_auth_user_v2")
+      : null;
+
+    if (!token || !raw) {
+      throw redirect({ to: "/login", search: { redirect: "/my-reports" } });
+    }
+
+    let user: { role: string } | null = null;
+    try { user = JSON.parse(raw); } catch { /* ignore */ }
+
+    if (!user) throw redirect({ to: "/login" });
+
+    const role = parseBackendRole(user.role);
+
+    // Authority staff should not access citizen report list
+    if (AUTHORITY_ROLES.has(role)) {
+      throw redirect({ to: "/login" });
+    }
+
+    // Confirm CITIZEN role
+    if (role !== Role.CITIZEN) {
+      throw redirect({ to: "/login" });
+    }
+  },
   head: () => ({
     meta: [
-      { title: "Báo cáo của tôi — Đà Nẵng Lắng Nghe" },
+      { title: "Báo cáo của tôi — Đà Nẵng Kết Nối" },
       { name: "description", content: "Theo dõi tất cả phản ánh bạn đã gửi." },
     ],
   }),

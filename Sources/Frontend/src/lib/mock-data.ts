@@ -117,10 +117,11 @@ export const kpis = {
   avgHours: 48,
 };
 
+// Note: field names match WardPerformance interface in api.ts (name, resolved, satisfactionPct)
 export const wardPerformance = [
-  { ward: "Hải Châu I", resolved: 312, avgHrs: 36 },
-  { ward: "Hòa Khánh Nam", resolved: 248, avgHrs: 41 },
-  { ward: "Hòa Minh", resolved: 189, avgHrs: 52 },
-  { ward: "Thanh Khê Tây", resolved: 173, avgHrs: 44 },
-  { ward: "An Hải Bắc", resolved: 152, avgHrs: 39 },
+  { name: "Hải Châu I",       resolved: 312, satisfactionPct: 94, avgHrs: 36 },
+  { name: "Hòa Khánh Nam",   resolved: 248, satisfactionPct: 91, avgHrs: 41 },
+  { name: "Hòa Minh",        resolved: 189, satisfactionPct: 88, avgHrs: 52 },
+  { name: "Thanh Khê Tây",   resolved: 173, satisfactionPct: 90, avgHrs: 44 },
+  { name: "An Hải Bắc",      resolved: 152, satisfactionPct: 92, avgHrs: 39 },
 ];

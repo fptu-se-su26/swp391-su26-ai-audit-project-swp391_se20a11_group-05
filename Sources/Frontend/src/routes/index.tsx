@@ -59,9 +59,9 @@ function HomePage() {
       {/* KPIs */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-14">
         {[
-          { label: t("home.kpi.total"), value: hasApiData ? apiFeedbacks.length.toString() : kpis.total.toLocaleString(), accent: "border-gov-blue", val: "text-gov-blue", spark: [85, 92, 78, 105, 98, 110, 102, 95, 112, 108, 96, 104] },
-          { label: t("home.kpi.resolved"), value: hasApiData ? apiFeedbacks.filter(f => f.status === "RESOLVED").length.toString() : kpis.resolved.toLocaleString(), accent: "border-[var(--status-success)]", val: "text-[var(--status-success)]", spark: [62, 70, 58, 78, 72, 82, 76, 68, 84, 80, 71, 78] },
-          { label: t("home.kpi.pending"), value: hasApiData ? apiFeedbacks.filter(f => f.status === "PENDING").length.toString() : kpis.pending.toLocaleString(), accent: "border-[var(--status-pending)]", val: "text-[var(--status-pending)]", spark: [15, 18, 12, 22, 16, 20, 14, 19, 17, 21, 13, 16] },
+          { label: t("home.kpi.total"), value: hasApiData ? apiFeedbacks.length.toString() : kpis.total.toLocaleString("en-US"), accent: "border-gov-blue", val: "text-gov-blue", spark: [85, 92, 78, 105, 98, 110, 102, 95, 112, 108, 96, 104] },
+          { label: t("home.kpi.resolved"), value: hasApiData ? apiFeedbacks.filter(f => f.status === "RESOLVED").length.toString() : kpis.resolved.toLocaleString("en-US"), accent: "border-[var(--status-success)]", val: "text-[var(--status-success)]", spark: [62, 70, 58, 78, 72, 82, 76, 68, 84, 80, 71, 78] },
+          { label: t("home.kpi.pending"), value: hasApiData ? apiFeedbacks.filter(f => f.status === "PENDING").length.toString() : kpis.pending.toLocaleString("en-US"), accent: "border-[var(--status-pending)]", val: "text-[var(--status-pending)]", spark: [15, 18, 12, 22, 16, 20, 14, 19, 17, 21, 13, 16] },
           { label: t("home.kpi.avg"), value: `${kpis.avgHours} ${locale === "vi" ? "giờ" : "hrs"}`, accent: "border-gov-gold", val: "text-ink", spark: [52, 48, 55, 44, 50, 46, 53, 47, 51, 45, 49, 43] },
         ].map((k, i) => (
           <div key={k.label} className={`card-civic p-5 md:p-6 border-l-4 ${k.accent} hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 animate-fade-in-up stagger-${i + 1}`}>

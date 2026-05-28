@@ -53,7 +53,7 @@ Sinh viên/nhóm cần ghi lại:
 | STT | Ngày | Công cụ AI | Mục đích | Prompt tóm tắt | Kết quả chính | Có sử dụng vào bài không? | Minh chứng |
 |---:|---|---|---|---|---|---|---|
 | 1 |  |  |  |  |  | Có / Không |  |
-| 2 |  |  |  |  |  | Có / Không |  |
+| 2 | 28/05/2026 | ChatGPT | Hoàn thiện backend use case media và khớp frontend template | Yêu cầu AI chuẩn hóa API, bổ sung class thiếu và đảm bảo compile pass | Bổ sung service/controller/repository/DTO cho media + chuẩn endpoint /api/feedbacks/media + compile pass | Có | Commit: 37217fd, 99ad3b8, a0692cf |
 | 3 |  |  |  |  |  | Có / Không |  |
 | 4 |  |  |  |  |  | Có / Không |  |
 | 5 |  |  |  |  |  | Có / Không |  |
@@ -75,16 +75,18 @@ Sinh viên/nhóm cần ghi lại:
 
 | Nội dung | Thông tin |
 |---|---|
-| Ngày sử dụng |  |
-| Công cụ AI | ChatGPT / Gemini / Claude / GitHub Copilot / Cursor / Antigravity / Khác |
-| Mục đích |  |
-| Phần việc liên quan | Requirement / Design / Database / Coding / Testing / Debug / Report / Presentation / Other |
-| Mức độ sử dụng | Hỏi ý tưởng / Hỏi giải thích / Hỏi review / Hỏi debug / Hỏi sinh code / Hỏi tối ưu |
+| Ngày sử dụng | 28/05/2026 |
+| Công cụ AI | ChatGPT |
+| Mục đích | Hoàn thiện backend use case media và đồng bộ với frontend template |
+| Phần việc liên quan | Coding / Testing / Debug |
+| Mức độ sử dụng | Hỏi review / Hỏi debug / Hỏi sinh code / Hỏi tối ưu |
 
 #### 5.1. Prompt nguyên văn
 
 ```text
-Dán nguyên văn prompt đã hỏi AI tại đây.
+You must ensure that this backend code must be able to connect with the frontend and must match the frontend template.
+If there is any missing class for the usecase to work, please complete it for me and ensure the logic is correct for other members.
+Make sure the code is standard so that when I merge into the product branch there will be no errors, explain in Vietnamese.
 ```
 
 #### 5.2. Bối cảnh khi viết prompt
@@ -92,7 +94,9 @@ Dán nguyên văn prompt đã hỏi AI tại đây.
 Mô tả ngắn gọn vì sao sinh viên/nhóm cần dùng prompt này.
 
 ```text
-Viết tại đây...
+Dự án nhóm có backend Spring Boot và frontend React.
+Template frontend đã dùng sẵn feedbackApi với endpoint /api/feedbacks và payload cụ thể.
+Cần thêm flow upload media nhưng vẫn không làm vỡ các flow đang chạy của thành viên khác.
 ```
 
 #### 5.3. Kết quả AI trả về
@@ -100,7 +104,16 @@ Viết tại đây...
 Tóm tắt nội dung AI đã trả lời hoặc gợi ý.
 
 ```text
-Viết tại đây...
+Bổ sung đầy đủ class cho use case media:
+- AttachmentRepository
+- CitizenFeedbackMediaRequest/Response
+- FeedbackAttachmentResponse
+- SupabaseStorageService
+- CitizenFeedbackMediaService
+- endpoint media trong module feedback
+
+Đồng thời chỉnh logic FeedbackService để tương thích template frontend khi categoryId chưa gửi.
+Kết quả compile backend pass.
 ```
 
 #### 5.4. Kết quả đã áp dụng vào bài
@@ -108,7 +121,8 @@ Viết tại đây...
 Mô tả phần nào từ kết quả AI đã được sử dụng vào bài tập/project.
 
 ```text
-Viết tại đây...
+Áp dụng trực tiếp các thay đổi vào backend + helper frontend gọi endpoint media.
+Sử dụng commit nhỏ để dễ review trong nhóm.
 ```
 
 #### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
@@ -116,7 +130,11 @@ Viết tại đây...
 Mô tả sinh viên/nhóm đã thay đổi, kiểm tra, sửa lỗi hoặc cải tiến gì so với kết quả AI trả về.
 
 ```text
-Viết tại đây...
+Đã tự chỉnh các điểm sau để ổn định hơn:
+- Sửa endpoint helper frontend về /api/feedbacks/media.
+- Sửa lỗi trùng dòng fetch do merge patch.
+- Bổ sung validate request trong FeedbackService để tránh lỗi runtime khi thiếu categoryId.
+- Re-compile để xác nhận kết quả.
 ```
 
 #### 5.6. Đánh giá chất lượng prompt
@@ -136,17 +154,20 @@ Viết tại đây...
 
 | Loại minh chứng | Nội dung |
 |---|---|
-| Link commit |  |
-| File liên quan |  |
+| Link commit | 37217fd, 99ad3b8, a0692cf |
+| File liên quan | Sources/Backend/src/main/java/com/example/smartcity/modules/feedback/service/FeedbackService.java; Sources/Backend/src/main/java/com/example/smartcity/modules/feedback/controller/FeedbackController.java; Sources/Frontend/src/lib/citizenFeedbackMediaApi.ts |
 | Screenshot |  |
-| Kết quả chạy/test |  |
+| Kết quả chạy/test | mvn -q -DskipTests compile: PASS |
 | Link tài liệu/báo cáo |  |
-| Ghi chú khác |  |
+| Ghi chú khác | Đảm bảo code tương thích template frontend trước khi merge |
 
 #### 5.8. Ghi chú thêm
 
 ```text
-Viết tại đây...
+Prompt có hiệu quả cao vì:
+1) Nêu rõ mục tiêu kỹ thuật (compatibility backend-frontend).
+2) Nêu rõ ràng buộc project nhóm (không phá flow thành viên khác).
+3) Yêu cầu tiêu chí hoàn tất rõ (compile ổn định, có thể merge product branch).
 ```
 
 ---

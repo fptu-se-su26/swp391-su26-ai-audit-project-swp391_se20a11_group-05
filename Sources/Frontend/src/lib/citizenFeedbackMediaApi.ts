@@ -51,7 +51,7 @@ export async function submitCitizenFeedbackMedia(
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE}/api/citizen-feedback-media`, {
+  const response = await fetch(`${API_BASE}/api/feedbacks/media`, {
     method: "POST",
     headers,
     body: formData,

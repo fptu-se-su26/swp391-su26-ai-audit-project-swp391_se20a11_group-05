@@ -55,7 +55,8 @@ Ví dụ:
 ### Mô tả mục tiêu sử dụng AI
 
 ```text
-Viết tại đây...
+Sử dụng AI để triển khai use case lớn: người dân gửi phản ánh kèm ảnh/video (video > 10 giây),
+đảm bảo backend tương thích frontend template hiện có và không phá các flow cũ của nhóm.
 
 ## 4. Nhật ký sử dụng AI chi tiết
 
@@ -68,16 +69,18 @@ Viết tại đây...
 
 | Nội dung | Thông tin |
 |---|---|
-| Ngày sử dụng |  |
-| Công cụ AI | ChatGPT / Gemini / Claude / GitHub Copilot / Cursor / Antigravity / Khác |
-| Mục đích sử dụng |  |
-| Phần việc liên quan | Requirement / Design / Database / Frontend / Backend / Testing / Debug / Report / Presentation / Other |
-| Mức độ sử dụng | Hỗ trợ ý tưởng / Hỗ trợ một phần / Hỗ trợ nhiều / Sinh chính nội dung |
+| Ngày sử dụng | 28/05/2026 |
+| Công cụ AI | ChatGPT |
+| Mục đích sử dụng | Hoàn thiện luồng backend + API cho use case upload media, khớp với frontend template |
+| Phần việc liên quan | Backend / Frontend / Testing / Debug |
+| Mức độ sử dụng | Hỗ trợ nhiều |
 
 #### 4.1. Prompt đã sử dụng
 
 ```text
-Dán nguyên văn prompt đã hỏi AI tại đây.
+You must ensure that this backend code must be able to connect with the frontend and must match the frontend template.
+If there is any missing class for the usecase to work, please complete it for me and ensure the logic is correct for other members.
+Make sure the code is standard so that when I merge into the product branch there will be no errors, explain in Vietnamese.
 ```
 
 #### 4.2. Kết quả AI gợi ý
@@ -85,7 +88,11 @@ Dán nguyên văn prompt đã hỏi AI tại đây.
 Tóm tắt nội dung AI đã trả lời hoặc gợi ý.
 
 ```text
-Viết tại đây...
+AI đề xuất và hỗ trợ triển khai:
+- Bổ sung các class còn thiếu cho use case media: repository, DTO, service, controller.
+- Chuẩn hóa endpoint để tương thích frontend template.
+- Thêm validate video duration > 10s trong flow media.
+- Kiểm tra compile backend để đảm bảo merge an toàn.
 ```
 
 #### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
@@ -93,7 +100,12 @@ Viết tại đây...
 Mô tả rõ phần nào được sử dụng lại từ gợi ý của AI.
 
 ```text
-Viết tại đây...
+Nhóm đã sử dụng trực tiếp:
+- Flow submit feedback JSON: GET/POST /api/feedbacks tương thích template frontend.
+- Flow submit media: POST /api/feedbacks/media.
+- Các class mới: CitizenFeedbackMediaService, SupabaseStorageService, AttachmentRepository,
+  CitizenFeedbackMediaRequest/Response, FeedbackAttachmentResponse.
+- Cập nhật helper frontend gọi đúng endpoint media.
 ```
 
 #### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
@@ -101,26 +113,33 @@ Viết tại đây...
 Mô tả sinh viên/nhóm đã thay đổi, kiểm tra, sửa lỗi hoặc cải tiến gì so với gợi ý ban đầu của AI.
 
 ```text
-Viết tại đây...
+Nhóm tự kiểm tra và chỉnh sửa thêm:
+- Sửa lệch endpoint frontend helper (tránh mismatch giữa /api/citizen-feedback-media và /api/feedbacks/media).
+- Sửa lỗi trùng dòng fetch trong file helper.
+- Chuẩn hóa validate request trong FeedbackService để không fail khi thiếu categoryId từ template hiện tại.
+- Compile lại backend sau chỉnh sửa để xác nhận không lỗi.
 ```
 
 #### 4.5. Minh chứng
 
 | Loại minh chứng | Nội dung |
 |---|---|
-| Link commit |  |
-| File liên quan |  |
+| Link commit | 37217fd, 99ad3b8, a0692cf |
+| File liên quan | Sources/Backend/src/main/java/com/example/smartcity/modules/feedback/service/FeedbackService.java; Sources/Backend/src/main/java/com/example/smartcity/modules/feedback/controller/FeedbackController.java; Sources/Backend/src/main/java/com/example/smartcity/modules/feedback/service/CitizenFeedbackMediaService.java; Sources/Backend/src/main/java/com/example/smartcity/modules/feedback/service/SupabaseStorageService.java; Sources/Frontend/src/lib/citizenFeedbackMediaApi.ts |
 | Screenshot |  |
-| Kết quả chạy/test |  |
+| Kết quả chạy/test | mvn -q -DskipTests compile: PASS |
 | Link video demo |  |
-| Ghi chú khác |  |
+| Ghi chú khác | Đã giữ nguyên flow cũ của nhóm, chỉ bổ sung để tương thích frontend và use case media |
 
 #### 4.6. Nhận xét cá nhân/nhóm
 
 Sinh viên/nhóm học được gì sau lần sử dụng AI này?
 
 ```text
-Viết tại đây...
+Rút ra được cách dùng AI hiệu quả cho task lớn:
+1) Đặt yêu cầu rõ "không phá flow cũ" để AI đề xuất hướng additive.
+2) Luôn kiểm chứng bằng compile/test thay vì chỉ đọc code.
+3) Với project nhóm, cần ưu tiên compatibility giữa backend và frontend trước khi tối ưu thêm.
 ```
 
 ---

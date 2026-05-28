@@ -1,8 +1,8 @@
 /**
  * login.tsx — Citizen Portal Login
  *
- * Self-contained citizen login. No mention of any other portal, staff system,
- * authority link, or role-based redirects. Citizens interact only with this page.
+ * Self-contained citizen login page.
+ * Handles: username/password login + MFA step.
  */
 
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
@@ -11,7 +11,7 @@ import { useI18n } from "@/lib/i18n";
 import { useAuth, mapBackendRole } from "@/lib/auth";
 import { Role } from "@/lib/roles";
 import { authApi, ApiError } from "@/lib/api";
-import { LogIn, Loader2, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { LogIn, Loader2, AlertCircle, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 
 export const Route = createFileRoute("/login")({
@@ -24,8 +24,7 @@ export const Route = createFileRoute("/login")({
       { title: "Đăng nhập — Đà Nẵng Kết Nối" },
       {
         name: "description",
-        content:
-          "Đăng nhập để gửi và theo dõi phản ánh đô thị tại Thành phố Đà Nẵng.",
+        content: "Đăng nhập để gửi và theo dõi phản ánh đô thị tại Thành phố Đà Nẵng.",
       },
     ],
   }),
@@ -43,11 +42,14 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // MFA state
   const [mfaRequired, setMfaRequired] = useState(false);
+  const [mfaCode, setMfaCode] = useState("");
   const [savedUsername, setSavedUsername] = useState("");
   const [savedPassword, setSavedPassword] = useState("");
 
-  // ─── Handlers ────────────────────────────────────────────────
+  // ─── Login Handler ────────────────────────────────────────────
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,25 +57,25 @@ function LoginPage() {
     setLoading(true);
 
     try {
-      const result = await loginMutation.mutateAsync(values);
-      const data = result.data;
+      const result = await authApi.login(username, password);
 
-      if ("mfaRequired" in data && data.mfaRequired) {
-        setSavedUsername(values.username);
-        setSavedPassword(values.password);
+      if ("mfaRequired" in result && result.mfaRequired) {
+        // MFA required → save credentials and switch to MFA step
+        setSavedUsername(username);
+        setSavedPassword(password);
         setMfaRequired(true);
         return;
       }
 
-      if ("token" in data && data.token) {
-        const role = mapBackendRole(data.role);
+      if ("token" in result && result.token) {
+        const role = mapBackendRole(result.role);
         login({
-          name: data.username,
+          name: result.username,
           role,
           org: "",
-          token: data.token,
+          token: result.token,
         });
-        navigate({ to: redirect || "/" });
+        navigate({ to: (redirect as any) || "/" });
       }
     } catch (err) {
       if (err instanceof ApiError) {
@@ -85,28 +87,31 @@ function LoginPage() {
             : err.message
         );
       } else {
-        // Demo fallback when backend is offline
+        // Demo fallback when backend is offline — log in as citizen
         login({ name: username || "citizen1", role: Role.CITIZEN, org: "" });
-        navigate({ to: redirect || "/" });
+        navigate({ to: (redirect as any) || "/" });
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleMfaSubmit = async (values: z.infer<typeof mfaSchema>) => {
+  // ─── MFA Verify Handler ───────────────────────────────────────
+
+  const handleMfaVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError(null);
+    setLoading(true);
 
     try {
-      const result = await authApi.mfaVerify(username, password, mfaCode);
-      const data = result.data;
+      const result = await authApi.mfaVerify(savedUsername, savedPassword, mfaCode);
       login({
-        name: data.username,
-        role: mapBackendRole(data.role),
+        name: result.username,
+        role: mapBackendRole(result.role),
         org: "",
-        token: data.token,
+        token: result.token,
       });
-      navigate({ to: redirect || "/" });
+      navigate({ to: (redirect as any) || "/" });
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -145,7 +150,7 @@ function LoginPage() {
 
         <div className="card-civic p-6 md:p-8 border-t-4 border-gov-gold">
 
-          {/* Access-denied error (when redirected from a protected page) */}
+          {/* Access-denied error */}
           {authError === "forbidden" && !error && (
             <div className="mb-5 p-4 rounded-lg bg-amber-50 border border-amber-200 flex items-center gap-3 text-amber-800">
               <AlertCircle size={18} className="shrink-0" />
@@ -169,10 +174,11 @@ function LoginPage() {
           {mfaRequired ? (
             <form className="space-y-5" onSubmit={handleMfaVerify}>
               <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-center justify-center mb-2">
+                  <ShieldCheck size={28} className="text-gov-blue" />
+                </div>
                 <p className="text-gov-blue font-semibold text-sm">
-                  {locale === "vi"
-                    ? "Xác thực 2 bước (MFA)"
-                    : "Two-factor Authentication"}
+                  {locale === "vi" ? "Xác thực 2 bước (MFA)" : "Two-factor Authentication"}
                 </p>
                 <p className="text-xs text-ink-soft mt-1">
                   {locale === "vi"
@@ -204,9 +210,7 @@ function LoginPage() {
                 disabled={loading || mfaCode.length !== 6}
                 className="btn-civic btn-civic-primary w-full text-base disabled:opacity-50"
               >
-                {loading ? (
-                  <Loader2 size={18} className="animate-spin" />
-                ) : null}
+                {loading ? <Loader2 size={18} className="animate-spin" /> : null}
                 {locale === "vi" ? "Xác nhận" : "Verify"}
               </button>
 
@@ -246,12 +250,9 @@ function LoginPage() {
                   <label htmlFor="login-password" className="text-sm font-bold">
                     {locale === "vi" ? "Mật khẩu" : "Password"}
                   </label>
-                  <Link
-                    to="/login"
-                    className="text-xs text-gov-blue font-semibold hover:underline"
-                  >
+                  <a href="#" className="text-xs text-gov-blue font-semibold hover:underline">
                     {locale === "vi" ? "Quên mật khẩu?" : "Forgot password?"}
-                  </Link>
+                  </a>
                 </div>
                 <div className="relative">
                   <input
@@ -296,7 +297,8 @@ function LoginPage() {
                   {locale === "vi" ? "Chưa có tài khoản? " : "Don't have an account? "}
                 </span>
                 <Link
-                  to="/"
+                  to="/register"
+                  search={{} as any}
                   className="text-sm font-bold text-gov-blue hover:underline"
                 >
                   {locale === "vi" ? "Đăng ký ngay" : "Register"}
@@ -308,13 +310,13 @@ function LoginPage() {
                 {locale === "vi"
                   ? "Bằng cách đăng nhập, bạn đồng ý với "
                   : "By signing in, you agree to our "}
-                <Link to="/" className="underline hover:text-ink">
+                <a href="#" className="underline hover:text-ink">
                   {locale === "vi" ? "Điều khoản sử dụng" : "Terms of Service"}
-                </Link>
+                </a>
                 {locale === "vi" ? " và " : " and "}
-                <Link to="/" className="underline hover:text-ink">
+                <a href="#" className="underline hover:text-ink">
                   {locale === "vi" ? "Chính sách bảo mật" : "Privacy Policy"}
-                </Link>
+                </a>
                 {"."}
               </p>
             </form>

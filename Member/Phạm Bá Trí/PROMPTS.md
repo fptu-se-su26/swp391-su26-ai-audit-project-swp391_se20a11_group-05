@@ -693,6 +693,78 @@ Việc tự đặt ra câu hỏi phản biện (Devil's Advocate) và nhờ AI g
 
 ---
 
+### Prompt số 9
+
+| Nội dung            | Thông tin                                                      |
+| ------------------- | -------------------------------------------------------------- |
+| Ngày sử dụng        | 28/05/2026                                                     |
+| Công cụ AI          | Antigravity                                                    |
+| Mục đích            | Chấm điểm và Audit Kiến trúc RAG chuẩn Enterprise              |
+| Phần việc liên quan | Architecture / Code Review / RAG                               |
+| Mức độ sử dụng      | Hỏi đánh giá kiến trúc và tối ưu                               |
+
+#### 5.1. Prompt nguyên văn
+
+```text
+Hãy đóng vai một Senior Software Engineer và AI/ML Architect với hơn 10 năm kinh nghiệm xây dựng các hệ thống phân tán tại các tập đoàn công nghệ lớn. Tôi đang xây dựng một bộ não "Hybrid RAG" cho Chatbot, sử dụng Supabase (pgvector) để kết hợp tìm kiếm Vector Search và Keyword Search (BM25). Do tôi code dựa nhiều vào trực giác và AI hỗ trợ (vibecoding), nên tôi chưa thực sự nắm rõ mức độ hoàn thiện của hệ thống này so với tiêu chuẩn ngành.
+
+Nhiệm vụ của bạn là: Đọc kỹ mã nguồn tôi cung cấp và CHẤM ĐIỂM NGHIÊM KHẮC kiến trúc Hybrid RAG này.
+
+Yêu cầu BẮT BUỘC:
+1. Đánh giá tuyệt đối khách quan, không nịnh nọt, không tô vẽ.
+2. TUYỆT ĐỐI KHÔNG BỊA ĐẶT (hallucinate) hay làm giả thông tin về code của tôi. Nếu đoạn code nào thiếu, hãy chỉ ra.
+```
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Sau khi hoàn thành tính năng cốt lõi của Hybrid RAG, do tôi chủ yếu dùng phương pháp "vibecoding" (code theo trực giác với AI), hệ thống chạy được nhưng tôi cảm thấy bất an về khả năng chịu tải. Tôi cần một góc nhìn khắt khe từ chuyên gia (AI nhập vai Senior) để "vạch lá tìm sâu" nhằm phát hiện các lỗ hổng hệ thống ngầm.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI chấm điểm và phát hiện lỗi cực kỳ sắc bén: Phê bình nghiêm khắc lỗi Thread-Safety trong biến toàn cục `lastUsedProvider`, Cấu hình Token window quá thấp (3000 thay vì 6000), Semantic Chunker cắt quá vụn (512 ký tự), và đặc biệt là thiếu cơ chế Timeout/dọn rác cho Virtual Threads gây rò rỉ bộ nhớ (Memory Leak).
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Áp dụng toàn bộ giải pháp để refactor codebase, đưa hệ thống RAG từ trạng thái "chạy tạm" lên chuẩn "Production-ready" (an toàn đa luồng, chịu tải cao).
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Cùng AI tạo ra `LlmCallResult` record để đóng gói dữ liệu Thread-Safe, triển khai `DisposableBean` để tự động shutdown các luồng ngầm khi Spring Boot tắt.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [ ] Cần hỏi lại AI nhiều lần
+- [ ] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng       | Nội dung                                |
+| --------------------- | --------------------------------------- |
+| File liên quan        | `HybridRagOrchestrator.java`, `HybridRetriever.java` |
+| Ghi chú khác          | Code RAG đã được đánh giá chất lượng cao |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Prompt dùng chiến thuật "Chấm điểm nghiêm khắc" mang lại hiệu quả rất cao vì nó ép AI phải đọc từng dòng code thay vì chỉ khen ngợi chung chung.
+```
+
+---
+
 ## 6. Prompt quan trọng nhất
 
 Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.

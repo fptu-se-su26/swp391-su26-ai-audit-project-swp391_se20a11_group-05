@@ -487,6 +487,42 @@ AI cung cấp bộ code khung siêu chuẩn mực cho `AutoDispatchService.java`
 
 ---
 
+# [Phase 13] Đánh giá & Tái cấu trúc Hybrid RAG chuẩn Enterprise
+
+## Ngày thực hiện
+
+```text
+28/05/2026
+```
+
+## Đã hoàn thành
+
+- [x] **Refactor Thread-Safety:** Loại bỏ biến toàn cục `lastUsedProvider`, thay bằng `LlmCallResult` record trong `HybridRagOrchestrator.java` để đảm bảo an toàn đa luồng.
+- [x] **Ngăn chặn Memory Leak & Treo hệ thống:** Thêm Timeout (5s) cho truy vấn DB song song và implement `DisposableBean` dọn dẹp Virtual Threads.
+- [x] **Tối ưu Hạt nhân RAG (Core Retrieval):** Tăng cửa sổ Token nạp Context từ 3000 lên 6000. Nâng cấp Semantic Chunker size từ 512 lên 1500 (overlap 200).
+- [x] **Truyền dẫn điểm số RRF:** Gắn `@Transient rrfScore` vào Entity `DocumentChunk` để dễ dàng theo dõi hiệu quả truy xuất.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi                                         | Người thực hiện | File/Module liên quan         |
+| --: | --------------------------------------------------------- | --------------- | ----------------------------- |
+|   1 | Tối ưu Semantic Chunker và Context Compressor             | Phạm Bá Trí     | `SemanticChunker.java`, `ContextCompressor.java` |
+|   2 | Fix Thread-Safety và Config Self-RAG động                 | Phạm Bá Trí     | `HybridRagOrchestrator.java`  |
+|   3 | Xử lý Lifecycle dọn rác Virtual Threads                   | Phạm Bá Trí     | `HybridRetriever.java`        |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI nhập vai Tech Lead "chấm điểm" nghiêm khắc hệ thống, phát hiện các lỗi bảo mật/hiệu năng ngầm và cung cấp giải pháp tái cấu trúc code chuyên sâu để chịu tải cao (High Concurrency).
+```
+
+---
+
 # 5. Cam kết cập nhật Changelog
 
 Sinh viên/nhóm cam kết rằng nội dung changelog phản ánh đúng các thay đổi đã

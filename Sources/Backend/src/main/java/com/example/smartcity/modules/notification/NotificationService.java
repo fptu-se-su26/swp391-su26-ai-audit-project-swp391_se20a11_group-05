@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
  * Gửi real-time notification tới frontend qua STOMP.
  */
 @Slf4j
-@Service
+@Service("webSocketNotificationService")
 @RequiredArgsConstructor
 public class NotificationService {
 

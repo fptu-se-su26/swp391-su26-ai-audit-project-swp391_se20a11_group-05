@@ -310,7 +310,7 @@ export const authApi = {
 export const feedbackApi = {
   getAll: (page = 0, size = 20) =>
     request<PageResponse<FeedbackResponse>>(
-      `/api/feedbacks?page=${page}&size=${size}`,
+      `/api/feedbacks/page?page=${page}&size=${size}`,
     ),
 
   getById: (id: string | number) =>

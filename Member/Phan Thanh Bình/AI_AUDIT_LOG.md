@@ -160,50 +160,65 @@ Viết tại đây...
 | Phần việc liên quan | Backend / Frontend / Testing / Debug |
 | Mức độ sử dụng | Hỗ trợ nhiều |
 
-#### 4.1. Prompt đã sử dụng
+#### 4.1. Prompt da su dung
 
 ```text
-Dán nguyên văn prompt đã hỏi AI tại đây.
+You must ensure that this backend code must be able to connect with the frontend and must match the frontend template.
+If there is any missing class for the usecase to work, please complete it for me and ensure the logic is correct for other members.
+Make sure the code is standard so that when I merge into the product branch there will be no errors, explain in Vietnamese.
 ```
 
 #### 4.2. Kết quả AI gợi ý
 
 ```text
-Viết tại đây...
+AI đề xuất bổ sung đầy đủ lớp cho use case media và chuẩn hóa API theo frontend template:
+- Thêm repository/DTO/service/controller cho media.
+- Chuẩn endpoint upload media trong module feedback.
+- Giữ tương thích ngược với flow cũ.
+- Kiểm tra build trước khi merge.
 ```
 
 #### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
 
 ```text
-Viết tại đây...
+Nhóm đã áp dụng trực tiếp:
+- Bổ sung các class con thiếu cho use case phản ánh kèm ảnh/video.
+- Thêm endpoint media để frontend gọi thông nhất.
+- Cập nhật helper frontend gọi đúng endpoint.
+- Rà soát và đảm bảo backend khớp data shape frontend đang dùng.
 ```
 
 #### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
 
 ```text
-Viết tại đây...
+Nhóm tự chỉnh sửa/cải tiến:
+- Chỉnh FeedbackService để xử lý an toàn khi frontend chưa gửi categoryId.
+- Sửa mismatch endpoint giữa backend và helper frontend.
+- Sửa lỗi trùng dòng fetch trong helper frontend.
+- Chạy compile lại để đảm bảo không lỗi trước khi push PR.
 ```
 
 #### 4.5. Minh chứng
 
 | Loại minh chứng | Nội dung |
 |---|---|
-| Link commit |  |
-| File liên quan |  |
+| Link commit | 37217fd, 99ad3b8, a0692cf, 54a802f |
+| File liên quan | Sources/Backend/src/main/java/com/example/smartcity/modules/feedback/service/FeedbackService.java; Sources/Backend/src/main/java/com/example/smartcity/modules/feedback/controller/FeedbackController.java; Sources/Backend/src/main/java/com/example/smartcity/modules/feedback/service/CitizenFeedbackMediaService.java; Sources/Backend/src/main/java/com/example/smartcity/modules/feedback/service/SupabaseStorageService.java; Sources/Frontend/src/lib/citizenFeedbackMediaApi.ts |
 | Screenshot |  |
-| Kết quả chạy/test |  |
+| Kết quả chạy/test | mvn -q -DskipTests compile: PASS; CICD build re-trigger thanh cong |
 | Link video demo |  |
-| Ghi chú khác |  |
+| Ghi chu khac | Tap trung vao compatibility backend-frontend de merge Product an toan |
 
 #### 4.6. Nhận xét cá nhân/nhóm
 
 ```text
-Viết tại đây...
+Sau lần sử dụng AI số 2, nhóm rút ra:
+1) Task lớn cần chốt API contract trước rồi mới mở rộng chức năng.
+2) AI giúp tăng tốc phân tích và đề xuất cấu trúc, nhưng vẫn phải tự kiểm chứng build/test.
+3) Với project nhóm, ưu tiên an toàn merge và không phá flow cũ quan trọng hơn việc thêm quá nhiều thay đổi một lúc.
 ```
 
 ---
-
-### Lần sử dụng AI số 3
 
 | Nội dung | Thông tin |
 |---|---|

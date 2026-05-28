@@ -14,7 +14,7 @@ interface NotificationPayload {
  */
 export function useFeedbackNotification(feedbackId?: number | string) {
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<number>();
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const connect = useCallback(() => {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -50,7 +50,7 @@ export function useFeedbackNotification(feedbackId?: number | string) {
 
       ws.onclose = () => {
         // Reconnect after 5s
-        reconnectTimeoutRef.current = window.setTimeout(connect, 5000);
+        reconnectTimeoutRef.current = setTimeout(connect, 5000);
       };
 
       wsRef.current = ws;

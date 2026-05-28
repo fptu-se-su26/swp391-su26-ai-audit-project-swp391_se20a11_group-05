@@ -7,7 +7,7 @@
  */
 
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useFeedbacks } from "@/lib/hooks";
 import { useQuery } from "@tanstack/react-query";
@@ -19,6 +19,8 @@ import { RoleGuard } from "@/components/site/RoleGuard";
 import { StaffShell } from "@/components/site/StaffShell";
 import { Role } from "@/lib/roles";
 import { DonutChart, HorizontalBarChart, Sparkline, textClassToHex } from "@/components/site/KpiChart";
+import { CivicMap } from "@/components/site/CivicMap";
+import { mapStatus } from "@/lib/status";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, BarChart, Bar } from "recharts";
 import { Download, Settings, Users, TrendingUp, CloudRain, Wind, Thermometer, Droplets, AlertTriangle, MapPin, RefreshCw } from "lucide-react";
 import { weatherApi, WeatherForecastResponse, AlertLevel, RiskLevel } from "@/lib/api";
@@ -30,7 +32,7 @@ export const Route = createFileRoute("/_auth/city-admin")({
 
     // SECURITY: Only SUPER_ADMIN may access the city leadership dashboard
     if (currentUser.role !== Role.SUPER_ADMIN) {
-      throw redirect({ to: "/login", search: { error: "forbidden" } });
+      throw redirect({ to: "/login", search: { redirect: undefined, error: "forbidden" } });
     }
   },
   head: () => ({
@@ -108,9 +110,9 @@ function CityAdmin() {
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
-          { label: t("home.kpi.total"), val: currentKpis.total.toLocaleString(), border: "border-gov-blue", color: "text-gov-blue", spark: [42, 56, 48, 72, 65, 80, 78, 92, 88, 95, 102, 98] },
-          { label: t("home.kpi.resolved"), val: currentKpis.resolved.toLocaleString(), border: "border-[var(--status-success)]", color: "text-[var(--status-success)]", spark: [30, 45, 38, 52, 48, 60, 58, 70, 68, 75, 82, 78] },
-          { label: t("home.kpi.pending"), val: currentKpis.pending.toLocaleString(), border: "border-[var(--status-pending)]", color: "text-[var(--status-pending)]", spark: [18, 22, 15, 25, 20, 18, 28, 22, 16, 20, 18, 12] },
+          { label: t("home.kpi.total"), val: currentKpis.total.toLocaleString("en-US"), border: "border-gov-blue", color: "text-gov-blue", spark: [42, 56, 48, 72, 65, 80, 78, 92, 88, 95, 102, 98] },
+          { label: t("home.kpi.resolved"), val: currentKpis.resolved.toLocaleString("en-US"), border: "border-[var(--status-success)]", color: "text-[var(--status-success)]", spark: [30, 45, 38, 52, 48, 60, 58, 70, 68, 75, 82, 78] },
+          { label: t("home.kpi.pending"), val: currentKpis.pending.toLocaleString("en-US"), border: "border-[var(--status-pending)]", color: "text-[var(--status-pending)]", spark: [18, 22, 15, 25, 20, 18, 28, 22, 16, 20, 18, 12] },
           { label: "Tỷ lệ hài lòng", val: analyticsKpi ? analyticsKpi.satisfactionRate : "Đang tính...", border: "border-gov-gold", color: "text-gov-blue", spark: [88, 90, 85, 92, 91, 94, 93, 95, 92, 94, 93, 94] },
         ].map((k, idx) => (
           <div
@@ -269,13 +271,6 @@ function CityAdmin() {
   );
 }
 
-function mapStatus(s: string): string {
-  const m: Record<string, string> = {
-    PENDING: "pending", ASSIGNED: "inProgress", IN_PROGRESS: "inProgress",
-    WAITING_INFO: "pending", RESOLVED: "resolved", REJECTED: "urgent", PRE_EMPTIVE: "pending",
-  };
-  return m[s] || "pending";
-}
 
 // ─── Weather Forecast Panel ──────────────────────────────────────────
 

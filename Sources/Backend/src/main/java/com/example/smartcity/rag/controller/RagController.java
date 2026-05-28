@@ -20,11 +20,11 @@ import java.util.Map;
  * [LAYER 8] REST CONTROLLER — Endpoints của Hybrid RAG module.
  *
  * Endpoints:
- * ──────────────────────────────────────────────────────────────
+ * --------------------------------------------------------------
  * POST /api/rag/query    → Hỏi AI (Full RAG pipeline)
  * POST /api/rag/ingest   → Upload tài liệu mới để index (Async)
  * GET  /api/rag/stats    → Thống kê số chunk trong DB
- * ──────────────────────────────────────────────────────────────
+ * --------------------------------------------------------------
  *
  * Thử nghiệm nhanh (cURL):
  * <pre>
@@ -52,9 +52,9 @@ public class RagController {
     private final DocumentChunkRepository chunkRepository;
     private final ChatbotService chatbotService;
 
-    // ──────────────────────────────────────────────────────────────
+    // --------------------------------------------------------------
     //  QUERY — RAG Pipeline chính
-    // ──────────────────────────────────────────────────────────────
+    // --------------------------------------------------------------
 
     /**
      * POST /api/rag/query
@@ -62,7 +62,7 @@ public class RagController {
      */
     @PostMapping("/query")
     public ResponseEntity<RagResponse> query(@Valid @RequestBody RagRequest request) {
-        log.info("📨 [API] POST /api/rag/query — '{}'", request.question());
+        log.info("[API] POST /api/rag/query - '{}'", request.question());
         RagResponse response = orchestrator.query(request);
         return ResponseEntity.ok(response);
     }
@@ -82,9 +82,9 @@ public class RagController {
         return ResponseEntity.ok(response);
     }
 
-    // ──────────────────────────────────────────────────────────────
+    // --------------------------------------------------------------
     //  INGEST — Upload tài liệu mới
-    // ──────────────────────────────────────────────────────────────
+    // --------------------------------------------------------------
 
     /**
      * POST /api/rag/ingest
@@ -97,7 +97,7 @@ public class RagController {
             @RequestParam(defaultValue = "vi") String language,
             @RequestParam(defaultValue = "PUBLIC") String permission) {
 
-        log.info("📤 [API] POST /api/rag/ingest — file='{}' docType={} lang={}",
+        log.info("[API] POST /api/rag/ingest - file='{}' docType={} lang={}",
             file.getOriginalFilename(), docType, language);
 
         if (file.isEmpty()) {
@@ -120,9 +120,9 @@ public class RagController {
             ));
     }
 
-    // ──────────────────────────────────────────────────────────────
+    // --------------------------------------------------------------
     //  STATS — Thống kê
-    // ──────────────────────────────────────────────────────────────
+    // --------------------------------------------------------------
 
     /**
      * GET /api/rag/stats
@@ -144,13 +144,13 @@ public class RagController {
                 "kanji",      kanjiChunks,
                 "danang-policy", danangPolicyChunks
             ),
-            "status", totalChunks > 0 ? "ready" : "empty — upload tài liệu trước"
+            "status", totalChunks > 0 ? "ready" : "empty - upload tài liệu trước"
         ));
     }
 
-    // ──────────────────────────────────────────────────────────────
+    // --------------------------------------------------------------
     //  DANANG CHATBOT — UC14
-    // ──────────────────────────────────────────────────────────────
+    // --------------------------------------------------------------
 
     /**
      * GET /api/rag/chatbot?q=...&userId=1
@@ -164,7 +164,7 @@ public class RagController {
             @RequestParam String q,
             @RequestParam(defaultValue = "1") Long userId) {
 
-        log.info("💬 [API] GET /api/rag/chatbot — userId={} | q='{}'", userId, q);
+        log.info("[API] GET /api/rag/chatbot - userId={} | q='{}'", userId, q);
         Map<String, Object> result = chatbotService.ask(userId, q);
         return ResponseEntity.ok(result);
     }
@@ -177,7 +177,7 @@ public class RagController {
     public ResponseEntity<List<?>> chatHistory(
             @RequestParam(defaultValue = "1") Long userId) {
 
-        log.info("📜 [API] GET /api/rag/chat-history — userId={}", userId);
+        log.info("[API] GET /api/rag/chat-history - userId={}", userId);
         var history = chatbotService.getHistory(userId);
         return ResponseEntity.ok(history);
     }

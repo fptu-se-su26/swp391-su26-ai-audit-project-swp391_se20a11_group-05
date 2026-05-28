@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_auth/police")({
 
     // SECURITY: Only POLICE may access this route
     if (currentUser.role !== Role.POLICE) {
-      throw redirect({ to: "/login", search: { error: "forbidden" } });
+      throw redirect({ to: "/login", search: { redirect: undefined, error: "forbidden" } });
     }
   },
   head: () => ({

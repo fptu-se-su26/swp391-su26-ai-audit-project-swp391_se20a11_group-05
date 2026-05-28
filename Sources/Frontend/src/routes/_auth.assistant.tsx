@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_auth/assistant")({
     // Allow any authority role — the layout already checked, but this is
     // the defense-in-depth second check
     if (!AUTHORITY_ROLES.has(role)) {
-      throw redirect({ to: "/login", search: { error: "forbidden" } });
+      throw redirect({ to: "/login", search: { redirect: undefined, error: "forbidden" } });
     }
   },
   head: () => ({

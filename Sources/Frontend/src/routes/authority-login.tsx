@@ -65,19 +65,16 @@ function AuthorityLoginPage() {
 
     try {
       const result = await authApi.login(username, password);
-      const data = result.data;
 
-      if ("mfaRequired" in data && data.mfaRequired) {
+      if ("mfaRequired" in result && result.mfaRequired) {
         setMfaRequired(true);
         setLoading(false);
         return;
       }
 
-      if ("token" in data && data.token) {
-        const role = mapBackendRole(data.role);
+      if ("token" in result && result.token) {
+        const role = mapBackendRole(result.role);
 
-        // SECURITY: If the backend returns a CITIZEN role for this staff login page,
-        // reject it — citizens must use /login, not this page.
         if (!AUTHORITY_ROLES.has(role)) {
           setError(
             locale === "vi"
@@ -89,14 +86,14 @@ function AuthorityLoginPage() {
         }
 
         login({
-          name: data.username,
+          name: result.username,
           role,
-          org: "", // Will be populated from user profile
-          token: data.token,
+          org: "",
+          token: result.token,
         });
 
         const defaultRedirect = ROLE_REDIRECT[role] ?? "/city-admin";
-        navigate({ to: redirect || defaultRedirect });
+        navigate({ to: (redirect || defaultRedirect) as any });
       }
     } catch (err) {
       if (err instanceof ApiError) {
@@ -128,8 +125,7 @@ function AuthorityLoginPage() {
 
     try {
       const result = await authApi.mfaVerify(username, password, mfaCode);
-      const data = result.data;
-      const role = mapBackendRole(data.role);
+      const role = mapBackendRole(result.role);
 
       if (!AUTHORITY_ROLES.has(role)) {
         setError(
@@ -140,8 +136,8 @@ function AuthorityLoginPage() {
         return;
       }
 
-      login({ name: data.username, role, org: "", token: data.token });
-      navigate({ to: redirect || ROLE_REDIRECT[role] || "/city-admin" });
+      login({ name: result.username, role, org: "", token: result.token });
+      navigate({ to: (redirect || ROLE_REDIRECT[role] || "/city-admin") as any });
     } catch (err) {
       if (err instanceof ApiError) {
         setError(locale === "vi" ? "Mã xác thực không đúng" : "Invalid MFA code");
@@ -280,7 +276,7 @@ function AuthorityLoginPage() {
         </div>
 
         <div className="mt-4 text-center">
-          <Link to="/login" className="text-sm text-ink-soft hover:text-gov-blue">
+          <Link to="/login" search={{} as any} className="text-sm text-ink-soft hover:text-gov-blue">
             {locale === "vi" ? "← Cổng người dân" : "← Citizen portal"}
           </Link>
         </div>

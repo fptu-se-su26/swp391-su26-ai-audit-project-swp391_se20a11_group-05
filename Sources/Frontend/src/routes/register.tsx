@@ -60,13 +60,12 @@ function PasswordStrengthIndicator({ password }: { password: string }) {
         {checks.map((check, i) => (
           <div
             key={i}
-            className={`h-1.5 flex-1 rounded-full transition-colors duration-200 ${
-              password.length === 0
+            className={`h-1.5 flex-1 rounded-full transition-colors duration-200 ${password.length === 0
                 ? "bg-gray-200"
                 : check.passed
                   ? "bg-green-500"
                   : "bg-red-300"
-            }`}
+              }`}
           />
         ))}
       </div>

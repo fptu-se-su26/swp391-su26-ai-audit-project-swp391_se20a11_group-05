@@ -4,14 +4,14 @@
 
 | Thông tin | Nội dung |
 |---|---|
-| Môn học |  |
-| Mã môn học |  |
-| Lớp |  |
-| Học kỳ |  |
-| Tên bài tập / Project |  |
-| Tên sinh viên / Nhóm |  |
-| MSSV / Danh sách MSSV |  |
-| Giảng viên hướng dẫn |  |
+| Môn học | Software Development Project |
+| Mã môn học | SWP391 |
+| Lớp | SE20A11 |
+| Học kỳ | SU26 |
+| Tên bài tập / Project | The Listening City Systems |
+| Tên sinh viên / Nhóm | Phan Thanh Bình / Group05 |
+| MSSV / Danh sách MSSV | DE190210 |
+| Giảng viên hướng dẫn | Lê Thiện Nhật Quang |
 | Ngày hoàn thành reflection |  |
 
 ---

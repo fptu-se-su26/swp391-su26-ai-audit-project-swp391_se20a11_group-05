@@ -154,11 +154,11 @@ Viết tại đây...
 
 | Nội dung | Thông tin |
 |---|---|
-| Ngày sử dụng |  |
-| Công cụ AI | ChatGPT / Gemini / Claude / GitHub Copilot / Cursor / Antigravity / Khác |
-| Mục đích sử dụng |  |
-| Phần việc liên quan | Requirement / Design / Database / Frontend / Backend / Testing / Debug / Report / Presentation / Other |
-| Mức độ sử dụng | Hỗ trợ ý tưởng / Hỗ trợ một phần / Hỗ trợ nhiều / Sinh chính nội dung |
+| Ngày sử dụng | 28/05/2026 |
+| Công cụ AI | ChatGPT |
+| Mục đích sử dụng | Hoàn thiện luồng backend + API cho use case upload media, khớp với frontend template |
+| Phần việc liên quan | Backend / Frontend / Testing / Debug |
+| Mức độ sử dụng | Hỗ trợ nhiều |
 
 #### 4.1. Prompt đã sử dụng
 

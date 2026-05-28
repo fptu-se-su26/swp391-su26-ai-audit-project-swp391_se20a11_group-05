@@ -1,11 +1,15 @@
-import { createFileRoute, Link, notFound, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
 import { useFeedbackDetail } from "@/lib/hooks";
 import { reports as mockReports } from "@/lib/mock-data";
 import { StatusBadge } from "@/components/site/StatusBadge";
-import { ArrowLeft, Check, Clock, MapPin, User } from "lucide-react";
+import { EmptyState } from "@/components/site/EmptyState";
+import { DemoBanner } from "@/components/site/DemoBanner";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowLeft, Check, Clock, MapPin, User, SearchX } from "lucide-react";
 import { Role, AUTHORITY_ROLES, parseBackendRole } from "@/lib/roles";
 import { getToken } from "@/lib/api";
+import { mapStatus } from "@/lib/status";
 
 export const Route = createFileRoute("/my-reports/$id")({
   beforeLoad: async ({ params }) => {
@@ -15,16 +19,16 @@ export const Route = createFileRoute("/my-reports/$id")({
       : null;
 
     if (!token || !raw) {
-      throw redirect({ to: "/login", search: { redirect: `/my-reports/${params.id}` } });
+      throw redirect({ to: "/login", search: { error: "auth_required", redirect: `/my-reports/${params.id}` } });
     }
 
     let user: { role: string } | null = null;
     try { user = JSON.parse(raw); } catch { /* ignore */ }
-    if (!user) throw redirect({ to: "/login" });
+    if (!user) throw redirect({ to: "/login", search: { redirect: undefined, error: "auth_required" } });
 
     const role = parseBackendRole(user.role);
     if (AUTHORITY_ROLES.has(role) || role !== Role.CITIZEN) {
-      throw redirect({ to: "/login" });
+      throw redirect({ to: "/login", search: { redirect: undefined, error: "forbidden" } });
     }
   },
   head: ({ params }) => ({
@@ -35,6 +39,15 @@ export const Route = createFileRoute("/my-reports/$id")({
   }),
   component: ReportDetail,
 });
+
+/** Map backend status string to a timeline stage */
+function mapTimelineStage(backendStatus: string): "pending" | "inProgress" | "resolved" | "urgent" {
+  const m: Record<string, "pending" | "inProgress" | "resolved" | "urgent"> = {
+    PENDING: "pending", ASSIGNED: "inProgress", IN_PROGRESS: "inProgress",
+    WAITING_INFO: "pending", RESOLVED: "resolved", REJECTED: "urgent", PRE_EMPTIVE: "pending",
+  };
+  return m[backendStatus] ?? "pending";
+}
 
 
 function ReportDetail() {

@@ -84,7 +84,7 @@ DD/MM/YYYY
 Nếu có, mô tả AI đã hỗ trợ phần nào:
 
 ```text
-Viết tại đây...
+28/05/2026
 ```
 
 ## Commit/Screenshot minh chứng
@@ -232,37 +232,54 @@ DD/MM/YYYY
 - [ ] Tối ưu giao diện
 - [ ] Cập nhật README hướng dẫn chạy
 
+Ghi nhận thực tế đã hoàn thành trong đợt 2:
+- [x] Xây dựng backend cho use case upload media
+- [x] Tích hợp endpoint media theo module feedback
+- [x] Cập nhật helper frontend để gọi đúng endpoint media
+- [x] Xử lý validation và tương thích payload template frontend
+
 ## Thay đổi chi tiết
 
 | STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
 |---:|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
-| 4 |  |  |  |  |
-| 5 |  |  |  |  |
+| 1 | Chuẩn hóa FeedbackService để tương thích template frontend khi thiếu categoryId | Phan Thanh Bình | FeedbackService.java | Commit 37217fd |
+| 2 | Thêm endpoint POST /api/feedbacks/media cho use case upload media | Phan Thanh Bình | FeedbackController.java | Commit 99ad3b8 |
+| 3 | Cập nhật helper frontend gọi đúng endpoint /api/feedbacks/media | Phan Thanh Bình | citizenFeedbackMediaApi.ts | Commit a0692cf |
+| 4 | Bổ sung các class hỗ trợ media: service, DTO, repository, storage service | Phan Thanh Bình | modules/feedback/* | Commit nhóm đã tạo trước đó |
+| 5 | Kiểm tra compile backend để xác nhận merge an toàn | Phan Thanh Bình | Backend build | mvn -q -DskipTests compile PASS |
 
 ## AI có hỗ trợ không?
 
 - [ ] Có
 - [ ] Không
 
+Đánh dấu thực tế:
+- [x] Có
+
 Nếu có, mô tả AI đã hỗ trợ phần nào:
 
 ```text
-Viết tại đây...
+AI hỗ trợ rà soát độ khớp backend-frontend, đề xuất cấu trúc class thiếu cho use case media,
+đồng thời hỗ trợ kiểm tra rủi ro khi merge vào product branch.
 ```
 
 ## Commit/Screenshot minh chứng
 
 ```text
-Dán link commit, screenshot hoặc mô tả minh chứng tại đây...
+Commit chính:
+- 37217fd
+- 99ad3b8
+- a0692cf
+
+Kết quả kiểm tra:
+- mvn -q -DskipTests compile => PASS
 ```
 
 ## Ghi chú
 
 ```text
-Viết tại đây...
+Đợt cập nhật này tập trung vào tính tương thích và an toàn merge:
+không thay đổi phá vỡ flow cũ, bổ sung theo hướng additive.
 ```
 
 ---
@@ -272,7 +289,7 @@ Viết tại đây...
 ## Ngày thực hiện
 
 ```text
-DD/MM/YYYY
+28/05/2026
 ```
 
 ## Đã hoàn thành
@@ -293,10 +310,10 @@ DD/MM/YYYY
 
 | STT | Lỗi phát hiện | Nguyên nhân | Cách xử lý | Trạng thái |
 |---:|---|---|---|---|
-| 1 |  |  |  | Open / Fixed / Pending |
-| 2 |  |  |  | Open / Fixed / Pending |
-| 3 |  |  |  | Open / Fixed / Pending |
-| 4 |  |  |  | Open / Fixed / Pending |
+| 1 | Frontend helper media gọi sai endpoint | Lệch naming endpoint giữa các lần cập nhật | Đồng bộ về /api/feedbacks/media | Fixed |
+| 2 | Trùng dòng fetch trong helper frontend | Patch chồng khi chỉnh endpoint | Xóa dòng thừa, giữ 1 lệnh fetch duy nhất | Fixed |
+| 3 | Runtime risk khi thiếu categoryId từ template report | Payload hiện tại frontend chưa luôn gửi categoryId | Cho phép categoryId optional + validate mềm trong service | Fixed |
+| 4 | Build risk khi merge nhánh | Thiếu bước compile sau chỉnh sửa | Chạy compile backend sau cập nhật | Fixed |
 | 5 |  |  |  | Open / Fixed / Pending |
 
 ## Thay đổi chi tiết

@@ -5,17 +5,18 @@ import com.example.smartcity.modules.feedback.dto.FeedbackResponse;
 import com.example.smartcity.modules.feedback.entity.Category;
 import com.example.smartcity.modules.feedback.entity.Feedback;
 import com.example.smartcity.modules.feedback.entity.FeedbackStatus;
-import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.feedback.repository.CategoryRepository;
 import com.example.smartcity.modules.feedback.repository.FeedbackRepository;
+import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,31 +29,33 @@ public class FeedbackService {
 
     @Transactional
     public FeedbackResponse createFeedback(FeedbackRequest request) {
-        // 1. Validate Category & User
-        Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new RuntimeException("Category không tồn tại"));
+        validateRequest(request);
 
         User citizen = userRepository.findById(request.getCitizenId())
-                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+                .orElseThrow(() -> new RuntimeException("User khong ton tai"));
 
-        // 2. Map Request -> Entity
+        // Frontend template hien tai co the chua gui categoryId.
+        // Neu co thi validate; neu khong thi de null de khong lam vo flow submit.
+        Category category = null;
+        if (request.getCategoryId() != null) {
+            category = categoryRepository.findById(request.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Category khong ton tai"));
+        }
+
         Feedback feedback = new Feedback();
         feedback.setTrackingCode("FB-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
-        feedback.setTitle(request.getTitle());
-        feedback.setDescription(request.getDescription());
+        feedback.setTitle(request.getTitle().trim());
+        feedback.setDescription(request.getDescription().trim());
         feedback.setLatitude(request.getLatitude());
         feedback.setLongitude(request.getLongitude());
-        feedback.setAddressDetails(request.getAddressDetails());
+        feedback.setAddressDetails(trimToNull(request.getAddressDetails()));
         feedback.setStatus(FeedbackStatus.PENDING);
         feedback.setCategory(category);
         feedback.setCitizen(citizen);
         feedback.setCreatedAt(LocalDateTime.now());
         feedback.setUpdatedAt(LocalDateTime.now());
 
-        // 3. Save
         feedbackRepository.save(feedback);
-
-        // 4. Return DTO
         return mapToDTO(feedback);
     }
 
@@ -80,8 +83,30 @@ public class FeedbackService {
                 .updatedAt(feedback.getUpdatedAt())
                 .build();
     }
+
+    private void validateRequest(FeedbackRequest request) {
+        if (request == null) {
+            throw new RuntimeException("Request khong hop le");
+        }
+        if (isBlank(request.getTitle())) {
+            throw new RuntimeException("Title khong duoc de trong");
+        }
+        if (isBlank(request.getDescription())) {
+            throw new RuntimeException("Description khong duoc de trong");
+        }
+        if (request.getCitizenId() == null) {
+            throw new RuntimeException("CitizenId la bat buoc");
+        }
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) return null;
+        String normalized = value.trim();
+        if (normalized.isEmpty()) return null;
+        return normalized.toLowerCase(Locale.ROOT).equals("null") ? null : normalized;
+    }
 }
-
-
-
-

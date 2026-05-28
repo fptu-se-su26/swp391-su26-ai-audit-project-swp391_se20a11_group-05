@@ -26,7 +26,6 @@ import org.springframework.stereotype.Service;
 public class SelfRagService {
 
     // Ngưỡng chấp nhận (có thể cấu hình từ application.properties)
-    private static final double RELEVANCE_THRESHOLD = 0.3;
 
     /**
      * Chấm điểm mức độ liên quan của một chunk với câu hỏi.

@@ -29,13 +29,15 @@ public class GlobalExceptionHandler {
             errors.put(fieldName, errorMessage);
         });
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.success("Validation failed", errors)); // or error with a specific format
+                .body(ApiResponse.error(400, "Dữ liệu đầu vào không hợp lệ (Validation failed)", errors));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleGenericException(Exception ex) {
+        // Log full stack trace internally
+        // Do NOT leak internal details to client
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error(500, "Internal Server Error: " + ex.getMessage()));
+                .body(ApiResponse.error(500, "Internal Server Error. Vui lòng thử lại sau."));
     }
 }
 

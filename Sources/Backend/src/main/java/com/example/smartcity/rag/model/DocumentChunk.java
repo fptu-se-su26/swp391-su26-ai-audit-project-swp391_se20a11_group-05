@@ -39,7 +39,7 @@ public class DocumentChunk {
      * NOTE: Annotation @Column(columnDefinition = "vector(1536)") chỉ hoạt động
      * khi PostgreSQL có pgvector extension. Khi dùng H2 (test), bỏ qua.
      */
-    @Column(name = "embedding", columnDefinition = "float[]")
+    @Column(name = "embedding")
     private float[] embedding;
 
     // ──────────────────────────────────────────────────────────────
@@ -50,7 +50,7 @@ public class DocumentChunk {
     @Column(name = "source_url", length = 1000)
     private String sourceUrl;
 
-    /** Loại nội dung: grammar, vocabulary, culture, kanji... */
+    /** Loại nội dung: traffic, environment, policy, governance... */
     @Column(name = "doc_type", length = 100)
     private String docType;
 

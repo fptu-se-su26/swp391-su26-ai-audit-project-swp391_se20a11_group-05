@@ -2,7 +2,8 @@ package com.example.smartcity.modules.user.entity;
 
 import jakarta.persistence.*;
 import com.example.smartcity.common.base.BaseEntity;
-import java.time.LocalDateTime;
+import com.example.smartcity.modules.core.entity.Ward;
+
 
 @Entity
 @Table(name = "users")
@@ -27,8 +28,12 @@ public class User extends BaseEntity {
     @Column(nullable = false, length = 20)
     private Role role; 
 
-    @Column(nullable = false)
-    private boolean isActive = true;
+    @Column(name = "status", nullable = false, length = 20)
+    private String status = "ACTIVE";
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ward_id")
+    private Ward ward;
 
     @Column(name = "mfa_secret")
     private String mfaSecret;
@@ -46,7 +51,7 @@ public class User extends BaseEntity {
         this.phoneNumber = phoneNumber;
         this.email = email;
         this.role = role;
-        this.isActive = true;
+        this.status = "ACTIVE";
     }
 
     public String getUsername() { return username; }
@@ -67,15 +72,23 @@ public class User extends BaseEntity {
     public Role getRole() { return role; }
     public void setRole(Role role) { this.role = role; }
 
-    public boolean isActive() { return isActive; }
-    public void setActive(boolean active) { isActive = active; }
+    public boolean isActive() {
+        return "ACTIVE".equalsIgnoreCase(this.status);
+    }
+    public void setActive(boolean active) {
+        this.status = active ? "ACTIVE" : "LOCKED";
+    }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
     public String getMfaSecret() { return mfaSecret; }
     public void setMfaSecret(String mfaSecret) { this.mfaSecret = mfaSecret; }
 
     public boolean isMfaEnabled() { return isMfaEnabled; }
-    public void setMfaEnabled(boolean mfaEnabled) { this.isMfaEnabled = mfaEnabled; }
+    public void setMfaEnabled(boolean isMfaEnabled) { this.isMfaEnabled = isMfaEnabled; }
+
+    public Ward getWard() { return ward; }
+    public void setWard(Ward ward) { this.ward = ward; }
 }
-
-
 

@@ -4,16 +4,16 @@
 
 | Thông tin | Nội dung |
 |---|---|
-| Môn học |  |
-| Mã môn học |  |
-| Lớp |  |
-| Học kỳ |  |
-| Tên bài tập / Project |  |
-| Tên sinh viên / Nhóm |  |
-| MSSV / Danh sách MSSV |  |
-| Giảng viên hướng dẫn |  |
-| Ngày bắt đầu |  |
-| Ngày hoàn thành |  |
+| Môn học | Software Development Project |
+| Mã môn học | SWP391 |
+| Lớp | SE20A11 |
+| Học kỳ | SUMMER 2026 |
+| Tên bài tập / Project | The Listening City Systems |
+| Tên sinh viên / Nhóm | Trần Minh Vĩ / Group05 |
+| MSSV / Danh sách MSSV | DE190182 |
+| Giảng viên hướng dẫn | Lê Thiện Nhật Quang |
+| Ngày bắt đầu | 2026-05-12 |
+| Ngày hoàn thành | 2026-05-19 |
 
 ---
 
@@ -22,11 +22,11 @@
 Đánh dấu các công cụ AI đã sử dụng trong quá trình thực hiện bài tập/project.
 
 - [ ] ChatGPT
-- [ ] Gemini
+- [x] Gemini
 - [ ] Claude
 - [ ] GitHub Copilot
 - [ ] Cursor
-- [ ] Antigravity
+- [x] Antigravity
 - [ ] Perplexity
 - [ ] Microsoft Copilot
 - [ ] Công cụ khác: ....................................
@@ -55,7 +55,14 @@ Ví dụ:
 ### Mô tả mục tiêu sử dụng AI
 
 ```text
-Viết tại đây...
+-Phân tích yêu cầu bài toán
+-Gợi ý ý tưởng giải pháp
+-Thiết kế kiến trúc hệ thống
+-Tìm hiểu lý thuyết UML để thiết lập sơ đồ Use Case
+
+nhóm đã sử dụng AI với vai trò là một Cố vấn Kiến trúc hệ thống nhiều năm kinh nghiệm nhằm mục đích : Phân rã bài toán lớn để nhóm hiểu hơn các phần còn thiếu , nhận diện trước các lỗ hổng hệ thống trong thực tế , nghiên cứu nghiệp vụ thực địa đô thị thông minh và tìm hiểu thêm về các ứng dụng phần mềm hay báo trí và cũng như lý thuyết UML để thiết lập Sơ đồ Use Case tổng quan đạt chuẩn trước khi viết đặc tả SRS.
+
+
 
 ## 4. Nhật ký sử dụng AI chi tiết
 
@@ -68,16 +75,16 @@ Viết tại đây...
 
 | Nội dung | Thông tin |
 |---|---|
-| Ngày sử dụng |  |
-| Công cụ AI | ChatGPT / Gemini / Claude / GitHub Copilot / Cursor / Antigravity / Khác |
-| Mục đích sử dụng |  |
-| Phần việc liên quan | Requirement / Design / Database / Frontend / Backend / Testing / Debug / Report / Presentation / Other |
-| Mức độ sử dụng | Hỗ trợ ý tưởng / Hỗ trợ một phần / Hỗ trợ nhiều / Sinh chính nội dung |
+| Ngày sử dụng | 2026-05-15 |
+| Công cụ AI |  Gemini / Antigravity  |
+| Mục đích sử dụng | Hỗ trợ ý tưởng |
+| Phần việc liên quan | Requirement  |
+| Mức độ sử dụng | Hỗ trợ một phần |
 
 #### 4.1. Prompt đã sử dụng
 
 ```text
-Dán nguyên văn prompt đã hỏi AI tại đây.
+Tôi đang làm dự án The Listening City System cho người dân Đà Nẵng gửi phản ánh kèm vị trí, sau đó cơ quan chức năng tiếp nhận xử lý để nâng cao mức sống. Là một cố vấn có hơn 10 năm kinh nghiệm, hãy chỉ ra những lỗ hổng kiến trúc lớn nhất mà các hệ thống Smart City thường gặp phải ở thực tế và hướng giải quyết tổng quan , và những lỗi tôi có thể gặp trương lai .
 ```
 
 #### 4.2. Kết quả AI gợi ý
@@ -85,7 +92,13 @@ Dán nguyên văn prompt đã hỏi AI tại đây.
 Tóm tắt nội dung AI đã trả lời hoặc gợi ý.
 
 ```text
-Viết tại đây...
+AI đóng vai trò chuyên gia và đưa ra cảnh báo về 4 vấn đề:
+1. Lỗ hổng rác dữ liệu: Spam báo cáo giả, phá hoại hệ thống.
+2. Lỗ hổng hiệu năng: Nghẽn cổ chai database khi render bản đồ nhiệt với hàng ngàn tọa độ
+GPS (Spatial Data) đổ về cùng lúc.
+3. Lỗ hổng bất đồng bộ (Concurrency): Nhiều cán bộ cùng nhảy vào xử lý, chuyển đơn hoặc
+cập nhật trạng thái của 1 đơn phản ánh.
+4. Lỗ hổng an toàn thông tin: Lộ danh tính, vị trí nhạy cảm của người phản ánh.
 ```
 
 #### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
@@ -93,7 +106,7 @@ Viết tại đây...
 Mô tả rõ phần nào được sử dụng lại từ gợi ý của AI.
 
 ```text
-Viết tại đây...
+Nhóm tiếp thu toàn bộ 4 rủi ro cốt lõi để xây dựng một hệ thống đủ an toàn và bảo  khi lập tài liệu SRS Phase 1.
 ```
 
 #### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
@@ -101,7 +114,17 @@ Viết tại đây...
 Mô tả sinh viên/nhóm đã thay đổi, kiểm tra, sửa lỗi hoặc cải tiến gì so với gợi ý ban đầu của AI.
 
 ```text
-Viết tại đây...
+tôi muôn dùng 4 kỹ năng chính để kiểm tra và tiếp nhận các thông tin từ AI như sau :
+
+- Critical Thinking : Phát hiện giải pháp của AI đưa ra mang tính lý thuyết mà chưa áp dụng được (ví dụ: đòi cài cắm các hệ thống AI chuyên sâu đắt đỏ hoặc cluster phức tạp), chưa tối ưu cấu hình và giới hạn ngân sách sinh viên.
+
+- Contextualization : Đặc thù đô thị Đà Nẵng mùa mưa bão rất hay ngập lụt, hoặc kẹt xe giờ cao điểm. Lúc này, hàng trăm người tại cùng một ngã tư sẽ gửi báo cáo trùng lặp về cùng một sự cố. Nếu lưu thô toàn bộ vào database sẽ gây sập server cục bộ.
+
+- Creative Synthesis : Cụ thể hóa lời khuyên của AI bằng cách tách luồng &quot;Submit Report&quot; của Citizen thành một mô hình có bộ lọc: Đưa module AI Edge OCR /
+Computer Vision lên trước để quét sơ bộ, loại bỏ ngay ảnh lỗi/ảnh selfie từ vòng gửi xe trước khi ghi xuống DB.
+
+- Decision Ownership : Gạt bỏ tư duy làm app CRUD thông thường. Quyết định đưa thẳng các điều khoản phi chức năng khắt khe (gồm cơ chế gộp cụm báo cáo trùng - Spatial Clustering và mã hóa danh tính công dân) làm điều kiện tiên quyết trong SRS.
+
 ```
 
 #### 4.5. Minh chứng
@@ -120,7 +143,7 @@ Viết tại đây...
 Sinh viên/nhóm học được gì sau lần sử dụng AI này?
 
 ```text
-Viết tại đây...
+nhóm chúng tôi đã hiểu ra nhiều thứ : một đồ án sinh viên và phần mềm thực tế rất khác xa nhau nằm ở cách ta bảo mật trước dữ liệu lớn. qua các buổi sử dụng thì tôi hiểu thêm về phần nhiệp vụ của trang web mình .
 ```
 
 ---

@@ -24,7 +24,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final CustomUserDetailsService customUserDetailsService;
     private final JwtAuthEntryPoint unauthorizedHandler;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CorsConfigurationSource corsConfigurationSource;
@@ -47,13 +46,18 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
-                        // Allow static assets, Swagger, Actuator
+                        // Public: static assets, auth endpoints
                         .requestMatchers("/", "/favicon.ico", "/**/*.png", "/**/*.gif", "/**/*.svg", "/**/*.jpg", "/**/*.html", "/**/*.css", "/**/*.js").permitAll()
-                        .requestMatchers("/api/auth/**").permitAll() // Authenticate endpoint is public
-                        .requestMatchers("/api/ai/**").permitAll()   // AI endpoints for demo
-                        .requestMatchers("/api/rag/**").permitAll()  // RAG/Chatbot endpoints for demo
-                        .requestMatchers("/api/feedbacks/**").permitAll() // Feedbacks for demo
-                        .requestMatchers("/actuator/**").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll() // Login/Register/MFA are public
+                        .requestMatchers("/api/rag/chatbot", "/api/rag/stream").permitAll() // Public Chatbot endpoints
+                        .requestMatchers("/api/weather/forecast/public").permitAll() // Cho phép người dân xem dự báo thời tiết cơ bản không cần login
+                        .requestMatchers("/actuator/health").permitAll() // Health check only
+                        // Authenticated: all business endpoints
+                        .requestMatchers("/api/ai/**").authenticated()
+                        .requestMatchers("/api/rag/**").authenticated()
+                        .requestMatchers("/api/feedbacks/**").authenticated()
+                        .requestMatchers("/api/categories/**").authenticated()
+                        .requestMatchers("/actuator/**").authenticated()
                         .anyRequest().authenticated()
                 );
 

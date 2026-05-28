@@ -4,14 +4,14 @@
 
 | Thông tin | Nội dung |
 |---|---|
-| Môn học |  |
+| Môn học | Software Development Project |
 | Mã môn học | SWP391 |
-| Lớp | SE20A11 |
+| Lớp | SE20A11|
 | Học kỳ | SU26 |
-| Tên bài tập / Project | Hệ thống "Đà Nẵng Lắng Nghe" (The Listening City System) |
-| Tên sinh viên / Nhóm | Phan Thanh Bình / Nhóm 05 |
-| MSSV / Danh sách MSSV | De19021E |
-| Giảng viên hướng dẫn |  |
+| Tên bài tập / Project | The Listening City Systems |
+| Tên sinh viên / Nhóm | Phan Thanh Bình / Group05 |
+| MSSV / Danh sách MSSV | DE190210 |
+| Giảng viên hướng dẫn | Lê Thiện Nhật Quang |
 | Ngày bắt đầu |  |
 | Ngày hoàn thành |  |
 
@@ -23,7 +23,7 @@
 
 - [x] ChatGPT
 - [x] Gemini
-- [x] Claude
+- [ ] Claude
 - [ ] GitHub Copilot
 - [ ] Cursor
 - [x] Antigravity
@@ -55,8 +55,12 @@ Ví dụ:
 ### Mô tả mục tiêu sử dụng AI
 
 ```text
-Sử dụng AI để triển khai use case lớn: người dân gửi phản ánh kèm ảnh/video (video > 10 giây),
-đảm bảo backend tương thích frontend template hiện có và không phá các flow cũ của nhóm.
+- Phân tích yêu cầu bài toán
+- Gợi ý ý tưởng giải pháp
+- Viết test case
+- Viết báo cáo
+
+Sử dụng AI để phân tích yêu cầu, gợi ý ý tưởng, viết test case, viết báo cáo, phân tích luồng nghiệp vụ, chia nhỏ bài toán để phân tích, tạo ra các use case, user story, các chức năng của hệ thống.
 
 ## 4. Nhật ký sử dụng AI chi tiết
 
@@ -159,68 +163,42 @@ Viết tại đây...
 #### 4.1. Prompt đã sử dụng
 
 ```text
-You must ensure that this backend code must be able to connect with the frontend and must match the frontend template.
-If there is any missing class for the usecase to work, please complete it for me and ensure the logic is correct for other members.
-Make sure the code is standard so that when I merge into the product branch there will be no errors, explain in Vietnamese.
+Dán nguyên văn prompt đã hỏi AI tại đây.
 ```
 
 #### 4.2. Kết quả AI gợi ý
 
-Tóm tắt nội dung AI đã trả lời hoặc gợi ý.
-
 ```text
-AI đề xuất và hỗ trợ triển khai:
-- Bổ sung các class còn thiếu cho use case media: repository, DTO, service, controller.
-- Chuẩn hóa endpoint để tương thích frontend template.
-- Thêm validate video duration > 10s trong flow media.
-- Kiểm tra compile backend để đảm bảo merge an toàn.
+Viết tại đây...
 ```
 
 #### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
 
-Mô tả rõ phần nào được sử dụng lại từ gợi ý của AI.
-
 ```text
-Nhóm đã sử dụng trực tiếp:
-- Flow submit feedback JSON: GET/POST /api/feedbacks tương thích template frontend.
-- Flow submit media: POST /api/feedbacks/media.
-- Các class mới: CitizenFeedbackMediaService, SupabaseStorageService, AttachmentRepository,
-  CitizenFeedbackMediaRequest/Response, FeedbackAttachmentResponse.
-- Cập nhật helper frontend gọi đúng endpoint media.
+Viết tại đây...
 ```
 
 #### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
 
-Mô tả sinh viên/nhóm đã thay đổi, kiểm tra, sửa lỗi hoặc cải tiến gì so với gợi ý ban đầu của AI.
-
 ```text
-Nhóm tự kiểm tra và chỉnh sửa thêm:
-- Sửa lệch endpoint frontend helper (tránh mismatch giữa /api/citizen-feedback-media và /api/feedbacks/media).
-- Sửa lỗi trùng dòng fetch trong file helper.
-- Chuẩn hóa validate request trong FeedbackService để không fail khi thiếu categoryId từ template hiện tại.
-- Compile lại backend sau chỉnh sửa để xác nhận không lỗi.
+Viết tại đây...
 ```
 
 #### 4.5. Minh chứng
 
 | Loại minh chứng | Nội dung |
 |---|---|
-| Link commit | 37217fd, 99ad3b8, a0692cf |
-| File liên quan | Sources/Backend/src/main/java/com/example/smartcity/modules/feedback/service/FeedbackService.java; Sources/Backend/src/main/java/com/example/smartcity/modules/feedback/controller/FeedbackController.java; Sources/Backend/src/main/java/com/example/smartcity/modules/feedback/service/CitizenFeedbackMediaService.java; Sources/Backend/src/main/java/com/example/smartcity/modules/feedback/service/SupabaseStorageService.java; Sources/Frontend/src/lib/citizenFeedbackMediaApi.ts |
+| Link commit |  |
+| File liên quan |  |
 | Screenshot |  |
-| Kết quả chạy/test | mvn -q -DskipTests compile: PASS |
+| Kết quả chạy/test |  |
 | Link video demo |  |
-| Ghi chú khác | Đã giữ nguyên flow cũ của nhóm, chỉ bổ sung để tương thích frontend và use case media |
+| Ghi chú khác |  |
 
 #### 4.6. Nhận xét cá nhân/nhóm
 
-Sinh viên/nhóm học được gì sau lần sử dụng AI này?
-
 ```text
-Rút ra được cách dùng AI hiệu quả cho task lớn:
-1) Đặt yêu cầu rõ "không phá flow cũ" để AI đề xuất hướng additive.
-2) Luôn kiểm chứng bằng compile/test thay vì chỉ đọc code.
-3) Với project nhóm, cần ưu tiên compatibility giữa backend và frontend trước khi tối ưu thêm.
+Viết tại đây...
 ```
 
 ---

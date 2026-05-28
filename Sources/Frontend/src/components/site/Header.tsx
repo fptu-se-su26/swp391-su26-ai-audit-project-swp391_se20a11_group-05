@@ -1,8 +1,10 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useI18n, useFontScale } from "@/lib/i18n";
-import { useAuth, ROLE_LABEL } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
+import { ROLE_LABEL, Role } from "@/lib/roles";
 import { Menu, X, LogOut } from "lucide-react";
 import { useState } from "react";
+import logoUrl from "@/assets/logo.png";
 
 export function Header() {
   const { locale, setLocale, t } = useI18n();
@@ -19,10 +21,11 @@ export function Header() {
   ];
 
   // Role-aware staff links — only show portals the user can access
+  // SECURITY: Uses Role enum constants — never inline role strings
   const staffItemsAll = [
-    { to: "/ward", label: t("nav.ward"), roles: ["ward", "city_admin"] as const },
-    { to: "/police", label: t("nav.police"), roles: ["police", "city_admin"] as const },
-    { to: "/city-admin", label: t("nav.cityAdmin"), roles: ["city_admin"] as const },
+    { to: "/ward",       label: t("nav.ward"),      roles: [Role.WARD_STAFF, Role.SUPER_ADMIN] as const },
+    { to: "/police",     label: t("nav.police"),    roles: [Role.POLICE, Role.SUPER_ADMIN] as const },
+    { to: "/city-admin", label: t("nav.cityAdmin"), roles: [Role.SUPER_ADMIN] as const },
   ];
   const staffItems = staffItemsAll.filter((i) => hasRole(...i.roles));
 
@@ -31,12 +34,10 @@ export function Header() {
       {/* Top utility bar */}
       <div className="bg-gov-blue-deep text-white px-4 md:px-8 py-3 flex flex-wrap justify-between items-center gap-3">
         <Link to="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-md bg-gov-gold/20 border border-gov-gold/40 grid place-items-center font-heading font-bold text-gov-gold">
-            ĐN
-          </div>
+          <img src={logoUrl} alt="Đà Nẵng Kết Nối" className="h-14 w-auto object-contain" />
           <div className="flex flex-col leading-tight">
             <span className="text-base md:text-lg font-bold tracking-tight uppercase">
-              <span className="text-gov-gold">Đà Nẵng</span> Lắng Nghe
+              <span className="text-gov-gold">Đà Nẵng</span> Kết Nối
             </span>
             <span className="text-[11px] text-white/60 uppercase tracking-widest">{t("brand.tag")}</span>
           </div>
@@ -94,7 +95,7 @@ export function Header() {
             </div>
           ) : (
             <Link
-              to="/login"
+              to={"/login" as any}
               className="hidden md:inline-flex min-h-[44px] items-center px-4 rounded-md bg-gov-gold text-gov-blue-deep font-bold text-sm hover:brightness-105"
             >
               {t("nav.login")}
@@ -153,15 +154,21 @@ export function Header() {
         </ul>
       </nav>
 
-      {/* Mobile menu */}
-      {open && (
-        <nav className="md:hidden bg-gov-blue text-white px-4 py-4 space-y-1" aria-label="Mobile">
+      {/* Mobile menu with animation */}
+      <div
+        className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
+          open ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
+        }`}
+      >
+        <nav className="bg-gov-blue text-white px-4 py-4 space-y-1" aria-label="Mobile">
           {navItems.map((n) => (
             <Link
               key={n.to}
               to={n.to}
               onClick={() => setOpen(false)}
-              className="block min-h-[48px] px-4 py-3 rounded-md hover:bg-white/10 font-semibold"
+              className={`block min-h-[48px] px-4 py-3 rounded-md font-semibold transition-all ${
+                path === n.to ? "bg-white/15 text-gov-gold" : "hover:bg-white/10"
+              }`}
             >
               {n.label}
             </Link>
@@ -176,7 +183,9 @@ export function Header() {
                   key={n.to}
                   to={n.to}
                   onClick={() => setOpen(false)}
-                  className="block min-h-[48px] px-4 py-3 rounded-md hover:bg-white/10 font-semibold"
+                  className={`block min-h-[48px] px-4 py-3 rounded-md font-semibold transition-all ${
+                    path === n.to ? "bg-white/15 text-gov-gold" : "hover:bg-white/10"
+                  }`}
                 >
                   {n.label}
                 </Link>
@@ -187,22 +196,22 @@ export function Header() {
             {user ? (
               <button
                 onClick={() => { logout(); setOpen(false); }}
-                className="w-full text-left min-h-[48px] px-4 py-3 rounded-md hover:bg-white/10 font-semibold inline-flex items-center gap-2"
+                className="w-full text-left min-h-[48px] px-4 py-3 rounded-md hover:bg-white/10 font-semibold inline-flex items-center gap-2 transition-all"
               >
                 <LogOut size={18} /> {locale === "vi" ? "Đăng xuất" : "Sign out"} — {user.name}
               </button>
             ) : (
               <Link
-                to="/login"
+                to={"/login" as any}
                 onClick={() => setOpen(false)}
-                className="block min-h-[48px] px-4 py-3 rounded-md bg-gov-gold text-gov-blue-deep font-bold"
+                className="block min-h-[48px] px-4 py-3 rounded-md bg-gov-gold text-gov-blue-deep font-bold text-center"
               >
                 {t("nav.login")}
               </Link>
             )}
           </div>
         </nav>
-      )}
+      </div>
     </header>
   );
 }

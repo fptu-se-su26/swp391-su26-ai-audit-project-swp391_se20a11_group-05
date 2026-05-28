@@ -12,7 +12,7 @@ import java.util.List;
  */
 public record RetrievalOptions(
 
-    /** Loại tài liệu cần tìm: grammar, vocabulary, kanji, culture... */
+    /** Loại tài liệu cần tìm: traffic, environment, policy, governance... */
     @NotBlank(message = "docType là bắt buộc")
     String docType,
 

@@ -13,11 +13,11 @@ CREATE TABLE IF NOT EXISTS document_chunks (
     content          TEXT        NOT NULL,
     embedding        VECTOR(1536),          -- Khớp với text-embedding-3-small / Gemini
     source_url       VARCHAR(1000),
-    doc_type         VARCHAR(100),          -- grammar, vocabulary, kanji, culture...
+    doc_type         VARCHAR(100),          -- traffic, environment, policy, governance...
     language         VARCHAR(10),           -- vi, ja, en
     page_number      INTEGER     DEFAULT 0,
     version          VARCHAR(50) DEFAULT '1.0',
-    permission_level VARCHAR(20) DEFAULT 'PUBLIC',  -- PUBLIC | TEACHER_ONLY | ADMIN_ONLY
+    permission_level VARCHAR(20) DEFAULT 'PUBLIC',  -- PUBLIC | STAFF_ONLY | ADMIN_ONLY
     created_at       TIMESTAMPTZ DEFAULT NOW(),
     updated_at       TIMESTAMPTZ DEFAULT NOW()
 );

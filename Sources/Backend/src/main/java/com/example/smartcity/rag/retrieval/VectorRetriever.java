@@ -46,8 +46,10 @@ public class VectorRetriever {
             ? options.allowedPermissions()
             : List.of("PUBLIC");
 
+        String vectorString = java.util.Arrays.toString(queryVector);
+
         List<DocumentChunk> results = repository.findSimilarWithPermission(
-            queryVector,
+            vectorString,
             options.docType(),
             options.language(),
             allowedLevels,
@@ -66,8 +68,10 @@ public class VectorRetriever {
             ? options.allowedPermissions()
             : List.of("PUBLIC");
 
+        String vectorString = java.util.Arrays.toString(queryVector);
+
         return repository.findSimilarWithPermission(
-            queryVector, options.docType(), options.language(), allowedLevels, DEFAULT_TOP_K
+            vectorString, options.docType(), options.language(), allowedLevels, DEFAULT_TOP_K
         );
     }
 }

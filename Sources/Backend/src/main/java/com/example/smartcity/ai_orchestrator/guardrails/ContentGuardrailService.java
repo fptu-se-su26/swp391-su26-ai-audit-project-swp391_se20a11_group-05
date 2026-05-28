@@ -122,12 +122,10 @@ public class ContentGuardrailService {
         String nfd = Normalizer.normalize(input, Normalizer.Form.NFD)
                 .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
 
-        // Leet-speak
+        // Leet-speak (bỏ thay thế 0 và 1 vì phá hỏng số liệu bình thường)
         return nfd
                 .replace("4", "a")
                 .replace("3", "e")
-                .replace("0", "o")
-                .replace("1", "i")
                 .toLowerCase();
     }
 

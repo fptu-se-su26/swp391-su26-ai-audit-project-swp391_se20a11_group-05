@@ -77,6 +77,111 @@
 
 ---
 
+### Entry #: 005
+**Prompt Type:** PROBLEM-SOLVING
+**Stage/Component:** Integration (CT) + Debugging
+**Problem/Context:** Frontend và Backend chưa kết nối được với nhau — `api.ts` dùng sai tên method (`chatbotApi.ask` không tồn tại trong Backend), thiếu hàng loạt TypeScript types tương ứng với Java DTOs, và `node_modules` chưa được cài. IDE báo hơn 60 lỗi compile cùng lúc.
+**Prompt to AI:** "làm sao để bên frontend đọc đc restfull api của backend, bởi vì mới tạo bên 2 bên chưa có kết nối mấy, đồng bộ lại"
+**AI Response (Summary):** AI kiểm tra toàn bộ Backend Controllers (Auth, Feedback, Category, RAG, AI Orchestrator) và đối chiếu với Frontend `api.ts`. Sau đó viết lại toàn bộ file API Client với đầy đủ TypeScript interfaces đồng bộ 1-1 với Java DTOs. Đồng thời sửa tất cả lỗi compile trong `assistant.tsx`, tạo `vite-env.d.ts`, cập nhật `tsconfig.json` và chạy `npm install`.
+
+**Human Delta & Reflection:**
+- **Critical Thinking:** AI xử lý đúng hướng khi đọc toàn bộ source Java trước, sau đó mới viết TypeScript types — đây là cách đúng đắn để đảm bảo type safety giữa 2 layer. Tuy nhiên, lần đầu AI để `import.meta.env` dạng `any` cast là không cần thiết; sau khi tôi phản ánh, AI đã tạo `vite-env.d.ts` để xử lý đúng chuẩn hơn.
+- **Contextualization:** Trong dự án thực tế, việc Frontend và Backend "chưa kết nối" là vấn đề phổ biến khi 2 bên phát triển song song mà không có API contract (Swagger/OpenAPI). Trường hợp này phản ánh đúng thực tế nhóm đã xây Backend mà không định nghĩa contract cho Frontend.
+- **Creative Synthesis:** Tôi nhận ra rằng cần phải đọc file `UserRepository.java` để xác nhận `findByEmail()` có tồn tại không — đây là bước kiểm chứng thủ công mà tôi tự thực hiện thay vì chỉ dựa vào AI đoán. AI cũng không tự biết file bị xóa nhầm, tôi phải chủ động báo lại và yêu cầu khôi phục.
+- **Decision Ownership:** Quyết định ghi đầy đủ toàn bộ mapping Frontend ↔ Backend vào tài liệu cá nhân thay vì chỉ sửa code — đây là bước chủ động của tôi để chuẩn bị cho việc bảo vệ và giải thích code trước hội đồng.
+
+---
+
+### Entry #: 006
+**Prompt Type:** PROBLEM-SOLVING
+**Stage/Component:** Tích hợp API cho Frontend
+**Problem/Context:** Cần chuyển đổi các trang giao diện (Dashboard, chức năng Báo cáo) từ việc dùng dữ liệu giả (mock data) sang gọi API thật từ Backend. Đồng thời cần làm thêm trang Đăng ký và sửa các lỗi đỏ của TypeScript.
+**Prompt to AI:** Yêu cầu AI gắn API thực tế cho các trang giao diện, làm thêm chức năng Đăng ký tài khoản và sửa sạch các lỗi báo đỏ của TypeScript.
+**AI Response (Summary):** AI đã code phần gọi API cho toàn bộ giao diện. Rất hay là AI còn tự viết thêm tính năng dự phòng: nếu Backend bị tắt thì giao diện tự động chuyển về dùng dữ liệu giả (Demo mode) để ứng dụng không bị sập. AI cũng sửa các lỗi TypeScript liên quan đến hệ thống chuyển trang (Router).
+
+**Human Delta & Reflection:**
+- **Critical Thinking:** Khi sửa lỗi chuyển trang, AI lạm dụng ép kiểu `as any` khiến công cụ tạo đường dẫn tự động bị hỏng. Tôi đã phát hiện ra điểm sai này và bắt AI bỏ ép kiểu đi.
+- **Contextualization:** Tính năng "Demo mode" (chế độ dùng thử) của AI rất hữu ích khi đi bảo vệ đồ án, lỡ Backend có bị sập thì thầy cô vẫn xem được giao diện, nên tôi quyết định giữ lại tính năng này.
+- **Creative Synthesis:** Tôi chủ động yêu cầu AI chạy lệnh tự động sinh file chuyển trang (`generate`) để chuẩn hóa code, thay vì tự sửa tay như AI đề xuất ban đầu.
+- **Decision Ownership:** Nghiệm thu bản code mới giúp Frontend chạy mượt mà với Backend và không còn bất kỳ lỗi hiển thị đỏ nào.
+
+---
+
+### Entry #: 007
+**Prompt Type:** ARCHITECTURE-DESIGN
+**Stage/Component:** AI Orchestrator
+**Problem/Context:** Đánh giá mã nguồn hiện tại của module `ai_orchestrator` và yêu cầu AI tư vấn phương án nâng cấp kiến trúc lên chuẩn Enterprise, đặc biệt là chiến lược dự phòng lỗi (Resilience) và tối ưu chi phí (Caching).
+**Prompt to AI:** Yêu cầu AI đề xuất các hướng nâng cấp thiết kế (chỉ thảo luận, không viết code) và gợi ý thêm chiến lược: *"thay đổi api của grog khác rồi mới tới api của gemini"*.
+**AI Response (Summary):** AI đưa ra 5 hướng nâng cấp, bao gồm Semantic Caching (Bộ nhớ đệm ngữ nghĩa) và Waterfall Fallback (Chuyển hướng thác đổ). Dựa trên gợi ý của tôi, AI phân tích cơ chế 3 tầng phòng thủ hoàn hảo: (1) Đổi Key tự động trong Groq Pool -> (2) Fallback chéo sang Gemini -> (3) Ngắt mạch bằng Circuit Breaker.
+
+**Human Delta & Reflection:**
+- **Critical Thinking:** Thay vì tiếp nhận giải pháp của AI một cách bị động, tôi đã chủ động đề xuất luồng xử lý thực tế: "thử hết API Key của Groq trước khi chuyển sang Gemini" để tiết kiệm chi phí. Điều này chứng tỏ sự nhạy bén trong việc tối ưu hóa tài nguyên.
+- **Contextualization:** Trong bối cảnh đồ án dùng nhiều API Key miễn phí có giới hạn rate-limit (như Groq), thiết kế 3 tầng phòng thủ này đảm bảo hệ thống luôn trả về kết quả (100% Uptime) khi chạy Demo cho hội đồng.
+- **Creative Synthesis:** Cùng AI tổng hợp và chốt lại bản thiết kế kiến trúc chịu lỗi cực cao (Resilience Design Pattern) mà không cần viết lại toàn bộ core logic đang có.
+- **Decision Ownership:** Quyết định phê duyệt thiết kế kiến trúc mới và lưu lại vào nhật ký kiểm toán. Đây là minh chứng cho năng lực thiết kế hệ thống (System Design) chứ không chỉ dừng ở mức độ lập trình.
+
+---
+
+### Entry #: 008
+**Prompt Type:** PROBLEM-SOLVING
+**Stage/Component:** API Design & Error Handling
+**Problem/Context:** Trong phiên Audit đánh giá mã nguồn, Hội đồng Giảng viên nhận định kiến trúc Backend còn vi phạm nghiêm trọng nguyên tắc thiết kế RESTful API (trả về HTML thay vì JSON) và quy trình bắt ngoại lệ (Exception Handling) chưa đạt tiêu chuẩn Enterprise, gây rủi ro lớn khi tích hợp với các client như Frontend React hoặc Mobile App.
+**Prompt to AI:** "Đóng vai trò là một System Architect, hãy tiến hành Code Review toàn diện hệ thống Backend (đặc biệt là tầng Controller và Exception Handler). Xác định các điểm vi phạm nguyên lý RESTful khiến giao tiếp Frontend bị đứt gãy, đồng thời đề xuất và lập trình phương án tái cấu trúc bằng Global Exception Handling kết hợp Generic Response Wrapper."
+**AI Response (Summary):** AI phân tích mã nguồn và phát hiện 2 lỗi "chí mạng" cho một ứng dụng Enterprise: (1) `AiController` trả về mã HTML cho một REST API (Frontend không thể parse được). (2) `GlobalExceptionHandler` bắt lỗi Validation (nhập sai dữ liệu) nhưng lại trả về HTTP Status 200 OK thay vì 400 Bad Request. AI sau đó cung cấp code sửa `ApiResponse.java` và chỉnh lại Exception Handler.
+
+**Human Delta & Reflection:**
+- **Critical Thinking:** Việc AI chỉ ra lỗi trả HTML trong RestController thực sự là một bài học đắt giá. Trong dự án thực tế, API luôn phải duy trì "Contract" trả về JSON thống nhất.
+- **Contextualization:** Chỉnh sửa này giúp toàn bộ Frontend (hoặc App Mobile sau này) bắt được lỗi chính xác mà không bị crash ứng dụng.
+- **Creative Synthesis:** Yêu cầu AI sửa trực tiếp vào file.
+- **Decision Ownership:** Chốt phê duyệt việc chuẩn hóa toàn bộ JSON response, biến hệ thống thành chuẩn mực Enterprise.
+
+---
+
+### Entry #: 009
+**Prompt Type:** ARCHITECTURE-DESIGN
+**Stage/Component:** AI Orchestrator & Multi-Agent
+**Problem/Context:** Nhằm chuẩn bị cho hội đồng bảo vệ đồ án cuối kỳ, hệ thống cần một "Roadmap" chiến lược để chuyển mình từ mô hình RAG tuyến tính cơ bản (Linear RAG) lên một hệ sinh thái AI cấp độ doanh nghiệp (Enterprise AI). Điểm mấu chốt là cần bổ sung cơ chế Agentic Tool Calling để khắc phục "điểm mù" của Database khi phải đối mặt với các câu hỏi thời gian thực (real-time data).
+**Prompt to AI:** "Hãy phác thảo một bản kế hoạch chiến lược (Upgrade Roadmap) gồm 4 giai đoạn cốt lõi để nâng cấp hệ thống RAG hiện tại đạt tiêu chuẩn Enterprise. Sau đó, tiến hành lập trình trực tiếp tính năng Agentic Intent Routing vào lớp HybridRagOrchestrator nhằm giúp AI tự động phát hiện ý định (Intent) và kích hoạt Tool ngoại vi (ví dụ: Weather API) rồi bơm thẳng dữ liệu vào Context."
+**AI Response (Summary):** AI lập ra `rag_enterprise_upgrade_plan.md` với 4 Giai đoạn (Ingestion, Retrieval, Agentic Workflow, Evaluation). Sau đó, AI trực tiếp can thiệp vào `HybridRagOrchestrator.java` để code chức năng "Agentic Intent Routing": tự động phát hiện người dùng hỏi thời tiết và gọi Tool WeatherAPI giả lập, đưa vào Context để trả lời.
+
+**Human Delta & Reflection:**
+- **Critical Thinking:** Ý tưởng Agentic Routing rất xuất sắc để che lấp khuyết điểm của RAG (không trả lời được câu hỏi mang tính thời gian thực nếu DB không có).
+- **Contextualization:** AI phân tích sự khác nhau giữa Multi-Agent (Cơ cấu tổ chức tác nhân) và Zod (Khuôn đúc giao tiếp), giúp tôi hiểu sâu về kiến trúc thực tế của ngành.
+- **Creative Synthesis:** Tôi đã tự tay đổi một số tham số trong hàm query để đảm bảo `hasContext` bao phủ cả dữ liệu lấy từ Database và dữ liệu lấy từ Tool.
+- **Decision Ownership:** Quyết định demo tính năng "Hỏi thời tiết" trước hội đồng để chứng minh hệ thống không chỉ là RAG tuyến tính mà đã đạt tới chuẩn Multi-Agent sơ khai.
+
+---
+
+### Entry #: 010
+**Prompt Type:** ARCHITECTURE-DESIGN
+**Stage/Component:** RAG & Vision Analysis
+**Problem/Context:** Nhóm cần xây dựng tính năng phân tích hình ảnh/video từ chức năng phản ánh của người dân (Citizen Feedback) để tự động trích xuất mức độ khẩn cấp. Phân vân giữa việc tự huấn luyện (train) một mô hình Computer Vision truyền thống hay tận dụng hệ sinh thái AI có sẵn.
+**Prompt to AI:** "Đóng vai trò là một Chuyên gia Kiến trúc AI (AI Architect), hãy tiến hành đánh giá chiến lược (Strategic Assessment) cho việc phân tích hình ảnh từ Citizen Feedback. Cụ thể, hãy so sánh sự khác biệt giữa Hybrid RAG và Multimodal RAG, đồng thời đánh giá giữa việc tự huấn luyện mô hình Computer Vision truyền thống với việc áp dụng Multimodal RAG thông qua Gemini Vision API. Đề xuất phương án tối ưu mang tính Enterprise nhất."
+**AI Response (Summary):** AI phân biệt rất rõ ràng: Hybrid RAG là lai về thuật toán tìm kiếm (để tăng độ chính xác của Text), còn Multimodal RAG là lai về loại định dạng dữ liệu (để RAG có thêm 'mắt' và 'tai'). AI khuyên không nên tự train mô hình Computer Vision vì tốn kém tài nguyên và dễ lỗi thời, thay vào đó nên dùng Multimodal RAG gọi Gemini Vision API để phân tích hình ảnh theo thời gian thực (Zero-shot extraction).
+
+**Human Delta & Reflection:**
+- **Critical Thinking:** Nhận định của AI cực kỳ chính xác với tình hình thực tế của sinh viên (thiếu dữ liệu, GPU yếu, thời gian ngắn). Thay vì làm một bài toán AI nửa vời, việc "đứng trên vai người khổng lồ" là tư duy kiến trúc đúng đắn.
+- **Contextualization:** Chức năng báo cáo của dự án Smart City có 3 ảnh và 1 video. Áp dụng Multimodal RAG không chỉ đọc được nội dung phản ánh mà còn "thấy" được sự cố qua ảnh, nâng cấp từ Hybrid RAG lên Hybrid Multimodal RAG.
+- **Creative Synthesis:** Đã chốt lại các thuật ngữ "Tăng chiều sâu" (Hybrid) và "Tăng chiều rộng" (Multimodal) do AI gợi ý để sử dụng làm tài liệu bảo vệ trước hội đồng.
+- **Decision Ownership:** Quyết định không tự train mô hình AI nhận diện ảnh mà chuyển hẳn sang tích hợp Vision API vào luồng RAG, tạo ra tính năng "Hybrid Multimodal RAG" độc đáo cho dự án.
+
+---
+
+### Entry #: 011
+**Prompt Type:** CRITICAL-THINKING & PROBLEM-SOLVING
+**Stage/Component:** Architecture Defense (Bảo vệ đồ án)
+**Problem/Context:** Nhóm đề xuất tính năng Auto-Dispatch (Tự động điều phối bằng AI & PostGIS). Tuy nhiên, phát sinh một câu hỏi phản biện thực tế rất gay gắt: "Người dân gặp sự cố cứ gọi điện thoại 113/114 cho nhanh, tại sao phải dùng App chụp ảnh làm gì cho phức tạp?". Nhóm cần tìm lập luận để bảo vệ kiến trúc này.
+**Prompt to AI:** "Đối với tính năng Auto-Dispatch (Tự động điều phối sự cố bằng AI & PostGIS), có ý kiến phản biện rằng: 'gọi điện thoại trực tiếp 113/114 nhanh hơn, không cần đến tính năng này'. Hãy đóng vai trò System Architect, giúp tôi xây dựng luận điểm phản biện (defense) sắc bén để bảo vệ tính thực tiễn của kiến trúc này trước hội đồng."
+**AI Response (Summary):** AI đưa ra 3 luận điểm phản biện xuất sắc: (1) Tránh báo động giả và điều phối sai nhờ có hình ảnh thật + GPS chính xác; (2) Giải quyết các sự cố "Cấp bách nhưng không biết gọi ai" (VD: cây đổ, vỡ nắp cống - không thuộc thẩm quyền 113/114); (3) Khắc phục nghẽn mạng tổng đài nhờ khả năng gom nhóm sự cố trùng lặp (Semantic Caching + GIS) và lưu trữ dữ liệu tạo bản đồ nhiệt (Heatmap) phục vụ quy hoạch tương lai.
+
+**Human Delta & Reflection:**
+- **Critical Thinking:** Nhận ra rằng thiết kế phần mềm tốt không chỉ là code chạy được, mà phải giải quyết đúng "Nỗi đau" (Pain-point) của xã hội. Việc chỉ ra sự khác biệt giữa "Tình huống sinh tử" (Cần gọi điện) và "Sự cố đô thị vô danh" (Cần dùng App) cho thấy tư duy hệ thống sâu sắc.
+- **Contextualization:** Lập luận của AI áp dụng trực tiếp vào cấu trúc dữ liệu đang có (PostGIS, AI Vision, Caching) để chứng minh tính ưu việt của App so với tổng đài truyền thống.
+- **Creative Synthesis:** Nhóm quyết định bổ sung khái niệm "Cấp bách nhưng không khẩn cấp" và "Overload Detection" vào slide Q&A dự phòng để gây ấn tượng mạnh với hội đồng.
+- **Decision Ownership:** Chốt phê duyệt 3 luận điểm phản biện này làm "vũ khí" phòng thủ chính thức trong phiên bảo vệ đồ án (Oral Defense).
+
+---
+
 ## III. Phát hiện Hallucination (Hallucination Detection)
 
 - **Trường hợp:** Khi yêu cầu AI tìm kiếm và tổng hợp 10 bài báo khoa học trên Springer (Entry 001).
@@ -106,4 +211,4 @@ Sinh viên/nhóm cam kết rằng:
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-| Phạm Bá Trí | 2026-05-20 |
+| Phạm Bá Trí | 2026-05-21 |

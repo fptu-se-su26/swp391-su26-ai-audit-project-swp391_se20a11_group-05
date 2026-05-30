@@ -17,6 +17,12 @@ export function Header() {
     { to: "/", label: t("nav.home") },
     { to: "/report", label: t("nav.report") },
     { to: "/my-reports", label: t("nav.myReports") },
+    ...(user
+      ? [
+          { to: "/notifications", label: locale === "vi" ? "Thong bao" : "Notifications" },
+          { to: "/profile", label: locale === "vi" ? "Ho so" : "Profile" },
+        ]
+      : []),
     { to: "/assistant", label: t("nav.assistant") },
   ];
 

@@ -131,6 +131,16 @@ function ReportPage() {
   };
 
   const handleSubmit = async () => {
+    if (!user) {
+      toast.error(locale === "vi" ? "Vui long dang nhap de gui phan anh." : "Please log in to submit a report.");
+      return;
+    }
+    if (!categoryId) {
+      toast.error(locale === "vi" ? "Vui long chon loai phan anh." : "Please select a category.");
+      setStep(1);
+      return;
+    }
+
     try {
       const result = await createFeedback.mutateAsync({
         title: title || (locale === "vi" ? "Phản ánh mới" : "New report"),
@@ -138,7 +148,7 @@ function ReportPage() {
         latitude: latitude ?? undefined,
         longitude: longitude ?? undefined,
         addressDetails: useGps ? `${latitude}, ${longitude}` : undefined,
-        categoryId: categoryId!,
+        categoryId,
         wardId: 1, // TODO: tự động từ GPS
       });
       // Upload photos after feedback created
@@ -152,9 +162,8 @@ function ReportPage() {
       if (err instanceof ApiError) {
         toast.error(err.message);
       } else {
-        setTrackingCode("FB-DEMO-" + Math.random().toString(36).slice(2, 10).toUpperCase());
-        setSubmitted(true);
-        toast.success(locale === "vi" ? "Gửi phản ánh thành công!" : "Report submitted successfully!");
+        toast.error(locale === "vi" ? "Khong the gui phan anh. Vui long thu lai." : "Could not submit the report. Please try again.");
+        return;
       }
     }
   };

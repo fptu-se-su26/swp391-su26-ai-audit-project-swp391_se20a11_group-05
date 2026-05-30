@@ -180,6 +180,23 @@ export interface MfaRequiredResponse {
 
 export type BackendRole = "CITIZEN" | "WARD_STAFF" | "POLICE" | "SUPER_ADMIN";
 
+export interface UserProfile {
+  id: number;
+  username: string;
+  fullName: string;
+  phoneNumber?: string;
+  email?: string;
+  role: BackendRole;
+  active: boolean;
+  mfaEnabled: boolean;
+}
+
+export interface UpdateProfileRequest {
+  fullName: string;
+  phoneNumber?: string;
+  email?: string;
+}
+
 // ─── Feedback Types ───────────────────────────────────────────
 
 export type FeedbackStatus =
@@ -210,6 +227,17 @@ export interface FeedbackRequest {
   addressDetails?: string;
   categoryId: number;
   wardId: number;
+}
+
+export interface NotificationResponse {
+  id: number;
+  userId: number;
+  title: string;
+  content: string;
+  type: string;
+  referenceId: number | null;
+  read: boolean;
+  createdAt: string;
 }
 
 // ─── Category Types ───────────────────────────────────────────
@@ -310,14 +338,14 @@ export const authApi = {
 export const feedbackApi = {
   getAll: (page = 0, size = 20) =>
     request<PageResponse<FeedbackResponse>>(
-      `/api/feedbacks?page=${page}&size=${size}`,
+      `/api/feedbacks/my-feedbacks?page=${page}&size=${size}`,
     ),
 
   getById: (id: string | number) =>
     request<FeedbackResponse>(`/api/feedbacks/${id}`),
 
   create: (data: FeedbackRequest) =>
-    request<FeedbackResponse>("/api/feedbacks", {
+    request<FeedbackResponse>("/api/feedbacks/submit", {
       method: "POST",
       body: JSON.stringify(data),
     }),
@@ -337,6 +365,25 @@ export const feedbackApi = {
 
   getLogs: (id: number | string) =>
     request<unknown[]>(`/api/feedbacks/${id}/logs`),
+};
+
+export const userApi = {
+  profile: () => request<UserProfile>("/api/users/profile"),
+
+  updateProfile: (data: UpdateProfileRequest) =>
+    request<UserProfile>("/api/users/profile", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+};
+
+export const notificationApi = {
+  getAll: () => request<NotificationResponse[]>("/api/notifications"),
+
+  markAsRead: (id: number | string) =>
+    request<NotificationResponse>(`/api/notifications/${id}/read`, {
+      method: "PATCH",
+    }),
 };
 
 export const categoryApi = {

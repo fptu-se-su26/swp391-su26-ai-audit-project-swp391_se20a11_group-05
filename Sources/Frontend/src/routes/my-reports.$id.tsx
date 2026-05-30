@@ -1,13 +1,34 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, redirect } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
 import { reports } from "@/lib/mock-data";
 import { StatusBadge } from "@/components/site/StatusBadge";
 import { ArrowLeft, Check, Clock, MapPin, User } from "lucide-react";
+import { Role, AUTHORITY_ROLES, parseBackendRole } from "@/lib/roles";
+import { getToken } from "@/lib/api";
 
 export const Route = createFileRoute("/my-reports/$id")({
+  beforeLoad: async ({ params }) => {
+    const token = typeof window !== "undefined" ? getToken() : null;
+    const raw = typeof window !== "undefined"
+      ? localStorage.getItem("dn_auth_user_v2")
+      : null;
+
+    if (!token || !raw) {
+      throw redirect({ to: "/login", search: { redirect: `/my-reports/${params.id}` } });
+    }
+
+    let user: { role: string } | null = null;
+    try { user = JSON.parse(raw); } catch { /* ignore */ }
+    if (!user) throw redirect({ to: "/login" });
+
+    const role = parseBackendRole(user.role);
+    if (AUTHORITY_ROLES.has(role) || role !== Role.CITIZEN) {
+      throw redirect({ to: "/login" });
+    }
+  },
   head: ({ params }) => ({
     meta: [
-      { title: `Phản ánh ${params.id} — Đà Nẵng Lắng Nghe` },
+      { title: `Phản ánh ${params.id} — Đà Nẵng Kết Nối` },
       { name: "description", content: `Trạng thái phản ánh ${params.id} và lịch sử xử lý.` },
     ],
   }),
@@ -25,6 +46,7 @@ export const Route = createFileRoute("/my-reports/$id")({
   ),
   component: ReportDetail,
 });
+
 
 function ReportDetail() {
   const { report } = Route.useLoaderData();

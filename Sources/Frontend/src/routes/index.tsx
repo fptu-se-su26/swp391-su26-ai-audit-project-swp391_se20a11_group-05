@@ -6,11 +6,39 @@ import { StatusBadge } from "@/components/site/StatusBadge";
 import { DemoBanner } from "@/components/site/DemoBanner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkline, textClassToHex } from "@/components/site/KpiChart";
-import { Camera, MapPin, User, RefreshCw, Loader2 } from "lucide-react";
-import { lazy, Suspense } from "react";
+import { Camera, MapPin, User, RefreshCw, Loader2, PlayCircle } from "lucide-react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import DaNangNews from "@/components/ui/DaNangNews";
 
 const CivicMap = lazy(() => import("@/components/site/CivicMap").then(m => ({ default: m.CivicMap })));
+
+// ── Da Nang city slideshow images (Unsplash)
+const DA_NANG_SLIDES = [
+  {
+    url: "https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?w=900&h=700&fit=crop&q=80",
+    caption: { vi: "Cầu Rồng — Biểu tượng của Đà Nẵng", en: "Dragon Bridge — Symbol of Da Nang" },
+  },
+  {
+    url: "https://images.unsplash.com/photo-1563640847-d7f0040c9cc2?w=900&h=700&fit=crop&q=80",
+    caption: { vi: "Cầu Vàng — Bà Nà Hills huyền bí", en: "Golden Bridge — Mystical Ba Na Hills" },
+  },
+  {
+    url: "https://images.unsplash.com/photo-1596402184320-417e7178b2cd?w=900&h=700&fit=crop&q=80",
+    caption: { vi: "Biển Mỹ Khê — Bãi biển đẹp nhất châu Á", en: "My Khe Beach — Asia's Most Beautiful Beach" },
+  },
+  {
+    url: "https://images.unsplash.com/photo-1528127269322-539801943592?w=900&h=700&fit=crop&q=80",
+    caption: { vi: "Vịnh Đà Nẵng — Thành phố đáng sống", en: "Da Nang Bay — Most Livable City" },
+  },
+  {
+    url: "https://images.unsplash.com/photo-1555400038-63f5ba517a47?w=900&h=700&fit=crop&q=80",
+    caption: { vi: "Sông Hàn về đêm — Trái tim Đà Nẵng", en: "Han River at Night — Heart of Da Nang" },
+  },
+  {
+    url: "https://images.unsplash.com/photo-1602934585418-f3a27d8924a5?w=900&h=700&fit=crop&q=80",
+    caption: { vi: "Đà Nẵng — Thành phố văn minh, hiện đại", en: "Da Nang — Modern and Civilized City" },
+  },
+];
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -24,6 +52,14 @@ export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
+// Map API status strings to internal StatusBadge type
+function mapStatus(s: string): "pending" | "inProgress" | "resolved" | "urgent" {
+  if (s === "IN_PROGRESS") return "inProgress";
+  if (s === "RESOLVED") return "resolved";
+  if (s === "URGENT") return "urgent";
+  return "pending";
+}
+
 function HomePage() {
   const { t, locale } = useI18n();
   const { data: feedbacksPage, isLoading, isFetching, refetch } = useFeedbacks(0, 20);
@@ -31,29 +67,131 @@ function HomePage() {
   const hasApiData = !!feedbacksPage && feedbacksPage.content.length > 0;
   const apiFeedbacks = feedbacksPage?.content ?? [];
 
+  // ── Slideshow state
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    if (isPaused) return;
+    const timer = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % DA_NANG_SLIDES.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [isPaused]);
+
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-10 md:py-14">
-      {/* Hero */}
-      <section className="animate-fade-in flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
-        <div className="max-w-2xl">
-          <p className="text-gov-gold uppercase tracking-[0.2em] text-xs font-bold mb-3">
+      {/* Hero — 2 column: text left, slideshow right */}
+      <section className="animate-fade-in grid grid-cols-1 lg:grid-cols-2 items-center gap-10 lg:gap-16 mb-14">
+
+        {/* Left: Content */}
+        <div className="flex flex-col">
+          <p className="text-gov-gold uppercase tracking-[0.2em] text-xs font-bold mb-4">
             Chính quyền điện tử · E-Government
           </p>
-          <h1 className="font-heading text-4xl md:text-6xl text-gov-blue mb-5 leading-tight">
+          <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl text-gov-blue mb-5 leading-tight">
             {t("home.title")}
           </h1>
-          <p className="text-lg md:text-xl text-ink-soft leading-relaxed">{t("home.subtitle")}</p>
+          <p className="text-lg md:text-xl text-ink-soft leading-relaxed mb-8">
+            {t("home.subtitle")}
+          </p>
+          <div className="flex flex-wrap gap-4">
+            <Link
+              to="/report"
+              className="btn-civic btn-civic-primary animate-civic-pulse text-base px-7 py-4"
+            >
+              <Camera size={20} />
+              <span className="flex flex-col items-start leading-tight">
+                <span>{t("home.cta.report")}</span>
+                <span className="text-xs font-medium text-white/75 normal-case">{t("home.cta.reportHint")}</span>
+              </span>
+            </Link>
+            <Link
+              to="/my-reports"
+              className="btn-civic btn-civic-ghost text-base px-7 py-4"
+            >
+              <PlayCircle size={20} />
+              {locale === "vi" ? "Xem quy trình" : "See how it works"}
+            </Link>
+          </div>
         </div>
-        <Link
-          to="/report"
-          className="btn-civic btn-civic-primary animate-civic-pulse text-xl px-8 py-5 self-start md:self-auto"
-        >
-          <Camera size={28} />
-          <span className="flex flex-col items-start leading-tight">
-            <span>{t("home.cta.report")}</span>
-            <span className="text-xs font-medium text-white/80 normal-case">{t("home.cta.reportHint")}</span>
-          </span>
-        </Link>
+
+        {/* Right: Da Nang City Slideshow in Device Frame */}
+        <div className="relative flex justify-center lg:justify-end">
+          {/* Gold accent shadow behind frame */}
+          <div
+            aria-hidden="true"
+            className="absolute top-4 right-0 w-[90%] max-w-[460px] aspect-[4/5] rounded-[2.5rem] bg-gov-gold/20 -z-10 translate-x-3"
+          />
+
+          {/* Device frame */}
+          <div
+            className="relative w-full max-w-[460px] aspect-[4/5] rounded-[2.5rem] overflow-hidden shadow-2xl border-[5px] border-white ring-1 ring-slate-200/80"
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => setIsPaused(false)}
+          >
+            {/* Slides */}
+            {DA_NANG_SLIDES.map((slide, i) => (
+              <div
+                key={i}
+                aria-hidden={i !== activeSlide}
+                className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
+                  i === activeSlide ? "opacity-100 z-10" : "opacity-0 z-0"
+                }`}
+              >
+                <img
+                  src={slide.url}
+                  alt={slide.caption[locale as keyof typeof slide.caption]}
+                  className="w-full h-full object-cover"
+                  loading={i === 0 ? "eager" : "lazy"}
+                  width={460}
+                  height={575}
+                />
+                {/* Caption gradient overlay */}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/65 via-black/25 to-transparent pt-16 pb-14 px-6">
+                  <p className="text-white text-sm font-semibold leading-snug drop-shadow">
+                    {slide.caption[locale as keyof typeof slide.caption]}
+                  </p>
+                </div>
+              </div>
+            ))}
+
+            {/* Dot indicators */}
+            <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+              {DA_NANG_SLIDES.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => { setActiveSlide(i); setIsPaused(true); }}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    i === activeSlide
+                      ? "w-7 bg-white shadow-sm"
+                      : "w-1.5 bg-white/50 hover:bg-white/80"
+                  }`}
+                  aria-label={`Slide ${i + 1}`}
+                />
+              ))}
+            </div>
+
+            {/* Progress bar */}
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-black/10 z-20">
+              <div
+                key={activeSlide}
+                className="h-full bg-gov-gold origin-left"
+                style={{
+                  animation: isPaused ? "none" : "slideProgress 5s linear forwards",
+                }}
+              />
+            </div>
+          </div>
+
+          {/* City label badge */}
+          <div className="absolute -bottom-4 left-4 bg-white border border-slate-100 shadow-lg rounded-xl px-4 py-2.5 flex items-center gap-2.5 z-20">
+            <span className="w-2.5 h-2.5 rounded-full bg-[var(--status-success)] animate-pulse shrink-0" />
+            <span className="text-xs font-bold text-ink">
+              {locale === "vi" ? "Đà Nẵng · Thành phố đáng sống" : "Da Nang · City to Live"}
+            </span>
+          </div>
+        </div>
       </section>
 
       {/* KPIs */}

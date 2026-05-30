@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -130,27 +131,39 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isStandalonePage = pathname === "/login" || pathname === "/authority-login" || pathname === "/register";
+
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
         <FontScaleProvider>
           <AuthProvider>
-            <div
-              className="min-h-screen flex flex-col bg-gov-bg relative"
-              style={{
-                backgroundImage: `linear-gradient(rgba(244,247,250,0.70), rgba(244,247,250,0.85)), url(${bgCivic})`,
-                backgroundSize: "cover",
-                backgroundAttachment: "fixed",
-                backgroundPosition: "center bottom",
-              }}
-            >
-              <Header />
-              <Toaster richColors closeButton />
-              <main className="flex-1">
-                <Outlet />
-              </main>
-              <Footer />
-            </div>
+            {isStandalonePage ? (
+              <div className="min-h-screen flex flex-col bg-[#f4f7fa]">
+                <Toaster richColors closeButton />
+                <main className="flex-1 flex flex-col">
+                  <Outlet />
+                </main>
+              </div>
+            ) : (
+              <div
+                className="min-h-screen flex flex-col bg-gov-bg relative"
+                style={{
+                  backgroundImage: `linear-gradient(rgba(244,247,250,0.70), rgba(244,247,250,0.85)), url(${bgCivic})`,
+                  backgroundSize: "cover",
+                  backgroundAttachment: "fixed",
+                  backgroundPosition: "center bottom",
+                }}
+              >
+                <Header />
+                <Toaster richColors closeButton />
+                <main className="flex-1">
+                  <Outlet />
+                </main>
+                <Footer />
+              </div>
+            )}
           </AuthProvider>
         </FontScaleProvider>
       </I18nProvider>

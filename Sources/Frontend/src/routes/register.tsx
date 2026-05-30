@@ -15,7 +15,7 @@ import logoUrl from "@/assets/logo.png";
 export const Route = createFileRoute("/register")({
   head: () => ({
     meta: [
-      { title: "Đăng ký — Đà Nẵng Lắng Nghe" },
+      { title: "Đăng ký — Đà Nẵng Kết Nối" },
       { name: "description", content: "Đăng ký tài khoản công dân để gửi phản ánh." },
     ],
   }),
@@ -60,13 +60,12 @@ function PasswordStrengthIndicator({ password }: { password: string }) {
         {checks.map((check, i) => (
           <div
             key={i}
-            className={`h-1.5 flex-1 rounded-full transition-colors duration-200 ${
-              password.length === 0
+            className={`h-1.5 flex-1 rounded-full transition-colors duration-200 ${password.length === 0
                 ? "bg-gray-200"
                 : check.passed
                   ? "bg-green-500"
                   : "bg-red-300"
-            }`}
+              }`}
           />
         ))}
       </div>
@@ -185,12 +184,12 @@ function RegisterPage() {
               {locale === "vi" ? (
                 <>
                   Thành Phố<br />
-                  <span style={{ color: "#d4af37" }}>Lắng Nghe</span>
+                  <span style={{ color: "#d4af37" }}>Kết Nối</span>
                 </>
               ) : (
                 <>
                   A City That<br />
-                  <span style={{ color: "#d4af37" }}>Listens</span>
+                  <span style={{ color: "#d4af37" }}>Connect</span>
                 </>
               )}
             </h1>

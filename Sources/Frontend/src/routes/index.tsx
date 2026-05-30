@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkline, textClassToHex } from "@/components/site/KpiChart";
 import { Camera, MapPin, User, RefreshCw, Loader2 } from "lucide-react";
 import { lazy, Suspense } from "react";
+import DaNangNews from "@/components/DaNangNews";
 
 const CivicMap = lazy(() => import("@/components/site/CivicMap").then(m => ({ default: m.CivicMap })));
 
@@ -226,6 +227,10 @@ function HomePage() {
             </div>
             <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-white/5 rounded-full" />
             <div className="absolute -right-4 -top-8 w-24 h-24 bg-gov-gold/10 rounded-full" />
+          </div>
+
+          <div className="card-civic p-6">
+            <DaNangNews />
           </div>
         </aside>
       </div>

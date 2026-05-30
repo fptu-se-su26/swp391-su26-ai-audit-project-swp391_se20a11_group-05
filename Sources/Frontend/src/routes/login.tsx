@@ -14,8 +14,13 @@ import { authApi, ApiError } from "@/lib/api";
 import { LogIn, Loader2, AlertCircle, Eye, EyeOff } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 
+type LoginSearch = {
+  redirect?: string;
+  error?: string;
+};
+
 export const Route = createFileRoute("/login")({
-  validateSearch: (s: Record<string, unknown>) => ({
+  validateSearch: (s: Record<string, unknown>): LoginSearch => ({
     redirect: typeof s.redirect === "string" ? s.redirect : undefined,
     error: typeof s.error === "string" ? s.error : undefined,
   }),

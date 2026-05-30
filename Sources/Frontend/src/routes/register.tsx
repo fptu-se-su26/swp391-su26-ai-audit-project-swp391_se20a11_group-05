@@ -1,16 +1,16 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { ApiError } from "@/lib/api";
 import { useRegisterMutation } from "@/lib/hooks";
-import { UserPlus, Loader2 } from "lucide-react";
+import { UserPlus, Loader2, AtSign, Lock, Mail, Phone, Zap, MessageSquare, Eye, EyeOff, Shield } from "lucide-react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import logoUrl from "@/assets/logo.png";
 
 export const Route = createFileRoute("/register")({
   head: () => ({
@@ -78,8 +78,9 @@ function PasswordStrengthIndicator({ password }: { password: string }) {
 }
 
 function RegisterPage() {
-  const { t, locale } = useI18n();
+  const { locale } = useI18n();
   const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
 
   const registerMutation = useRegisterMutation();
 
@@ -130,140 +131,291 @@ function RegisterPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto px-4 py-12 md:py-24 animate-fade-in">
-      <Card className="border-t-4 border-t-gov-gold shadow-lg card-civic-hover">
-        <CardHeader className="text-center pb-4">
-          <p className="text-gov-gold uppercase tracking-[0.2em] text-xs font-bold mb-2">
-            {locale === "vi" ? "Cổng đăng ký" : "Registration"}
-          </p>
-          <CardTitle className="font-heading text-3xl md:text-4xl text-gov-blue">
-            {locale === "vi" ? "Đăng ký tài khoản" : "Create Account"}
-          </CardTitle>
-          <CardDescription className="text-base mt-2">
-            {locale === "vi"
-              ? "Tham gia hệ thống phản ánh đô thị Đà Nẵng"
-              : "Join Da Nang urban reporting system"}
-          </CardDescription>
-        </CardHeader>
+    <div className="min-h-screen flex flex-col lg:flex-row animate-fade-in">
 
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleRegister)} className="space-y-5">
-              <div className="grid md:grid-cols-2 gap-4">
+      {/* ══ LEFT — Hero Panel ══════════════════════════════════════ */}
+      <div
+        className="hidden lg:flex lg:w-[42%] flex-col relative overflow-hidden"
+        style={{
+          background: "linear-gradient(155deg, #001028 0%, #001f46 45%, #00387b 100%)",
+        }}
+      >
+        {/* Star particles */}
+        <div aria-hidden="true" className="absolute inset-0 pointer-events-none">
+          {Array.from({ length: 22 }).map((_, i) => (
+            <span
+              key={i}
+              className="login-star"
+              style={{
+                left: `${(i * 37 + 11) % 100}%`,
+                top: `${(i * 53 + 7) % 100}%`,
+                animationDelay: `${(i * 0.4) % 6}s`,
+                animationDuration: `${4 + (i % 4)}s`,
+                width: i % 3 === 0 ? "2px" : "1.5px",
+                height: i % 3 === 0 ? "2px" : "1.5px",
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Radial glow */}
+        <div
+          aria-hidden="true"
+          className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full pointer-events-none"
+          style={{ background: "radial-gradient(circle, rgba(0,56,123,0.5) 0%, transparent 70%)" }}
+        />
+
+        {/* Content */}
+        <div className="relative z-10 flex flex-col h-full px-10 py-10">
+          {/* Top brand */}
+          <div className="flex items-center gap-3 mb-auto">
+            <img
+              src={logoUrl}
+              alt="Đà Nẵng Kết Nối"
+              className="h-10 w-auto object-contain brightness-0 invert"
+            />
+            <span className="text-white/60 text-xs font-bold tracking-[0.2em] uppercase">
+              DA NANG DIGITAL CENTER
+            </span>
+          </div>
+
+          {/* Main heading */}
+          <div className="mb-10">
+            <h1 className="font-heading text-5xl xl:text-6xl font-bold text-white leading-tight mb-4">
+              {locale === "vi" ? (
+                <>
+                  Thành Phố<br />
+                  <span style={{ color: "#d4af37" }}>Lắng Nghe</span>
+                </>
+              ) : (
+                <>
+                  A City That<br />
+                  <span style={{ color: "#d4af37" }}>Listens</span>
+                </>
+              )}
+            </h1>
+            <p className="text-white/65 text-base leading-relaxed max-w-xs">
+              {locale === "vi"
+                ? "Hệ thống kết nối trực tuyến giữa chính quyền và người dân Thành phố Đà Nẵng. Vì một thành phố thông minh và bền vững."
+                : "Online connection system between the government and citizens of Da Nang City. For a smart and sustainable city."}
+            </p>
+          </div>
+
+          {/* Feature list */}
+          <div className="space-y-3 mb-10">
+            <div className="flex items-start gap-3 px-4 py-3 rounded-xl" style={{ background: "rgba(255,255,255,0.07)" }}>
+              <Zap size={16} className="text-gov-gold mt-0.5 shrink-0" />
+              <div>
+                <p className="text-white/80 text-xs font-bold uppercase tracking-wider">
+                  {locale === "vi" ? "Tiện ích thông minh" : "Smart Services"}
+                </p>
+                <p className="text-white/50 text-xs mt-0.5">
+                  {locale === "vi" ? "Tra cứu dịch vụ công 24/7 tức thì" : "Access public services 24/7 instantly"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 px-4 py-3 rounded-xl" style={{ background: "rgba(255,255,255,0.07)" }}>
+              <MessageSquare size={16} className="text-gov-gold mt-0.5 shrink-0" />
+              <div>
+                <p className="text-white/80 text-xs font-bold uppercase tracking-wider">
+                  {locale === "vi" ? "Tương tác trực tiếp" : "Direct Interaction"}
+                </p>
+                <p className="text-white/50 text-xs mt-0.5">
+                  {locale === "vi" ? "Gửi phản ánh, nhận phản hồi minh bạch" : "Submit reports, get transparent feedback"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom watermark */}
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1" style={{ background: "rgba(255,255,255,0.15)" }} />
+            <span className="text-white/30 text-xs tracking-[0.15em] uppercase">
+              DA NANG DIGITAL CENTER
+            </span>
+            <div className="h-px flex-1" style={{ background: "rgba(255,255,255,0.15)" }} />
+          </div>
+        </div>
+      </div>
+
+      {/* ══ RIGHT — Form Panel ═════════════════════════════════════ */}
+      <div className="flex-1 flex flex-col min-h-screen" style={{ background: "#f4f7fa" }}>
+
+        {/* Mobile logo (shown only on small screens) */}
+        <div className="flex lg:hidden items-center gap-3 px-6 pt-8 pb-4">
+          <img src={logoUrl} alt="Đà Nẵng Kết Nối" className="h-10 w-auto object-contain" />
+        </div>
+
+        {/* Form container */}
+        <div className="flex-1 flex items-center justify-center px-6 py-8">
+          <div className="w-full max-w-sm">
+
+            {/* Tabs: Đăng nhập / Đăng ký */}
+            <div className="flex gap-6 mb-8 border-b border-slate-200">
+              <Link
+                to="/login"
+                className="pb-3 text-base font-medium border-b-2 border-transparent text-ink-soft hover:text-ink -mb-px transition-colors"
+              >
+                {locale === "vi" ? "Đăng nhập" : "Sign in"}
+              </Link>
+              <button
+                type="button"
+                className="pb-3 text-base font-bold border-b-2 border-gov-blue text-gov-blue -mb-px transition-colors"
+              >
+                {locale === "vi" ? "Đăng ký" : "Register"}
+              </button>
+            </div>
+
+            {/* Form */}
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleRegister)} className="space-y-4">
+
+                {/* Username field */}
                 <FormField
                   control={form.control}
                   name="username"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        {locale === "vi" ? "Tên đăng nhập" : "Username"} *
-                      </FormLabel>
-                      <FormControl>
+                    <FormItem className="space-y-1">
+                      <div className="relative">
+                        <AtSign
+                          size={16}
+                          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                        />
                         <Input
-                          placeholder={locale === "vi" ? "Nhập tên đăng nhập" : "Enter username"}
-                          className="h-12"
+                          placeholder={locale === "vi" ? "Tên đăng nhập" : "Username"}
+                          className="w-full min-h-[52px] pl-10 pr-4 rounded-xl border-2 border-slate-200 bg-white text-base focus:border-gov-blue focus-visible:ring-0 outline-none transition-colors placeholder:text-slate-400"
                           {...field}
                         />
-                      </FormControl>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
+                {/* Email field */}
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <div className="relative">
+                        <Mail
+                          size={16}
+                          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                        />
+                        <Input
+                          type="email"
+                          placeholder={locale === "vi" ? "Email (không bắt buộc)" : "Email (optional)"}
+                          className="w-full min-h-[52px] pl-10 pr-4 rounded-xl border-2 border-slate-200 bg-white text-base focus:border-gov-blue focus-visible:ring-0 outline-none transition-colors placeholder:text-slate-400"
+                          {...field}
+                        />
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Phone field */}
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <div className="relative">
+                        <Phone
+                          size={16}
+                          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                        />
+                        <Input
+                          type="tel"
+                          placeholder={locale === "vi" ? "Số điện thoại (không bắt buộc)" : "Phone number (optional)"}
+                          className="w-full min-h-[52px] pl-10 pr-4 rounded-xl border-2 border-slate-200 bg-white text-base focus:border-gov-blue focus-visible:ring-0 outline-none transition-colors placeholder:text-slate-400"
+                          {...field}
+                        />
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Password field */}
                 <FormField
                   control={form.control}
                   name="password"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        {locale === "vi" ? "Mật khẩu" : "Password"} *
-                      </FormLabel>
-                      <FormControl>
+                    <FormItem className="space-y-1">
+                      <div className="relative">
+                        <Lock
+                          size={16}
+                          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                        />
                         <Input
-                          type="password"
-                          placeholder="••••••••"
-                          className="h-12"
+                          type={showPassword ? "text" : "password"}
+                          placeholder={locale === "vi" ? "Mật khẩu" : "Password"}
+                          className="w-full min-h-[52px] pl-10 pr-12 rounded-xl border-2 border-slate-200 bg-white text-base focus:border-gov-blue focus-visible:ring-0 outline-none transition-colors placeholder:text-slate-400"
                           {...field}
                         />
-                      </FormControl>
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((v) => !v)}
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-ink p-1 transition-colors"
+                          aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                          tabIndex={-1}
+                        >
+                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
                       <PasswordStrengthIndicator password={watchedPassword} />
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="email@example.com"
-                          className="h-12"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {/* Submit button */}
+                <button
+                  type="submit"
+                  disabled={registerMutation.isPending}
+                  className="w-full min-h-[52px] rounded-xl text-base font-bold text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-2"
+                  style={{ background: "linear-gradient(135deg, #00387b 0%, #00264d 100%)" }}
+                >
+                  {registerMutation.isPending && <Loader2 size={18} className="animate-spin" />}
+                  {locale === "vi" ? "Đăng ký ngay →" : "Register Now →"}
+                </button>
 
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        {locale === "vi" ? "Số điện thoại" : "Phone number"}
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type="tel"
-                          placeholder="0912345678"
-                          className="h-12"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              </form>
+            </Form>
 
-              <Button
-                type="submit"
-                size="lg"
-                disabled={registerMutation.isPending}
-                className="w-full text-base mt-2"
-              >
-                {registerMutation.isPending ? (
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                ) : (
-                  <UserPlus className="mr-2 h-5 w-5" />
-                )}
-                {locale === "vi" ? "Đăng ký" : "Register"}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
+          </div>
+        </div>
 
-        <CardFooter className="justify-center border-t pt-6">
-          <span className="text-ink-soft text-sm">
-            {locale === "vi" ? "Đã có tài khoản? " : "Already have an account? "}
-          </span>
-          <Link
-            to={"/login" as any}
-            className="text-primary font-semibold hover:underline text-sm"
-          >
-            {locale === "vi" ? "Đăng nhập" : "Login"}
-          </Link>
-        </CardFooter>
-      </Card>
+        {/* Footer */}
+        <footer className="px-6 pb-8 text-center">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <img src={logoUrl} alt="" className="h-6 w-auto object-contain opacity-50" aria-hidden="true" />
+          </div>
+          <p className="text-xs text-slate-400 leading-relaxed">
+            © {new Date().getFullYear()}{" "}
+            <a
+              href="https://danang.gov.vn"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gov-blue hover:underline"
+            >
+              {locale === "vi" ? "UBND Thành phố Đà Nẵng" : "Da Nang People's Committee"}
+            </a>
+            {" · "}
+            <span className="text-slate-400">
+              {locale === "vi" ? "Trung tâm Chuyển đổi số" : "Digital Transformation Center"}
+            </span>
+          </p>
+          <p className="text-xs text-slate-400 mt-1">
+            {locale === "vi"
+              ? "Đà Nẵng Kết Nối — Citizen-Staff Connection · SWP391 SE20A11"
+              : "Da Nang Connects — Citizen-Staff Connection · SWP391 SE20A11"}
+          </p>
+        </footer>
+
+      </div>
     </div>
   );
 }

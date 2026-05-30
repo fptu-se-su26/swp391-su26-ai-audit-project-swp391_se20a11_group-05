@@ -122,6 +122,80 @@
 
 ---
 
+### Entry #: 008
+**Prompt Type:** PROBLEM-SOLVING
+**Stage/Component:** API Design & Error Handling
+**Problem/Context:** Trong phiên Audit đánh giá mã nguồn, Hội đồng Giảng viên nhận định kiến trúc Backend còn vi phạm nghiêm trọng nguyên tắc thiết kế RESTful API (trả về HTML thay vì JSON) và quy trình bắt ngoại lệ (Exception Handling) chưa đạt tiêu chuẩn Enterprise, gây rủi ro lớn khi tích hợp với các client như Frontend React hoặc Mobile App.
+**Prompt to AI:** "Đóng vai trò là một System Architect, hãy tiến hành Code Review toàn diện hệ thống Backend (đặc biệt là tầng Controller và Exception Handler). Xác định các điểm vi phạm nguyên lý RESTful khiến giao tiếp Frontend bị đứt gãy, đồng thời đề xuất và lập trình phương án tái cấu trúc bằng Global Exception Handling kết hợp Generic Response Wrapper."
+**AI Response (Summary):** AI phân tích mã nguồn và phát hiện 2 lỗi "chí mạng" cho một ứng dụng Enterprise: (1) `AiController` trả về mã HTML cho một REST API (Frontend không thể parse được). (2) `GlobalExceptionHandler` bắt lỗi Validation (nhập sai dữ liệu) nhưng lại trả về HTTP Status 200 OK thay vì 400 Bad Request. AI sau đó cung cấp code sửa `ApiResponse.java` và chỉnh lại Exception Handler.
+
+**Human Delta & Reflection:**
+- **Critical Thinking:** Việc AI chỉ ra lỗi trả HTML trong RestController thực sự là một bài học đắt giá. Trong dự án thực tế, API luôn phải duy trì "Contract" trả về JSON thống nhất.
+- **Contextualization:** Chỉnh sửa này giúp toàn bộ Frontend (hoặc App Mobile sau này) bắt được lỗi chính xác mà không bị crash ứng dụng.
+- **Creative Synthesis:** Yêu cầu AI sửa trực tiếp vào file.
+- **Decision Ownership:** Chốt phê duyệt việc chuẩn hóa toàn bộ JSON response, biến hệ thống thành chuẩn mực Enterprise.
+
+---
+
+### Entry #: 009
+**Prompt Type:** ARCHITECTURE-DESIGN
+**Stage/Component:** AI Orchestrator & Multi-Agent
+**Problem/Context:** Nhằm chuẩn bị cho hội đồng bảo vệ đồ án cuối kỳ, hệ thống cần một "Roadmap" chiến lược để chuyển mình từ mô hình RAG tuyến tính cơ bản (Linear RAG) lên một hệ sinh thái AI cấp độ doanh nghiệp (Enterprise AI). Điểm mấu chốt là cần bổ sung cơ chế Agentic Tool Calling để khắc phục "điểm mù" của Database khi phải đối mặt với các câu hỏi thời gian thực (real-time data).
+**Prompt to AI:** "Hãy phác thảo một bản kế hoạch chiến lược (Upgrade Roadmap) gồm 4 giai đoạn cốt lõi để nâng cấp hệ thống RAG hiện tại đạt tiêu chuẩn Enterprise. Sau đó, tiến hành lập trình trực tiếp tính năng Agentic Intent Routing vào lớp HybridRagOrchestrator nhằm giúp AI tự động phát hiện ý định (Intent) và kích hoạt Tool ngoại vi (ví dụ: Weather API) rồi bơm thẳng dữ liệu vào Context."
+**AI Response (Summary):** AI lập ra `rag_enterprise_upgrade_plan.md` với 4 Giai đoạn (Ingestion, Retrieval, Agentic Workflow, Evaluation). Sau đó, AI trực tiếp can thiệp vào `HybridRagOrchestrator.java` để code chức năng "Agentic Intent Routing": tự động phát hiện người dùng hỏi thời tiết và gọi Tool WeatherAPI giả lập, đưa vào Context để trả lời.
+
+**Human Delta & Reflection:**
+- **Critical Thinking:** Ý tưởng Agentic Routing rất xuất sắc để che lấp khuyết điểm của RAG (không trả lời được câu hỏi mang tính thời gian thực nếu DB không có).
+- **Contextualization:** AI phân tích sự khác nhau giữa Multi-Agent (Cơ cấu tổ chức tác nhân) và Zod (Khuôn đúc giao tiếp), giúp tôi hiểu sâu về kiến trúc thực tế của ngành.
+- **Creative Synthesis:** Tôi đã tự tay đổi một số tham số trong hàm query để đảm bảo `hasContext` bao phủ cả dữ liệu lấy từ Database và dữ liệu lấy từ Tool.
+- **Decision Ownership:** Quyết định demo tính năng "Hỏi thời tiết" trước hội đồng để chứng minh hệ thống không chỉ là RAG tuyến tính mà đã đạt tới chuẩn Multi-Agent sơ khai.
+
+---
+
+### Entry #: 010
+**Prompt Type:** ARCHITECTURE-DESIGN
+**Stage/Component:** RAG & Vision Analysis
+**Problem/Context:** Nhóm cần xây dựng tính năng phân tích hình ảnh/video từ chức năng phản ánh của người dân (Citizen Feedback) để tự động trích xuất mức độ khẩn cấp. Phân vân giữa việc tự huấn luyện (train) một mô hình Computer Vision truyền thống hay tận dụng hệ sinh thái AI có sẵn.
+**Prompt to AI:** "Đóng vai trò là một Chuyên gia Kiến trúc AI (AI Architect), hãy tiến hành đánh giá chiến lược (Strategic Assessment) cho việc phân tích hình ảnh từ Citizen Feedback. Cụ thể, hãy so sánh sự khác biệt giữa Hybrid RAG và Multimodal RAG, đồng thời đánh giá giữa việc tự huấn luyện mô hình Computer Vision truyền thống với việc áp dụng Multimodal RAG thông qua Gemini Vision API. Đề xuất phương án tối ưu mang tính Enterprise nhất."
+**AI Response (Summary):** AI phân biệt rất rõ ràng: Hybrid RAG là lai về thuật toán tìm kiếm (để tăng độ chính xác của Text), còn Multimodal RAG là lai về loại định dạng dữ liệu (để RAG có thêm 'mắt' và 'tai'). AI khuyên không nên tự train mô hình Computer Vision vì tốn kém tài nguyên và dễ lỗi thời, thay vào đó nên dùng Multimodal RAG gọi Gemini Vision API để phân tích hình ảnh theo thời gian thực (Zero-shot extraction).
+
+**Human Delta & Reflection:**
+- **Critical Thinking:** Nhận định của AI cực kỳ chính xác với tình hình thực tế của sinh viên (thiếu dữ liệu, GPU yếu, thời gian ngắn). Thay vì làm một bài toán AI nửa vời, việc "đứng trên vai người khổng lồ" là tư duy kiến trúc đúng đắn.
+- **Contextualization:** Chức năng báo cáo của dự án Smart City có 3 ảnh và 1 video. Áp dụng Multimodal RAG không chỉ đọc được nội dung phản ánh mà còn "thấy" được sự cố qua ảnh, nâng cấp từ Hybrid RAG lên Hybrid Multimodal RAG.
+- **Creative Synthesis:** Đã chốt lại các thuật ngữ "Tăng chiều sâu" (Hybrid) và "Tăng chiều rộng" (Multimodal) do AI gợi ý để sử dụng làm tài liệu bảo vệ trước hội đồng.
+- **Decision Ownership:** Quyết định không tự train mô hình AI nhận diện ảnh mà chuyển hẳn sang tích hợp Vision API vào luồng RAG, tạo ra tính năng "Hybrid Multimodal RAG" độc đáo cho dự án.
+
+---
+
+### Entry #: 011
+**Prompt Type:** CRITICAL-THINKING & PROBLEM-SOLVING
+**Stage/Component:** Architecture Defense (Bảo vệ đồ án)
+**Problem/Context:** Nhóm đề xuất tính năng Auto-Dispatch (Tự động điều phối bằng AI & PostGIS). Tuy nhiên, phát sinh một câu hỏi phản biện thực tế rất gay gắt: "Người dân gặp sự cố cứ gọi điện thoại 113/114 cho nhanh, tại sao phải dùng App chụp ảnh làm gì cho phức tạp?". Nhóm cần tìm lập luận để bảo vệ kiến trúc này.
+**Prompt to AI:** "Đối với tính năng Auto-Dispatch (Tự động điều phối sự cố bằng AI & PostGIS), có ý kiến phản biện rằng: 'gọi điện thoại trực tiếp 113/114 nhanh hơn, không cần đến tính năng này'. Hãy đóng vai trò System Architect, giúp tôi xây dựng luận điểm phản biện (defense) sắc bén để bảo vệ tính thực tiễn của kiến trúc này trước hội đồng."
+**AI Response (Summary):** AI đưa ra 3 luận điểm phản biện xuất sắc: (1) Tránh báo động giả và điều phối sai nhờ có hình ảnh thật + GPS chính xác; (2) Giải quyết các sự cố "Cấp bách nhưng không biết gọi ai" (VD: cây đổ, vỡ nắp cống - không thuộc thẩm quyền 113/114); (3) Khắc phục nghẽn mạng tổng đài nhờ khả năng gom nhóm sự cố trùng lặp (Semantic Caching + GIS) và lưu trữ dữ liệu tạo bản đồ nhiệt (Heatmap) phục vụ quy hoạch tương lai.
+
+**Human Delta & Reflection:**
+- **Critical Thinking:** Nhận ra rằng thiết kế phần mềm tốt không chỉ là code chạy được, mà phải giải quyết đúng "Nỗi đau" (Pain-point) của xã hội. Việc chỉ ra sự khác biệt giữa "Tình huống sinh tử" (Cần gọi điện) và "Sự cố đô thị vô danh" (Cần dùng App) cho thấy tư duy hệ thống sâu sắc.
+- **Contextualization:** Lập luận của AI áp dụng trực tiếp vào cấu trúc dữ liệu đang có (PostGIS, AI Vision, Caching) để chứng minh tính ưu việt của App so với tổng đài truyền thống.
+- **Creative Synthesis:** Nhóm quyết định bổ sung khái niệm "Cấp bách nhưng không khẩn cấp" và "Overload Detection" vào slide Q&A dự phòng để gây ấn tượng mạnh với hội đồng.
+- **Decision Ownership:** Chốt phê duyệt 3 luận điểm phản biện này làm "vũ khí" phòng thủ chính thức trong phiên bảo vệ đồ án (Oral Defense).
+
+---
+
+### Entry #: 012
+**Prompt Type:** ARCHITECTURE-REVIEW & PROBLEM-SOLVING
+**Stage/Component:** RAG Orchestrator / System Architecture
+**Problem/Context:** Sau quá trình lập trình nhanh bằng trực giác với AI (vibecoding), hệ thống Hybrid RAG đã hoạt động. Tuy nhiên, nhóm cần một "chuyên gia" kiểm toán chéo (Cross-audit) để đánh giá mã nguồn thực tế, tìm ra các lỗi ẩn về hiệu năng, luồng (threads) và bộ nhớ mà việc test thủ công không phát hiện được.
+**Prompt to AI:** "Hãy đóng vai một Senior Software Engineer và AI/ML Architect... Nhiệm vụ của bạn là: Đọc kỹ mã nguồn tôi cung cấp và CHẤM ĐIỂM NGHIÊM KHẮC kiến trúc Hybrid RAG này... TUYỆT ĐỐI KHÔNG BỊA ĐẶT (hallucinate)."
+**AI Response (Summary):** AI phân tích mã nguồn và chỉ ra 5 lỗi "chết người" khi lên Production: (1) Lỗi Thread-safety của biến `lastUsedProvider` trong Singleton Service; (2) Giới hạn Context Token 3000 là quá nhỏ so với sức mạnh LLM hiện tại; (3) Cắt Chunk 512 ký tự làm đứt gãy ngữ nghĩa câu; (4) Chạy Virtual Threads không có giới hạn Timeout và không dọn dẹp gây Memory Leak; (5) RRF Score bị thất thoát không truyền đi.
+**Human Delta & Reflection:**
+- **Critical Thinking:** Tôi nhận ra tác hại nguy hiểm của phương pháp "Vibecoding": Code có thể chạy đúng logic nhưng lại sai hoàn toàn về Kiến trúc hệ thống (System Architecture) khi chịu tải thực tế.
+- **Contextualization:** Đặc biệt lỗi Thread-Safety cực kỳ nghiêm trọng trong Spring Boot. Nếu 2 người dùng RAG cùng lúc, dữ liệu provider của họ sẽ đè lên nhau, gây rối loạn Metadata.
+- **Creative Synthesis:** Đã phối hợp cùng AI tái cấu trúc RAG: Đổi biến toàn cục thành `LlmCallResult` Record, tăng cửa sổ Context lên 6000, bổ sung `.orTimeout()` và `DisposableBean` để tự động ngắt kết nối.
+- **Decision Ownership:** Chốt quyết định "Refactor" sâu hệ thống. Việc chủ động đi tìm lỗi sai và tự kiểm điểm (Self-Audit) giúp dự án thực sự vươn tầm Enterprise.
+
+---
+
 ## III. Phát hiện Hallucination (Hallucination Detection)
 
 - **Trường hợp:** Khi yêu cầu AI tìm kiếm và tổng hợp 10 bài báo khoa học trên Springer (Entry 001).

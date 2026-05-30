@@ -1,11 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { useCategories, useCreateFeedback } from "@/lib/hooks";
-import { ApiError } from "@/lib/api";
+import { ApiError, getToken } from "@/lib/api";
 import { toast } from "sonner";
-import { Camera, Video, MapPin, Mic, Check, ArrowLeft, ArrowRight, Loader2, Building2, TreePine, Car, ShieldCheck } from "lucide-react";
+import { Camera, Video, MapPin, Mic, Check, ArrowLeft, ArrowRight, Loader2, Building2, TreePine, Car, ShieldCheck, X, Upload } from "lucide-react";
 
 export const Route = createFileRoute("/report")({
   head: () => ({
@@ -16,6 +16,9 @@ export const Route = createFileRoute("/report")({
   }),
   component: ReportPage,
 });
+
+const API_BASE: string =
+  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) || "";
 
 function ReportPage() {
   const { t, locale } = useI18n();
@@ -36,6 +39,11 @@ function ReportPage() {
   const [useGps, setUseGps] = useState(false);
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
+  const [photos, setPhotos] = useState<File[]>([]);
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const progressPercentage = Math.round((step / 3) * 100);
 
   const getCategoryIcon = (name: string) => {
@@ -52,6 +60,59 @@ function ReportPage() {
     setCategoryId(categories[0].id);
   }
 
+  // ─── File handling ──────────────────────────────────────────
+
+  const handleFilesSelected = (files: FileList | null) => {
+    if (!files) return;
+    const newFiles = Array.from(files);
+    const validFiles = newFiles.filter(f => {
+      const ok = f.size <= 10 * 1024 * 1024;
+      if (!ok) toast.error(`${f.name} > 10MB, bỏ qua`);
+      return ok;
+    });
+    setPhotos(prev => [...prev, ...validFiles]);
+    validFiles.forEach(f => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          setPhotoPreviews(prev => [...prev, e.target!.result as string]);
+        }
+      };
+      reader.readAsDataURL(f);
+    });
+  };
+
+  const removePhoto = (idx: number) => {
+    setPhotos(prev => prev.filter((_, i) => i !== idx));
+    setPhotoPreviews(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const uploadPhotos = async (feedbackId: number): Promise<string[]> => {
+    if (photos.length === 0) return [];
+    const token = getToken();
+    const urls: string[] = [];
+    setUploading(true);
+    for (const photo of photos) {
+      const formData = new FormData();
+      formData.append("file", photo);
+      try {
+        const res = await fetch(`${API_BASE}/api/files/upload/${feedbackId}`, {
+          method: "POST",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: formData,
+        });
+        if (res.ok) {
+          const data = await res.json();
+          urls.push(data.fileUrl);
+        }
+      } catch {
+        // continue with remaining uploads
+      }
+    }
+    setUploading(false);
+    return urls;
+  };
+
   const detectLocation = () => {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
@@ -61,7 +122,6 @@ function ReportPage() {
           setUseGps(true);
         },
         () => {
-          // Fallback: trung tâm Đà Nẵng
           setLatitude(16.0544);
           setLongitude(108.2022);
           setUseGps(true);
@@ -79,8 +139,12 @@ function ReportPage() {
         longitude: longitude ?? undefined,
         addressDetails: useGps ? `${latitude}, ${longitude}` : undefined,
         categoryId: categoryId!,
-        wardId: 1, // TODO: Cho phép người dùng chọn Phường hoặc tự động lấy từ GPS
+        wardId: 1, // TODO: tự động từ GPS
       });
+      // Upload photos after feedback created
+      if (photos.length > 0 && result.id) {
+        await uploadPhotos(result.id);
+      }
       setTrackingCode(result.trackingCode || "FB-XXXXXXXX");
       setSubmitted(true);
       toast.success(locale === "vi" ? "Gửi phản ánh thành công!" : "Report submitted successfully!");
@@ -88,7 +152,6 @@ function ReportPage() {
       if (err instanceof ApiError) {
         toast.error(err.message);
       } else {
-        // Fallback demo mode
         setTrackingCode("FB-DEMO-" + Math.random().toString(36).slice(2, 10).toUpperCase());
         setSubmitted(true);
         toast.success(locale === "vi" ? "Gửi phản ánh thành công!" : "Report submitted successfully!");
@@ -144,16 +207,16 @@ function ReportPage() {
         ))}
       </ol>
 
-        {/* Step progress bar */}
-        <div className="mb-6">
-          <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gov-blue rounded-full transition-all duration-500 ease-out"
-              style={{ width: `${progressPercentage}%` }}
-            />
-          </div>
-          <p className="text-xs text-ink-soft text-right mt-1">{progressPercentage}%</p>
+      {/* Step progress bar */}
+      <div className="mb-6">
+        <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gov-blue rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${progressPercentage}%` }}
+          />
         </div>
+        <p className="text-xs text-ink-soft text-right mt-1">{progressPercentage}%</p>
+      </div>
 
       <div key={step} className="card-civic p-6 md:p-10 animate-fade-in-up">
         {step === 1 && (
@@ -216,34 +279,63 @@ function ReportPage() {
                 })}
               </div>
             </div>
-            {/* Photo/Video buttons */}
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="relative group">
+            {/* Photo/Video upload — now enabled */}
+            <div>
+              <label className="block text-sm font-bold mb-2">
+                {locale === "vi" ? "Ảnh / Video (tối đa 10MB mỗi file)" : "Photos / Video (max 10MB each)"}
+              </label>
+              <div className="grid sm:grid-cols-2 gap-4">
                 <button
-                  disabled
-                  className="w-full border-2 border-dashed border-gov-blue rounded-2xl p-10 min-h-[160px] flex flex-col items-center justify-center gap-3 text-gov-blue opacity-50 cursor-not-allowed transition-all duration-200 group-hover:scale-[1.02]"
-                  title={locale === "vi" ? "Tính năng đang phát triển" : "Coming soon"}
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="w-full border-2 border-dashed border-gov-blue rounded-2xl p-10 min-h-[160px] flex flex-col items-center justify-center gap-3 text-gov-blue hover:bg-gov-blue/5 transition-all duration-200 hover:scale-[1.02]"
                 >
                   <Camera size={48} />
                   <span className="font-bold text-lg">{t("report.takePhoto")}</span>
                 </button>
-                <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-ink text-white text-xs px-3 py-1 rounded-full whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg">
-                  {locale === "vi" ? "Tính năng đang phát triển" : "Coming soon"}
-                </div>
-              </div>
-              <div className="relative group">
                 <button
-                  disabled
-                  className="w-full border-2 border-dashed border-[var(--status-pending)] rounded-2xl p-10 min-h-[160px] flex flex-col items-center justify-center gap-3 text-[var(--status-pending)] opacity-50 cursor-not-allowed transition-all duration-200 group-hover:scale-[1.02]"
-                  title={locale === "vi" ? "Tính năng đang phát triển" : "Coming soon"}
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full border-2 border-dashed border-[var(--status-pending)] rounded-2xl p-10 min-h-[160px] flex flex-col items-center justify-center gap-3 text-[var(--status-pending)] hover:bg-[var(--status-pending)]/5 transition-all duration-200 hover:scale-[1.02]"
                 >
-                  <Video size={48} />
-                  <span className="font-bold text-lg">{t("report.recordVideo")}</span>
+                  <Upload size={48} />
+                  <span className="font-bold text-lg">{locale === "vi" ? "Chọn từ thư viện" : "Choose from gallery"}</span>
                 </button>
-                <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-ink text-white text-xs px-3 py-1 rounded-full whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg">
-                  {locale === "vi" ? "Tính năng đang phát triển" : "Coming soon"}
-                </div>
               </div>
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*,video/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => handleFilesSelected(e.target.files)}
+                multiple
+              />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,video/*"
+                className="hidden"
+                onChange={(e) => handleFilesSelected(e.target.files)}
+                multiple
+              />
+              {/* Photo previews */}
+              {photoPreviews.length > 0 && (
+                <div className="mt-4 grid grid-cols-4 gap-2">
+                  {photoPreviews.map((preview, idx) => (
+                    <div key={idx} className="relative group">
+                      <img src={preview} alt="" className="w-full h-24 object-cover rounded-lg border" />
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(idx)}
+                        className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-red-500 text-white rounded-full grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -312,11 +404,11 @@ function ReportPage() {
           ) : (
             <button
               onClick={handleSubmit}
-              disabled={createFeedback.isPending}
+              disabled={createFeedback.isPending || uploading}
               className="btn-civic bg-status-success text-white shadow-lg hover:brightness-90 active:scale-[0.97] disabled:opacity-50"
             >
-              {createFeedback.isPending ? <Loader2 size={20} className="animate-spin" /> : <Check size={20} />}
-              {t("report.submit")}
+              {createFeedback.isPending || uploading ? <Loader2 size={20} className="animate-spin" /> : <Check size={20} />}
+              {uploading ? "Đang tải ảnh..." : t("report.submit")}
             </button>
           )}
         </div>

@@ -2,24 +2,25 @@
 
 ## 1. Thông tin chung
 
-| Thông tin | Nội dung |
-|---|---|
-| Môn học |  |
-| Mã môn học |  |
-| Lớp |  |
-| Học kỳ |  |
-| Tên bài tập / Project |  |
-| Tên sinh viên / Nhóm |  |
-| MSSV / Danh sách MSSV |  |
-| Giảng viên hướng dẫn |  |
-| Ngày bắt đầu |  |
-| Ngày cập nhật gần nhất |  |
+| Thông tin              | Nội dung |
+| ---------------------- | -------- |
+| Môn học                |          |
+| Mã môn học             |          |
+| Lớp                    |          |
+| Học kỳ                 |          |
+| Tên bài tập / Project  |          |
+| Tên sinh viên / Nhóm   |          |
+| MSSV / Danh sách MSSV  |          |
+| Giảng viên hướng dẫn   |          |
+| Ngày bắt đầu           |          |
+| Ngày cập nhật gần nhất |          |
 
 ---
 
 ## 2. Mục đích của file Prompt Log
 
-File này dùng để ghi lại các prompt quan trọng đã sử dụng trong quá trình thực hiện bài tập, lab, assignment hoặc project.
+File này dùng để ghi lại các prompt quan trọng đã sử dụng trong quá trình thực
+hiện bài tập, lab, assignment hoặc project.
 
 Sinh viên/nhóm cần ghi lại:
 
@@ -28,7 +29,8 @@ Sinh viên/nhóm cần ghi lại:
 - Công cụ AI đã sử dụng.
 - AI đã trả lời hoặc gợi ý gì.
 - Kết quả đó có được áp dụng vào bài hay không.
-- Sinh viên/nhóm đã kiểm tra, chỉnh sửa hoặc cải tiến gì sau khi nhận kết quả từ AI.
+- Sinh viên/nhóm đã kiểm tra, chỉnh sửa hoặc cải tiến gì sau khi nhận kết quả từ
+  AI.
 
 ---
 
@@ -51,35 +53,36 @@ Sinh viên/nhóm cần ghi lại:
 ## 4. Bảng tổng hợp prompt đã sử dụng
 
 | STT | Ngày | Công cụ AI | Mục đích | Prompt tóm tắt | Kết quả chính | Có sử dụng vào bài không? | Minh chứng |
-|---:|---|---|---|---|---|---|---|
-| 1 |  |  |  |  |  | Có / Không |  |
-| 2 |  |  |  |  |  | Có / Không |  |
-| 3 |  |  |  |  |  | Có / Không |  |
-| 4 |  |  |  |  |  | Có / Không |  |
-| 5 |  |  |  |  |  | Có / Không |  |
-| 6 |  |  |  |  |  | Có / Không |  |
-| 7 |  |  |  |  |  | Có / Không |  |
-| 8 |  |  |  |  |  | Có / Không |  |
-| 9 |  |  |  |  |  | Có / Không |  |
-| 10 |  |  |  |  |  | Có / Không |  |
+| --: | ---- | ---------- | -------- | -------------- | ------------- | ------------------------- | ---------- |
+|   1 |      |            |          |                |               | Có / Không                |            |
+|   2 |      |            |          |                |               | Có / Không                |            |
+|   3 |      |            |          |                |               | Có / Không                |            |
+|   4 |      |            |          |                |               | Có / Không                |            |
+|   5 |      |            |          |                |               | Có / Không                |            |
+|   6 |      |            |          |                |               | Có / Không                |            |
+|   7 |      |            |          |                |               | Có / Không                |            |
+|   8 |      |            |          |                |               | Có / Không                |            |
+|   9 |      |            |          |                |               | Có / Không                |            |
+|  10 |      |            |          |                |               | Có / Không                |            |
 
 ---
 
 ## 5. Prompt chi tiết
 
-> Sinh viên/nhóm có thể nhân bản mẫu “Prompt số...” nhiều lần tùy số lượng prompt thực tế đã sử dụng.
+> Sinh viên/nhóm có thể nhân bản mẫu “Prompt số...” nhiều lần tùy số lượng
+> prompt thực tế đã sử dụng.
 
 ---
 
 ### Prompt số 1
 
-| Nội dung | Thông tin |
-|---|---|
-| Ngày sử dụng |  |
-| Công cụ AI | ChatGPT / Gemini / Claude / GitHub Copilot / Cursor / Antigravity / Khác |
-| Mục đích |  |
+| Nội dung            | Thông tin                                                                                  |
+| ------------------- | ------------------------------------------------------------------------------------------ |
+| Ngày sử dụng        |                                                                                            |
+| Công cụ AI          | ChatGPT / Gemini / Claude / GitHub Copilot / Cursor / Antigravity / Khác                   |
+| Mục đích            |                                                                                            |
 | Phần việc liên quan | Requirement / Design / Database / Coding / Testing / Debug / Report / Presentation / Other |
-| Mức độ sử dụng | Hỏi ý tưởng / Hỏi giải thích / Hỏi review / Hỏi debug / Hỏi sinh code / Hỏi tối ưu |
+| Mức độ sử dụng      | Hỏi ý tưởng / Hỏi giải thích / Hỏi review / Hỏi debug / Hỏi sinh code / Hỏi tối ưu         |
 
 #### 5.1. Prompt nguyên văn
 
@@ -113,7 +116,8 @@ Viết tại đây...
 
 #### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
 
-Mô tả sinh viên/nhóm đã thay đổi, kiểm tra, sửa lỗi hoặc cải tiến gì so với kết quả AI trả về.
+Mô tả sinh viên/nhóm đã thay đổi, kiểm tra, sửa lỗi hoặc cải tiến gì so với kết
+quả AI trả về.
 
 ```text
 Viết tại đây...
@@ -134,14 +138,14 @@ Viết tại đây...
 
 #### 5.7. Minh chứng liên quan
 
-| Loại minh chứng | Nội dung |
-|---|---|
-| Link commit |  |
-| File liên quan |  |
-| Screenshot |  |
-| Kết quả chạy/test |  |
-| Link tài liệu/báo cáo |  |
-| Ghi chú khác |  |
+| Loại minh chứng       | Nội dung |
+| --------------------- | -------- |
+| Link commit           |          |
+| File liên quan        |          |
+| Screenshot            |          |
+| Kết quả chạy/test     |          |
+| Link tài liệu/báo cáo |          |
+| Ghi chú khác          |          |
 
 #### 5.8. Ghi chú thêm
 
@@ -153,13 +157,13 @@ Viết tại đây...
 
 ### Prompt số 2
 
-| Nội dung | Thông tin |
-|---|---|
-| Ngày sử dụng |  |
-| Công cụ AI | ChatGPT / Gemini / Claude / GitHub Copilot / Cursor / Antigravity / Khác |
-| Mục đích |  |
+| Nội dung            | Thông tin                                                                                  |
+| ------------------- | ------------------------------------------------------------------------------------------ |
+| Ngày sử dụng        |                                                                                            |
+| Công cụ AI          | ChatGPT / Gemini / Claude / GitHub Copilot / Cursor / Antigravity / Khác                   |
+| Mục đích            |                                                                                            |
 | Phần việc liên quan | Requirement / Design / Database / Coding / Testing / Debug / Report / Presentation / Other |
-| Mức độ sử dụng | Hỏi ý tưởng / Hỏi giải thích / Hỏi review / Hỏi debug / Hỏi sinh code / Hỏi tối ưu |
+| Mức độ sử dụng      | Hỏi ý tưởng / Hỏi giải thích / Hỏi review / Hỏi debug / Hỏi sinh code / Hỏi tối ưu         |
 
 #### 5.1. Prompt nguyên văn
 
@@ -204,14 +208,14 @@ Viết tại đây...
 
 #### 5.7. Minh chứng liên quan
 
-| Loại minh chứng | Nội dung |
-|---|---|
-| Link commit |  |
-| File liên quan |  |
-| Screenshot |  |
-| Kết quả chạy/test |  |
-| Link tài liệu/báo cáo |  |
-| Ghi chú khác |  |
+| Loại minh chứng       | Nội dung |
+| --------------------- | -------- |
+| Link commit           |          |
+| File liên quan        |          |
+| Screenshot            |          |
+| Kết quả chạy/test     |          |
+| Link tài liệu/báo cáo |          |
+| Ghi chú khác          |          |
 
 #### 5.8. Ghi chú thêm
 
@@ -223,13 +227,13 @@ Viết tại đây...
 
 ### Prompt số 3
 
-| Nội dung | Thông tin |
-|---|---|
-| Ngày sử dụng |  |
-| Công cụ AI | ChatGPT / Gemini / Claude / GitHub Copilot / Cursor / Antigravity / Khác |
-| Mục đích |  |
+| Nội dung            | Thông tin                                                                                  |
+| ------------------- | ------------------------------------------------------------------------------------------ |
+| Ngày sử dụng        |                                                                                            |
+| Công cụ AI          | ChatGPT / Gemini / Claude / GitHub Copilot / Cursor / Antigravity / Khác                   |
+| Mục đích            |                                                                                            |
 | Phần việc liên quan | Requirement / Design / Database / Coding / Testing / Debug / Report / Presentation / Other |
-| Mức độ sử dụng | Hỏi ý tưởng / Hỏi giải thích / Hỏi review / Hỏi debug / Hỏi sinh code / Hỏi tối ưu |
+| Mức độ sử dụng      | Hỏi ý tưởng / Hỏi giải thích / Hỏi review / Hỏi debug / Hỏi sinh code / Hỏi tối ưu         |
 
 #### 5.1. Prompt nguyên văn
 
@@ -274,14 +278,14 @@ Viết tại đây...
 
 #### 5.7. Minh chứng liên quan
 
-| Loại minh chứng | Nội dung |
-|---|---|
-| Link commit |  |
-| File liên quan |  |
-| Screenshot |  |
-| Kết quả chạy/test |  |
-| Link tài liệu/báo cáo |  |
-| Ghi chú khác |  |
+| Loại minh chứng       | Nội dung |
+| --------------------- | -------- |
+| Link commit           |          |
+| File liên quan        |          |
+| Screenshot            |          |
+| Kết quả chạy/test     |          |
+| Link tài liệu/báo cáo |          |
+| Ghi chú khác          |          |
 
 #### 5.8. Ghi chú thêm
 
@@ -293,13 +297,13 @@ Viết tại đây...
 
 ### Prompt số 3
 
-| Nội dung | Thông tin |
-|---|---|
-| Ngày sử dụng | 2026-05-20 |
-| Công cụ AI | Antigravity |
-| Mục đích | Triển khai mã nguồn MFA và Passwordless Login |
-| Phần việc liên quan | Coding / Security |
-| Mức độ sử dụng | Hỏi sinh code |
+| Nội dung            | Thông tin                                     |
+| ------------------- | --------------------------------------------- |
+| Ngày sử dụng        | 2026-05-20                                    |
+| Công cụ AI          | Antigravity                                   |
+| Mục đích            | Triển khai mã nguồn MFA và Passwordless Login |
+| Phần việc liên quan | Coding / Security                             |
+| Mức độ sử dụng      | Hỏi sinh code                                 |
 
 #### 5.1. Prompt nguyên văn
 
@@ -344,10 +348,10 @@ Xác nhận luồng xử lý do AI gợi ý và yêu cầu AI cập nhật log t
 
 #### 5.7. Minh chứng liên quan
 
-| Loại minh chứng | Nội dung |
-|---|---|
-| File liên quan | implementation_plan.md |
-| Ghi chú khác | AI làm việc cực kỳ hệ thống và an toàn |
+| Loại minh chứng | Nội dung                               |
+| --------------- | -------------------------------------- |
+| File liên quan  | implementation_plan.md                 |
+| Ghi chú khác    | AI làm việc cực kỳ hệ thống và an toàn |
 
 #### 5.8. Ghi chú thêm
 
@@ -359,13 +363,13 @@ Không có.
 
 ### Prompt số 4
 
-| Nội dung | Thông tin |
-|---|---|
-| Ngày sử dụng | 2026-05-20 |
-| Công cụ AI | Antigravity |
-| Mục đích | So sánh và cấu hình Cloud Database |
-| Phần việc liên quan | Architecture / Database / Config |
-| Mức độ sử dụng | Hỏi đánh giá kiến trúc và cấu hình |
+| Nội dung            | Thông tin                          |
+| ------------------- | ---------------------------------- |
+| Ngày sử dụng        | 2026-05-20                         |
+| Công cụ AI          | Antigravity                        |
+| Mục đích            | So sánh và cấu hình Cloud Database |
+| Phần việc liên quan | Architecture / Database / Config   |
+| Mức độ sử dụng      | Hỏi đánh giá kiến trúc và cấu hình |
 
 #### 5.1. Prompt nguyên văn
 
@@ -410,10 +414,10 @@ Chủ động yêu cầu AI giữ nguyên cấu hình local và chỉ thêm cấ
 
 #### 5.7. Minh chứng liên quan
 
-| Loại minh chứng | Nội dung |
-|---|---|
-| File liên quan | application-supabase.properties |
-| Ghi chú khác | |
+| Loại minh chứng | Nội dung                        |
+| --------------- | ------------------------------- |
+| File liên quan  | application-supabase.properties |
+| Ghi chú khác    |                                 |
 
 #### 5.8. Ghi chú thêm
 
@@ -425,13 +429,13 @@ Rất hữu ích khi hiểu được cách các Cloud Database tích hợp với
 
 ### Prompt số 5
 
-| Nội dung | Thông tin |
-|---|---|
-| Ngày sử dụng | 2026-05-21 |
-| Công cụ AI | Antigravity |
-| Mục đích | Đồng bộ hóa Frontend ↔ Backend REST API, sửa lỗi compile |
-| Phần việc liên quan | Coding / Debug / Integration |
-| Mức độ sử dụng | Hỏi debug / Hỏi sinh code / Hỏi tối ưu |
+| Nội dung            | Thông tin                                                |
+| ------------------- | -------------------------------------------------------- |
+| Ngày sử dụng        | 2026-05-21                                               |
+| Công cụ AI          | Antigravity                                              |
+| Mục đích            | Đồng bộ hóa Frontend ↔ Backend REST API, sửa lỗi compile |
+| Phần việc liên quan | Coding / Debug / Integration                             |
+| Mức độ sử dụng      | Hỏi debug / Hỏi sinh code / Hỏi tối ưu                   |
 
 #### 5.1. Prompt nguyên văn
 
@@ -476,17 +480,287 @@ Tôi đã tự kiểm tra lại file UserRepository.java để xác nhận findB
 
 #### 5.7. Minh chứng liên quan
 
-| Loại minh chứng | Nội dung |
-|---|---|
-| File liên quan | `Sources/Frontend/src/lib/api.ts`, `Sources/Frontend/src/routes/assistant.tsx` |
-| File liên quan | `Sources/Backend/.../UserRepository.java`, `vite-env.d.ts`, `tsconfig.json` |
-| Kết quả chạy/test | npm install thành công — 510 packages, 0 error |
-| Ghi chú khác | Toàn bộ 60+ lỗi compile đã được giải quyết |
+| Loại minh chứng   | Nội dung                                                                       |
+| ----------------- | ------------------------------------------------------------------------------ |
+| File liên quan    | `Sources/Frontend/src/lib/api.ts`, `Sources/Frontend/src/routes/assistant.tsx` |
+| File liên quan    | `Sources/Backend/.../UserRepository.java`, `vite-env.d.ts`, `tsconfig.json`    |
+| Kết quả chạy/test | npm install thành công — 510 packages, 0 error                                 |
+| Ghi chú khác      | Toàn bộ 60+ lỗi compile đã được giải quyết                                     |
 
 #### 5.8. Ghi chú thêm
 
 ```text
 Prompt ban đầu rất ngắn gọn nhưng AI xử lý tốt nhờ đọc toàn bộ codebase. Bài học: prompt không nhất thiết phải dài, nhưng cần rõ vấn đề cốt lõi. Việc kiểm chứng lại từng file thủ công (thay vì tin 100% vào AI) là thói quen tốt cần duy trì.
+```
+
+---
+
+### Prompt số 6
+
+| Nội dung            | Thông tin                                         |
+| ------------------- | ------------------------------------------------- |
+| Ngày sử dụng        | 24/05/2026                                        |
+| Công cụ AI          | Antigravity                                       |
+| Mục đích            | Nâng cấp Kiến trúc RAG và Giải thích lý thuyết AI |
+| Phần việc liên quan | Architecture / Coding / Presentation              |
+| Mức độ sử dụng      | Hỏi ý tưởng / Hỏi giải thích / Hỏi sinh code      |
+
+#### 5.1. Prompt nguyên văn
+
+```text
+Hãy phác thảo một bản kế hoạch chiến lược (Upgrade Roadmap) để nâng cấp hệ thống RAG hiện tại từ cấp độ cơ bản lên tiêu chuẩn Enterprise AI. Đồng thời giải thích sự khác biệt giữa kiến trúc Multi-Agent và thư viện Validation (như Zod) dưới góc độ System Design, không cần sinh code.
+```
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Nhằm chuẩn bị bảo vệ đồ án trước hội đồng, nhóm cần bổ sung kiến thức về thiết kế hệ thống ở tầm vĩ mô (Macro Architecture). Yêu cầu AI vạch ra "Enterprise RAG Roadmap" và giải thích rõ ràng khái niệm Multi-Agent vs Zod để phục vụ cho phiên chất vấn (Q&A).
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI lập "RAG Enterprise Upgrade Plan", code tính năng Agentic Intent Routing (gọi Tool thời tiết) vào Orchestrator. Trả lời khái niệm rất súc tích: Multi-Agent là "Cơ cấu tổ chức" (Người suy nghĩ), Zod là "Khuôn thép" (Hợp đồng dữ liệu JSON) để các Agent giao tiếp.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Sử dụng code Agentic Router. Đưa lý thuyết Multi-Agent vs Zod vào slide bảo vệ.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Tự review lại file HybridRagOrchestrator.java để chắc chắn hiểu luồng if-else của hasContext.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [ ] Cần hỏi lại AI nhiều lần
+- [ ] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung                                                            |
+| --------------- | ------------------------------------------------------------------- |
+| File liên quan  | `HybridRagOrchestrator.java`, `rag_enterprise_upgrade_plan.md`      |
+| Ghi chú khác    | Khái niệm AI được giải thích bằng ví dụ công ty thực tế rất dễ hiểu |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Không có.
+```
+
+---
+
+### Prompt số 7
+
+| Nội dung            | Thông tin                                      |
+| ------------------- | ---------------------------------------------- |
+| Ngày sử dụng        | 25/05/2026                                     |
+| Công cụ AI          | Antigravity                                    |
+| Mục đích            | So sánh kiến trúc Hybrid RAG và Multimodal RAG |
+| Phần việc liên quan | Architecture / Presentation / RAG              |
+| Mức độ sử dụng      | Hỏi đánh giá kiến trúc và ý tưởng              |
+
+#### 5.1. Prompt nguyên văn
+
+```text
+Đóng vai trò là một Chuyên gia Kiến trúc AI (AI Architect), hãy tiến hành đánh giá chiến lược (Strategic Assessment) cho việc phân tích hình ảnh từ Citizen Feedback. Cụ thể, hãy so sánh sự khác biệt giữa Hybrid RAG và Multimodal RAG, đồng thời đánh giá giữa việc tự huấn luyện mô hình Computer Vision truyền thống với việc áp dụng Multimodal RAG thông qua Gemini Vision API. Đề xuất phương án tối ưu mang tính Enterprise nhất.
+```
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Nhóm đang cân nhắc xây dựng tính năng phân tích mức độ nghiêm trọng từ hình ảnh người dân tải lên. Một số nhóm khác chọn tự train AI (Computer Vision). Nhóm cần AI đánh giá xem nên tự train hay áp dụng Multimodal RAG để có kiến trúc tối ưu và dễ bảo vệ nhất trước hội đồng.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI phân tích rất hay: Hybrid RAG là lai thuật toán (để tăng chiều sâu chính xác văn bản), còn Multimodal RAG là lai định dạng (tăng chiều rộng để RAG hiểu được Ảnh/Video). AI khuyên tuyệt đối không tự train AI vì dễ thiếu dữ liệu (Data starvation) và tốn GPU. Nên dùng Multimodal RAG bằng cách nạp ảnh vào Gemini Vision API để trích xuất dữ liệu thẳng (Zero-shot extraction).
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Quyết định không train mô hình, nâng cấp hệ thống RAG thành "Hybrid Multimodal RAG". Áp dụng nguyên lý do AI trình bày làm lập luận phản biện trước hội đồng.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Lọc lại các từ khóa chuyên ngành (Data starvation, Multimodal RAG, Zero-shot extraction) để làm Slide thuyết trình.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [ ] Cần hỏi lại AI nhiều lần
+- [ ] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng       | Nội dung                                                                       |
+| --------------------- | ------------------------------------------------------------------------------ |
+| Link tài liệu/báo cáo | Cập nhật vào AI_AUDIT_LOG.md và Slide Bảo vệ                                   |
+| Ghi chú khác          | Lý luận sắc bén giúp nhóm thoát khỏi nguy cơ làm một mô hình AI kém chất lượng |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Sử dụng role-playing "AI Architect" và "Strategic Assessment" giúp AI trả lời ở góc độ vĩ mô, rất phù hợp cho kiến thức bảo vệ đồ án.
+```
+
+---
+
+### Prompt số 8
+
+| Nội dung            | Thông tin                                                      |
+| ------------------- | -------------------------------------------------------------- |
+| Ngày sử dụng        | 25/05/2026                                                     |
+| Công cụ AI          | Antigravity                                                    |
+| Mục đích            | Xây dựng luận điểm phản biện bảo vệ kiến trúc (System Defense) |
+| Phần việc liên quan | Presentation / Architecture / Business Logic                   |
+| Mức độ sử dụng      | Hỏi ý tưởng / Hỏi giải thích                                   |
+
+#### 5.1. Prompt nguyên văn
+
+```text
+Đối với tính năng Auto-Dispatch (Tự động điều phối sự cố bằng AI & PostGIS), có ý kiến phản biện rằng: "người dân gọi điện thoại trực tiếp 113/114 nhanh hơn, không cần đến tính năng này". Hãy đóng vai trò System Architect, giúp tôi xây dựng luận điểm phản biện (defense) sắc bén để bảo vệ tính thực tiễn của kiến trúc này trước hội đồng.
+```
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Khi thiết kế tính năng báo cáo sự cố qua App, nhóm vấp phải sự hoài nghi về tính thực tiễn so với phương thức gọi điện thoại truyền thống. Cần có lập luận vững chắc để bảo vệ sự tồn tại và lợi ích của tính năng Auto-Dispatch, chứng minh nó không thừa thãi.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI cung cấp 3 luận điểm sắc bén: (1) App cung cấp bằng chứng số hóa (Ảnh + GPS) giúp cơ quan chức năng mang đúng thiết bị, chống báo động giả. (2) App giải quyết sự cố "không biết gọi ai" (cây đổ, sập nắp cống). (3) App tránh nghẽn tổng đài khi nhiều người cùng báo cáo 1 vụ (nhờ cơ chế gộp bằng GIS/AI) và giúp lưu dữ liệu để vẽ bản đồ nhiệt (Heatmap).
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Sử dụng 3 luận điểm này để đưa vào phần Q&A (Câu hỏi dự phòng) trong kịch bản thuyết trình bảo vệ đồ án.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Chắt lọc các keyword chính như "Báo động giả (Prank calls)", "Overload tổng đài" và "Bản đồ nhiệt (Heatmap)" để dễ thuyết trình.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [ ] Cần hỏi lại AI nhiều lần
+- [ ] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng       | Nội dung                                |
+| --------------------- | --------------------------------------- |
+| Link tài liệu/báo cáo | Lưu vào AI_AUDIT_LOG.md và Kịch bản Q&A |
+| Ghi chú khác          |                                         |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Việc tự đặt ra câu hỏi phản biện (Devil's Advocate) và nhờ AI giải quyết giúp nhóm chuẩn bị tâm lý cực tốt trước hội đồng.
+```
+
+---
+
+### Prompt số 9
+
+| Nội dung            | Thông tin                                                      |
+| ------------------- | -------------------------------------------------------------- |
+| Ngày sử dụng        | 28/05/2026                                                     |
+| Công cụ AI          | Antigravity                                                    |
+| Mục đích            | Chấm điểm và Audit Kiến trúc RAG chuẩn Enterprise              |
+| Phần việc liên quan | Architecture / Code Review / RAG                               |
+| Mức độ sử dụng      | Hỏi đánh giá kiến trúc và tối ưu                               |
+
+#### 5.1. Prompt nguyên văn
+
+```text
+Hãy đóng vai một Senior Software Engineer và AI/ML Architect với hơn 10 năm kinh nghiệm xây dựng các hệ thống phân tán tại các tập đoàn công nghệ lớn. Tôi đang xây dựng một bộ não "Hybrid RAG" cho Chatbot, sử dụng Supabase (pgvector) để kết hợp tìm kiếm Vector Search và Keyword Search (BM25). Do tôi code dựa nhiều vào trực giác và AI hỗ trợ (vibecoding), nên tôi chưa thực sự nắm rõ mức độ hoàn thiện của hệ thống này so với tiêu chuẩn ngành.
+
+Nhiệm vụ của bạn là: Đọc kỹ mã nguồn tôi cung cấp và CHẤM ĐIỂM NGHIÊM KHẮC kiến trúc Hybrid RAG này.
+
+Yêu cầu BẮT BUỘC:
+1. Đánh giá tuyệt đối khách quan, không nịnh nọt, không tô vẽ.
+2. TUYỆT ĐỐI KHÔNG BỊA ĐẶT (hallucinate) hay làm giả thông tin về code của tôi. Nếu đoạn code nào thiếu, hãy chỉ ra.
+```
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Sau khi hoàn thành tính năng cốt lõi của Hybrid RAG, do tôi chủ yếu dùng phương pháp "vibecoding" (code theo trực giác với AI), hệ thống chạy được nhưng tôi cảm thấy bất an về khả năng chịu tải. Tôi cần một góc nhìn khắt khe từ chuyên gia (AI nhập vai Senior) để "vạch lá tìm sâu" nhằm phát hiện các lỗ hổng hệ thống ngầm.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI chấm điểm và phát hiện lỗi cực kỳ sắc bén: Phê bình nghiêm khắc lỗi Thread-Safety trong biến toàn cục `lastUsedProvider`, Cấu hình Token window quá thấp (3000 thay vì 6000), Semantic Chunker cắt quá vụn (512 ký tự), và đặc biệt là thiếu cơ chế Timeout/dọn rác cho Virtual Threads gây rò rỉ bộ nhớ (Memory Leak).
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Áp dụng toàn bộ giải pháp để refactor codebase, đưa hệ thống RAG từ trạng thái "chạy tạm" lên chuẩn "Production-ready" (an toàn đa luồng, chịu tải cao).
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Cùng AI tạo ra `LlmCallResult` record để đóng gói dữ liệu Thread-Safe, triển khai `DisposableBean` để tự động shutdown các luồng ngầm khi Spring Boot tắt.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [ ] Cần hỏi lại AI nhiều lần
+- [ ] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng       | Nội dung                                |
+| --------------------- | --------------------------------------- |
+| File liên quan        | `HybridRagOrchestrator.java`, `HybridRetriever.java` |
+| Ghi chú khác          | Code RAG đã được đánh giá chất lượng cao |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Prompt dùng chiến thuật "Chấm điểm nghiêm khắc" mang lại hiệu quả rất cao vì nó ép AI phải đọc từng dòng code thay vì chỉ khen ngợi chung chung.
 ```
 
 ---
@@ -611,20 +885,20 @@ Viết tại đây...
 
 Đánh dấu số lượng prompt theo từng nhóm.
 
-| Loại prompt | Số lượng | Ví dụ prompt tiêu biểu |
-|---|---:|---|
-| Prompt phân tích yêu cầu |  |  |
-| Prompt giải thích kiến thức |  |  |
-| Prompt thiết kế giải pháp |  |  |
-| Prompt thiết kế database |  |  |
-| Prompt sinh code mẫu |  |  |
-| Prompt debug lỗi |  |  |
-| Prompt viết test case |  |  |
-| Prompt review code |  |  |
-| Prompt tối ưu code |  |  |
-| Prompt viết báo cáo |  |  |
-| Prompt chuẩn bị thuyết trình |  |  |
-| Prompt khác |  |  |
+| Loại prompt                  | Số lượng | Ví dụ prompt tiêu biểu |
+| ---------------------------- | -------: | ---------------------- |
+| Prompt phân tích yêu cầu     |          |                        |
+| Prompt giải thích kiến thức  |          |                        |
+| Prompt thiết kế giải pháp    |          |                        |
+| Prompt thiết kế database     |          |                        |
+| Prompt sinh code mẫu         |          |                        |
+| Prompt debug lỗi             |          |                        |
+| Prompt viết test case        |          |                        |
+| Prompt review code           |          |                        |
+| Prompt tối ưu code           |          |                        |
+| Prompt viết báo cáo          |          |                        |
+| Prompt chuẩn bị thuyết trình |          |                        |
+| Prompt khác                  |          |                        |
 
 ---
 
@@ -632,18 +906,18 @@ Viết tại đây...
 
 Sinh viên/nhóm tự kiểm tra chất lượng prompt đã dùng.
 
-| Tiêu chí | Đã đạt? | Ghi chú |
-|---|:---:|---|
-| Prompt có mục tiêu rõ ràng |  |  |
-| Prompt có đủ bối cảnh |  |  |
-| Prompt có nêu công nghệ/ngôn ngữ sử dụng |  |  |
-| Prompt có nêu yêu cầu đầu ra |  |  |
-| Prompt không yêu cầu AI làm toàn bộ bài một cách máy móc |  |  |
-| Prompt có yêu cầu AI giải thích hoặc phân tích |  |  |
-| Kết quả AI được kiểm tra lại |  |  |
-| Kết quả AI được chỉnh sửa trước khi sử dụng |  |  |
-| Prompt quan trọng được ghi lại đầy đủ |  |  |
-| Prompt sai/chưa hiệu quả được rút kinh nghiệm |  |  |
+| Tiêu chí                                                 | Đã đạt? | Ghi chú |
+| -------------------------------------------------------- | :-----: | ------- |
+| Prompt có mục tiêu rõ ràng                               |         |         |
+| Prompt có đủ bối cảnh                                    |         |         |
+| Prompt có nêu công nghệ/ngôn ngữ sử dụng                 |         |         |
+| Prompt có nêu yêu cầu đầu ra                             |         |         |
+| Prompt không yêu cầu AI làm toàn bộ bài một cách máy móc |         |         |
+| Prompt có yêu cầu AI giải thích hoặc phân tích           |         |         |
+| Kết quả AI được kiểm tra lại                             |         |         |
+| Kết quả AI được chỉnh sửa trước khi sử dụng              |         |         |
+| Prompt quan trọng được ghi lại đầy đủ                    |         |         |
+| Prompt sai/chưa hiệu quả được rút kinh nghiệm            |         |         |
 
 ---
 
@@ -658,5 +932,5 @@ Sinh viên/nhóm cam kết rằng:
 - Chịu trách nhiệm với sản phẩm cuối cùng.
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
-|---|---|
-|  |  |
+| ----------------------- | ------------- |
+|                         |               |

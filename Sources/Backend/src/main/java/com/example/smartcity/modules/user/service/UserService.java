@@ -22,4 +22,16 @@ public class UserService extends BaseServiceImpl<User, Long> {
     protected String getResourceName() {
         return "User";
     }
+
+    @org.springframework.transaction.annotation.Transactional
+    public User updateUserStatus(Long id, boolean active) {
+        User user = findById(id);
+        user.setActive(active);
+        return userRepository.save(user);
+    }
+
+    public User findByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new com.example.smartcity.common.exception.CustomException("Tài khoản không tồn tại", 404));
+    }
 }

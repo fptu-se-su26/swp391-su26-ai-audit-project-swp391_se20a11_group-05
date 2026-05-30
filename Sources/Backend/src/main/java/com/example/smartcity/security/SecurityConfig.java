@@ -50,6 +50,7 @@ public class SecurityConfig {
                         .requestMatchers("/", "/favicon.ico", "/**/*.png", "/**/*.gif", "/**/*.svg", "/**/*.jpg", "/**/*.html", "/**/*.css", "/**/*.js").permitAll()
                         .requestMatchers("/api/auth/**").permitAll() // Login/Register/MFA are public
                         .requestMatchers("/api/rag/chatbot", "/api/rag/stream").permitAll() // Public Chatbot endpoints
+                        .requestMatchers("/api/weather/forecast/public").permitAll() // Cho phép người dân xem dự báo thời tiết cơ bản không cần login
                         .requestMatchers("/actuator/health").permitAll() // Health check only
                         // Authenticated: all business endpoints
                         .requestMatchers("/api/ai/**").authenticated()

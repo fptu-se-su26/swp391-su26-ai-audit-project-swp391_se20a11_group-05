@@ -50,7 +50,7 @@ public class DocumentChunk {
     @Column(name = "source_url", length = 1000)
     private String sourceUrl;
 
-    /** Loại nội dung: grammar, vocabulary, culture, kanji... */
+    /** Loại nội dung: traffic, environment, policy, governance... */
     @Column(name = "doc_type", length = 100)
     private String docType;
 

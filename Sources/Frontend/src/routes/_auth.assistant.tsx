@@ -12,10 +12,10 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
-import { chatbotApi, ApiError } from "@/lib/api";
-import { AUTHORITY_ROLES } from "@/lib/roles";
-import { parseBackendRole } from "@/lib/roles";
-import { Bot, Phone, Send, User, Loader2 } from "lucide-react";
+import { ragApi, ApiError, type Citation } from "@/lib/api";
+import { AUTHORITY_ROLES, parseBackendRole } from "@/lib/roles";
+import ReactMarkdown from "react-markdown";
+import { Bot, Phone, Send, User, Loader2, ChevronDown, BookOpen } from "lucide-react";
 
 export const Route = createFileRoute("/_auth/assistant")({
   beforeLoad: ({ context }) => {
@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_auth/assistant")({
     // Allow any authority role — the layout already checked, but this is
     // the defense-in-depth second check
     if (!AUTHORITY_ROLES.has(role)) {
-      throw redirect({ to: "/login" });
+      throw redirect({ to: "/login", search: { error: "forbidden" } });
     }
   },
   head: () => ({
@@ -44,6 +44,7 @@ interface Msg {
   provider?: string;
   latency?: number;
   hotlines?: { label: string; tel: string }[];
+  citations?: Citation[];
   isLoading?: boolean;
 }
 
@@ -118,7 +119,7 @@ function AssistantPage() {
     setMessages((m) => [...m, { role: "bot", text: "", isLoading: true }]);
 
     try {
-      const result = await chatbotApi.ask(userText, 1);
+      const result = await ragApi.chatbot(userText, 1);
       setMessages((m) => {
         const filtered = m.filter((msg) => !msg.isLoading);
         return [
@@ -127,37 +128,18 @@ function AssistantPage() {
         ];
       });
 
-      // Stream data (Hiệu ứng gõ phím)
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder("utf-8");
-
-      if (reader) {
-        let done = false;
-        let accumulatedText = "";
-
-        while (!done) {
-          const { value, done: readerDone } = await reader.read();
-          done = readerDone;
-
-          if (value) {
-            // Decode phần raw byte thành chuỗi
-            let chunkStr = decoder.decode(value, { stream: true });
-
-            // Lọc các tiền tố "data: " của SSE (Spring WebFlux đôi lúc trả ra data:)
-            chunkStr = chunkStr.replace(/^data:/gm, "").trim();
-
-            if (chunkStr) {
-              accumulatedText += chunkStr + " ";
-
-              // Cập nhật text liên tục cho tin nhắn cuối cùng
-              setMessages((m: Msg[]) => {
-                const newArr = [...m];
-                newArr[newArr.length - 1].text = accumulatedText;
-                return newArr;
-              });
-            }
-          }
+      // Fetch citations after stream completes
+      try {
+        const citationResult = await ragApi.query(userText);
+        if (citationResult.citations && citationResult.citations.length > 0) {
+          setMessages((m: Msg[]) => {
+            const newArr = [...m];
+            newArr[newArr.length - 1].citations = citationResult.citations;
+            return newArr;
+          });
         }
+      } catch {
+        // citations are optional — silently skip
       }
     } catch (err) {
       setMessages((m) => m.filter((msg) => !msg.isLoading));
@@ -243,6 +225,26 @@ function AssistantPage() {
                       )}
                     </div>
                   )}
+                  {/* Citations */}
+                  {m.citations && m.citations.length > 0 && (
+                    <div className="mt-3">
+                      <details className="group">
+                        <summary className="flex items-center gap-1.5 text-xs font-semibold text-ink-soft cursor-pointer hover:text-gov-blue transition-colors">
+                          <BookOpen size={14} />
+                          {m.citations.length} nguồn tham khảo
+                        </summary>
+                        <ul className="mt-2 space-y-1.5">
+                          {m.citations.map((c, ci) => (
+                            <li key={ci} className="text-xs text-ink-soft bg-white/50 rounded p-2 border border-slate-100">
+                              <span className="font-medium text-gov-blue">{c.source}</span>
+                              <p className="mt-0.5 line-clamp-2">{c.content}</p>
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
+                    </div>
+                  )}
+                  {/* Hotline buttons */}
                   {m.hotlines && (
                     <div className="mt-3 flex flex-wrap gap-2">
                       {m.hotlines.map((h: { label: string; tel: string }) => (

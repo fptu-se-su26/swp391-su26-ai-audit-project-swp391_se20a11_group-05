@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ReportRouteImport } from './routes/report'
+import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthorityLoginRouteImport } from './routes/authority-login'
 import { Route as AuthRouteImport } from './routes/_auth'
@@ -30,6 +31,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const ReportRoute = ReportRouteImport.update({
   id: '/report',
   path: '/report',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -86,6 +92,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/authority-login': typeof AuthorityLoginRoute
   '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/assistant': typeof AuthAssistantRoute
@@ -99,6 +106,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/authority-login': typeof AuthorityLoginRoute
   '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/assistant': typeof AuthAssistantRoute
@@ -114,6 +122,7 @@ export interface FileRoutesById {
   '/_auth': typeof AuthRouteWithChildren
   '/authority-login': typeof AuthorityLoginRoute
   '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_auth/assistant': typeof AuthAssistantRoute
@@ -129,6 +138,7 @@ export interface FileRouteTypes {
     | '/'
     | '/authority-login'
     | '/login'
+    | '/register'
     | '/report'
     | '/sitemap.xml'
     | '/assistant'
@@ -142,6 +152,7 @@ export interface FileRouteTypes {
     | '/'
     | '/authority-login'
     | '/login'
+    | '/register'
     | '/report'
     | '/sitemap.xml'
     | '/assistant'
@@ -156,6 +167,7 @@ export interface FileRouteTypes {
     | '/_auth'
     | '/authority-login'
     | '/login'
+    | '/register'
     | '/report'
     | '/sitemap.xml'
     | '/_auth/assistant'
@@ -171,6 +183,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   AuthorityLoginRoute: typeof AuthorityLoginRoute
   LoginRoute: typeof LoginRoute
+  RegisterRoute: typeof RegisterRoute
   ReportRoute: typeof ReportRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   MyReportsIdRoute: typeof MyReportsIdRoute
@@ -191,6 +204,13 @@ declare module '@tanstack/react-router' {
       path: '/report'
       fullPath: '/report'
       preLoaderRoute: typeof ReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -287,6 +307,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   AuthorityLoginRoute: AuthorityLoginRoute,
   LoginRoute: LoginRoute,
+  RegisterRoute: RegisterRoute,
   ReportRoute: ReportRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   MyReportsIdRoute: MyReportsIdRoute,

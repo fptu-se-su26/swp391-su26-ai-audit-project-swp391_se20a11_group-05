@@ -265,4 +265,26 @@
   .animate-civic-pulse {
     animation: civic-pulse 2.6s ease-in-out infinite;
   }
+
+  /* Hero slideshow progress bar */
+  @keyframes slideProgress {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
+
+  /* Login page — star/particle animation for hero panel */
+  .login-star {
+    position: absolute;
+    border-radius: 9999px;
+    background-color: #fff;
+    opacity: 0;
+    animation: starFloat linear infinite both;
+  }
+
+  @keyframes starFloat {
+    0%   { opacity: 0;   transform: translateY(0)     scale(1); }
+    15%  { opacity: 0.7; }
+    80%  { opacity: 0.3; }
+    100% { opacity: 0;   transform: translateY(-80px) scale(0.5); }
+  }
 }

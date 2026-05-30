@@ -10,9 +10,9 @@ import { Camera, MapPin, User, RefreshCw } from "lucide-react";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Đà Nẵng Lắng Nghe — Cổng phản ánh thành phố" },
+      { title: "Đà Nẵng Kết Nối — Cổng phản ánh thành phố" },
       { name: "description", content: "Gửi phản ánh hạ tầng, môi trường, an ninh — cùng xây dựng Đà Nẵng văn minh." },
-      { property: "og:title", content: "Đà Nẵng Lắng Nghe" },
+      { property: "og:title", content: "Đà Nẵng Kết Nối" },
       { property: "og:description", content: "Da Nang civic reporting platform — submit and track municipal reports." },
     ],
   }),

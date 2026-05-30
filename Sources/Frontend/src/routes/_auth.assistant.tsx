@@ -1,14 +1,38 @@
-import { createFileRoute } from "@tanstack/react-router";
+/**
+ * _auth.assistant.tsx — AI Assistant (internal staff tool)
+ *
+ * Accessible to ALL authority roles (WARD_STAFF, POLICE, SUPER_ADMIN).
+ * The _auth.tsx layout already validated AUTHORITY_ROLES membership,
+ * so this route only needs to confirm any authority role is present.
+ *
+ * Note: The assistant is NOT accessible to CITIZEN — they use the
+ * public-facing chatbot on the citizen portal (/assistant).
+ */
+
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
 import { chatbotApi, ApiError } from "@/lib/api";
+import { AUTHORITY_ROLES } from "@/lib/roles";
+import { parseBackendRole } from "@/lib/roles";
 import { Bot, Phone, Send, User, Loader2 } from "lucide-react";
 
-export const Route = createFileRoute("/assistant")({
+export const Route = createFileRoute("/_auth/assistant")({
+  beforeLoad: ({ context }) => {
+    const { currentUser } = context as { currentUser: { role: string } };
+    const role = parseBackendRole(currentUser.role);
+
+    // Allow any authority role — the layout already checked, but this is
+    // the defense-in-depth second check
+    if (!AUTHORITY_ROLES.has(role)) {
+      throw redirect({ to: "/login" });
+    }
+  },
   head: () => ({
     meta: [
-      { title: "Trợ lý AI Khẩn cấp — Đà Nẵng Lắng Nghe" },
-      { name: "description", content: "Hỏi đáp về tình huống khẩn cấp, quy trình hành chính, đường dây nóng tại Đà Nẵng." },
+      { title: "Trợ lý AI Nội bộ — Đà Nẵng Kết Nối" },
+      { name: "description", content: "Hỏi đáp nội bộ cho cán bộ về quy trình hành chính và tình huống khẩn cấp." },
+      { name: "robots", content: "noindex, nofollow" },
     ],
   }),
   component: AssistantPage,
@@ -30,14 +54,13 @@ function AssistantPage() {
     {
       role: "bot",
       text: locale === "vi"
-        ? "Xin chào! Tôi là Trợ lý AI của Đà Nẵng Lắng Nghe. Tôi có thể hỗ trợ bạn giải đáp thắc mắc về thủ tục hành chính, phản ánh đô thị và tình huống khẩn cấp. Bạn cần hỗ trợ gì hôm nay?"
-        : "Hello! I'm Da Nang's AI Assistant. I can help you with civic procedures, urban reports, and emergencies. How can I help you today?",
+        ? "Xin chào! Tôi là Trợ lý AI nội bộ của Đà Nẵng Kết Nối. Tôi có thể hỗ trợ cán bộ giải đáp thắc mắc về thủ tục hành chính, phản ánh đô thị và tình huống khẩn cấp. Bạn cần hỗ trợ gì hôm nay?"
+        : "Hello! I'm Da Nang's internal AI Assistant. I can help staff with civic procedures, urban reports, and emergencies. How can I help you today?",
     },
   ]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
 
-  // Auto-scroll khi có tin nhắn mới
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -46,33 +69,21 @@ function AssistantPage() {
     if (!input.trim() || sending) return;
     const userText = input.trim();
 
-    // Add user message
     setMessages((m) => [...m, { role: "user", text: userText }]);
     setInput("");
     setSending(true);
-
-    // Add loading indicator
     setMessages((m) => [...m, { role: "bot", text: "", isLoading: true }]);
 
     try {
-      // Gọi API thực: GET /api/rag/chatbot?q=...&userId=1
       const result = await chatbotApi.ask(userText, 1);
-
-      // Remove loading and add real response
       setMessages((m) => {
         const filtered = m.filter((msg) => !msg.isLoading);
         return [
           ...filtered,
-          {
-            role: "bot",
-            text: result.answer,
-            provider: result.provider,
-            latency: result.latencyMs,
-          },
+          { role: "bot", text: result.answer, provider: result.provider, latency: result.latencyMs },
         ];
       });
     } catch (err) {
-      // Remove loading indicator
       setMessages((m) => m.filter((msg) => !msg.isLoading));
 
       if (err instanceof ApiError) {
@@ -86,7 +97,6 @@ function AssistantPage() {
           },
         ]);
       } else {
-        // Fallback mock when backend is offline
         setMessages((m) => [
           ...m,
           {
@@ -134,14 +144,12 @@ function AssistantPage() {
               ) : (
                 <>
                   <p className="whitespace-pre-wrap">{m.text}</p>
-                  {/* Provider/latency badge */}
                   {m.provider && (
                     <div className="mt-2 flex items-center gap-2 text-xs opacity-60">
                       <span className="bg-black/10 px-2 py-0.5 rounded">🤖 {m.provider}</span>
                       {m.latency && <span>{m.latency}ms</span>}
                     </div>
                   )}
-                  {/* Hotline buttons */}
                   {m.hotlines && (
                     <div className="mt-3 flex flex-wrap gap-2">
                       {m.hotlines.map((h) => (
@@ -164,10 +172,7 @@ function AssistantPage() {
       </div>
 
       {/* Input */}
-      <form
-        onSubmit={(e) => { e.preventDefault(); send(); }}
-        className="flex gap-3"
-      >
+      <form onSubmit={(e) => { e.preventDefault(); send(); }} className="flex gap-3">
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}

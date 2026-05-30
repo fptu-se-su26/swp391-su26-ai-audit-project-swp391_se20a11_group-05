@@ -1,16 +1,33 @@
-import { createFileRoute } from "@tanstack/react-router";
+/**
+ * _auth.police.tsx — Police & Traffic Agency Dashboard
+ *
+ * Protected by TWO independent guards:
+ *   1. _auth.tsx layout → checks AUTHORITY_ROLES membership
+ *   2. This route's beforeLoad → checks specifically for POLICE role
+ */
+
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
 import { reports } from "@/lib/mock-data";
 import { StatusBadge } from "@/components/site/StatusBadge";
-import { RoleGuard } from "@/components/site/RoleGuard";
 import { StaffShell } from "@/components/site/StaffShell";
+import { Role } from "@/lib/roles";
 import { AlertTriangle, Megaphone, ScanLine, Video } from "lucide-react";
 
-export const Route = createFileRoute("/police")({
+export const Route = createFileRoute("/_auth/police")({
+  beforeLoad: ({ context }) => {
+    const { currentUser } = context as { currentUser: { role: string } };
+
+    // SECURITY: Only POLICE may access this route
+    if (currentUser.role !== Role.POLICE) {
+      throw redirect({ to: "/login", search: { error: "forbidden" } });
+    }
+  },
   head: () => ({
     meta: [
-      { title: "Cổng Công an & CSGT — Đà Nẵng Lắng Nghe" },
+      { title: "Cổng Công an & CSGT — Đà Nẵng Kết Nối" },
       { name: "description", content: "Cổng dành cho lực lượng Công an, CSGT, PCCC — giám sát giao thông và an ninh." },
+      { name: "robots", content: "noindex, nofollow" },
     ],
   }),
   component: PolicePage,
@@ -21,18 +38,17 @@ function PolicePage() {
   const trafficReports = reports.filter((r) => r.category === "traffic" || r.status === "urgent");
 
   return (
-    <RoleGuard roles={["police", "city_admin"]}>
-      <StaffShell
-        accent="red"
-        eyebrow={locale === "vi" ? "Lực lượng phản ứng nhanh" : "Emergency forces"}
-        title={t("police.title")}
-        org="Công an Thành phố Đà Nẵng · CSGT · PCCC"
-      >
-        <div className="flex justify-end mb-6">
-          <button className="btn-civic btn-civic-primary" style={{ background: "var(--status-danger)" }}>
-            <Megaphone size={20} /> {t("police.broadcast")}
-          </button>
-        </div>
+    <StaffShell
+      accent="red"
+      eyebrow={locale === "vi" ? "Lực lượng phản ứng nhanh" : "Emergency forces"}
+      title={t("police.title")}
+      org="Công an Thành phố Đà Nẵng · CSGT · PCCC"
+    >
+      <div className="flex justify-end mb-6">
+        <button className="btn-civic btn-civic-primary" style={{ background: "var(--status-danger)" }}>
+          <Megaphone size={20} /> {t("police.broadcast")}
+        </button>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
         {[
@@ -88,7 +104,6 @@ function PolicePage() {
           </div>
         ))}
       </div>
-      </StaffShell>
-    </RoleGuard>
+    </StaffShell>
   );
 }

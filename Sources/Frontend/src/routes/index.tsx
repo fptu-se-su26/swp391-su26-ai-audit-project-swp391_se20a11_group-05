@@ -24,21 +24,6 @@ export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
-import { type ReportStatus } from "@/lib/mock-data";
-
-/** Map backend status → frontend status for StatusBadge */
-function mapStatus(backendStatus: string): ReportStatus {
-  const map: Record<string, ReportStatus> = {
-    PENDING: "pending",
-    ASSIGNED: "inProgress",
-    IN_PROGRESS: "inProgress",
-    WAITING_INFO: "pending",
-    RESOLVED: "resolved",
-    REJECTED: "urgent",
-  };
-  return map[backendStatus] || "pending";
-}
-
 function HomePage() {
   const { t, locale } = useI18n();
   const { data: feedbacksPage, isLoading, isFetching, refetch } = useFeedbacks(0, 20);

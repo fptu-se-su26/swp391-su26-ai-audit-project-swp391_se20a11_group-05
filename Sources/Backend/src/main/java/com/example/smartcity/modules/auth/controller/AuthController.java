@@ -6,6 +6,7 @@ import com.example.smartcity.modules.auth.payload.LoginRequest;
 import com.example.smartcity.modules.auth.payload.MfaVerificationRequest;
 import com.example.smartcity.modules.auth.payload.RegisterRequest;
 import com.example.smartcity.modules.auth.payload.TokenResponse;
+import com.example.smartcity.modules.auth.payload.ForgotPasswordRequest;
 import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.auth.service.SmsService;
 import com.example.smartcity.modules.auth.payload.request.SmsSendRequest;
@@ -70,5 +71,23 @@ public class AuthController {
     public ResponseEntity<ApiResponse<String>> verifySmsOtp(@Valid @RequestBody SmsVerifyRequest request) {
         smsService.verifyOtp(request.getPhoneNumber(), request.getOtpCode());
         return ResponseEntity.ok(ApiResponse.success("Xác minh số điện thoại thành công", request.getPhoneNumber()));
+    }
+
+    @PostMapping("/verify-sms")
+    public ResponseEntity<ApiResponse<String>> verifySms(@Valid @RequestBody SmsVerifyRequest request) {
+        smsService.verifyOtp(request.getPhoneNumber(), request.getOtpCode());
+        return ResponseEntity.ok(ApiResponse.success("Xác minh số điện thoại thành công", request.getPhoneNumber()));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<String>> logout(@RequestHeader(value = "Authorization", required = false) String tokenHeader) {
+        authService.logout(tokenHeader);
+        return ResponseEntity.ok(ApiResponse.success("Đăng xuất thành công", null));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request);
+        return ResponseEntity.ok(ApiResponse.success("Đặt lại mật khẩu thành công", null));
     }
 }

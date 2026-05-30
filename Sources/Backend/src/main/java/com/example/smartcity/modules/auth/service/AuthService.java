@@ -6,10 +6,12 @@ import com.example.smartcity.modules.auth.payload.LoginRequest;
 import com.example.smartcity.modules.auth.payload.MfaVerificationRequest;
 import com.example.smartcity.modules.auth.payload.RegisterRequest;
 import com.example.smartcity.modules.auth.payload.TokenResponse;
+import com.example.smartcity.modules.auth.payload.ForgotPasswordRequest;
 import com.example.smartcity.modules.user.entity.Role;
 import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.user.repository.UserRepository;
 import com.example.smartcity.security.jwt.JwtTokenProvider;
+import com.example.smartcity.security.jwt.TokenBlacklistService;
 import com.google.firebase.auth.FirebaseToken;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -35,17 +37,23 @@ public class AuthService {
     private final JwtTokenProvider tokenProvider;
     private final MfaService mfaService;
     private final FirebaseService firebaseService;
+    private final TokenBlacklistService blacklistService;
+    private final SmsService smsService;
 
     public Object authenticateUser(LoginRequest loginRequest) {
+        User user = userRepository.findByUsername(loginRequest.getUsername())
+                .orElseThrow(() -> new CustomException("Tài khoản không tồn tại", 404));
+
+        if (!user.isActive()) {
+            throw new CustomException("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.", 403);
+        }
+
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         loginRequest.getUsername(),
                         loginRequest.getPassword()
                 )
         );
-
-        User user = userRepository.findByUsername(loginRequest.getUsername())
-                .orElseThrow(() -> new CustomException("Tài khoản không tồn tại", 404));
 
         boolean isHighRiskRole = user.getRole() == Role.WARD_STAFF || 
                                  user.getRole() == Role.POLICE || 
@@ -167,5 +175,32 @@ public class AuthService {
         );
 
         return userRepository.save(user);
+    }
+
+    public void logout(String tokenHeader) {
+        if (tokenHeader != null && tokenHeader.startsWith("Bearer ")) {
+            String jwt = tokenHeader.substring(7);
+            try {
+                java.util.Date expiration = tokenProvider.getExpirationFromJWT(jwt);
+                blacklistService.blacklistToken(jwt, expiration.getTime());
+            } catch (Exception e) {
+                // Nếu token không hợp lệ hoặc đã hết hạn, đưa vào blacklist 10 phút
+                blacklistService.blacklistToken(jwt, System.currentTimeMillis() + 600000);
+            }
+        }
+    }
+
+    @Transactional
+    public void forgotPassword(ForgotPasswordRequest request) {
+        // 1. Xác minh mã OTP bằng số điện thoại
+        smsService.verifyOtp(request.getPhoneNumber(), request.getOtpCode());
+
+        // 2. Tìm người dùng bằng số điện thoại
+        User user = userRepository.findByPhoneNumber(request.getPhoneNumber())
+                .orElseThrow(() -> new CustomException("Không tìm thấy tài khoản kết hợp với số điện thoại này.", 404));
+
+        // 3. Cập nhật mật khẩu đã mã hóa BCrypt
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
     }
 }

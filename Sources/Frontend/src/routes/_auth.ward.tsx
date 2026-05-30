@@ -10,7 +10,7 @@
  */
 
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useFeedbacks } from "@/lib/hooks";
 import { reports as mockReports, type ReportStatus } from "@/lib/mock-data";
@@ -18,7 +18,7 @@ import { StatusBadge } from "@/components/site/StatusBadge";
 import { StaffShell } from "@/components/site/StaffShell";
 import { Role } from "@/lib/roles";
 import danangMap from "@/assets/danang-map.jpg";
-import { Check, MapPin, MessageSquare, X } from "lucide-react";
+import { Check, MapPin, MessageSquare, X, Loader2, RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/_auth/ward")({
   beforeLoad: ({ context }) => {
@@ -114,8 +114,7 @@ function WardDashboard() {
               {locale === "vi" ? "Làm mới" : "Refresh"}
             </button>
           </div>
-        </aside>
-      </div>
+        </div>
     </StaffShell>
   );
 }

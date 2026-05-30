@@ -6,6 +6,7 @@ import com.example.smartcity.modules.auth.payload.LoginRequest;
 import com.example.smartcity.modules.auth.payload.MfaVerificationRequest;
 import com.example.smartcity.modules.auth.payload.RegisterRequest;
 import com.example.smartcity.modules.auth.payload.TokenResponse;
+import com.example.smartcity.modules.auth.payload.AuthResponse;
 import com.example.smartcity.modules.auth.payload.ForgotPasswordRequest;
 import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.auth.service.SmsService;
@@ -29,9 +30,9 @@ public class AuthController {
     private final SmsService smsService;
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<?>> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
-        Object result = authService.authenticateUser(loginRequest);
-        if (result instanceof Map) {
+    public ResponseEntity<ApiResponse<AuthResponse>> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+        AuthResponse result = authService.authenticateUser(loginRequest);
+        if (result.isMfaRequired()) {
             return ResponseEntity.ok(ApiResponse.success("Yêu cầu xác thực MFA", result));
         }
         return ResponseEntity.ok(ApiResponse.success("Đăng nhập thành công", result));

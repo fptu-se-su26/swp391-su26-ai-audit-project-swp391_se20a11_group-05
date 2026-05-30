@@ -21,8 +21,8 @@ import java.util.List;
 @Slf4j
 public class SemanticChunker {
 
-    private static final int DEFAULT_CHUNK_SIZE  = 512;  // Ký tự
-    private static final int DEFAULT_OVERLAP     = 50;   // Ký tự overlap
+    private static final int DEFAULT_CHUNK_SIZE  = 1500; // Ký tự
+    private static final int DEFAULT_OVERLAP     = 200;  // Ký tự overlap
     private static final int MIN_CHUNK_SIZE      = 100;  // Bỏ chunk quá nhỏ
 
     /**

@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkline, textClassToHex } from "@/components/site/KpiChart";
 import { Camera, MapPin, User, RefreshCw, Loader2 } from "lucide-react";
 import { lazy, Suspense } from "react";
-import DaNangNews from "@/components/DaNangNews";
+import DaNangNews from "@/components/ui/DaNangNews";
 
 const CivicMap = lazy(() => import("@/components/site/CivicMap").then(m => ({ default: m.CivicMap })));
 

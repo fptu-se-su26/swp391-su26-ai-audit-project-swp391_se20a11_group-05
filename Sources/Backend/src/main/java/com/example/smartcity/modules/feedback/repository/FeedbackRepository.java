@@ -12,6 +12,7 @@ import java.util.Optional;
 public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
     Optional<Feedback> findByTrackingCode(String trackingCode);
     List<Feedback> findByStatus(FeedbackStatus status);
+    List<Feedback> findByAssignee_Id(Long assigneeId);
 }
 
 

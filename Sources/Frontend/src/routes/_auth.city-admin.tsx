@@ -24,13 +24,17 @@ import { Download, Settings, Users, TrendingUp, CloudRain, Wind, Thermometer, Dr
 import { weatherApi, WeatherForecastResponse, AlertLevel, RiskLevel } from "@/lib/api";
 import { useFeedbackNotification } from "@/lib/useNotification";
 
+const CivicMap = lazy(() =>
+  import("@/components/site/CivicMap").then((module) => ({ default: module.CivicMap })),
+);
+
 export const Route = createFileRoute("/_auth/city-admin")({
   beforeLoad: ({ context }) => {
     const { currentUser } = context as { currentUser: { role: string } };
 
     // SECURITY: Only SUPER_ADMIN may access the city leadership dashboard
     if (currentUser.role !== Role.SUPER_ADMIN) {
-      throw redirect({ to: "/login", search: { error: "forbidden" } });
+      throw redirect({ to: "/login", search: { redirect: undefined, error: "forbidden" } });
     }
   },
   head: () => ({
@@ -83,7 +87,13 @@ function CityAdmin() {
 
   const isApi = !!(analyticsKpi || hasApiData);
 
-  const wardData = wardPerf ?? mockWardPerf;
+  const wardData: WardPerformance[] =
+    wardPerf ??
+    mockWardPerf.map((ward) => ({
+      name: ward.ward,
+      resolved: ward.resolved,
+      satisfactionPct: Math.max(0, Math.round(100 - ward.avgHrs * 4)),
+    }));
   const maxResolved = Math.max(...wardData.map((w: WardPerformance) => w.resolved));
 
   return (

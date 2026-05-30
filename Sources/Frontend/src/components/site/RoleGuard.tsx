@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ShieldAlert, LogIn } from "lucide-react";
+import { Lock, ShieldAlert } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { ROLE_LABEL, type Role } from "@/lib/roles";
 import { useI18n } from "@/lib/i18n";

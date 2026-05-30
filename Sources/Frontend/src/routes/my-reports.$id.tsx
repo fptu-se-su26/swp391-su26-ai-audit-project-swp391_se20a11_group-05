@@ -3,9 +3,13 @@ import { useI18n } from "@/lib/i18n";
 import { useFeedbackDetail } from "@/lib/hooks";
 import { reports as mockReports } from "@/lib/mock-data";
 import { StatusBadge } from "@/components/site/StatusBadge";
-import { ArrowLeft, Check, Clock, MapPin, User } from "lucide-react";
+import { DemoBanner } from "@/components/site/DemoBanner";
+import { EmptyState } from "@/components/site/EmptyState";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowLeft, Check, Clock, MapPin, SearchX, User } from "lucide-react";
 import { Role, AUTHORITY_ROLES, parseBackendRole } from "@/lib/roles";
 import { getToken } from "@/lib/api";
+import { mapStatus } from "@/lib/status";
 
 export const Route = createFileRoute("/my-reports/$id")({
   beforeLoad: async ({ params }) => {
@@ -15,7 +19,7 @@ export const Route = createFileRoute("/my-reports/$id")({
       : null;
 
     if (!token || !raw) {
-      throw redirect({ to: "/login", search: { redirect: `/my-reports/${params.id}` } });
+      throw redirect({ to: "/login", search: { redirect: `/my-reports/${params.id}`, error: undefined } });
     }
 
     let user: { role: string } | null = null;
@@ -94,7 +98,7 @@ function ReportDetail() {
     );
   }
 
-  const currentStage = isApi ? mapTimelineStage(apiReport.status) : mockReport!.status;
+  const currentStage = isApi ? mapStatus(apiReport.status) : mockReport!.status;
   const currentIdx = stages.indexOf(currentStage as typeof stages[number]);
 
   return (

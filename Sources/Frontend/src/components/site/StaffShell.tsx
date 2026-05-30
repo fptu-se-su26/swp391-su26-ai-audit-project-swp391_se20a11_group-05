@@ -23,7 +23,6 @@ export function StaffShell({ accent, eyebrow, title, org, children }: Props) {
       style={{
         backgroundImage: `linear-gradient(rgba(0,15,40,0.86), rgba(0,15,40,0.92)), url(${bgStaff})`,
         backgroundSize: "cover",
-        backgroundAttachment: "fixed",
         backgroundPosition: "center",
       }}
     >

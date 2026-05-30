@@ -49,7 +49,6 @@ public class SpeculativeRacingService {
 
         try {
             // Chờ provider nào xong trước
-            @SuppressWarnings("unchecked")
             CompletableFuture<Object> race = CompletableFuture.anyOf(task1, task2);
             String[] winnerData = (String[]) race.get(5, TimeUnit.SECONDS);
 

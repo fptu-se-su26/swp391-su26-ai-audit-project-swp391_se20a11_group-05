@@ -154,10 +154,7 @@ public class RagController {
 
     /**
      * GET /api/rag/chatbot?q=...&userId=1
-     * Người dân hỏi chatbot. Kết quả được lưu vào ChatHistory.
-     *
-     * Ví dụ:
-     * http://localhost:8080/api/rag/chatbot?q=Làm sao phản ánh rác thải?&userId=1
+     * Người dân hỏi chatbot (Mặc định JSON 1 lần).
      */
     @GetMapping("/chatbot")
     public ResponseEntity<Map<String, Object>> chat(
@@ -167,6 +164,19 @@ public class RagController {
         log.info("💬 [API] GET /api/rag/chatbot — userId={} | q='{}'", userId, q);
         Map<String, Object> result = chatbotService.ask(userId, q);
         return ResponseEntity.ok(result);
+    }
+
+    /**
+     * GET /api/rag/stream?q=...&userId=1
+     * Người dân hỏi chatbot (SSE Streaming - Hiệu ứng gõ phím).
+     */
+    @GetMapping(value = "/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
+    public reactor.core.publisher.Flux<String> streamChat(
+            @RequestParam String q,
+            @RequestParam(defaultValue = "1") Long userId) {
+
+        log.info("💬 [API STREAM] GET /api/rag/stream — userId={} | q='{}'", userId, q);
+        return chatbotService.askStream(userId, q);
     }
 
     /**

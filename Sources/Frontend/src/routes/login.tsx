@@ -44,7 +44,8 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mfaRequired, setMfaRequired] = useState(false);
-  const [mfaCode, setMfaCode] = useState("");
+  const [savedUsername, setSavedUsername] = useState("");
+  const [savedPassword, setSavedPassword] = useState("");
 
   // ─── Handlers ────────────────────────────────────────────────
 
@@ -54,12 +55,13 @@ function LoginPage() {
     setLoading(true);
 
     try {
-      const result = await authApi.login(username, password);
+      const result = await loginMutation.mutateAsync(values);
       const data = result.data;
 
       if ("mfaRequired" in data && data.mfaRequired) {
+        setSavedUsername(values.username);
+        setSavedPassword(values.password);
         setMfaRequired(true);
-        setLoading(false);
         return;
       }
 
@@ -92,10 +94,8 @@ function LoginPage() {
     }
   };
 
-  const handleMfaVerify = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleMfaSubmit = async (values: z.infer<typeof mfaSchema>) => {
     setError(null);
-    setLoading(true);
 
     try {
       const result = await authApi.mfaVerify(username, password, mfaCode);

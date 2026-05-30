@@ -37,7 +37,7 @@ public interface DocumentChunkRepository extends JpaRepository<DocumentChunk, UU
         LIMIT :k
         """, nativeQuery = true)
     List<DocumentChunk> findSimilar(
-        @Param("queryVector") float[] queryVector,
+        @Param("queryVector") String queryVector,
         @Param("docType") String docType,
         @Param("lang") String lang,
         @Param("k") int k
@@ -56,7 +56,7 @@ public interface DocumentChunkRepository extends JpaRepository<DocumentChunk, UU
         LIMIT :k
         """, nativeQuery = true)
     List<DocumentChunk> findSimilarWithPermission(
-        @Param("queryVector") float[] queryVector,
+        @Param("queryVector") String queryVector,
         @Param("docType") String docType,
         @Param("lang") String lang,
         @Param("allowedLevels") List<String> allowedLevels,

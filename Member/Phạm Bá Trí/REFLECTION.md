@@ -385,6 +385,20 @@ Khi tính năng quá lớn (cập nhật bảo mật toàn hệ thống), không
 Qua việc yêu cầu AI phân tích và cấu hình Supabase, nhóm nhận thấy rằng kiến thức về Infrastructure cũng rất quan trọng. Khi kết nối Spring Boot với các dịch vụ Cloud như Supabase (dùng PgBouncer Pooler), ta phải hiểu rõ cấu trúc URL (thêm ?prepareThreshold=0) thay vì chỉ copy-paste như làm việc với PostgreSQL chạy trên localhost. Việc tách riêng file `application-supabase.properties` là một best practice giúp quản lý môi trường dễ dàng.
 ```
 
+### 9.9. Bài học từ việc đồng bộ hóa Frontend ↔ Backend API
+
+```text
+Khi 2 đầu Frontend và Backend phát triển song song mà thiếu API contract (Swagger/OpenAPI), việc kết nối rất dễ bị lỗi âm thầm — code chạy được nhưng gọi sai tên method, sai kiểu dữ liệu. Bài học quan trọng: phải đọc source Java (Controllers, DTOs, Enums) trước khi viết bất kỳ dòng TypeScript nào ở Frontend. AI hỗ trợ rất tốt việc dịch Java types sang TypeScript interfaces, nhưng việc kiểm chứng thủ công (tự mở file xem thực tế) vẫn là bước không thể bỏ qua — đặc biệt khi file bị xóa nhầm mà AI không tự biết được.
+```
+
+### 9.10. Bài học về Strict Type Checking trong TanStack Router
+
+```text
+- Vấn đề: Khi sử dụng TanStack Router, việc điều hướng bằng `<Link to="...">` hoặc `navigate({ to: "..." })` đòi hỏi path phải tồn tại trong Route Tree đã được generate. Nếu tạo file mới (như `register.tsx`) mà chưa chạy generator, TypeScript sẽ báo lỗi ngay lập tức.
+- Giải pháp: Không nên lạm dụng `as any` để ép kiểu qua mặt compiler ở hàm khởi tạo `createFileRoute("/route")`, vì sẽ làm hỏng router generator. Thay vào đó, cần giữ nguyên string literal và chạy lệnh `npx @tanstack/router-cli generate` để cập nhật `routeTree.gen.ts`.
+- Kinh nghiệm: Luôn xây dựng cơ chế Fallback (Dự phòng) cho Frontend. Trong quá trình phát triển (hoặc khi Demo môn học), Backend có thể bị sập. Việc tự động lùi về Mock Data với cờ cảnh báo (Warning UI) giúp ứng dụng luôn chạy mượt mà trước mắt người dùng và giảng viên.
+```
+
 ---
 
 ## 17. Cam kết Reflection

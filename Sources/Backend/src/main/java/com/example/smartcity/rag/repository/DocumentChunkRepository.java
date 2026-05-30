@@ -76,10 +76,12 @@ public interface DocumentChunkRepository extends JpaRepository<DocumentChunk, UU
         WHERE c.doc_type = :docType
           AND to_tsvector('simple', c.content) @@ plainto_tsquery('simple', :keyword)
         ORDER BY ts_rank_cd(to_tsvector('simple', c.content), plainto_tsquery('simple', :keyword)) DESC
+        LIMIT :topK
         """, nativeQuery = true)
     List<DocumentChunk> findByKeyword(
         @Param("keyword") String keyword,
-        @Param("docType") String docType
+        @Param("docType") String docType,
+        @Param("topK") int topK
     );
 
     // ──────────────────────────────────────────────────────────────

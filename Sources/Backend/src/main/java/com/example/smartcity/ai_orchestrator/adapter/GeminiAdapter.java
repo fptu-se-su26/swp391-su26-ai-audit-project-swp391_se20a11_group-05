@@ -47,6 +47,7 @@ public class GeminiAdapter implements AiProviderAdapter {
     public String getProviderName() { return "GEMINI"; }
 
     @Override
+    @io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker(name = "geminiLLM", fallbackMethod = "fallbackToMock")
     public CompletableFuture<String> generateResponseAsync(String systemPrompt, String userMessage) {
         if (!keyPool.isConfigured()) {
             log.warn("⚠️  [Gemini] Pool chưa cấu hình → Mock.");
@@ -86,6 +87,11 @@ public class GeminiAdapter implements AiProviderAdapter {
                 })
                 .onErrorReturn(buildMockFallback(userMessage))
                 .toFuture();
+    }
+
+    public CompletableFuture<String> fallbackToMock(String systemPrompt, String userMessage, Throwable t) {
+        log.warn("🚨 [CircuitBreaker] Gemini API sập. Kích hoạt Mock Fallback an toàn. Lỗi: {}", t.getMessage());
+        return CompletableFuture.completedFuture(buildMockFallback(userMessage));
     }
 
     private String parseGeminiResponse(Map<?, ?> response) {

@@ -25,9 +25,8 @@ public class JwtTokenProvider {
 
     private Key getSigningKey() {
         if (jwtSecret == null || jwtSecret.isBlank()) {
-            log.error("JWT_SECRET environment variable is not set! Using INSECURE default. Set JWT_SECRET in application.properties or environment.");
-            String fallback = "SecretKeyToGenerateJWTTokenNeedToBeAtLeast256BitsLongForHS256Algorithm";
-            return Keys.hmacShaKeyFor(fallback.getBytes(StandardCharsets.UTF_8));
+            log.error("JWT_SECRET environment variable is not set! System cannot start securely.");
+            throw new IllegalStateException("CRITICAL: JWT_SECRET env var must be set for secure token generation!");
         }
         return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }

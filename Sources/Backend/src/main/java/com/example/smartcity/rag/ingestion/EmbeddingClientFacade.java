@@ -1,9 +1,14 @@
 package com.example.smartcity.rag.ingestion;
 
+import com.example.smartcity.ai_orchestrator.pool.GeminiKeyPool;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 /**
@@ -12,66 +17,92 @@ import java.util.Random;
  * Bọc lấy logic gọi Embedding API để:
  * - Dễ dàng swap provider (OpenAI / Gemini / Ollama)
  * - Cache kết quả (tránh gọi API lặp lại cho cùng văn bản)
- *
- * ⚠️  HIỆN TẠI: Mock trả về random vector để test không cần API key.
- *     → Khi có Spring AI, thay thế bằng:
- *         private final EmbeddingModel embeddingModel; // Spring AI
- *         return embeddingModel.embed(text).toFloatArray();
- *
- * Cấu hình trong application.properties:
- *     spring.ai.openai.api-key=${OPENAI_API_KEY}
- *     spring.ai.openai.embedding.model=text-embedding-3-small
  */
 @Component
 @Slf4j
 public class EmbeddingClientFacade {
 
-    /** Số chiều vector — phải khớp với cột `vector(1536)` trong PostgreSQL */
-    private static final int VECTOR_DIM = 1536;
+    // Gemini text-embedding-004 trả về vector 768 chiều
+    private static final int VECTOR_DIM = 768;
+    private static final String GEMINI_BASE_URL = "https://generativelanguage.googleapis.com";
+    private static final String EMBEDDING_MODEL = "text-embedding-004";
+
+    private final GeminiKeyPool keyPool;
+    private final WebClient webClient;
+
+    public EmbeddingClientFacade(GeminiKeyPool keyPool, WebClient.Builder webClientBuilder) {
+        this.keyPool = keyPool;
+        this.webClient = webClientBuilder
+                .baseUrl(GEMINI_BASE_URL)
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .build();
+    }
 
     /**
      * Embed một đoạn văn bản đơn lẻ.
      *
      * @param text Văn bản cần embed
-     * @return float[] vector chuẩn hóa L2
+     * @return float[] vector
      */
     public float[] embed(String text) {
         log.debug("🔢 [EMBEDDING] Embed {} ký tự...", text.length());
 
-        // ── TODO: Thay block này bằng Spring AI khi tích hợp ──────────
-        // return embeddingModel.embed(text).toFloatArray();
-        // ─────────────────────────────────────────────────────────────
+        if (!keyPool.isConfigured()) {
+            log.warn("⚠️  [Embedding] Pool chưa cấu hình → Fallback Mock.");
+            return mockEmbed(text);
+        }
+
+        String apiKey = keyPool.nextKey();
+        if (apiKey == null) return mockEmbed(text);
+
+        try {
+            Map<String, Object> body = Map.of(
+                "model", "models/" + EMBEDDING_MODEL,
+                "content", Map.of("parts", List.of(Map.of("text", text)))
+            );
+
+            Map response = webClient.post()
+                    .uri("/v1beta/models/" + EMBEDDING_MODEL + ":embedContent?key=" + apiKey)
+                    .bodyValue(body)
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .block(); // Block vì luồng ingestion hiện tại chạy đồng bộ từng file
+
+            if (response != null && response.containsKey("embedding")) {
+                Map embeddingObj = (Map) response.get("embedding");
+                List<Double> values = (List<Double>) embeddingObj.get("values");
+                
+                // Parse json array sang float array (Dimension: 768)
+                float[] vector = new float[VECTOR_DIM];
+                for (int i = 0; i < values.size() && i < VECTOR_DIM; i++) {
+                    vector[i] = values.get(i).floatValue();
+                }
+                return vector;
+            }
+        } catch (Exception e) {
+            log.error("❌ [Embedding] Lỗi gọi Gemini API: {}", e.getMessage());
+        }
+
         return mockEmbed(text);
     }
 
     /**
      * Batch embed — gọi API 1 lần cho N đoạn văn (tiết kiệm cost).
-     *
-     * @param texts Danh sách văn bản
-     * @return Danh sách vector theo thứ tự tương ứng
      */
     public List<float[]> embedBatch(List<String> texts) {
         log.debug("🔢 [EMBEDDING] Batch embed {} đoạn văn...", texts.size());
-
-        // ── TODO: Thay bằng Spring AI batch embed ─────────────────────
-        // return embeddingModel.embed(texts).stream()
-        //     .map(Embedding::toFloatArray).toList();
-        // ─────────────────────────────────────────────────────────────
-        return texts.stream().map(this::mockEmbed).toList();
+        // Hiện tại xử lý tuần tự từng đoạn văn.
+        // Tương lai có thể dùng Task.whenAll / Flux để parallelize.
+        return texts.stream().map(this::embed).toList();
     }
 
     // ──────────────────────────────────────────────────────────────
     //  MOCK IMPLEMENTATION (Dùng cho phát triển / test offline)
     // ──────────────────────────────────────────────────────────────
 
-    /**
-     * Tạo vector ngẫu nhiên chuẩn hóa L2 — dùng để test pipeline
-     * mà không cần API key thật.
-     * Hash của text đảm bảo cùng input → cùng output (deterministic).
-     */
     private float[] mockEmbed(String text) {
         float[] vector = new float[VECTOR_DIM];
-        Random seeded = new Random(text.hashCode()); // Deterministic
+        Random seeded = new Random(text.hashCode());
 
         float norm = 0;
         for (int i = 0; i < VECTOR_DIM; i++) {
@@ -79,7 +110,6 @@ public class EmbeddingClientFacade {
             norm += vector[i] * vector[i];
         }
 
-        // L2 Normalization — cosine similarity hoạt động chính xác hơn
         norm = (float) Math.sqrt(norm);
         for (int i = 0; i < VECTOR_DIM; i++) {
             vector[i] /= norm;

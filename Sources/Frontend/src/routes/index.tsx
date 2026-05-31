@@ -4,11 +4,12 @@ import { useFeedbacks } from "@/lib/hooks";
 import { reports as mockReports, kpis } from "@/lib/mock-data";
 import { StatusBadge } from "@/components/site/StatusBadge";
 import { DemoBanner } from "@/components/site/DemoBanner";
+import { mapStatus } from "@/lib/status";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkline, textClassToHex } from "@/components/site/KpiChart";
 import { Camera, MapPin, User, RefreshCw, Loader2, PlayCircle } from "lucide-react";
 import { lazy, Suspense, useState, useEffect } from "react";
-import DaNangNews from "@/components/ui/DaNangNews";
+import DaNangNews from "@/components/site/DaNangNews";
 
 const CivicMap = lazy(() => import("@/components/site/CivicMap").then(m => ({ default: m.CivicMap })));
 
@@ -52,13 +53,6 @@ export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
-// Map API status strings to internal StatusBadge type
-function mapStatus(s: string): "pending" | "inProgress" | "resolved" | "urgent" {
-  if (s === "IN_PROGRESS") return "inProgress";
-  if (s === "RESOLVED") return "resolved";
-  if (s === "URGENT") return "urgent";
-  return "pending";
-}
 
 function HomePage() {
   const { t, locale } = useI18n();

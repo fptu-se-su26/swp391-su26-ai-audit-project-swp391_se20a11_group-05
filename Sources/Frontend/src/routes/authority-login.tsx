@@ -17,8 +17,8 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
-import { useAuth, mapBackendRole } from "@/lib/auth";
-import { Role, AUTHORITY_ROLES, ROLE_LABEL } from "@/lib/roles";
+import { useAuth } from "@/lib/auth";
+import { Role, AUTHORITY_ROLES, ROLE_LABEL, parseBackendRole } from "@/lib/roles";
 import { authApi, ApiError } from "@/lib/api";
 import { LogIn, Shield, Loader2, AlertCircle, ShieldCheck, Eye, EyeOff, Lock, UserCog, ClipboardList, Users } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
@@ -79,7 +79,7 @@ function AuthorityLoginPage() {
       }
 
       if ("token" in data && data.token) {
-        const role = mapBackendRole(data.role);
+        const role = parseBackendRole(data.role);
 
         // SECURITY: If the backend returns a CITIZEN role for this staff login page,
         // reject it — citizens must use /login, not this page.
@@ -133,7 +133,7 @@ function AuthorityLoginPage() {
 
     try {
       const data = await authApi.mfaVerify(username, password, mfaCode);
-      const role = mapBackendRole(data.role);
+      const role = parseBackendRole(data.role);
 
       if (!AUTHORITY_ROLES.has(role)) {
         setError(

@@ -1,4 +1,4 @@
-import { type ReportStatus } from "@/lib/mock-data";
+import { type ReportStatus } from "@/types/status";
 
 /** Map backend DB status string → frontend badge status */
 export function mapStatus(backendStatus: string): ReportStatus {

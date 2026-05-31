@@ -154,7 +154,8 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
 }
 
 // ═══════════════════════════════════════════════════════════════
-// TYPE DEFINITIONS — Đồng bộ với Java DTOs/Entities/Enums
+// TYPE DEFINITIONS — re-exported from @/types/api for backward compat.
+// In new code, import types directly from "@/types/api".
 // ═══════════════════════════════════════════════════════════════
 
 export interface ApiResponse<T> {

@@ -182,6 +182,20 @@
 
 ---
 
+### Entry #: 012
+**Prompt Type:** ARCHITECTURE-REVIEW & PROBLEM-SOLVING
+**Stage/Component:** RAG Orchestrator / System Architecture
+**Problem/Context:** Sau quá trình lập trình nhanh bằng trực giác với AI (vibecoding), hệ thống Hybrid RAG đã hoạt động. Tuy nhiên, nhóm cần một "chuyên gia" kiểm toán chéo (Cross-audit) để đánh giá mã nguồn thực tế, tìm ra các lỗi ẩn về hiệu năng, luồng (threads) và bộ nhớ mà việc test thủ công không phát hiện được.
+**Prompt to AI:** "Hãy đóng vai một Senior Software Engineer và AI/ML Architect... Nhiệm vụ của bạn là: Đọc kỹ mã nguồn tôi cung cấp và CHẤM ĐIỂM NGHIÊM KHẮC kiến trúc Hybrid RAG này... TUYỆT ĐỐI KHÔNG BỊA ĐẶT (hallucinate)."
+**AI Response (Summary):** AI phân tích mã nguồn và chỉ ra 5 lỗi "chết người" khi lên Production: (1) Lỗi Thread-safety của biến `lastUsedProvider` trong Singleton Service; (2) Giới hạn Context Token 3000 là quá nhỏ so với sức mạnh LLM hiện tại; (3) Cắt Chunk 512 ký tự làm đứt gãy ngữ nghĩa câu; (4) Chạy Virtual Threads không có giới hạn Timeout và không dọn dẹp gây Memory Leak; (5) RRF Score bị thất thoát không truyền đi.
+**Human Delta & Reflection:**
+- **Critical Thinking:** Tôi nhận ra tác hại nguy hiểm của phương pháp "Vibecoding": Code có thể chạy đúng logic nhưng lại sai hoàn toàn về Kiến trúc hệ thống (System Architecture) khi chịu tải thực tế.
+- **Contextualization:** Đặc biệt lỗi Thread-Safety cực kỳ nghiêm trọng trong Spring Boot. Nếu 2 người dùng RAG cùng lúc, dữ liệu provider của họ sẽ đè lên nhau, gây rối loạn Metadata.
+- **Creative Synthesis:** Đã phối hợp cùng AI tái cấu trúc RAG: Đổi biến toàn cục thành `LlmCallResult` Record, tăng cửa sổ Context lên 6000, bổ sung `.orTimeout()` và `DisposableBean` để tự động ngắt kết nối.
+- **Decision Ownership:** Chốt quyết định "Refactor" sâu hệ thống. Việc chủ động đi tìm lỗi sai và tự kiểm điểm (Self-Audit) giúp dự án thực sự vươn tầm Enterprise.
+
+---
+
 ## III. Phát hiện Hallucination (Hallucination Detection)
 
 - **Trường hợp:** Khi yêu cầu AI tìm kiếm và tổng hợp 10 bài báo khoa học trên Springer (Entry 001).

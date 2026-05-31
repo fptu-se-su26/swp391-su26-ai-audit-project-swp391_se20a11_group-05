@@ -13,11 +13,11 @@ CREATE TABLE IF NOT EXISTS document_chunks (
     content          TEXT        NOT NULL,
     embedding        VECTOR(1536),          -- Khớp với text-embedding-3-small / Gemini
     source_url       VARCHAR(1000),
-    doc_type         VARCHAR(100),          -- grammar, vocabulary, kanji, culture...
+    doc_type         VARCHAR(100),          -- traffic, environment, policy, governance...
     language         VARCHAR(10),           -- vi, ja, en
     page_number      INTEGER     DEFAULT 0,
     version          VARCHAR(50) DEFAULT '1.0',
-    permission_level VARCHAR(20) DEFAULT 'PUBLIC',  -- PUBLIC | TEACHER_ONLY | ADMIN_ONLY
+    permission_level VARCHAR(20) DEFAULT 'PUBLIC',  -- PUBLIC | STAFF_ONLY | ADMIN_ONLY
     created_at       TIMESTAMPTZ DEFAULT NOW(),
     updated_at       TIMESTAMPTZ DEFAULT NOW()
 );
@@ -61,24 +61,18 @@ FOR EACH ROW EXECUTE FUNCTION update_chunk_timestamp();
 INSERT INTO document_chunks (content, doc_type, language, source_url, version, permission_level)
 VALUES
 (
-    'て形（te-form）là một dạng ngữ pháp cơ bản trong tiếng Nhật. ' ||
-    'Nó được dùng để nối các hành động: 食べて、飲んで (ăn rồi uống). ' ||
-    'Ngoài ra còn dùng để diễn đạt trạng thái: ドアが開いている (cửa đang mở). ' ||
-    'Cách chia: động từ nhóm 1 đổi đuôi い/ち/り → って; び/み/に → んで; き → いて; ぎ → いで; し → して.',
-    'grammar', 'ja',
-    'sample://n4-grammar-te-form', '1.0', 'PUBLIC'
+    'Hệ thống cảm biến giao thông thông minh tại Đô thị thông minh (Smart City) tự động thu thập dữ liệu lưu lượng xe, tốc độ trung bình và mật độ giao thông theo thời gian thực để tối ưu hóa chu kỳ đèn tín hiệu giao thông, giảm thiểu tắc nghẽn giao thông đô thị.',
+    'traffic', 'vi',
+    'smartcity://traffic-sensor-system', '1.0', 'PUBLIC'
 ),
 (
-    '食べる (taberu) nghĩa là "ăn". Ví dụ: 私は毎日ご飯を食べます (Tôi ăn cơm mỗi ngày). ' ||
-    'Động từ nhóm 2 (ichidan), て形: 食べて.',
-    'vocabulary', 'ja',
-    'sample://n5-vocab-taberu', '1.0', 'PUBLIC'
+    'Hệ thống chiếu sáng tự động trong Smart City sử dụng các cảm biến ánh sáng và hiện diện để điều chỉnh cường độ đèn đường, tự động giảm độ sáng vào ban đêm khi không có người qua lại giúp tiết kiệm tới 40% lượng điện năng tiêu thụ.',
+    'energy', 'vi',
+    'smartcity://smart-lighting-system', '1.0', 'PUBLIC'
 ),
 (
-    'は (wa) là trợ từ chủ đề (topic marker) trong tiếng Nhật. ' ||
-    'Phân biệt với が (ga) — trợ từ chủ ngữ (subject marker). ' ||
-    'Ví dụ: 猫は魚を食べます (Mèo [chủ đề] ăn cá) vs 猫が魚を食べます (Chính mèo [chứ không phải thứ khác] ăn cá).',
-    'grammar', 'ja',
-    'sample://n5-grammar-wa-ga', '1.0', 'PUBLIC'
+    'Cổng thanh toán dịch vụ công tích hợp công nghệ ví điện tử trong hệ thống dịch vụ thông minh của thành phố cho phép người dân thanh toán hóa đơn điện, nước, thuế trực tuyến nhanh chóng, minh bạch và an toàn tuyệt đối.',
+    'governance', 'vi',
+    'smartcity://public-payment-portal', '1.0', 'PUBLIC'
 )
 ON CONFLICT DO NOTHING;

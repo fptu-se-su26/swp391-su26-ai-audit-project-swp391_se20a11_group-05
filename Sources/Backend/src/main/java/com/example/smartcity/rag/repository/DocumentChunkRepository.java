@@ -37,7 +37,7 @@ public interface DocumentChunkRepository extends JpaRepository<DocumentChunk, UU
         LIMIT :k
         """, nativeQuery = true)
     List<DocumentChunk> findSimilar(
-        @Param("queryVector") float[] queryVector,
+        @Param("queryVector") String queryVector,
         @Param("docType") String docType,
         @Param("lang") String lang,
         @Param("k") int k
@@ -45,7 +45,7 @@ public interface DocumentChunkRepository extends JpaRepository<DocumentChunk, UU
 
     /**
      * Tìm kiếm Vector với Permission Control.
-     * allowedLevels là danh sách: ['PUBLIC', 'TEACHER_ONLY']
+     * allowedLevels là danh sách: ['PUBLIC', 'STAFF_ONLY']
      */
     @Query(value = """
         SELECT * FROM document_chunks
@@ -56,7 +56,7 @@ public interface DocumentChunkRepository extends JpaRepository<DocumentChunk, UU
         LIMIT :k
         """, nativeQuery = true)
     List<DocumentChunk> findSimilarWithPermission(
-        @Param("queryVector") float[] queryVector,
+        @Param("queryVector") String queryVector,
         @Param("docType") String docType,
         @Param("lang") String lang,
         @Param("allowedLevels") List<String> allowedLevels,
@@ -68,15 +68,15 @@ public interface DocumentChunkRepository extends JpaRepository<DocumentChunk, UU
     // ──────────────────────────────────────────────────────────────
 
     /**
-     * Tìm kiếm keyword đơn giản bằng LIKE (fallback khi không có Lucene).
-     * Lưu ý: LOWER() gây full table scan — chỉ dùng khi data nhỏ < 100K rows.
+     * Tìm kiếm keyword đơn giản bằng Full-Text Search (tsvector) của PostgreSQL.
+     * Cung cấp thuật toán BM25 gốc trên Supabase, thay thế cho Lucene.
      */
-    @Query("""
-        SELECT c FROM DocumentChunk c
-        WHERE LOWER(c.content) LIKE LOWER(CONCAT('%', :keyword, '%'))
-          AND c.docType = :docType
-        ORDER BY c.createdAt DESC
-        """)
+    @Query(value = """
+        SELECT * FROM document_chunks c
+        WHERE c.doc_type = :docType
+          AND to_tsvector('simple', c.content) @@ plainto_tsquery('simple', :keyword)
+        ORDER BY ts_rank_cd(to_tsvector('simple', c.content), plainto_tsquery('simple', :keyword)) DESC
+        """, nativeQuery = true)
     List<DocumentChunk> findByKeyword(
         @Param("keyword") String keyword,
         @Param("docType") String docType

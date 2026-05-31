@@ -1,5 +1,5 @@
 import { useI18n } from "@/lib/i18n";
-import type { ReportStatus } from "@/lib/mock-data";
+import type { ReportStatus } from "@/types/status";
 
 const styles: Record<ReportStatus, string> = {
   pending: "bg-amber-50 text-amber-800 border border-amber-200",

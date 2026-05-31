@@ -88,7 +88,7 @@ public class DocumentIngestionPipeline {
     //  PRIVATE HELPERS
     // ──────────────────────────────────────────────────────────────
 
-    private String loadText(MultipartFile file) {
+    public String loadText(MultipartFile file) {
         try {
             // Đọc file thuần text (UTF-8)
             // TODO: Thay bằng Apache Tika để hỗ trợ PDF, DOCX, HTML

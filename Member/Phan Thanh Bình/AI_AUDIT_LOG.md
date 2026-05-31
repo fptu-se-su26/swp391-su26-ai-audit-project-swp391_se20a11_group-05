@@ -4,14 +4,14 @@
 
 | Thông tin | Nội dung |
 |---|---|
-| Môn học |  |
-| Mã môn học |  |
-| Lớp |  |
-| Học kỳ |  |
-| Tên bài tập / Project |  |
-| Tên sinh viên / Nhóm |  |
-| MSSV / Danh sách MSSV |  |
-| Giảng viên hướng dẫn |  |
+| Môn học | Software Development Project |
+| Mã môn học | SWP391 |
+| Lớp | SE20A11|
+| Học kỳ | SU26 |
+| Tên bài tập / Project | The Listening City Systems |
+| Tên sinh viên / Nhóm | Phan Thanh Bình / Group05 |
+| MSSV / Danh sách MSSV | DE190210 |
+| Giảng viên hướng dẫn | Lê Thiện Nhật Quang |
 | Ngày bắt đầu |  |
 | Ngày hoàn thành |  |
 
@@ -21,12 +21,12 @@
 
 Đánh dấu các công cụ AI đã sử dụng trong quá trình thực hiện bài tập/project.
 
-- [ ] ChatGPT
-- [ ] Gemini
+- [x] ChatGPT
+- [x] Gemini
 - [ ] Claude
 - [ ] GitHub Copilot
 - [ ] Cursor
-- [ ] Antigravity
+- [x] Antigravity
 - [ ] Perplexity
 - [ ] Microsoft Copilot
 - [ ] Công cụ khác: ....................................
@@ -55,7 +55,12 @@ Ví dụ:
 ### Mô tả mục tiêu sử dụng AI
 
 ```text
-Viết tại đây...
+- Phân tích yêu cầu bài toán
+- Gợi ý ý tưởng giải pháp
+- Viết test case
+- Viết báo cáo
+
+Sử dụng AI để phân tích yêu cầu, gợi ý ý tưởng, viết test case, viết báo cáo, phân tích luồng nghiệp vụ, chia nhỏ bài toán để phân tích, tạo ra các use case, user story, các chức năng của hệ thống.
 
 ## 4. Nhật ký sử dụng AI chi tiết
 
@@ -68,16 +73,16 @@ Viết tại đây...
 
 | Nội dung | Thông tin |
 |---|---|
-| Ngày sử dụng |  |
-| Công cụ AI | ChatGPT / Gemini / Claude / GitHub Copilot / Cursor / Antigravity / Khác |
-| Mục đích sử dụng |  |
-| Phần việc liên quan | Requirement / Design / Database / Frontend / Backend / Testing / Debug / Report / Presentation / Other |
-| Mức độ sử dụng | Hỗ trợ ý tưởng / Hỗ trợ một phần / Hỗ trợ nhiều / Sinh chính nội dung |
+| Ngày sử dụng | 2026-05-16 |
+| Công cụ AI | ChatGPT / Gemini / Claude |
+| Mục đích sử dụng | Hỗ trợ ý tưởng |
+| Phần việc liên quan | Requirement |
+| Mức độ sử dụng | Hỗ trợ ý tưởng / Hỗ trợ một phần |
 
 #### 4.1. Prompt đã sử dụng
 
 ```text
-Dán nguyên văn prompt đã hỏi AI tại đây.
+bạn là một BA có kinh nghiệm nhiều năm, hãy phân tích cho tôi về yêu cầu bài toán, luồng nghiệp vụ, các usecase cỏ bản phải có và liên quan về đề tài. đề tài của có tên là The Listening City Systems, người dân có thể phản ánh được các trường hợp xung quanh họ, chính quyền và công an có thể tiếp nhận phản ánh và xử lí yêu cầu cảu người dân, mục tiêu đề tài là có thể cải thiện đời sống cho người dân.
 ```
 
 #### 4.2. Kết quả AI gợi ý
@@ -85,7 +90,18 @@ Dán nguyên văn prompt đã hỏi AI tại đây.
 Tóm tắt nội dung AI đã trả lời hoặc gợi ý.
 
 ```text
-Viết tại đây...
+- Mục tiêu: Xây dựng hệ thống để người dân phản ánh vấn đề đô thị và cơ quan chức năng tiếp nhận, xử lý minh bạch.
+- Citizen: Người dân có thể đăng ký/đăng nhập, gửi phản ánh kèm mô tả, ảnh/video và vị trí, rồi theo dõi kết quả xử lý.
+- Government Officer: Cán bộ chính quyền tiếp nhận, phân loại, phân công xử lý và cập nhật trạng thái phản ánh.
+- Police Officer: Công an tiếp nhận và xử lý các phản ánh liên quan đến an ninh, trật tự hoặc tình huống khẩn cấp.
+- Admin: Quản trị viên quản lý người dùng, vai trò hệ thống và danh mục loại phản ánh.
+- Workflow thường: Người dân gửi phản ánh → hệ thống tiếp nhận → cơ quan xử lý → cập nhật trạng thái → người dân nhận kết quả.
+- Workflow khẩn cấp: Người dân gửi phản ánh khẩn cấp → hệ thống chuyển ngay cho công an → xử lý ưu tiên → cập nhật kết quả.
+- Use Cases cốt lõi: Đăng nhập, gửi phản ánh, xem trạng thái, tiếp nhận phản ánh, phân công xử lý, cập nhật tiến độ.
+- Use Cases mở rộng: Chat/phản hồi, đánh giá chất lượng xử lý, thông báo tự động, dashboard thống kê.
+- Trạng thái phản ánh: Submitted → Under Review → In Progress → Resolved → Closed.
+- Dữ liệu chính: User, Role, Report, Category, Attachment, Notification, Status History.
+- Scope khuyên dùng: Chỉ làm các chức năng cốt lõi để hệ thống hoàn chỉnh và dễ demo trong đồ án.
 ```
 
 #### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
@@ -93,7 +109,10 @@ Viết tại đây...
 Mô tả rõ phần nào được sử dụng lại từ gợi ý của AI.
 
 ```text
-Viết tại đây...
+- Workflow thường: Người dân gửi phản ánh → hệ thống tiếp nhận → cơ quan xử lý → cập nhật trạng thái → người dân nhận kết quả.
+- Workflow khẩn cấp: Người dân gửi phản ánh khẩn cấp → hệ thống chuyển ngay cho công an → xử lý ưu tiên → cập nhật kết quả
+- Use Cases mở rộng: Chat/phản hồi, đánh giá chất lượng xử lý, thông báo tự động, dashboard thống kê.
+- Dữ liệu chính: User, Role, Report, Category, Attachment, Notification, Status History.
 ```
 
 #### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
@@ -101,7 +120,13 @@ Viết tại đây...
 Mô tả sinh viên/nhóm đã thay đổi, kiểm tra, sửa lỗi hoặc cải tiến gì so với gợi ý ban đầu của AI.
 
 ```text
-Viết tại đây...
+- Critical Thinking: AI xác định đúng actor, workflow và use case cốt lõi, nhưng một số đề xuất như AI detection hay analytics vượt quá scope thực tế của đồ án.
+
+- Contextualization: AI không biết giới hạn thời gian, năng lực nhóm và quy trình xử lý thực tế của cơ quan chức năng tại Việt Nam.
+
+- Creative Synthesis: Tôi đã chọn lọc các đề xuất, giữ lại chức năng cốt lõi và loại bỏ các tính năng quá phức tạp để phù hợp với đồ án.
+
+Decision Ownership: Tôi quyết định xây dựng hệ thống với 4 actor chính và các use case cơ bản vì đủ nghiệp vụ, khả thi và dễ hoàn thành đúng tiến độ.
 ```
 
 #### 4.5. Minh chứng

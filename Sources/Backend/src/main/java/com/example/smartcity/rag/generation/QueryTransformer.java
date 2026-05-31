@@ -41,16 +41,16 @@ public class QueryTransformer {
         // ── TODO: Thay bằng Spring AI call ────────────────────────────
         // return chatClient.prompt()
         //     .system("Viết một đoạn văn ngắn 2-3 câu như thể đang trả lời câu hỏi sau. " +
-        //             "Viết theo phong cách sách giáo khoa tiếng Nhật.")
+        //             "Viết theo phong cách tài liệu kỹ thuật đô thị thông minh.")
         //     .user(originalQuery)
         //     .call().content();
         // ─────────────────────────────────────────────────────────────
 
         // MOCK: Thêm prefix "Câu trả lời là:" và mở rộng câu hỏi
         return String.format(
-            "Câu trả lời cho câu hỏi '%s' là: Dựa trên ngữ pháp tiếng Nhật, " +
-            "khái niệm này liên quan đến cấu trúc câu và cách sử dụng trong ngữ cảnh hàng ngày. " +
-            "Người học cần lưu ý các trường hợp ngoại lệ và cách kết hợp với các mẫu câu khác.",
+            "Câu trả lời cho câu hỏi '%s' là: Dựa trên kiến thức về Đô thị thông minh (Smart City), " +
+            "khái niệm này liên quan đến việc tối ưu hóa hạ tầng, kết nối IoT và nâng cao chất lượng cuộc sống người dân. " +
+            "Hệ thống cần lưu ý cấu hình bảo mật thông tin và quản lý dữ liệu hiệu quả.",
             originalQuery
         );
     }
@@ -78,7 +78,7 @@ public class QueryTransformer {
         return List.of(
             query,                                          // Gốc
             "Giải thích " + query,                         // Biến thể 1
-            query + " trong tiếng Nhật",                   // Biến thể 2
+            query + " trong smart city",                   // Biến thể 2
             "Cách sử dụng " + query + " như thế nào?"      // Biến thể 3
         );
     }

@@ -1,0 +1,50 @@
+name: Backend CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+    paths:
+      - 'Sources/Backend/**'
+  pull_request:
+    branches: [ "main", "dev" ]
+    paths:
+      - 'Sources/Backend/**'
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: Sources/Backend
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Ensure mvnw is executable
+      run: chmod +x mvnw
+
+    - name: Verify Code Formatting & Compile
+      run: ./mvnw clean test-compile
+
+    - name: Run Unit & Integration Tests
+      run: ./mvnw test
+
+    - name: Build Application (Skip Tests)
+      run: ./mvnw package -DskipTests
+
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: smartcity-backend-jar
+        path: Sources/Backend/target/*.jar
+        retention-days: 7

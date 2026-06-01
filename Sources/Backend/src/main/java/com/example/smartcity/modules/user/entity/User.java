@@ -3,10 +3,17 @@ package com.example.smartcity.modules.user.entity;
 import jakarta.persistence.*;
 import com.example.smartcity.common.base.BaseEntity;
 import com.example.smartcity.modules.core.entity.Ward;
+import com.example.smartcity.common.security.AttributeEncryptor;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
+
+import java.time.LocalDateTime;
 
 
 @Entity
 @Table(name = "users")
+@SQLDelete(sql = "UPDATE users SET deleted_at = NOW() WHERE id = ?")
+@SQLRestriction("deleted_at IS NULL")
 public class User extends BaseEntity {
 
     @Column(nullable = false, unique = true, length = 100)
@@ -35,11 +42,27 @@ public class User extends BaseEntity {
     @JoinColumn(name = "ward_id")
     private Ward ward;
 
+    // [SECURITY FIX] AES-256/GCM encrypted at rest via AttributeEncryptor
+    @Convert(converter = AttributeEncryptor.class)
     @Column(name = "mfa_secret")
     private String mfaSecret;
 
     @Column(name = "is_mfa_enabled", nullable = false)
     private boolean isMfaEnabled = false;
+
+    // [SECURITY] Brute-force login protection
+    @Column(name = "login_attempts", nullable = false)
+    private int loginAttempts = 0;
+
+    @Column(name = "locked_until")
+    private LocalDateTime lockedUntil;
+
+    // [SOFT DELETE] Managed by @SQLDelete + @Where — do not set manually
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @Column(name = "deleted_by", length = 100)
+    private String deletedBy;
 
     public User() {
     }
@@ -88,7 +111,21 @@ public class User extends BaseEntity {
     public boolean isMfaEnabled() { return isMfaEnabled; }
     public void setMfaEnabled(boolean isMfaEnabled) { this.isMfaEnabled = isMfaEnabled; }
 
+    public int getLoginAttempts() { return loginAttempts; }
+    public void setLoginAttempts(int loginAttempts) { this.loginAttempts = loginAttempts; }
+
+    public LocalDateTime getLockedUntil() { return lockedUntil; }
+    public void setLockedUntil(LocalDateTime lockedUntil) { this.lockedUntil = lockedUntil; }
+
+    public boolean isTemporarilyLocked() {
+        return lockedUntil != null && LocalDateTime.now().isBefore(lockedUntil);
+    }
+
     public Ward getWard() { return ward; }
     public void setWard(Ward ward) { this.ward = ward; }
+
+    public LocalDateTime getDeletedAt() { return deletedAt; }
+    public String getDeletedBy() { return deletedBy; }
+    public void setDeletedBy(String deletedBy) { this.deletedBy = deletedBy; }
 }
 

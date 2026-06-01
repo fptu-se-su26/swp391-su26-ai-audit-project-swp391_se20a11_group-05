@@ -521,6 +521,41 @@ Mô tả AI đã hỗ trợ phần nào:
 AI nhập vai Tech Lead "chấm điểm" nghiêm khắc hệ thống, phát hiện các lỗi bảo mật/hiệu năng ngầm và cung cấp giải pháp tái cấu trúc code chuyên sâu để chịu tải cao (High Concurrency).
 ```
 
+# [Phase 14] Nâng cấp Kiến trúc Hybrid RAG chuẩn Enterprise Production-ready
+
+## Ngày thực hiện
+
+```text
+28/05/2026
+```
+
+## Đã hoàn thành
+
+- [x] **Tối ưu Cơ sở Dữ liệu (Database Optimization):** Đồng bộ cấu trúc Vector Dimension về 768 (khớp với Gemini), tiết kiệm 50% storage. Tích hợp HNSW Index giúp truy vấn nhanh gấp hàng trăm lần thuật toán IVF/Flat truyền thống.
+- [x] **Áp dụng Resilience Engineering:** Nhúng `Resilience4j` vào tầng gọi API LLM (Groq/Gemini). Xây dựng cơ chế Circuit Breaker, Exponential Retry và Rate Limiting để hệ thống luôn "sống sót" kể cả khi API bên thứ 3 sập mạng.
+- [x] **Giám sát & Đo lường (Observability):** Mở endpoint Actuator và xuất Custom Metrics cho Prometheus. Tích hợp MDC (Mapped Diagnostic Context) Logging giúp tracing request xuyên suốt các microservices.
+- [x] **Kiểm thử tự động (Integration Testing):** Cấu hình Testcontainers tự động spin-up PostgreSQL + pgvector để test real-world database mà không ảnh hưởng môi trường Dev.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi                                         | Người thực hiện | File/Module liên quan         |
+| --: | --------------------------------------------------------- | --------------- | ----------------------------- |
+|   1 | Chạy Migration sửa Dimension & tạo HNSW Index             | Phạm Bá Trí     | `V5__fix_dimension...`        |
+|   2 | Tách service gọi LLM và bọc Resilience4j                  | Phạm Bá Trí     | `LlmExecutionService.java`    |
+|   3 | Tạo Custom Metrics cho Prometheus và MDC Logging Filter   | Phạm Bá Trí     | `RagMetrics.java`, `RequestIdFilter.java` |
+|   4 | Viết Integration Test với Testcontainers                  | Phạm Bá Trí     | `VectorSearchIntegrationTest.java` |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI nhập vai Principal Software Engineer, lập một bản Implementation Plan chia 3 giai đoạn bài bản (Core Retrieval, Resilience, Observability) và từng bước code mẫu chuẩn chỉ nhất để đưa prototype "Vibe-coding" thành hệ thống chuẩn cấp doanh nghiệp (Enterprise).
+```
+
 ---
 
 # 5. Cam kết cập nhật Changelog

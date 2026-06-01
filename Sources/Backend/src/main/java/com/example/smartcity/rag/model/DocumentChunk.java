@@ -21,7 +21,7 @@ import java.util.UUID;
         @Index(name = "idx_chunks_lang", columnList = "language")
 })
 @Data
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class DocumentChunk {
@@ -35,12 +35,15 @@ public class DocumentChunk {
     private String content;
 
     /**
-     * Vector embedding (1536 chiều — khớp với text-embedding-3-small / Gemini).
-     * NOTE: Annotation @Column(columnDefinition = "vector(1536)") chỉ hoạt động
-     * khi PostgreSQL có pgvector extension. Khi dùng H2 (test), bỏ qua.
+     * Vector embedding (768 chiều).
+     * PGVector HNSW Index sẽ được tạo tự động bởi Flyway Migration (V5)
      */
-    @Column(name = "embedding")
+    @Column(name = "embedding", columnDefinition = "vector(768)")
     private float[] embedding;
+
+    /** Điểm RRF tạm thời sau khi Fusion, không lưu vào DB */
+    @Transient
+    private Double rrfScore;
 
     // ──────────────────────────────────────────────────────────────
     // METADATA — BẮT BUỘC để lọc trước khi tìm kiếm (Pre-filter)

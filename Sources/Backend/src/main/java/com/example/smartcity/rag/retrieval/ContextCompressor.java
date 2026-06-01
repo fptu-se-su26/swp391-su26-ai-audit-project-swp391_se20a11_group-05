@@ -22,7 +22,7 @@ import java.util.List;
 public class ContextCompressor {
 
     /** Số token tối đa cho toàn bộ context block (để lại chỗ cho System Prompt và Question) */
-    private static final int MAX_PROMPT_TOKENS = 3000;
+    private static final int MAX_PROMPT_TOKENS = 6000;
     
     private final Encoding encoding;
 

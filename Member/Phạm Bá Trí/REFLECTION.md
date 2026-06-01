@@ -431,6 +431,14 @@ Khi 2 đầu Frontend và Backend phát triển song song mà thiếu API contra
 - Kinh nghiệm: "Make it work, make it right, make it fast" (Cho nó chạy, làm cho nó đúng, làm cho nó nhanh). Việc AI code chạy được chỉ mới là bước "Make it work". Kỹ sư phần mềm đích thực là người dám nghi ngờ codebase của mình, yêu cầu kiểm toán chéo (Cross-audit) và tối ưu hóa ở mức Hệ điều hành/Bộ nhớ để hệ thống "sống sót" trên môi trường Production.
 ```
 
+### 9.15. Bài học từ việc Nâng cấp hệ thống lên chuẩn Enterprise (Resilience & Observability)
+
+```text
+- Vấn đề: Ứng dụng kiểu "vibecoding" thường chỉ chú trọng chức năng (chạy ra kết quả là xong), bỏ qua các yếu tố cực kỳ quan trọng khi vận hành thực tế như: DB tốn bao nhiêu dung lượng, API bên thứ 3 sập thì ứng dụng có sập theo không, và làm sao để giám sát được tốc độ xử lý?
+- Giải pháp từ AI: AI hướng dẫn áp dụng HNSW index (giảm latency), cấu hình Resilience4j Circuit Breaker (ngăn lỗi dây chuyền - Cascade Failure), và thêm Prometheus Custom Metrics kết hợp MDC Logging (để dễ dàng tracing bug).
+- Kinh nghiệm: Đây là những kiến thức thực tế mà các tập đoàn lớn yêu cầu. Lập trình giỏi không chỉ là viết một vòng lặp nhanh, mà là thiết kế ra một hệ thống "Tự phục hồi" và "Minh bạch" trạng thái nội bộ. Việc tự viết Testcontainers cũng mở ra tư duy kiểm thử tự động CI/CD cho các hệ thống DB phức tạp (như có extension pgvector).
+```
+
 ---
 
 ## 17. Cam kết Reflection

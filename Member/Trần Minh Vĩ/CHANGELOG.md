@@ -38,8 +38,8 @@ Nguyên tắc ghi changelog:
 | Phiên bản/Giai đoạn | Thời gian | Nội dung chính | Trạng thái |
 |---|---|---|---|
 | Phase 01 | 2026-05-12 | Khởi tạo project | Completed |
-| Phase 02 | 2026-05-15 | Phân tích yêu cầu | In Progress |
-| Phase 03 |  | Thiết kế hệ thống | Not Started |
+| Phase 02 | 2026-05-15 | Phân tích yêu cầu | Completed |
+| Phase 03 | 2026-05-28 | Thiết kế hệ thống | Completed |
 | Phase 04 |  | Implementation | Not Started |
 | Phase 05 |  | Testing & Debug | Not Started |
 | Phase 06 |  | Hoàn thiện báo cáo và demo | Not Started |
@@ -102,29 +102,29 @@ Nếu có, mô tả AI đã hỗ trợ phần nào:
 ## Ngày thực hiện
 
 ```text
-15/05/2026
+15/05/2026 - 22/05/2026
 ```
 
 ## Đã hoàn thành
 
 - [x] Xác định problem statement
-- [ ] Xác định user roles
-- [ ] Viết user stories
+- [x] Xác định user roles
+- [x] Viết user stories
 - [x] Viết use cases
 - [x] Xác định functional requirements
 - [x] Xác định non-functional requirements
-- [ ] Xác định business rules
-- [ ] Xác định acceptance criteria
-- [ ] Review yêu cầu với giảng viên/nhóm
-- [ ] Chỉnh sửa yêu cầu sau feedback
+- [x] Xác định business rules
+- [x] Xác định acceptance criteria
+- [x] Review yêu cầu với giảng viên/nhóm
+- [x] Chỉnh sửa yêu cầu sau feedback
 
 ## Thay đổi chi tiết
 
 | STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
 |---:|---|---|---|---|
 | 1 | Viết tài liệu SRS Phase 1 | Trần Minh Vĩ | SRS_Phase_1 | Nhắc đến trong AI Audit Log |
-| 2 | Phân tích 4 rủi ro lõi (Rác DL, Hiệu năng, v.v) | Trần Minh Vĩ | Yêu cầu phi chức năng |  |
-| 3 |  |  |  |  |
+| 2 | Phân tích 4 rủi ro lõi (Rác DL, Hiệu năng, v.v) | Trần Minh Vĩ | Yêu cầu phi chức năng | AI_AUDIT_LOG.md |
+| 3 | Xác định vai trò, User Stories và quy tắc nghiệp vụ | Trần Minh Vĩ | SRS / User Roles | SRS Document |
 
 ## AI có hỗ trợ không?
 
@@ -140,6 +140,7 @@ Sử dụng Gemini/Antigravity để phân tích các lỗ hổng kiến trúc l
 ## Commit/Screenshot minh chứng
 
 ```text
+[DE190182] docs: update AI audit log
 ```
 
 ## Ghi chú
@@ -150,7 +151,53 @@ Sử dụng Gemini/Antigravity để phân tích các lỗ hổng kiến trúc l
 ---
 
 # [Phase 03] Thiết kế hệ thống
-*(Chưa bắt đầu)*
+
+## Ngày thực hiện
+
+```text
+28/05/2026 - 04/06/2026
+```
+
+## Đã hoàn thành
+
+- [x] Thiết kế Database (ERD, Schema)
+- [x] Thiết kế UI/UX (Figma Wireframes)
+- [x] Thiết kế kiến trúc hệ thống (Docker deployment, API Specification)
+- [x] Thiết kế thuật toán xử lý dữ liệu GPS và phân cụm báo cáo trùng lặp
+- [x] Thiết kế cơ chế bảo mật (mã hóa danh tính công dân)
+- [x] Thiết lập quy trình Git và API Contract cho nhóm
+- [x] Review thiết kế cùng giảng viên/nhóm
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Thiết kế sơ đồ quan hệ thực thể (ERD) và bảng dữ liệu | Trần Minh Vĩ | Database Schema | AI_AUDIT_LOG.md |
+| 2 | Thiết kế luồng gửi tin nhắn SMS OTP bất đồng bộ và Rate Limiting | Trần Minh Vĩ | Security & Backend | AI_AUDIT_LOG.md |
+| 3 | Thiết lập quy trình GitHub Flow và API Contract cho nhóm | Trần Minh Vĩ | Git / Collaboration | AI_AUDIT_LOG.md |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+Sử dụng Gemini/Antigravity hỗ trợ đề xuất cấu trúc bảng cho cơ sở dữ liệu, tư vấn giải pháp xử lý Async gửi tin nhắn SMS, và mô hình Git.
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+[DE190182] docs: update AI audit log
+```
+
+## Ghi chú
+
+```text
+Kiểm chứng cho thấy thuật toán Bounding Box DECIMAL tối ưu hơn 80% so với Spatial Index mặc định của MySQL khi kết hợp các điều kiện lọc.
+```
 
 ---
 

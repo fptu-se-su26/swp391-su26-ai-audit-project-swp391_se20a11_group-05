@@ -3,7 +3,7 @@ import { useState, useRef } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { useCategories, useCreateFeedback } from "@/lib/hooks";
-import { ApiError, getToken } from "@/lib/api";
+import { ApiError, getToken, wardApi } from "@/lib/api";
 import { toast } from "sonner";
 import { Camera, Video, MapPin, Mic, Check, ArrowLeft, ArrowRight, Loader2, Building2, TreePine, Car, ShieldCheck, X, Upload } from "lucide-react";
 
@@ -39,6 +39,8 @@ function ReportPage() {
   const [useGps, setUseGps] = useState(false);
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [detectedWard, setDetectedWard] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -114,20 +116,47 @@ function ReportPage() {
   };
 
   const detectLocation = () => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setLatitude(pos.coords.latitude);
-          setLongitude(pos.coords.longitude);
-          setUseGps(true);
-        },
-        () => {
-          setLatitude(16.0544);
-          setLongitude(108.2022);
-          setUseGps(true);
-        },
-      );
+    if (!("geolocation" in navigator)) {
+      toast.error(locale === "vi" ? "Trinh duyet khong ho tro GPS." : "Your browser does not support GPS.");
+      return;
     }
+
+    // Bắt đầu xin quyền GPS và reset trạng thái vị trí cũ.
+    setLocationLoading(true);
+    setUseGps(false);
+    setDetectedWard("");
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const nextLatitude = pos.coords.latitude;
+        const nextLongitude = pos.coords.longitude;
+
+        try {
+          // Gửi tọa độ lên backend để xác định phường/xã xử lý.
+          const ward = await wardApi.locate(nextLatitude, nextLongitude);
+          setLatitude(nextLatitude);
+          setLongitude(nextLongitude);
+          setDetectedWard(ward.name);
+          setUseGps(true);
+          toast.success(locale === "vi" ? "Da xac dinh vi tri GPS." : "GPS location confirmed.");
+        } catch (err) {
+          setLatitude(null);
+          setLongitude(null);
+          setUseGps(false);
+          toast.error(err instanceof ApiError ? err.message : (locale === "vi" ? "Khong the xac dinh phuong/xa tu GPS." : "Could not resolve ward from GPS."));
+        } finally {
+          setLocationLoading(false);
+        }
+      },
+      () => {
+        setLatitude(null);
+        setLongitude(null);
+        setUseGps(false);
+        setLocationLoading(false);
+        toast.error(locale === "vi" ? "Ban can cho phep truy cap vi tri de gui phan anh." : "Location permission is required to submit a report.");
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+    );
   };
 
   const handleSubmit = async () => {
@@ -140,16 +169,22 @@ function ReportPage() {
       setStep(1);
       return;
     }
+    if (!useGps || latitude === null || longitude === null) {
+      // Không cho gửi phản ánh nếu người dân chưa cấp quyền GPS thành công.
+      toast.error(locale === "vi" ? "Vui long cho phep GPS truoc khi gui phan anh." : "Please allow GPS before submitting the report.");
+      setStep(2);
+      return;
+    }
 
     try {
       const result = await createFeedback.mutateAsync({
         title: title || (locale === "vi" ? "Phản ánh mới" : "New report"),
         description: description || (locale === "vi" ? "Phản ánh từ người dân" : "Citizen report"),
-        latitude: latitude ?? undefined,
-        longitude: longitude ?? undefined,
-        addressDetails: useGps ? `${latitude}, ${longitude}` : undefined,
+        latitude,
+        longitude,
+        // Backend sẽ dùng tọa độ để gán ward; addressDetails chỉ để hiển thị dễ đọc.
+        addressDetails: detectedWard ? `${detectedWard} (${latitude}, ${longitude})` : `${latitude}, ${longitude}`,
         categoryId,
-        wardId: 1, // TODO: tự động từ GPS
       });
       // Upload photos after feedback created
       if (photos.length > 0 && result.id) {
@@ -362,15 +397,20 @@ function ReportPage() {
                   <p className="text-sm text-ink-soft font-mono mb-4">
                     {latitude.toFixed(6)}, {longitude.toFixed(6)}
                   </p>
+                  {detectedWard && (
+                    <p className="text-sm font-semibold text-gov-blue mb-4">
+                      {locale === "vi" ? "Phuong/Xa xu ly: " : "Processing ward: "}{detectedWard}
+                    </p>
+                  )}
                 </div>
               ) : (
                 <p className="text-lg md:text-xl font-semibold text-ink mb-4">{t("report.locationConfirm")}</p>
               )}
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <button onClick={detectLocation} className="btn-civic btn-civic-primary">
-                  <Check size={20} />{t("report.useLocation")}
+                <button onClick={detectLocation} disabled={locationLoading} className="btn-civic btn-civic-primary disabled:opacity-50">
+                  {locationLoading ? <Loader2 size={20} className="animate-spin" /> : <Check size={20} />}{t("report.useLocation")}
                 </button>
-                <button className="btn-civic btn-civic-ghost">{t("report.changeLocation")}</button>
+                <button onClick={detectLocation} disabled={locationLoading} className="btn-civic btn-civic-ghost disabled:opacity-50">{t("report.changeLocation")}</button>
               </div>
             </div>
           </div>

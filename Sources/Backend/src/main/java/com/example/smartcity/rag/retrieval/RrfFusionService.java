@@ -68,7 +68,10 @@ public class RrfFusionService {
         List<DocumentChunk> result = scores.entrySet().stream()
             .sorted(Map.Entry.<UUID, Double>comparingByValue().reversed())
             .limit(finalTop)
-            .map(entry -> chunkMap.get(entry.getKey()))
+            .map(entry -> {
+                DocumentChunk chunk = chunkMap.get(entry.getKey());
+                return chunk.toBuilder().rrfScore(entry.getValue()).build();
+            })
             .toList();
 
         log.debug("   → Sau RRF fusion: {} chunk được chọn", result.size());

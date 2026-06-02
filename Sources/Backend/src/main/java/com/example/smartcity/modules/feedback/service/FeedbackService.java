@@ -134,6 +134,9 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         User actionBy = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User: " + username));
 
+        // Fix BOLA/IDOR: Validate permission before action
+        validateActionPermission(actionBy, feedback);
+
         feedback.setStatus(newStatus);
         feedback.setUpdatedAt(LocalDateTime.now());
         Feedback saved = feedbackRepository.save(feedback);
@@ -159,6 +162,9 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
 
         User actionBy = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User: " + username));
+
+        // Fix BOLA/IDOR: Validate permission before action
+        validateActionPermission(actionBy, feedback);
 
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setAssignee(assignee);
@@ -201,6 +207,26 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             case POLICE -> feedback.getCategory() != null && "An ninh".equals(feedback.getCategory().getName());
             case CITIZEN -> feedback.getCitizen().getId().equals(user.getId());
         };
+    }
+
+    /**
+     * [SECURITY FIX] Kiểm tra quyền thực thi (Đổi trạng thái, Gán người xử lý).
+     * Ngăn chặn tình trạng IDOR/BOLA khi user tự ý chỉnh sửa feedback.
+     */
+    private void validateActionPermission(User actionBy, Feedback feedback) {
+        if (actionBy.getRole() == Role.CITIZEN) {
+            throw new CustomException("Công dân không có quyền thay đổi trạng thái phản ánh", HttpStatus.FORBIDDEN.value());
+        }
+        if (actionBy.getRole() == Role.WARD_STAFF) {
+            if (actionBy.getWard() == null || !actionBy.getWard().getId().equals(feedback.getWard().getId())) {
+                throw new CustomException("Cán bộ phường chỉ có quyền xử lý phản ánh thuộc phường quản lý", HttpStatus.FORBIDDEN.value());
+            }
+        }
+        if (actionBy.getRole() == Role.POLICE) {
+            if (feedback.getCategory() == null || !"An ninh".equals(feedback.getCategory().getName())) {
+                throw new CustomException("Công an chỉ có quyền xử lý phản ánh thuộc danh mục An ninh", HttpStatus.FORBIDDEN.value());
+            }
+        }
     }
 }
 

@@ -123,23 +123,3 @@ export function useAuth() {
   return ctx;
 }
 
-// ─── Legacy compatibility shim ───────────────────────────────
-// These were used in the old role-based routing. Keep temporarily.
-
-/**
- * @deprecated Use Role enum from ./roles instead.
- * Maps old frontend lowercase strings to new Role enum values.
- */
-export const FRONTEND_TO_BACKEND_ROLE: Record<string, string> = {
-  citizen:    "CITIZEN",
-  ward:       "WARD_STAFF",
-  police:     "POLICE",
-  city_admin: "SUPER_ADMIN",
-};
-
-/**
- * @deprecated Use parseBackendRole() from ./roles instead.
- */
-export function mapBackendRole(backendRole: string): RoleType {
-  return parseBackendRole(backendRole);
-}

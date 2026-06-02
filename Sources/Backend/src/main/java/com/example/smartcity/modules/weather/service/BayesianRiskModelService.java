@@ -6,9 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -34,15 +32,7 @@ public class BayesianRiskModelService {
 
     private final FeedbackRepository feedbackRepository;
 
-    // ─── Ánh xạ tên danh mục → loại sự cố weather ─────────────────────────
-    private static final Map<String, String> CATEGORY_TO_INCIDENT = Map.of(
-            "Thoát nước",        "FLOOD",
-            "Rác thải",          "FLOOD",
-            "Cây xanh",          "FALLEN_TREE",
-            "Giao thông",        "ROAD_DAMAGE",
-            "Điện",              "POWER_OUTAGE",
-            "An ninh",           "POWER_OUTAGE"
-    );
+
 
     // ─── Tọa độ đại diện cho từng phường chính của Đà Nẵng ──────────────────
     private static final Map<String, double[]> WARD_COORDS = Map.of(
@@ -69,8 +59,7 @@ public class BayesianRiskModelService {
         Map<String, Map<String, Integer>> riskMatrix = new HashMap<>();
 
         // ─── Bước 1: Lấy tần suất sự cố lịch sử từ DB ────────────────────
-        // Lấy số lượng feedbacks theo phường trong 90 ngày gần nhất
-        LocalDateTime since = LocalDateTime.now().minusDays(90);
+        // Lấy số lượng feedbacks trong hệ thống
         long totalFeedbacks = Math.max(1, feedbackRepository.count());
 
         // ─── Bước 2: Tính Weather Multiplier cho từng loại sự cố ──────────

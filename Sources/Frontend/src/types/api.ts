@@ -71,11 +71,11 @@ export interface FeedbackResponse {
 export interface FeedbackRequest {
   title: string;
   description: string;
-  latitude?: number;
-  longitude?: number;
+  latitude: number;
+  longitude: number;
   addressDetails?: string;
   categoryId: number;
-  wardId: number;
+  wardId?: number;
 }
 
 // ─── Category Types ───────────────────────────────────────────

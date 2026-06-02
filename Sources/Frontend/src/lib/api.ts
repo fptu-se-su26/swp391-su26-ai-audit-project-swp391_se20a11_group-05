@@ -223,11 +223,11 @@ export interface FeedbackResponse {
 export interface FeedbackRequest {
   title: string;
   description: string;
-  latitude?: number;
-  longitude?: number;
+  latitude: number;
+  longitude: number;
   addressDetails?: string;
   categoryId: number;
-  wardId: number;
+  wardId?: number;
 }
 
 export interface NotificationResponse {
@@ -524,4 +524,6 @@ export interface Ward {
 export const wardApi = {
   getAll: () => request<Ward[]>("/api/wards"),
   search: (name: string) => request<Ward[]>(`/api/wards/search?name=${encodeURIComponent(name)}`),
+  locate: (lat: number, lng: number) =>
+    request<Ward>(`/api/wards/locate?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`),
 };

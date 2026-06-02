@@ -182,6 +182,34 @@
 
 ---
 
+### Entry #: 012
+**Prompt Type:** ARCHITECTURE-REVIEW & PROBLEM-SOLVING
+**Stage/Component:** RAG Orchestrator / System Architecture
+**Problem/Context:** Sau quá trình lập trình nhanh bằng trực giác với AI (vibecoding), hệ thống Hybrid RAG đã hoạt động. Tuy nhiên, nhóm cần một "chuyên gia" kiểm toán chéo (Cross-audit) để đánh giá mã nguồn thực tế, tìm ra các lỗi ẩn về hiệu năng, luồng (threads) và bộ nhớ mà việc test thủ công không phát hiện được.
+**Prompt to AI:** "Hãy đóng vai một Senior Software Engineer và AI/ML Architect... Nhiệm vụ của bạn là: Đọc kỹ mã nguồn tôi cung cấp và CHẤM ĐIỂM NGHIÊM KHẮC kiến trúc Hybrid RAG này... TUYỆT ĐỐI KHÔNG BỊA ĐẶT (hallucinate)."
+**AI Response (Summary):** AI phân tích mã nguồn và chỉ ra 5 lỗi "chết người" khi lên Production: (1) Lỗi Thread-safety của biến `lastUsedProvider` trong Singleton Service; (2) Giới hạn Context Token 3000 là quá nhỏ so với sức mạnh LLM hiện tại; (3) Cắt Chunk 512 ký tự làm đứt gãy ngữ nghĩa câu; (4) Chạy Virtual Threads không có giới hạn Timeout và không dọn dẹp gây Memory Leak; (5) RRF Score bị thất thoát không truyền đi.
+**Human Delta & Reflection:**
+- **Critical Thinking:** Tôi nhận ra tác hại nguy hiểm của phương pháp "Vibecoding": Code có thể chạy đúng logic nhưng lại sai hoàn toàn về Kiến trúc hệ thống (System Architecture) khi chịu tải thực tế.
+- **Contextualization:** Đặc biệt lỗi Thread-Safety cực kỳ nghiêm trọng trong Spring Boot. Nếu 2 người dùng RAG cùng lúc, dữ liệu provider của họ sẽ đè lên nhau, gây rối loạn Metadata.
+- **Creative Synthesis:** Đã phối hợp cùng AI tái cấu trúc RAG: Đổi biến toàn cục thành `LlmCallResult` Record, tăng cửa sổ Context lên 6000, bổ sung `.orTimeout()` và `DisposableBean` để tự động ngắt kết nối.
+- **Decision Ownership:** Chốt quyết định "Refactor" sâu hệ thống. Việc chủ động đi tìm lỗi sai và tự kiểm điểm (Self-Audit) giúp dự án thực sự vươn tầm Enterprise.
+
+---
+
+### Entry #: 013
+**Prompt Type:** ARCHITECTURE-DESIGN & PROBLEM-SOLVING
+**Stage/Component:** RAG Orchestrator / Resilience / Testing
+**Problem/Context:** Ứng dụng Hybrid RAG chạy cục bộ thành công nhưng hoàn toàn thiếu các yếu tố cốt lõi của một hệ thống Enterprise: Thiếu bảo vệ khi API (Groq/Gemini) sập nguồn, lưu trữ tốn kém, tìm kiếm Vector chậm, và thiếu công cụ đo lường hệ thống (Metrics/Logs).
+**Prompt to AI:** "Hãy đóng vai một Principal Software Engineer và AI Architect... Đọc kỹ mã nguồn tôi cung cấp và LẬP KẾ HOẠCH TRIỂN KHAI (IMPLEMENTATION PLAN) CHI TIẾT để nâng cấp toàn diện hệ thống này theo 3 Giai đoạn: Tối ưu Hạt nhân, Bảo mật & Độ tin cậy, Giám sát & Đo lường."
+**AI Response (Summary):** AI đưa ra bản kế hoạch xuất sắc. Sau đó tiến hành code các chức năng: Chuyển đổi dimension xuống 768 và tạo HNSW index; Tích hợp Resilience4j (Circuit Breaker, Rate Limiter); Cấu hình Prometheus custom metrics và MDC Logging; Cài đặt Testcontainers với `pgvector/pgvector:pg16` để làm Integration Testing.
+**Human Delta & Reflection:**
+- **Critical Thinking:** Tôi nhận thức được một hệ thống "tốt" không chỉ nằm ở thuật toán mà còn ở khả năng Sống sót (Resilience) và Dễ quan sát (Observability).
+- **Contextualization:** Đặc thù hệ thống sử dụng LLM của bên thứ 3 luôn ẩn chứa nguy cơ "quá tải" (Rate Limit 429). Circuit Breaker giúp bẻ luồng sang Fallback thay vì làm người dân bị "treo app".
+- **Creative Synthesis:** Đã trực tiếp debug lỗi Maven khi thiếu dependency AOP cho Spring Boot để bật tính năng Circuit Breaker, cũng như ép testcontainers dùng ảnh Docker chứa sẵn pgvector.
+- **Decision Ownership:** Chốt phê duyệt và hoàn thành trọn vẹn Giai đoạn 1 đến 3 của bản quy hoạch Enterprise, đưa dự án đi từ học thuật đến thực tiễn.
+
+---
+
 ## III. Phát hiện Hallucination (Hallucination Detection)
 
 - **Trường hợp:** Khi yêu cầu AI tìm kiếm và tổng hợp 10 bài báo khoa học trên Springer (Entry 001).

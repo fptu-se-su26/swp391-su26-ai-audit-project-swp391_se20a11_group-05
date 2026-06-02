@@ -9,7 +9,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
-import java.util.Random;
+import java.security.SecureRandom;
+import javax.annotation.PostConstruct;
+import com.twilio.Twilio;
+import com.twilio.rest.api.v2010.account.Message;
+import com.twilio.type.PhoneNumber;
 
 @Service
 @RequiredArgsConstructor
@@ -20,30 +24,62 @@ public class SmsService {
     private static final int OTP_VALID_DURATION_MINUTES = 5;
     private static final int MAX_ATTEMPTS = 3;
 
-    @Transactional
+    private final com.example.smartcity.security.secrets.SecurityManager securityManager;
+
+    private String twilioAccountSid;
+    private String twilioAuthToken;
+    private String twilioPhoneNumber;
+
+    @PostConstruct
+    public void initTwilio() {
+        twilioAccountSid = securityManager.getSecret("twilio.account-sid");
+        twilioAuthToken = securityManager.getSecret("twilio.auth-token");
+        twilioPhoneNumber = securityManager.getSecret("twilio.phone-number");
+
+        if (twilioAccountSid != null && twilioAuthToken != null) {
+            Twilio.init(twilioAccountSid, twilioAuthToken);
+            log.info("Twilio initialized successfully!");
+        } else {
+            log.warn("Twilio secrets not found. SMS features will be disabled.");
+        }
+    }
+
     public String generateAndSendOtp(String phoneNumber) {
         // Hủy các mã OTP cũ chưa sử dụng (Tùy chọn: có thể query và set isUsed = true, ở đây ta dùng logic lấy mã mới nhất)
         
-        // Sinh mã OTP 6 số
-        String otpCode = String.format("%06d", new Random().nextInt(999999));
+        // [SECURITY FIX] Dùng SecureRandom để tránh dự đoán mã OTP
+        String otpCode = String.format("%06d", new SecureRandom().nextInt(999999));
 
+        saveOtpRecord(phoneNumber, otpCode);
+
+        try {
+            // EXTERNAL API CALL: Không bọc trong Transaction để tránh nghẽn Connection Pool
+            Message message = Message.creator(
+                    new PhoneNumber(phoneNumber),
+                    new PhoneNumber(twilioPhoneNumber),
+                    "Mã xác thực SmartCity của bạn là: " + otpCode + ". Mã có hiệu lực trong " + OTP_VALID_DURATION_MINUTES + " phút."
+            ).create();
+
+            log.info("========== TWILIO SMS GATEWAY ==========");
+            log.info("Sending SMS to: {}", phoneNumber);
+            log.info("Twilio Message SID: {}", message.getSid());
+            log.info("========================================");
+        } catch (Exception e) {
+            log.error("Lỗi khi gửi tin nhắn Twilio: ", e);
+            throw new RuntimeException("Không thể gửi tin nhắn OTP, vui lòng thử lại sau.");
+        }
+
+        return "Mã OTP đã được gửi đến số điện thoại của bạn.";
+    }
+
+    @Transactional
+    public void saveOtpRecord(String phoneNumber, String otpCode) {
         SmsVerification verification = SmsVerification.builder()
                 .phoneNumber(phoneNumber)
                 .otpCode(otpCode)
                 .expiresAt(LocalDateTime.now().plusMinutes(OTP_VALID_DURATION_MINUTES))
                 .build();
-
         smsVerificationRepository.save(verification);
-
-        // TODO: Tích hợp API Twilio/SpeedSMS tại đây. 
-        // Tạm thời log ra màn hình console (Mock SMS Gateway)
-        log.info("========== MOCK SMS GATEWAY ==========");
-        log.info("Sending SMS to: {}", phoneNumber);
-        log.info("OTP Code: {}", otpCode);
-        log.info("Expires in: {} minutes", OTP_VALID_DURATION_MINUTES);
-        log.info("======================================");
-
-        return "Mã OTP đã được gửi đến số điện thoại của bạn.";
     }
 
     @Transactional
@@ -57,29 +93,29 @@ public class SmsService {
 
         SmsVerification verification = optionalVerification.get();
 
-        // Kiểm tra quá số lần thử
+        // BƯỚC 1: Kiểm tra hết hạn TRƯỚC TIÊN — không tăng attempts vì lỗi do hệ thống
+        if (verification.getExpiresAt().isBefore(LocalDateTime.now())) {
+            verification.setIsUsed(true); // Vô hiệu hóa mã hết hạn
+            smsVerificationRepository.save(verification);
+            throw new RuntimeException("Mã OTP đã hết hạn. Vui lòng yêu cầu mã mới.");
+        }
+
+        // BƯỚC 2: Kiểm tra xem đã quá số lần thử chưa (trước khi tăng)
         if (verification.getAttempts() >= MAX_ATTEMPTS) {
-            verification.setIsUsed(true);
+            verification.setIsUsed(true); // Vô hiệu hóa mã bị brute-force
             smsVerificationRepository.save(verification);
             throw new RuntimeException("Bạn đã nhập sai quá " + MAX_ATTEMPTS + " lần. Vui lòng yêu cầu mã OTP mới.");
         }
 
-        // Tăng số lần thử
-        verification.setAttempts(verification.getAttempts() + 1);
-
-        // Kiểm tra hết hạn
-        if (verification.getExpiresAt().isBefore(LocalDateTime.now())) {
-            smsVerificationRepository.save(verification);
-            throw new RuntimeException("Mã OTP đã hết hạn.");
-        }
-
-        // Kiểm tra mã OTP
+        // BƯỚC 3: Kiểm tra mã đúng/sai — CHỈ ở bước này mới tăng attempts
         if (!verification.getOtpCode().equals(otpCode)) {
+            verification.setAttempts(verification.getAttempts() + 1); // Tăng attempts khi nhập sai
             smsVerificationRepository.save(verification);
-            throw new RuntimeException("Mã OTP không chính xác.");
+            int remaining = MAX_ATTEMPTS - verification.getAttempts();
+            throw new RuntimeException("Mã OTP không chính xác. Bạn còn " + remaining + " lần thử.");
         }
 
-        // Thành công -> Đánh dấu đã sử dụng
+        // BƯỚC 4: Thành công → Đánh dấu đã sử dụng, không thể dùng lại
         verification.setIsUsed(true);
         smsVerificationRepository.save(verification);
 

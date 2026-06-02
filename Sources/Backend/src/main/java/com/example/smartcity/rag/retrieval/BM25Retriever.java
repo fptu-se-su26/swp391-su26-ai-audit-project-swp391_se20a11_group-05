@@ -42,15 +42,10 @@ public class BM25Retriever {
         // Trích xuất keyword quan trọng từ câu hỏi
         String keyword = extractPrimaryKeyword(query);
 
-        List<DocumentChunk> results = repository.findByKeyword(keyword, docType);
+        List<DocumentChunk> results = repository.findByKeyword(keyword, docType, topK);
 
-        // Giới hạn số lượng kết quả
-        List<DocumentChunk> limited = results.size() > topK
-            ? results.subList(0, topK)
-            : results;
-
-        log.debug("   → BM25 search trả về {} chunk (keyword='{}')", limited.size(), keyword);
-        return limited;
+        log.debug("   → BM25 search trả về {} chunk (keyword='{}')", results.size(), keyword);
+        return results;
     }
 
     /**
@@ -72,21 +67,17 @@ public class BM25Retriever {
      */
     private String extractPrimaryKeyword(String query) {
         // Stop words tiếng Việt phổ biến
-        String[] stopWords = {
-            "là", "gì", "như", "thế nào", "khi nào", "ở đâu",
-            "tôi", "bạn", "chúng ta", "họ", "này", "đó",
+        List<String> stopWords = java.util.List.of(
+            "là", "gì", "như", "thế", "nào", "khi", "ở", "đâu",
+            "tôi", "bạn", "chúng", "ta", "họ", "này", "đó",
             "và", "hoặc", "nhưng", "vì", "nếu", "thì",
             "how", "what", "when", "where", "why", "is", "are", "the", "a", "an"
-        };
+        );
 
-        String lower = query.toLowerCase();
-        for (String sw : stopWords) {
-            // Dùng (?U)\b để hỗ trợ word boundary cho tiếng Việt Unicode, tránh thay thế chữ cái bên trong từ khác
-            lower = lower.replaceAll("(?U)\\b" + sw + "\\b", " ");
-        }
-
-        // Giữ lại toàn bộ cụm từ khóa có nghĩa thay vì chỉ lấy 1 từ dài nhất (làm sai lệch thuật toán BM25)
-        String cleanedQuery = lower.trim().replaceAll("\\s+", " ");
+        String[] words = query.toLowerCase().split("\\s+");
+        String cleanedQuery = java.util.Arrays.stream(words)
+                .filter(w -> !stopWords.contains(w))
+                .collect(java.util.stream.Collectors.joining(" "));
 
         // Fallback: dùng toàn bộ query nếu chuỗi rỗng (bị xóa sạch bởi stop words)
         return cleanedQuery.isEmpty() ? query : cleanedQuery;

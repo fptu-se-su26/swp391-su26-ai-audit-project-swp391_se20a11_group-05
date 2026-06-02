@@ -30,7 +30,8 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        // [SECURITY FIX] Tăng work factor từ 10 (mặc định) lên 13 để chống Brute Force / GPU cracking
+        return new BCryptPasswordEncoder(13);
     }
 
     @Bean

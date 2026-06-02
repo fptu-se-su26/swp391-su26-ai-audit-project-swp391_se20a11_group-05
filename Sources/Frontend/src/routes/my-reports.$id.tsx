@@ -192,15 +192,14 @@ function ReportDetail() {
 
           const label =
             stage === "pending" ? t("my.timeline.submitted")
-            : stage === "inProgress" ? t("my.timeline.inProgress")
-            : t("my.timeline.resolved");
+              : stage === "inProgress" ? t("my.timeline.inProgress")
+                : t("my.timeline.resolved");
 
           return (
             <li key={stage} className={`relative animate-fade-in-up stagger-${i + 1}`}>
               <span
-                className={`absolute -left-[34px] w-7 h-7 rounded-full grid place-items-center border-4 transition-all duration-300 ${
-                  reached ? "bg-[var(--status-success)] border-white shadow-sm" : "bg-slate-200 border-white"
-                }`}
+                className={`absolute -left-[34px] w-7 h-7 rounded-full grid place-items-center border-4 transition-all duration-300 ${reached ? "bg-[var(--status-success)] border-white shadow-sm" : "bg-slate-200 border-white"
+                  }`}
               >
                 {reached && <Check size={14} className="text-white" strokeWidth={3} />}
               </span>

@@ -1,0 +1,234 @@
+Lab 2: Install and Study a Unit Test Framework, Use IDE to Write and Run Unit Tests
+1. Lab Information
+Lab Name:
+ Lab 2 – Unit Testing Framework
+Course:
+ Software Testing / Quality Assurance
+Duration:
+ 2–3 hours
+Type:
+ Individual Lab
+Objective:
+ Learn how to install, configure, write, and execute unit tests using a Unit Test Framework and an IDE.
+2. Lab Objectives
+After completing this lab, students will be able to:
+Understand the concept of Unit Testing.
+Install and configure a Unit Test Framework.
+Create a test project in an IDE.
+Write basic unit test cases.
+Execute unit tests and analyze test results.
+Apply assertions to validate expected outputs.
+Identify passed and failed test cases.
+3. Required Tools & Technologies
+Students may choose ONE technology stack below:
+Language
+IDE
+Unit Test Framework
+Java
+IntelliJ IDEA / Eclipse
+JUnit 5
+C#
+Visual Studio
+NUnit / MSTest
+JavaScript
+VS Code
+Jest
+Python
+VS Code / PyCharm
+PyTest
+Recommended stack for this lab:
+Language:
+ C#
+IDE:
+ Visual Studio
+Framework:
+ NUnit
+4. Theory Background
+4.1 What is Unit Testing?
+Unit Testing is a software testing technique where individual components or functions of a program are tested independently to ensure correctness.
+Benefits
+Detect bugs early
+Improve code quality
+Simplify maintenance
+Support refactoring
+Increase reliability
+4.2 What is a Unit Test Framework?
+A Unit Test Framework provides:
+Test execution engine
+Assertion methods
+Test reporting
+Test organization structure
+Examples:
+JUnit
+NUnit
+Jest
+PyTest
+5. Lab Requirements
+Students must:
+Install an IDE.
+Install a Unit Test Framework.
+Create a sample application.
+Create a Unit Test Project.
+Write at least:
+5 test cases
+2 failed test cases intentionally
+Run all test cases.
+Capture screenshots of:
+Project structure
+Test code
+Test execution results
+6. Practical Tasks
+Task 1 – Install IDE
+Install the following software:
+Option A – C#
+Visual Studio Community
+Option B – Java
+IntelliJ IDEA Community
+Option C – JavaScript
+Visual Studio Code
+Task 2 – Install Unit Test Framework
+For C# (.NET + NUnit)
+Install packages:
+NUnit
+NUnit3TestAdapter
+Microsoft.NET.Test.Sdk
+Using NuGet Package Manager:
+Install-Package NUnit
+Install-Package NUnit3TestAdapter
+Install-Package Microsoft.NET.Test.Sdk
+Task 3 – Create Sample Application
+Create a simple Calculator class.
+Example Source Code (C#)
+public class Calculator
+{
+    public int Add(int a, int b)
+    {
+        return a + b;
+    }
+    public int Subtract(int a, int b)
+    {
+        return a - b;
+    }
+    public int Multiply(int a, int b)
+    {
+        return a * b;
+    }
+    public int Divide(int a, int b)
+    {
+        return a / b;
+    }
+}
+Task 4 – Create Unit Test Project
+Steps:
+Right click Solution
+Add → New Project
+Choose “NUnit Test Project”
+Name project:
+CalculatorTests
+Add reference to main project
+Task 5 – Write Unit Test Cases
+Example NUnit Test Code
+using NUnit.Framework;
+namespace CalculatorTests
+{
+    public class Tests
+    {
+        private Calculator calculator;
+        [SetUp]
+        public void Setup()
+        {
+            calculator = new Calculator();
+        }
+        [Test]
+        public void Test_Add()
+        {
+            Assert.AreEqual(5, calculator.Add(2, 3));
+        }
+        [Test]
+        public void Test_Subtract()
+        {
+            Assert.AreEqual(2, calculator.Subtract(5, 3));
+        }
+        [Test]
+        public void Test_Multiply()
+        {
+            Assert.AreEqual(12, calculator.Multiply(3, 4));
+        }
+        [Test]
+        public void Test_Divide()
+        {
+            Assert.AreEqual(2, calculator.Divide(6, 3));
+        }
+        [Test]
+        public void Test_Add_Fail()
+        {
+            Assert.AreEqual(10, calculator.Add(2, 3));
+        }
+    }
+}
+7. Run Unit Tests
+Execute Tests in IDE
+Visual Studio
+Open Test Explorer
+Build Solution
+Run All Tests
+Expected Result
+Passed tests displayed in green
+Failed tests displayed in red
+8. Analyze Test Results
+Students must explain:
+Item
+Description
+Passed Test
+Why the test passed
+Failed Test
+Why the test failed
+Assertion
+Purpose of assertion
+Coverage
+Which methods were tested
+9. Deliverables
+Students must submit:
+Source Code
+Main application
+Test project
+Report (PDF/Word)
+The report must include:
+Introduction
+Installed tools
+Screenshots
+Source code
+Test execution results
+Analysis and conclusion
+10. Evaluation Criteria
+Criteria
+Weight
+Successful installation
+20%
+Correct unit test implementation
+30%
+Running tests successfully
+20%
+Failed test demonstration
+10%
+Report quality
+20%
+11. Bonus Tasks (Optional)
+Students may additionally:
+Test exception handling
+Use parameterized tests
+Generate code coverage report
+Integrate testing with GitHub Actions CI/CD
+Example:
+[TestCase(2, 3, 5)]
+[TestCase(10, 5, 15)]
+public void Test_Add_Parameterized(int a, int b, int expected)
+{
+    Assert.AreEqual(expected, calculator.Add(a, b));
+}
+12. Conclusion
+Through this lab, students will:
+Understand Unit Testing workflow
+Learn practical usage of Unit Test Frameworks
+Gain experience writing and executing automated tests
+Improve software quality assurance skills

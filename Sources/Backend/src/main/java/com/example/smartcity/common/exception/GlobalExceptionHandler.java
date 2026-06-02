@@ -1,6 +1,8 @@
 package com.example.smartcity.common.exception;
 
 import com.example.smartcity.common.response.ApiResponse;
+import com.example.smartcity.security.ratelimit.RateLimitExceededException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -30,6 +32,20 @@ public class GlobalExceptionHandler {
         });
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error(400, "Dữ liệu đầu vào không hợp lệ (Validation failed)", errors));
+    }
+
+    /**
+     * [SECURITY] Xử lý Rate Limit — đặt TRƯỚC catch-all Exception.class
+     * để Spring nhận đúng handler cụ thể hơn.
+     */
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ApiResponse<Object>> handleRateLimit(RateLimitExceededException ex) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Retry-After", String.valueOf(ex.getRetryAfterSeconds()));
+        return ResponseEntity
+                .status(HttpStatus.TOO_MANY_REQUESTS)
+                .headers(headers)
+                .body(ApiResponse.error(429, ex.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)

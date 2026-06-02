@@ -4,6 +4,10 @@ import com.example.smartcity.rag.generation.HybridRagOrchestrator;
 import com.example.smartcity.rag.ingestion.DocumentIngestionPipeline;
 import com.example.smartcity.rag.model.*;
 import com.example.smartcity.rag.repository.DocumentChunkRepository;
+import com.example.smartcity.modules.user.repository.UserRepository;
+import com.example.smartcity.modules.user.entity.User;
+import com.example.smartcity.modules.auth.service.MfaService;
+import com.example.smartcity.common.exception.CustomException;
 import com.example.smartcity.modules.chatbot.service.ChatbotService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -51,6 +55,8 @@ public class RagController {
     private final DocumentIngestionPipeline ingestionPipeline;
     private final DocumentChunkRepository chunkRepository;
     private final ChatbotService chatbotService;
+    private final UserRepository userRepository;
+    private final MfaService mfaService;
 
     // ──────────────────────────────────────────────────────────────
     //  QUERY — RAG Pipeline chính
@@ -92,13 +98,31 @@ public class RagController {
      */
     @PostMapping("/ingest")
     public ResponseEntity<Map<String, String>> ingest(
+            @RequestHeader(value = "X-MFA-Code", required = false) String mfaCode,
             @RequestParam MultipartFile file,
             @RequestParam(defaultValue = "danang-policy") String docType,
             @RequestParam(defaultValue = "vi") String language,
-            @RequestParam(defaultValue = "PUBLIC") String permission) {
+            @RequestParam(defaultValue = "PUBLIC") String permission,
+            org.springframework.security.core.Authentication authentication) {
 
         log.info("📤 [API] POST /api/rag/ingest — file='{}' docType={} lang={}",
             file.getOriginalFilename(), docType, language);
+
+        // [SECURITY FIX] Yêu cầu Step-Up MFA để chống bơm dữ liệu độc hại vào Vector DB
+        if (mfaCode == null || mfaCode.isBlank()) {
+            throw new CustomException("Thao tác Ingest yêu cầu xác thực MFA. Vui lòng cung cấp header X-MFA-Code.", 403);
+        }
+
+        User user = userRepository.findByUsername(authentication.getName())
+                .orElseThrow(() -> new CustomException("Không tìm thấy user", 404));
+
+        if (!user.isMfaEnabled() || user.getMfaSecret() == null) {
+            throw new CustomException("Tài khoản của bạn chưa thiết lập MFA. Không thể thực hiện Ingest.", 403);
+        }
+
+        if (!mfaService.verifyCode(user.getMfaSecret(), mfaCode)) {
+            throw new CustomException("Mã MFA không hợp lệ hoặc đã hết hạn.", 401);
+        }
 
         if (file.isEmpty()) {
             return ResponseEntity.badRequest()

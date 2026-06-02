@@ -23,7 +23,6 @@ import java.util.stream.Collectors;
 public class AnalyticsController {
 
     private final FeedbackRepository feedbackRepository;
-    private final WardRepository wardRepository;
 
     @GetMapping("/kpi")
     public ResponseEntity<KpiResponse> getKpi() {

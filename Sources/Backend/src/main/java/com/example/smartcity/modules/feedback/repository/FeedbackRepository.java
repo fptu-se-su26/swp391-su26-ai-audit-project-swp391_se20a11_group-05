@@ -17,7 +17,9 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
     Page<Feedback> findAll(Pageable pageable);
 
     Optional<Feedback> findByTrackingCode(String trackingCode);
-    
+    List<Feedback> findByStatus(FeedbackStatus status);
+    List<Feedback> findByAssignee_Id(Long assigneeId);
+
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"category", "ward", "citizen", "assignee"})
     Page<Feedback> findByStatus(FeedbackStatus status, Pageable pageable);
 

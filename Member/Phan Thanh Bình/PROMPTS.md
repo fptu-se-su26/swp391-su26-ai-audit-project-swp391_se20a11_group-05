@@ -246,51 +246,85 @@ Viết tại đây...
 
 | Nội dung | Thông tin |
 |---|---|
-| Ngày sử dụng |  |
-| Công cụ AI | ChatGPT / Gemini / Claude / GitHub Copilot / Cursor / Antigravity / Khác |
-| Mục đích |  |
-| Phần việc liên quan | Requirement / Design / Database / Coding / Testing / Debug / Report / Presentation / Other |
-| Mức độ sử dụng | Hỏi ý tưởng / Hỏi giải thích / Hỏi review / Hỏi debug / Hỏi sinh code / Hỏi tối ưu |
+| Ngày sử dụng | 02/06/2026 |
+| Công cụ AI | ChatGPT |
+| Mục đích | Phân tích kiến trúc và triển khai GPS integration |
+| Phần việc liên quan | Backend / Frontend / API / Securityr |
+| Mức độ sử dụng | Hỏi phân tích / Hỏi thiết kế / Hỏi sinh code / Hỏi kiểm chứng |
 
 #### 5.1. Prompt nguyên văn
 
 ```text
-Dán nguyên văn prompt đã hỏi AI tại đây.
+First use CodeGraph to understand the current code architecture...
+I want to add GPS integration...
+Citizens must allow location access to submit feedback.
+Store latitude and longitude.
+Use Reverse Geocoding to authenticate communes and wards.
+Authorities can view the reported location on the map.
+That location will be sent to the commune/ward unit where it will be processed.
+Ask necessary questions first.
+Wait for my approval before editing files.
 ```
 
 #### 5.2. Bối cảnh khi viết prompt
 
 ```text
-Viết tại đây...
+Hệ thống đã có chức năng gửi phản ánh nhưng vị trí GPS chưa được xử lý đúng nghiệp vụ.
+Frontend có gọi geolocation nhưng nếu lỗi lại fallback về tọa độ mặc định, có thể tạo dữ liệu sai.
+Backend có latitude/longitude nhưng chưa bắt buộc và wardId vẫn có nguy cơ bị frontend gửi sai/hardcode.
+Cần bổ sung GPS theo hướng an toàn, có kiểm chứng và không phá vỡ kiến trúc hiện có.
 ```
 
 #### 5.3. Kết quả AI trả về
 
 ```text
-Viết tại đây...
+AI dùng CodeGraph để xác định các file liên quan:
+- Feedback entity/request/response/service/controller.
+- WardController và WardRepository.
+- report.tsx, api.ts, types/api.ts.
+- CivicMap và WardDashboard.
+
+AI đề xuất và hỗ trợ triển khai:
+- LocationResolutionService để reverse geocoding.
+- Validation bắt buộc latitude/longitude.
+- Backend tự resolve ward.
+- Frontend chặn submit nếu chưa có GPS.
+- Ward dashboard hiển thị vị trí phản ánh trên map.
 ```
 
 #### 5.4. Kết quả đã áp dụng vào bài
 
 ```text
-Viết tại đây...
+Đã áp dụng vào code:
+- Bắt buộc GPS khi citizen gửi phản ánh.
+- Không dùng tọa độ fallback giả.
+- Không gửi wardId hardcode từ frontend.
+- Backend xác định phường/xã từ GPS.
+- Cán bộ phường xem được pin phản ánh trên bản đồ.
+- Backend compile pass và frontend build pass.
 ```
 
 #### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
 
 ```text
-Viết tại đây...
+Nhóm không copy toàn bộ theo AI một cách máy móc.
+Các điểm đã kiểm tra/chỉnh sửa:
+- Kiểm tra CodeGraph trước để biết hệ thống đã có sẵn latitude/longitude và CivicMap.
+- Giữ Leaflet/OpenStreetMap thay vì thêm Google Maps để tránh phụ thuộc API key.
+- Thêm guard ở cả frontend và backend để GPS thật sự bắt buộc.
+- Sửa lỗi compile do Spring Boot 4 không còn UriComponentsBuilder.fromHttpUrl.
+- Chạy mvn compile và npm build để xác nhận không lỗi build.
 ```
 
 #### 5.6. Đánh giá chất lượng prompt
 
-- [ ] Prompt rõ ràng
-- [ ] Prompt có đủ bối cảnh
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
 - [ ] Prompt còn thiếu thông tin
-- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả tốt
 - [ ] Prompt tạo ra kết quả chưa phù hợp
-- [ ] Cần hỏi lại AI nhiều lần
-- [ ] Cần tự kiểm tra và chỉnh sửa nhiều
+- [x] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
 - [ ] Kết quả AI có lỗi hoặc chưa chính xác
 
 #### 5.7. Minh chứng liên quan

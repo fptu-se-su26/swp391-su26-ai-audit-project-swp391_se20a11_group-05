@@ -1,9 +1,12 @@
-import { useState, useEffect } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useFeedbacks } from "@/lib/hooks";
 import { reports as mockReports } from "@/lib/mock-data";
 import { StaffShell } from "@/components/site/StaffShell";
 import { Loader2, RefreshCw } from "lucide-react";
+import { mapStatus } from "@/lib/status";
+
+const CivicMap = lazy(() => import("@/components/site/CivicMap").then(m => ({ default: m.CivicMap })));
 
 export function WardDashboard() {
   const { t, locale } = useI18n();
@@ -13,6 +16,8 @@ export function WardDashboard() {
 
   const hasApiData = !!feedbacksPage && feedbacksPage.content.length > 0;
   const apiFeedbacks = feedbacksPage?.content ?? [];
+  // Chỉ đưa các phản ánh có tọa độ lên bản đồ.
+  const mappedFeedbacks = apiFeedbacks.filter(f => f.latitude !== null && f.longitude !== null);
 
   // Auto-select first item when data loads
   useEffect(() => {
@@ -64,6 +69,31 @@ export function WardDashboard() {
             {locale === "vi" ? "Làm mới" : "Refresh"}
           </button>
         </div>
+      </div>
+
+      <div className="card-civic p-0 overflow-hidden">
+        <div className="bg-slate-900 text-white p-4 flex items-center justify-between">
+          <h2 className="text-white font-heading text-xl">
+            {locale === "vi" ? "Ban do phan anh phuong/xa" : "Ward report map"}
+          </h2>
+          <span className="text-xs font-mono uppercase tracking-widest bg-gov-blue/20 text-white px-3 py-1 rounded">
+            {mappedFeedbacks.length} {locale === "vi" ? "diem" : "pins"}
+          </span>
+        </div>
+        <Suspense fallback={<div className="w-full h-[320px] bg-slate-800 animate-pulse" />}>
+          {/* Bản đồ giúp cán bộ phường xem vị trí phản ánh theo pin GPS. */}
+          <CivicMap
+            center={mappedFeedbacks[0] ? [mappedFeedbacks[0].latitude!, mappedFeedbacks[0].longitude!] : [16.0544, 108.2022]}
+            zoom={13}
+            height="320px"
+            markers={mappedFeedbacks.map(f => ({
+              position: [f.latitude!, f.longitude!] as [number, number],
+              title: f.title,
+              description: f.description,
+              status: mapStatus(f.status),
+            }))}
+          />
+        </Suspense>
       </div>
     </StaffShell>
   );

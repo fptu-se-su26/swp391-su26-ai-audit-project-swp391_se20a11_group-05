@@ -2,6 +2,7 @@ package com.example.smartcity.modules.core.controller;
 
 import com.example.smartcity.modules.core.entity.Ward;
 import com.example.smartcity.modules.core.repository.WardRepository;
+import com.example.smartcity.modules.core.service.LocationResolutionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +18,7 @@ import java.util.List;
 public class WardController {
 
     private final WardRepository wardRepository;
+    private final LocationResolutionService locationResolutionService;
 
     @GetMapping
     public ResponseEntity<List<Ward>> getAllWards() {
@@ -60,6 +62,7 @@ public class WardController {
             return ResponseEntity.ok(closest);
         }
         */
-        return ResponseEntity.notFound().build();
+        // Cho frontend xem trước phường/xã được suy ra từ vị trí GPS.
+        return ResponseEntity.ok(locationResolutionService.resolveWard(lat, lng));
     }
 }

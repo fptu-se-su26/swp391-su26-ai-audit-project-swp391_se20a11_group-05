@@ -219,37 +219,76 @@ Sau lần sử dụng AI số 2, nhóm rút ra:
 ```
 
 ---
+### Lần sử dụng AI số 3
 
 | Nội dung | Thông tin |
 |---|---|
-| Ngày sử dụng |  |
-| Công cụ AI | ChatGPT / Gemini / Claude / GitHub Copilot / Cursor / Antigravity / Khác |
-| Mục đích sử dụng |  |
-| Phần việc liên quan | Requirement / Design / Database / Frontend / Backend / Testing / Debug / Report / Presentation / Other |
-| Mức độ sử dụng | Hỗ trợ ý tưởng / Hỗ trợ một phần / Hỗ trợ nhiều / Sinh chính nội dung |
+| Ngày sử dụng | 02/06/2026 |
+| Công cụ AI | ChatGPT |
+| Mục đích sử dụng |  Thiết kế và triển khai GPS integration cho feedback|
+| Phần việc liên quan | Backend / Frontend / API Design / Security |
+| Mức độ sử dụng | Hỗ trợ ý tưởng / Hỗ trợ một phần / Sinh chính nội dung |
 
 #### 4.1. Prompt đã sử dụng
 
 ```text
-Dán nguyên văn prompt đã hỏi AI tại đây.
+First use CodeGraph to understand the current code architecture.
+Follow CLAUDE.md / AGENTS.md rules.
+Use grilled tamarind before making.
+I want to add GPS integration...
+Citizens must allow location access to submit feedback.
+Store latitude/longitude.
+Use reverse geocoding to authenticate communes/wards.
+Authorities can view reported location on map.
+That location will be sent to the commune/ward unit where it will be processed.
+Ask necessary questions first, then provide affected files, database changes, API design, implementation plan, testing strategy and risk.
+Wait for approval before editing files.
 ```
 
 #### 4.2. Kết quả AI gợi ý
 
 ```text
-Viết tại đây...
+AI đã dùng CodeGraph để đọc kiến trúc hiện tại và phát hiện hệ thống đã có sẵn một phần GPS:
+- Entity Feedback đã có latitude/longitude.
+- Database feedbacks đã có latitude, longitude và location geometry.
+- Frontend report.tsx đã gọi browser geolocation nhưng đang fallback sai về tọa độ Đà Nẵng mặc định.
+- CivicMap đã dùng Leaflet/OpenStreetMap.
+- WardController có endpoint /api/wards/locate nhưng trước đó chỉ là stub trả 404.
+
+AI đề xuất giải pháp:
+- Bắt buộc citizen cấp quyền GPS trước khi submit feedback.
+- Không dùng tọa độ fallback giả.
+- Backend tự resolve ward từ GPS, không tin wardId hardcode từ frontend.
+- Dùng OpenStreetMap/Nominatim reverse geocoding để suy ra phường/xã.
+- Cán bộ phường có thể xem pin phản ánh trên bản đồ.
 ```
 
 #### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
 
 ```text
-Viết tại đây...
+- Bổ sung LocationResolutionService để reverse geocoding GPS sang phường/xã.
+- Sửa FeedbackRequest để latitude/longitude bắt buộc và validate range.
+- Sửa FeedbackService để chỉ CITIZEN được gửi GPS khi tạo phản ánh, đồng thời backend tự resolve ward.
+- Sửa /api/wards/locate để frontend có thể preview phường/xã từ GPS.
+- Sửa report.tsx để chặn submit nếu người dân chưa cấp GPS.
+- Xóa wardId hardcode = 1 khỏi payload frontend.
+- Thêm bản đồ pin GPS cho WardDashboard.
 ```
 
 #### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
 
 ```text
-Viết tại đây...
+Critical Thinking:
+AI ban đầu có thể đề xuất dùng reverse geocoding trực tiếp, nhưng nếu tin hoàn toàn vào frontend wardId thì vẫn có rủi ro gửi sai đơn vị xử lý. Nhóm quyết định backend phải là nơi xác định ward cuối cùng.
+
+Contextualization:
+Trong hệ thống The Listening City Systems, phản ánh của người dân phải được chuyển đúng phường/xã xử lý. Vì vậy vị trí GPS không chỉ để hiển thị bản đồ mà còn ảnh hưởng trực tiếp đến routing nghiệp vụ.
+
+Creative Synthesis:
+Nhóm kết hợp browser GPS ở frontend, endpoint /api/wards/locate, backend validation và reverse geocoding. Đồng thời giữ lại Leaflet/OpenStreetMap sẵn có thay vì thêm Google Maps để tránh tăng phụ thuộc/API key.
+
+Decision Ownership:
+Quyết định cuối cùng là GPS bắt buộc cho citizen feedback, không dùng fallback giả, backend tự resolve ward từ tọa độ. Lý do là đảm bảo dữ liệu phản ánh có vị trí thật, giảm sai lệch khi điều phối cho phường/xã.
 ```
 
 #### 4.5. Minh chứng

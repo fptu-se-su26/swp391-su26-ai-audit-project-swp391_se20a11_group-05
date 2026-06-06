@@ -40,7 +40,3 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
     @org.springframework.data.jpa.repository.Query("SELECT w.name, COUNT(f.id), SUM(CASE WHEN f.status = 'RESOLVED' THEN 1L ELSE 0L END) FROM Feedback f JOIN f.ward w GROUP BY w.name")
     List<Object[]> getWardPerformanceStats();
 }
-
-
-
-

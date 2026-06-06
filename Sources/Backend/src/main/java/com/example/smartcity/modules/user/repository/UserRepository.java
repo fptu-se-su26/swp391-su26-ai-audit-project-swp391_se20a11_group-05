@@ -21,7 +21,3 @@ public interface UserRepository extends BaseRepository<User, Long> {
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"ward"})
     Optional<User> findByPhoneNumber(String phoneNumber);
 }
-
-
-
-

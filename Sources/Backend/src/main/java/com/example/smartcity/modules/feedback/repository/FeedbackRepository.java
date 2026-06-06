@@ -23,7 +23,3 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
     long countByStatus(FeedbackStatus status);
     List<Feedback> findByCreatedAtBetween(java.time.LocalDateTime from, java.time.LocalDateTime to);
 }
-
-
-
-

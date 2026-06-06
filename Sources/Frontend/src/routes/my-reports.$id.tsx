@@ -3,9 +3,19 @@ import { useI18n } from "@/lib/i18n";
 import { useFeedbackDetail } from "@/lib/hooks";
 import { reports as mockReports } from "@/lib/mock-data";
 import { StatusBadge } from "@/components/site/StatusBadge";
-import { ArrowLeft, Check, Clock, MapPin, User } from "lucide-react";
+import { ArrowLeft, Check, Clock, MapPin, User, SearchX } from "lucide-react";
 import { Role, AUTHORITY_ROLES, parseBackendRole } from "@/lib/roles";
 import { getToken } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/site/EmptyState";
+import { DemoBanner } from "@/components/site/DemoBanner";
+
+function mapTimelineStage(status: string): "pending" | "inProgress" | "resolved" {
+  const s = status.toUpperCase();
+  if (s === "RESOLVED") return "resolved";
+  if (s === "PENDING") return "pending";
+  return "inProgress";
+}
 
 export const Route = createFileRoute("/my-reports/$id")({
   beforeLoad: async ({ params }) => {

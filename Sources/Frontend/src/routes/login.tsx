@@ -6,8 +6,10 @@
  * inside "@/features/auth/LoginPage".
  */
 
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { LoginPage } from "@/features/auth/LoginPage";
+import { getToken } from "@/lib/api";
+import { parseBackendRole, Role } from "@/lib/roles";
 
 type LoginSearch = {
   redirect?: string;
@@ -19,6 +21,21 @@ export const Route = createFileRoute("/login")({
     redirect: typeof s.redirect === "string" ? s.redirect : undefined,
     error: typeof s.error === "string" ? s.error : undefined,
   }),
+  beforeLoad: async ({ search }) => {
+    const token = typeof window !== "undefined" ? getToken() : null;
+    const raw = typeof window !== "undefined" ? localStorage.getItem("dn_auth_user_v2") : null;
+
+    if (token && raw) {
+      let user: { role: string } | null = null;
+      try { user = JSON.parse(raw); } catch { /* ignore */ }
+      if (user) {
+        const role = parseBackendRole(user.role);
+        if (role === Role.CITIZEN) {
+          throw redirect({ to: search.redirect || "/" });
+        }
+      }
+    }
+  },
   head: () => ({
     meta: [
       { title: "Đăng nhập — Đà Nẵng Kết Nối" },

@@ -196,6 +196,20 @@
 
 ---
 
+### Entry #: 013
+**Prompt Type:** ARCHITECTURE-DESIGN & PROBLEM-SOLVING
+**Stage/Component:** RAG Orchestrator / Resilience / Testing
+**Problem/Context:** Ứng dụng Hybrid RAG chạy cục bộ thành công nhưng hoàn toàn thiếu các yếu tố cốt lõi của một hệ thống Enterprise: Thiếu bảo vệ khi API (Groq/Gemini) sập nguồn, lưu trữ tốn kém, tìm kiếm Vector chậm, và thiếu công cụ đo lường hệ thống (Metrics/Logs).
+**Prompt to AI:** "Hãy đóng vai một Principal Software Engineer và AI Architect... Đọc kỹ mã nguồn tôi cung cấp và LẬP KẾ HOẠCH TRIỂN KHAI (IMPLEMENTATION PLAN) CHI TIẾT để nâng cấp toàn diện hệ thống này theo 3 Giai đoạn: Tối ưu Hạt nhân, Bảo mật & Độ tin cậy, Giám sát & Đo lường."
+**AI Response (Summary):** AI đưa ra bản kế hoạch xuất sắc. Sau đó tiến hành code các chức năng: Chuyển đổi dimension xuống 768 và tạo HNSW index; Tích hợp Resilience4j (Circuit Breaker, Rate Limiter); Cấu hình Prometheus custom metrics và MDC Logging; Cài đặt Testcontainers với `pgvector/pgvector:pg16` để làm Integration Testing.
+**Human Delta & Reflection:**
+- **Critical Thinking:** Tôi nhận thức được một hệ thống "tốt" không chỉ nằm ở thuật toán mà còn ở khả năng Sống sót (Resilience) và Dễ quan sát (Observability).
+- **Contextualization:** Đặc thù hệ thống sử dụng LLM của bên thứ 3 luôn ẩn chứa nguy cơ "quá tải" (Rate Limit 429). Circuit Breaker giúp bẻ luồng sang Fallback thay vì làm người dân bị "treo app".
+- **Creative Synthesis:** Đã trực tiếp debug lỗi Maven khi thiếu dependency AOP cho Spring Boot để bật tính năng Circuit Breaker, cũng như ép testcontainers dùng ảnh Docker chứa sẵn pgvector.
+- **Decision Ownership:** Chốt phê duyệt và hoàn thành trọn vẹn Giai đoạn 1 đến 3 của bản quy hoạch Enterprise, đưa dự án đi từ học thuật đến thực tiễn.
+
+---
+
 ## III. Phát hiện Hallucination (Hallucination Detection)
 
 - **Trường hợp:** Khi yêu cầu AI tìm kiếm và tổng hợp 10 bài báo khoa học trên Springer (Entry 001).

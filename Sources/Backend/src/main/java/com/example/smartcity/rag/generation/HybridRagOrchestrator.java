@@ -10,9 +10,12 @@ import com.example.smartcity.rag.retrieval.RrfFusionService;
 import com.example.smartcity.rag.selfrag.SelfRagService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import org.slf4j.MDC;
+import java.util.UUID;
 
 /**
  * [LAYER 7] HYBRID RAG ORCHESTRATOR — Pipeline chính từ đầu đến cuối.
@@ -42,11 +45,15 @@ public class HybridRagOrchestrator {
     private final QueryTransformer queryTransformer;
     private final CitationExtractor citationExtractor;
     private final SelfRagService selfRagService;
+    private final LlmExecutionService llmExecutionService;
+    private final com.example.smartcity.rag.metrics.RagMetrics metrics;
     private final GroqAdapter groqAdapter;
     private final GeminiAdapter geminiAdapter;
 
-    /** Track provider dùng ở cuối (Groq / Gemini / MOCK) cho metadata */
-    private volatile String lastUsedProvider = "MOCK";
+    @Value("${rag.grading.threshold:0.4}")
+    private double gradingThreshold;
+
+
 
     /**
      * Xử lý một câu hỏi RAG hoàn chỉnh.
@@ -55,11 +62,14 @@ public class HybridRagOrchestrator {
      * @return Câu trả lời + nguồn trích dẫn + metadata kỹ thuật
      */
     public RagResponse query(RagRequest request) {
+        MDC.put("traceId", UUID.randomUUID().toString());
+        metrics.recordQuery();
         long pipelineStart = System.currentTimeMillis();
         log.info("═══════════════════════════════════════════════════════");
         log.info("📨 [RAG] Câu hỏi mới: '{}'", request.question());
 
-        // ──────────────────────────────────────────────────────────
+        try {
+            // ──────────────────────────────────────────────────────────
         // BƯỚC 0: Agentic Intent Routing & Tool Calling (Giai đoạn 3.1)
         // ──────────────────────────────────────────────────────────
         String lowerQuery = request.question().toLowerCase();
@@ -78,8 +88,10 @@ public class HybridRagOrchestrator {
         String effectiveQuery = request.question();
         if (request.options().useHyDE()) {
             effectiveQuery = queryTransformer.applyHyDE(request.question());
-            log.debug("   [HyDE] Query biến đổi thành: '{}'...",
-                    effectiveQuery.substring(0, Math.min(80, effectiveQuery.length())));
+            if (log.isDebugEnabled()) {
+                log.debug("   [HyDE] Query biến đổi thành: '{}'...",
+                        effectiveQuery.substring(0, Math.min(80, effectiveQuery.length())));
+            }
         }
 
         // ──────────────────────────────────────────────────────────
@@ -88,6 +100,7 @@ public class HybridRagOrchestrator {
         long retrievalStart = System.currentTimeMillis();
         HybridRetrievalResult rawResults = hybridRetriever.retrieve(effectiveQuery, request.options());
         long retrievalLatency = System.currentTimeMillis() - retrievalStart;
+        metrics.recordRetrievalLatency(retrievalLatency);
 
         log.info("   [Retrieval] Vector: {} | BM25: {} | Latency: {} ms",
                 rawResults.vectorChunks().size(), rawResults.bm25Chunks().size(), retrievalLatency);
@@ -102,22 +115,45 @@ public class HybridRagOrchestrator {
         log.info("   [RRF Fusion] {} chunk sau khi trộn", fusedChunks.size());
 
         // ──────────────────────────────────────────────────────────
-        // BƯỚC 4: Self-RAG Grading — Lọc chunk kém liên quan
+        // BƯỚC 4: Self-RAG Grading — Lọc chunk kém liên quan (Batch)
         // ──────────────────────────────────────────────────────────
-        List<DocumentChunk> gradedChunks = fusedChunks.stream()
-                .filter(chunk -> {
-                    double score = selfRagService.gradeRelevance(request.question(), chunk.getContent());
-                    boolean pass = score >= 0.4; // Ngưỡng 40%
-                    if (!pass)
-                        log.debug("   [Self-RAG] Loại chunk (score={:.2f}): '{}'...",
-                                score, chunk.getContent().substring(0, Math.min(40, chunk.getContent().length())));
-                    return pass;
-                })
-                .toList();
+        java.util.List<Double> chunkScores = selfRagService.batchGradeRelevance(request.question(), fusedChunks);
+        List<DocumentChunk> gradedChunks = new java.util.ArrayList<>();
+        for (int i = 0; i < fusedChunks.size(); i++) {
+            DocumentChunk chunk = fusedChunks.get(i);
+            double score = chunkScores.get(i);
+            if (score >= gradingThreshold) {
+                gradedChunks.add(chunk);
+            } else {
+                if (log.isDebugEnabled()) {
+                    log.debug("   [Self-RAG] Loại chunk (score={}): '{}'...",
+                            score, chunk.getContent().substring(0, Math.min(40, chunk.getContent().length())));
+                }
+            }
+        }
         log.info("   [Self-RAG] {} / {} chunk vượt qua grading", gradedChunks.size(), fusedChunks.size());
 
-        // Fallback: nếu tất cả bị loại, dùng lại danh sách fused gốc
-        List<DocumentChunk> finalChunks = gradedChunks.isEmpty() ? fusedChunks : gradedChunks;
+        // Fallback: Nếu tất cả bị loại -> Báo lỗi ngay lập tức (Fast-Fail) chống ảo giác
+        if (gradedChunks.isEmpty() && !fusedChunks.isEmpty() && toolContext.isEmpty()) {
+            log.warn("   ⚠️ [Self-RAG] Toàn bộ chunk bị loại. Fast-fail để tránh ảo giác!");
+            metrics.recordChunkCount(0);
+            metrics.recordTotalLatency(System.currentTimeMillis() - pipelineStart);
+            metrics.recordQueryComplete();
+            RetrievalMeta fastFailMeta = new RetrievalMeta(
+                    System.currentTimeMillis() - pipelineStart,
+                    retrievalLatency,
+                    rawResults.vectorChunks().size(),
+                    rawResults.bm25Chunks().size(),
+                    0,
+                    "NONE",
+                    effectiveQuery,
+                    true
+            );
+            return new RagResponse("Xin lỗi, tôi không tìm thấy tài liệu phù hợp trong cơ sở dữ liệu để trả lời chính xác câu hỏi này.", List.of(), fastFailMeta);
+        }
+        
+        List<DocumentChunk> finalChunks = gradedChunks;
+        metrics.recordChunkCount(finalChunks.size());
 
         // ──────────────────────────────────────────────────────────
         // BƯỚC 5: Context Compression
@@ -126,15 +162,23 @@ public class HybridRagOrchestrator {
         String compressedContext = !finalChunks.isEmpty()
                 ? toolContext + contextCompressor.compress(finalChunks, request.question())
                 : toolContext;
-        log.debug("   [Compressor] Mode={} | Context: {} ký tự",
-                hasContext ? "RAG_OR_TOOL" : "GENERAL", compressedContext.length());
+        if (log.isDebugEnabled()) {
+            log.debug("   [Compressor] Mode={} | Context: {} ký tự",
+                    hasContext ? "RAG_OR_TOOL" : "GENERAL", compressedContext.length());
+        }
 
         // ──────────────────────────────────────────────────────────
         // BƯỚC 6: LLM Call — Sinh câu trả lời
         // ──────────────────────────────────────────────────────────
-        String answer = hasContext
-                ? callLLM(request.question(), compressedContext)
-                : callGeneralLLM(request.question());
+        long llmStart = System.currentTimeMillis();
+        LlmExecutionService.LlmCallResult llmResult = hasContext
+                ? llmExecutionService.callLLM(request.question(), compressedContext)
+                : llmExecutionService.callGeneralLLM(request.question());
+        metrics.recordLLMLatency(System.currentTimeMillis() - llmStart);
+        
+        String answer = llmResult.answer();
+        String currentProvider = llmResult.provider();
+        
         log.info("   [LLM] Mode={} | Đã sinh câu trả lời ({} ký tự)",
                 hasContext ? "RAG_OR_TOOL" : "GENERAL", answer.length());
 
@@ -161,7 +205,7 @@ public class HybridRagOrchestrator {
                 rawResults.vectorChunks().size(),
                 rawResults.bm25Chunks().size(),
                 finalChunks.size(),
-                lastUsedProvider,
+                currentProvider,
                 effectiveQuery,
                 isGrounded);
 
@@ -169,111 +213,19 @@ public class HybridRagOrchestrator {
                 hasContext ? "RAG" : "GENERAL", totalLatency, isGrounded);
         log.info("═══════════════════════════════════════════════════════");
 
+        metrics.recordTotalLatency(totalLatency);
+        metrics.recordQueryComplete();
+
         return new RagResponse(answer, citations, meta);
-    }
-
-    // ──────────────────────────────────────────────────────────────
-    // LLM CALL — Groq (Primary) → Gemini (Fallback)
-    // ──────────────────────────────────────────────────────────────
-
-    /**
-     * Gọi LLM theo thứ tự: Groq → Fallback Gemini → Error message.
-     *
-     * Pipeline:
-     * 1. Groq Key Pool có key ACTIVE → gọi Groq
-     * 2. Groq Pool cạn (PoolExhaustedException) → fallback Gemini
-     * 3. Gemini cũng lỗi → trả thông báo thân thiện
-     */
-    private String callLLM(String question, String context) {
-        String systemPrompt = """
-                Bạn là Trợ lý AI Đà Nẵng Lắng Nghe — hỗ trợ người dân giải đáp các thắc mắc và thủ tục hành chính.
-                Nhiệm vụ: Trả lời câu hỏi của người dân dựa HOÀN TOÀN vào thông tin trong CONTEXT bên dưới.
-
-                Quy tắc:
-                1. Chỉ dùng thông tin từ CONTEXT, không bịa thêm.
-                2. Nếu CONTEXT không đủ thông tin → trả lời: "Tôi chưa có thông tin về vấn đề này. Vui lòng liên hệ UBND Phường hoặc cơ quan chức năng."
-                3. Trả lời bằng tiếng Việt, rõ ràng, thân thiện.
-                4. Trích dẫn nguồn nếu có: [Nguồn: tên tài liệu]
-                5. Tối đa 300 từ.
-                """;
-
-        String userMessage = """
-                CONTEXT:
-                %s
-
-                CÂU HỎI: %s
-                """.formatted(context, question);
-
-        // ─── THử GROQ TRƯỜC ───────────────────────────────────────
-        try {
-            String result = groqAdapter.generateResponseAsync(systemPrompt, userMessage).get();
-            lastUsedProvider = "GROQ/llama-3.3-70b-versatile";
-            return result;
-
-        } catch (GroqKeyPool.PoolExhaustedException poolEx) {
-            log.warn("⚠️  [callLLM] Groq Pool cạn → Fallback Gemini | Lý do: {}", poolEx.getMessage());
-
-            // ─── FALLBACK GEMINI ──────────────────────────────────
-            try {
-                String geminiResult = geminiAdapter.generateResponseAsync(systemPrompt, userMessage).get();
-                lastUsedProvider = geminiAdapter.isHealthy() ? "GEMINI/gemini-1.5-flash" : "MOCK_FALLBACK";
-                log.info("✅ [callLLM] Gemini fallback thành công.");
-                return geminiResult;
-            } catch (Exception geminiEx) {
-                log.error("❌ [callLLM] Cả Groq lẫn Gemini đều lỗi: {}", geminiEx.getMessage());
-                lastUsedProvider = "FAILED";
-                return "⏳ Hệ thống AI đang tạm thời quá tải. Vui lòng thử lại sau 1-2 phút.";
-            }
-
         } catch (Exception e) {
-            log.error("❌ [callLLM] Lỗi không xác định: {}", e.getMessage());
-            lastUsedProvider = "ERROR";
-            return "Xin lỗi, hệ thống AI tạm thời gặp sự cố. Vui lòng thử lại sau.";
+            metrics.recordError(e.getClass().getSimpleName());
+            throw e;
+        } finally {
+            MDC.clear();
         }
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // GENERAL LLM CALL — Không có Context (Fallback khi DB rỗng)
-    // ──────────────────────────────────────────────────────────────
 
-    /**
-     * Gọi AI ở chế độ trợ lý tổng quát khi không tìm thấy tài liệu RAG.
-     * Vẫn duy trì vai trò là trợ lý Đà Nẵng nhưng trả lời tự nhiên hơn.
-     */
-    private String callGeneralLLM(String question) {
-        String systemPrompt = """
-                Bạn là Trợ lý AI Đà Nẵng Lắng Nghe — một chatbot thân thiện hỗ trợ người dân.
-                Nhiệm vụ chính là giải đáp thủ tục hành chính tại Đà Nẵng, nhưng bạn cũng có thể
-                trả lời các câu hỏi thông thường một cách tự nhiên và hữu ích.
-
-                Quy tắc:
-                1. Trả lời tự nhiên, thân thiện bằng tiếng Việt.
-                2. Nếu câu hỏi liên quan đến thủ tục hành chính Đà Nẵng mà bạn không chắc chắn,
-                   hãy khuyến khích người dùng liên hệ đường dây 1022 hoặc cổng dịch vụ công.
-                3. Tối đa 200 từ.
-                """;
-
-        String userMessage = "Câu hỏi: " + question;
-
-        try {
-            String result = groqAdapter.generateResponseAsync(systemPrompt, userMessage).get();
-            lastUsedProvider = "GROQ/llama-3.3-70b-versatile [GENERAL]";
-            return result;
-        } catch (GroqKeyPool.PoolExhaustedException poolEx) {
-            try {
-                String result = geminiAdapter.generateResponseAsync(systemPrompt, userMessage).get();
-                lastUsedProvider = "GEMINI/gemini-1.5-flash [GENERAL]";
-                return result;
-            } catch (Exception e) {
-                lastUsedProvider = "FAILED";
-                return "Xin lỗi, hệ thống AI đang bận. Vui lòng thử lại sau.";
-            }
-        } catch (Exception e) {
-            log.error("❌ [callGeneralLLM] Lỗi: {}", e.getMessage());
-            lastUsedProvider = "ERROR";
-            return "Xin lỗi, tôi không thể xử lý câu hỏi này lúc này. Vui lòng thử lại sau.";
-        }
-    }
 
     // ──────────────────────────────────────────────────────────────
     // STREAMING RAG

@@ -801,20 +801,126 @@ AI định sử dụng ép kiểu `as any` (Ví dụ `<Link to={"/register" as a
 
 ---
 
-## 7. Prompt chưa hiệu quả
+## 7. Prompt nâng cấp hệ thống chuẩn Enterprise
+
+### 7.1. Prompt được chọn
+
+```text
+Hãy đóng vai một Principal Software Engineer và AI Architect với hơn 10 năm kinh nghiệm xây dựng hệ thống phân tán và RAG Pipeline tại các tập đoàn công nghệ lớn (Google, Amazon). 
+
+Tôi đang phát triển hệ thống "Hybrid RAG" (kết hợp Vector Search và BM25) cho một ứng dụng Chatbot. Hệ thống hiện tại đã chạy được các luồng cơ bản, nhưng tôi muốn nâng cấp nó lên chuẩn "Enterprise Production-ready" (có thể chịu tải cao, tối ưu chi phí, dễ giám sát, và có độ chính xác tuyệt đối).
+
+Nhiệm vụ của bạn là: Đọc kỹ mã nguồn tôi cung cấp và LẬP KẾ HOẠCH TRIỂN KHAI (IMPLEMENTATION PLAN) CHI TIẾT để nâng cấp toàn diện hệ thống này.
+
+Yêu cầu BẮT BUỘC:
+1. KHÔNG NÓI LÝ THUYẾT SUÔNG. Mọi đề xuất phải gắn liền với thực tế mã nguồn tôi đang có.
+2. Thiết kế kế hoạch theo dạng Checklist từng bước (từ Dễ/Ưu tiên cao đến Khó/Ưu tiên thấp).
+3. Với mỗi bước, phải chỉ định rõ:
+   - File/Class nào cần tạo mới hoặc sửa đổi.
+   - Thư viện/Dependency nào cần cài thêm (nếu có).
+   - Đoạn mã giả (Pseudo-code) hoặc design pattern sẽ áp dụng.
+
+Hãy trình bày kế hoạch theo các Giai đoạn (Phases) sau:
+
+🚀 GIAI ĐOẠN 1: Tối ưu Hạt nhân RAG (Core Retrieval & Generation)
+(Gợi ý phân tích: Thêm Cross-Encoder Reranker sau bước RRF, Tối ưu Semantic Chunker bằng AI, Caching embedding kết quả...)
+
+🛡️ GIAI ĐOẠN 2: Bảo mật & Độ tin cậy (Resilience & Security)
+(Gợi ý phân tích: Rate Limiting, Fallback Strategy nâng cao, Xử lý lỗi Timeout của Database/LLM, Quản lý Token Cost...)
+
+📊 GIAI ĐOẠN 3: Giám sát & Đo lường (Observability & Testing)
+(Gợi ý phân tích: Tích hợp Prometheus/Grafana đo độ trễ các bước, Ghi log chi tiết RAG workflow, Viết Unit/Integration Test bằng Testcontainers hoặc RAGAS...)
+
+Dưới đây là các file mã nguồn hiện tại của tôi:
+[DÁN CODE CỦA BẠN VÀO ĐÂY]
+```
+
+### 7.2. Vì sao prompt này quan trọng?
+
+```text
+Đây là prompt chuyển đổi tư duy từ "lập trình kiểu sinh viên chạy cho xong" sang "kỹ thuật phần mềm chuẩn doanh nghiệp". Thay vì đòi AI viết code ngay, prompt ép AI phải vẽ ra bản đồ (Roadmap/Checklist) trước, chỉ rõ sửa file nào, cài thư viện gì.
+```
+
+### 7.3. Kết quả prompt này mang lại
+
+```text
+AI đã vạch ra lộ trình 3 bước hoàn hảo và sau đó lần lượt thi hành:
+1. Sửa DB (giảm dimension về 768, tạo HNSW index).
+2. Xây dựng giáp chống đứt mạng (Circuit Breaker bằng Resilience4j).
+3. Gắn mắt thần đo lường hệ thống (Prometheus Metrics & MDC Logging) và Testcontainers.
+Toàn bộ dự án đã lột xác thành hàng "Enterprise".
+```
+
+### 7.4. Sinh viên/nhóm đã kiểm tra kết quả như thế nào?
+
+```text
+Chạy lệnh `mvn clean test-compile` để kiểm tra độ tương thích của Testcontainers và chạy thử project để verify các logs in ra có gắn đúng UUID từ MDC hay không.
+```
+
+### 7.5. Sinh viên/nhóm đã cải tiến gì từ kết quả AI?
+
+```text
+Do khác biệt phiên bản Spring Boot, thư viện Resilience4j bị xung đột. Tôi đã phải chỉ đạo AI cấu hình lại `pom.xml` sử dụng `resilience4j-spring-boot3` và thêm `spring-boot-starter-aop` để các Annotation hoạt động được.
+```
+
+---
+
+## 8. Prompt kiểm tra Logic Nghiệp Vụ (Business Logic Audit)
+
+### 8.1. Prompt được chọn
+
+```text
+Bạn là một **Senior Business Analyst và Software Architect** với 15+ năm kinh nghiệm trong việc phân tích và validate business logic. Nhiệm vụ của bạn là kiểm tra TOÀN DIỆN logic nghiệp vụ của hệ thống/tính năng được cung cấp theo khung phân tích 7 chiều (Consistency, Completeness, Feasibility, Business Rules, Data Flow, Security, UX). Ưu tiên hóa vấn đề theo mức độ nghiêm trọng và đề xuất cách fix cụ thể.
+Đầu vào: Yêu cầu nâng cấp Hybrid RAG lên chuẩn Enterprise Production-ready.
+```
+
+### 8.2. Vì sao prompt này quan trọng?
+
+```text
+Khi thiết kế kiến trúc phần mềm, sinh viên thường chỉ quan tâm xem code có chạy hay không (Make it work) mà thiếu cái nhìn tổng thể về mặt nghiệp vụ (Business Rules) và các trường hợp ngoại lệ (Edge cases). Prompt này buộc AI phải đánh giá hệ thống ở góc độ khắt khe nhất của một chuyên gia phân tích nghiệp vụ, chỉ ra các lỗ hổng logic (như Race Condition, Fake Routing, Hardcode) trước khi bắt tay vào code.
+```
+
+### 8.3. Kết quả prompt này mang lại
+
+```text
+AI đã chỉ ra 3 lỗi CRITICAL (Blocking Production) bao gồm:
+1. Race Condition trong quá trình Vector Index Migration.
+2. Circuit Breaker State Inconsistency (logic đứt gãy không xử lý được quá tải).
+3. Token Cost Tracking bị lỗi khi có nhiều request đồng thời.
+Đồng thời AI đưa ra 5 lỗi HIGH và các giải pháp khắc phục cực kỳ chi tiết (Ví dụ: Thêm cơ chế Backfill an toàn, cấu hình Redis cho Rate Limiter).
+```
+
+### 8.4. Sinh viên/nhóm đã kiểm tra kết quả như thế nào?
+
+```text
+Đối chiếu kết quả phân tích của AI với bộ Requirements gốc và nhận thấy đánh giá là hoàn toàn chính xác. Tôi đã kiểm chứng lại các kịch bản lỗi đồng thời (Concurrency) và xác nhận rằng hệ thống sẽ bị mất mát dữ liệu/phân luồng sai nếu không áp dụng các cơ chế khóa và phân quyền chuẩn.
+```
+
+### 8.5. Sinh viên/nhóm đã cải tiến gì từ kết quả AI?
+
+```text
+Từ phân tích của AI, tôi đã chỉ đạo AI cập nhật trực tiếp các khuyến nghị này vào bộ Requirements gốc, đồng thời bổ sung các kịch bản Rollback (V3_rollback.sql) và thiết lập Alert Thresholds trên Grafana/Prometheus để hoàn thiện bức tranh giám sát.
+```
+
+---
+
+## 9. Prompt chưa hiệu quả
 
 Ghi lại ít nhất một prompt chưa tạo ra kết quả tốt hoặc chưa phù hợp.
 
-### 7.1. Prompt chưa hiệu quả
+### 9.1. Prompt chưa hiệu quả
 
 ```text
-Dán prompt chưa hiệu quả tại đây.
+Viết cho tôi một hệ thống RAG kết hợp Vector Search để làm Chatbot thông minh.
 ```
 
-### 7.2. Vì sao prompt này chưa hiệu quả?
+### 9.2. Vì sao prompt này chưa hiệu quả?
 
 ```text
-Viết tại đây...
+- Quá ngắn và chung chung.
+- Không nêu rõ ngôn ngữ lập trình, framework (Java/Spring Boot) và thư viện muốn dùng (pgvector).
+- Không cung cấp cấu trúc Database hiện tại.
+- Yêu cầu AI làm toàn bộ một hệ thống khổng lồ trong 1 câu lệnh, dẫn đến AI tự "bịa" (hallucinate) ra các cấu trúc class ảo không hề khớp với Source Code hiện có của dự án.
 ```
 
 Gợi ý nguyên nhân:
@@ -828,32 +934,39 @@ Gợi ý nguyên nhân:
 - Không yêu cầu AI giải thích.
 - Hỏi AI làm toàn bộ thay vì hỏi từng phần.
 
-### 7.3. Cách cải thiện prompt
+### 9.3. Cách cải thiện prompt
 
 ```text
-Viết tại đây...
+- Cung cấp bối cảnh ngôn ngữ và framework đang sử dụng.
+- Chia nhỏ bài toán: Yêu cầu AI viết từng class một thay vì nguyên dự án (Ví dụ: Viết trước Entity DocumentChunk, sau đó viết Repository, rồi mới tới Service).
+- Cung cấp Database Schema hiện tại để AI ánh xạ (mapping) chính xác tên biến.
 ```
 
-### 7.4. Prompt sau khi cải tiến
+### 9.4. Prompt sau khi cải tiến
 
 ```text
-Dán prompt đã được cải tiến tại đây.
+Tôi đang xây dựng module Hybrid RAG cho ứng dụng Spring Boot 3 bằng Java 21. Database hiện tại là PostgreSQL và tôi đã bật extension pgvector.
+Bảng "document_chunks" của tôi gồm các cột: id, content, embedding (kiểu vector 768 chiều), source_url.
+Hãy viết cho tôi một Repository interface trong Spring Data JPA (DocumentChunkRepository). Cần có một hàm @Query native sử dụng toán tử `<=>` của pgvector để tìm ra 5 đoạn text có vector gần giống nhất với một vector (float[]) đầu vào.
 ```
 
-### 7.5. Kết quả sau khi cải tiến prompt
+### 9.5. Kết quả sau khi cải tiến prompt
 
 ```text
-Viết tại đây...
+AI đã trả về chính xác đoạn code cho file `DocumentChunkRepository` với native SQL đúng chuẩn cú pháp của pgvector. Tôi có thể copy và chạy được ngay lập tức mà không gặp bất kỳ lỗi biên dịch hay lệch cấu trúc Database nào.
 ```
 
 ---
 
-## 8. Bài học về cách viết prompt
+## 10. Bài học về cách viết prompt
 
-### 8.1. Khi viết prompt, em/nhóm cần cung cấp thông tin gì để AI trả lời tốt hơn?
+### 10.1. Khi viết prompt, em/nhóm cần cung cấp thông tin gì để AI trả lời tốt hơn?
 
 ```text
-Viết tại đây...
+1. Ngữ cảnh kỹ thuật (Tech Stack): Ngôn ngữ, Framework, Phiên bản (ví dụ: Java 21, Spring Boot 3.2).
+2. Dữ liệu nền tảng (Context): Đưa Source code hiện tại, cấu trúc Database (Schema), hoặc Log lỗi cụ thể (Stacktrace) để AI không tự "bịa" dữ liệu.
+3. Phạm vi bài toán (Scope): Yêu cầu xử lý một class/hàm cụ thể (Chia để trị) thay vì bắt AI đẻ ra nguyên một ứng dụng đồ sộ trong một lần trả lời.
+4. Ràng buộc đầu ra (Constraints): Bắt buộc AI tuân thủ một chuẩn mực (ví dụ: Dùng Design Pattern, tuân thủ nguyên lý SOLID, viết code phải có comment, không import thư viện rác).
 ```
 
 Gợi ý:

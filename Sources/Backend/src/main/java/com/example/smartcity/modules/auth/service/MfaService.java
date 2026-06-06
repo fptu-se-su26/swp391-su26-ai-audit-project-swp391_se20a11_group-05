@@ -29,7 +29,7 @@ public class MfaService {
                 .label(username)
                 .secret(secret)
                 .issuer("SmartCity Audit")
-                .algorithm(HashingAlgorithm.SHA1)
+                .algorithm(HashingAlgorithm.SHA256) // [SECURITY FIX] Dùng SHA256 an toàn hơn SHA1
                 .digits(6)
                 .period(30)
                 .build();

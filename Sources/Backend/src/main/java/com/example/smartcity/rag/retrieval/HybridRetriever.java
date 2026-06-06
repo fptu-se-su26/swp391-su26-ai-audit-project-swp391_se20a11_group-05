@@ -6,6 +6,7 @@ import com.example.smartcity.rag.model.HybridRetrievalResult;
 import com.example.smartcity.rag.model.RetrievalOptions;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.CompletableFuture;
@@ -26,7 +27,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class HybridRetriever {
+public class HybridRetriever implements DisposableBean {
 
     private final VectorRetriever vectorRetriever;
     private final BM25Retriever bm25Retriever;
@@ -76,13 +77,23 @@ public class HybridRetriever {
             executor
         );
 
-        // Chờ cả 2 hoàn thành
-        CompletableFuture.allOf(vectorFuture, bm25Future).join();
+        // Chờ cả 2 hoàn thành, giới hạn tối đa 5 giây
+        CompletableFuture.allOf(vectorFuture, bm25Future)
+            .orTimeout(5, java.util.concurrent.TimeUnit.SECONDS)
+            .join();
 
         long latency = System.currentTimeMillis() - start;
         log.info("✅ [HYBRID] Tìm kiếm kép hoàn tất trong {} ms", latency);
 
         return new HybridRetrievalResult(vectorFuture.join(), bm25Future.join());
+    }
+
+    @Override
+    public void destroy() {
+        if (executor != null) {
+            log.info("🛑 [HYBRID] Đóng Virtual Thread Executor...");
+            executor.shutdown();
+        }
     }
 }
 

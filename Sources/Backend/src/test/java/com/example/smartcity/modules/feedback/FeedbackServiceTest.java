@@ -13,7 +13,7 @@ import com.example.smartcity.modules.user.entity.Role;
 import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.user.repository.UserRepository;
 import com.example.smartcity.modules.feedback.repository.FeedbackLogRepository;
-import com.example.smartcity.modules.notification.NotificationService;
+import com.example.smartcity.modules.notification.WebSocketNotificationService;
 import com.example.smartcity.modules.feedback.service.AutoDispatchService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -41,7 +41,7 @@ class FeedbackServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private WardRepository wardRepository;
     @Mock private FeedbackLogRepository feedbackLogRepository;
-    @Mock private NotificationService notificationService;
+    @Mock private WebSocketNotificationService notificationService;
     @Mock private AutoDispatchService autoDispatchService;
 
     private FeedbackService feedbackService;

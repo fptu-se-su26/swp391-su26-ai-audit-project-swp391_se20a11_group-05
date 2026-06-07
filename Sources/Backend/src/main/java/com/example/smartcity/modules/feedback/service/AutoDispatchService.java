@@ -6,7 +6,7 @@ import com.example.smartcity.modules.feedback.entity.FeedbackLog;
 import com.example.smartcity.modules.feedback.entity.FeedbackStatus;
 import com.example.smartcity.modules.feedback.repository.FeedbackLogRepository;
 import com.example.smartcity.modules.feedback.repository.FeedbackRepository;
-import com.example.smartcity.modules.notification.NotificationService;
+import com.example.smartcity.modules.notification.WebSocketNotificationService;
 import com.example.smartcity.modules.user.entity.Role;
 import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.user.repository.UserRepository;
@@ -33,7 +33,7 @@ public class AutoDispatchService {
     private final FeedbackRepository feedbackRepository;
     private final FeedbackLogRepository feedbackLogRepository;
     private final UserRepository userRepository;
-    private final NotificationService notificationService;
+    private final WebSocketNotificationService notificationService;
 
     @Async
     @Transactional

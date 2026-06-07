@@ -23,6 +23,11 @@ public class Attachment {
     @Column(length = 50)
     private String fileType; 
 
+    @Column(length = 255)
+    private String fileName;
+
+    private Long fileSize;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "uploaded_by")
     private User uploadedBy;
@@ -40,6 +45,10 @@ public class Attachment {
     public void setFileUrl(String fileUrl) { this.fileUrl = fileUrl; }
     public String getFileType() { return fileType; }
     public void setFileType(String fileType) { this.fileType = fileType; }
+    public String getFileName() { return fileName; }
+    public void setFileName(String fileName) { this.fileName = fileName; }
+    public Long getFileSize() { return fileSize; }
+    public void setFileSize(Long fileSize) { this.fileSize = fileSize; }
     public User getUploadedBy() { return uploadedBy; }
     public void setUploadedBy(User uploadedBy) { this.uploadedBy = uploadedBy; }
     public LocalDateTime getUploadedAt() { return uploadedAt; }

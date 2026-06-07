@@ -5,6 +5,7 @@ import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.core.entity.Ward;
 
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "feedbacks")
@@ -29,6 +30,20 @@ public class Feedback extends BaseEntity {
     @Column(nullable = false, length = 20)
     private FeedbackStatus status = FeedbackStatus.PENDING;
 
+    @Column(nullable = false, length = 20)
+    private String receiverType = "WARD_STAFF";
+
+    @Column(nullable = false, length = 20)
+    private String priority = "MEDIUM";
+
+    @Column(length = 30)
+    private String source = "CITIZEN_APP";
+
+    private LocalDateTime resolvedAt;
+
+    @Column(columnDefinition = "TEXT")
+    private String resolutionNote;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     private Category category;
@@ -41,8 +56,7 @@ public class Feedback extends BaseEntity {
     @JoinColumn(name = "citizen_id", nullable = false)
     private User citizen;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "assignee_id")
+    @Transient
     private User assignee;
 
     public Feedback() {}
@@ -61,6 +75,16 @@ public class Feedback extends BaseEntity {
     public void setAddressDetails(String addressDetails) { this.addressDetails = addressDetails; }
     public FeedbackStatus getStatus() { return status; }
     public void setStatus(FeedbackStatus status) { this.status = status; }
+    public String getReceiverType() { return receiverType; }
+    public void setReceiverType(String receiverType) { this.receiverType = receiverType; }
+    public String getPriority() { return priority; }
+    public void setPriority(String priority) { this.priority = priority; }
+    public String getSource() { return source; }
+    public void setSource(String source) { this.source = source; }
+    public LocalDateTime getResolvedAt() { return resolvedAt; }
+    public void setResolvedAt(LocalDateTime resolvedAt) { this.resolvedAt = resolvedAt; }
+    public String getResolutionNote() { return resolutionNote; }
+    public void setResolutionNote(String resolutionNote) { this.resolutionNote = resolutionNote; }
     public Category getCategory() { return category; }
     public void setCategory(Category category) { this.category = category; }
     public Ward getWard() { return ward; }

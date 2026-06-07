@@ -73,7 +73,9 @@ public class FileController {
         Attachment attachment = new Attachment();
         attachment.setFeedback(feedback);
         attachment.setFileUrl(fileUrl);
-        attachment.setFileType(file.getContentType());
+        attachment.setFileType(toDatabaseFileType(file.getContentType()));
+        attachment.setFileName(file.getOriginalFilename());
+        attachment.setFileSize(file.getSize());
         attachment.setUploadedBy(user);
         attachment.setUploadedAt(LocalDateTime.now());
         attachmentRepository.save(attachment);
@@ -120,6 +122,14 @@ public class FileController {
     }
 
     // ─── DTOs ─────────────────────────────────────────────────────
+
+    private String toDatabaseFileType(String contentType) {
+        String type = contentType == null ? "" : contentType.toLowerCase();
+        if (type.startsWith("image/")) return "IMAGE";
+        if (type.startsWith("video/")) return "VIDEO";
+        if (type.startsWith("audio/")) return "AUDIO";
+        return "DOCUMENT";
+    }
 
     public record UploadResponse(String fileUrl, String error) {}
     public record AttachmentDto(Long id, String fileUrl, String fileType) {}

@@ -12,6 +12,7 @@ import com.example.smartcity.modules.feedback.repository.CategoryRepository;
 import com.example.smartcity.modules.feedback.repository.FeedbackRepository;
 import com.example.smartcity.modules.user.repository.UserRepository;
 import com.example.smartcity.modules.core.entity.Ward;
+import com.example.smartcity.modules.core.repository.WardRepository;
 import com.example.smartcity.modules.core.service.LocationResolutionService;
 import com.example.smartcity.modules.user.entity.Role;
 import com.example.smartcity.common.exception.CustomException;
@@ -42,18 +43,17 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
     private final NotificationService notificationService;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
+    private final WardRepository wardRepository;
     private final AutoDispatchService autoDispatchService;
     private final LocationResolutionService locationResolutionService;
 
     // State machine: map of valid transitions
     private static final Map<FeedbackStatus, Set<FeedbackStatus>> VALID_TRANSITIONS = Map.of(
-        FeedbackStatus.PENDING,        Set.of(FeedbackStatus.ASSIGNED, FeedbackStatus.REJECTED),
-        FeedbackStatus.ASSIGNED,       Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.REJECTED, FeedbackStatus.PENDING),
+        FeedbackStatus.PENDING,        Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.REJECTED),
         FeedbackStatus.IN_PROGRESS,    Set.of(FeedbackStatus.RESOLVED, FeedbackStatus.WAITING_INFO, FeedbackStatus.REJECTED),
         FeedbackStatus.WAITING_INFO,   Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.RESOLVED, FeedbackStatus.REJECTED),
         FeedbackStatus.RESOLVED,       Set.of(),
-        FeedbackStatus.REJECTED,       Set.of(),
-        FeedbackStatus.PRE_EMPTIVE,    Set.of(FeedbackStatus.ASSIGNED, FeedbackStatus.REJECTED)
+        FeedbackStatus.REJECTED,       Set.of()
     );
 
     @Override
@@ -84,7 +84,7 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         }
 
         // Backend tự xác định phường/xã từ GPS, không tin wardId do frontend gửi lên.
-        Ward ward = locationResolutionService.resolveWard(request.getLatitude(), request.getLongitude());
+        Ward ward = resolveWard(request.getWardId(), request.getLatitude(), request.getLongitude());
 
         Feedback feedback = new Feedback();
         feedback.setTrackingCode("FB-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
@@ -94,6 +94,9 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         feedback.setLongitude(request.getLongitude());
         feedback.setAddressDetails(request.getAddressDetails());
         feedback.setStatus(FeedbackStatus.PENDING);
+        feedback.setReceiverType(resolveReceiverType(category));
+        feedback.setPriority("MEDIUM");
+        feedback.setSource("CITIZEN_APP");
         feedback.setCategory(category);
         feedback.setWard(ward);
         feedback.setCitizen(citizen);
@@ -177,8 +180,8 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
 
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setAssignee(assignee);
-        if (oldStatus == FeedbackStatus.PENDING || oldStatus == FeedbackStatus.PRE_EMPTIVE) {
-            feedback.setStatus(FeedbackStatus.ASSIGNED);
+        if (oldStatus == FeedbackStatus.PENDING) {
+            feedback.setStatus(FeedbackStatus.IN_PROGRESS);
         }
         feedback.setUpdatedAt(LocalDateTime.now());
         Feedback saved = feedbackRepository.save(feedback);
@@ -236,6 +239,18 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
                 throw new CustomException("Công an chỉ có quyền xử lý phản ánh thuộc danh mục An ninh", HttpStatus.FORBIDDEN.value());
             }
         }
+    }
+
+    private String resolveReceiverType(Category category) {
+        return category != null && "An ninh".equalsIgnoreCase(category.getName()) ? "POLICE" : "WARD_STAFF";
+    }
+
+    private Ward resolveWard(Long wardId, Double latitude, Double longitude) {
+        if (wardId != null) {
+            return wardRepository.findById(wardId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Ward", wardId));
+        }
+        return locationResolutionService.resolveWard(latitude, longitude);
     }
 }
 

@@ -36,6 +36,8 @@ public class CitizenFeedbackMediaRequest {
     @NotNull(message = "Citizen id is required")
     private Long citizenId;
 
+    private Long wardId;
+
     @Builder.Default
     private List<Long> videoDurationsSeconds = new ArrayList<>();
 }

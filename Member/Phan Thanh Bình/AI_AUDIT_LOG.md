@@ -154,87 +154,141 @@ Viết tại đây...
 
 | Nội dung | Thông tin |
 |---|---|
-| Ngày sử dụng |  |
-| Công cụ AI | ChatGPT / Gemini / Claude / GitHub Copilot / Cursor / Antigravity / Khác |
-| Mục đích sử dụng |  |
-| Phần việc liên quan | Requirement / Design / Database / Frontend / Backend / Testing / Debug / Report / Presentation / Other |
-| Mức độ sử dụng | Hỗ trợ ý tưởng / Hỗ trợ một phần / Hỗ trợ nhiều / Sinh chính nội dung |
+| Ngày sử dụng | 28/05/2026 |
+| Công cụ AI | ChatGPT |
+| Mục đích sử dụng | Hoàn thiện luồng backend + API cho use case upload media, khớp với frontend template |
+| Phần việc liên quan | Backend / Frontend / Testing / Debug |
+| Mức độ sử dụng | Hỗ trợ nhiều |
 
-#### 4.1. Prompt đã sử dụng
+#### 4.1. Prompt da su dung
 
 ```text
-Dán nguyên văn prompt đã hỏi AI tại đây.
+You must ensure that this backend code must be able to connect with the frontend and must match the frontend template.
+If there is any missing class for the usecase to work, please complete it for me and ensure the logic is correct for other members.
+Make sure the code is standard so that when I merge into the product branch there will be no errors, explain in Vietnamese.
 ```
 
 #### 4.2. Kết quả AI gợi ý
 
 ```text
-Viết tại đây...
+AI đề xuất bổ sung đầy đủ lớp cho use case media và chuẩn hóa API theo frontend template:
+- Thêm repository/DTO/service/controller cho media.
+- Chuẩn endpoint upload media trong module feedback.
+- Giữ tương thích ngược với flow cũ.
+- Kiểm tra build trước khi merge.
 ```
 
 #### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
 
 ```text
-Viết tại đây...
+Nhóm đã áp dụng trực tiếp:
+- Bổ sung các class con thiếu cho use case phản ánh kèm ảnh/video.
+- Thêm endpoint media để frontend gọi thông nhất.
+- Cập nhật helper frontend gọi đúng endpoint.
+- Rà soát và đảm bảo backend khớp data shape frontend đang dùng.
 ```
 
 #### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
 
 ```text
-Viết tại đây...
+Nhóm tự chỉnh sửa/cải tiến:
+- Chỉnh FeedbackService để xử lý an toàn khi frontend chưa gửi categoryId.
+- Sửa mismatch endpoint giữa backend và helper frontend.
+- Sửa lỗi trùng dòng fetch trong helper frontend.
+- Chạy compile lại để đảm bảo không lỗi trước khi push PR.
 ```
 
 #### 4.5. Minh chứng
 
 | Loại minh chứng | Nội dung |
 |---|---|
-| Link commit |  |
-| File liên quan |  |
+| Link commit | 37217fd, 99ad3b8, a0692cf, 54a802f |
+| File liên quan | Sources/Backend/src/main/java/com/example/smartcity/modules/feedback/service/FeedbackService.java; Sources/Backend/src/main/java/com/example/smartcity/modules/feedback/controller/FeedbackController.java; Sources/Backend/src/main/java/com/example/smartcity/modules/feedback/service/CitizenFeedbackMediaService.java; Sources/Backend/src/main/java/com/example/smartcity/modules/feedback/service/SupabaseStorageService.java; Sources/Frontend/src/lib/citizenFeedbackMediaApi.ts |
 | Screenshot |  |
-| Kết quả chạy/test |  |
+| Kết quả chạy/test | mvn -q -DskipTests compile: PASS; CICD build re-trigger thanh cong |
 | Link video demo |  |
-| Ghi chú khác |  |
+| Ghi chu khac | Tap trung vao compatibility backend-frontend de merge Product an toan |
 
 #### 4.6. Nhận xét cá nhân/nhóm
 
 ```text
-Viết tại đây...
+Sau lần sử dụng AI số 2, nhóm rút ra:
+1) Task lớn cần chốt API contract trước rồi mới mở rộng chức năng.
+2) AI giúp tăng tốc phân tích và đề xuất cấu trúc, nhưng vẫn phải tự kiểm chứng build/test.
+3) Với project nhóm, ưu tiên an toàn merge và không phá flow cũ quan trọng hơn việc thêm quá nhiều thay đổi một lúc.
 ```
 
 ---
-
 ### Lần sử dụng AI số 3
 
 | Nội dung | Thông tin |
 |---|---|
-| Ngày sử dụng |  |
-| Công cụ AI | ChatGPT / Gemini / Claude / GitHub Copilot / Cursor / Antigravity / Khác |
-| Mục đích sử dụng |  |
-| Phần việc liên quan | Requirement / Design / Database / Frontend / Backend / Testing / Debug / Report / Presentation / Other |
-| Mức độ sử dụng | Hỗ trợ ý tưởng / Hỗ trợ một phần / Hỗ trợ nhiều / Sinh chính nội dung |
+| Ngày sử dụng | 02/06/2026 |
+| Công cụ AI | ChatGPT |
+| Mục đích sử dụng |  Thiết kế và triển khai GPS integration cho feedback|
+| Phần việc liên quan | Backend / Frontend / API Design / Security |
+| Mức độ sử dụng | Hỗ trợ ý tưởng / Hỗ trợ một phần / Sinh chính nội dung |
 
 #### 4.1. Prompt đã sử dụng
 
 ```text
-Dán nguyên văn prompt đã hỏi AI tại đây.
+First use CodeGraph to understand the current code architecture.
+Follow CLAUDE.md / AGENTS.md rules.
+Use grilled tamarind before making.
+I want to add GPS integration...
+Citizens must allow location access to submit feedback.
+Store latitude/longitude.
+Use reverse geocoding to authenticate communes/wards.
+Authorities can view reported location on map.
+That location will be sent to the commune/ward unit where it will be processed.
+Ask necessary questions first, then provide affected files, database changes, API design, implementation plan, testing strategy and risk.
+Wait for approval before editing files.
 ```
 
 #### 4.2. Kết quả AI gợi ý
 
 ```text
-Viết tại đây...
+AI đã dùng CodeGraph để đọc kiến trúc hiện tại và phát hiện hệ thống đã có sẵn một phần GPS:
+- Entity Feedback đã có latitude/longitude.
+- Database feedbacks đã có latitude, longitude và location geometry.
+- Frontend report.tsx đã gọi browser geolocation nhưng đang fallback sai về tọa độ Đà Nẵng mặc định.
+- CivicMap đã dùng Leaflet/OpenStreetMap.
+- WardController có endpoint /api/wards/locate nhưng trước đó chỉ là stub trả 404.
+
+AI đề xuất giải pháp:
+- Bắt buộc citizen cấp quyền GPS trước khi submit feedback.
+- Không dùng tọa độ fallback giả.
+- Backend tự resolve ward từ GPS, không tin wardId hardcode từ frontend.
+- Dùng OpenStreetMap/Nominatim reverse geocoding để suy ra phường/xã.
+- Cán bộ phường có thể xem pin phản ánh trên bản đồ.
 ```
 
 #### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
 
 ```text
-Viết tại đây...
+- Bổ sung LocationResolutionService để reverse geocoding GPS sang phường/xã.
+- Sửa FeedbackRequest để latitude/longitude bắt buộc và validate range.
+- Sửa FeedbackService để chỉ CITIZEN được gửi GPS khi tạo phản ánh, đồng thời backend tự resolve ward.
+- Sửa /api/wards/locate để frontend có thể preview phường/xã từ GPS.
+- Sửa report.tsx để chặn submit nếu người dân chưa cấp GPS.
+- Xóa wardId hardcode = 1 khỏi payload frontend.
+- Thêm bản đồ pin GPS cho WardDashboard.
 ```
 
 #### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
 
 ```text
-Viết tại đây...
+Critical Thinking:
+AI ban đầu có thể đề xuất dùng reverse geocoding trực tiếp, nhưng nếu tin hoàn toàn vào frontend wardId thì vẫn có rủi ro gửi sai đơn vị xử lý. Nhóm quyết định backend phải là nơi xác định ward cuối cùng.
+
+Contextualization:
+Trong hệ thống The Listening City Systems, phản ánh của người dân phải được chuyển đúng phường/xã xử lý. Vì vậy vị trí GPS không chỉ để hiển thị bản đồ mà còn ảnh hưởng trực tiếp đến routing nghiệp vụ.
+
+Creative Synthesis:
+Nhóm kết hợp browser GPS ở frontend, endpoint /api/wards/locate, backend validation và reverse geocoding. Đồng thời giữ lại Leaflet/OpenStreetMap sẵn có thay vì thêm Google Maps để tránh tăng phụ thuộc/API key.
+
+Decision Ownership:
+Quyết định cuối cùng là GPS bắt buộc cho citizen feedback, không dùng fallback giả, backend tự resolve ward từ tọa độ. Lý do là đảm bảo dữ liệu phản ánh có vị trí thật, giảm sai lệch khi điều phối cho phường/xã.
 ```
 
 #### 4.5. Minh chứng

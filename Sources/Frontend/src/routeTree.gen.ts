@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ReportRouteImport } from './routes/report'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthorityLoginRouteImport } from './routes/authority-login'
 import { Route as AuthRouteImport } from './routes/_auth'
@@ -36,6 +38,16 @@ const ReportRoute = ReportRouteImport.update({
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -92,6 +104,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/authority-login': typeof AuthorityLoginRoute
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
+  '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -106,6 +120,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/authority-login': typeof AuthorityLoginRoute
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
+  '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -122,6 +138,8 @@ export interface FileRoutesById {
   '/_auth': typeof AuthRouteWithChildren
   '/authority-login': typeof AuthorityLoginRoute
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
+  '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -138,6 +156,8 @@ export interface FileRouteTypes {
     | '/'
     | '/authority-login'
     | '/login'
+    | '/notifications'
+    | '/profile'
     | '/register'
     | '/report'
     | '/sitemap.xml'
@@ -152,6 +172,8 @@ export interface FileRouteTypes {
     | '/'
     | '/authority-login'
     | '/login'
+    | '/notifications'
+    | '/profile'
     | '/register'
     | '/report'
     | '/sitemap.xml'
@@ -167,6 +189,8 @@ export interface FileRouteTypes {
     | '/_auth'
     | '/authority-login'
     | '/login'
+    | '/notifications'
+    | '/profile'
     | '/register'
     | '/report'
     | '/sitemap.xml'
@@ -183,6 +207,8 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   AuthorityLoginRoute: typeof AuthorityLoginRoute
   LoginRoute: typeof LoginRoute
+  NotificationsRoute: typeof NotificationsRoute
+  ProfileRoute: typeof ProfileRoute
   RegisterRoute: typeof RegisterRoute
   ReportRoute: typeof ReportRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -211,6 +237,20 @@ declare module '@tanstack/react-router' {
       path: '/register'
       fullPath: '/register'
       preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -307,6 +347,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   AuthorityLoginRoute: AuthorityLoginRoute,
   LoginRoute: LoginRoute,
+  NotificationsRoute: NotificationsRoute,
+  ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,
   ReportRoute: ReportRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,

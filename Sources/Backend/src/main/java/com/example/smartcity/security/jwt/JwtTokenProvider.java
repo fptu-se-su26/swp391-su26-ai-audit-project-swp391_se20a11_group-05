@@ -11,22 +11,27 @@ import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
+import java.security.SecureRandom;
 import java.util.Date;
 
 @Component
 @Slf4j
 public class JwtTokenProvider {
-
-    @Value("${jwt.secret:}")
-    private String jwtSecret;
+    private final com.example.smartcity.security.secrets.SecurityManager securityManager;
 
     @Value("${jwt.expiration-ms:604800000}")
     private long jwtExpirationInMs; // 7 days default
 
+    // Bắt buộc khai báo Constructor để Spring Inject vì có class con/Test sử dụng
+    public JwtTokenProvider(com.example.smartcity.security.secrets.SecurityManager securityManager) {
+        this.securityManager = securityManager;
+    }
+
     private Key getSigningKey() {
+        String jwtSecret = securityManager.getSecret("jwt.secret");
         if (jwtSecret == null || jwtSecret.isBlank()) {
-            log.error("JWT_SECRET environment variable is not set! System cannot start securely.");
-            throw new IllegalStateException("CRITICAL: JWT_SECRET env var must be set for secure token generation!");
+            log.error("JWT_SECRET is missing! System cannot sign tokens securely.");
+            throw new IllegalStateException("CRITICAL: jwt.secret must be provided via SecurityManager!");
         }
         return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
@@ -38,7 +43,10 @@ public class JwtTokenProvider {
 
     public String generateTokenFromUsername(String username) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
+        // [SECURITY FIX] Add Jitter (± 1 minute) to prevent Thundering Herd on refresh
+        int jitterMinutes = new SecureRandom().nextInt(3) - 1; 
+        long jitterMs = jitterMinutes * 60 * 1000L;
+        Date expiryDate = new Date(now.getTime() + jwtExpirationInMs + jitterMs);
 
         return Jwts.builder()
                 .setSubject(username)
@@ -51,6 +59,7 @@ public class JwtTokenProvider {
     public String getUsernameFromJWT(String token) {
         Claims claims = Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
+                .setAllowedClockSkewSeconds(30) // [SECURITY FIX] Allow 30s clock skew
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
@@ -58,9 +67,23 @@ public class JwtTokenProvider {
         return claims.getSubject();
     }
 
+    /**
+     * [SECURITY FIX] Trích xuất username ngay cả khi JWT đã hết hạn (phục vụ cho luồng Logout)
+     */
+    public String getUsernameFromExpiredJWT(String token) {
+        try {
+            return getUsernameFromJWT(token);
+        } catch (ExpiredJwtException e) {
+            return e.getClaims().getSubject();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     public Date getExpirationFromJWT(String token) {
         Claims claims = Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
+                .setAllowedClockSkewSeconds(30) // [SECURITY FIX] Allow 30s clock skew
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
@@ -70,7 +93,11 @@ public class JwtTokenProvider {
 
     public boolean validateToken(String authToken) {
         try {
-            Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(authToken);
+            Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .setAllowedClockSkewSeconds(30) // [SECURITY FIX] Allow 30s clock skew
+                .build()
+                .parseClaimsJws(authToken);
             return true;
         } catch (SecurityException ex) {
             log.error("Invalid JWT signature");

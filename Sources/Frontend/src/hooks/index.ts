@@ -5,11 +5,14 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  feedbackApi, categoryApi, ragApi, authApi,
+  feedbackApi, categoryApi, ragApi, authApi, userApi, notificationApi, policeApi,
   type FeedbackResponse, type CategoryResponse,
   type ChatbotResponse, type FeedbackRequest,
   type PageResponse, type TokenResponse,
   type MfaRequiredResponse,
+  type UpdateProfileRequest,
+  type UserProfile,
+  type NotificationResponse,
 } from "@/lib/api";
 
 // ─── Query keys (dùng để cache invalidation) ─────────────────
@@ -25,6 +28,10 @@ export const queryKeys = {
   },
   auth: {
     me: ["auth", "me"] as const,
+    profile: ["auth", "profile"] as const,
+  },
+  notifications: {
+    all: ["notifications"] as const,
   },
   rag: {
     query: (q: string) => ["rag", "query", q] as const,
@@ -77,6 +84,26 @@ export function useAssignFeedback() {
   const queryClient = useQueryClient();
   return useMutation<FeedbackResponse, Error, { id: number | string; assigneeId: number }>({
     mutationFn: ({ id, assigneeId }) => feedbackApi.assignFeedback(id, assigneeId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
+    },
+  });
+}
+
+export function useRejectFeedback() {
+  const queryClient = useQueryClient();
+  return useMutation<FeedbackResponse, Error, { id: number | string; reason: string }>({
+    mutationFn: ({ id, reason }) => policeApi.rejectFeedback(id, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
+    },
+  });
+}
+
+export function useRequestMoreInfo() {
+  const queryClient = useQueryClient();
+  return useMutation<FeedbackResponse, Error, { id: number | string; reason: string }>({
+    mutationFn: ({ id, reason }) => policeApi.requestMoreInfo(id, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
     },
@@ -141,5 +168,43 @@ export function useMfaSetupMutation() {
   return useMutation<string, Error, { username: string; password: string }>({
     mutationFn: ({ username, password }) =>
       authApi.mfaSetup(username, password),
+  });
+}
+
+export function useProfile() {
+  return useQuery<UserProfile>({
+    queryKey: queryKeys.auth.profile,
+    queryFn: () => userApi.profile(),
+  });
+}
+
+export function useUpdateProfileMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<UserProfile, Error, UpdateProfileRequest>({
+    mutationFn: (data) => userApi.updateProfile(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth.profile });
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
+    },
+  });
+}
+
+export function useNotifications() {
+  return useQuery<NotificationResponse[]>({
+    queryKey: queryKeys.notifications.all,
+    queryFn: () => notificationApi.getAll(),
+    staleTime: 30_000,
+  });
+}
+
+export function useMarkNotificationReadMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<NotificationResponse, Error, number | string>({
+    mutationFn: (id) => notificationApi.markAsRead(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+    },
   });
 }

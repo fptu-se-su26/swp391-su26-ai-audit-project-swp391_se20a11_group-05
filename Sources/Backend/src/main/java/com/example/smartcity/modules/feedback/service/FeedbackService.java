@@ -18,7 +18,7 @@ import com.example.smartcity.common.base.BaseServiceImpl;
 import com.example.smartcity.common.exception.CustomException;
 import com.example.smartcity.common.exception.ResourceNotFoundException;
 import com.example.smartcity.modules.core.entity.Ward;
-import com.example.smartcity.modules.core.repository.WardRepository;
+import com.example.smartcity.modules.core.service.LocationResolutionService;
 import com.example.smartcity.modules.feedback.dto.FeedbackLogResponse;
 import com.example.smartcity.modules.feedback.dto.FeedbackRequest;
 import com.example.smartcity.modules.feedback.entity.Category;
@@ -44,8 +44,8 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
     private final WebSocketNotificationService notificationService;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
-    private final WardRepository wardRepository;
     private final AutoDispatchService autoDispatchService;
+    private final LocationResolutionService locationResolutionService;
 
     // State machine: map of valid transitions
     private static final Map<FeedbackStatus, Set<FeedbackStatus>> VALID_TRANSITIONS = Map.of(
@@ -76,8 +76,17 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         User citizen = userRepository.findByUsername(username)
                 .orElseThrow(() -> new com.example.smartcity.common.exception.ResourceNotFoundException("User: " + username));
 
-        Ward ward = wardRepository.findById(request.getWardId())
-                .orElseThrow(() -> new com.example.smartcity.common.exception.ResourceNotFoundException("Ward", request.getWardId()));
+        if (citizen.getRole() != Role.CITIZEN) {
+            throw new CustomException("Chi cong dan moi duoc gui vi tri GPS khi tao phan anh", HttpStatus.FORBIDDEN.value());
+        }
+
+        // GPS là bắt buộc để tránh phản ánh không có vị trí xử lý.
+        if (request.getLatitude() == null || request.getLongitude() == null) {
+            throw new CustomException("Vui long cho phep GPS truoc khi gui phan anh", HttpStatus.BAD_REQUEST.value());
+        }
+
+        // Backend tự xác định phường/xã từ GPS, không tin wardId do frontend gửi lên.
+        Ward ward = locationResolutionService.resolveWard(request.getLatitude(), request.getLongitude());
 
         Feedback feedback = new Feedback();
         feedback.setTrackingCode("FB-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());

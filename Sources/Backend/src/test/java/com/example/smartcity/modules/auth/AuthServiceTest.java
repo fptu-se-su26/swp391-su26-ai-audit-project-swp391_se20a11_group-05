@@ -45,13 +45,14 @@ class AuthServiceTest {
     @Mock private TokenBlacklistService blacklistService;
     @Mock private SmsService smsService;
     @Mock private MfaSessionService mfaSessionService;
+    @Mock private com.example.smartcity.modules.auth.service.RefreshTokenService refreshTokenService;
 
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
         authService = new AuthService(authenticationManager, userRepository, passwordEncoder,
-                tokenProvider, mfaService, firebaseService, blacklistService, smsService, mfaSessionService);
+                tokenProvider, mfaService, firebaseService, blacklistService, smsService, mfaSessionService, refreshTokenService);
     }
 
     @Test
@@ -129,10 +130,15 @@ class AuthServiceTest {
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(auth);
         when(userRepository.findByUsername("citizen1")).thenReturn(Optional.of(citizen));
-        when(tokenProvider.generateToken(auth)).thenReturn("jwt-token");
-        when(auth.getAuthorities()).thenAnswer(inv -> java.util.List.of(
-                new SimpleGrantedAuthority("ROLE_CITIZEN")
-        ));
+        
+        com.example.smartcity.modules.auth.payload.TokenPairResponse tokenPair = com.example.smartcity.modules.auth.payload.TokenPairResponse.builder()
+                .accessToken("jwt-token")
+                .refreshToken("refresh-token")
+                .expiresIn(3600L)
+                .username("citizen1")
+                .role(Role.CITIZEN.name())
+                .build();
+        when(refreshTokenService.createTokenPair(any(User.class))).thenReturn(tokenPair);
 
         AuthResponse result = authService.authenticateUser(request);
 
@@ -170,9 +176,6 @@ class AuthServiceTest {
         request.setUsername("ghost");
         request.setPassword("pass123");
 
-        Authentication auth = mock(Authentication.class);
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenReturn(auth);
         when(userRepository.findByUsername("ghost")).thenReturn(Optional.empty());
 
         assertThrows(CustomException.class, () -> authService.authenticateUser(request));

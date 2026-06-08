@@ -1,7 +1,6 @@
 package com.example.smartcity.modules.feedback;
 
 import com.example.smartcity.modules.core.entity.Ward;
-import com.example.smartcity.modules.core.repository.WardRepository;
 import com.example.smartcity.modules.feedback.dto.FeedbackRequest;
 import com.example.smartcity.modules.feedback.entity.Category;
 import com.example.smartcity.modules.feedback.entity.Feedback;
@@ -15,6 +14,7 @@ import com.example.smartcity.modules.user.repository.UserRepository;
 import com.example.smartcity.modules.feedback.repository.FeedbackLogRepository;
 import com.example.smartcity.modules.notification.WebSocketNotificationService;
 import com.example.smartcity.modules.feedback.service.AutoDispatchService;
+import com.example.smartcity.modules.core.service.LocationResolutionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -39,10 +39,10 @@ class FeedbackServiceTest {
     @Mock private FeedbackRepository feedbackRepository;
     @Mock private CategoryRepository categoryRepository;
     @Mock private UserRepository userRepository;
-    @Mock private WardRepository wardRepository;
     @Mock private FeedbackLogRepository feedbackLogRepository;
     @Mock private WebSocketNotificationService notificationService;
     @Mock private AutoDispatchService autoDispatchService;
+    @Mock private LocationResolutionService locationResolutionService;
 
     private FeedbackService feedbackService;
 
@@ -56,7 +56,7 @@ class FeedbackServiceTest {
     @BeforeEach
     void setUp() {
         feedbackService = new FeedbackService(feedbackRepository, feedbackLogRepository,
-                notificationService, categoryRepository, userRepository, wardRepository, autoDispatchService);
+                notificationService, categoryRepository, userRepository, autoDispatchService, locationResolutionService);
 
         citizen = new User("citizen1", "encoded", "Người Dân", "0905123456",
                 "citizen@example.com", Role.CITIZEN);
@@ -94,7 +94,7 @@ class FeedbackServiceTest {
     void createFeedback_success() {
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(userRepository.findByUsername("citizen1")).thenReturn(Optional.of(citizen));
-        when(wardRepository.findById(1L)).thenReturn(Optional.of(ward));
+        when(locationResolutionService.resolveWard(16.0544, 108.2022)).thenReturn(ward);
         when(feedbackRepository.save(any(Feedback.class))).thenAnswer(invocation -> {
             Feedback f = invocation.getArgument(0);
             f.setId(100L);
@@ -109,6 +109,25 @@ class FeedbackServiceTest {
         assertEquals(FeedbackStatus.PENDING, result.getStatus());
         assertEquals(category, result.getCategory());
         assertEquals(citizen, result.getCitizen());
+        assertEquals(16.0544, result.getLatitude());
+        assertEquals(108.2022, result.getLongitude());
+    }
+
+    @Test
+    @DisplayName("Should require GPS coordinates when creating feedback")
+    void createFeedback_requiresGps() {
+        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
+        when(userRepository.findByUsername("citizen1")).thenReturn(Optional.of(citizen));
+
+        FeedbackRequest invalid = FeedbackRequest.builder()
+                .title("Test")
+                .description("Test desc")
+                .categoryId(1L)
+                .build();
+
+        assertThrows(com.example.smartcity.common.exception.CustomException.class,
+                () -> feedbackService.createFeedback(invalid, "citizen1"));
+        verifyNoInteractions(locationResolutionService);
     }
 
     @Test

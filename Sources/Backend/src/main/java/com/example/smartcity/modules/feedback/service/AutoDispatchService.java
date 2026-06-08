@@ -36,7 +36,6 @@ public class AutoDispatchService {
     private final WebSocketNotificationService notificationService;
 
     @Async
-    @Transactional
     public void analyzeAndDispatch(Long feedbackId) {
         Feedback feedback = feedbackRepository.findById(feedbackId).orElse(null);
         if (feedback == null) return;
@@ -53,6 +52,7 @@ public class AutoDispatchService {
         
         String aiResult;
         try {
+            // EXTERNAL API CALL (NO TRANSACTION TO PREVENT CONNECTION POOL EXHAUSTION)
             aiResult = geminiAdapter.generateResponseAsync(prompt, "Hãy phân tích mức độ nghiêm trọng.").get();
         } catch (Exception e) {
             log.warn("⚠️ [Auto-Dispatch] AI phân tích thất bại, chuyển về quy trình thủ công (Fallback). Lý do: {}", e.getMessage());
@@ -64,16 +64,28 @@ public class AutoDispatchService {
         // 2. Kích hoạt Auto-Dispatch nếu Khẩn cấp
         if (aiResult != null && aiResult.contains("KHAN_CAP")) {
             log.info("   📍 [PostGIS] Đang tìm kiếm Đồn Công an/Cứu hoả gần nhất trong bán kính 3km...");
-            
-            // Giả lập Query PostGIS: ST_DWithin(User.location, Feedback.location, 3000)
-            List<User> policeUnits = userRepository.findAll().stream()
-                    .filter(u -> u.getRole() == Role.POLICE && u.isActive())
-                    .toList();
-            
-            if (!policeUnits.isEmpty()) {
-                User nearestPolice = policeUnits.get(0); // Lấy unit đầu tiên (Mock nearest)
+            updateAndDispatch(feedbackId);
+        } else {
+            log.info("✅ [Auto-Dispatch] Sự cố mức bình thường. Chờ Admin duyệt thủ công (Human in the loop).");
+        }
+    }
 
-                FeedbackStatus oldStatus = feedback.getStatus();
+    @Transactional
+    public void updateAndDispatch(Long feedbackId) {
+        Feedback feedback = feedbackRepository.findById(feedbackId).orElse(null);
+        if (feedback == null) return;
+
+        List<User> policeUnits = userRepository.findAll().stream()
+                .filter(u -> u.getRole() == Role.POLICE && u.isActive())
+                .toList();
+        
+        if (!policeUnits.isEmpty()) {
+            User nearestPolice = policeUnits.get(0); // Lấy unit đầu tiên (Mock nearest)
+
+            FeedbackStatus oldStatus = feedback.getStatus();
+            
+            // Re-validate state transition to prevent State Machine Bypass
+            if (oldStatus == FeedbackStatus.PENDING || oldStatus == FeedbackStatus.PRE_EMPTIVE) {
                 feedback.setStatus(FeedbackStatus.ASSIGNED);
                 feedback.setAssignee(nearestPolice);
                 feedbackRepository.save(feedback);
@@ -88,16 +100,16 @@ public class AutoDispatchService {
                 );
                 feedbackLogRepository.save(logEntry);
 
-                // 3. Bắn Websocket Notification thời gian thực cho Đơn vị tiếp nhận
+                // Bắn Websocket Notification thời gian thực cho Đơn vị tiếp nhận
                 notificationService.notifyFeedbackStatusChange(feedbackId, FeedbackStatus.ASSIGNED.name(),
                     "🚨 [KHẨN CẤP] Sự cố " + feedback.getTrackingCode() + " đã được AI điều phối đến " + nearestPolice.getFullName());
                 
                 log.info("✅ [Auto-Dispatch] Hoàn tất. Lệnh điều động đã được bắn thẳng tới: {}", nearestPolice.getFullName());
             } else {
-                log.warn("⚠️ [Auto-Dispatch] Không tìm thấy đơn vị Police nào gần hiện trường để điều phối.");
+                log.warn("⚠️ [Auto-Dispatch] Phản ánh đã thay đổi trạng thái (hiện tại: {}). Hủy Auto-Dispatch.", oldStatus);
             }
         } else {
-            log.info("✅ [Auto-Dispatch] Sự cố mức bình thường. Chờ Admin duyệt thủ công (Human in the loop).");
+            log.warn("⚠️ [Auto-Dispatch] Không tìm thấy đơn vị Police nào gần hiện trường để điều phối.");
         }
     }
 }

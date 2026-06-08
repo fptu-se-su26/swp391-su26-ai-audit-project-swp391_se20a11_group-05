@@ -10,6 +10,9 @@ import com.example.smartcity.modules.feedback.entity.FeedbackStatus;
 import com.example.smartcity.modules.feedback.repository.AttachmentRepository;
 import com.example.smartcity.modules.feedback.repository.CategoryRepository;
 import com.example.smartcity.modules.feedback.repository.FeedbackRepository;
+import com.example.smartcity.modules.core.entity.Ward;
+import com.example.smartcity.modules.core.repository.WardRepository;
+import com.example.smartcity.modules.core.service.LocationResolutionService;
 import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +35,8 @@ public class CitizenFeedbackMediaService {
     private final UserRepository userRepository;
     private final AttachmentRepository attachmentRepository;
     private final SupabaseStorageService supabaseStorageService;
+    private final LocationResolutionService locationResolutionService;
+    private final WardRepository wardRepository;
 
     @Transactional
     public CitizenFeedbackMediaResponse submit(CitizenFeedbackMediaRequest request, List<MultipartFile> files) {
@@ -42,6 +47,10 @@ public class CitizenFeedbackMediaService {
 
         List<MultipartFile> safeFiles = files == null ? List.of() : files;
         validateMediaFiles(safeFiles, request.getVideoDurationsSeconds());
+        if (request.getLatitude() == null || request.getLongitude() == null) {
+            throw new IllegalArgumentException("Latitude and longitude are required");
+        }
+        Ward ward = resolveWard(request.getWardId(), request.getLatitude(), request.getLongitude());
 
         LocalDateTime now = LocalDateTime.now();
         Feedback feedback = new Feedback();
@@ -52,7 +61,11 @@ public class CitizenFeedbackMediaService {
         feedback.setLongitude(request.getLongitude());
         feedback.setAddressDetails(request.getAddressDetails());
         feedback.setStatus(FeedbackStatus.PENDING);
+        feedback.setReceiverType(resolveReceiverType(category));
+        feedback.setPriority("MEDIUM");
+        feedback.setSource("CITIZEN_APP");
         feedback.setCategory(category);
+        feedback.setWard(ward);
         feedback.setCitizen(citizen);
         feedback.setCreatedAt(now);
         feedback.setUpdatedAt(now);
@@ -97,7 +110,9 @@ public class CitizenFeedbackMediaService {
             Attachment attachment = new Attachment();
             attachment.setFeedback(feedback);
             attachment.setFileUrl(fileUrl);
-            attachment.setFileType(file.getContentType());
+            attachment.setFileType(toDatabaseFileType(file.getContentType()));
+            attachment.setFileName(file.getOriginalFilename());
+            attachment.setFileSize(file.getSize());
             attachment.setUploadedBy(citizen);
             attachment.setUploadedAt(LocalDateTime.now());
 
@@ -131,5 +146,25 @@ public class CitizenFeedbackMediaService {
                 .fileType(attachment.getFileType())
                 .uploadedAt(attachment.getUploadedAt())
                 .build();
+    }
+
+    private String resolveReceiverType(Category category) {
+        return category != null && "An ninh".equalsIgnoreCase(category.getName()) ? "POLICE" : "WARD_STAFF";
+    }
+
+    private Ward resolveWard(Long wardId, Double latitude, Double longitude) {
+        if (wardId != null) {
+            return wardRepository.findById(wardId)
+                    .orElseThrow(() -> new IllegalArgumentException("Ward not found: " + wardId));
+        }
+        return locationResolutionService.resolveWard(latitude, longitude);
+    }
+
+    private String toDatabaseFileType(String contentType) {
+        String type = contentType == null ? "" : contentType.toLowerCase();
+        if (type.startsWith("image/")) return "IMAGE";
+        if (type.startsWith("video/")) return "VIDEO";
+        if (type.startsWith("audio/")) return "AUDIO";
+        return "DOCUMENT";
     }
 }

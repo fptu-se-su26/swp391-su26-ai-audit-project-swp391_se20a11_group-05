@@ -100,7 +100,10 @@ public class PreEmptiveTicketScheduler {
         ticket.setLatitude(hotspot.getLatitude());
         ticket.setLongitude(hotspot.getLongitude());
         ticket.setAddressDetails("Khu vực trọng điểm Phường " + hotspot.getWardName());
-        ticket.setStatus(FeedbackStatus.PRE_EMPTIVE); // Trạng thái đặc biệt
+        ticket.setStatus(FeedbackStatus.PENDING);
+        ticket.setReceiverType("WARD_STAFF");
+        ticket.setPriority("HIGH");
+        ticket.setSource("STAFF_CREATED");
         ticket.setCategory(category);
         ticket.setWard(ward);
         ticket.setCitizen(systemUser); // Gắn user hệ thống

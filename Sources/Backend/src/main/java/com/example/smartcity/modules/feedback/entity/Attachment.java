@@ -20,7 +20,7 @@ public class Attachment {
     @Column(nullable = false, length = 500)
     private String fileUrl; 
 
-    @Column(length = 50)
+    @Column(nullable = false, length = 50)
     private String fileType; 
 
     @Column(length = 255)

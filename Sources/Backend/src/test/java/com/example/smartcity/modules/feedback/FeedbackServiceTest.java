@@ -94,7 +94,7 @@ class FeedbackServiceTest {
     void createFeedback_success() {
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(userRepository.findByUsername("citizen1")).thenReturn(Optional.of(citizen));
-        when(locationResolutionService.resolveWard(16.0544, 108.2022)).thenReturn(ward);
+        when(locationResolutionService.findAuthorityByLocation(16.0544, 108.2022)).thenReturn(ward);
         when(feedbackRepository.save(any(Feedback.class))).thenAnswer(invocation -> {
             Feedback f = invocation.getArgument(0);
             f.setId(100L);

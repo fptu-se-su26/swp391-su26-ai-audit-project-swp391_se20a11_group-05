@@ -23,7 +23,8 @@ import com.example.smartcity.modules.feedback.dto.AssignRequest;
 import com.example.smartcity.modules.feedback.dto.FeedbackLogResponse;
 
 import java.util.List;
-
+import org.springframework.security.access.prepost.PreAuthorize;
+import com.example.smartcity.common.exception.CustomException;
 @RestController
 @RequestMapping("/api/feedbacks")
 @RequiredArgsConstructor
@@ -40,6 +41,52 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
     @Override
     protected BaseMapper<Feedback, FeedbackResponse> getMapper() {
         return feedbackMapper;
+    }
+
+    // ═══ Security Fix: Override Base Endpoints to prevent IDOR ════
+
+    @Override
+    @GetMapping
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<List<FeedbackResponse>> getAll() {
+        return super.getAll();
+    }
+
+    @Override
+    @GetMapping("/page")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<Page<FeedbackResponse>> getAllPaged(Pageable pageable) {
+        return super.getAllPaged(pageable);
+    }
+
+    @Override
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        return super.delete(id);
+    }
+
+    @Override
+    @PostMapping
+    public ResponseEntity<FeedbackResponse> create(@RequestBody FeedbackResponse dto) {
+        throw new CustomException("Vui lòng sử dụng endpoint /submit để tạo phản ánh", 405);
+    }
+
+    @Override
+    @PutMapping("/{id}")
+    public ResponseEntity<FeedbackResponse> update(@PathVariable Long id, @RequestBody FeedbackResponse dto) {
+        throw new CustomException("Không hỗ trợ cập nhật toàn bộ phản ánh", 405);
+    }
+
+    @Override
+    @GetMapping("/{id}")
+    public ResponseEntity<FeedbackResponse> getById(@PathVariable Long id) {
+        Feedback feedback = feedbackService.findById(id);
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && !feedbackService.canAccessFeedback(feedback, auth.getName())) {
+            throw new CustomException("Bạn không có quyền xem phản ánh này", 403);
+        }
+        return super.getById(id);
     }
 
     @GetMapping("/my-feedbacks")

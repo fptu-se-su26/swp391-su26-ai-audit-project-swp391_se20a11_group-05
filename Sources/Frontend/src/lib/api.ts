@@ -351,6 +351,11 @@ export const policeApi = {
       method: "PATCH",
       body: JSON.stringify({ reason }),
     }),
+
+  getHotspots: () =>
+    request<any[]>("/api/police/feedbacks/hotspots", {
+      method: "GET",
+    }),
 };
 
 export const categoryApi = {

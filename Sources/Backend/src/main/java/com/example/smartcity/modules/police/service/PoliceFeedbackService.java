@@ -10,6 +10,7 @@ import com.example.smartcity.modules.police.dto.RejectFeedbackRequest;
 import com.example.smartcity.modules.police.dto.RequestMoreInfoRequest;
 import com.example.smartcity.modules.police.dto.SubmitFeedbackResultRequest;
 import com.example.smartcity.modules.police.dto.UpdateFeedbackStatusRequest;
+import com.example.smartcity.modules.notification.service.ExternalNotificationService;
 import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class PoliceFeedbackService {
     private final FeedbackRepository feedbackRepository;
     private final FeedbackLogRepository feedbackLogRepository;
     private final UserRepository userRepository;
+    private final ExternalNotificationService externalNotificationService;
 
     /**
      * Lấy danh sách phản ánh được phân công cho cán bộ công an
@@ -61,6 +63,15 @@ public class PoliceFeedbackService {
         
         // Lưu lịch sử
         saveFeedbackLog(updated, policeUserId, oldStatus, FeedbackStatus.IN_PROGRESS, "Cán bộ công an đã tiếp nhận phản ánh");
+        
+        // Tự động gửi Email thông báo trạng thái cho người dân (Chạy ngầm Async)
+        if (updated.getCitizen() != null && updated.getCitizen().getEmail() != null) {
+            String subject = "[Đà Nẵng Smart City] Phản ánh đang được xử lý";
+            String body = "Xin chào " + updated.getCitizen().getFullName() + ",\n\n"
+                    + "Phản ánh của bạn (Mã: " + updated.getTrackingCode() + ") đã được lực lượng chức năng tiếp nhận và đang trong quá trình xử lý.\n"
+                    + "Cảm ơn bạn đã đóng góp bảo vệ an ninh trật tự thành phố!";
+            externalNotificationService.sendEmailNotification(updated.getCitizen().getEmail(), subject, body);
+        }
         
         return mapToResponse(updated);
     }
@@ -151,6 +162,12 @@ public class PoliceFeedbackService {
         Feedback updated = feedbackRepository.save(feedback);
         
         saveFeedbackLog(updated, policeUserId, oldStatus, FeedbackStatus.WAITING_INFO, "Yêu cầu bổ sung thông tin: " + request.getReason());
+        
+        // Tự động gửi SMS cho người dân yêu cầu bổ sung thông tin (Chạy ngầm Async)
+        if (updated.getCitizen() != null && updated.getCitizen().getPhoneNumber() != null) {
+            String smsMessage = "SmartCity Da Nang: Phan anh [" + updated.getTrackingCode() + "] can bo sung thong tin: " + request.getReason() + ". Vui long mo app de cap nhat.";
+            externalNotificationService.sendSmsNotification(updated.getCitizen().getPhoneNumber(), smsMessage);
+        }
         
         return mapToResponse(updated);
     }

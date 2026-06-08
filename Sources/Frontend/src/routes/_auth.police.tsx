@@ -8,7 +8,7 @@
 
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
-import { useFeedbacks } from "@/lib/hooks";
+import { useFeedbacks, useRejectFeedback, useRequestMoreInfo } from "@/lib/hooks";
 import { reports as mockReports } from "@/lib/mock-data";
 import { StatusBadge } from "@/components/site/StatusBadge";
 import { StaffShell } from "@/components/site/StaffShell";
@@ -42,8 +42,25 @@ function PolicePage() {
   const { t, locale } = useI18n();
 
   const { data: feedbacksPage, isLoading } = useFeedbacks(0, 50);
+  const rejectMutation = useRejectFeedback();
+  const requestInfoMutation = useRequestMoreInfo();
+
   const hasApiData = !!feedbacksPage && feedbacksPage.content.length > 0;
   const apiFeedbacks = feedbacksPage?.content ?? [];
+
+  const handleReject = (id: string | number) => {
+    const reason = window.prompt("Nhập lý do từ chối hoặc yêu cầu chuyển tiếp:");
+    if (reason) {
+      rejectMutation.mutate({ id, reason });
+    }
+  };
+
+  const handleRequestInfo = (id: string | number) => {
+    const reason = window.prompt("Nhập nội dung yêu cầu người dân bổ sung:");
+    if (reason) {
+      requestInfoMutation.mutate({ id, reason });
+    }
+  };
 
   // Filter traffic/urgent for police view
   const filteredApi = apiFeedbacks.filter(r => r.categoryName === "Giao thông" || r.status === "REJECTED");
@@ -136,8 +153,19 @@ function PolicePage() {
                 <button className="btn-civic btn-civic-primary text-sm bg-[var(--status-danger)] border-[var(--status-danger)]">
                   <Video size={18} /> Xem bằng chứng
                 </button>
-                <button className="btn-civic btn-civic-ghost text-sm">
-                  Chuyển đơn vị khác
+                <button 
+                  onClick={() => handleRequestInfo(r.id)}
+                  disabled={requestInfoMutation.isPending}
+                  className="btn-civic btn-civic-outline text-sm"
+                >
+                  Yêu cầu bổ sung TT
+                </button>
+                <button 
+                  onClick={() => handleReject(r.id)}
+                  disabled={rejectMutation.isPending}
+                  className="btn-civic btn-civic-ghost text-sm text-[var(--status-danger)]"
+                >
+                  Từ chối / Chuyển đơn vị
                 </button>
               </div>
             </div>

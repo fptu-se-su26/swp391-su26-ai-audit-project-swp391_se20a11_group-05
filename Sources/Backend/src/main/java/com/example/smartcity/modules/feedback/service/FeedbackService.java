@@ -12,7 +12,6 @@ import com.example.smartcity.modules.feedback.repository.CategoryRepository;
 import com.example.smartcity.modules.feedback.repository.FeedbackRepository;
 import com.example.smartcity.modules.user.repository.UserRepository;
 import com.example.smartcity.modules.core.entity.Ward;
-import com.example.smartcity.modules.core.repository.WardRepository;
 import com.example.smartcity.modules.core.service.LocationResolutionService;
 import com.example.smartcity.modules.user.entity.Role;
 import com.example.smartcity.common.exception.CustomException;
@@ -43,7 +42,6 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
     private final NotificationService notificationService;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
-    private final WardRepository wardRepository;
     private final AutoDispatchService autoDispatchService;
     private final LocationResolutionService locationResolutionService;
 
@@ -84,7 +82,7 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         }
 
         // Backend tự xác định phường/xã từ GPS, không tin wardId do frontend gửi lên.
-        Ward ward = resolveWard(request.getWardId(), request.getLatitude(), request.getLongitude());
+        Ward ward = locationResolutionService.findAuthorityByLocation(request.getLatitude(), request.getLongitude());
 
         Feedback feedback = new Feedback();
         feedback.setTrackingCode("FB-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
@@ -245,13 +243,6 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         return category != null && "An ninh".equalsIgnoreCase(category.getName()) ? "POLICE" : "WARD_STAFF";
     }
 
-    private Ward resolveWard(Long wardId, Double latitude, Double longitude) {
-        if (wardId != null) {
-            return wardRepository.findById(wardId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Ward", wardId));
-        }
-        return locationResolutionService.resolveWard(latitude, longitude);
-    }
 }
 
 

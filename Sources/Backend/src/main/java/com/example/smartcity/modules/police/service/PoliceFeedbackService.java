@@ -6,6 +6,8 @@ import com.example.smartcity.modules.feedback.entity.FeedbackStatus;
 import com.example.smartcity.modules.feedback.repository.FeedbackLogRepository;
 import com.example.smartcity.modules.feedback.repository.FeedbackRepository;
 import com.example.smartcity.modules.police.dto.PoliceFeedbackResponse;
+import com.example.smartcity.modules.police.dto.RejectFeedbackRequest;
+import com.example.smartcity.modules.police.dto.RequestMoreInfoRequest;
 import com.example.smartcity.modules.police.dto.SubmitFeedbackResultRequest;
 import com.example.smartcity.modules.police.dto.UpdateFeedbackStatusRequest;
 import com.example.smartcity.modules.user.entity.User;
@@ -105,6 +107,50 @@ public class PoliceFeedbackService {
         Feedback updated = feedbackRepository.save(feedback);
         
         saveFeedbackLog(updated, policeUserId, oldStatus, FeedbackStatus.RESOLVED, request.getResultNote());
+        
+        return mapToResponse(updated);
+    }
+
+    /**
+     * Từ chối hoặc yêu cầu chuyển tiếp phản ánh
+     */
+    @Transactional
+    public PoliceFeedbackResponse rejectFeedback(Long feedbackId, Long policeUserId, RejectFeedbackRequest request) {
+        Feedback feedback = getFeedback(feedbackId);
+        
+        if (feedback.getAssignee() == null || !feedback.getAssignee().getId().equals(policeUserId)) {
+            throw new RuntimeException("Bạn không có quyền thực hiện trên phản ánh này");
+        }
+
+        FeedbackStatus oldStatus = feedback.getStatus();
+        feedback.setStatus(FeedbackStatus.REJECTED);
+        feedback.setUpdatedAt(LocalDateTime.now());
+        
+        Feedback updated = feedbackRepository.save(feedback);
+        
+        saveFeedbackLog(updated, policeUserId, oldStatus, FeedbackStatus.REJECTED, "Từ chối/Chuyển tiếp: " + request.getReason());
+        
+        return mapToResponse(updated);
+    }
+
+    /**
+     * Yêu cầu bổ sung thông tin
+     */
+    @Transactional
+    public PoliceFeedbackResponse requestMoreInfo(Long feedbackId, Long policeUserId, RequestMoreInfoRequest request) {
+        Feedback feedback = getFeedback(feedbackId);
+        
+        if (feedback.getAssignee() == null || !feedback.getAssignee().getId().equals(policeUserId)) {
+            throw new RuntimeException("Bạn không có quyền thực hiện trên phản ánh này");
+        }
+
+        FeedbackStatus oldStatus = feedback.getStatus();
+        feedback.setStatus(FeedbackStatus.WAITING_INFO);
+        feedback.setUpdatedAt(LocalDateTime.now());
+        
+        Feedback updated = feedbackRepository.save(feedback);
+        
+        saveFeedbackLog(updated, policeUserId, oldStatus, FeedbackStatus.WAITING_INFO, "Yêu cầu bổ sung thông tin: " + request.getReason());
         
         return mapToResponse(updated);
     }

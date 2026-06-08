@@ -1,5 +1,5 @@
 import { useI18n } from "@/lib/i18n";
-import { useFeedbacks } from "@/lib/hooks";
+import { useFeedbacks, useRejectFeedback, useRequestMoreInfo } from "@/hooks";
 import { reports as mockReports } from "@/lib/mock-data";
 import { StaffShell } from "@/components/site/StaffShell";
 import { Sparkline, textClassToHex } from "@/components/site/KpiChart";
@@ -12,8 +12,25 @@ export function PoliceDashboard() {
   const { t, locale } = useI18n();
 
   const { data: feedbacksPage, isLoading } = useFeedbacks(0, 50);
+  const rejectMutation = useRejectFeedback();
+  const requestInfoMutation = useRequestMoreInfo();
+
   const hasApiData = !!feedbacksPage && feedbacksPage.content.length > 0;
   const apiFeedbacks = feedbacksPage?.content ?? [];
+
+  const handleReject = (id: string | number) => {
+    const reason = window.prompt("Nhập lý do từ chối hoặc yêu cầu chuyển tiếp:");
+    if (reason) {
+      rejectMutation.mutate({ id, reason });
+    }
+  };
+
+  const handleRequestInfo = (id: string | number) => {
+    const reason = window.prompt("Nhập nội dung yêu cầu người dân bổ sung:");
+    if (reason) {
+      requestInfoMutation.mutate({ id, reason });
+    }
+  };
 
   // Filter traffic/urgent for police view
   const filteredApi = apiFeedbacks.filter(r => r.categoryName === "Giao thông" || r.status === "REJECTED");
@@ -92,6 +109,9 @@ export function PoliceDashboard() {
             isApi={true}
             locale={locale}
             policeView={true}
+            onReject={handleReject}
+            onRequestInfo={handleRequestInfo}
+            isLoading={rejectMutation.isPending || requestInfoMutation.isPending}
           />
         ))}
 
@@ -103,6 +123,9 @@ export function PoliceDashboard() {
             isApi={false}
             locale={locale}
             policeView={true}
+            onReject={handleReject}
+            onRequestInfo={handleRequestInfo}
+            isLoading={rejectMutation.isPending || requestInfoMutation.isPending}
           />
         ))}
       </div>

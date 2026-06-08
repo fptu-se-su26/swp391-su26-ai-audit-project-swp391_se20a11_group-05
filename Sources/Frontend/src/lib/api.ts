@@ -339,6 +339,20 @@ export const feedbackApi = {
     request<unknown[]>(`/api/feedbacks/${id}/logs`),
 };
 
+export const policeApi = {
+  rejectFeedback: (id: number | string, reason: string) =>
+    request<FeedbackResponse>(`/api/police/feedbacks/${id}/reject`, {
+      method: "PATCH",
+      body: JSON.stringify({ reason }),
+    }),
+
+  requestMoreInfo: (id: number | string, reason: string) =>
+    request<FeedbackResponse>(`/api/police/feedbacks/${id}/request-info`, {
+      method: "PATCH",
+      body: JSON.stringify({ reason }),
+    }),
+};
+
 export const categoryApi = {
   getAll: () => request<CategoryResponse[]>("/api/categories"),
 

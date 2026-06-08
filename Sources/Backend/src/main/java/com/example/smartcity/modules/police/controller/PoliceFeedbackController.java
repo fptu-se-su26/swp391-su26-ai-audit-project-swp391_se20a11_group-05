@@ -5,6 +5,7 @@ import com.example.smartcity.modules.police.dto.PoliceFeedbackResponse;
 import com.example.smartcity.modules.police.dto.RejectFeedbackRequest;
 import com.example.smartcity.modules.police.dto.RequestMoreInfoRequest;
 import com.example.smartcity.modules.police.dto.SubmitFeedbackResultRequest;
+import com.example.smartcity.modules.police.dto.HotspotResponse;
 import com.example.smartcity.modules.police.dto.UpdateFeedbackStatusRequest;
 import com.example.smartcity.modules.police.service.PoliceFeedbackService;
 import jakarta.validation.Valid;
@@ -31,6 +32,15 @@ public class PoliceFeedbackController {
             @RequestParam(defaultValue = "2") Long policeUserId) { 
         List<PoliceFeedbackResponse> feedbacks = feedbackService.getAssignedFeedbacks(policeUserId);
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách phản ánh thành công", feedbacks));
+    }
+
+    /**
+     * GET /api/police/feedbacks/hotspots - Lấy dữ liệu điểm nóng cho bản đồ nhiệt
+     */
+    @GetMapping("/hotspots")
+    public ResponseEntity<ApiResponse<List<HotspotResponse>>> getHotspots() {
+        List<HotspotResponse> hotspots = feedbackService.getHotspots();
+        return ResponseEntity.ok(ApiResponse.success("Lấy dữ liệu điểm nóng thành công", hotspots));
     }
 
     /**

@@ -1,5 +1,5 @@
 import { useI18n } from "@/lib/i18n";
-import { useFeedbacks, useRejectFeedback, useRequestMoreInfo } from "@/hooks";
+import { useFeedbacks, useRejectFeedback, useRequestMoreInfo, useHotspots } from "@/hooks";
 import { reports as mockReports } from "@/lib/mock-data";
 import { StaffShell } from "@/components/site/StaffShell";
 import { Sparkline, textClassToHex } from "@/components/site/KpiChart";
@@ -7,11 +7,13 @@ import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recha
 import { AlertTriangle, Megaphone, ScanLine, Video, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ReportCard } from "@/features/shared/ReportCard";
+import { HeatmapMap } from "@/components/site/HeatmapMap";
 
 export function PoliceDashboard() {
   const { t, locale } = useI18n();
 
   const { data: feedbacksPage, isLoading } = useFeedbacks(0, 50);
+  const { data: hotspots } = useHotspots();
   const rejectMutation = useRejectFeedback();
   const requestInfoMutation = useRequestMoreInfo();
 
@@ -71,6 +73,18 @@ export function PoliceDashboard() {
             <Sparkline data={c.spark} color={textClassToHex(c.color)} height={32} />
           </div>
         ))}
+      </div>
+
+      <div className="mb-10">
+        <h2 className="text-2xl mb-4 font-bold flex items-center gap-2">
+          <span className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-500">
+            📍
+          </span>
+          Bản đồ Điểm nóng vi phạm (Heatmap)
+        </h2>
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+          <HeatmapMap hotspots={hotspots || []} />
+        </div>
       </div>
 
       <h2 className="text-2xl mb-4">Phản ánh ưu tiên / Priority queue</h2>

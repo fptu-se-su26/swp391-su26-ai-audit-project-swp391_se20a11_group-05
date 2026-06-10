@@ -10,6 +10,7 @@ import com.example.smartcity.modules.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -22,9 +23,19 @@ public class DataInitializer implements CommandLineRunner {
     private final WardRepository wardRepository;
     private final CategoryRepository categoryRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     public void run(String... args) throws Exception {
+        // [FIX] Tự động mở rộng cột otp_code lên VARCHAR(255) để chứa BCrypt hash
+        // (Flyway bị tắt trong profile Supabase nên phải dùng cách này)
+        try {
+            jdbcTemplate.execute("ALTER TABLE sms_verifications ALTER COLUMN otp_code TYPE VARCHAR(255)");
+            log.info("Successfully altered sms_verifications.otp_code to VARCHAR(255)");
+        } catch (Exception e) {
+            log.warn("Could not ALTER sms_verifications.otp_code (may already be correct type): {}", e.getMessage());
+        }
+
         if (userRepository.count() == 0) {
             log.info("Database is empty. Seeding default user accounts...");
 

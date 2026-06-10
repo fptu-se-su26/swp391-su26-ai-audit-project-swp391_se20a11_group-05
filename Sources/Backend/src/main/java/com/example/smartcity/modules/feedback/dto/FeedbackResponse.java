@@ -28,7 +28,6 @@ public class FeedbackResponse {
     private List<FeedbackAttachmentResponse> attachments;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private List<FeedbackAttachmentResponse> attachments;
 }
 
 

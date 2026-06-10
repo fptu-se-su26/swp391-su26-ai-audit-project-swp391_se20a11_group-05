@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { ApiError } from "@/lib/api";
 import { useRegisterMutation } from "@/lib/hooks";
-import { UserPlus, Loader2, AtSign, Lock, Mail, Phone, Zap, MessageSquare, Eye, EyeOff, Shield } from "lucide-react";
+import { UserPlus, Loader2, AtSign, Lock, Mail, Phone, Zap, MessageSquare, Eye, EyeOff, Shield, User } from "lucide-react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,12 +24,18 @@ export const Route = createFileRoute("/register")({
 
 const registerSchema = z.object({
   username: z.string().min(3, "Tên đăng nhập phải có ít nhất 3 ký tự"),
-  password: z.string().min(6, "Mật khẩu phải có ít nhất 6 ký tự"),
-  email: z.union([z.string().email("Email không hợp lệ"), z.literal("")]),
-  phone: z.union([
-    z.string().regex(/^0\d{9}$/, "Số điện thoại không hợp lệ (10 số, bắt đầu bằng 0)"),
-    z.literal(""),
-  ]),
+  fullName: z.string().min(1, "Họ và tên là bắt buộc"),
+  password: z
+    .string()
+    .min(8, "Mật khẩu phải có ít nhất 8 ký tự")
+    .regex(/[a-z]/, "Mật khẩu phải có ít nhất 1 chữ thường")
+    .regex(/[A-Z]/, "Mật khẩu phải có ít nhất 1 chữ hoa")
+    .regex(/\d/, "Mật khẩu phải có ít nhất 1 chữ số"),
+  email: z.string().min(1, "Email là bắt buộc").email("Email không hợp lệ"),
+  phone: z
+    .string()
+    .min(1, "Số điện thoại là bắt buộc")
+    .regex(/^(\+84|0)[3-9]\d{8}$/, "Số điện thoại không hợp lệ (VD: 0901234567 hoặc +84901234567)"),
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
@@ -38,9 +44,10 @@ function PasswordStrengthIndicator({ password }: { password: string }) {
   const { locale } = useI18n();
 
   const checks = [
-    { label: "Độ dài", passed: password.length >= 6 },
-    { label: "Số", passed: /\d/.test(password) },
-    { label: "Ký tự đặc biệt", passed: /[!@#$%^&*(),.?":{}|<>]/.test(password) },
+    { label: "≥8 ký tự", passed: password.length >= 8 },
+    { label: "Chữ hoa", passed: /[A-Z]/.test(password) },
+    { label: "Chữ thường", passed: /[a-z]/.test(password) },
+    { label: "Chữ số", passed: /\d/.test(password) },
   ];
 
   const passedCount = checks.filter((c) => c.passed).length;
@@ -87,6 +94,7 @@ function RegisterPage() {
     resolver: zodResolver(registerSchema),
     defaultValues: {
       username: "",
+      fullName: "",
       password: "",
       email: "",
       phone: "",
@@ -100,9 +108,9 @@ function RegisterPage() {
       await registerMutation.mutateAsync({
         username: values.username,
         password: values.password,
-        fullName: values.username,
-        email: values.email || "",
-        phoneNumber: values.phone || "",
+        fullName: values.fullName,
+        email: values.email,
+        phoneNumber: values.phone,
       });
       toast.success(
         locale === "vi" ? "Đăng ký thành công!" : "Registration successful!",
@@ -291,6 +299,28 @@ function RegisterPage() {
                   )}
                 />
 
+                {/* Full Name field */}
+                <FormField
+                  control={form.control}
+                  name="fullName"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <div className="relative">
+                        <User
+                          size={16}
+                          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                        />
+                        <Input
+                          placeholder={locale === "vi" ? "Họ và tên" : "Full name"}
+                          className="w-full min-h-[52px] pl-10 pr-4 rounded-xl border-2 border-slate-200 bg-white text-base focus:border-gov-blue focus-visible:ring-0 outline-none transition-colors placeholder:text-slate-400"
+                          {...field}
+                        />
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 {/* Email field */}
                 <FormField
                   control={form.control}
@@ -304,7 +334,7 @@ function RegisterPage() {
                         />
                         <Input
                           type="email"
-                          placeholder={locale === "vi" ? "Email (không bắt buộc)" : "Email (optional)"}
+                          placeholder={locale === "vi" ? "Email" : "Email"}
                           className="w-full min-h-[52px] pl-10 pr-4 rounded-xl border-2 border-slate-200 bg-white text-base focus:border-gov-blue focus-visible:ring-0 outline-none transition-colors placeholder:text-slate-400"
                           {...field}
                         />
@@ -327,7 +357,7 @@ function RegisterPage() {
                         />
                         <Input
                           type="tel"
-                          placeholder={locale === "vi" ? "Số điện thoại (không bắt buộc)" : "Phone number (optional)"}
+                          placeholder={locale === "vi" ? "Số điện thoại" : "Phone number"}
                           className="w-full min-h-[52px] pl-10 pr-4 rounded-xl border-2 border-slate-200 bg-white text-base focus:border-gov-blue focus-visible:ring-0 outline-none transition-colors placeholder:text-slate-400"
                           {...field}
                         />

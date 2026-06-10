@@ -117,12 +117,12 @@ function RegisterPage() {
         {
           description:
             locale === "vi"
-              ? "Đang chuyển hướng đến trang đăng nhập..."
-              : "Redirecting to login...",
+              ? "Đang chuyển hướng đến trang xác thực OTP..."
+              : "Redirecting to OTP verification...",
         },
       );
       setTimeout(() => {
-        navigate({ to: "/login" as any });
+        navigate({ to: "/verify-otp" as any, search: { phone: values.phone } });
       }, 1500);
     } catch (err) {
       if (err instanceof ApiError) {

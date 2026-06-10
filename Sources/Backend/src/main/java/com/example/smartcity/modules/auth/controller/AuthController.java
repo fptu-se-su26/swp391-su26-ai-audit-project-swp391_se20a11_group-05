@@ -91,7 +91,13 @@ public class AuthController {
         // [SECURITY] Rate limit: 5 lần / 1 giờ theo IP
         rateLimiter.checkRegisterLimit(getClientIp(httpRequest));
         User result = authService.registerUser(registerRequest);
-        return ResponseEntity.ok(ApiResponse.success("Đăng ký thành công", userMapper.toDto(result)));
+        return ResponseEntity.ok(ApiResponse.success("Đăng ký nháp thành công. Vui lòng xác thực mã OTP gửi về điện thoại.", userMapper.toDto(result)));
+    }
+
+    @PostMapping("/register-confirm")
+    public ResponseEntity<ApiResponse<String>> confirmRegistration(@Valid @RequestBody SmsVerifyRequest request) {
+        authService.confirmRegistration(request.getPhoneNumber(), request.getOtpCode());
+        return ResponseEntity.ok(ApiResponse.success("Xác thực OTP thành công. Tài khoản đã được kích hoạt!", null));
     }
 
     @PostMapping("/sms/send")

@@ -42,7 +42,10 @@ export const Route = createFileRoute("/report")({
   component: ReportPage,
 });
 
-const DEFAULT_MAP_CENTER: [number, number] = [16.0544, 108.2022];
+const API_BASE: string =
+  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) || "";
+
+const DEFAULT_MAP_CENTER: [number, number] = [15.8, 108.3]; // Quảng Nam - Đà Nẵng Center
 
 const currentLocationIcon = L.divIcon({
   className: "",
@@ -615,8 +618,8 @@ function ReportPage() {
               >
               <MapViewUpdater center={mapCenter} />
               <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution='&copy; Google Maps'
+                url="https://mt1.google.com/vt/lyrs=m&hl=vi&gl=VN&x={x}&y={y}&z={z}"
               />
               {markerDisplayed && latitude !== null && longitude !== null && (
                 <Marker position={[latitude, longitude]} icon={currentLocationIcon}>

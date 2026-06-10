@@ -33,11 +33,11 @@ function NotificationsPage() {
       <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
         <div>
           <h1 className="font-heading text-4xl md:text-5xl text-gov-blue mb-2">
-            {locale === "vi" ? "Thong bao" : "Notifications"}
+            {locale === "vi" ? "Thông báo" : "Notifications"}
           </h1>
           <p className="text-ink-soft">
             {locale === "vi"
-              ? "Theo doi cap nhat moi ve phan anh va tai khoan cua ban."
+              ? "Theo dõi cập nhật mới về phản ánh và tài khoản của bạn."
               : "Track updates for your reports and account."}
           </p>
         </div>
@@ -47,7 +47,7 @@ function NotificationsPage() {
           className="btn-civic btn-civic-ghost"
         >
           {isFetching ? <Loader2 className="animate-spin" size={18} /> : <RefreshCw size={18} />}
-          {locale === "vi" ? "Lam moi" : "Refresh"}
+          {locale === "vi" ? "Làm mới" : "Refresh"}
         </button>
       </div>
 
@@ -69,11 +69,11 @@ function NotificationsPage() {
         <div className="card-civic p-10 text-center">
           <Bell className="mx-auto text-gov-blue mb-4" size={48} />
           <h2 className="text-2xl font-heading text-gov-blue mb-2">
-            {locale === "vi" ? "Chua co thong bao" : "No notifications"}
+            {locale === "vi" ? "Chưa có thông báo" : "No notifications"}
           </h2>
           <p className="text-ink-soft">
             {locale === "vi"
-              ? "Khi phan anh co cap nhat, thong bao se hien thi tai day."
+              ? "Khi phản ánh có cập nhật, thông báo sẽ hiển thị tại đây."
               : "Report updates will appear here."}
           </p>
         </div>
@@ -93,7 +93,7 @@ function NotificationsPage() {
                   <h2 className="font-bold text-lg text-ink">{item.title}</h2>
                   {!item.read && (
                     <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-gov-gold text-gov-blue-deep">
-                      {locale === "vi" ? "Moi" : "New"}
+                      {locale === "vi" ? "Mới" : "New"}
                     </span>
                   )}
                 </div>
@@ -103,7 +103,7 @@ function NotificationsPage() {
                   <span>{item.createdAt?.slice(0, 16).replace("T", " ")}</span>
                   {item.referenceId && (
                     <Link to="/my-reports/$id" params={{ id: String(item.referenceId) }} className="text-gov-blue font-semibold hover:underline">
-                      {locale === "vi" ? "Xem phan anh" : "View report"}
+                      {locale === "vi" ? "Xem phản ánh" : "View report"}
                     </Link>
                   )}
                 </div>
@@ -116,7 +116,7 @@ function NotificationsPage() {
                   className="btn-civic btn-civic-ghost shrink-0"
                 >
                   <CheckCheck size={18} />
-                  {locale === "vi" ? "Da doc" : "Mark read"}
+                  {locale === "vi" ? "Đã đọc" : "Mark read"}
                 </button>
               )}
             </div>

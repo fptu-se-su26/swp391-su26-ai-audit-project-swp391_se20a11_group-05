@@ -8,6 +8,8 @@ import {
   feedbackApi, categoryApi, ragApi, authApi, userApi, notificationApi,
   type FeedbackResponse, type CategoryResponse,
   type ChatbotResponse, type FeedbackRequest,
+  type FeedbackListFilters,
+  type FeedbackStatusOption,
   type PageResponse, type TokenResponse,
   type MfaRequiredResponse,
   type UpdateProfileRequest,
@@ -20,7 +22,8 @@ import {
 export const queryKeys = {
   feedbacks: {
     all: ["feedbacks"] as const,
-    list: (page: number) => ["feedbacks", "list", page] as const,
+    list: (page: number, size: number, filters: FeedbackListFilters) => ["feedbacks", "list", page, size, filters] as const,
+    statuses: ["feedbacks", "statuses"] as const,
     detail: (id: string | number) => ["feedbacks", id] as const,
   },
   categories: {
@@ -42,11 +45,19 @@ export const queryKeys = {
 
 // ─── Feedback Hooks ──────────────────────────────────────────
 
-export function useFeedbacks(page = 0, size = 20) {
+export function useFeedbacks(page = 0, size = 3, filters: FeedbackListFilters = {}) {
   return useQuery<PageResponse<FeedbackResponse>>({
-    queryKey: queryKeys.feedbacks.list(page),
-    queryFn: () => feedbackApi.getAll(page, size),
+    queryKey: queryKeys.feedbacks.list(page, size, filters),
+    queryFn: () => feedbackApi.getAll(page, size, filters),
     staleTime: 30_000, // 30s cache
+  });
+}
+
+export function useFeedbackStatuses() {
+  return useQuery<FeedbackStatusOption[]>({
+    queryKey: queryKeys.feedbacks.statuses,
+    queryFn: () => feedbackApi.getStatuses(),
+    staleTime: 300_000,
   });
 }
 

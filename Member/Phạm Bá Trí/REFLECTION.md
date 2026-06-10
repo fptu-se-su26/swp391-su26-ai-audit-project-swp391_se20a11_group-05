@@ -441,6 +441,16 @@ Khi 2 đầu Frontend và Backend phát triển song song mà thiếu API contra
 
 ---
 
+### 9.16. Bài học về Kiểm toán Bảo mật và Hiệu suất (Security & Performance Audit)
+
+```text
+- Vấn đề: Khi tự code, sinh viên thường chỉ quan tâm "code chạy được là xong" và rất khó nhận ra các lỗi tiềm ẩn liên quan đến tài nguyên hệ thống (Thread Pool, Memory) hay các lỗ hổng bảo mật phi truyền thống như Prompt Injection.
+- Giải pháp từ AI: Qua bài toán Audit, AI chỉ ra việc dùng `.get()` của CompletableFuture trong môi trường Spring Boot (Tomcat) sẽ gây nghẽn luồng nghiêm trọng, có thể làm sập server khi có tải. AI cũng chỉ ra Regex đơn thuần không thể chống được hacker dùng kỹ thuật Prompt Injection hiện đại, và đề xuất cơ chế "Sandwiched Prompts". Đồng thời, Rate Limiting in-memory sẽ thất bại khi dự án scale out.
+- Kinh nghiệm: Đừng bao giờ chủ quan khi code chạy thành công trên máy cá nhân (Localhost). Một hệ thống "Production-ready" đòi hỏi sự cẩn trọng tột độ về Quản lý Luồng (Non-blocking I/O), khả năng hoạt động phân tán (dùng Redis thay vì RAM), và đặc biệt là kiểm soát chi phí API khắt khe (Cost Tracking). Kỹ năng tự đặt bản thân vào quá trình Kiểm toán (Self-Audit) thông qua AI là bước đệm tuyệt vời để trở thành Software Architect.
+```
+
+---
+
 ## 17. Cam kết Reflection
 
 Em/nhóm cam kết rằng nội dung reflection này phản ánh trung thực quá trình sử dụng AI và quá trình học tập trong bài tập/project.

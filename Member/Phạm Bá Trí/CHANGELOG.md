@@ -558,6 +558,41 @@ AI nhập vai Principal Software Engineer, lập một bản Implementation Plan
 
 ---
 
+# [Phase 15] Audit Hệ thống AI Orchestrator (Bảo mật & Hiệu suất)
+
+## Ngày thực hiện
+
+```text
+04/06/2026
+```
+
+## Đã hoàn thành
+
+- [x] **Kiểm toán Bảo mật (Security Audit):** Phân tích `GroqKeyPool`, `AiController`, `ContentGuardrailService` và chỉ ra các rủi ro về In-memory Rate Limiting và cách chống Prompt Injection (Sandwiched Prompts).
+- [x] **Kiểm toán Hiệu suất (Performance Audit):** Rà soát `LlmExecutionService` và phát hiện lỗi cực kỳ nghiêm trọng (Critical) làm treo Thread Tomcat do sử dụng luồng chặn `.get()` của CompletableFuture trong Spring.
+- [x] **Xuất Báo cáo:** Sinh tài liệu Báo cáo Kiểm toán AI Orchestrator chi tiết để chuẩn bị cho công tác Refactor mã nguồn.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi                                         | Người thực hiện | File/Module liên quan         |
+| --: | --------------------------------------------------------- | --------------- | ----------------------------- |
+|   1 | Chạy Audit tổng thể hệ thống, phân tích code AI Adapter   | Phạm Bá Trí     | `GroqAdapter`, `LlmExecutionService` |
+|   2 | Xuất Báo cáo Audit AI Orchestrator Markdown file          | Phạm Bá Trí     | `AI_Orchestrator_Audit_Report.md` |
+|   3 | Cập nhật hồ sơ (Audit Log, Changelog, Prompts, Reflection)| Phạm Bá Trí     | `Member/Phạm Bá Trí/*`        |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Mô tả AI đã hỗ trợ phần nào:
+
+```text
+Antigravity đóng vai trò Principal AI/ML Engineer tiến hành rà soát kỹ lưỡng (vạch lá tìm sâu) toàn bộ hệ thống RAG và AI Orchestrator. AI đã phát hiện những lỗ hổng chí mạng về kiến trúc (Thread Blocking) và quản lý chi phí, đồng thời lập Báo cáo Đánh giá chuyên nghiệp và hướng dẫn cách khắc phục.
+```
+
+---
+
 # 5. Cam kết cập nhật Changelog
 
 Sinh viên/nhóm cam kết rằng nội dung changelog phản ánh đúng các thay đổi đã

@@ -44,30 +44,40 @@ public class SmsService {
         }
     }
 
+    @Transactional
     public String generateAndSendOtp(String phoneNumber) {
-        // Hủy các mã OTP cũ chưa sử dụng (Tùy chọn: có thể query và set isUsed = true, ở đây ta dùng logic lấy mã mới nhất)
+        // [FIX] Hủy tất cả các mã OTP cũ chưa sử dụng của số điện thoại này để tránh lỗi "nhập đúng thành sai"
+        java.util.List<SmsVerification> oldTokens = smsVerificationRepository.findByPhoneNumberAndIsUsedFalse(phoneNumber);
+        if (!oldTokens.isEmpty()) {
+            for (SmsVerification token : oldTokens) {
+                token.setIsUsed(true);
+            }
+            smsVerificationRepository.saveAll(oldTokens);
+        }
         
         // [SECURITY FIX] Dùng SecureRandom để tránh dự đoán mã OTP
         String otpCode = String.format("%06d", new SecureRandom().nextInt(999999));
 
         saveOtpRecord(phoneNumber, otpCode);
 
-        try {
-            // EXTERNAL API CALL: Không bọc trong Transaction để tránh nghẽn Connection Pool
-            Message message = Message.creator(
-                    new PhoneNumber(phoneNumber),
-                    new PhoneNumber(twilioPhoneNumber),
-                    "Mã xác thực SmartCity của bạn là: " + otpCode + ". Mã có hiệu lực trong " + OTP_VALID_DURATION_MINUTES + " phút."
-            ).create();
+        // [FIX] Chạy Bất đồng bộ (Async) để không làm sập server khi có 10.000 người gửi SMS cùng lúc
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                // EXTERNAL API CALL: Không bọc trong Transaction để tránh nghẽn Connection Pool
+                Message message = Message.creator(
+                        new PhoneNumber(phoneNumber),
+                        new PhoneNumber(twilioPhoneNumber),
+                        "Mã xác thực SmartCity của bạn là: " + otpCode + ". Mã có hiệu lực trong " + OTP_VALID_DURATION_MINUTES + " phút."
+                ).create();
 
-            log.info("========== TWILIO SMS GATEWAY ==========");
-            log.info("Sending SMS to: {}", phoneNumber);
-            log.info("Twilio Message SID: {}", message.getSid());
-            log.info("========================================");
-        } catch (Exception e) {
-            log.error("Lỗi khi gửi tin nhắn Twilio: ", e);
-            throw new RuntimeException("Không thể gửi tin nhắn OTP, vui lòng thử lại sau.");
-        }
+                log.info("========== TWILIO SMS GATEWAY ==========");
+                log.info("Sending SMS to: {}", phoneNumber);
+                log.info("Twilio Message SID: {}", message.getSid());
+                log.info("========================================");
+            } catch (Exception e) {
+                log.error("Lỗi khi gửi tin nhắn Twilio cho số {}: {}", phoneNumber, e.getMessage());
+            }
+        });
 
         return "Mã OTP đã được gửi đến số điện thoại của bạn.";
     }

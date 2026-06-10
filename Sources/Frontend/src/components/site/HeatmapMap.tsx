@@ -15,12 +15,12 @@ interface HeatmapMapProps {
 }
 
 export function HeatmapMap({ hotspots }: HeatmapMapProps) {
-  // Tọa độ trung tâm Đà Nẵng
-  const center = [16.0544, 108.2022] as [number, number];
+  // Tọa độ trung tâm Quảng Nam - Đà Nẵng
+  const center = [15.8, 108.3] as [number, number];
 
   return (
     <div className="h-[400px] w-full rounded-lg overflow-hidden border border-slate-200 shadow-sm relative z-0">
-      <MapContainer center={center} zoom={13} style={{ height: "100%", width: "100%" }}>
+      <MapContainer center={center} zoom={10} style={{ height: "100%", width: "100%" }}>
         <TileLayer
           url="https://mt1.google.com/vt/lyrs=m&hl=vi&gl=VN&x={x}&y={y}&z={z}"
           attribution='&copy; Google Maps'

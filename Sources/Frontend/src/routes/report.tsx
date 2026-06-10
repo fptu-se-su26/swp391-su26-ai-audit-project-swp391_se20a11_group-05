@@ -43,7 +43,7 @@ export const Route = createFileRoute("/report")({
 const API_BASE: string =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) || "";
 
-const DEFAULT_MAP_CENTER: [number, number] = [16.0544, 108.2022];
+const DEFAULT_MAP_CENTER: [number, number] = [15.8, 108.3]; // Quảng Nam - Đà Nẵng Center
 
 const currentLocationIcon = L.divIcon({
   className: "",

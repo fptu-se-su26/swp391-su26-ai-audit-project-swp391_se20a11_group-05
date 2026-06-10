@@ -176,7 +176,7 @@ export function CityAdminDashboard() {
           </div>
           <Suspense fallback={<div className="w-full h-[420px] bg-slate-800 animate-pulse" />}>
             <CivicMap
-              center={[16.0544, 108.2022]}
+              center={[15.8, 108.3]}
               zoom={12}
               markers={apiFeedbacks.length > 0
                 ? apiFeedbacks.filter(f => f.latitude && f.longitude).slice(0, 50).map(f => ({

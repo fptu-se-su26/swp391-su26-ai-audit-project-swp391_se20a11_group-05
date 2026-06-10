@@ -51,6 +51,12 @@ function PasswordStrengthIndicator({ password }: { password: string }) {
   ];
 
   const passedCount = checks.filter((c) => c.passed).length;
+  const activeSegmentClass =
+    passedCount <= 1
+      ? "bg-red-300"
+      : passedCount === 2
+        ? "bg-amber-400"
+        : "bg-green-500";
 
   const strengthLabel =
     password.length === 0
@@ -64,14 +70,14 @@ function PasswordStrengthIndicator({ password }: { password: string }) {
   return (
     <div className="space-y-1.5 mt-2">
       <div className="flex gap-1.5">
-        {checks.map((check, i) => (
+        {checks.map((_, i) => (
           <div
             key={i}
             className={`h-1.5 flex-1 rounded-full transition-colors duration-200 ${password.length === 0
                 ? "bg-gray-200"
-                : check.passed
-                  ? "bg-green-500"
-                  : "bg-red-300"
+                : i < passedCount
+                  ? activeSegmentClass
+                  : "bg-gray-200"
               }`}
           />
         ))}

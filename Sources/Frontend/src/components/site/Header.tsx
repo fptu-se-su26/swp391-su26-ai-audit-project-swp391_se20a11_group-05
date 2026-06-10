@@ -19,8 +19,8 @@ export function Header() {
     { to: "/my-reports", label: t("nav.myReports") },
     ...(user
       ? [
-          { to: "/notifications", label: locale === "vi" ? "Thong bao" : "Notifications" },
-          { to: "/profile", label: locale === "vi" ? "Ho so" : "Profile" },
+          { to: "/notifications", label: locale === "vi" ? "Thông báo" : "Notifications" },
+          { to: "/profile", label: locale === "vi" ? "Hồ sơ" : "Profile" },
         ]
       : []),
     { to: "/assistant", label: t("nav.assistant") },

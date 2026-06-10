@@ -83,7 +83,7 @@ export function WardDashboard() {
         <Suspense fallback={<div className="w-full h-[320px] bg-slate-800 animate-pulse" />}>
           {/* Bản đồ giúp cán bộ phường xem vị trí phản ánh theo pin GPS. */}
           <CivicMap
-            center={mappedFeedbacks[0] ? [mappedFeedbacks[0].latitude!, mappedFeedbacks[0].longitude!] : [16.0544, 108.2022]}
+            center={mappedFeedbacks[0] ? [mappedFeedbacks[0].latitude!, mappedFeedbacks[0].longitude!] : [15.8, 108.3]}
             zoom={13}
             height="320px"
             markers={mappedFeedbacks.map(f => ({

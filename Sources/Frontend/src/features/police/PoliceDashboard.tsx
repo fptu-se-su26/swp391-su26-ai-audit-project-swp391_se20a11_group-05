@@ -43,7 +43,7 @@ export function PoliceDashboard() {
       accent="red"
       eyebrow={locale === "vi" ? "Lực lượng phản ứng nhanh" : "Emergency forces"}
       title={t("police.title")}
-      org="Công an Thành phố Đà Nẵng · CSGT · PCCC"
+      org="Công an Thành phố Đà Nẵng"
     >
       <div className="flex justify-end mb-6">
         <button className="btn-civic btn-civic-primary" style={{ background: "var(--status-danger)" }}>

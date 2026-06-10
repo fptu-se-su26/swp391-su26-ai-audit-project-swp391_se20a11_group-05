@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+﻿import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
@@ -187,9 +187,11 @@ function ReportPage() {
   const [detectedWard, setDetectedWard] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+  const [videos, setVideos] = useState<File[]>([]);
+  const [videoPreviews, setVideoPreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const geocodeAbortRef = useRef<AbortController | null>(null);
 
   const hasLocation = latitude !== null && longitude !== null;
@@ -201,6 +203,7 @@ function ReportPage() {
   );
   const canSubmit =
     photos.length > 0 &&
+    videos.length > 0 &&
     description.trim().length > 0 &&
     hasLocation &&
     !locationLoading &&
@@ -275,19 +278,99 @@ function ReportPage() {
     });
   };
 
+  const handlePhotoFilesSelected = (files: FileList | null) => {
+    if (!files) {
+      if (photoInputRef.current) photoInputRef.current.value = "";
+      return;
+    }
+    const newFiles = Array.from(files);
+    const validFiles = newFiles.filter((file) => {
+      const validType = file.type.startsWith("image/");
+      const validSize = file.size <= 10 * 1024 * 1024;
+
+      if (!validType) {
+        toast.error(`${file.name} không phải file ảnh.`);
+      }
+      if (!validSize) {
+        toast.error(`${file.name} vượt quá 10MB.`);
+      }
+
+      return validType && validSize;
+    });
+
+    const availableSlots = Math.max(0, 5 - photos.length);
+    const acceptedFiles = validFiles.slice(0, availableSlots);
+    if (validFiles.length > availableSlots) {
+      toast.error("Chỉ được upload tối đa 5 ảnh.");
+    }
+
+    setPhotos((prev) => [...prev, ...acceptedFiles]);
+    acceptedFiles.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setPhotoPreviews((prev) => [...prev, event.target!.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    if (photoInputRef.current) photoInputRef.current.value = "";
+  };
+
+  const handleVideoFileSelected = (files: FileList | null) => {
+    if (!files) {
+      if (videoInputRef.current) videoInputRef.current.value = "";
+      return;
+    }
+    const file = Array.from(files)[0];
+    if (!file) {
+      if (videoInputRef.current) videoInputRef.current.value = "";
+      return;
+    }
+
+    if (!file.type.startsWith("video/")) {
+      toast.error(`${file.name} không phải file video.`);
+      if (videoInputRef.current) videoInputRef.current.value = "";
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error(`${file.name} vượt quá 50MB.`);
+      if (videoInputRef.current) videoInputRef.current.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setVideos([file]);
+        setVideoPreviews([event.target.result as string]);
+      }
+    };
+    reader.readAsDataURL(file);
+    if (videoInputRef.current) videoInputRef.current.value = "";
+  };
+
   const removePhoto = (idx: number) => {
     setPhotos((prev) => prev.filter((_, i) => i !== idx));
     setPhotoPreviews((prev) => prev.filter((_, i) => i !== idx));
+    if (photoInputRef.current) photoInputRef.current.value = "";
+  };
+
+  const removeVideo = () => {
+    setVideos([]);
+    setVideoPreviews([]);
+    if (videoInputRef.current) videoInputRef.current.value = "";
   };
 
   const uploadPhotos = async (feedbackId: number): Promise<string[]> => {
-    if (photos.length === 0) return [];
+    const selectedMedia = [...photos, ...videos];
+    if (selectedMedia.length === 0) return [];
     const token = getToken();
     const urls: string[] = [];
     setUploading(true);
 
     try {
-      for (const photo of photos) {
+      for (const photo of selectedMedia) {
         const formData = new FormData();
         formData.append("file", photo);
         const res = await fetch(`${API_BASE}/api/files/upload/${feedbackId}`, {
@@ -296,10 +379,16 @@ function ReportPage() {
           body: formData,
         });
 
-        if (res.ok) {
-          const data = await res.json();
-          urls.push(data.fileUrl);
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+          const message =
+            data?.message ||
+            data?.error ||
+            `Upload ${photo.name} thất bại với mã lỗi ${res.status}`;
+          throw new Error(message);
         }
+
+        urls.push(data.fileUrl);
       }
     } finally {
       setUploading(false);
@@ -385,7 +474,11 @@ function ReportPage() {
       return false;
     }
     if (photos.length === 0) {
-      toast.error("Vui lòng tải lên ít nhất một ảnh hoặc video.");
+      toast.error("Vui lòng tải lên ít nhất 1 ảnh.");
+      return false;
+    }
+    if (videos.length === 0) {
+      toast.error("Vui lòng tải lên ít nhất 1 video.");
       return false;
     }
     if (!description.trim()) {
@@ -423,6 +516,8 @@ function ReportPage() {
       toast.success("Gửi phản ánh thành công!");
     } catch (err) {
       if (err instanceof ApiError) {
+        toast.error(err.message);
+      } else if (err instanceof Error) {
         toast.error(err.message);
       } else {
         toast.error("Không thể gửi phản ánh. Vui lòng thử lại.");
@@ -517,37 +612,36 @@ function ReportPage() {
               <div className="grid sm:grid-cols-2 gap-4">
                 <button
                   type="button"
-                  onClick={() => cameraInputRef.current?.click()}
+                  onClick={() => photoInputRef.current?.click()}
                   className="w-full border-2 border-dashed border-gov-blue rounded-lg p-8 min-h-[148px] flex flex-col items-center justify-center gap-3 text-gov-blue hover:bg-gov-blue/5 transition-all duration-200"
                 >
                   <Camera size={42} />
-                  <span className="font-bold text-base">Chụp ảnh/quay video</span>
+                  <span className="font-bold text-base">Upload ảnh</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => videoInputRef.current?.click()}
                   className="w-full border-2 border-dashed border-[var(--status-pending)] rounded-lg p-8 min-h-[148px] flex flex-col items-center justify-center gap-3 text-[var(--status-pending)] hover:bg-[var(--status-pending)]/5 transition-all duration-200"
                 >
                   <Upload size={42} />
-                  <span className="font-bold text-base">Chọn từ thư viện</span>
+                  <span className="font-bold text-base">Upload video</span>
                 </button>
               </div>
               <input
-                ref={cameraInputRef}
+                ref={photoInputRef}
                 type="file"
-                accept="image/*,video/*"
+                accept="image/*"
                 capture="environment"
                 className="hidden"
-                onChange={(e) => handleFilesSelected(e.target.files)}
+                onChange={(e) => handlePhotoFilesSelected(e.target.files)}
                 multiple
               />
               <input
-                ref={fileInputRef}
+                ref={videoInputRef}
                 type="file"
-                accept="image/*,video/*"
+                accept="video/*"
                 className="hidden"
-                onChange={(e) => handleFilesSelected(e.target.files)}
-                multiple
+                onChange={(e) => handleVideoFileSelected(e.target.files)}
               />
               {photoPreviews.length > 0 && (
                 <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -576,6 +670,21 @@ function ReportPage() {
                       </button>
                     </div>
                   ))}
+                </div>
+              )}
+              {videoPreviews.length > 0 && (
+                <div className="mt-4">
+                  <div className="relative group aspect-video max-w-xl overflow-hidden rounded-lg border border-slate-200 bg-black">
+                    <video src={videoPreviews[0]} className="w-full h-full object-cover" muted controls />
+                    <button
+                      type="button"
+                      onClick={removeVideo}
+                      className="absolute top-2 right-2 w-8 h-8 bg-red-600 text-white rounded-full grid place-items-center opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity"
+                      aria-label="Xóa video đã chọn"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

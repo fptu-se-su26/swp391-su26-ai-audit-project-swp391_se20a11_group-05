@@ -18,6 +18,8 @@ export interface FeedbackAttachmentResponse {
   id: number;
   fileUrl: string;
   fileType: string;
+  fileName: string | null;
+  fileSize: number | null;
   uploadedAt: string;
 }
 

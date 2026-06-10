@@ -210,6 +210,22 @@ public class AuthService {
         }
 
         User user = userOpt.get();
+
+        // [SECURITY] Chặn tài khoản chưa kích hoạt hoặc bị khóa không được bypass qua Firebase
+        if (!user.isActive()) {
+            if ("INACTIVE".equals(user.getStatus())) {
+                throw new CustomException("Tài khoản chưa được kích hoạt. Vui lòng xác thực mã OTP.", 403);
+            }
+            throw new CustomException("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.", 403);
+        }
+
+        // [SECURITY] Chặn tài khoản bị khóa tạm thời do nhập sai quá nhiều lần
+        if (user.isTemporarilyLocked()) {
+            throw new CustomException(
+                "Tài khoản tạm thời bị khóa do nhập sai mật khẩu quá " + MAX_LOGIN_ATTEMPTS + " lần. "
+                + "Vui lòng thử lại sau " + LOCKOUT_MINUTES + " phút.", 429);
+        }
+
         return refreshTokenService.createTokenPair(user);
     }
 

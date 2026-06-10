@@ -558,6 +558,78 @@ AI nhập vai Principal Software Engineer, lập một bản Implementation Plan
 
 ---
 
+# [Phase 15] Audit Hệ thống AI Orchestrator (Bảo mật & Hiệu suất)
+
+## Ngày thực hiện
+
+```text
+04/06/2026
+```
+
+## Đã hoàn thành
+
+- [x] **Kiểm toán Bảo mật (Security Audit):** Phân tích `GroqKeyPool`, `AiController`, `ContentGuardrailService` và chỉ ra các rủi ro về In-memory Rate Limiting và cách chống Prompt Injection (Sandwiched Prompts).
+- [x] **Kiểm toán Hiệu suất (Performance Audit):** Rà soát `LlmExecutionService` và phát hiện lỗi cực kỳ nghiêm trọng (Critical) làm treo Thread Tomcat do sử dụng luồng chặn `.get()` của CompletableFuture trong Spring.
+- [x] **Xuất Báo cáo:** Sinh tài liệu Báo cáo Kiểm toán AI Orchestrator chi tiết để chuẩn bị cho công tác Refactor mã nguồn.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi                                         | Người thực hiện | File/Module liên quan         |
+| --: | --------------------------------------------------------- | --------------- | ----------------------------- |
+|   1 | Chạy Audit tổng thể hệ thống, phân tích code AI Adapter   | Phạm Bá Trí     | `GroqAdapter`, `LlmExecutionService` |
+|   2 | Xuất Báo cáo Audit AI Orchestrator Markdown file          | Phạm Bá Trí     | `AI_Orchestrator_Audit_Report.md` |
+|   3 | Cập nhật hồ sơ (Audit Log, Changelog, Prompts, Reflection)| Phạm Bá Trí     | `Member/Phạm Bá Trí/*`        |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Mô tả AI đã hỗ trợ phần nào:
+
+```text
+Antigravity đóng vai trò Principal AI/ML Engineer tiến hành rà soát kỹ lưỡng (vạch lá tìm sâu) toàn bộ hệ thống RAG và AI Orchestrator. AI đã phát hiện những lỗ hổng chí mạng về kiến trúc (Thread Blocking) và quản lý chi phí, đồng thời lập Báo cáo Đánh giá chuyên nghiệp và hướng dẫn cách khắc phục.
+```
+
+---
+
+# [Phase 16] Nâng cấp Hệ thống Xác thực SMS OTP (Banking-level Two-Step Registration)
+
+## Ngày thực hiện
+
+```text
+10/06/2026
+```
+
+## Đã hoàn thành
+
+- [x] **Frontend**: Nâng cấp UI nhập OTP thành dạng 6-box grid (hỗ trợ Auto-focus, Delete lùi, Paste OTP).
+- [x] **Backend - Deadlock Fix**: Cập nhật `AuthService` tự động xóa các bản nháp `INACTIVE` để giải quyết lỗi "SĐT đã tồn tại" khi người dùng đăng ký lại.
+- [x] **Backend - DB Security & Perf**: Hashing mã OTP bằng thuật toán BCrypt. Thêm `@Lock(LockModeType.PESSIMISTIC_WRITE)` chống Race Condition và thêm Composite Index để tối ưu tìm kiếm.
+- [x] **Backend - Maintenance**: Tạo `OtpCleanupScheduler` chạy tự động lúc 2h sáng (Cron job) để xóa cứng OTP cũ, tránh Database Bloat.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi                                         | Người thực hiện | File/Module liên quan         |
+| --: | --------------------------------------------------------- | --------------- | ----------------------------- |
+|   1 | Nâng cấp UI 6-box nhập OTP                                | Phạm Bá Trí     | `verify-otp.tsx`              |
+|   2 | Fix thuật toán đăng ký 2 bước (Auto delete INACTIVE)      | Phạm Bá Trí     | `AuthService.java`            |
+|   3 | Hash OTP (BCrypt), thêm Pessimistic Lock và Index DB      | Phạm Bá Trí     | `SmsService`, `SmsVerificationRepository`, `SmsVerification` |
+|   4 | Xây dựng Cron Job tự động dọn rác OTP cũ                  | Phạm Bá Trí     | `OtpCleanupScheduler.java`    |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Mô tả AI đã hỗ trợ phần nào:
+
+```text
+Antigravity đã nhập vai QA Security để kiểm tra logic, phát hiện 4 lỗ hổng chí mạng ở luồng OTP cũ và chủ động refactor codebase để vá lỗi hoàn chỉnh, đạt chuẩn Enterprise 10/10 điểm bảo mật.
+```
+
+---
+
 # 5. Cam kết cập nhật Changelog
 
 Sinh viên/nhóm cam kết rằng nội dung changelog phản ánh đúng các thay đổi đã

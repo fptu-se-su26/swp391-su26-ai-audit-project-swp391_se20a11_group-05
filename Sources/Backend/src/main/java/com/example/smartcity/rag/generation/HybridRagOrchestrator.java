@@ -72,15 +72,7 @@ public class HybridRagOrchestrator {
             // ──────────────────────────────────────────────────────────
         // BƯỚC 0: Agentic Intent Routing & Tool Calling (Giai đoạn 3.1)
         // ──────────────────────────────────────────────────────────
-        String lowerQuery = request.question().toLowerCase();
-        boolean isWeatherIntent = lowerQuery.contains("thời tiết") || lowerQuery.contains("nhiệt độ") || lowerQuery.contains("mưa") || lowerQuery.contains("nắng");
         String toolContext = "";
-
-        if (isWeatherIntent) {
-            log.info("   🤖 [Agentic Router] Phát hiện Intent 'WEATHER' → Kích hoạt Tool: WeatherAPI");
-            // Simulate calling external Weather API
-            toolContext = "[DỮ LIỆU TỪ WEATHER_API: Hôm nay Đà Nẵng 28°C, trời nắng đẹp, có thể có mưa rào vào chiều tối.]\n\n";
-        }
 
         // ──────────────────────────────────────────────────────────
         // BƯỚC 1: Query Transformation

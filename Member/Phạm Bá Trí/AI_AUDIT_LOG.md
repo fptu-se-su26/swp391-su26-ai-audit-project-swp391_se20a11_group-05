@@ -210,6 +210,20 @@
 
 ---
 
+### Entry #: 014
+**Prompt Type:** SECURITY & PERFORMANCE AUDIT
+**Stage/Component:** AI Orchestrator Layer
+**Problem/Context:** Hệ thống AI/RAG đã hoạt động ổn định trên môi trường dev, tuy nhiên nhóm cần thực hiện một đợt kiểm toán (Audit) toàn diện nhằm phát hiện các lỗ hổng tiềm ẩn về bảo mật, hiệu suất (thread blocking), và tối ưu chi phí trước khi triển khai thực tế.
+**Prompt to AI:** "Đóng vai trò là một Principal AI/ML Engineer và System Architect... Nhiệm vụ của bạn là audit TOÀN DIỆN hệ thống AI Orchestrator để phát hiện: Lỗ hổng bảo mật trong API key management, Performance bottlenecks, Cost optimization opportunities, Reliability issues, Prompt injection vulnerabilities, Rate limiting weaknesses..."
+**AI Response (Summary):** AI đã review codebase và phát hiện 2 lỗi CRITICAL (gọi `.get()` chặn thread trong `CircuitBreaker`, thiếu Tracking chi phí Token), 2 lỗi HIGH (Rate Limiting dùng bộ nhớ cục bộ `ConcurrentHashMap`, Guardrails Regex dễ bị bypass), và ghi nhận điểm TỐT (GOOD) cho thuật toán vòng lặp Key Pool. Kèm theo là Báo cáo chi tiết và giải pháp khắc phục.
+**Human Delta & Reflection:**
+- **Critical Thinking:** Nhận ra sai lầm cực kỳ phổ biến khi làm việc với lập trình Reactive/WebClient: việc lạm dụng `.get()` để ép luồng đồng bộ sẽ vô tình làm mất hoàn toàn lợi ích của non-blocking, dẫn tới sập (Thread Pool Exhaustion) toàn bộ Tomcat server khi chịu tải cao.
+- **Contextualization:** Trong hệ thống Smart City, việc bị bypass chống Prompt Injection rất nguy hiểm vì kẻ gian có thể đánh cắp ngữ cảnh (context) từ dữ liệu chính phủ. Gợi ý sử dụng "Sandwiched Prompts" của AI là một phương pháp rất thông minh và thực tế để kẹp chặt input người dùng.
+- **Creative Synthesis:** Đã chủ động yêu cầu AI xuất báo cáo dạng file riêng biệt (`ai_orchestrator_audit_report.md`) để làm minh chứng bảo vệ. Đồng thời lên kế hoạch refactor lại toàn bộ `LlmExecutionService` để dùng `CompletableFuture`.
+- **Decision Ownership:** Quyết định không Launch ngay lập tức mà ưu tiên khắc phục 2 lỗi Critical (Thread blocking và Cost Tracking) trước để đảm bảo ổn định.
+
+---
+
 ## III. Phát hiện Hallucination (Hallucination Detection)
 
 - **Trường hợp:** Khi yêu cầu AI tìm kiếm và tổng hợp 10 bài báo khoa học trên Springer (Entry 001).
@@ -229,6 +243,19 @@
 
 ---
 
+### Entry #: 002
+**Prompt Type:** VERIFICATION / REFACTORING
+**Stage/Component:** Implementation stage (Logic OTP) + Security Audit
+**Problem/Context:** Xây dựng tính năng đăng ký 2 bước và phát hiện các lỗ hổng bảo mật nghiêm trọng trong luồng SMS OTP cũ (không mã hóa OTP, dễ bị race condition, kẹt tài khoản đăng ký).
+**Prompt to AI:** "kiểm tra logic nghiệp vụ của otp", "fix tiếp đi", "kiểm trâu sâu nữa so thầy tôi kêu cái sms này hơi yếu đc 3 điểm"
+**AI Response (Summary):** AI đã chỉ ra 4 lỗ hổng nghiêm trọng: 1. Plaintext OTP, 2. Database Bloat, 3. Race Condition khi dò mã, 4. Deadlock dữ liệu rác. Sau đó, AI đã chủ động viết mã vá lỗi: sử dụng BCrypt cho OTP, thêm `@Lock(PESSIMISTIC_WRITE)`, tạo Job dọn rác `@Scheduled`, và sửa logic xóa tài khoản `INACTIVE` cũ. Đồng thời thiết kế UI Frontend thành 6-box input.
+
+**Human Delta & Reflection:**
+- **Critical Thinking:** AI đã phân tích rất chính xác các điểm yếu "chí mạng" mà thầy giáo đã cảnh báo. Đặc biệt là việc băm OTP (Hashing) và khóa bi quan (Pessimistic Lock) là kiến thức cấp cao, giúp nâng tầm dự án thành chuẩn Ngân hàng.
+- **Decision Ownership:** Quyết định cho phép xóa vật lý (Hard delete) các tài khoản `INACTIVE` cũ là một nước đi dũng cảm nhưng chính xác, giúp giải quyết hoàn toàn Deadlock cho người dùng. Đã tự mình verify bằng cách compile và run test 19 cases.
+
+---
+
 ## V. Cam kết học thuật
 
 Sinh viên/nhóm cam kết rằng:
@@ -240,3 +267,4 @@ Sinh viên/nhóm cam kết rằng:
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
 | Phạm Bá Trí | 2026-05-21 |
+

@@ -5,8 +5,11 @@ import com.example.smartcity.modules.auth.payload.*;
 import com.example.smartcity.modules.auth.payload.request.SmsSendRequest;
 import com.example.smartcity.modules.auth.payload.request.SmsVerifyRequest;
 import com.example.smartcity.modules.auth.service.AuthService;
+import com.example.smartcity.modules.auth.service.RefreshTokenService;
 import com.example.smartcity.modules.auth.service.SmsService;
+import com.example.smartcity.modules.user.mapper.UserMapper;
 import com.example.smartcity.common.exception.CustomException;
+import com.example.smartcity.security.ratelimit.AuthRateLimiter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -46,6 +49,15 @@ class AuthControllerTest {
 
     @Mock
     private SmsService smsService;
+
+    @Mock
+    private AuthRateLimiter rateLimiter;
+
+    @Mock
+    private RefreshTokenService refreshTokenService;
+
+    @Mock
+    private UserMapper userMapper;
 
     @InjectMocks
     private AuthController authController;
@@ -159,7 +171,7 @@ class AuthControllerTest {
     void register_success_returns200() throws Exception {
         RegisterRequest req = new RegisterRequest();
         req.setUsername("newuser");
-        req.setPassword("pass123");
+        req.setPassword("Pass1234");
         req.setFullName("Nguyễn Văn A");
         req.setEmail("vana@example.com");
         req.setPhoneNumber("0905123456");
@@ -171,6 +183,15 @@ class AuthControllerTest {
                         com.example.smartcity.modules.user.entity.Role.CITIZEN);
 
         when(authService.registerUser(any(RegisterRequest.class))).thenReturn(mockUser);
+        when(userMapper.toDto(mockUser)).thenReturn(
+                com.example.smartcity.modules.user.dto.UserDTO.builder()
+                        .username("newuser")
+                        .fullName("Nguyễn Văn A")
+                        .phoneNumber("0905123456")
+                        .email("vana@example.com")
+                        .role(com.example.smartcity.modules.user.entity.Role.CITIZEN)
+                        .isActive(true)
+                        .build());
 
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -185,7 +206,7 @@ class AuthControllerTest {
     void register_duplicateUsername_serviceThrows() throws Exception {
         RegisterRequest req = new RegisterRequest();
         req.setUsername("existing");
-        req.setPassword("pass123");
+        req.setPassword("Pass1234");
         req.setFullName("Test User");
         req.setEmail("test@example.com");
         req.setPhoneNumber("0905111222");
@@ -206,7 +227,29 @@ class AuthControllerTest {
     // ═══════════════════════════════════════════════════════
 
     @Test
-    @DisplayName("[LOGOUT] Happy Path: Logout với token hợp lệ → 200")
+    @DisplayName("[REGISTER] DB unique constraint violation -> 400")
+    void register_dataIntegrityViolation_returns400() throws Exception {
+        RegisterRequest req = new RegisterRequest();
+        req.setUsername("existing");
+        req.setPassword("Pass1234");
+        req.setFullName("Test User");
+        req.setEmail("test@example.com");
+        req.setPhoneNumber("0905111222");
+
+        when(authService.registerUser(any())).thenThrow(
+                new org.springframework.dao.DataIntegrityViolationException(
+                        "duplicate key value violates unique constraint \"users_phone_number_key\""));
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isBadRequest());
+
+        verify(authService).registerUser(any(RegisterRequest.class));
+    }
+
+    @Test
+    @DisplayName("[LOGOUT] Happy Path: Logout with valid token -> 200")
     void logout_withValidToken_returns200() throws Exception {
         doNothing().when(authService).logout(any());
 

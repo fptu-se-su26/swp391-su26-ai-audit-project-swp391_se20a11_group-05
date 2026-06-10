@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VerifyOtpRouteImport } from './routes/verify-otp'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ReportRouteImport } from './routes/report'
 import { Route as RegisterRouteImport } from './routes/register'
@@ -25,6 +26,11 @@ import { Route as AuthPoliceRouteImport } from './routes/_auth.police'
 import { Route as AuthCityAdminRouteImport } from './routes/_auth.city-admin'
 import { Route as AuthAssistantRouteImport } from './routes/_auth.assistant'
 
+const VerifyOtpRoute = VerifyOtpRouteImport.update({
+  id: '/verify-otp',
+  path: '/verify-otp',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -109,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/verify-otp': typeof VerifyOtpRoute
   '/assistant': typeof AuthAssistantRoute
   '/city-admin': typeof AuthCityAdminRoute
   '/police': typeof AuthPoliceRoute
@@ -125,6 +132,7 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/verify-otp': typeof VerifyOtpRoute
   '/assistant': typeof AuthAssistantRoute
   '/city-admin': typeof AuthCityAdminRoute
   '/police': typeof AuthPoliceRoute
@@ -143,6 +151,7 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/verify-otp': typeof VerifyOtpRoute
   '/_auth/assistant': typeof AuthAssistantRoute
   '/_auth/city-admin': typeof AuthCityAdminRoute
   '/_auth/police': typeof AuthPoliceRoute
@@ -161,6 +170,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/report'
     | '/sitemap.xml'
+    | '/verify-otp'
     | '/assistant'
     | '/city-admin'
     | '/police'
@@ -177,6 +187,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/report'
     | '/sitemap.xml'
+    | '/verify-otp'
     | '/assistant'
     | '/city-admin'
     | '/police'
@@ -194,6 +205,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/report'
     | '/sitemap.xml'
+    | '/verify-otp'
     | '/_auth/assistant'
     | '/_auth/city-admin'
     | '/_auth/police'
@@ -212,12 +224,20 @@ export interface RootRouteChildren {
   RegisterRoute: typeof RegisterRoute
   ReportRoute: typeof ReportRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  VerifyOtpRoute: typeof VerifyOtpRoute
   MyReportsIdRoute: typeof MyReportsIdRoute
   MyReportsIndexRoute: typeof MyReportsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/verify-otp': {
+      id: '/verify-otp'
+      path: '/verify-otp'
+      fullPath: '/verify-otp'
+      preLoaderRoute: typeof VerifyOtpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
@@ -352,6 +372,7 @@ const rootRouteChildren: RootRouteChildren = {
   RegisterRoute: RegisterRoute,
   ReportRoute: ReportRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  VerifyOtpRoute: VerifyOtpRoute,
   MyReportsIdRoute: MyReportsIdRoute,
   MyReportsIndexRoute: MyReportsIndexRoute,
 }

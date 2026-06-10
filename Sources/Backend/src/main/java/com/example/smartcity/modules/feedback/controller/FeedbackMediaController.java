@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -24,8 +25,9 @@ public class FeedbackMediaController {
     @PostMapping(value = "/media", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<CitizenFeedbackMediaResponse> submitMedia(
             @Valid @RequestPart("data") CitizenFeedbackMediaRequest request,
-            @RequestPart("files") List<MultipartFile> files
+            @RequestPart("files") List<MultipartFile> files,
+            Authentication authentication
     ) {
-        return ResponseEntity.ok(citizenFeedbackMediaService.submit(request, files));
+        return ResponseEntity.ok(citizenFeedbackMediaService.submit(request, files, authentication.getName()));
     }
 }

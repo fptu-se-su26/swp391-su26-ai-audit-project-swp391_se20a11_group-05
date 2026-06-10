@@ -40,6 +40,10 @@ public class LocationResolutionService {
                         HttpStatus.BAD_REQUEST.value()));
     }
 
+    public Ward findAuthorityByLocation(double latitude, double longitude) {
+        return resolveWard(latitude, longitude);
+    }
+
     public Optional<Ward> reverseGeocode(double latitude, double longitude) {
         validateCoordinates(latitude, longitude);
 

@@ -1,0 +1,53 @@
+package com.example.smartcity.modules.campaign.entity;
+
+import com.example.smartcity.common.base.BaseEntity;
+import com.example.smartcity.modules.core.entity.Ward;
+import com.example.smartcity.modules.user.entity.User;
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "campaigns")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Campaign extends BaseEntity {
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", nullable = false)
+    private User createdByUser;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ward_id")
+    private Ward ward;
+
+    @Column(nullable = false, length = 255)
+    private String title;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "location_text", length = 255)
+    private String locationText;
+
+    private Double latitude;
+
+    private Double longitude;
+
+    @Column(name = "max_participants")
+    private Integer maxParticipants;
+
+    @Column(name = "start_time")
+    private LocalDateTime startTime;
+
+    @Column(name = "end_time")
+    private LocalDateTime endTime;
+
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private String status = "PENDING";
+}

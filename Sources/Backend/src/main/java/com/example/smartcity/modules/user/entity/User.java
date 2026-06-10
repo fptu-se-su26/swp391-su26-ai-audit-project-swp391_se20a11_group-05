@@ -31,6 +31,15 @@ public class User extends BaseEntity {
     @Column(length = 100, unique = true)
     private String email;
 
+    @Column(name = "citizen_id_card", length = 50, unique = true)
+    private String citizenIdCard;
+
+    @Column(name = "is_phone_verified", nullable = false)
+    private boolean phoneVerified = false;
+
+    @Column(name = "is_identity_verified", nullable = false)
+    private boolean identityVerified = false;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Role role; 
@@ -91,6 +100,15 @@ public class User extends BaseEntity {
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+
+    public String getCitizenIdCard() { return citizenIdCard; }
+    public void setCitizenIdCard(String citizenIdCard) { this.citizenIdCard = citizenIdCard; }
+
+    public boolean isPhoneVerified() { return phoneVerified; }
+    public void setPhoneVerified(boolean phoneVerified) { this.phoneVerified = phoneVerified; }
+
+    public boolean isIdentityVerified() { return identityVerified; }
+    public void setIdentityVerified(boolean identityVerified) { this.identityVerified = identityVerified; }
 
     public Role getRole() { return role; }
     public void setRole(Role role) { this.role = role; }

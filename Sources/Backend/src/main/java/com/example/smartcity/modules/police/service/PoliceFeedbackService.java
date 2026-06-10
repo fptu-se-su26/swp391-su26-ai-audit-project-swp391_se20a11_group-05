@@ -8,6 +8,7 @@ import com.example.smartcity.modules.feedback.repository.FeedbackRepository;
 import com.example.smartcity.modules.police.dto.PoliceFeedbackResponse;
 import com.example.smartcity.modules.police.dto.RejectFeedbackRequest;
 import com.example.smartcity.modules.police.dto.RequestMoreInfoRequest;
+import com.example.smartcity.modules.police.dto.HotspotResponse;
 import com.example.smartcity.modules.police.dto.SubmitFeedbackResultRequest;
 import com.example.smartcity.modules.police.dto.UpdateFeedbackStatusRequest;
 import com.example.smartcity.modules.notification.service.ExternalNotificationService;
@@ -40,6 +41,30 @@ public class PoliceFeedbackService {
     }
 
     /**
+     * Lấy danh sách điểm nóng (Hotspots) cho Bản đồ Nhiệt (Heatmap)
+     */
+    public List<HotspotResponse> getHotspots() {
+        // Trong thực tế sẽ filter theo ngày tháng, khu vực. Ở đây lấy tất cả feedback có tọa độ
+        return feedbackRepository.findAll().stream()
+                .filter(f -> f.getLatitude() != null && f.getLongitude() != null)
+                .map(f -> {
+                    // Đánh trọng số: Việc khẩn cấp/chưa xử lý = 3, Đang xử lý = 2, Đã xong/Từ chối = 1
+                    int weight = 1;
+                    if (f.getStatus() == FeedbackStatus.PENDING || f.getStatus() == FeedbackStatus.ASSIGNED) weight = 3;
+                    else if (f.getStatus() == FeedbackStatus.IN_PROGRESS || f.getStatus() == FeedbackStatus.WAITING_INFO) weight = 2;
+                    
+                    return new HotspotResponse(
+                            f.getLatitude(),
+                            f.getLongitude(),
+                            weight,
+                            f.getStatus().name(),
+                            f.getCategory() != null ? f.getCategory().getName() : "Khác"
+                    );
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Cán bộ tiếp nhận phản ánh (chuyển từ ASSIGNED -> IN_PROGRESS)
      */
     @Transactional
@@ -51,7 +76,7 @@ public class PoliceFeedbackService {
             throw new RuntimeException("Bạn không có quyền tiếp nhận phản ánh này");
         }
 
-        if (feedback.getStatus() != FeedbackStatus.ASSIGNED) {
+        if (feedback.getStatus() != FeedbackStatus.PENDING) {
             throw new RuntimeException("Chỉ có thể tiếp nhận phản ánh đang ở trạng thái ASSIGNED");
         }
 

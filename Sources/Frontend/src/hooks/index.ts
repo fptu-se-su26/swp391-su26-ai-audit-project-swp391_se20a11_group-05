@@ -110,6 +110,14 @@ export function useRequestMoreInfo() {
   });
 }
 
+export function useHotspots() {
+  return useQuery<any[]>({
+    queryKey: ["feedbacks", "hotspots"],
+    queryFn: () => policeApi.getHotspots(),
+    staleTime: 60_000, // 1 min cache
+  });
+}
+
 // ─── Category Hooks ──────────────────────────────────────────
 
 export function useCategories() {

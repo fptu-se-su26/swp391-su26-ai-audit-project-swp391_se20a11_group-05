@@ -4,6 +4,7 @@ import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { parseBackendRole, Role } from "@/lib/roles";
 import { authApi, ApiError } from "@/lib/api";
+import { requestCurrentGpsLocation } from "@/lib/location";
 import { Loader2, AlertCircle, Eye, EyeOff, AtSign, Lock } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 import { LoginHeroPanel } from "./LoginHeroPanel";
@@ -60,6 +61,9 @@ export function LoginPage() {
           org: "",
           token: data.token,
         });
+        void requestCurrentGpsLocation().catch(() => {
+          // Location is optional after login; feedback submission asks again if needed.
+        });
         navigate({ to: redirect || "/" });
       }
     } catch (err) {
@@ -73,7 +77,7 @@ export function LoginPage() {
         );
       } else {
         // Demo fallback when backend is offline
-        login({ name: username || "citizen1", role: Role.CITIZEN, org: "" });
+        login({ name: username || "citizen1", role: Role.CITIZEN, org: "", token: "demo-token" });
         navigate({ to: redirect || "/" });
       }
     } finally {
@@ -93,6 +97,9 @@ export function LoginPage() {
         role: parseBackendRole(data.role),
         org: "",
         token: data.token,
+      });
+      void requestCurrentGpsLocation().catch(() => {
+        // Location is optional after login; feedback submission asks again if needed.
       });
       navigate({ to: redirect || "/" });
     } catch (err) {
@@ -276,6 +283,16 @@ export function LoginPage() {
                   <GoogleIcon />
                   {locale === "vi" ? "Tiếp tục với Google" : "Continue with Google"}
                 </button>
+
+                {/* Quick link to staff portal for staff members */}
+                <div className="text-center pt-2">
+                  <Link
+                    to="/authority-login"
+                    className="text-xs font-semibold text-gov-blue hover:underline inline-flex items-center gap-1"
+                  >
+                    {locale === "vi" ? "Cổng đăng nhập dành cho Cán bộ →" : "Authority Staff Portal →"}
+                  </Link>
+                </div>
               </form>
             )}
           </div>

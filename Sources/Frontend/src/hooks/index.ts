@@ -5,7 +5,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  feedbackApi, categoryApi, ragApi, authApi, userApi, notificationApi,
+  feedbackApi, categoryApi, ragApi, authApi, userApi, notificationApi, policeApi,
   type FeedbackResponse, type CategoryResponse,
   type ChatbotResponse, type FeedbackRequest,
   type PageResponse, type TokenResponse,
@@ -87,6 +87,34 @@ export function useAssignFeedback() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
     },
+  });
+}
+
+export function useRejectFeedback() {
+  const queryClient = useQueryClient();
+  return useMutation<FeedbackResponse, Error, { id: number | string; reason: string }>({
+    mutationFn: ({ id, reason }) => policeApi.rejectFeedback(id, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
+    },
+  });
+}
+
+export function useRequestMoreInfo() {
+  const queryClient = useQueryClient();
+  return useMutation<FeedbackResponse, Error, { id: number | string; reason: string }>({
+    mutationFn: ({ id, reason }) => policeApi.requestMoreInfo(id, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
+    },
+  });
+}
+
+export function useHotspots() {
+  return useQuery<any[]>({
+    queryKey: ["feedbacks", "hotspots"],
+    queryFn: () => policeApi.getHotspots(),
+    staleTime: 60_000, // 1 min cache
   });
 }
 

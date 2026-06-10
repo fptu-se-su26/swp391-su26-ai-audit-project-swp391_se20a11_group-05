@@ -47,13 +47,11 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
 
     // State machine: map of valid transitions
     private static final Map<FeedbackStatus, Set<FeedbackStatus>> VALID_TRANSITIONS = Map.of(
-        FeedbackStatus.PENDING,        Set.of(FeedbackStatus.ASSIGNED, FeedbackStatus.REJECTED),
-        FeedbackStatus.ASSIGNED,       Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.REJECTED, FeedbackStatus.PENDING),
+        FeedbackStatus.PENDING,        Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.REJECTED),
         FeedbackStatus.IN_PROGRESS,    Set.of(FeedbackStatus.RESOLVED, FeedbackStatus.WAITING_INFO, FeedbackStatus.REJECTED),
         FeedbackStatus.WAITING_INFO,   Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.RESOLVED, FeedbackStatus.REJECTED),
         FeedbackStatus.RESOLVED,       Set.of(),
-        FeedbackStatus.REJECTED,       Set.of(),
-        FeedbackStatus.PRE_EMPTIVE,    Set.of(FeedbackStatus.ASSIGNED, FeedbackStatus.REJECTED)
+        FeedbackStatus.REJECTED,       Set.of()
     );
 
     @Override
@@ -84,7 +82,7 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         }
 
         // Backend tự xác định phường/xã từ GPS, không tin wardId do frontend gửi lên.
-        Ward ward = locationResolutionService.resolveWard(request.getLatitude(), request.getLongitude());
+        Ward ward = locationResolutionService.findAuthorityByLocation(request.getLatitude(), request.getLongitude());
 
         Feedback feedback = new Feedback();
         feedback.setTrackingCode("FB-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
@@ -94,6 +92,9 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         feedback.setLongitude(request.getLongitude());
         feedback.setAddressDetails(request.getAddressDetails());
         feedback.setStatus(FeedbackStatus.PENDING);
+        feedback.setReceiverType(resolveReceiverType(category));
+        feedback.setPriority("MEDIUM");
+        feedback.setSource("CITIZEN_APP");
         feedback.setCategory(category);
         feedback.setWard(ward);
         feedback.setCitizen(citizen);
@@ -177,8 +178,8 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
 
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setAssignee(assignee);
-        if (oldStatus == FeedbackStatus.PENDING || oldStatus == FeedbackStatus.PRE_EMPTIVE) {
-            feedback.setStatus(FeedbackStatus.ASSIGNED);
+        if (oldStatus == FeedbackStatus.PENDING) {
+            feedback.setStatus(FeedbackStatus.IN_PROGRESS);
         }
         feedback.setUpdatedAt(LocalDateTime.now());
         Feedback saved = feedbackRepository.save(feedback);
@@ -237,6 +238,11 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             }
         }
     }
+
+    private String resolveReceiverType(Category category) {
+        return category != null && "An ninh".equalsIgnoreCase(category.getName()) ? "POLICE" : "WARD_STAFF";
+    }
+
 }
 
 

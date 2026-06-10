@@ -77,6 +77,7 @@ public class SmsService {
         SmsVerification verification = SmsVerification.builder()
                 .phoneNumber(phoneNumber)
                 .otpCode(otpCode)
+                .purpose("LOGIN")
                 .expiresAt(LocalDateTime.now().plusMinutes(OTP_VALID_DURATION_MINUTES))
                 .build();
         smsVerificationRepository.save(verification);
@@ -117,6 +118,7 @@ public class SmsService {
 
         // BƯỚC 4: Thành công → Đánh dấu đã sử dụng, không thể dùng lại
         verification.setIsUsed(true);
+        verification.setVerifiedAt(LocalDateTime.now());
         smsVerificationRepository.save(verification);
 
         return true;

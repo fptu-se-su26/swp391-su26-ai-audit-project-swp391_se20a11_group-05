@@ -118,8 +118,8 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
     if (!response.ok) {
       const error = ApiError.fromResponse(response, body);
 
-      // Auto-logout on 401
-      if (error.isUnauthorized && onUnauthorized) {
+      // Auto-logout on 401, but bypass if using the dummy demo token
+      if (error.isUnauthorized && onUnauthorized && getToken() !== "demo-token") {
         onUnauthorized();
       }
 
@@ -134,7 +134,7 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
         // Backend trả về chuẩn { status, message, data }
         if (body.status >= 400) {
           const error = new ApiError(body.status, body.message, body.data);
-          if (error.isUnauthorized && onUnauthorized) onUnauthorized();
+          if (error.isUnauthorized && onUnauthorized && getToken() !== "demo-token") onUnauthorized();
           throw error;
         }
         return body.data as T;
@@ -384,6 +384,25 @@ export const notificationApi = {
   markAsRead: (id: number | string) =>
     request<NotificationResponse>(`/api/notifications/${id}/read`, {
       method: "PATCH",
+    }),
+};
+
+export const policeApi = {
+  rejectFeedback: (id: number | string, reason: string) =>
+    request<FeedbackResponse>(`/api/police/feedbacks/${id}/reject`, {
+      method: "PATCH",
+      body: JSON.stringify({ reason }),
+    }),
+
+  requestMoreInfo: (id: number | string, reason: string) =>
+    request<FeedbackResponse>(`/api/police/feedbacks/${id}/request-info`, {
+      method: "PATCH",
+      body: JSON.stringify({ reason }),
+    }),
+
+  getHotspots: () =>
+    request<any[]>("/api/police/feedbacks/hotspots", {
+      method: "GET",
     }),
 };
 

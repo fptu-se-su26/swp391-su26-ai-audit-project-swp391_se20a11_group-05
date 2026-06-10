@@ -44,7 +44,7 @@ function ProfilePage() {
       if (user) {
         login({ ...user, name: updated.fullName || user.name });
       }
-      toast.success(locale === "vi" ? "Da cap nhat ho so" : "Profile updated");
+      toast.success(locale === "vi" ? "Đã cập nhật hồ sơ" : "Profile updated");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Update failed");
     }
@@ -63,10 +63,10 @@ function ProfilePage() {
       <div className="max-w-2xl mx-auto px-4 md:px-8 py-12">
         <div className="card-civic p-8 text-center">
           <h1 className="text-2xl font-heading text-gov-blue mb-3">
-            {locale === "vi" ? "Khong tai duoc ho so" : "Could not load profile"}
+            {locale === "vi" ? "Không tải được hồ sơ" : "Could not load profile"}
           </h1>
           <button onClick={() => refetch()} className="btn-civic btn-civic-primary">
-            {locale === "vi" ? "Thu lai" : "Try again"}
+            {locale === "vi" ? "Thử lại" : "Try again"}
           </button>
         </div>
       </div>
@@ -81,7 +81,7 @@ function ProfilePage() {
         </h1>
         <p className="text-ink-soft">
           {locale === "vi"
-            ? "Cap nhat thong tin lien he de co quan xu ly co the phan hoi."
+            ? "Cập nhật thông tin liên hệ để cơ quan xử lý có thể phản hồi."
             : "Keep your contact information current for case follow-up."}
         </p>
       </div>
@@ -99,7 +99,7 @@ function ProfilePage() {
 
         <div>
           <label className="block text-sm font-bold mb-2">
-            {locale === "vi" ? "Ho va ten" : "Full name"}
+            {locale === "vi" ? "Họ và tên" : "Full name"}
           </label>
           <input
             value={fullName}
@@ -112,7 +112,7 @@ function ProfilePage() {
         <div className="grid md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-bold mb-2">
-              {locale === "vi" ? "So dien thoai" : "Phone number"}
+              {locale === "vi" ? "Số điện thoại" : "Phone number"}
             </label>
             <input
               value={phoneNumber}
@@ -138,7 +138,7 @@ function ProfilePage() {
             className="btn-civic btn-civic-primary disabled:opacity-50"
           >
             {updateProfile.isPending ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-            {locale === "vi" ? "Luu thay doi" : "Save changes"}
+            {locale === "vi" ? "Lưu thay đổi" : "Save changes"}
           </button>
         </div>
       </form>

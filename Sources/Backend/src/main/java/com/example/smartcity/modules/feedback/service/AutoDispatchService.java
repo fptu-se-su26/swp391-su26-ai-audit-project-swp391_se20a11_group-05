@@ -6,7 +6,7 @@ import com.example.smartcity.modules.feedback.entity.FeedbackLog;
 import com.example.smartcity.modules.feedback.entity.FeedbackStatus;
 import com.example.smartcity.modules.feedback.repository.FeedbackLogRepository;
 import com.example.smartcity.modules.feedback.repository.FeedbackRepository;
-import com.example.smartcity.modules.notification.NotificationService;
+import com.example.smartcity.modules.notification.WebSocketNotificationService;
 import com.example.smartcity.modules.user.entity.Role;
 import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.user.repository.UserRepository;
@@ -33,7 +33,7 @@ public class AutoDispatchService {
     private final FeedbackRepository feedbackRepository;
     private final FeedbackLogRepository feedbackLogRepository;
     private final UserRepository userRepository;
-    private final NotificationService notificationService;
+    private final WebSocketNotificationService notificationService;
 
     @Async
     public void analyzeAndDispatch(Long feedbackId) {
@@ -85,8 +85,10 @@ public class AutoDispatchService {
             FeedbackStatus oldStatus = feedback.getStatus();
             
             // Re-validate state transition to prevent State Machine Bypass
-            if (oldStatus == FeedbackStatus.PENDING || oldStatus == FeedbackStatus.PRE_EMPTIVE) {
-                feedback.setStatus(FeedbackStatus.ASSIGNED);
+            if (oldStatus == FeedbackStatus.PENDING) {
+                feedback.setStatus(FeedbackStatus.IN_PROGRESS);
+                feedback.setReceiverType("POLICE");
+                feedback.setPriority("URGENT");
                 feedback.setAssignee(nearestPolice);
                 feedbackRepository.save(feedback);
 
@@ -95,13 +97,13 @@ public class AutoDispatchService {
                     feedback, 
                     feedback.getCitizen(), 
                     oldStatus, 
-                    FeedbackStatus.ASSIGNED, 
+                    FeedbackStatus.IN_PROGRESS, 
                     "[AI AUTO-DISPATCH] Phân loại 'KHẨN CẤP' qua Gemini Vision API. PostGIS tự động điều phối tới: " + nearestPolice.getFullName()
                 );
                 feedbackLogRepository.save(logEntry);
 
                 // Bắn Websocket Notification thời gian thực cho Đơn vị tiếp nhận
-                notificationService.notifyFeedbackStatusChange(feedbackId, FeedbackStatus.ASSIGNED.name(),
+                notificationService.notifyFeedbackStatusChange(feedbackId, FeedbackStatus.IN_PROGRESS.name(),
                     "🚨 [KHẨN CẤP] Sự cố " + feedback.getTrackingCode() + " đã được AI điều phối đến " + nearestPolice.getFullName());
                 
                 log.info("✅ [Auto-Dispatch] Hoàn tất. Lệnh điều động đã được bắn thẳng tới: {}", nearestPolice.getFullName());

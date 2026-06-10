@@ -129,6 +129,7 @@
   [role="button"] {
     touch-action: manipulation;
   }
+
   /* Selection style */
   ::selection {
     background: var(--gov-gold);
@@ -190,23 +191,28 @@
     color: white;
     box-shadow: 0 8px 24px -8px rgba(0, 56, 123, 0.4);
   }
+
   .btn-civic-primary:hover {
     background: var(--color-gov-blue-deep);
     transform: translateY(-1px);
   }
+
   .btn-civic-primary:active {
     transform: scale(0.97);
   }
+
   .btn-civic-ghost {
     background: white;
     color: var(--color-gov-blue);
     border: 2px solid var(--color-gov-blue);
   }
+
   .btn-civic-ghost:hover {
     background: var(--color-gov-blue);
     color: white;
     transform: translateY(-1px);
   }
+
   .btn-civic-ghost:active {
     transform: scale(0.97);
   }
@@ -214,39 +220,95 @@
   .card-civic {
     @apply bg-white rounded-2xl border border-slate-100 shadow-sm transition-all duration-200;
   }
+
   .card-civic-hover {
     @apply bg-white rounded-2xl border border-slate-100 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5;
   }
 
   /* Fade-in animation */
   @keyframes fade-in {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
+
   @keyframes fade-in-up {
-    from { opacity: 0; transform: translateY(16px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
+
   @keyframes slide-in-right {
-    from { opacity: 0; transform: translateX(12px); }
-    to { opacity: 1; transform: translateX(0); }
+    from {
+      opacity: 0;
+      transform: translateX(12px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
   }
+
   @keyframes scale-in {
-    from { opacity: 0; transform: scale(0.95); }
-    to { opacity: 1; transform: scale(1); }
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
-  .animate-fade-in { animation: fade-in 0.4s ease-out both; }
-  .animate-fade-in-up { animation: fade-in-up 0.5s ease-out both; }
-  .animate-slide-in-right { animation: slide-in-right 0.3s ease-out both; }
-  .animate-scale-in { animation: scale-in 0.3s ease-out both; }
+
+  .animate-fade-in {
+    animation: fade-in 0.4s ease-out both;
+  }
+
+  .animate-fade-in-up {
+    animation: fade-in-up 0.5s ease-out both;
+  }
+
+  .animate-slide-in-right {
+    animation: slide-in-right 0.3s ease-out both;
+  }
+
+  .animate-scale-in {
+    animation: scale-in 0.3s ease-out both;
+  }
 
   /* Stagger animation helpers */
-  .stagger-1 { animation-delay: 0ms; }
-  .stagger-2 { animation-delay: 80ms; }
-  .stagger-3 { animation-delay: 160ms; }
-  .stagger-4 { animation-delay: 240ms; }
+  .stagger-1 {
+    animation-delay: 0ms;
+  }
+
+  .stagger-2 {
+    animation-delay: 80ms;
+  }
+
+  .stagger-3 {
+    animation-delay: 160ms;
+  }
+
+  .stagger-4 {
+    animation-delay: 240ms;
+  }
 
   @keyframes civic-pulse {
+
     0%,
     100% {
       box-shadow:
@@ -267,8 +329,13 @@
 
   /* Hero slideshow progress bar */
   @keyframes slideProgress {
-    from { transform: scaleX(0); }
-    to   { transform: scaleX(1); }
+    from {
+      transform: scaleX(0);
+    }
+
+    to {
+      transform: scaleX(1);
+    }
   }
 
   /* Login page — star/particle animation for hero panel */
@@ -281,9 +348,22 @@
   }
 
   @keyframes starFloat {
-    0%   { opacity: 0;   transform: translateY(0)     scale(1); }
-    15%  { opacity: 0.7; }
-    80%  { opacity: 0.3; }
-    100% { opacity: 0;   transform: translateY(-80px) scale(0.5); }
+    0% {
+      opacity: 0;
+      transform: translateY(0) scale(1);
+    }
+
+    15% {
+      opacity: 0.7;
+    }
+
+    80% {
+      opacity: 0.3;
+    }
+
+    100% {
+      opacity: 0;
+      transform: translateY(-80px) scale(0.5);
+    }
   }
 }

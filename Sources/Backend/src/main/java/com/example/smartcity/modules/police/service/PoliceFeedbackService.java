@@ -50,7 +50,7 @@ public class PoliceFeedbackService {
                 .map(f -> {
                     // Đánh trọng số: Việc khẩn cấp/chưa xử lý = 3, Đang xử lý = 2, Đã xong/Từ chối = 1
                     int weight = 1;
-                    if (f.getStatus() == FeedbackStatus.PENDING || f.getStatus() == FeedbackStatus.ASSIGNED) weight = 3;
+                    if (f.getStatus() == FeedbackStatus.PENDING) weight = 3;
                     else if (f.getStatus() == FeedbackStatus.IN_PROGRESS || f.getStatus() == FeedbackStatus.WAITING_INFO) weight = 2;
                     
                     return new HotspotResponse(

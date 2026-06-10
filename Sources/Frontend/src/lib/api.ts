@@ -449,55 +449,6 @@ export const aiApi = {
     ),
 };
 
-// ─── Weather / Predictive Incident Types ──────────────────────
-
-export interface CurrentWeather {
-  temperature: number;
-  precipitation: number;
-  windspeed: number;
-  relativeHumidity: number;
-  weatherDescription: string;
-}
-
-export interface HourlyForecast {
-  time: string;
-  temperature: number;
-  precipitation: number;
-  windspeed: number;
-}
-
-export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
-export type AlertLevel = "NORMAL" | "WATCH" | "WARNING" | "DANGER";
-export type IncidentType = "FLOOD" | "FALLEN_TREE" | "ROAD_DAMAGE" | "POWER_OUTAGE";
-
-export interface PredictedHotspot {
-  wardName: string;
-  latitude: number;
-  longitude: number;
-  incidentType: IncidentType;
-  incidentLabel: string;
-  riskLevel: RiskLevel;
-  riskScore: number;
-  reason: string;
-}
-
-export interface WeatherForecastResponse {
-  current: CurrentWeather;
-  next24Hours: HourlyForecast[];
-  predictedHotspots: PredictedHotspot[] | null;
-  alertLevel: AlertLevel;
-  alertMessage: string;
-}
-
-export const weatherApi = {
-  /** Dự báo đầy đủ kèm điểm nguy cơ — chỉ dành cho cán bộ */
-  getForecast: () =>
-    request<WeatherForecastResponse>("/api/weather/forecast"),
-
-  /** Dự báo cơ bản — dành cho người dân, không cần đăng nhập */
-  getPublicForecast: () =>
-    request<WeatherForecastResponse>("/api/weather/forecast/public", { skipAuth: true }),
-};
 
 // ─── Analytics Types ─────────────────────────────────────────
 

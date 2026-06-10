@@ -14,8 +14,11 @@ import com.example.smartcity.modules.core.entity.Ward;
 import com.example.smartcity.modules.core.repository.WardRepository;
 import com.example.smartcity.modules.core.service.LocationResolutionService;
 import com.example.smartcity.modules.user.entity.User;
+import com.example.smartcity.modules.user.entity.Role;
 import com.example.smartcity.modules.user.repository.UserRepository;
+import com.example.smartcity.common.exception.CustomException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -39,11 +42,15 @@ public class CitizenFeedbackMediaService {
     private final WardRepository wardRepository;
 
     @Transactional
-    public CitizenFeedbackMediaResponse submit(CitizenFeedbackMediaRequest request, List<MultipartFile> files) {
+    public CitizenFeedbackMediaResponse submit(CitizenFeedbackMediaRequest request, List<MultipartFile> files, String username) {
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new IllegalArgumentException("Category not found: " + request.getCategoryId()));
-        User citizen = userRepository.findById(request.getCitizenId())
-                .orElseThrow(() -> new IllegalArgumentException("Citizen not found: " + request.getCitizenId()));
+        User citizen = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Citizen not found: " + username));
+
+        if (citizen.getRole() != Role.CITIZEN) {
+            throw new CustomException("Chi cong dan moi duoc gui phan anh", HttpStatus.FORBIDDEN.value());
+        }
 
         List<MultipartFile> safeFiles = files == null ? List.of() : files;
         validateMediaFiles(safeFiles, request.getVideoDurationsSeconds());

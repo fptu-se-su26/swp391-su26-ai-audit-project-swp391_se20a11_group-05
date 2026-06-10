@@ -69,8 +69,8 @@ export function HeatmapMap({ hotspots }: HeatmapMapProps) {
 
           // Bán kính tĩnh (Circle tính bằng mét) thay vì pixel
           // Giúp khi zoom in thì vòng tròn sẽ to ra để hiện rõ khu vực, zoom out thì nhỏ lại
-          // Tăng bán kính dựa trên số lượng để nhìn rõ độ lớn của điểm nóng
-          const radiusMeters = 800 + c.count * 100;
+          // Tăng bán kính cơ bản lên 3000m (3km) để dễ nhìn thấy trên bản đồ khi zoom nhỏ
+          const radiusMeters = 3000 + c.count * 500;
 
           return (
             <Circle

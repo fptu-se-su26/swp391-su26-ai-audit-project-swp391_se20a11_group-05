@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { MapContainer, TileLayer, Circle, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
 interface Hotspot {
@@ -67,22 +67,22 @@ export function HeatmapMap({ hotspots }: HeatmapMapProps) {
           if (c.count >= 10) color = "red";
           else if (c.count >= 3) color = "orange";
 
-          // Bán kính tĩnh (Circle tính bằng mét) thay vì pixel
-          // Giúp khi zoom in thì vòng tròn sẽ to ra để hiện rõ khu vực, zoom out thì nhỏ lại
-          // Tăng bán kính cơ bản lên 3000m (3km) để dễ nhìn thấy trên bản đồ khi zoom nhỏ
-          const radiusMeters = 3000 + c.count * 500;
+          // Sử dụng CircleMarker (bán kính tính bằng pixel trên màn hình)
+          // Giúp khi zoom to hay nhỏ, chấm đỏ vẫn giữ nguyên kích thước trên màn hình,
+          // tạo cảm giác "tụ lại thành 1 điểm" khi zoom vào gần sát mặt đường.
+          const radiusPixels = 15 + c.count * 2;
 
           return (
-            <Circle
+            <CircleMarker
               key={i}
               center={[c.lat, c.lng]}
               pathOptions={{
                 color: color,
                 fillColor: color,
-                fillOpacity: 0.5,
+                fillOpacity: 0.6,
                 weight: 1,
               }}
-              radius={radiusMeters} // Bán kính thực tế tính bằng mét
+              radius={radiusPixels}
             >
               <Popup>
                 <div className="text-sm min-w-[200px]">
@@ -99,7 +99,7 @@ export function HeatmapMap({ hotspots }: HeatmapMapProps) {
                   </div>
                 </div>
               </Popup>
-            </Circle>
+            </CircleMarker>
           );
         })}
       </MapContainer>

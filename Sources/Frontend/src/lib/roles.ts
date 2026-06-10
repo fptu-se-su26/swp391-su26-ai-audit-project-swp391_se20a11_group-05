@@ -75,6 +75,6 @@ export function parseBackendRole(raw: string): Role {
 export const ROLE_LABEL: Record<Role, { vi: string; en: string }> = {
   [Role.CITIZEN]:     { vi: "Người dân",           en: "Citizen" },
   [Role.WARD_STAFF]:  { vi: "Cán bộ phường",        en: "Ward officer" },
-  [Role.POLICE]:      { vi: "Công an / CSGT",        en: "Police officer" },
+  [Role.POLICE]:      { vi: "Công an",               en: "Police officer" },
   [Role.SUPER_ADMIN]: { vi: "Lãnh đạo thành phố",   en: "City leadership" },
 };

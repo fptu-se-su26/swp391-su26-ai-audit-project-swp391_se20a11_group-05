@@ -262,7 +262,7 @@ function AuthorityLoginPage() {
           <div className="space-y-2.5 mb-10">
             {[
               { icon: <Users size={14} />, label: locale === "vi" ? "CÁN BỘ PHƯỜNG" : "WARD STAFF", desc: locale === "vi" ? "Tiếp nhận và xử lý phản ánh" : "Receive and process reports" },
-              { icon: <Shield size={14} />, label: locale === "vi" ? "CÔNG AN / CSGT" : "POLICE / TRAFFIC", desc: locale === "vi" ? "Giám sát an ninh trật tự" : "Monitor public security" },
+              { icon: <Shield size={14} />, label: locale === "vi" ? "CÔNG AN" : "POLICE", desc: locale === "vi" ? "Giám sát an ninh trật tự" : "Monitor public security" },
               { icon: <ClipboardList size={14} />, label: locale === "vi" ? "LÃNH ĐẠO THÀNH PHỐ" : "CITY LEADERSHIP", desc: locale === "vi" ? "Báo cáo tổng hợp toàn thành" : "City-wide reporting dashboard" },
             ].map((item) => (
               <div

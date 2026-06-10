@@ -28,16 +28,11 @@ public class FileStorageService {
     @PostConstruct
     public void init() {
         uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
-        try {
-            Files.createDirectories(uploadPath);
-            log.info("[FileStorage] Thư mục upload: {}", uploadPath);
-        } catch (IOException e) {
-            throw new RuntimeException("Không thể tạo thư mục upload: " + uploadPath, e);
-        }
+        log.info("[FileStorage] Legacy local file path: {}", uploadPath);
     }
 
     /**
-     * Lưu file và trả về tên file đã mã hóa (tránh xung đột tên)
+     * Legacy local storage path. New feedback uploads use SupabaseStorageService.
      */
     public String storeFile(MultipartFile file) {
         String originalName = file.getOriginalFilename();
@@ -45,20 +40,21 @@ public class FileStorageService {
         if (originalName != null && originalName.contains(".")) {
             extension = originalName.substring(originalName.lastIndexOf("."));
         }
-        String storedName = UUID.randomUUID().toString() + extension;
+        String storedName = UUID.randomUUID() + extension;
 
         try {
+            Files.createDirectories(uploadPath);
             Path target = uploadPath.resolve(storedName);
             Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
-            log.info("[FileStorage] Đã lưu: {} (original: {})", storedName, originalName);
+            log.info("[FileStorage] Stored legacy local file: {} (original: {})", storedName, originalName);
             return storedName;
         } catch (IOException e) {
-            throw new RuntimeException("Không thể lưu file: " + originalName, e);
+            throw new RuntimeException("Cannot store local file: " + originalName, e);
         }
     }
 
     /**
-     * Đọc file từ disk
+     * Read legacy local files for existing /api/files/{fileName} URLs.
      */
     public Resource loadFile(String fileName) {
         try {
@@ -67,9 +63,9 @@ public class FileStorageService {
             if (resource.exists() && resource.isReadable()) {
                 return resource;
             }
-            throw new RuntimeException("Không thể đọc file: " + fileName);
+            throw new RuntimeException("Cannot read local file: " + fileName);
         } catch (MalformedURLException e) {
-            throw new RuntimeException("File không hợp lệ: " + fileName, e);
+            throw new RuntimeException("Invalid local file: " + fileName, e);
         }
     }
 }

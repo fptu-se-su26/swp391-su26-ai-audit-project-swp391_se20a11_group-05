@@ -214,10 +214,33 @@ export interface FeedbackResponse {
   addressDetails: string | null;
   status: FeedbackStatus;
   categoryName: string | null;
+  wardName: string | null;
   citizenName: string | null;
   assigneeName: string | null;
+  attachments?: FeedbackAttachmentResponse[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface FeedbackAttachmentResponse {
+  id: number;
+  fileUrl: string;
+  fileType: string;
+  fileName: string | null;
+  fileSize: number | null;
+  uploadedAt: string;
+}
+
+export interface FeedbackStatusOption {
+  value: FeedbackStatus;
+  label: string;
+}
+
+export interface FeedbackListFilters {
+  keyword?: string;
+  status?: FeedbackStatus | "";
+  fromDate?: string;
+  toDate?: string;
 }
 
 export interface FeedbackRequest {
@@ -256,7 +279,8 @@ export interface PageResponse<T> {
   totalElements: number;
   totalPages: number;
   size: number;
-  number: number;
+  page?: number;
+  number?: number;
   first: boolean;
   last: boolean;
   empty: boolean;
@@ -337,10 +361,23 @@ export const authApi = {
 };
 
 export const feedbackApi = {
-  getAll: (page = 0, size = 20) =>
-    request<PageResponse<FeedbackResponse>>(
-      `/api/feedbacks/my-feedbacks?page=${page}&size=${size}`,
-    ),
+  getAll: (page = 0, size = 3, filters: FeedbackListFilters = {}) => {
+    const params = new URLSearchParams({
+      page: String(page),
+      size: String(size),
+    });
+
+    const keyword = filters.keyword?.trim();
+    if (keyword) params.set("keyword", keyword);
+    if (filters.status) params.set("status", filters.status);
+    if (filters.fromDate) params.set("fromDate", filters.fromDate);
+    if (filters.toDate) params.set("toDate", filters.toDate);
+
+    return request<PageResponse<FeedbackResponse>>(`/api/feedbacks/my?${params}`);
+  },
+
+  getStatuses: () =>
+    request<FeedbackStatusOption[]>("/api/feedbacks/statuses"),
 
   getById: (id: string | number) =>
     request<FeedbackResponse>(`/api/feedbacks/${id}`),

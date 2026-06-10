@@ -120,41 +120,6 @@ function AuthorityLoginPage() {
         navigate({ to: redirect || defaultRedirect });
       }
     } catch (err) {
-      // ─── DEMO BYPASS ON ANY ERROR ─────────────────────────────
-      // Nếu là tài khoản demo, cho phép bypass qua bất kỳ lỗi nào (kể cả lỗi 500 từ server)
-      const nameLower = username.toLowerCase();
-      const isDemoUser = 
-        nameLower.includes("ward") || 
-        nameLower.includes("phuong") || 
-        nameLower.includes("police") || 
-        nameLower.includes("ca") || 
-        nameLower.includes("admin") || 
-        nameLower.includes("ioc");
-
-      if (isDemoUser) {
-        let resolvedRole: Role = Role.SUPER_ADMIN; 
-        if (nameLower.includes("ward") || nameLower.includes("phuong")) {
-          resolvedRole = Role.WARD_STAFF;
-        } else if (nameLower.includes("police") || nameLower.includes("ca")) {
-          resolvedRole = Role.POLICE;
-        }
-
-        login({
-          name: username || "StaffDemo",
-          role: resolvedRole,
-          org: resolvedRole === Role.WARD_STAFF 
-            ? "UBND Phường Hải Châu I" 
-            : resolvedRole === Role.POLICE 
-              ? "Công an TP. Đà Nẵng" 
-              : "IOC Đà Nẵng",
-          token: "demo-token", // DUMMY TOKEN FOR BYPASSING ROUTE LAYOUT GUARDS
-        });
-
-        const defaultRedirect = ROLE_REDIRECT[resolvedRole] ?? "/city-admin";
-        navigate({ to: redirect || defaultRedirect });
-        return;
-      }
-
       // Xử lý lỗi thông thường cho tài khoản thật
       if (err instanceof ApiError) {
         if (err.status === 401) {

@@ -16,7 +16,7 @@ import com.example.smartcity.modules.core.service.LocationResolutionService;
 import com.example.smartcity.modules.user.entity.Role;
 import com.example.smartcity.common.exception.CustomException;
 import com.example.smartcity.common.exception.ResourceNotFoundException;
-import com.example.smartcity.modules.notification.NotificationService;
+import com.example.smartcity.modules.notification.WebSocketNotificationService;
 import org.springframework.http.HttpStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -39,7 +39,7 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
 
     private final FeedbackRepository feedbackRepository;
     private final FeedbackLogRepository feedbackLogRepository;
-    private final NotificationService notificationService;
+    private final WebSocketNotificationService notificationService;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final AutoDispatchService autoDispatchService;

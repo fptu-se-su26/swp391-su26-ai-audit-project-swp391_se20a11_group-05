@@ -10,6 +10,8 @@ import com.example.smartcity.modules.feedback.repository.FeedbackLogRepository;
 import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.feedback.repository.CategoryRepository;
 import com.example.smartcity.modules.feedback.repository.FeedbackRepository;
+import com.example.smartcity.modules.feedback.repository.AttachmentRepository;
+import com.example.smartcity.modules.feedback.entity.Attachment;
 import com.example.smartcity.modules.user.repository.UserRepository;
 import com.example.smartcity.modules.core.entity.Ward;
 import com.example.smartcity.modules.core.service.LocationResolutionService;
@@ -25,6 +27,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.UUID;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +46,7 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
     private final NotificationService notificationService;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
+    private final AttachmentRepository attachmentRepository;
     private final AutoDispatchService autoDispatchService;
     private final LocationResolutionService locationResolutionService;
 
@@ -125,6 +130,46 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         } else {
             return feedbackRepository.findByCitizenId(user.getId(), pageable);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Feedback> getMyFeedbacks(
+            String username,
+            String keyword,
+            FeedbackStatus status,
+            LocalDateTime fromDate,
+            LocalDateTime toDate,
+            Pageable pageable) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User: " + username));
+
+        if (user.getRole() != Role.CITIZEN) {
+            throw new CustomException("Chi cong dan moi duoc xem danh sach phan anh ca nhan", HttpStatus.FORBIDDEN.value());
+        }
+
+        String normalizedKeyword = keyword == null ? null : keyword.trim();
+        LocalDateTime effectiveFromDate = fromDate == null
+                ? LocalDate.of(1970, 1, 1).atStartOfDay()
+                : fromDate;
+        LocalDateTime effectiveToDate = toDate == null
+                ? LocalDate.of(9999, 12, 31).atTime(LocalTime.MAX)
+                : toDate;
+
+        return feedbackRepository.searchMyFeedbacks(
+                user.getId(),
+                normalizedKeyword,
+                status,
+                effectiveFromDate,
+                effectiveToDate,
+                pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Attachment> getAttachmentsForFeedbacks(List<Long> feedbackIds) {
+        if (feedbackIds == null || feedbackIds.isEmpty()) {
+            return List.of();
+        }
+        return attachmentRepository.findByFeedbackIdIn(feedbackIds);
     }
 
     // ─── State Machine ────────────────────────────────────────────────

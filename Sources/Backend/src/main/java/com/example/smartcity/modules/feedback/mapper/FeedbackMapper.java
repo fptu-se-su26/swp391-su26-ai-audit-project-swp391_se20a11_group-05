@@ -12,8 +12,10 @@ public interface FeedbackMapper extends BaseMapper<Feedback, FeedbackResponse> {
 
     @Override
     @Mapping(target = "categoryName", source = "category.name")
+    @Mapping(target = "wardName", source = "ward.name")
     @Mapping(target = "citizenName", source = "citizen.fullName")
     @Mapping(target = "assigneeName", source = "assignee.fullName")
+    @Mapping(target = "attachments", ignore = true)
     FeedbackResponse toDto(Feedback entity);
     
     // We don't map back from Response to Entity usually, so we can ignore it or leave default

@@ -23,15 +23,26 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.OptionalDouble;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class CitizenFeedbackMediaService {
     private static final long MIN_VIDEO_SECONDS = 10L;
+    private static final long MAX_VIDEO_SECONDS = 30L;
+    private static final long MAX_IMAGE_BYTES = 10L * 1024L * 1024L;
+    private static final long MAX_VIDEO_BYTES = 50L * 1024L * 1024L;
+    private static final int MAX_IMAGE_COUNT = 5;
+    private static final int MAX_VIDEO_COUNT = 1;
+    private static final Set<String> ALLOWED_IMAGE_EXTENSIONS = Set.of("jpg", "jpeg", "png", "webp");
+    private static final Set<String> ALLOWED_VIDEO_EXTENSIONS = Set.of("mp4", "mov", "webm");
 
     private final FeedbackRepository feedbackRepository;
     private final CategoryRepository categoryRepository;
@@ -88,24 +99,63 @@ public class CitizenFeedbackMediaService {
             throw new IllegalArgumentException("At least one image or video is required");
         }
 
+        int imageCount = 0;
+        int videoCount = 0;
         int videoIndex = 0;
         List<Long> durations = videoDurationsSeconds == null ? List.of() : videoDurationsSeconds;
         for (MultipartFile file : files) {
-            String type = file.getContentType() == null ? "" : file.getContentType();
+            if (file == null || file.isEmpty()) {
+                throw new IllegalArgumentException("File is empty");
+            }
+
+            String type = normalizeContentType(file.getContentType());
+            String extension = getExtension(file.getOriginalFilename());
             if (!type.startsWith("image/") && !type.startsWith("video/")) {
                 throw new IllegalArgumentException("Only image and video files are allowed");
             }
 
-            if (type.startsWith("video/")) {
-                if (videoIndex >= durations.size()) {
-                    throw new IllegalArgumentException("Video duration is required");
+            if (isImage(type)) {
+                imageCount++;
+                if (imageCount > MAX_IMAGE_COUNT) {
+                    throw new IllegalArgumentException("A maximum of 5 images is allowed");
                 }
-                Long duration = durations.get(videoIndex);
-                if (duration == null || duration <= MIN_VIDEO_SECONDS) {
-                    throw new IllegalArgumentException("Video duration must be greater than 10 seconds");
+                if (!ALLOWED_IMAGE_EXTENSIONS.contains(extension) || !isAllowedImageContentType(type)) {
+                    throw new IllegalArgumentException("Only jpg, jpeg, png, and webp images are allowed");
+                }
+                if (file.getSize() > MAX_IMAGE_BYTES) {
+                    throw new IllegalArgumentException("Each image must be at most 10MB");
+                }
+                continue;
+            }
+
+            if (isVideo(type)) {
+                videoCount++;
+                if (videoCount > MAX_VIDEO_COUNT) {
+                    throw new IllegalArgumentException("Only one video is allowed");
+                }
+                if (!ALLOWED_VIDEO_EXTENSIONS.contains(extension) || !isAllowedVideoContentType(type)) {
+                    throw new IllegalArgumentException("Only mp4, mov, and webm videos are allowed");
+                }
+                if (file.getSize() > MAX_VIDEO_BYTES) {
+                    throw new IllegalArgumentException("Video must be at most 50MB");
+                }
+
+                OptionalDouble metadataDuration = readVideoDurationSeconds(file);
+                double duration = metadataDuration.isPresent()
+                        ? metadataDuration.getAsDouble()
+                        : fallbackDuration(durations, videoIndex);
+                if (duration < MIN_VIDEO_SECONDS || duration > MAX_VIDEO_SECONDS) {
+                    throw new IllegalArgumentException("Video duration must be from 10 to 30 seconds");
                 }
                 videoIndex++;
             }
+        }
+
+        if (imageCount < 1) {
+            throw new IllegalArgumentException("At least one image is required");
+        }
+        if (videoCount < 1) {
+            throw new IllegalArgumentException("At least one video is required");
         }
     }
 
@@ -151,6 +201,8 @@ public class CitizenFeedbackMediaService {
                 .id(attachment.getId())
                 .fileUrl(attachment.getFileUrl())
                 .fileType(attachment.getFileType())
+                .fileName(attachment.getFileName())
+                .fileSize(attachment.getFileSize())
                 .uploadedAt(attachment.getUploadedAt())
                 .build();
     }
@@ -171,7 +223,153 @@ public class CitizenFeedbackMediaService {
         String type = contentType == null ? "" : contentType.toLowerCase();
         if (type.startsWith("image/")) return "IMAGE";
         if (type.startsWith("video/")) return "VIDEO";
-        if (type.startsWith("audio/")) return "AUDIO";
-        return "DOCUMENT";
+        throw new IllegalArgumentException("Only image and video files are allowed");
+    }
+
+    private String normalizeContentType(String contentType) {
+        return contentType == null ? "" : contentType.toLowerCase(Locale.ROOT);
+    }
+
+    private boolean isImage(String contentType) {
+        return contentType.startsWith("image/");
+    }
+
+    private boolean isVideo(String contentType) {
+        return contentType.startsWith("video/");
+    }
+
+    private boolean isAllowedImageContentType(String contentType) {
+        return "image/jpeg".equals(contentType) || "image/png".equals(contentType) || "image/webp".equals(contentType);
+    }
+
+    private boolean isAllowedVideoContentType(String contentType) {
+        return "video/mp4".equals(contentType) || "video/quicktime".equals(contentType) || "video/webm".equals(contentType);
+    }
+
+    private String getExtension(String fileName) {
+        if (fileName == null) {
+            return "";
+        }
+        String cleanName = fileName.toLowerCase(Locale.ROOT);
+        int dotIndex = cleanName.lastIndexOf('.');
+        if (dotIndex < 0 || dotIndex == cleanName.length() - 1) {
+            return "";
+        }
+        return cleanName.substring(dotIndex + 1);
+    }
+
+    private double fallbackDuration(List<Long> durations, int videoIndex) {
+        if (videoIndex >= durations.size() || durations.get(videoIndex) == null) {
+            throw new IllegalArgumentException("Video duration is required");
+        }
+        return durations.get(videoIndex);
+    }
+
+    private OptionalDouble readVideoDurationSeconds(MultipartFile file) {
+        try {
+            byte[] data = file.getBytes();
+            String extension = getExtension(file.getOriginalFilename());
+            if ("mp4".equals(extension) || "mov".equals(extension)) {
+                return readMp4DurationSeconds(data);
+            }
+            if ("webm".equals(extension)) {
+                return readWebmDurationSeconds(data);
+            }
+            return OptionalDouble.empty();
+        } catch (IOException ex) {
+            throw new IllegalArgumentException("Cannot read video metadata");
+        }
+    }
+
+    private OptionalDouble readMp4DurationSeconds(byte[] data) {
+        for (int i = 4; i < data.length - 40; i++) {
+            if (data[i] == 'm' && data[i + 1] == 'v' && data[i + 2] == 'h' && data[i + 3] == 'd') {
+                int version = data[i + 4] & 0xff;
+                if (version == 0 && i + 24 < data.length) {
+                    long timescale = readUInt32(data, i + 16);
+                    long duration = readUInt32(data, i + 20);
+                    return timescale > 0 ? OptionalDouble.of((double) duration / timescale) : OptionalDouble.empty();
+                }
+                if (version == 1 && i + 40 < data.length) {
+                    long timescale = readUInt32(data, i + 28);
+                    long duration = readUInt64(data, i + 32);
+                    return timescale > 0 ? OptionalDouble.of((double) duration / timescale) : OptionalDouble.empty();
+                }
+            }
+        }
+        return OptionalDouble.empty();
+    }
+
+    private OptionalDouble readWebmDurationSeconds(byte[] data) {
+        double timecodeScale = 1_000_000D;
+        Double duration = null;
+        for (int i = 0; i < data.length - 2; i++) {
+            if ((data[i] & 0xff) == 0x2a && (data[i + 1] & 0xff) == 0xd7 && (data[i + 2] & 0xff) == 0xb1) {
+                EbmlValue value = readEbmlValue(data, i + 3);
+                if (value != null) {
+                    timecodeScale = readUnsignedInteger(data, value.offset, value.size);
+                }
+            }
+            if ((data[i] & 0xff) == 0x44 && (data[i + 1] & 0xff) == 0x89) {
+                EbmlValue value = readEbmlValue(data, i + 2);
+                if (value != null && (value.size == 4 || value.size == 8)) {
+                    duration = value.size == 4
+                            ? (double) Float.intBitsToFloat((int) readUnsignedInteger(data, value.offset, value.size))
+                            : Double.longBitsToDouble(readUnsignedInteger(data, value.offset, value.size));
+                }
+            }
+        }
+        return duration == null ? OptionalDouble.empty() : OptionalDouble.of(duration * timecodeScale / 1_000_000_000D);
+    }
+
+    private EbmlValue readEbmlValue(byte[] data, int sizeOffset) {
+        if (sizeOffset >= data.length) {
+            return null;
+        }
+        int first = data[sizeOffset] & 0xff;
+        int length = 1;
+        int mask = 0x80;
+        while (length <= 8 && (first & mask) == 0) {
+            mask >>= 1;
+            length++;
+        }
+        if (length > 8 || sizeOffset + length > data.length) {
+            return null;
+        }
+        long size = first & (mask - 1);
+        for (int i = 1; i < length; i++) {
+            size = (size << 8) | (data[sizeOffset + i] & 0xff);
+        }
+        int valueOffset = sizeOffset + length;
+        if (size < 0 || size > Integer.MAX_VALUE || valueOffset + size > data.length) {
+            return null;
+        }
+        return new EbmlValue(valueOffset, (int) size);
+    }
+
+    private long readUInt32(byte[] data, int offset) {
+        return ((long) data[offset] & 0xff) << 24
+                | ((long) data[offset + 1] & 0xff) << 16
+                | ((long) data[offset + 2] & 0xff) << 8
+                | ((long) data[offset + 3] & 0xff);
+    }
+
+    private long readUInt64(byte[] data, int offset) {
+        long value = 0;
+        for (int i = 0; i < 8; i++) {
+            value = (value << 8) | (data[offset + i] & 0xff);
+        }
+        return value;
+    }
+
+    private long readUnsignedInteger(byte[] data, int offset, int size) {
+        long value = 0;
+        for (int i = 0; i < size; i++) {
+            value = (value << 8) | (data[offset + i] & 0xff);
+        }
+        return value;
+    }
+
+    private record EbmlValue(int offset, int size) {
     }
 }

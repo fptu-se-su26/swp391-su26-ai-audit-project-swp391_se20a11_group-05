@@ -22,11 +22,12 @@ public class FeedbackResponse {
     private String addressDetails;
     private FeedbackStatus status;
     private String categoryName;
+    private String wardName;
     private String citizenName;
     private String assigneeName;
+    private List<FeedbackAttachmentResponse> attachments;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private List<FeedbackAttachmentResponse> attachments;
 }
 
 

@@ -13,7 +13,6 @@ import {
   requestCurrentGpsLocation,
   storeGpsLocation,
 } from "@/lib/location";
-import { reverseGeocode } from "@/lib/geocoding";
 import { toast } from "sonner";
 import {
   Building2,
@@ -185,7 +184,6 @@ function ReportPage() {
   const [addressLoading, setAddressLoading] = useState(false);
   const [locationError, setLocationError] = useState("");
   const [address, setAddress] = useState("");
-  const [addressLoading, setAddressLoading] = useState(false);
   const [addressError, setAddressError] = useState("");
   const [detectedWard, setDetectedWard] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
@@ -211,7 +209,7 @@ function ReportPage() {
     hasLocation &&
     !locationLoading &&
     !createFeedback.isPending &&
-    photos.length > 0;
+    !uploading;
 
   useEffect(() => {
     if (categories && categories.length > 0 && categoryId === undefined) {
@@ -221,11 +219,9 @@ function ReportPage() {
 
   useEffect(() => {
     if (storedLocation) {
-      resolveAddress(storedLocation.latitude, storedLocation.longitude);
+      void loadAddress(storedLocation.latitude, storedLocation.longitude);
     } else {
       detectLocation();
-    } else {
-      void loadAddress(storedLocation.latitude, storedLocation.longitude);
     }
     // Auto GPS runs once on page open.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -395,8 +391,9 @@ function ReportPage() {
 
         urls.push(data.fileUrl);
       }
+      return urls;
     } finally {
-      setAddressLoading(false);
+      setUploading(false);
     }
   };
 
@@ -442,8 +439,6 @@ function ReportPage() {
     } catch {
       setDetectedWard("");
     }
-
-    await resolveAddress(nextLatitude, nextLongitude);
   };
 
   async function detectLocation() {
@@ -503,26 +498,18 @@ function ReportPage() {
     }
 
     try {
-      const result = await createFeedback.mutateAsync({
-        title: title.trim() || (locale === "vi" ? "Phản ánh mới" : "New report"),
-        description: description.trim(),
-        latitude,
-        longitude,
-        addressDetails: address || detectedWard || `${latitude}, ${longitude}`,
-        categoryId,
-      });
-
+      const videoDurationsSeconds = await Promise.all(videos.map(getVideoDurationSeconds));
       const result = await createFeedback.mutateAsync({
         data: {
           title: title.trim() || (locale === "vi" ? "Phản ánh mới" : "New report"),
           description: description.trim(),
           latitude,
           longitude,
-          addressDetails: locationAddress || detectedWard || "",
+          addressDetails: address || detectedWard || `${latitude}, ${longitude}`,
           categoryId,
           videoDurationsSeconds,
         },
-        files: photos,
+        files: [...photos, ...videos],
       });
 
       setTrackingCode(result.trackingCode || "FB-XXXXXXXX");

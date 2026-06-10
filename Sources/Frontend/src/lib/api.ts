@@ -338,6 +338,20 @@ export const authApi = {
       skipAuth: true,
     }),
 
+  registerConfirm: (phoneNumber: string, otpCode: string) =>
+    request<unknown>("/api/auth/register-confirm", {
+      method: "POST",
+      body: JSON.stringify({ phoneNumber, otpCode }),
+      skipAuth: true,
+    }),
+
+  sendSmsOtp: (phoneNumber: string) =>
+    request<unknown>("/api/auth/sms/send", {
+      method: "POST",
+      body: JSON.stringify({ phoneNumber }),
+      skipAuth: true,
+    }),
+
   mfaSetup: (username: string, password: string) =>
     request<string>("/api/auth/mfa/setup", {
       method: "POST",

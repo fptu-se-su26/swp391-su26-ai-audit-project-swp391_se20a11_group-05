@@ -25,7 +25,7 @@ public abstract class FeedbackMapper implements BaseMapper<Feedback, FeedbackRes
     @Mapping(target = "citizenName", source = "citizen.fullName")
     @Mapping(target = "assigneeName", source = "assignee.fullName")
     @Mapping(target = "attachments", ignore = true)
-    FeedbackResponse toDto(Feedback entity);
+    public abstract FeedbackResponse toDto(Feedback entity);
     
     // We don't map back from Response to Entity usually, so we can ignore it or leave default
 }

@@ -441,6 +441,26 @@ Khi 2 đầu Frontend và Backend phát triển song song mà thiếu API contra
 
 ---
 
+### 9.16. Bài học về Kiểm toán Bảo mật và Hiệu suất (Security & Performance Audit)
+
+```text
+- Vấn đề: Khi tự code, sinh viên thường chỉ quan tâm "code chạy được là xong" và rất khó nhận ra các lỗi tiềm ẩn liên quan đến tài nguyên hệ thống (Thread Pool, Memory) hay các lỗ hổng bảo mật phi truyền thống như Prompt Injection.
+- Giải pháp từ AI: Qua bài toán Audit, AI chỉ ra việc dùng `.get()` của CompletableFuture trong môi trường Spring Boot (Tomcat) sẽ gây nghẽn luồng nghiêm trọng, có thể làm sập server khi có tải. AI cũng chỉ ra Regex đơn thuần không thể chống được hacker dùng kỹ thuật Prompt Injection hiện đại, và đề xuất cơ chế "Sandwiched Prompts". Đồng thời, Rate Limiting in-memory sẽ thất bại khi dự án scale out.
+- Kinh nghiệm: Đừng bao giờ chủ quan khi code chạy thành công trên máy cá nhân (Localhost). Một hệ thống "Production-ready" đòi hỏi sự cẩn trọng tột độ về Quản lý Luồng (Non-blocking I/O), khả năng hoạt động phân tán (dùng Redis thay vì RAM), và đặc biệt là kiểm soát chi phí API khắt khe (Cost Tracking). Kỹ năng tự đặt bản thân vào quá trình Kiểm toán (Self-Audit) thông qua AI là bước đệm tuyệt vời để trở thành Software Architect.
+```
+
+---
+
+### 9.17. Bài học về Thiết kế Luồng Đăng ký chuẩn Ngân hàng (Two-Step SMS OTP)
+
+```text
+- Vấn đề: Thiết kế luồng đăng ký ban đầu cực kỳ "Ngây ngô": OTP lưu dưới dạng Plaintext, dùng JPA query cơ bản (dễ bị xuyên thủng bằng 50 requests/s), và đặc biệt là bị Deadlock khi người dùng bỏ dở đăng ký làm kẹt luôn SĐT.
+- Giải pháp từ AI: AI hướng dẫn đập bỏ thiết kế cũ. Áp dụng chuẩn bảo mật OWASP: Băm OTP (BCrypt), Chống Race Condition bằng Database Row-level Lock (@Lock(PESSIMISTIC_WRITE)), giải quyết Deadlock bằng chiến thuật "Smart Cleanup" xóa cứng tài khoản INACTIVE cũ, và cuối cùng là thêm Cron Job tự động dọn DB rác lúc 2h sáng.
+- Kinh nghiệm: Đây là những "Vết sẹo" kinh điển của các hệ thống Production thực tế. Đồ án sẽ bị đánh trượt ngay lập tức nếu dữ liệu OTP có thể đọc được bằng mắt thường trong DB. Việc biến UI thành dạng 6-box input giống các App ngân hàng cũng làm tăng giá trị chuyên nghiệp của đồ án lên rất nhiều.
+```
+
+---
+
 ## 17. Cam kết Reflection
 
 Em/nhóm cam kết rằng nội dung reflection này phản ánh trung thực quá trình sử dụng AI và quá trình học tập trong bài tập/project.
@@ -455,3 +475,4 @@ Sinh viên/nhóm hiểu rằng:
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
 |  |  |
+

@@ -33,9 +33,6 @@ public class CitizenFeedbackMediaRequest {
     @NotNull(message = "Category id is required")
     private Long categoryId;
 
-    @NotNull(message = "Citizen id is required")
-    private Long citizenId;
-
     private Long wardId;
 
     @Builder.Default

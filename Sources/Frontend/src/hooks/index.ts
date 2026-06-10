@@ -14,6 +14,11 @@ import {
   type UserProfile,
   type NotificationResponse,
 } from "@/lib/api";
+import {
+  submitCitizenFeedbackMedia,
+  type CitizenFeedbackMediaRequest,
+  type CitizenFeedbackMediaResponse,
+} from "@/lib/citizenFeedbackMediaApi";
 
 // ─── Query keys (dùng để cache invalidation) ─────────────────
 
@@ -65,6 +70,21 @@ export function useCreateFeedback() {
     mutationFn: (data) => feedbackApi.create(data),
     onSuccess: () => {
       // Invalidate all feedback lists to refetch
+      queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
+    },
+  });
+}
+
+export function useCreateFeedbackWithMedia() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    CitizenFeedbackMediaResponse,
+    Error,
+    { data: CitizenFeedbackMediaRequest; files: File[] }
+  >({
+    mutationFn: ({ data, files }) => submitCitizenFeedbackMedia(data, files),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
     },
   });

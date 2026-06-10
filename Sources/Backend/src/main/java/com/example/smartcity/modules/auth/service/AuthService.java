@@ -57,6 +57,9 @@ public class AuthService {
 
         // Kiểm tra tài khoản bị khóa vĩnh viễn (admin khóa)
         if (!user.isActive()) {
+            if ("INACTIVE".equals(user.getStatus())) {
+                throw new CustomException("Tài khoản chưa được kích hoạt. Vui lòng xác thực mã OTP gửi về số điện thoại.", 403);
+            }
             throw new CustomException("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.", 403);
         }
 
@@ -212,16 +215,35 @@ public class AuthService {
 
     @Transactional
     public User registerUser(RegisterRequest registerRequest) {
-        if (userRepository.findByUsername(registerRequest.getUsername()).isPresent()) {
-            throw new CustomException("Tên đăng nhập đã tồn tại!", 400);
-        }
-        if (userRepository.findByEmail(registerRequest.getEmail()).isPresent()) {
-            throw new CustomException("Email đã được sử dụng!", 400);
-        }
-        // Kiểm tra số điện thoại trùng lặp
-        if (userRepository.findByPhoneNumber(registerRequest.getPhoneNumber()).isPresent()) {
-            throw new CustomException("Số điện thoại này đã được liên kết với tài khoản khác!", 400);
-        }
+        // [UPGRADE] Tránh Deadlock dữ liệu: Nếu phát hiện tài khoản nháp (INACTIVE) trùng lặp,
+        // hệ thống sẽ tự động dọn dẹp (xóa vật lý) để cho phép người dùng đăng ký lại từ đầu.
+        
+        userRepository.findByPhoneNumber(registerRequest.getPhoneNumber()).ifPresent(user -> {
+            if ("INACTIVE".equals(user.getStatus())) {
+                userRepository.delete(user);
+                userRepository.flush(); // Đảm bảo đã xóa xong trước khi lưu mới
+            } else {
+                throw new CustomException("Số điện thoại này đã được liên kết với tài khoản khác!", 400);
+            }
+        });
+
+        userRepository.findByUsername(registerRequest.getUsername()).ifPresent(user -> {
+            if ("INACTIVE".equals(user.getStatus())) {
+                userRepository.delete(user);
+                userRepository.flush();
+            } else {
+                throw new CustomException("Tên đăng nhập đã tồn tại!", 400);
+            }
+        });
+
+        userRepository.findByEmail(registerRequest.getEmail()).ifPresent(user -> {
+            if ("INACTIVE".equals(user.getStatus())) {
+                userRepository.delete(user);
+                userRepository.flush();
+            } else {
+                throw new CustomException("Email đã được sử dụng!", 400);
+            }
+        });
 
         User user = new User(
                 registerRequest.getUsername(),
@@ -231,8 +253,36 @@ public class AuthService {
                 registerRequest.getEmail(),
                 Role.CITIZEN
         );
+        
+        // [TWO-STEP REGISTRATION] Đặt trạng thái chưa kích hoạt
+        user.setStatus("INACTIVE");
+        user.setPhoneVerified(false);
+        User savedUser = userRepository.save(user);
 
-        return userRepository.save(user);
+        // Tự động bắn SMS
+        smsService.generateAndSendOtp(registerRequest.getPhoneNumber());
+
+        return savedUser;
+    }
+
+    @Transactional
+    public void confirmRegistration(String phoneNumber, String otpCode) {
+        // 1. Xác minh mã OTP bằng số điện thoại
+        smsService.verifyOtp(phoneNumber, otpCode);
+
+        // 2. Tìm người dùng
+        User user = userRepository.findByPhoneNumber(phoneNumber)
+                .orElseThrow(() -> new CustomException("Không tìm thấy tài khoản với số điện thoại này", 404));
+
+        // 3. Kiểm tra xem đã kích hoạt chưa
+        if ("ACTIVE".equals(user.getStatus())) {
+            throw new CustomException("Tài khoản này đã được kích hoạt từ trước!", 400);
+        }
+
+        // 4. Kích hoạt tài khoản
+        user.setStatus("ACTIVE");
+        user.setPhoneVerified(true);
+        userRepository.save(user);
     }
 
     public void logout(String tokenHeader) {

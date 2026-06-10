@@ -14,6 +14,8 @@ import com.example.smartcity.modules.auth.service.SmsService;
 import com.example.smartcity.modules.auth.service.RefreshTokenService;
 import com.example.smartcity.modules.auth.payload.request.SmsSendRequest;
 import com.example.smartcity.modules.auth.payload.request.SmsVerifyRequest;
+import com.example.smartcity.modules.user.dto.UserDTO;
+import com.example.smartcity.modules.user.mapper.UserMapper;
 import com.example.smartcity.security.ratelimit.AuthRateLimiter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -34,6 +36,7 @@ public class AuthController {
     private final SmsService smsService;
     private final AuthRateLimiter rateLimiter;
     private final RefreshTokenService refreshTokenService;
+    private final UserMapper userMapper;
 
     /** Lấy IP thực của client, hỗ trợ reverse proxy (X-Forwarded-For) */
     private String getClientIp(HttpServletRequest request) {
@@ -82,13 +85,19 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<User>> registerUser(
+    public ResponseEntity<ApiResponse<UserDTO>> registerUser(
             @Valid @RequestBody RegisterRequest registerRequest,
             HttpServletRequest httpRequest) {
         // [SECURITY] Rate limit: 5 lần / 1 giờ theo IP
         rateLimiter.checkRegisterLimit(getClientIp(httpRequest));
         User result = authService.registerUser(registerRequest);
-        return ResponseEntity.ok(ApiResponse.success("Đăng ký thành công", result));
+        return ResponseEntity.ok(ApiResponse.success("Đăng ký nháp thành công. Vui lòng xác thực mã OTP gửi về điện thoại.", userMapper.toDto(result)));
+    }
+
+    @PostMapping("/register-confirm")
+    public ResponseEntity<ApiResponse<String>> confirmRegistration(@Valid @RequestBody SmsVerifyRequest request) {
+        authService.confirmRegistration(request.getPhoneNumber(), request.getOtpCode());
+        return ResponseEntity.ok(ApiResponse.success("Xác thực OTP thành công. Tài khoản đã được kích hoạt!", null));
     }
 
     @PostMapping("/sms/send")

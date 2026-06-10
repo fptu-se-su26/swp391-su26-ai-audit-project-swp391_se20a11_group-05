@@ -21,7 +21,7 @@ import java.time.Instant;
  *   "suggestion": "..."
  * }
  */
-@RestControllerAdvice
+@RestControllerAdvice(basePackages = "com.example.smartcity.rag")
 public class RagExceptionHandler {
 
     /**

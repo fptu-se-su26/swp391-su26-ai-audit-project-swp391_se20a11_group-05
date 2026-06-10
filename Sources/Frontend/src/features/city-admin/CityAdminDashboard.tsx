@@ -23,7 +23,6 @@ import {
   Users,
   TrendingUp,
 } from "lucide-react";
-import { WeatherForecastPanel } from "./WeatherForecastPanel";
 
 const CivicMap = lazy(() => import("@/components/site/CivicMap").then(m => ({ default: m.CivicMap })));
 
@@ -247,8 +246,6 @@ export function CityAdminDashboard() {
 
       {!hasApiData && !isLoading && <DemoBanner />}
 
-      {/* Weather Forecast Panel (extracted) */}
-      <WeatherForecastPanel />
     </StaffShell>
   );
 }

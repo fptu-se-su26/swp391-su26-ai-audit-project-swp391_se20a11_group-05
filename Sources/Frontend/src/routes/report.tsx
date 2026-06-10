@@ -4,14 +4,16 @@ import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
-import { useCategories, useCreateFeedback } from "@/lib/hooks";
-import { ApiError, getToken, wardApi } from "@/lib/api";
+import { useCategories, useCreateFeedbackWithMedia } from "@/lib/hooks";
+import { ApiError, wardApi } from "@/lib/api";
+import { getVideoDurationSeconds } from "@/lib/citizenFeedbackMediaApi";
 import {
   clearGpsLocation,
   getStoredGpsLocation,
   requestCurrentGpsLocation,
   storeGpsLocation,
 } from "@/lib/location";
+import { reverseGeocode } from "@/lib/geocoding";
 import { toast } from "sonner";
 import {
   Building2,
@@ -106,7 +108,7 @@ function ReportPage() {
 
   const { data: categories } = useCategories();
   const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
-  const createFeedback = useCreateFeedback();
+  const createFeedback = useCreateFeedbackWithMedia();
 
   const storedLocation = getStoredGpsLocation();
   const [title, setTitle] = useState("");
@@ -114,17 +116,24 @@ function ReportPage() {
   const [latitude, setLatitude] = useState<number | null>(storedLocation?.latitude ?? null);
   const [longitude, setLongitude] = useState<number | null>(storedLocation?.longitude ?? null);
   const [locationLoading, setLocationLoading] = useState(false);
+  const [addressLoading, setAddressLoading] = useState(false);
   const [locationError, setLocationError] = useState("");
+  const [locationAddress, setLocationAddress] = useState("");
   const [detectedWard, setDetectedWard] = useState("");
   const [locationConfirmed, setLocationConfirmed] = useState(!!storedLocation);
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
-  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const hasLocation = latitude !== null && longitude !== null;
   const markerDisplayed = hasLocation && !locationLoading;
+  const hasResolvedAddress = locationAddress.trim().length > 0;
+  const locationStatus = locationLoading || addressLoading
+    ? "Đang lấy vị trí..."
+    : hasResolvedAddress
+      ? "Đã xác định"
+      : "Chưa có vị trí";
   const mapCenter = useMemo<[number, number]>(
     () => (hasLocation ? [latitude, longitude] : DEFAULT_MAP_CENTER),
     [hasLocation, latitude, longitude],
@@ -134,9 +143,10 @@ function ReportPage() {
     description.trim().length > 0 &&
     hasLocation &&
     markerDisplayed &&
-    locationConfirmed &&
+    (hasResolvedAddress || locationConfirmed) &&
+    !addressLoading &&
     !createFeedback.isPending &&
-    !uploading;
+    photos.length > 0;
 
   useEffect(() => {
     if (categories && categories.length > 0 && categoryId === undefined) {
@@ -145,7 +155,9 @@ function ReportPage() {
   }, [categories, categoryId]);
 
   useEffect(() => {
-    if (!storedLocation) {
+    if (storedLocation) {
+      resolveAddress(storedLocation.latitude, storedLocation.longitude);
+    } else {
       detectLocation();
     }
     // Auto GPS runs once on page open.
@@ -209,38 +221,30 @@ function ReportPage() {
     setPhotoPreviews((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const uploadPhotos = async (feedbackId: number): Promise<string[]> => {
-    if (photos.length === 0) return [];
-    const token = getToken();
-    const urls: string[] = [];
-    setUploading(true);
+  const resolveAddress = async (nextLatitude: number, nextLongitude: number) => {
+    setAddressLoading(true);
+    setLocationAddress("");
 
     try {
-      for (const photo of photos) {
-        const formData = new FormData();
-        formData.append("file", photo);
-        const res = await fetch(`${API_BASE}/api/files/upload/${feedbackId}`, {
-          method: "POST",
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-          body: formData,
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          urls.push(data.fileUrl);
-        }
-      }
+      const result = await reverseGeocode(nextLatitude, nextLongitude);
+      setLocationAddress(result.address);
+      setLocationConfirmed(true);
+    } catch {
+      setLocationAddress("");
+      setLocationConfirmed(false);
+      const message = "Không thể xác định địa chỉ. Vui lòng lấy lại vị trí.";
+      setLocationError(message);
+      toast.error(message);
     } finally {
-      setUploading(false);
+      setAddressLoading(false);
     }
-
-    return urls;
   };
 
   const applyLocation = async (nextLatitude: number, nextLongitude: number) => {
     setLatitude(nextLatitude);
     setLongitude(nextLongitude);
     setLocationError("");
+    setLocationAddress("");
     setLocationConfirmed(false);
     storeGpsLocation({ latitude: nextLatitude, longitude: nextLongitude });
 
@@ -250,6 +254,8 @@ function ReportPage() {
     } catch {
       setDetectedWard("");
     }
+
+    await resolveAddress(nextLatitude, nextLongitude);
   };
 
   async function detectLocation() {
@@ -267,6 +273,7 @@ function ReportPage() {
       clearGpsLocation();
       setLatitude(null);
       setLongitude(null);
+      setLocationAddress("");
       setLocationError(message);
       toast.error(message);
     } finally {
@@ -299,8 +306,8 @@ function ReportPage() {
       toast.error("Bản đồ chưa hiển thị ghim vị trí. Vui lòng đợi bản đồ tải xong.");
       return false;
     }
-    if (!locationConfirmed) {
-      toast.error("Vui lòng xác nhận vị trí trên bản đồ trước khi gửi.");
+    if (!hasResolvedAddress && !locationConfirmed) {
+      toast.error("Vui lòng lấy lại vị trí để xác định địa chỉ trước khi gửi.");
       return false;
     }
     return true;
@@ -312,20 +319,24 @@ function ReportPage() {
     }
 
     try {
-      const result = await createFeedback.mutateAsync({
-        title: title.trim() || (locale === "vi" ? "Phản ánh mới" : "New report"),
-        description: description.trim(),
-        latitude,
-        longitude,
-        addressDetails: detectedWard
-          ? `${detectedWard} (${latitude}, ${longitude})`
-          : `${latitude}, ${longitude}`,
-        categoryId,
-      });
+      const videoDurationsSeconds = await Promise.all(
+        photos
+          .filter((file) => file.type.startsWith("video/"))
+          .map((file) => getVideoDurationSeconds(file)),
+      );
 
-      if (photos.length > 0 && result.id) {
-        await uploadPhotos(result.id);
-      }
+      const result = await createFeedback.mutateAsync({
+        data: {
+          title: title.trim() || (locale === "vi" ? "Phản ánh mới" : "New report"),
+          description: description.trim(),
+          latitude,
+          longitude,
+          addressDetails: locationAddress || detectedWard || "",
+          categoryId,
+          videoDurationsSeconds,
+        },
+        files: photos,
+      });
 
       setTrackingCode(result.trackingCode || "FB-XXXXXXXX");
       setSubmitted(true);
@@ -500,13 +511,19 @@ function ReportPage() {
             </div>
 
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                 <div>
-                  <p className="font-bold text-ink">Xác nhận vị trí</p>
+                  <p className="font-bold text-ink">Vị trí của bạn</p>
                   <p
-                    className={`text-sm font-semibold ${hasLocation ? "text-[var(--status-success)]" : "text-[var(--status-danger)]"}`}
+                    className={`text-sm font-semibold ${
+                      hasResolvedAddress
+                        ? "text-[var(--status-success)]"
+                        : locationLoading || addressLoading
+                          ? "text-gov-blue"
+                          : "text-[var(--status-danger)]"
+                    }`}
                   >
-                    {hasLocation ? "Đã lấy vị trí" : "Chưa có vị trí"}
+                    {locationStatus}
                   </p>
                 </div>
                 <button
@@ -524,19 +541,15 @@ function ReportPage() {
                 </button>
               </div>
 
-              <div className="mt-4 grid sm:grid-cols-2 gap-3 text-sm">
-                <div className="rounded-lg bg-white border border-slate-200 p-3">
-                  <span className="block text-ink-soft mb-1">Latitude</span>
-                  <span className="font-mono font-bold">
-                    {latitude !== null ? latitude.toFixed(6) : "Chưa có"}
-                  </span>
-                </div>
-                <div className="rounded-lg bg-white border border-slate-200 p-3">
-                  <span className="block text-ink-soft mb-1">Longitude</span>
-                  <span className="font-mono font-bold">
-                    {longitude !== null ? longitude.toFixed(6) : "Chưa có"}
-                  </span>
-                </div>
+              <div className="mt-4 rounded-lg bg-white border border-slate-200 p-4 text-sm">
+                <p className="font-semibold text-ink leading-relaxed">
+                  {locationAddress ||
+                    (locationLoading || addressLoading
+                      ? "Đang lấy vị trí..."
+                      : hasLocation
+                        ? "Không thể xác định địa chỉ. Vui lòng lấy lại vị trí."
+                        : "Chưa có vị trí")}
+                </p>
               </div>
 
               {detectedWard && (
@@ -556,16 +569,18 @@ function ReportPage() {
                 </p>
               )}
 
-              <label className="mt-4 flex items-start gap-3 text-sm font-semibold text-ink">
-                <input
-                  type="checkbox"
-                  checked={locationConfirmed}
-                  onChange={(e) => setLocationConfirmed(e.target.checked)}
-                  disabled={!markerDisplayed}
-                  className="mt-1 h-4 w-4 accent-[var(--gov-blue)] disabled:opacity-50"
-                />
-                Tôi đã kiểm tra ghim trên bản đồ và xác nhận vị trí phản ánh là chính xác.
-              </label>
+              {hasLocation && !hasResolvedAddress && !locationLoading && !addressLoading && (
+                <label className="mt-4 flex items-start gap-3 text-sm font-semibold text-ink">
+                  <input
+                    type="checkbox"
+                    checked={locationConfirmed}
+                    onChange={(e) => setLocationConfirmed(e.target.checked)}
+                    disabled={!markerDisplayed}
+                    className="mt-1 h-4 w-4 accent-[var(--gov-blue)] disabled:opacity-50"
+                  />
+                  Tôi đã kiểm tra ghim trên bản đồ và xác nhận vị trí phản ánh là chính xác.
+                </label>
+              )}
             </div>
 
             <button
@@ -574,12 +589,12 @@ function ReportPage() {
               disabled={!canSubmit}
               className="btn-civic bg-status-success text-white shadow-lg hover:brightness-90 active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none w-full sm:w-auto"
             >
-              {createFeedback.isPending || uploading ? (
+              {createFeedback.isPending ? (
                 <Loader2 size={20} className="animate-spin" />
               ) : (
                 <Check size={20} />
               )}
-              {uploading ? "Đang tải tệp..." : t("report.submit")}
+              {createFeedback.isPending ? "Đang gửi..." : t("report.submit")}
             </button>
           </div>
         </section>
@@ -592,20 +607,15 @@ function ReportPage() {
                 Kiểm tra ghim vị trí hiện tại trước khi gửi.
               </p>
             </div>
-            <span
-              className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${markerDisplayed ? "bg-green-50 text-[var(--status-success)]" : "bg-red-50 text-[var(--status-danger)]"}`}
-            >
-              {markerDisplayed ? "Có ghim" : "Chưa có ghim"}
-            </span>
           </div>
 
-          <div className="relative h-[360px] sm:h-[420px] lg:h-[560px] overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
-            <MapContainer
-              center={mapCenter}
-              zoom={hasLocation ? 17 : 13}
-              className="w-full h-full"
-              scrollWheelZoom
-            >
+          <div className="relative h-[320px] sm:h-[380px] lg:h-[calc(100vh-220px)] lg:min-h-[420px] lg:max-h-[620px] overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+              <MapContainer
+                center={mapCenter}
+                zoom={hasLocation ? 17 : 13}
+                className="w-full h-full"
+                scrollWheelZoom={false}
+              >
               <MapViewUpdater center={mapCenter} />
               <TileLayer
                 attribution='&copy; Google Maps'
@@ -615,9 +625,7 @@ function ReportPage() {
                 <Marker position={[latitude, longitude]} icon={currentLocationIcon}>
                   <Popup>
                     <strong>Vị trí hiện tại</strong>
-                    <p className="text-sm mt-1">
-                      {latitude.toFixed(6)}, {longitude.toFixed(6)}
-                    </p>
+                    <p className="text-sm mt-1">{locationAddress || "Đang xác định địa chỉ..."}</p>
                   </Popup>
                 </Marker>
               )}

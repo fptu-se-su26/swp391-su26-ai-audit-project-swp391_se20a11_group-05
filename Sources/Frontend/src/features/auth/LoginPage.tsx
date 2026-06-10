@@ -4,6 +4,7 @@ import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { parseBackendRole, Role } from "@/lib/roles";
 import { authApi, ApiError } from "@/lib/api";
+import { requestCurrentGpsLocation } from "@/lib/location";
 import { Loader2, AlertCircle, Eye, EyeOff, AtSign, Lock } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 import { LoginHeroPanel } from "./LoginHeroPanel";
@@ -60,6 +61,9 @@ export function LoginPage() {
           org: "",
           token: data.token,
         });
+        void requestCurrentGpsLocation().catch(() => {
+          // Location is optional after login; feedback submission asks again if needed.
+        });
         navigate({ to: redirect || "/" });
       }
     } catch (err) {
@@ -93,6 +97,9 @@ export function LoginPage() {
         role: parseBackendRole(data.role),
         org: "",
         token: data.token,
+      });
+      void requestCurrentGpsLocation().catch(() => {
+        // Location is optional after login; feedback submission asks again if needed.
       });
       navigate({ to: redirect || "/" });
     } catch (err) {

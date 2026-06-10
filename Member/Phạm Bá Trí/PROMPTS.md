@@ -765,6 +765,72 @@ Prompt dùng chiến thuật "Chấm điểm nghiêm khắc" mang lại hiệu q
 
 ---
 
+### Prompt số 10
+
+| Nội dung            | Thông tin                                                      |
+| ------------------- | -------------------------------------------------------------- |
+| Ngày sử dụng        | 04/06/2026                                                     |
+| Công cụ AI          | Antigravity                                                    |
+| Mục đích            | Kiểm toán (Audit) toàn diện Bảo mật và Hiệu suất AI Orchestrator|
+| Phần việc liên quan | Architecture / Code Review / Security                          |
+| Mức độ sử dụng      | Hỏi review / Hỏi đánh giá kiến trúc                            |
+
+#### 5.1. Prompt nguyên văn
+
+```text
+Đóng vai trò là một Principal AI/ML Engineer và System Architect với 15+ năm kinh nghiệm xây dựng AI orchestration layers cho các tập đoàn công nghệ lớn (Google, OpenAI, Anthropic). Nhiệm vụ của bạn là audit TOÀN DIỆN hệ thống AI Orchestrator để phát hiện: Lỗ hổng bảo mật trong API key management, Performance bottlenecks, Cost optimization opportunities, Reliability issues, Prompt injection vulnerabilities, Rate limiting weaknesses...
+```
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Hệ thống AI Orchestrator và RAG đã được xây dựng xong. Tuy nhiên trước khi đưa vào chấm điểm bảo vệ (Production), nhóm cần một đợt kiểm toán (Audit) nghiêm khắc từ AI để tìm ra các rủi ro bảo mật (như lộ API key, bị hacker prompt injection) và rủi ro sập hệ thống (Thread blocking).
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI phát hiện 2 lỗi CRITICAL nguy hiểm: sử dụng luồng chặn `.get()` trong CircuitBreaker có thể gây Thread Pool Exhaustion, và hoàn toàn thiếu tracking chi phí USD/Token. AI cũng cảnh báo lỗi HIGH về việc Rate Limit đang dùng `ConcurrentHashMap` trên RAM cục bộ (sẽ sai khi deploy nhiều server) và Regex Guardrails dễ bị bypass. Cuối cùng, AI xuất 1 báo cáo Audit chuẩn Enterprise.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Tạo lập file báo cáo Báo cáo Audit AI Orchestrator để đưa vào hồ sơ dự án. Lên kế hoạch khẩn cấp khắc phục lỗi Thread Blocking trong Sprint tới.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Chủ động yêu cầu AI ghi nội dung trực tiếp vào các file log (AI_AUDIT_LOG, CHANGELOG, REFLECTION, PROMPTS) để đảm bảo tuân thủ nghiêm ngặt chuẩn mực hồ sơ của trường.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [ ] Cần hỏi lại AI nhiều lần
+- [ ] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung                                                                  |
+| --------------- | ------------------------------------------------------------------------- |
+| File liên quan  | `ai_orchestrator_audit_report.md` (Báo cáo sinh ra từ Audit)              |
+| Ghi chú khác    | Bài test áp lực về mặt lý thuyết giúp củng cố kiến trúc trước ngày ra mắt |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Prompt dùng role-play cấp độ Principal Engineer giúp AI trả lời với góc nhìn vĩ mô (Architecture & Business), vượt xa việc chỉ check code thông thường.
+```
+
+---
+
 ## 6. Prompt quan trọng nhất
 
 Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.

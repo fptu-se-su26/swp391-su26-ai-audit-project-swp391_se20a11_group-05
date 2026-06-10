@@ -11,6 +11,7 @@ import com.example.smartcity.modules.auth.payload.ForgotPasswordRequest;
 import com.example.smartcity.modules.user.entity.Role;
 import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.user.repository.UserRepository;
+import com.example.smartcity.modules.auth.payload.TokenPairResponse;
 import com.example.smartcity.security.jwt.JwtTokenProvider;
 import com.example.smartcity.security.jwt.TokenBlacklistService;
 import com.google.firebase.auth.FirebaseToken;
@@ -44,6 +45,7 @@ public class AuthService {
     private final TokenBlacklistService blacklistService;
     private final SmsService smsService;
     private final MfaSessionService mfaSessionService;
+    private final RefreshTokenService refreshTokenService;
 
     private static final int MAX_LOGIN_ATTEMPTS = 5;
     private static final int LOCKOUT_MINUTES = 15;
@@ -93,17 +95,16 @@ public class AuthService {
             }
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            String jwt = tokenProvider.generateToken(authentication);
-
-            String role = authentication.getAuthorities().stream()
-                    .map(GrantedAuthority::getAuthority)
-                    .findFirst()
-                    .orElse("ROLE_CITIZEN");
+            
+            // [SECURITY FIX] Tạo token pair (access + refresh) thay vì chỉ JWT
+            TokenPairResponse tokenPair = refreshTokenService.createTokenPair(user);
 
             return AuthResponse.builder()
-                    .token(jwt)
-                    .username(loginRequest.getUsername())
-                    .role(role)
+                    .token(tokenPair.getAccessToken())
+                    .refreshToken(tokenPair.getRefreshToken())
+                    .expiresIn(tokenPair.getExpiresIn())
+                    .username(tokenPair.getUsername())
+                    .role(tokenPair.getRole())
                     .mfaRequired(false)
                     .build();
 
@@ -147,7 +148,7 @@ public class AuthService {
     }
 
     @Transactional
-    public TokenResponse verifyMfa(MfaVerificationRequest request) {
+    public TokenPairResponse verifyMfa(MfaVerificationRequest request) {
         // [SECURITY FIX] Xác thực qua MfaSession thay vì gọi lại authenticationManager.authenticate() với password plain text
         Long userId = mfaSessionService.validateSession(request.getMfaToken());
 
@@ -174,17 +175,11 @@ public class AuthService {
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 user.getUsername(), null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())));
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = tokenProvider.generateToken(authentication);
-
-        String role = authentication.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .findFirst()
-                .orElse("ROLE_CITIZEN");
-
-        return new TokenResponse(jwt, user.getUsername(), role);
+        
+        return refreshTokenService.createTokenPair(user);
     }
 
-    public TokenResponse firebaseLogin(FirebaseLoginRequest request) {
+    public TokenPairResponse firebaseLogin(FirebaseLoginRequest request) {
         FirebaseToken decodedToken = firebaseService.verifyIdToken(request.getFirebaseToken());
         
         String phoneOrEmail = decodedToken.getEmail();
@@ -211,9 +206,7 @@ public class AuthService {
         }
 
         User user = userOpt.get();
-        String jwt = tokenProvider.generateTokenFromUsername(user.getUsername());
-
-        return new TokenResponse(jwt, user.getUsername(), user.getRole().name());
+        return refreshTokenService.createTokenPair(user);
     }
 
     @Transactional
@@ -244,12 +237,22 @@ public class AuthService {
     public void logout(String tokenHeader) {
         if (tokenHeader != null && tokenHeader.startsWith("Bearer ") && tokenHeader.length() > 7) {
             String jwt = tokenHeader.substring(7);
+            // Trích xuất username ngay cả khi token đã hết hạn
+            String username = tokenProvider.getUsernameFromExpiredJWT(jwt);
+
             try {
                 java.util.Date expiration = tokenProvider.getExpirationFromJWT(jwt);
                 blacklistService.blacklistToken(jwt, expiration.getTime());
             } catch (Exception e) {
                 // Nếu token không hợp lệ hoặc đã hết hạn, đưa vào blacklist 10 phút
                 blacklistService.blacklistToken(jwt, System.currentTimeMillis() + 600000);
+            }
+            
+            // Thu hồi toàn bộ refresh token
+            if (username != null) {
+                userRepository.findByUsername(username).ifPresent(user -> 
+                    refreshTokenService.revokeAll(user.getId())
+                );
             }
         }
     }

@@ -20,10 +20,12 @@ public class MfaSessionService {
     private static class MfaSession {
         Long userId;
         long expirationTimeMs;
+        int attempts; // [SECURITY FIX] Chống brute-force MFA code
 
         public MfaSession(Long userId, long expirationTimeMs) {
             this.userId = userId;
             this.expirationTimeMs = expirationTimeMs;
+            this.attempts = 0;
         }
     }
 
@@ -45,6 +47,15 @@ public class MfaSessionService {
             sessions.remove(mfaToken);
             throw new CustomException("Phiên xác thực MFA đã hết hạn.", 401);
         }
+
+        // [SECURITY FIX] Chống brute-force: Tối đa 5 lần thử MFA mỗi phiên
+        session.attempts++;
+        if (session.attempts > 5) {
+            sessions.remove(mfaToken);
+            log.warn("[SECURITY ALERT] Brute-force detected on MFA for user_id={}", session.userId);
+            throw new CustomException("Bạn đã nhập sai mã MFA quá nhiều lần. Phiên bị hủy. Vui lòng đăng nhập lại.", 429);
+        }
+
         return session.userId;
     }
 

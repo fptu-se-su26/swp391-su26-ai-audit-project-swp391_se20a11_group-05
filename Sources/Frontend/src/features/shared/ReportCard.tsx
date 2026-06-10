@@ -20,6 +20,9 @@ interface ReportCardProps {
   isApi: boolean;
   locale: "vi" | "en";
   policeView?: boolean;
+  onReject?: (id: number | string) => void;
+  onRequestInfo?: (id: number | string) => void;
+  isLoading?: boolean;
 }
 
 export function ReportCard({
@@ -27,6 +30,9 @@ export function ReportCard({
   isApi,
   locale,
   policeView = false,
+  onReject,
+  onRequestInfo,
+  isLoading = false,
 }: ReportCardProps) {
   const getVal = (field: any) => {
     if (!field) return "";
@@ -88,9 +94,28 @@ export function ReportCard({
           <Video size={18} />
           {locale === "vi" ? "Xem video bằng chứng" : "View video evidence"}
         </button>
-        <button className="btn-civic btn-civic-ghost text-sm">
-          {locale === "vi" ? "Chuyển đơn vị khác" : "Forward dispatch"}
-        </button>
+        {policeView && onReject && onRequestInfo ? (
+          <>
+            <button 
+              onClick={() => onRequestInfo(report.id)}
+              disabled={isLoading}
+              className="btn-civic btn-civic-outline text-sm"
+            >
+              Yêu cầu bổ sung TT
+            </button>
+            <button 
+              onClick={() => onReject(report.id)}
+              disabled={isLoading}
+              className="btn-civic btn-civic-ghost text-sm text-[var(--status-danger)]"
+            >
+              Từ chối / Chuyển đơn vị
+            </button>
+          </>
+        ) : (
+          <button className="btn-civic btn-civic-ghost text-sm">
+            {locale === "vi" ? "Chuyển đơn vị khác" : "Forward dispatch"}
+          </button>
+        )}
       </div>
     </div>
   );

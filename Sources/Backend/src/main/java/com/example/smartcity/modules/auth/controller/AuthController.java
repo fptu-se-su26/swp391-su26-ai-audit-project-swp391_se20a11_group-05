@@ -5,13 +5,19 @@ import com.example.smartcity.modules.auth.payload.FirebaseLoginRequest;
 import com.example.smartcity.modules.auth.payload.LoginRequest;
 import com.example.smartcity.modules.auth.payload.MfaVerificationRequest;
 import com.example.smartcity.modules.auth.payload.RegisterRequest;
-import com.example.smartcity.modules.auth.payload.TokenResponse;
+import com.example.smartcity.modules.auth.payload.TokenPairResponse;
+import com.example.smartcity.modules.auth.payload.request.RefreshTokenRequest;
 import com.example.smartcity.modules.auth.payload.AuthResponse;
 import com.example.smartcity.modules.auth.payload.ForgotPasswordRequest;
 import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.auth.service.SmsService;
+import com.example.smartcity.modules.auth.service.RefreshTokenService;
 import com.example.smartcity.modules.auth.payload.request.SmsSendRequest;
 import com.example.smartcity.modules.auth.payload.request.SmsVerifyRequest;
+import com.example.smartcity.modules.user.dto.UserDTO;
+import com.example.smartcity.modules.user.mapper.UserMapper;
+import com.example.smartcity.security.ratelimit.AuthRateLimiter;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -28,9 +34,25 @@ public class AuthController {
 
     private final AuthService authService;
     private final SmsService smsService;
+    private final AuthRateLimiter rateLimiter;
+    private final RefreshTokenService refreshTokenService;
+    private final UserMapper userMapper;
+
+    /** Lấy IP thực của client, hỗ trợ reverse proxy (X-Forwarded-For) */
+    private String getClientIp(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isBlank()) {
+            return xForwardedFor.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
+    }
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<AuthResponse>> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<ApiResponse<AuthResponse>> authenticateUser(
+            @Valid @RequestBody LoginRequest loginRequest,
+            HttpServletRequest httpRequest) {
+        // [SECURITY] Rate limit: 5 lần / 15 phút theo IP
+        rateLimiter.checkLoginLimit(getClientIp(httpRequest));
         AuthResponse result = authService.authenticateUser(loginRequest);
         if (result.isMfaRequired()) {
             return ResponseEntity.ok(ApiResponse.success("Yêu cầu xác thực MFA", result));
@@ -45,25 +67,38 @@ public class AuthController {
     }
 
     @PostMapping("/mfa/verify")
-    public ResponseEntity<ApiResponse<TokenResponse>> verifyMfa(@Valid @RequestBody MfaVerificationRequest request) {
-        TokenResponse tokenResponse = authService.verifyMfa(request);
+    public ResponseEntity<ApiResponse<TokenPairResponse>> verifyMfa(@Valid @RequestBody MfaVerificationRequest request) {
+        TokenPairResponse tokenResponse = authService.verifyMfa(request);
         return ResponseEntity.ok(ApiResponse.success("Xác thực MFA thành công", tokenResponse));
     }
 
     @PostMapping("/firebase-login")
-    public ResponseEntity<ApiResponse<TokenResponse>> firebaseLogin(@Valid @RequestBody FirebaseLoginRequest request) {
-        TokenResponse tokenResponse = authService.firebaseLogin(request);
+    public ResponseEntity<ApiResponse<TokenPairResponse>> firebaseLogin(@Valid @RequestBody FirebaseLoginRequest request) {
+        TokenPairResponse tokenResponse = authService.firebaseLogin(request);
         return ResponseEntity.ok(ApiResponse.success("Đăng nhập Firebase thành công", tokenResponse));
     }
 
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<TokenPairResponse>> refresh(@Valid @RequestBody RefreshTokenRequest request) {
+        TokenPairResponse tokenResponse = refreshTokenService.rotate(request.getRefreshToken());
+        return ResponseEntity.ok(ApiResponse.success("Làm mới token thành công", tokenResponse));
+    }
+
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<User>> registerUser(@Valid @RequestBody RegisterRequest registerRequest) {
+    public ResponseEntity<ApiResponse<UserDTO>> registerUser(
+            @Valid @RequestBody RegisterRequest registerRequest,
+            HttpServletRequest httpRequest) {
+        // [SECURITY] Rate limit: 5 lần / 1 giờ theo IP
+        rateLimiter.checkRegisterLimit(getClientIp(httpRequest));
         User result = authService.registerUser(registerRequest);
-        return ResponseEntity.ok(ApiResponse.success("Đăng ký thành công", result));
+        return ResponseEntity.ok(ApiResponse.success("Đăng ký thành công", userMapper.toDto(result)));
     }
 
     @PostMapping("/sms/send")
-    public ResponseEntity<ApiResponse<String>> sendSmsOtp(@Valid @RequestBody SmsSendRequest request) {
+    public ResponseEntity<ApiResponse<String>> sendSmsOtp(
+            @Valid @RequestBody SmsSendRequest request) {
+        // [SECURITY] Rate limit: 3 lần / 10 phút theo số điện thoại
+        rateLimiter.checkSmsLimit(request.getPhoneNumber());
         String message = smsService.generateAndSendOtp(request.getPhoneNumber());
         return ResponseEntity.ok(ApiResponse.success(message, null));
     }

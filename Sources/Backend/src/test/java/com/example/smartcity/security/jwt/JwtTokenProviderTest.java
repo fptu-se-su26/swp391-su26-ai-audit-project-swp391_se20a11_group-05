@@ -26,7 +26,8 @@ class JwtTokenProviderTest {
 
     @BeforeEach
     void setUp() {
-        tokenProvider = new JwtTokenProvider();
+        com.example.smartcity.security.secrets.SecurityManager securityManager = org.mockito.Mockito.mock(com.example.smartcity.security.secrets.SecurityManager.class);
+        tokenProvider = new JwtTokenProvider(securityManager);
         ReflectionTestUtils.setField(tokenProvider, "jwtSecret", TEST_SECRET);
         ReflectionTestUtils.setField(tokenProvider, "jwtExpirationInMs", EXPIRATION);
     }

@@ -4,14 +4,14 @@
 
 | Thông tin | Nội dung |
 |---|---|
-| Môn học |  |
-| Mã môn học |  |
-| Lớp |  |
-| Học kỳ |  |
-| Tên bài tập / Project |  |
-| Tên sinh viên / Nhóm |  |
-| MSSV / Danh sách MSSV |  |
-| Giảng viên hướng dẫn |  |
+| Môn học | Software Development Project |
+| Mã môn học | SWP391 |
+| Lớp | SE20A11 |
+| Học kỳ | SU26 |
+| Tên bài tập / Project | The Listening City Systems |
+| Tên sinh viên / Nhóm | Phan Thanh Bình / Group05 |
+| MSSV / Danh sách MSSV | DE190210 |
+| Giảng viên hướng dẫn | Lê Thiện Nhật Quang |
 | Ngày hoàn thành reflection |  |
 
 ---
@@ -35,7 +35,14 @@ Reflection cần thể hiện:
 Mô tả ngắn gọn quá trình sử dụng AI trong bài tập/project này.
 
 ```text
-Viết tại đây...
+Trong lần cập nhật số 2, nhóm tập trung xử lý một chức năng lớn:
+người dân gửi phản ánh kèm ảnh/video (yêu cầu video > 10 giây),
+đồng thời đảm bảo backend khớp template frontend đang có.
+
+AI được dùng chủ yếu để:
+- rà soát độ tương thích API giữa backend và frontend,
+- đề xuất các class còn thiếu cho use case media,
+- hỗ trợ phát hiện rủi ro merge vào product branch.
 ```
 
 Gợi ý:
@@ -100,7 +107,10 @@ Viết tại đây...
 ### Mô tả chi tiết
 
 ```text
-Viết tại đây...
+AI hỗ trợ rõ nhất ở phần:
+1) Chuẩn hóa luồng API feedback để không làm vỡ flow cũ.
+2) Bổ sung phần media upload theo hướng tách lớp rõ ràng (controller/service/repository/dto).
+3) Nhắc kiểm chứng bằng compile sau khi chỉnh sửa.
 ```
 
 ---
@@ -110,7 +120,10 @@ Viết tại đây...
 ### 6.1. Những điểm AI giúp em/nhóm học tốt hơn
 
 ```text
-Viết tại đây...
+Điểm cải thiện rõ:
+- Tương thích backend/frontend tốt hơn do endpoint và payload đồng nhất.
+- Có thêm cấu trúc class chuẩn cho use case media.
+- Giảm rủi ro merge nhờ kiểm tra compile trước khi push.
 ```
 
 Gợi ý:
@@ -126,7 +139,10 @@ Gợi ý:
 ### 6.2. Những điểm AI chưa giúp tốt hoặc gây khó khăn
 
 ```text
-Viết tại đây...
+Khó khăn còn gặp:
+- Frontend template hiện tại chưa gửi đầy đủ categoryId trong mọi trường hợp.
+- Khi cập nhật endpoint có thể phát sinh sai lệch nhỏ ở helper frontend nếu patch chồng.
+- Cần thời gian kiểm tra thủ công thêm cho luồng upload thực tế với Supabase.
 ```
 
 Gợi ý:
@@ -149,7 +165,9 @@ Gợi ý:
 Giải thích:
 
 ```text
-Viết tại đây...
+Mức phụ thuộc AI: trung bình.
+Nhóm dùng AI để tăng tốc phân tích và kiểm tra compatibility,
+nhưng phần quyết định kiến trúc, chỉnh sửa cuối cùng và kiểm chứng build vẫn do nhóm thực hiện.
 ```
 
 ---
@@ -174,17 +192,21 @@ Viết tại đây...
 ### Mô tả quá trình kiểm chứng
 
 ```text
-Viết tại đây...
+Quy trình kiểm chứng đã dùng:
+- So khớp endpoint và response shape với frontend template.
+- Review lại các file thay đổi trước khi commit.
+- Chạy `mvn -q -DskipTests compile` để xác nhận backend build pass.
+- Đối chiếu commit theo từng nhóm thay đổi để dễ trace khi review.
 ```
 
 ### Ví dụ cụ thể về một lần kiểm chứng
 
 | Nội dung | Mô tả |
 |---|---|
-| AI đã gợi ý gì? |  |
-| Em/nhóm đã kiểm tra bằng cách nào? |  |
-| Kết quả kiểm tra | Đúng / Sai / Cần chỉnh sửa |
-| Em/nhóm đã xử lý tiếp như thế nào? |  |
+| AI đã gợi ý gì? | Đề xuất thêm endpoint media, class DTO/repository/service và chuẩn hóa compatibility với frontend template |
+| Em/nhóm đã kiểm tra bằng cách nào? | So khớp API với file frontend + compile backend |
+| Kết quả kiểm tra | Cần chỉnh sửa |
+| Em/nhóm đã xử lý tiếp như thế nào? | Sửa endpoint helper frontend, xử lý categoryId optional, compile lại đến khi pass |
 
 ---
 
@@ -213,7 +235,11 @@ Trong quá trình thực hiện, em/nhóm chưa ghi nhận trường hợp AI g�
 Mô tả rõ phần nào là đóng góp chính của sinh viên/nhóm, không phải chỉ copy từ AI.
 
 ```text
-Viết tại đây...
+Phần đóng góp chính của nhóm:
+- Xác định hướng tích hợp không phá vỡ flow cũ.
+- Tự chuẩn hóa logic service theo payload thực tế frontend.
+- Tự sửa mismatch endpoint và lỗi trùng lệnh fetch.
+- Tự kiểm tra build và tổ chức commit nhỏ để dễ review nhóm.
 ```
 
 Gợi ý:
@@ -249,7 +275,10 @@ Gợi ý:
 Sau bài tập/project này, em/nhóm học được gì về kiến thức môn học?
 
 ```text
-Viết tại đây...
+Bài học chuyên môn:
+- Khi làm fullstack nhóm, chuẩn API contract quan trọng hơn tối ưu sớm.
+- Một chức năng lớn nên tách lớp rõ (controller/service/repository/dto) để dễ bảo trì.
+- Validate dữ liệu nên bám payload thực tế frontend đang gửi.
 ```
 
 Gợi ý:
@@ -271,7 +300,10 @@ Gợi ý:
 Sau bài tập/project này, em/nhóm học được gì về việc sử dụng AI một cách minh bạch, có trách nhiệm?
 
 ```text
-Viết tại đây...
+Bài học về AI có trách nhiệm:
+- AI chỉ nên là công cụ hỗ trợ phân tích và tăng tốc.
+- Mọi gợi ý của AI phải được kiểm tra bằng build/test thực tế.
+- Cần ghi nhận minh bạch phần nào dùng AI và phần nào nhóm tự quyết định/chỉnh sửa.
 ```
 
 Gợi ý:
@@ -300,7 +332,10 @@ Gợi ý:
 ### Giải thích thêm nếu có
 
 ```text
-Viết tại đây...
+Lần sau nhóm sẽ:
+- Chủ động chốt API contract sớm giữa frontend-backend.
+- Viết checklist verify sau mỗi thay đổi lớn (endpoint, payload, compile, smoke test).
+- Ghi log prompt/commit đồng bộ ngay trong ngày để dễ truy vết.
 ```
 
 ---

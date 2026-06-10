@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -21,8 +22,10 @@ public class FeedbackResponse {
     private String addressDetails;
     private FeedbackStatus status;
     private String categoryName;
+    private String wardName;
     private String citizenName;
     private String assigneeName;
+    private List<FeedbackAttachmentResponse> attachments;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

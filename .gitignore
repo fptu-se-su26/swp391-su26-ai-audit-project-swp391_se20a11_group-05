@@ -25,3 +25,4 @@ dist/
 # Environment
 .env
 .env.local
+.env.local.ps1

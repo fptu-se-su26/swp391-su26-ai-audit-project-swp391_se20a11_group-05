@@ -77,7 +77,7 @@ function ProfilePage() {
     <div className="max-w-3xl mx-auto px-4 md:px-8 py-10 md:py-14">
       <div className="mb-8">
         <h1 className="font-heading text-4xl md:text-5xl text-gov-blue mb-2">
-          {locale === "vi" ? "Ho so ca nhan" : "Profile"}
+          {locale === "vi" ? "Hồ sơ cá nhân" : "Profile"}
         </h1>
         <p className="text-ink-soft">
           {locale === "vi"

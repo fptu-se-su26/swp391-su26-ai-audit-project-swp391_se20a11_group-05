@@ -22,8 +22,8 @@ export function HeatmapMap({ hotspots }: HeatmapMapProps) {
     <div className="h-[400px] w-full rounded-lg overflow-hidden border border-slate-200 shadow-sm relative z-0">
       <MapContainer center={center} zoom={13} style={{ height: "100%", width: "100%" }}>
         <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://mt1.google.com/vt/lyrs=m&hl=vi&gl=VN&x={x}&y={y}&z={z}"
+          attribution='&copy; Google Maps'
         />
         {hotspots.map((h, i) => {
           // Màu sắc theo độ nghiêm trọng

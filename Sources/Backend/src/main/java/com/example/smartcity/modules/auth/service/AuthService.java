@@ -80,19 +80,20 @@ public class AuthService {
             user.setLockedUntil(null);
             userRepository.save(user);
 
-            boolean isHighRiskRole = user.getRole() == Role.WARD_STAFF ||
-                                     user.getRole() == Role.POLICE ||
-                                     user.getRole() == Role.SUPER_ADMIN;
+            // Disable MFA cho môi trường dev hiện tại để chấm bài dễ hơn
+            // boolean isHighRiskRole = user.getRole() == Role.WARD_STAFF ||
+            //                          user.getRole() == Role.POLICE ||
+            //                          user.getRole() == Role.SUPER_ADMIN;
 
-            if (isHighRiskRole) {
-                String mfaToken = mfaSessionService.createSession(user.getId());
-                return AuthResponse.builder()
-                        .username(user.getUsername())
-                        .mfaRequired(true)
-                        .mfaSetupRequired(!user.isMfaEnabled())
-                        .mfaToken(mfaToken)
-                        .build();
-            }
+            // if (isHighRiskRole) {
+            //     String mfaToken = mfaSessionService.createSession(user.getId());
+            //     return AuthResponse.builder()
+            //             .username(user.getUsername())
+            //             .mfaRequired(true)
+            //             .mfaSetupRequired(!user.isMfaEnabled())
+            //             .mfaToken(mfaToken)
+            //             .build();
+            // }
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
             

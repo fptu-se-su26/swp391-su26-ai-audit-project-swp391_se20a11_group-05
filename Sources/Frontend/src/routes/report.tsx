@@ -608,8 +608,8 @@ function ReportPage() {
             >
               <MapViewUpdater center={mapCenter} />
               <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution='&copy; Google Maps'
+                url="https://mt1.google.com/vt/lyrs=m&hl=vi&gl=VN&x={x}&y={y}&z={z}"
               />
               {markerDisplayed && latitude !== null && longitude !== null && (
                 <Marker position={[latitude, longitude]} icon={currentLocationIcon}>

@@ -36,8 +36,8 @@ export function CivicMap({ center = [16.0544, 108.2022], zoom = 13, markers = []
         scrollWheelZoom={interactive}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; Google Maps'
+          url="https://mt1.google.com/vt/lyrs=m&hl=vi&gl=VN&x={x}&y={y}&z={z}"
         />
         {markers.map((m, i) => (
           <Marker key={i} position={m.position}>

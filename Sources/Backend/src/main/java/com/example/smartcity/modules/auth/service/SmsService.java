@@ -10,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.security.SecureRandom;
-import org.springframework.beans.factory.annotation.Value;
 import javax.annotation.PostConstruct;
 import com.twilio.Twilio;
 import com.twilio.rest.api.v2010.account.Message;
@@ -25,37 +24,36 @@ public class SmsService {
     private static final int OTP_VALID_DURATION_MINUTES = 5;
     private static final int MAX_ATTEMPTS = 3;
 
-    @Value("${twilio.account-sid}")
+    private final com.example.smartcity.security.secrets.SecurityManager securityManager;
+
     private String twilioAccountSid;
-
-    @Value("${twilio.auth-token}")
     private String twilioAuthToken;
-
-    @Value("${twilio.phone-number}")
     private String twilioPhoneNumber;
 
     @PostConstruct
     public void initTwilio() {
-        Twilio.init(twilioAccountSid, twilioAuthToken);
-        log.info("Twilio initialized successfully!");
+        twilioAccountSid = securityManager.getSecret("twilio.account-sid");
+        twilioAuthToken = securityManager.getSecret("twilio.auth-token");
+        twilioPhoneNumber = securityManager.getSecret("twilio.phone-number");
+
+        if (twilioAccountSid != null && twilioAuthToken != null) {
+            Twilio.init(twilioAccountSid, twilioAuthToken);
+            log.info("Twilio initialized successfully!");
+        } else {
+            log.warn("Twilio secrets not found. SMS features will be disabled.");
+        }
     }
 
-    @Transactional
     public String generateAndSendOtp(String phoneNumber) {
         // Hủy các mã OTP cũ chưa sử dụng (Tùy chọn: có thể query và set isUsed = true, ở đây ta dùng logic lấy mã mới nhất)
         
         // [SECURITY FIX] Dùng SecureRandom để tránh dự đoán mã OTP
         String otpCode = String.format("%06d", new SecureRandom().nextInt(999999));
 
-        SmsVerification verification = SmsVerification.builder()
-                .phoneNumber(phoneNumber)
-                .otpCode(otpCode)
-                .expiresAt(LocalDateTime.now().plusMinutes(OTP_VALID_DURATION_MINUTES))
-                .build();
-
-        smsVerificationRepository.save(verification);
+        saveOtpRecord(phoneNumber, otpCode);
 
         try {
+            // EXTERNAL API CALL: Không bọc trong Transaction để tránh nghẽn Connection Pool
             Message message = Message.creator(
                     new PhoneNumber(phoneNumber),
                     new PhoneNumber(twilioPhoneNumber),
@@ -72,6 +70,16 @@ public class SmsService {
         }
 
         return "Mã OTP đã được gửi đến số điện thoại của bạn.";
+    }
+
+    @Transactional
+    public void saveOtpRecord(String phoneNumber, String otpCode) {
+        SmsVerification verification = SmsVerification.builder()
+                .phoneNumber(phoneNumber)
+                .otpCode(otpCode)
+                .expiresAt(LocalDateTime.now().plusMinutes(OTP_VALID_DURATION_MINUTES))
+                .build();
+        smsVerificationRepository.save(verification);
     }
 
     @Transactional

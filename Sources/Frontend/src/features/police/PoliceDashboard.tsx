@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useFeedbacks, useRejectFeedback, useRequestMoreInfo, useHotspots } from "@/hooks";
 import { reports as mockReports } from "@/lib/mock-data";
@@ -7,7 +8,10 @@ import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recha
 import { AlertTriangle, Megaphone, ScanLine, Video, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ReportCard } from "@/features/shared/ReportCard";
-import { HeatmapMap } from "@/components/site/HeatmapMap";
+
+const HeatmapMap = lazy(() =>
+  import("@/components/site/HeatmapMap").then((m) => ({ default: m.HeatmapMap })),
+);
 
 export function PoliceDashboard() {
   const { t, locale } = useI18n();
@@ -35,8 +39,12 @@ export function PoliceDashboard() {
   };
 
   // Filter traffic/urgent for police view
-  const filteredApi = apiFeedbacks.filter(r => r.categoryName === "Giao thông" || r.status === "REJECTED");
-  const trafficReports = mockReports.filter((r) => r.category === "traffic" || r.status === "urgent");
+  const filteredApi = apiFeedbacks.filter(
+    (r) => r.categoryName === "Giao thông" || r.status === "REJECTED",
+  );
+  const trafficReports = mockReports.filter(
+    (r) => r.category === "traffic" || r.status === "urgent",
+  );
 
   return (
     <StaffShell
@@ -46,16 +54,40 @@ export function PoliceDashboard() {
       org="Công an Thành phố Đà Nẵng"
     >
       <div className="flex justify-end mb-6">
-        <button className="btn-civic btn-civic-primary" style={{ background: "var(--status-danger)" }}>
+        <button
+          className="btn-civic btn-civic-primary"
+          style={{ background: "var(--status-danger)" }}
+        >
           <Megaphone size={20} /> {t("police.broadcast")}
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
         {[
-          { icon: AlertTriangle, label: "Khẩn cấp đang xử lý", val: hasApiData ? filteredApi.filter(f => f.status === 'REJECTED').length : 4, color: "text-[var(--status-danger)]", border: "border-[var(--status-danger)]", spark: [6, 8, 4, 7, 5, 9, 3, 6, 8, 4, 7, 5] },
-          { icon: Video, label: "Video chờ thẩm tra", val: 12, color: "text-gov-blue", border: "border-gov-blue", spark: [15, 12, 18, 10, 14, 16, 11, 13, 9, 17, 12, 14] },
-          { icon: ScanLine, label: "Biển số đã OCR (24h)", val: 38, color: "text-[var(--status-pending)]", border: "border-[var(--status-pending)]", spark: [28, 35, 32, 40, 38, 42, 36, 44, 38, 41, 37, 43] },
+          {
+            icon: AlertTriangle,
+            label: "Khẩn cấp đang xử lý",
+            val: hasApiData ? filteredApi.filter((f) => f.status === "REJECTED").length : 4,
+            color: "text-[var(--status-danger)]",
+            border: "border-[var(--status-danger)]",
+            spark: [6, 8, 4, 7, 5, 9, 3, 6, 8, 4, 7, 5],
+          },
+          {
+            icon: Video,
+            label: "Video chờ thẩm tra",
+            val: 12,
+            color: "text-gov-blue",
+            border: "border-gov-blue",
+            spark: [15, 12, 18, 10, 14, 16, 11, 13, 9, 17, 12, 14],
+          },
+          {
+            icon: ScanLine,
+            label: "Biển số đã OCR (24h)",
+            val: 38,
+            color: "text-[var(--status-pending)]",
+            border: "border-[var(--status-pending)]",
+            spark: [28, 35, 32, 40, 38, 42, 36, 44, 38, 41, 37, 43],
+          },
         ].map((c, idx) => (
           <div
             key={c.label}
@@ -64,7 +96,9 @@ export function PoliceDashboard() {
             <div className="flex items-center gap-4 mb-1">
               <c.icon className={c.color} size={36} />
               <div className="flex-1">
-                <div className="text-xs uppercase font-bold text-ink-soft tracking-wider">{c.label}</div>
+                <div className="text-xs uppercase font-bold text-ink-soft tracking-wider">
+                  {c.label}
+                </div>
                 <div className={`text-3xl font-bold ${c.color}`}>
                   {isLoading ? <Loader2 size={24} className="animate-spin inline" /> : c.val}
                 </div>
@@ -83,7 +117,9 @@ export function PoliceDashboard() {
           Bản đồ Điểm nóng vi phạm (Heatmap)
         </h2>
         <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
-          <HeatmapMap hotspots={hotspots || []} />
+          <Suspense fallback={<div className="h-[400px] w-full bg-slate-100 animate-pulse rounded-lg" />}>
+            <HeatmapMap hotspots={hotspots || []} />
+          </Suspense>
         </div>
       </div>
 
@@ -116,32 +152,36 @@ export function PoliceDashboard() {
 
       <div className="space-y-4">
         {/* API Data */}
-        {!isLoading && hasApiData && filteredApi.map((r) => (
-          <ReportCard
-            key={r.id}
-            report={r}
-            isApi={true}
-            locale={locale}
-            policeView={true}
-            onReject={handleReject}
-            onRequestInfo={handleRequestInfo}
-            isLoading={rejectMutation.isPending || requestInfoMutation.isPending}
-          />
-        ))}
+        {!isLoading &&
+          hasApiData &&
+          filteredApi.map((r) => (
+            <ReportCard
+              key={r.id}
+              report={r}
+              isApi={true}
+              locale={locale}
+              policeView={true}
+              onReject={handleReject}
+              onRequestInfo={handleRequestInfo}
+              isLoading={rejectMutation.isPending || requestInfoMutation.isPending}
+            />
+          ))}
 
         {/* Fallback Mock Data */}
-        {!isLoading && !hasApiData && trafficReports.map((r) => (
-          <ReportCard
-            key={r.id}
-            report={r}
-            isApi={false}
-            locale={locale}
-            policeView={true}
-            onReject={handleReject}
-            onRequestInfo={handleRequestInfo}
-            isLoading={rejectMutation.isPending || requestInfoMutation.isPending}
-          />
-        ))}
+        {!isLoading &&
+          !hasApiData &&
+          trafficReports.map((r) => (
+            <ReportCard
+              key={r.id}
+              report={r}
+              isApi={false}
+              locale={locale}
+              policeView={true}
+              onReject={handleReject}
+              onRequestInfo={handleRequestInfo}
+              isLoading={rejectMutation.isPending || requestInfoMutation.isPending}
+            />
+          ))}
       </div>
 
       {/* Daily report counts bar chart */}
@@ -162,7 +202,12 @@ export function PoliceDashboard() {
               ]}
               margin={{ top: 8, right: 16, bottom: 0, left: -16 }}
             >
-              <XAxis dataKey="day" tick={{ fill: "#94a3b8", fontSize: 12 }} axisLine={false} tickLine={false} />
+              <XAxis
+                dataKey="day"
+                tick={{ fill: "#94a3b8", fontSize: 12 }}
+                axisLine={false}
+                tickLine={false}
+              />
               <YAxis tick={{ fill: "#94a3b8", fontSize: 12 }} axisLine={false} tickLine={false} />
               <Tooltip
                 contentStyle={{

@@ -1,62 +1,219 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { ROLE_LABEL, Role } from "@/lib/roles";
-import { Menu, X, LogOut, Bell, User, ChevronDown } from "lucide-react";
-import { useState } from "react";
+import {
+  Menu,
+  X,
+  LogOut,
+  Bell,
+  User,
+  ChevronDown,
+  ClipboardList,
+  Loader2,
+  Send,
+  ClipboardCheck,
+  AlertCircle,
+  FileClock,
+  CheckCircle2,
+  MessageSquareWarning,
+  Clock3,
+  Route as RouteIcon,
+} from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import logoUrl from "@/assets/logo.png";
+import { useNotifications, useMarkNotificationReadMutation } from "@/lib/hooks";
+import { toast } from "sonner";
+import type { NotificationResponse } from "@/lib/api";
+
+function timeAgo(dateStr: string, locale: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return locale === "vi" ? "Vừa xong" : "Just now";
+  if (m < 60) return locale === "vi" ? `${m} phút trước` : `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return locale === "vi" ? `${h} giờ trước` : `${h}h ago`;
+  return locale === "vi" ? `${Math.floor(h / 24)} ngày trước` : `${Math.floor(h / 24)}d ago`;
+}
+
+function iconForType(type?: string) {
+  switch (type) {
+    case "FEEDBACK_SUBMITTED":
+      return Send;
+    case "FEEDBACK_ACCEPTED":
+      return ClipboardCheck;
+    case "FEEDBACK_REJECTED":
+      return AlertCircle;
+    case "FEEDBACK_ASSIGNED":
+      return RouteIcon;
+    case "FEEDBACK_IN_PROGRESS":
+      return FileClock;
+    case "FEEDBACK_COMPLETED":
+    case "FEEDBACK_CLOSED":
+      return CheckCircle2;
+    case "NEED_MORE_INFO":
+      return MessageSquareWarning;
+    default:
+      return Clock3;
+  }
+}
 
 export function Header() {
   const { locale, setLocale, t } = useI18n();
   const { user, logout, hasRole } = useAuth();
   const path = useRouterState({ select: (s) => s.location.pathname });
-  const [open, setOpen] = useState(false);
-  const [langOpen, setLangOpen] = useState(false);
+  const navigate = useNavigate();
 
-  // Core citizen menu items from Image 1
+  const [open, setOpen] = useState(false); // Mobile hamburger menu
+  const [langOpen, setLangOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [userOpen, setUserOpen] = useState(false);
+
+  const notifRef = useRef<HTMLDivElement>(null);
+  const userRef = useRef<HTMLDivElement>(null);
+  const langRef = useRef<HTMLDivElement>(null);
+
+  // Notifications logic
+  const {
+    data: notifications = [],
+    isLoading: notifLoading,
+    isError: notifError,
+    refetch: notifRefetch,
+  } = useNotifications();
+  const markRead = useMarkNotificationReadMutation();
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  // Click outside listener
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setNotifOpen(false);
+      }
+      if (userRef.current && !userRef.current.contains(event.target as Node)) {
+        setUserOpen(false);
+      }
+      if (langRef.current && !langRef.current.contains(event.target as Node)) {
+        setLangOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Escape key listener
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setNotifOpen(false);
+        setUserOpen(false);
+        setLangOpen(false);
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  const toggleNotif = () => {
+    setNotifOpen(!notifOpen);
+    setUserOpen(false);
+    setLangOpen(false);
+    setOpen(false);
+  };
+
+  const toggleUser = () => {
+    setUserOpen(!userOpen);
+    setNotifOpen(false);
+    setLangOpen(false);
+    setOpen(false);
+  };
+
+  const toggleLang = () => {
+    setLangOpen(!langOpen);
+    setNotifOpen(false);
+    setUserOpen(false);
+    setOpen(false);
+  };
+
+  // Mark all unread notifications in dropdown as read
+  const handleMarkAllRead = async () => {
+    const unreadItems = notifications.filter((n) => !n.read).slice(0, 5);
+    if (unreadItems.length === 0) return;
+    try {
+      await Promise.all(unreadItems.map((item) => markRead.mutateAsync(item.id)));
+      toast.success(
+        locale === "vi" ? "Đã đánh dấu đọc tất cả thông báo" : "All notifications marked as read",
+      );
+    } catch (err) {
+      toast.error(locale === "vi" ? "Thao tác thất bại" : "Action failed");
+    }
+  };
+
+  const handleNotifClick = async (item: NotificationResponse) => {
+    const feedbackId = item.feedbackId ?? item.referenceId;
+    setNotifOpen(false);
+    try {
+      if (!item.read) {
+        await markRead.mutateAsync(item.id);
+      }
+      if (feedbackId) {
+        await navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
+      } else {
+        await navigate({ to: "/notifications" });
+      }
+    } catch (err) {
+      // noop
+    }
+  };
+
+  // Simplified core navigation items
   const menuItems = [
-    { to: "/", label: "Trang chủ" },
-    { to: "/my-reports", label: "Phản ánh của tôi" },
-    { to: "/my-reports", label: "Tra cứu" },
-    { to: "/notifications", label: "Thông báo" },
-    { to: "/my-reports", label: "Hướng dẫn" },
-    { to: "/", label: "Về chúng tôi" },
+    { to: "/", label: locale === "vi" ? "Trang chủ" : "Home" },
+    { to: "/", hash: "tin-tuc", label: locale === "vi" ? "Tin tức" : "News" },
+    { to: "/my-reports", label: locale === "vi" ? "Tra cứu" : "Search" },
+    { to: "/", hash: "huong-dan", label: locale === "vi" ? "Hướng dẫn" : "Guide" },
   ];
 
   const staffItemsAll = [
-    { to: "/ward",       label: t("nav.ward"),      roles: [Role.WARD_STAFF, Role.SUPER_ADMIN] as const },
-    { to: "/police",     label: t("nav.police"),    roles: [Role.POLICE, Role.SUPER_ADMIN] as const },
+    { to: "/ward", label: t("nav.ward"), roles: [Role.WARD_STAFF, Role.SUPER_ADMIN] as const },
+    { to: "/police", label: t("nav.police"), roles: [Role.POLICE, Role.SUPER_ADMIN] as const },
     { to: "/city-admin", label: t("nav.cityAdmin"), roles: [Role.SUPER_ADMIN] as const },
   ];
   const staffItems = staffItemsAll.filter((i) => hasRole(...i.roles));
 
   // Determine active item based on pathname and label
-  const isItemActive = (item: typeof menuItems[0]) => {
+  const isItemActive = (item: (typeof menuItems)[0]) => {
     if (typeof window === "undefined") {
-      if (item.label === "Trang chủ") return path === "/";
-      if (item.label === "Phản ánh của tôi") return path === "/my-reports";
+      if (item.label === "Trang chủ" || item.label === "Home") return path === "/";
       return false;
     }
-    const searchString = window.location.search;
-    if (item.label === "Trang chủ") return path === "/";
-    if (item.label === "Phản ánh của tôi") return path === "/my-reports" && !searchString.includes("q=");
-    if (item.label === "Tra cứu") return path === "/my-reports" && searchString.includes("q=");
-    if (item.label === "Thông báo") return path === "/notifications";
+    const hash = window.location.hash;
+    if (item.label === "Trang chủ" || item.label === "Home") {
+      return path === "/" && hash !== "#huong-dan" && hash !== "#tin-tuc";
+    }
+    if (item.label === "Tin tức" || item.label === "News") {
+      return path === "/" && hash === "#tin-tuc";
+    }
+    if (item.label === "Tra cứu" || item.label === "Search") {
+      return path === "/my-reports";
+    }
+    if (item.label === "Hướng dẫn" || item.label === "Guide") {
+      return path === "/" && hash === "#huong-dan";
+    }
     return false;
   };
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-[#E4EAF2] shadow-sm">
       <div className="max-w-[1440px] mx-auto px-4 md:px-8 h-[76px] flex items-center justify-between">
-        
         {/* Left: Brand logo & text */}
-        <Link to="/" className="flex items-center gap-2.5 group shrink-0">
-          <img src={logoUrl} alt="Đà Nẵng Kết Nối" className="h-10 w-auto object-contain" />
+        <Link to="/" className="flex items-center gap-2 group shrink-0">
+          <img src={logoUrl} alt="Đà Nẵng Kết Nối" className="h-9 w-auto object-contain md:h-10" />
           <div className="flex flex-col leading-none">
-            <span className="text-base font-extrabold tracking-tight text-[#0B4FC4] uppercase font-sans">
+            <span className="text-sm md:text-base font-extrabold tracking-tight text-[#0B4FC4] uppercase font-sans">
               ĐÀ NẴNG KẾT NỐI
             </span>
-            <span className="text-[9px] text-[#667085] font-bold uppercase tracking-wider mt-0.5 font-sans">
+            <span className="text-[8px] md:text-[9px] text-[#667085] font-bold uppercase tracking-wider mt-0.5 font-sans hidden sm:block">
               CỔNG THÔNG TIN PHẢN ÁNH HIỆN TRƯỜNG
             </span>
           </div>
@@ -69,11 +226,13 @@ export function Header() {
               const active = isItemActive(item);
               return (
                 <li key={index} className="h-full flex items-center">
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   <Link
                     to={item.to as any}
+                    hash={item.hash}
                     className={`relative py-2 text-sm font-semibold transition-all font-sans ${
-                      active 
-                        ? "text-[#0B4FC4] border-b-2 border-[#0B4FC4] pt-2" 
+                      active
+                        ? "text-[#0B4FC4] border-b-2 border-[#0B4FC4] pt-2"
                         : "text-[#123E8A] hover:text-[#0B4FC4]"
                     }`}
                   >
@@ -82,10 +241,11 @@ export function Header() {
                 </li>
               );
             })}
-            
+
             {/* Staff access links if user is authority */}
             {staffItems.map((item, index) => (
               <li key={`staff-${index}`} className="h-full flex items-center">
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 <Link
                   to={item.to as any}
                   className="px-2.5 py-1 bg-amber-50 text-amber-700 rounded text-xs font-bold border border-amber-200 hover:bg-amber-100 transition font-sans"
@@ -97,13 +257,13 @@ export function Header() {
           </ul>
         </nav>
 
-        {/* Right: Controls & Account */}
-        <div className="hidden md:flex items-center gap-4 lg:gap-6">
+        {/* Right: Controls & Account + Mobile Menu Trigger */}
+        <div className="flex items-center gap-2 sm:gap-3 md:gap-4 lg:gap-6">
           {/* Language Selector */}
-          <div className="relative">
+          <div className="relative hidden md:block" ref={langRef}>
             <button
-              onClick={() => setLangOpen(!langOpen)}
-              className="flex items-center gap-1.5 text-sm font-semibold text-[#123E8A] hover:text-[#0B4FC4] transition min-h-[40px] px-2"
+              onClick={toggleLang}
+              className="flex items-center gap-1.5 text-sm font-semibold text-[#123E8A] hover:text-[#0B4FC4] transition min-h-[40px] px-2 cursor-pointer"
               aria-label="Select Language"
               aria-expanded={langOpen}
             >
@@ -111,18 +271,24 @@ export function Header() {
               <span className="font-sans">VI</span>
               <ChevronDown size={14} className="text-[#667085]" />
             </button>
-            
+
             {langOpen && (
-              <div className="absolute right-0 mt-1 w-28 bg-white border border-[#E4EAF2] rounded-lg shadow-lg py-1 z-50">
+              <div className="absolute right-0 mt-1 w-28 bg-white border border-[#E4EAF2] rounded-lg shadow-lg py-1 z-50 animate-fade-in">
                 <button
-                  onClick={() => { setLocale("vi"); setLangOpen(false); }}
-                  className="w-full text-left px-3 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2 font-sans"
+                  onClick={() => {
+                    setLocale("vi");
+                    setLangOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2 font-sans cursor-pointer"
                 >
                   <span>🇻🇳</span> Tiếng Việt
                 </button>
                 <button
-                  onClick={() => { setLocale("en"); setLangOpen(false); }}
-                  className="w-full text-left px-3 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2 font-sans"
+                  onClick={() => {
+                    setLocale("en");
+                    setLangOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2 font-sans cursor-pointer"
                 >
                   <span>🇬🇧</span> English
                 </button>
@@ -130,105 +296,307 @@ export function Header() {
             )}
           </div>
 
-          {/* Notification bell */}
-          <Link
-            to="/notifications"
-            className="relative p-2 text-[#123E8A] hover:text-[#0B4FC4] transition rounded-full hover:bg-slate-50"
-            aria-label="Notifications"
-          >
-            <Bell size={20} />
-            <span className="absolute top-0 right-0 w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border border-white font-sans">
-              3
-            </span>
-          </Link>
+          {/* Notification bell & dropdown */}
+          <div className="relative" ref={notifRef}>
+            <button
+              onClick={toggleNotif}
+              className={`relative p-2 text-[#123E8A] hover:text-[#0B4FC4] transition rounded-full hover:bg-slate-50 min-w-[40px] min-h-[40px] flex items-center justify-center cursor-pointer`}
+              aria-label="Mở danh sách thông báo"
+              aria-expanded={notifOpen}
+            >
+              <Bell size={20} />
+              {unreadCount > 0 && (
+                <span className="absolute top-0.5 right-0.5 w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border border-white font-sans">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
 
-          {/* Authentication Action */}
-          {user ? (
-            <div className="flex items-center gap-3 border-l border-[#E4EAF2] pl-4 lg:pl-6">
-              <div className="text-right leading-tight">
-                <div className="text-sm font-bold text-[#123E8A] font-sans">{user.name}</div>
-                <div className="text-[10px] uppercase tracking-widest text-[#667085] font-extrabold font-sans">
-                  {ROLE_LABEL[user.role][locale]}
+            {/* Notification Dropdown Panel */}
+            {notifOpen && (
+              <div className="absolute right-0 mt-2 w-[300px] sm:w-[340px] md:w-[380px] bg-white border border-[#E4EAF2] rounded-xl shadow-lg py-3 z-50 animate-fade-in">
+                {/* Header */}
+                <div className="flex items-center justify-between px-4 pb-2 border-b border-[#E4EAF2]">
+                  <span className="text-sm font-bold text-[#123E8A] font-sans">
+                    {locale === "vi" ? "Thông báo" : "Notifications"}
+                  </span>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={handleMarkAllRead}
+                      className="text-xs text-[#0B4FC4] hover:underline font-semibold font-sans cursor-pointer"
+                    >
+                      {locale === "vi" ? "Đánh dấu đã đọc" : "Mark as read"}
+                    </button>
+                  )}
+                </div>
+
+                {/* Body */}
+                <div className="max-h-[300px] overflow-y-auto divide-y divide-[#E4EAF2]">
+                  {notifLoading && (
+                    <div className="p-4 space-y-3">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="flex gap-3 animate-pulse">
+                          <div className="w-8 h-8 bg-slate-100 rounded-full shrink-0" />
+                          <div className="flex-1 space-y-2">
+                            <div className="h-3.5 bg-slate-100 rounded w-1/3" />
+                            <div className="h-3 bg-slate-100 rounded w-4/5" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {notifError && (
+                    <div className="p-4 text-center text-xs text-red-500 font-sans">
+                      {locale === "vi"
+                        ? "Không thể tải thông báo."
+                        : "Could not load notifications."}
+                      <button
+                        onClick={() => void notifRefetch()}
+                        className="block mx-auto mt-2 text-[#0B4FC4] hover:underline font-bold cursor-pointer"
+                      >
+                        {locale === "vi" ? "Thử lại" : "Retry"}
+                      </button>
+                    </div>
+                  )}
+
+                  {!notifLoading && !notifError && notifications.length === 0 && (
+                    <div className="py-8 text-center text-xs text-[#667085] font-sans">
+                      {locale === "vi"
+                        ? "Bạn chưa có thông báo mới."
+                        : "You have no new notifications."}
+                    </div>
+                  )}
+
+                  {!notifLoading &&
+                    !notifError &&
+                    notifications.slice(0, 5).map((item) => {
+                      const NotifIcon = iconForType(item.type);
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => void handleNotifClick(item)}
+                          className={`w-full text-left p-3.5 flex gap-3 transition-colors cursor-pointer ${
+                            item.read
+                              ? "bg-white hover:bg-slate-50"
+                              : "bg-blue-50/60 hover:bg-blue-50/90 font-semibold"
+                          }`}
+                        >
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                              item.read ? "bg-slate-100 text-slate-500" : "bg-[#0B4FC4] text-white"
+                            }`}
+                          >
+                            <NotifIcon size={16} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-1 mb-0.5">
+                              <h4 className="text-xs font-bold text-[#123E8A] truncate font-sans">
+                                {item.title}
+                              </h4>
+                              <span className="text-[9px] text-[#667085] shrink-0 font-sans">
+                                {timeAgo(item.createdAt, locale)}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-[#667085] line-clamp-2 leading-relaxed font-sans">
+                              {item.content}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                </div>
+
+                {/* Footer */}
+                <div className="pt-2 text-center border-t border-[#E4EAF2]">
+                  <Link
+                    to="/notifications"
+                    onClick={() => setNotifOpen(false)}
+                    className="text-xs font-bold text-[#0B4FC4] hover:underline inline-block py-1 font-sans"
+                  >
+                    {locale === "vi" ? "Xem tất cả thông báo" : "See all notifications"}
+                  </Link>
                 </div>
               </div>
+            )}
+          </div>
+
+          {/* Authentication Area & Dropdown */}
+          {user ? (
+            <div className="relative" ref={userRef}>
               <button
-                onClick={logout}
-                className="p-2 text-slate-400 hover:text-red-500 rounded-md border border-[#E4EAF2] hover:bg-red-50/50 transition"
-                aria-label="Đăng xuất"
+                onClick={toggleUser}
+                className="flex items-center gap-2 border-l border-[#E4EAF2] pl-2 sm:pl-3 md:pl-4 lg:pl-6 focus:outline-none group min-h-[40px] text-left cursor-pointer"
+                aria-expanded={userOpen}
+                aria-haspopup="true"
               >
-                <LogOut size={16} />
+                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[#0B4FC4] border border-[#E4EAF2] group-hover:bg-[#F5F9FF] transition shrink-0">
+                  <User size={16} />
+                </div>
+                <div className="text-right leading-tight hidden md:block">
+                  <div className="text-sm font-bold text-[#123E8A] font-sans group-hover:text-[#0B4FC4] transition flex items-center gap-1">
+                    {user.name}
+                    <ChevronDown
+                      size={14}
+                      className="text-[#667085] group-hover:text-[#0B4FC4] transition"
+                    />
+                  </div>
+                  <div className="text-[9px] uppercase tracking-widest text-[#667085] font-extrabold font-sans">
+                    {ROLE_LABEL[user.role][locale]}
+                  </div>
+                </div>
               </button>
+
+              {/* User Dropdown Menu */}
+              {userOpen && (
+                <div className="absolute right-0 mt-2 w-[240px] bg-white border border-[#E4EAF2] rounded-xl shadow-lg py-2 z-50 animate-fade-in">
+                  {/* User info summary */}
+                  <div className="px-4 py-2 border-b border-[#E4EAF2] mb-1">
+                    <div className="text-xs font-bold text-[#123E8A] font-sans truncate">
+                      {user.name}
+                    </div>
+                    <div className="text-[9px] uppercase tracking-widest text-[#667085] font-extrabold font-sans truncate mt-0.5">
+                      {ROLE_LABEL[user.role][locale]}
+                    </div>
+                  </div>
+
+                  <Link
+                    to="/profile"
+                    onClick={() => setUserOpen(false)}
+                    className="w-full text-left px-4 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2.5 font-sans"
+                  >
+                    <User size={14} className="text-[#667085]" />
+                    {locale === "vi" ? "Thông tin cá nhân" : "Personal info"}
+                  </Link>
+
+                  <Link
+                    to="/my-reports"
+                    onClick={() => setUserOpen(false)}
+                    className="w-full text-left px-4 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2.5 font-sans"
+                  >
+                    <ClipboardList size={14} className="text-[#667085]" />
+                    {locale === "vi" ? "Phản ánh của tôi" : "My reports"}
+                  </Link>
+
+                  <Link
+                    to="/notifications"
+                    onClick={() => setUserOpen(false)}
+                    className="w-full text-left px-4 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2.5 font-sans"
+                  >
+                    <Bell size={14} className="text-[#667085]" />
+                    {locale === "vi" ? "Thông báo của tôi" : "My notifications"}
+                  </Link>
+
+                  <div className="border-t border-[#E4EAF2] my-1" />
+
+                  <button
+                    onClick={() => {
+                      logout();
+                      setUserOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50/50 transition flex items-center gap-2.5 font-sans cursor-pointer"
+                  >
+                    <LogOut size={14} />
+                    {locale === "vi" ? "Đăng xuất" : "Log out"}
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <Link
               to="/login"
-              className="px-4 py-2 bg-[#0B4FC4] text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition flex items-center gap-2 shadow-sm font-sans"
+              className="px-3 py-1.5 md:px-4 md:py-2 bg-[#0B4FC4] text-white rounded-lg text-xs md:text-sm font-semibold hover:bg-blue-700 transition flex items-center gap-1.5 shadow-sm font-sans shrink-0"
             >
               <User size={16} />
-              Đăng nhập / Đăng ký
+              <span className="hidden sm:inline">Đăng nhập / Đăng ký</span>
+              <span className="sm:hidden">Đăng nhập</span>
             </Link>
           )}
+
+          {/* Mobile menu trigger */}
+          <button
+            className="lg:hidden min-w-[40px] min-h-[40px] grid place-items-center text-[#123E8A] hover:text-[#0B4FC4] border border-[#E4EAF2] rounded-lg bg-slate-50/50 hover:bg-slate-50 transition ml-1 cursor-pointer"
+            onClick={() => {
+              setOpen(!open);
+              setNotifOpen(false);
+              setUserOpen(false);
+              setLangOpen(false);
+            }}
+            aria-label="Menu"
+            aria-expanded={open}
+          >
+            {open ? <X size={20} /> : <Menu size={20} />}
+          </button>
         </div>
-
-        {/* Mobile menu trigger */}
-        <button
-          className="lg:hidden min-w-[44px] min-h-[44px] grid place-items-center text-[#123E8A] hover:text-[#0B4FC4]"
-          onClick={() => setOpen(!open)}
-          aria-label="Menu"
-          aria-expanded={open}
-        >
-          {open ? <X size={24} /> : <Menu size={24} />}
-        </button>
-
       </div>
 
       {/* Mobile Menu */}
       {open && (
-        <nav className="lg:hidden bg-white border-t border-[#E4EAF2] py-4 px-4 space-y-1 animate-fade-in" aria-label="Mobile">
-          {menuItems.map((item, index) => (
-            <Link
-              key={index}
-              to={item.to as any}
-              onClick={() => setOpen(false)}
-              className={`block min-h-[48px] px-4 py-3 rounded-md font-semibold transition-all font-sans ${
-                path === item.to ? "bg-[#F5F9FF] text-[#0B4FC4]" : "text-[#123E8A] hover:bg-slate-50"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
-          
+        <nav
+          className="lg:hidden bg-white border-t border-[#E4EAF2] py-4 px-4 space-y-1 animate-fade-in"
+          aria-label="Mobile"
+        >
+          {menuItems.map((item, index) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            return (
+              <Link
+                key={index}
+                to={item.to as any}
+                hash={item.hash}
+                onClick={() => setOpen(false)}
+                className={`block min-h-[48px] px-4 py-3 rounded-md font-semibold transition-all font-sans ${
+                  isItemActive(item)
+                    ? "bg-[#F5F9FF] text-[#0B4FC4]"
+                    : "text-[#123E8A] hover:bg-slate-50"
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+
           {staffItems.length > 0 && (
             <>
               <div className="pt-2 pb-1 px-4 text-[10px] uppercase tracking-widest text-[#667085] font-extrabold font-sans">
                 Khu vực cán bộ
               </div>
-              {staffItems.map((item, index) => (
-                <Link
-                  key={`mobile-staff-${index}`}
-                  to={item.to as any}
-                  onClick={() => setOpen(false)}
-                  className="block min-h-[48px] px-4 py-3 rounded-md text-amber-700 bg-amber-50 border border-amber-100 font-bold font-sans"
-                >
-                  {item.label}
-                </Link>
-              ))}
+              {staffItems.map((item, index) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                return (
+                  <Link
+                    key={`mobile-staff-${index}`}
+                    to={item.to as any}
+                    onClick={() => setOpen(false)}
+                    className="block min-h-[48px] px-4 py-3 rounded-md text-amber-700 bg-amber-50 border border-amber-100 font-bold font-sans"
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
             </>
           )}
-          
+
           {/* Mobile Utility Actions */}
           <div className="pt-3 mt-3 border-t border-[#E4EAF2] flex flex-col gap-3">
             <div className="flex items-center justify-between px-4">
-              <span className="text-sm font-semibold text-[#123E8A] font-sans">Ngôn ngữ / Language:</span>
+              <span className="text-sm font-semibold text-[#123E8A] font-sans">
+                Ngôn ngữ / Language:
+              </span>
               <div className="flex gap-2">
                 <button
-                  onClick={() => { setLocale("vi"); setOpen(false); }}
+                  onClick={() => {
+                    setLocale("vi");
+                    setOpen(false);
+                  }}
                   className={`px-3 py-1 rounded text-xs font-bold border ${locale === "vi" ? "bg-[#0B4FC4] text-white border-[#0B4FC4]" : "border-[#E4EAF2] text-[#123E8A]"}`}
                 >
                   VI
                 </button>
                 <button
-                  onClick={() => { setLocale("en"); setOpen(false); }}
+                  onClick={() => {
+                    setLocale("en");
+                    setOpen(false);
+                  }}
                   className={`px-3 py-1 rounded text-xs font-bold border ${locale === "en" ? "bg-[#0B4FC4] text-white border-[#0B4FC4]" : "border-[#E4EAF2] text-[#123E8A]"}`}
                 >
                   EN
@@ -237,12 +605,31 @@ export function Header() {
             </div>
 
             {user ? (
-              <button
-                onClick={() => { logout(); setOpen(false); }}
-                className="w-full text-left min-h-[48px] px-4 py-3 rounded-md hover:bg-red-50 text-red-600 font-semibold inline-flex items-center gap-2 transition-all font-sans"
-              >
-                <LogOut size={18} /> Đăng xuất ({user.name})
-              </button>
+              <>
+                <Link
+                  to="/profile"
+                  onClick={() => setOpen(false)}
+                  className="block min-h-[48px] px-4 py-3 rounded-md font-semibold text-[#123E8A] hover:bg-slate-50 font-sans"
+                >
+                  Thông tin cá nhân
+                </Link>
+                <Link
+                  to="/my-reports"
+                  onClick={() => setOpen(false)}
+                  className="block min-h-[48px] px-4 py-3 rounded-md font-semibold text-[#123E8A] hover:bg-slate-50 font-sans"
+                >
+                  Phản ánh của tôi
+                </Link>
+                <button
+                  onClick={() => {
+                    logout();
+                    setOpen(false);
+                  }}
+                  className="w-full text-left min-h-[48px] px-4 py-3 rounded-md hover:bg-red-50 text-red-600 font-semibold inline-flex items-center gap-2 transition-all font-sans cursor-pointer"
+                >
+                  <LogOut size={18} /> Đăng xuất ({user.name})
+                </button>
+              </>
             ) : (
               <Link
                 to="/login"

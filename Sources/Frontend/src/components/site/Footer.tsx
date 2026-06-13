@@ -9,10 +9,8 @@ export function Footer() {
   return (
     <footer className="bg-[#082A61] text-white/80 pt-12 pb-6 px-6 md:px-8 mt-12 border-t border-white/10">
       <div className="max-w-[1360px] mx-auto">
-        
         {/* Top Section */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
-          
           {/* Column 1: Brand & Intro */}
           <div className="flex flex-col space-y-4">
             <div className="flex items-center gap-3">
@@ -30,9 +28,10 @@ export function Footer() {
                 </p>
               </div>
             </div>
-            
+
             <p className="text-xs leading-relaxed text-white/70 max-w-sm font-sans">
-              Hệ thống kết nối người dân với chính quyền thành phố Đà Nẵng, tiếp nhận và xử lý các phản ánh hiện trường nhằm xây dựng thành phố văn minh, hiện đại.
+              Hệ thống kết nối người dân với chính quyền thành phố Đà Nẵng, tiếp nhận và xử lý các
+              phản ánh hiện trường nhằm xây dựng thành phố văn minh, hiện đại.
             </p>
           </div>
 
@@ -66,19 +65,24 @@ export function Footer() {
             <h4 className="text-xs font-bold uppercase tracking-wider text-white font-sans">
               LIÊN HỆ
             </h4>
-            
+
             <div className="space-y-2.5 text-xs text-white/70">
               <div className="flex items-start gap-2.5">
                 <MapPin size={16} className="text-white/60 mt-0.5 shrink-0" />
                 <span className="font-sans">24 Trần Phú, Hải Châu, Đà Nẵng</span>
               </div>
-              <a href="mailto:gopy@danang.gov.vn" className="flex items-center gap-2.5 hover:text-white transition">
+              <a
+                href="mailto:gopy@danang.gov.vn"
+                className="flex items-center gap-2.5 hover:text-white transition"
+              >
                 <Mail size={16} className="text-white/60 shrink-0" />
                 <span className="font-sans hover:underline">gopy@danang.gov.vn</span>
               </a>
               <div className="flex items-center gap-2.5">
                 <Phone size={16} className="text-[#F5C542] shrink-0" />
-                <span className="font-sans">Đường dây nóng: <span className="text-[#F5C542] font-bold font-sans">1022</span></span>
+                <span className="font-sans">
+                  Đường dây nóng: <span className="text-[#F5C542] font-bold font-sans">1022</span>
+                </span>
               </div>
             </div>
 
@@ -92,7 +96,6 @@ export function Footer() {
               </a>
             </div>
           </div>
-
         </div>
 
         {/* Divider */}
@@ -100,14 +103,11 @@ export function Footer() {
 
         {/* Bottom Bar */}
         <div className="flex flex-col md:flex-row items-center justify-between text-[11px] text-white/50 pt-2 gap-3">
-          <p className="font-sans">
-            © 2026 UBND Thành phố Đà Nẵng. Bảo lưu mọi quyền.
-          </p>
+          <p className="font-sans">© 2026 UBND Thành phố Đà Nẵng. Bảo lưu mọi quyền.</p>
           <p className="font-sans text-right md:text-left">
             Trung tâm Chuyển đổi số · SWP391 SE20A11
           </p>
         </div>
-
       </div>
     </footer>
   );

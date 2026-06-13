@@ -137,7 +137,11 @@ function ProfilePage() {
             disabled={updateProfile.isPending}
             className="btn-civic btn-civic-primary disabled:opacity-50"
           >
-            {updateProfile.isPending ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+            {updateProfile.isPending ? (
+              <Loader2 className="animate-spin" size={20} />
+            ) : (
+              <Save size={20} />
+            )}
             {locale === "vi" ? "Lưu thay đổi" : "Save changes"}
           </button>
         </div>

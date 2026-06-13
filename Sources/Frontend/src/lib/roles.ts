@@ -10,9 +10,9 @@
 
 // ─── Role Enum ───────────────────────────────────────────────
 export const Role = {
-  CITIZEN:     "CITIZEN",
-  WARD_STAFF:  "WARD_STAFF",
-  POLICE:      "POLICE",
+  CITIZEN: "CITIZEN",
+  WARD_STAFF: "WARD_STAFF",
+  POLICE: "POLICE",
   SUPER_ADMIN: "SUPER_ADMIN",
 } as const;
 
@@ -25,18 +25,12 @@ export type Role = (typeof Role)[keyof typeof Role];
  * Roles that belong exclusively to the AUTHORITY portal.
  * Used by AuthGuard to detect cross-portal token misuse.
  */
-export const AUTHORITY_ROLES = new Set<Role>([
-  Role.WARD_STAFF,
-  Role.POLICE,
-  Role.SUPER_ADMIN,
-]);
+export const AUTHORITY_ROLES = new Set<Role>([Role.WARD_STAFF, Role.POLICE, Role.SUPER_ADMIN]);
 
 /**
  * Roles that belong exclusively to the CITIZEN portal.
  */
-export const CITIZEN_ROLES = new Set<Role>([
-  Role.CITIZEN,
-]);
+export const CITIZEN_ROLES = new Set<Role>([Role.CITIZEN]);
 
 // ─── Backend → Frontend Mapping ──────────────────────────────
 
@@ -55,11 +49,11 @@ export function parseBackendRole(raw: string): Role {
 
   // Legacy lowercase frontend role strings (citizen, ward, police, city_admin)
   const legacyMap: Record<string, Role> = {
-    CITIZEN:    Role.CITIZEN,
-    WARD:       Role.WARD_STAFF,   // old frontend used "ward"
+    CITIZEN: Role.CITIZEN,
+    WARD: Role.WARD_STAFF, // old frontend used "ward"
     WARD_STAFF: Role.WARD_STAFF,
-    POLICE:     Role.POLICE,
-    CITY_ADMIN: Role.SUPER_ADMIN,  // old frontend used "city_admin"
+    POLICE: Role.POLICE,
+    CITY_ADMIN: Role.SUPER_ADMIN, // old frontend used "city_admin"
     SUPER_ADMIN: Role.SUPER_ADMIN,
   };
 
@@ -73,8 +67,8 @@ export function parseBackendRole(raw: string): Role {
 // ─── Display Labels ───────────────────────────────────────────
 
 export const ROLE_LABEL: Record<Role, { vi: string; en: string }> = {
-  [Role.CITIZEN]:     { vi: "Người dân",           en: "Citizen" },
-  [Role.WARD_STAFF]:  { vi: "Cán bộ phường",        en: "Ward officer" },
-  [Role.POLICE]:      { vi: "Công an",               en: "Police officer" },
-  [Role.SUPER_ADMIN]: { vi: "Lãnh đạo thành phố",   en: "City leadership" },
+  [Role.CITIZEN]: { vi: "Người dân", en: "Citizen" },
+  [Role.WARD_STAFF]: { vi: "Cán bộ phường", en: "Ward officer" },
+  [Role.POLICE]: { vi: "Công an", en: "Police officer" },
+  [Role.SUPER_ADMIN]: { vi: "Lãnh đạo thành phố", en: "City leadership" },
 };

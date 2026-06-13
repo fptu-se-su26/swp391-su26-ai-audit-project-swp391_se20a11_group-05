@@ -5,12 +5,21 @@
 
 import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  feedbackApi, categoryApi, ragApi, authApi, userApi, notificationApi, policeApi,
-  type FeedbackResponse, type CategoryResponse,
-  type ChatbotResponse, type FeedbackRequest,
+  feedbackApi,
+  categoryApi,
+  ragApi,
+  authApi,
+  userApi,
+  notificationApi,
+  policeApi,
+  type FeedbackResponse,
+  type CategoryResponse,
+  type ChatbotResponse,
+  type FeedbackRequest,
   type FeedbackListFilters,
   type FeedbackStatusOption,
-  type PageResponse, type TokenResponse,
+  type PageResponse,
+  type TokenResponse,
   type MfaRequiredResponse,
   type UpdateProfileRequest,
   type UserProfile,
@@ -27,7 +36,8 @@ import {
 export const queryKeys = {
   feedbacks: {
     all: ["feedbacks"] as const,
-    list: (page: number, size: number, filters: FeedbackListFilters) => ["feedbacks", "list", page, size, filters] as const,
+    list: (page: number, size: number, filters: FeedbackListFilters) =>
+      ["feedbacks", "list", page, size, filters] as const,
     statuses: ["feedbacks", "statuses"] as const,
     detail: (id: string | number) => ["feedbacks", id] as const,
   },
@@ -104,7 +114,11 @@ export function useCreateFeedbackWithMedia() {
 
 export function useChangeFeedbackStatus() {
   const queryClient = useQueryClient();
-  return useMutation<FeedbackResponse, Error, { id: number | string; status: string; note?: string }>({
+  return useMutation<
+    FeedbackResponse,
+    Error,
+    { id: number | string; status: string; note?: string }
+  >({
     mutationFn: ({ id, status, note }) => feedbackApi.changeStatus(id, status, note),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
@@ -180,10 +194,14 @@ export function useRagStats() {
 // ─── Auth Hooks ──────────────────────────────────────────────
 
 export function useLoginMutation() {
-  return useMutation<TokenResponse | MfaRequiredResponse, Error, {
-    username: string;
-    password: string;
-  }>({
+  return useMutation<
+    TokenResponse | MfaRequiredResponse,
+    Error,
+    {
+      username: string;
+      password: string;
+    }
+  >({
     mutationFn: ({ username, password }) => authApi.login(username, password),
   });
 }
@@ -191,23 +209,27 @@ export function useLoginMutation() {
 export function useRegisterMutation() {
   return useMutation({
     mutationFn: (data: {
-      username: string; password: string; fullName: string;
-      phoneNumber?: string; email: string;
+      username: string;
+      password: string;
+      fullName: string;
+      phoneNumber?: string;
+      email: string;
     }) => authApi.register(data),
   });
 }
 
 export function useMfaVerifyMutation() {
-  return useMutation<TokenResponse, Error, { username: string; password: string; mfaCode: string }>({
-    mutationFn: ({ username, password, mfaCode }) =>
-      authApi.mfaVerify(username, password, mfaCode),
-  });
+  return useMutation<TokenResponse, Error, { username: string; password: string; mfaCode: string }>(
+    {
+      mutationFn: ({ username, password, mfaCode }) =>
+        authApi.mfaVerify(username, password, mfaCode),
+    },
+  );
 }
 
 export function useMfaSetupMutation() {
   return useMutation<string, Error, { username: string; password: string }>({
-    mutationFn: ({ username, password }) =>
-      authApi.mfaSetup(username, password),
+    mutationFn: ({ username, password }) => authApi.mfaSetup(username, password),
   });
 }
 

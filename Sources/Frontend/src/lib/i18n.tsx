@@ -26,7 +26,10 @@ export const dict: Dict = {
     en: "Report urban infrastructure, environment, and safety issues — together we build a better Da Nang.",
   },
   "home.cta.report": { vi: "Gửi phản ánh ngay", en: "Submit a report" },
-  "home.cta.reportHint": { vi: "Chụp ảnh hoặc quay video dưới 1 phút", en: "Take a photo or short video" },
+  "home.cta.reportHint": {
+    vi: "Chụp ảnh hoặc quay video dưới 1 phút",
+    en: "Take a photo or short video",
+  },
   "home.kpi.total": { vi: "Tổng số phản ánh", en: "Total reports" },
   "home.kpi.resolved": { vi: "Đã xử lý", en: "Resolved" },
   "home.kpi.pending": { vi: "Đang chờ duyệt", en: "Awaiting review" },
@@ -70,7 +73,10 @@ export const dict: Dict = {
   "report.submitted": { vi: "Đã gửi phản ánh thành công!", en: "Report submitted successfully!" },
 
   "my.title": { vi: "Báo cáo của tôi", en: "My reports" },
-  "my.subtitle": { vi: "Theo dõi tiến độ tất cả phản ánh bạn đã gửi.", en: "Track every report you've submitted." },
+  "my.subtitle": {
+    vi: "Theo dõi tiến độ tất cả phản ánh bạn đã gửi.",
+    en: "Track every report you've submitted.",
+  },
   "my.timeline.submitted": { vi: "Đã tiếp nhận", en: "Submitted" },
   "my.timeline.inProgress": { vi: "Đang xử lý", en: "In progress" },
   "my.timeline.resolved": { vi: "Đã hoàn thành", en: "Resolved" },
@@ -80,10 +86,16 @@ export const dict: Dict = {
     vi: "Hỏi về hỗ trợ khẩn cấp, quy trình hành chính, hoặc đường dây nóng.",
     en: "Ask about emergencies, civic procedures, or hotlines.",
   },
-  "assistant.placeholder": { vi: "Ví dụ: Nhà tôi ngập, tôi cần đi đâu?", en: "e.g. My house is flooded, where can I go?" },
+  "assistant.placeholder": {
+    vi: "Ví dụ: Nhà tôi ngập, tôi cần đi đâu?",
+    en: "e.g. My house is flooded, where can I go?",
+  },
   "assistant.send": { vi: "Gửi", en: "Send" },
 
-  "ward.title": { vi: "Bảng điều khiển — UBND Phường Hải Châu I", en: "Dashboard — Hai Chau I Ward" },
+  "ward.title": {
+    vi: "Bảng điều khiển — UBND Phường Hải Châu I",
+    en: "Dashboard — Hai Chau I Ward",
+  },
   "ward.incoming": { vi: "Phản ánh đến", en: "Incoming reports" },
   "ward.accept": { vi: "Tiếp nhận", en: "Accept" },
   "ward.reject": { vi: "Từ chối", en: "Reject" },
@@ -119,7 +131,8 @@ const I18nContext = createContext<I18nCtx | null>(null);
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocale] = useState<Locale>("vi");
   useEffect(() => {
-    const saved = typeof window !== "undefined" ? (localStorage.getItem("locale") as Locale | null) : null;
+    const saved =
+      typeof window !== "undefined" ? (localStorage.getItem("locale") as Locale | null) : null;
     if (saved === "vi" || saved === "en") setLocale(saved);
   }, []);
   useEffect(() => {
@@ -146,7 +159,8 @@ const FontScaleContext = createContext<FontScaleCtx | null>(null);
 export function FontScaleProvider({ children }: { children: ReactNode }) {
   const [scale, setScale] = useState(1);
   useEffect(() => {
-    const saved = typeof window !== "undefined" ? Number(localStorage.getItem("fontScale") || "1") : 1;
+    const saved =
+      typeof window !== "undefined" ? Number(localStorage.getItem("fontScale") || "1") : 1;
     if (!Number.isNaN(saved) && saved >= 0.85 && saved <= 1.45) setScale(saved);
   }, []);
   useEffect(() => {
@@ -157,7 +171,9 @@ export function FontScaleProvider({ children }: { children: ReactNode }) {
   }, [scale]);
   const inc = () => setScale((s) => Math.min(1.45, +(s + 0.1).toFixed(2)));
   const dec = () => setScale((s) => Math.max(0.85, +(s - 0.1).toFixed(2)));
-  return <FontScaleContext.Provider value={{ scale, inc, dec }}>{children}</FontScaleContext.Provider>;
+  return (
+    <FontScaleContext.Provider value={{ scale, inc, dec }}>{children}</FontScaleContext.Provider>
+  );
 }
 export function useFontScale() {
   const ctx = useContext(FontScaleContext);

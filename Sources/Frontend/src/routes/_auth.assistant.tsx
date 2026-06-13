@@ -23,7 +23,10 @@ export const Route = createFileRoute("/_auth/assistant")({
   head: () => ({
     meta: [
       { title: "Trợ lý AI Nội bộ — Đà Nẵng Kết Nối" },
-      { name: "description", content: "Hỏi đáp nội bộ cho cán bộ về quy trình hành chính và tình huống khẩn cấp." },
+      {
+        name: "description",
+        content: "Hỏi đáp nội bộ cho cán bộ về quy trình hành chính và tình huống khẩn cấp.",
+      },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),

@@ -38,12 +38,23 @@ export const reports: Report[] = [
     category: "infra",
     district: "Hải Châu",
     ward: "Hải Châu I",
-    address: { vi: "Ngã tư Hùng Vương – Phan Chu Trinh, Đà Nẵng", en: "Hung Vuong & Phan Chu Trinh, Da Nang" },
+    address: {
+      vi: "Ngã tư Hùng Vương – Phan Chu Trinh, Đà Nẵng",
+      en: "Hung Vuong & Phan Chu Trinh, Da Nang",
+    },
     reporter: "Nguyễn Văn A",
     createdAt: "14:20 — Hôm nay",
     timeline: [
-      { status: "pending", label: { vi: "Tiếp nhận hệ thống", en: "Received by system" }, at: "14:20" },
-      { status: "inProgress", label: { vi: "Đã chuyển đội duy tu", en: "Dispatched to repair crew" }, at: "15:02" },
+      {
+        status: "pending",
+        label: { vi: "Tiếp nhận hệ thống", en: "Received by system" },
+        at: "14:20",
+      },
+      {
+        status: "inProgress",
+        label: { vi: "Đã chuyển đội duy tu", en: "Dispatched to repair crew" },
+        at: "15:02",
+      },
     ],
   },
   {
@@ -66,8 +77,16 @@ export const reports: Report[] = [
     createdAt: "09:15 — 12/10/2025",
     timeline: [
       { status: "pending", label: { vi: "Tiếp nhận hệ thống", en: "Received" }, at: "09:15 12/10" },
-      { status: "inProgress", label: { vi: "Đội vệ sinh ra hiện trường", en: "Sanitation team dispatched" }, at: "11:40 12/10" },
-      { status: "resolved", label: { vi: "Đã dọn dẹp hoàn tất", en: "Cleaned & resolved" }, at: "16:20 13/10" },
+      {
+        status: "inProgress",
+        label: { vi: "Đội vệ sinh ra hiện trường", en: "Sanitation team dispatched" },
+        at: "11:40 12/10",
+      },
+      {
+        status: "resolved",
+        label: { vi: "Đã dọn dẹp hoàn tất", en: "Cleaned & resolved" },
+        at: "16:20 13/10",
+      },
     ],
   },
   {
@@ -107,9 +126,21 @@ export const reports: Report[] = [
     reporter: "Phạm Thị D",
     createdAt: "2 phút trước",
     timeline: [
-      { status: "pending", label: { vi: "Người dân đã gửi", en: "Submitted by citizen" }, at: "10 mins ago" },
-      { status: "inProgress", label: { vi: "Phường Thạch Thang tiếp nhận", en: "Accepted by Thach Thang Ward" }, at: "5 mins ago" },
-      { status: "urgent", label: { vi: "Khẩn cấp — chuyển Công an", en: "Urgent — routed to police" }, at: "Just now" },
+      {
+        status: "pending",
+        label: { vi: "Người dân đã gửi", en: "Submitted by citizen" },
+        at: "10 mins ago",
+      },
+      {
+        status: "inProgress",
+        label: { vi: "Phường Thạch Thang tiếp nhận", en: "Accepted by Thach Thang Ward" },
+        at: "5 mins ago",
+      },
+      {
+        status: "urgent",
+        label: { vi: "Khẩn cấp — chuyển Công an", en: "Urgent — routed to police" },
+        at: "Just now",
+      },
     ],
   },
 ];
@@ -122,9 +153,9 @@ export const kpis = {
 };
 
 export const wardPerformance: WardPerformance[] = [
-  { name: "Hải Châu I",       resolved: 312, satisfactionPct: 94, avgHrs: 36 },
-  { name: "Hòa Khánh Nam",   resolved: 248, satisfactionPct: 91, avgHrs: 41 },
-  { name: "Hòa Minh",        resolved: 189, satisfactionPct: 88, avgHrs: 52 },
-  { name: "Thanh Khê Tây",   resolved: 173, satisfactionPct: 90, avgHrs: 44 },
-  { name: "An Hải Bắc",      resolved: 152, satisfactionPct: 92, avgHrs: 39 },
+  { name: "Hải Châu I", resolved: 312, satisfactionPct: 94, avgHrs: 36 },
+  { name: "Hòa Khánh Nam", resolved: 248, satisfactionPct: 91, avgHrs: 41 },
+  { name: "Hòa Minh", resolved: 189, satisfactionPct: 88, avgHrs: 52 },
+  { name: "Thanh Khê Tây", resolved: 173, satisfactionPct: 90, avgHrs: 44 },
+  { name: "An Hải Bắc", resolved: 152, satisfactionPct: 92, avgHrs: 39 },
 ];

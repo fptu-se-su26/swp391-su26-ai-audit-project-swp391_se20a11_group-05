@@ -83,11 +83,11 @@
   --ring: oklch(0.32 0.13 256);
 
   /* Chart palette */
-  --chart-1: #00387B;
-  --chart-2: #D4AF37;
-  --chart-3: #1B5E20;
-  --chart-4: #E65100;
-  --chart-5: #B00020;
+  --chart-1: #00387b;
+  --chart-2: #d4af37;
+  --chart-3: #1b5e20;
+  --chart-4: #e65100;
+  --chart-5: #b00020;
 }
 
 @layer base {
@@ -315,7 +315,6 @@
   }
 
   @keyframes civic-pulse {
-
     0%,
     100% {
       box-shadow:

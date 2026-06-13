@@ -27,7 +27,11 @@ export const Route = createFileRoute("/login")({
 
     if (token && raw) {
       let user: { role: string } | null = null;
-      try { user = JSON.parse(raw); } catch { /* ignore */ }
+      try {
+        user = JSON.parse(raw);
+      } catch {
+        /* ignore */
+      }
       if (user) {
         const role = parseBackendRole(user.role);
         if (role === Role.CITIZEN) {

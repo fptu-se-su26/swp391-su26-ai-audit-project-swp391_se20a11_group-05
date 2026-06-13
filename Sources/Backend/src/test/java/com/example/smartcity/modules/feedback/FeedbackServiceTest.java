@@ -14,9 +14,9 @@ import com.example.smartcity.modules.user.repository.UserRepository;
 import com.example.smartcity.modules.feedback.repository.FeedbackLogRepository;
 import com.example.smartcity.modules.feedback.repository.AttachmentRepository;
 import com.example.smartcity.modules.notification.WebSocketNotificationService;
+import com.example.smartcity.modules.notification.service.NotificationService;
 import com.example.smartcity.modules.feedback.service.AutoDispatchService;
 import com.example.smartcity.modules.core.service.LocationResolutionService;
-import com.example.smartcity.modules.feedback.repository.AttachmentRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -43,10 +43,10 @@ class FeedbackServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private FeedbackLogRepository feedbackLogRepository;
     @Mock private AttachmentRepository attachmentRepository;
-    @Mock private WebSocketNotificationService notificationService;
+    @Mock private WebSocketNotificationService webSocketNotificationService;
+    @Mock private NotificationService notificationService;
     @Mock private AutoDispatchService autoDispatchService;
     @Mock private LocationResolutionService locationResolutionService;
-    @Mock private AttachmentRepository attachmentRepository;
 
     private FeedbackService feedbackService;
 
@@ -59,8 +59,17 @@ class FeedbackServiceTest {
 
     @BeforeEach
     void setUp() {
-        feedbackService = new FeedbackService(feedbackRepository, feedbackLogRepository,
-                notificationService, categoryRepository, userRepository, attachmentRepository, autoDispatchService, locationResolutionService);
+        feedbackService = new FeedbackService(
+                feedbackRepository,
+                feedbackLogRepository,
+                webSocketNotificationService,
+                notificationService,
+                categoryRepository,
+                userRepository,
+                attachmentRepository,
+                autoDispatchService,
+                locationResolutionService
+        );
 
         citizen = new User("citizen1", "encoded", "Người Dân", "0905123456",
                 "citizen@example.com", Role.CITIZEN);

@@ -12,6 +12,7 @@ import com.example.smartcity.modules.user.entity.Role;
 import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.user.repository.UserRepository;
 import com.example.smartcity.modules.feedback.repository.FeedbackLogRepository;
+import com.example.smartcity.modules.feedback.repository.AttachmentRepository;
 import com.example.smartcity.modules.notification.WebSocketNotificationService;
 import com.example.smartcity.modules.feedback.service.AutoDispatchService;
 import com.example.smartcity.modules.core.service.LocationResolutionService;
@@ -40,6 +41,7 @@ class FeedbackServiceTest {
     @Mock private CategoryRepository categoryRepository;
     @Mock private UserRepository userRepository;
     @Mock private FeedbackLogRepository feedbackLogRepository;
+    @Mock private AttachmentRepository attachmentRepository;
     @Mock private WebSocketNotificationService notificationService;
     @Mock private AutoDispatchService autoDispatchService;
     @Mock private LocationResolutionService locationResolutionService;
@@ -56,7 +58,7 @@ class FeedbackServiceTest {
     @BeforeEach
     void setUp() {
         feedbackService = new FeedbackService(feedbackRepository, feedbackLogRepository,
-                notificationService, categoryRepository, userRepository, autoDispatchService, locationResolutionService);
+                notificationService, categoryRepository, userRepository, attachmentRepository, autoDispatchService, locationResolutionService);
 
         citizen = new User("citizen1", "encoded", "Người Dân", "0905123456",
                 "citizen@example.com", Role.CITIZEN);

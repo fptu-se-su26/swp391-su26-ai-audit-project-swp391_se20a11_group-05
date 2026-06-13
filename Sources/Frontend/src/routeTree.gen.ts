@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VerifyOtpRouteImport } from './routes/verify-otp'
+import { Route as TinTucRouteImport } from './routes/tin-tuc'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ReportRouteImport } from './routes/report'
 import { Route as RegisterRouteImport } from './routes/register'
@@ -29,6 +30,11 @@ import { Route as AuthAssistantRouteImport } from './routes/_auth.assistant'
 const VerifyOtpRoute = VerifyOtpRouteImport.update({
   id: '/verify-otp',
   path: '/verify-otp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TinTucRoute = TinTucRouteImport.update({
+  id: '/tin-tuc',
+  path: '/tin-tuc',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -115,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/tin-tuc': typeof TinTucRoute
   '/verify-otp': typeof VerifyOtpRoute
   '/assistant': typeof AuthAssistantRoute
   '/city-admin': typeof AuthCityAdminRoute
@@ -132,6 +139,7 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/tin-tuc': typeof TinTucRoute
   '/verify-otp': typeof VerifyOtpRoute
   '/assistant': typeof AuthAssistantRoute
   '/city-admin': typeof AuthCityAdminRoute
@@ -151,6 +159,7 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/tin-tuc': typeof TinTucRoute
   '/verify-otp': typeof VerifyOtpRoute
   '/_auth/assistant': typeof AuthAssistantRoute
   '/_auth/city-admin': typeof AuthCityAdminRoute
@@ -170,6 +179,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/report'
     | '/sitemap.xml'
+    | '/tin-tuc'
     | '/verify-otp'
     | '/assistant'
     | '/city-admin'
@@ -187,6 +197,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/report'
     | '/sitemap.xml'
+    | '/tin-tuc'
     | '/verify-otp'
     | '/assistant'
     | '/city-admin'
@@ -205,6 +216,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/report'
     | '/sitemap.xml'
+    | '/tin-tuc'
     | '/verify-otp'
     | '/_auth/assistant'
     | '/_auth/city-admin'
@@ -224,6 +236,7 @@ export interface RootRouteChildren {
   RegisterRoute: typeof RegisterRoute
   ReportRoute: typeof ReportRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  TinTucRoute: typeof TinTucRoute
   VerifyOtpRoute: typeof VerifyOtpRoute
   MyReportsIdRoute: typeof MyReportsIdRoute
   MyReportsIndexRoute: typeof MyReportsIndexRoute
@@ -236,6 +249,13 @@ declare module '@tanstack/react-router' {
       path: '/verify-otp'
       fullPath: '/verify-otp'
       preLoaderRoute: typeof VerifyOtpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tin-tuc': {
+      id: '/tin-tuc'
+      path: '/tin-tuc'
+      fullPath: '/tin-tuc'
+      preLoaderRoute: typeof TinTucRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -372,6 +392,7 @@ const rootRouteChildren: RootRouteChildren = {
   RegisterRoute: RegisterRoute,
   ReportRoute: ReportRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  TinTucRoute: TinTucRoute,
   VerifyOtpRoute: VerifyOtpRoute,
   MyReportsIdRoute: MyReportsIdRoute,
   MyReportsIndexRoute: MyReportsIndexRoute,

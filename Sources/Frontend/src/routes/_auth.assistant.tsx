@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_auth/assistant")({
 
     // Defense-in-depth authorization check: Ensure the user belongs to AUTHORITY_ROLES
     if (!AUTHORITY_ROLES.has(role)) {
-      throw redirect({ to: "/login", search: { error: "forbidden" } });
+      throw redirect({ to: "/login", search: { redirect: undefined, error: "forbidden" } });
     }
   },
   head: () => ({

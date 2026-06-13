@@ -169,7 +169,7 @@ export function Header() {
   // Simplified core navigation items
   const menuItems = [
     { to: "/", label: locale === "vi" ? "Trang chủ" : "Home" },
-    { to: "/", hash: "tin-tuc", label: locale === "vi" ? "Tin tức" : "News" },
+    { to: "/tin-tuc", label: locale === "vi" ? "Tin tức" : "News" },
     { to: "/my-reports", label: locale === "vi" ? "Tra cứu" : "Search" },
     { to: "/", hash: "huong-dan", label: locale === "vi" ? "Hướng dẫn" : "Guide" },
   ];
@@ -192,7 +192,7 @@ export function Header() {
       return path === "/" && hash !== "#huong-dan" && hash !== "#tin-tuc";
     }
     if (item.label === "Tin tức" || item.label === "News") {
-      return path === "/" && hash === "#tin-tuc";
+      return path === "/tin-tuc";
     }
     if (item.label === "Tra cứu" || item.label === "Search") {
       return path === "/my-reports";

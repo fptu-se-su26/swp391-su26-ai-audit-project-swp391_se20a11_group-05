@@ -1,4 +1,4 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
@@ -60,6 +60,7 @@ const PAGE_SIZE = 3;
 
 function MyReports() {
   const { t, locale } = useI18n();
+  const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
   const [page, setPage] = useState(0);
   const [keywordInput, setKeywordInput] = useState("");
@@ -93,6 +94,15 @@ function MyReports() {
   useEffect(() => {
     setExpandedIds(new Set());
   }, [page, keyword, status, fromDate, toDate]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setPage(0);
+      setKeyword(keywordInput.trim());
+    }, 400);
+
+    return () => window.clearTimeout(timeout);
+  }, [keywordInput]);
 
   if (!isAuthenticated) {
     return <NotLoggedIn />;
@@ -150,16 +160,16 @@ function MyReports() {
           className="btn-civic btn-civic-ghost flex items-center gap-2 min-h-[44px]"
         >
           {isFetching ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />}
-          {locale === "vi" ? "Lam moi" : "Refresh"}
+          {locale === "vi" ? "Làm mới" : "Refresh"}
         </button>
       </div>
 
       <section className="rounded-xl border border-slate-200 bg-blue-50/80 p-4 md:p-5 mb-6 shadow-sm">
-        <div className="grid grid-cols-[44px_minmax(0,1fr)] lg:grid-cols-[44px_minmax(0,1fr)_auto] gap-3">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch gap-3">
           <button
             type="button"
             onClick={() => setFiltersOpen((open) => !open)}
-            className={`min-h-[44px] rounded-lg border grid place-items-center transition-colors ${
+            className={`min-h-[44px] sm:w-11 rounded-lg border grid place-items-center transition-colors shrink-0 ${
               filtersOpen
                 ? "border-gov-blue bg-gov-blue text-white"
                 : "border-slate-200 bg-white text-gov-blue hover:bg-gov-blue/5"
@@ -170,7 +180,7 @@ function MyReports() {
           >
             <SlidersHorizontal size={19} />
           </button>
-          <div className="relative">
+          <div className="relative min-w-0 flex-1 sm:min-w-[240px]">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft" />
             <input
               type="search"
@@ -187,7 +197,7 @@ function MyReports() {
             type="button"
             onClick={runSearch}
             disabled={isFetching}
-            className="btn-civic btn-civic-primary min-h-[44px] col-span-2 lg:col-span-1"
+            className="btn-civic btn-civic-primary min-h-[44px] justify-center shrink-0 w-full sm:w-auto"
           >
             {isFetching ? <Loader2 size={18} className="animate-spin" /> : <Search size={18} />}
             {locale === "vi" ? "Tim kiem" : "Search"}
@@ -301,7 +311,16 @@ function MyReports() {
             return (
               <article
                 key={report.id}
-                className={`card-civic p-5 md:p-6 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 animate-fade-in-up stagger-${Math.min(idx + 1, 4)}`}
+                role="button"
+                tabIndex={0}
+                onClick={() => navigate({ to: "/my-reports/$id", params: { id: String(report.id) } })}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    void navigate({ to: "/my-reports/$id", params: { id: String(report.id) } });
+                  }
+                }}
+                className={`card-civic p-5 md:p-6 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 animate-fade-in-up stagger-${Math.min(idx + 1, 4)} focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gov-blue`}
               >
                 <div className="flex items-start gap-4">
                   <div className="min-w-0 flex-1">
@@ -322,7 +341,10 @@ function MyReports() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => toggleExpanded(report.id, setExpandedIds)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      toggleExpanded(report.id, setExpandedIds);
+                    }}
                     className="w-10 h-10 rounded-lg border border-slate-200 grid place-items-center text-gov-blue hover:bg-gov-blue/5 shrink-0"
                     aria-label={expanded ? "Collapse attachments" : "Expand attachments"}
                     title={expanded ? "Collapse attachments" : "Expand attachments"}
@@ -341,7 +363,10 @@ function MyReports() {
                           <button
                             key={attachment.id}
                             type="button"
-                            onClick={() => setActiveMedia(attachment)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setActiveMedia(attachment);
+                            }}
                             className="group relative aspect-video overflow-hidden rounded-lg border border-slate-200 bg-slate-100 text-left"
                           >
                             {isVideoAttachment(attachment) ? (

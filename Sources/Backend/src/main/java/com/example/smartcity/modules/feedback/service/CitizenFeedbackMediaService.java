@@ -6,10 +6,13 @@ import com.example.smartcity.modules.feedback.dto.FeedbackAttachmentResponse;
 import com.example.smartcity.modules.feedback.entity.Attachment;
 import com.example.smartcity.modules.feedback.entity.Category;
 import com.example.smartcity.modules.feedback.entity.Feedback;
+import com.example.smartcity.modules.feedback.entity.FeedbackLog;
 import com.example.smartcity.modules.feedback.entity.FeedbackStatus;
 import com.example.smartcity.modules.feedback.repository.AttachmentRepository;
 import com.example.smartcity.modules.feedback.repository.CategoryRepository;
+import com.example.smartcity.modules.feedback.repository.FeedbackLogRepository;
 import com.example.smartcity.modules.feedback.repository.FeedbackRepository;
+import com.example.smartcity.modules.notification.service.NotificationService;
 import com.example.smartcity.modules.core.entity.Ward;
 import com.example.smartcity.modules.core.repository.WardRepository;
 import com.example.smartcity.modules.core.service.LocationResolutionService;
@@ -48,9 +51,11 @@ public class CitizenFeedbackMediaService {
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final AttachmentRepository attachmentRepository;
+    private final FeedbackLogRepository feedbackLogRepository;
     private final SupabaseStorageService supabaseStorageService;
     private final LocationResolutionService locationResolutionService;
     private final WardRepository wardRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public CitizenFeedbackMediaResponse submit(CitizenFeedbackMediaRequest request, List<MultipartFile> files, String username) {
@@ -89,6 +94,10 @@ public class CitizenFeedbackMediaService {
         feedback.setUpdatedAt(now);
 
         Feedback savedFeedback = feedbackRepository.save(feedback);
+        FeedbackLog submittedLog = new FeedbackLog(savedFeedback, citizen, null, FeedbackStatus.PENDING, "Công dân đã gửi phản ánh");
+        submittedLog.setAction("SUBMIT");
+        feedbackLogRepository.save(submittedLog);
+        notificationService.createFeedbackSubmittedNotification(savedFeedback);
         List<Attachment> savedAttachments = saveAttachments(savedFeedback, citizen, safeFiles);
 
         return toResponse(savedFeedback, savedAttachments);

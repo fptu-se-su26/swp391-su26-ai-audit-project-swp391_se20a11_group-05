@@ -22,7 +22,10 @@ export const Route = createFileRoute("/_auth/city-admin")({
   head: () => ({
     meta: [
       { title: "Bảng điều hành Lãnh đạo Thành phố — Đà Nẵng Kết Nối" },
-      { name: "description", content: "Bảng điều hành cấp thành phố: KPI, hiệu suất phường, xuất báo cáo." },
+      {
+        name: "description",
+        content: "Bảng điều hành cấp thành phố: KPI, hiệu suất phường, xuất báo cáo.",
+      },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),

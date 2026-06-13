@@ -3,7 +3,20 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { ApiError } from "@/lib/api";
 import { useRegisterMutation } from "@/lib/hooks";
-import { UserPlus, Loader2, AtSign, Lock, Mail, Phone, Zap, MessageSquare, Eye, EyeOff, Shield, User } from "lucide-react";
+import {
+  UserPlus,
+  Loader2,
+  AtSign,
+  Lock,
+  Mail,
+  Phone,
+  Zap,
+  MessageSquare,
+  Eye,
+  EyeOff,
+  Shield,
+  User,
+} from "lucide-react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -52,20 +65,22 @@ function PasswordStrengthIndicator({ password }: { password: string }) {
 
   const passedCount = checks.filter((c) => c.passed).length;
   const activeSegmentClass =
-    passedCount <= 1
-      ? "bg-red-300"
-      : passedCount === 2
-        ? "bg-amber-400"
-        : "bg-green-500";
+    passedCount <= 1 ? "bg-red-300" : passedCount === 2 ? "bg-amber-400" : "bg-green-500";
 
   const strengthLabel =
     password.length === 0
       ? ""
       : passedCount <= 1
-        ? locale === "vi" ? "Yếu" : "Weak"
+        ? locale === "vi"
+          ? "Yếu"
+          : "Weak"
         : passedCount === 2
-          ? locale === "vi" ? "Trung bình" : "Medium"
-          : locale === "vi" ? "Mạnh" : "Strong";
+          ? locale === "vi"
+            ? "Trung bình"
+            : "Medium"
+          : locale === "vi"
+            ? "Mạnh"
+            : "Strong";
 
   return (
     <div className="space-y-1.5 mt-2">
@@ -73,18 +88,17 @@ function PasswordStrengthIndicator({ password }: { password: string }) {
         {checks.map((_, i) => (
           <div
             key={i}
-            className={`h-1.5 flex-1 rounded-full transition-colors duration-200 ${password.length === 0
+            className={`h-1.5 flex-1 rounded-full transition-colors duration-200 ${
+              password.length === 0
                 ? "bg-gray-200"
                 : i < passedCount
                   ? activeSegmentClass
                   : "bg-gray-200"
-              }`}
+            }`}
           />
         ))}
       </div>
-      {password.length > 0 && (
-        <p className="text-xs text-muted-foreground">{strengthLabel}</p>
-      )}
+      {password.length > 0 && <p className="text-xs text-muted-foreground">{strengthLabel}</p>}
     </div>
   );
 }
@@ -118,15 +132,12 @@ function RegisterPage() {
         email: values.email,
         phoneNumber: values.phone,
       });
-      toast.success(
-        locale === "vi" ? "Đăng ký thành công!" : "Registration successful!",
-        {
-          description:
-            locale === "vi"
-              ? "Đang chuyển hướng đến trang xác thực OTP..."
-              : "Redirecting to OTP verification...",
-        },
-      );
+      toast.success(locale === "vi" ? "Đăng ký thành công!" : "Registration successful!", {
+        description:
+          locale === "vi"
+            ? "Đang chuyển hướng đến trang xác thực OTP..."
+            : "Redirecting to OTP verification...",
+      });
       setTimeout(() => {
         navigate({ to: "/verify-otp" as any, search: { phone: values.phone } });
       }, 1500);
@@ -145,7 +156,6 @@ function RegisterPage() {
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row animate-fade-in">
-
       {/* ══ LEFT — Hero Panel ══════════════════════════════════════ */}
       <div
         className="hidden lg:flex lg:w-[42%] flex-col relative overflow-hidden"
@@ -197,12 +207,14 @@ function RegisterPage() {
             <h1 className="font-heading text-5xl xl:text-6xl font-bold text-white leading-tight mb-4">
               {locale === "vi" ? (
                 <>
-                  Thành Phố<br />
+                  Thành Phố
+                  <br />
                   <span style={{ color: "#d4af37" }}>Kết Nối</span>
                 </>
               ) : (
                 <>
-                  A City That<br />
+                  A City That
+                  <br />
                   <span style={{ color: "#d4af37" }}>Connect</span>
                 </>
               )}
@@ -216,25 +228,35 @@ function RegisterPage() {
 
           {/* Feature list */}
           <div className="space-y-3 mb-10">
-            <div className="flex items-start gap-3 px-4 py-3 rounded-xl" style={{ background: "rgba(255,255,255,0.07)" }}>
+            <div
+              className="flex items-start gap-3 px-4 py-3 rounded-xl"
+              style={{ background: "rgba(255,255,255,0.07)" }}
+            >
               <Zap size={16} className="text-gov-gold mt-0.5 shrink-0" />
               <div>
                 <p className="text-white/80 text-xs font-bold uppercase tracking-wider">
                   {locale === "vi" ? "Tiện ích thông minh" : "Smart Services"}
                 </p>
                 <p className="text-white/50 text-xs mt-0.5">
-                  {locale === "vi" ? "Tra cứu dịch vụ công 24/7 tức thì" : "Access public services 24/7 instantly"}
+                  {locale === "vi"
+                    ? "Tra cứu dịch vụ công 24/7 tức thì"
+                    : "Access public services 24/7 instantly"}
                 </p>
               </div>
             </div>
-            <div className="flex items-start gap-3 px-4 py-3 rounded-xl" style={{ background: "rgba(255,255,255,0.07)" }}>
+            <div
+              className="flex items-start gap-3 px-4 py-3 rounded-xl"
+              style={{ background: "rgba(255,255,255,0.07)" }}
+            >
               <MessageSquare size={16} className="text-gov-gold mt-0.5 shrink-0" />
               <div>
                 <p className="text-white/80 text-xs font-bold uppercase tracking-wider">
                   {locale === "vi" ? "Tương tác trực tiếp" : "Direct Interaction"}
                 </p>
                 <p className="text-white/50 text-xs mt-0.5">
-                  {locale === "vi" ? "Gửi phản ánh, nhận phản hồi minh bạch" : "Submit reports, get transparent feedback"}
+                  {locale === "vi"
+                    ? "Gửi phản ánh, nhận phản hồi minh bạch"
+                    : "Submit reports, get transparent feedback"}
                 </p>
               </div>
             </div>
@@ -253,7 +275,6 @@ function RegisterPage() {
 
       {/* ══ RIGHT — Form Panel ═════════════════════════════════════ */}
       <div className="flex-1 flex flex-col min-h-screen" style={{ background: "#f4f7fa" }}>
-
         {/* Mobile logo (shown only on small screens) */}
         <div className="flex lg:hidden items-center gap-3 px-6 pt-8 pb-4">
           <img src={logoUrl} alt="Đà Nẵng Kết Nối" className="h-10 w-auto object-contain" />
@@ -262,7 +283,6 @@ function RegisterPage() {
         {/* Form container */}
         <div className="flex-1 flex items-center justify-center px-6 py-8">
           <div className="w-full max-w-sm">
-
             {/* Tabs: Đăng nhập / Đăng ký */}
             <div className="flex gap-6 mb-8 border-b border-slate-200">
               <Link
@@ -282,7 +302,6 @@ function RegisterPage() {
             {/* Form */}
             <Form {...form}>
               <form onSubmit={form.handleSubmit(handleRegister)} className="space-y-4">
-
                 {/* Username field */}
                 <FormField
                   control={form.control}
@@ -416,17 +435,20 @@ function RegisterPage() {
                   {registerMutation.isPending && <Loader2 size={18} className="animate-spin" />}
                   {locale === "vi" ? "Đăng ký ngay →" : "Register Now →"}
                 </button>
-
               </form>
             </Form>
-
           </div>
         </div>
 
         {/* Footer */}
         <footer className="px-6 pb-8 text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <img src={logoUrl} alt="" className="h-6 w-auto object-contain opacity-50" aria-hidden="true" />
+            <img
+              src={logoUrl}
+              alt=""
+              className="h-6 w-auto object-contain opacity-50"
+              aria-hidden="true"
+            />
           </div>
           <p className="text-xs text-slate-400 leading-relaxed">
             © {new Date().getFullYear()}{" "}
@@ -449,7 +471,6 @@ function RegisterPage() {
               : "Da Nang Connects — Citizen-Staff Connection · SWP391 SE20A11"}
           </p>
         </footer>
-
       </div>
     </div>
   );

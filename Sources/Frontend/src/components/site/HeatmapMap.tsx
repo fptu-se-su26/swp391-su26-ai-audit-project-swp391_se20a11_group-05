@@ -59,7 +59,7 @@ export function HeatmapMap({ hotspots }: HeatmapMapProps) {
       <MapContainer center={center} zoom={10} style={{ height: "100%", width: "100%" }}>
         <TileLayer
           url="https://mt1.google.com/vt/lyrs=m&hl=vi&gl=VN&x={x}&y={y}&z={z}"
-          attribution='&copy; Google Maps'
+          attribution="&copy; Google Maps"
         />
         {clusters.map((c, i) => {
           // Quy luật màu: 10+ đỏ, 3-9 cam, 1-2 xanh dương

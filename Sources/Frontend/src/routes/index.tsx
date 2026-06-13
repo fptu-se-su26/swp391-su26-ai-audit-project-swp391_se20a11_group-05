@@ -7,11 +7,36 @@ import { DemoBanner } from "@/components/site/DemoBanner";
 import { mapStatus } from "@/lib/status";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkline } from "@/components/site/KpiChart";
-import { Camera, MapPin, User, RefreshCw, Loader2, PlayCircle, Search, Car, Leaf, Cone, Shield, Store, Grid, PenLine, Send, CheckCircle2, ChevronDown, ChevronUp, Lock, ShieldCheck, Clock, HeartHandshake } from "lucide-react";
+import {
+  Camera,
+  MapPin,
+  User,
+  RefreshCw,
+  Loader2,
+  PlayCircle,
+  Search,
+  Car,
+  Leaf,
+  Cone,
+  Shield,
+  Store,
+  Grid,
+  PenLine,
+  Send,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Lock,
+  ShieldCheck,
+  Clock,
+  HeartHandshake,
+} from "lucide-react";
 import { lazy, Suspense, useState, useEffect } from "react";
 import { staticNews, staticFaqs } from "@/lib/static-content";
 
-const CivicMap = lazy(() => import("@/components/site/CivicMap").then(m => ({ default: m.CivicMap })));
+const CivicMap = lazy(() =>
+  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
+);
 
 // ── Da Nang city slideshow images (Unsplash)
 const DA_NANG_SLIDES = [
@@ -25,7 +50,10 @@ const DA_NANG_SLIDES = [
   },
   {
     url: "https://images.unsplash.com/photo-1596402184320-417e7178b2cd?w=900&h=700&fit=crop&q=80",
-    caption: { vi: "Biển Mỹ Khê — Bãi biển đẹp nhất châu Á", en: "My Khe Beach — Asia's Most Beautiful Beach" },
+    caption: {
+      vi: "Biển Mỹ Khê — Bãi biển đẹp nhất châu Á",
+      en: "My Khe Beach — Asia's Most Beautiful Beach",
+    },
   },
   {
     url: "https://images.unsplash.com/photo-1528127269322-539801943592?w=900&h=700&fit=crop&q=80",
@@ -33,11 +61,17 @@ const DA_NANG_SLIDES = [
   },
   {
     url: "https://images.unsplash.com/photo-1555400038-63f5ba517a47?w=900&h=700&fit=crop&q=80",
-    caption: { vi: "Sông Hàn về đêm — Trái tim Đà Nẵng", en: "Han River at Night — Heart of Da Nang" },
+    caption: {
+      vi: "Sông Hàn về đêm — Trái tim Đà Nẵng",
+      en: "Han River at Night — Heart of Da Nang",
+    },
   },
   {
     url: "https://images.unsplash.com/photo-1602934585418-f3a27d8924a5?w=900&h=700&fit=crop&q=80",
-    caption: { vi: "Đà Nẵng — Thành phố văn minh, hiện đại", en: "Da Nang — Modern and Civilized City" },
+    caption: {
+      vi: "Đà Nẵng — Thành phố văn minh, hiện đại",
+      en: "Da Nang — Modern and Civilized City",
+    },
   },
 ];
 
@@ -45,14 +79,19 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Đà Nẵng Kết Nối — Cổng phản ánh thành phố" },
-      { name: "description", content: "Gửi phản ánh hạ tầng, môi trường, an ninh — cùng xây dựng Đà Nẵng văn minh." },
+      {
+        name: "description",
+        content: "Gửi phản ánh hạ tầng, môi trường, an ninh — cùng xây dựng Đà Nẵng văn minh.",
+      },
       { property: "og:title", content: "Đà Nẵng Kết Nối" },
-      { property: "og:description", content: "Da Nang civic reporting platform — submit and track municipal reports." },
+      {
+        property: "og:description",
+        content: "Da Nang civic reporting platform — submit and track municipal reports.",
+      },
     ],
   }),
   component: HomePage,
 });
-
 
 function HomePage() {
   const { t, locale } = useI18n();
@@ -101,38 +140,38 @@ function HomePage() {
       name: "Giao thông",
       keyword: "Giao thông",
       description: "Kẹt xe, đèn tín hiệu hỏng, vi phạm giao thông...",
-      icon: <Car size={24} />
+      icon: <Car size={24} />,
     },
     {
       name: "Môi trường",
       keyword: "Môi trường",
       description: "Rác thải, ô nhiễm tiếng ồn, nước thải...",
-      icon: <Leaf size={24} />
+      icon: <Leaf size={24} />,
     },
     {
       name: "Hạ tầng đô thị",
       keyword: "Hạ tầng",
       description: "Đường hỏng, nắp cống mất, đèn đường hỏng...",
-      icon: <Cone size={24} />
+      icon: <Cone size={24} />,
     },
     {
       name: "An ninh trật tự",
       keyword: "An ninh trật tự",
       description: "Trộm cắp, gây rối trật tự công cộng...",
-      icon: <Shield size={24} />
+      icon: <Shield size={24} />,
     },
     {
       name: "Trật tự đô thị",
       keyword: "Trật tự đô thị",
       description: "Lấn chiếm lòng đường, vỉa hè...",
-      icon: <Store size={24} />
+      icon: <Store size={24} />,
     },
     {
       name: "Khác",
       keyword: "Khác",
       description: "Các vấn đề khác chưa được phân loại...",
-      icon: <Grid size={24} />
-    }
+      icon: <Grid size={24} />,
+    },
   ];
 
   const handleCategoryClick = (keyword: string) => {
@@ -141,16 +180,23 @@ function HomePage() {
 
   // Calculate statistics from apiFeedbacks if present, otherwise fallback to mock data or default
   const totalCount = hasApiData ? apiFeedbacks.length : 1248;
-  const resolvedCount = hasApiData 
-    ? apiFeedbacks.filter(f => f.status === "RESOLVED").length 
+  const resolvedCount = hasApiData
+    ? apiFeedbacks.filter((f) => f.status === "RESOLVED").length
     : 986;
-  const pendingCount = hasApiData 
-    ? apiFeedbacks.filter(f => f.status === "PENDING" || f.status === "ASSIGNED" || f.status === "IN_PROGRESS" || f.status === "WAITING_INFO" || f.status === "PRE_EMPTIVE").length 
+  const pendingCount = hasApiData
+    ? apiFeedbacks.filter(
+        (f) =>
+          f.status === "PENDING" ||
+          f.status === "ASSIGNED" ||
+          f.status === "IN_PROGRESS" ||
+          f.status === "WAITING_INFO" ||
+          f.status === "PRE_EMPTIVE",
+      ).length
     : 212;
 
   // Overdue count calculation: feedback created > 3 days ago and not resolved
   const overdueCount = hasApiData
-    ? apiFeedbacks.filter(f => {
+    ? apiFeedbacks.filter((f) => {
         const isNotResolved = f.status !== "RESOLVED";
         const diffTime = Math.abs(new Date().getTime() - new Date(f.createdAt).getTime());
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -221,25 +267,29 @@ function HomePage() {
   return (
     <div className="w-full flex flex-col">
       {/* Hero section */}
-      <section 
+      <section
         className="relative w-full min-h-[340px] md:min-h-[380px] lg:min-h-[340px] xl:min-h-[340px] flex items-center bg-cover bg-center py-8 md:py-10 lg:py-0 border-b border-[#E4EAF2]"
         style={{
           backgroundImage: `linear-gradient(90deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0.92) 40%, rgba(255,255,255,0.7) 60%, rgba(255,255,255,0.15) 100%), url('https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?auto=format&fit=crop&w=1600&h=600&q=80')`,
         }}
       >
         <div className="max-w-[1440px] mx-auto w-full px-4 md:px-8 grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8 items-center relative z-10">
-          
           {/* Left Column (Content) */}
           <div className="lg:col-span-7 flex flex-col justify-center animate-fade-in pr-0 lg:pr-10">
             <h1 className="font-heading text-[#123E8A] font-bold leading-tight mb-3">
-              <span className="block text-3xl md:text-[38px] xl:text-[44px] font-medium leading-none">Cùng xây dựng</span>
-              <span className="block text-4xl md:text-[46px] xl:text-[52px] mt-1 font-bold">Đà Nẵng văn minh, hiện đại</span>
+              <span className="block text-3xl md:text-[38px] xl:text-[44px] font-medium leading-none">
+                Cùng xây dựng
+              </span>
+              <span className="block text-4xl md:text-[46px] xl:text-[52px] mt-1 font-bold">
+                Đà Nẵng văn minh, hiện đại
+              </span>
             </h1>
-            
+
             <p className="text-[#667085] text-sm md:text-base leading-relaxed mb-6 max-w-[500px]">
-              Nền tảng kết nối người dân với chính quyền thành phố. Tiếp nhận, xử lý và phản hồi nhanh chóng các vấn đề đô thị, an ninh trật tự, môi trường, hạ tầng...
+              Nền tảng kết nối người dân với chính quyền thành phố. Tiếp nhận, xử lý và phản hồi
+              nhanh chóng các vấn đề đô thị, an ninh trật tự, môi trường, hạ tầng...
             </p>
-            
+
             <div className="flex flex-wrap gap-3">
               <Link
                 to="/report"
@@ -248,7 +298,7 @@ function HomePage() {
                 <Camera size={18} />
                 Gửi phản ánh ngay
               </Link>
-              
+
               <Link
                 to="/my-reports"
                 className="px-5 py-3 bg-white text-[#0B4FC4] border border-[#0B4FC4] rounded-lg text-sm font-semibold hover:bg-blue-50 transition flex items-center gap-2 shadow-sm font-sans"
@@ -258,14 +308,14 @@ function HomePage() {
               </Link>
             </div>
           </div>
-          
+
           {/* Right Column (Search Card) */}
           <div className="lg:col-span-5 flex justify-center lg:justify-end animate-slide-in-right">
             <div className="w-full max-w-[480px] bg-white rounded-2xl p-6 shadow-lg border border-[#E4EAF2]">
               <h2 className="text-[#0B4FC4] font-bold text-lg md:text-xl mb-4 font-sans">
                 Tìm kiếm thông tin
               </h2>
-              
+
               {/* Search form */}
               <div className="relative mb-5">
                 <input
@@ -278,7 +328,7 @@ function HomePage() {
                   }}
                   className="w-full h-11 pl-4 pr-10 rounded-lg border border-[#E4EAF2] text-sm outline-none focus:border-[#0B4FC4] bg-white text-[#123E8A] placeholder-[#667085]/60 shadow-inner font-sans"
                 />
-                <button 
+                <button
                   onClick={handleSearch}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[#667085] hover:text-[#0B4FC4] transition"
                   aria-label="Tìm kiếm"
@@ -286,7 +336,7 @@ function HomePage() {
                   <Search size={18} />
                 </button>
               </div>
-              
+
               {/* Popular searches */}
               <div>
                 <span className="block text-xs font-semibold text-[#667085] uppercase tracking-wider mb-2 font-sans">
@@ -311,7 +361,6 @@ function HomePage() {
 
       {/* Main page content below hero */}
       <div className="max-w-[1360px] mx-auto w-full px-4 md:px-8 py-10 md:py-14 space-y-10">
-        
         {/* Section 1 — PHẢN ÁNH THEO LĨNH VỰC */}
         <section className="animate-fade-in-up stagger-1">
           <div className="flex items-center gap-2 mb-5">
@@ -320,7 +369,7 @@ function HomePage() {
               Phản ánh theo lĩnh vực
             </h2>
           </div>
-          
+
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {categories.map((c, i) => (
               <button
@@ -332,7 +381,9 @@ function HomePage() {
                   {c.icon}
                 </div>
                 <span className="text-sm font-bold text-[#123E8A] mb-1 font-sans">{c.name}</span>
-                <span className="text-xs text-[#667085] leading-snug line-clamp-2 font-sans">{c.description}</span>
+                <span className="text-xs text-[#667085] leading-snug line-clamp-2 font-sans">
+                  {c.description}
+                </span>
               </button>
             ))}
           </div>
@@ -355,52 +406,86 @@ function HomePage() {
               </select>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Tổng phản ánh */}
             <div className="bg-white border border-[#E4EAF2] rounded-xl p-5 flex flex-col justify-between hover:shadow-sm transition">
               <div>
-                <span className="text-[#667085] text-xs font-bold uppercase tracking-wider font-sans">Tổng phản ánh</span>
-                <div className="text-2xl md:text-3xl font-extrabold text-[#0B4FC4] mt-1 font-sans">{totalCount.toLocaleString()}</div>
+                <span className="text-[#667085] text-xs font-bold uppercase tracking-wider font-sans">
+                  Tổng phản ánh
+                </span>
+                <div className="text-2xl md:text-3xl font-extrabold text-[#0B4FC4] mt-1 font-sans">
+                  {totalCount.toLocaleString()}
+                </div>
               </div>
               <div className="mt-4">
-                <Sparkline data={[85, 92, 78, 105, 98, 110, 102, 95, 112, 108, 96, 104]} color="#0B4FC4" height={36} />
+                <Sparkline
+                  data={[85, 92, 78, 105, 98, 110, 102, 95, 112, 108, 96, 104]}
+                  color="#0B4FC4"
+                  height={36}
+                />
               </div>
             </div>
-            
+
             {/* Đã xử lý */}
             <div className="bg-white border border-[#E4EAF2] rounded-xl p-5 flex flex-col justify-between hover:shadow-sm transition">
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[#667085] text-xs font-bold uppercase tracking-wider font-sans">Đã xử lý</span>
-                  <span className="text-xs font-bold text-[#16A34A] bg-[#E8F5E9] px-2 py-0.5 rounded font-sans">{resolvedPct}%</span>
+                  <span className="text-[#667085] text-xs font-bold uppercase tracking-wider font-sans">
+                    Đã xử lý
+                  </span>
+                  <span className="text-xs font-bold text-[#16A34A] bg-[#E8F5E9] px-2 py-0.5 rounded font-sans">
+                    {resolvedPct}%
+                  </span>
                 </div>
-                <div className="text-2xl md:text-3xl font-extrabold text-[#16A34A] mt-1 font-sans">{resolvedCount.toLocaleString()}</div>
+                <div className="text-2xl md:text-3xl font-extrabold text-[#16A34A] mt-1 font-sans">
+                  {resolvedCount.toLocaleString()}
+                </div>
               </div>
               <div className="mt-4">
-                <Sparkline data={[62, 70, 58, 78, 72, 82, 76, 68, 84, 80, 71, 78]} color="#16A34A" height={36} />
+                <Sparkline
+                  data={[62, 70, 58, 78, 72, 82, 76, 68, 84, 80, 71, 78]}
+                  color="#16A34A"
+                  height={36}
+                />
               </div>
             </div>
-            
+
             {/* Đang xử lý */}
             <div className="bg-white border border-[#E4EAF2] rounded-xl p-5 flex flex-col justify-between hover:shadow-sm transition">
               <div>
-                <span className="text-[#667085] text-xs font-bold uppercase tracking-wider font-sans">Đang xử lý</span>
-                <div className="text-2xl md:text-3xl font-extrabold text-[#F97316] mt-1 font-sans">{pendingCount.toLocaleString()}</div>
+                <span className="text-[#667085] text-xs font-bold uppercase tracking-wider font-sans">
+                  Đang xử lý
+                </span>
+                <div className="text-2xl md:text-3xl font-extrabold text-[#F97316] mt-1 font-sans">
+                  {pendingCount.toLocaleString()}
+                </div>
               </div>
               <div className="mt-4">
-                <Sparkline data={[15, 18, 12, 22, 16, 20, 14, 19, 17, 21, 13, 16]} color="#F97316" height={36} />
+                <Sparkline
+                  data={[15, 18, 12, 22, 16, 20, 14, 19, 17, 21, 13, 16]}
+                  color="#F97316"
+                  height={36}
+                />
               </div>
             </div>
-            
+
             {/* Quá hạn */}
             <div className="bg-white border border-[#E4EAF2] rounded-xl p-5 flex flex-col justify-between hover:shadow-sm transition">
               <div>
-                <span className="text-[#667085] text-xs font-bold uppercase tracking-wider font-sans">Quá hạn</span>
-                <div className="text-2xl md:text-3xl font-extrabold text-[#DC2626] mt-1 font-sans">{overdueCount.toLocaleString()}</div>
+                <span className="text-[#667085] text-xs font-bold uppercase tracking-wider font-sans">
+                  Quá hạn
+                </span>
+                <div className="text-2xl md:text-3xl font-extrabold text-[#DC2626] mt-1 font-sans">
+                  {overdueCount.toLocaleString()}
+                </div>
               </div>
               <div className="mt-4">
-                <Sparkline data={[52, 48, 55, 44, 50, 46, 53, 47, 51, 45, 49, 43]} color="#DC2626" height={36} />
+                <Sparkline
+                  data={[52, 48, 55, 44, 50, 46, 53, 47, 51, 45, 49, 43]}
+                  color="#DC2626"
+                  height={36}
+                />
               </div>
             </div>
           </div>
@@ -411,7 +496,6 @@ function HomePage() {
 
         {/* Sections 3, 4, 5, 6 — MAIN CONTENT GRID */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-          
           {/* Left Column: Recent reports (Section 4) */}
           <section className="lg:col-span-8 bg-white rounded-2xl border border-[#E4EAF2] p-5 md:p-6 animate-fade-in-up stagger-3">
             <div className="flex items-center justify-between mb-5">
@@ -421,14 +505,14 @@ function HomePage() {
                   Phản ánh gần đây
                 </h2>
               </div>
-              <Link 
-                to="/my-reports" 
+              <Link
+                to="/my-reports"
                 className="text-sm font-semibold text-[#0B4FC4] hover:underline flex items-center gap-1 font-sans"
               >
                 Xem tất cả &rarr;
               </Link>
             </div>
-            
+
             {/* Loading state: skeleton cards */}
             {isLoading && (
               <div className="space-y-4">
@@ -455,100 +539,124 @@ function HomePage() {
             {/* List of reports */}
             <div className="divide-y divide-[#E4EAF2]">
               {/* Show API feedbacks if available */}
-              {!isLoading && hasApiData && apiFeedbacks.slice(0, 4).map((fb) => (
-                <Link
-                  key={fb.id}
-                  to={`/my-reports/${fb.id}` as any}
-                  className="py-4 flex gap-4 group items-center hover:bg-slate-50/50 transition px-2 rounded-lg -mx-2"
-                >
-                  <div className="w-20 h-20 bg-slate-100 rounded-lg overflow-hidden shrink-0 border border-[#E4EAF2]">
-                    <img
-                      src="https://images.unsplash.com/photo-1596402184320-417e7178b2cd?auto=format&fit=crop&w=150&h=150&q=80"
-                      alt={fb.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                      <span className="px-2 py-0.5 bg-[#F5F9FF] text-[#0B4FC4] rounded text-[10px] font-bold uppercase tracking-wider font-sans">
-                        {fb.categoryName || "Khác"}
+              {!isLoading &&
+                hasApiData &&
+                apiFeedbacks.slice(0, 4).map((fb) => (
+                  <Link
+                    key={fb.id}
+                    to={`/my-reports/${fb.id}` as any}
+                    className="py-4 flex gap-4 group items-center hover:bg-slate-50/50 transition px-2 rounded-lg -mx-2"
+                  >
+                    <div className="w-20 h-20 bg-slate-100 rounded-lg overflow-hidden shrink-0 border border-[#E4EAF2]">
+                      <img
+                        src="https://images.unsplash.com/photo-1596402184320-417e7178b2cd?auto=format&fit=crop&w=150&h=150&q=80"
+                        alt={fb.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                        <span className="px-2 py-0.5 bg-[#F5F9FF] text-[#0B4FC4] rounded text-[10px] font-bold uppercase tracking-wider font-sans">
+                          {fb.categoryName || "Khác"}
+                        </span>
+                        <span className="text-xs text-[#667085] font-semibold font-sans">
+                          {new Date(fb.createdAt).toLocaleDateString(
+                            locale === "vi" ? "vi-VN" : "en-US",
+                          )}
+                        </span>
+                      </div>
+
+                      <h3 className="text-base font-bold text-[#123E8A] group-hover:text-[#0B4FC4] transition truncate font-sans mb-1 leading-snug">
+                        {fb.title}
+                      </h3>
+
+                      <div className="flex items-center text-xs text-[#667085] gap-3">
+                        <span className="flex items-center gap-1 font-sans truncate max-w-[240px]">
+                          <MapPin size={14} className="text-[#667085]" />
+                          {fb.addressDetails || "Đà Nẵng"}
+                        </span>
+                        <span className="font-mono text-[10px] text-[#667085]/70 shrink-0">
+                          {fb.trackingCode}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Status and Arrow */}
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span
+                        className={`px-2.5 py-1 rounded text-xs font-bold font-sans ${getStatusStyles(fb.status)}`}
+                      >
+                        {getStatusLabel(fb.status)}
                       </span>
-                      <span className="text-xs text-[#667085] font-semibold font-sans">
-                        {new Date(fb.createdAt).toLocaleDateString(locale === "vi" ? "vi-VN" : "en-US")}
+                      <span className="text-[#667085] group-hover:text-[#0B4FC4] transition text-lg">
+                        &rarr;
                       </span>
                     </div>
-                    
-                    <h3 className="text-base font-bold text-[#123E8A] group-hover:text-[#0B4FC4] transition truncate font-sans mb-1 leading-snug">
-                      {fb.title}
-                    </h3>
-                    
-                    <div className="flex items-center text-xs text-[#667085] gap-3">
-                      <span className="flex items-center gap-1 font-sans truncate max-w-[240px]">
-                        <MapPin size={14} className="text-[#667085]" />
-                        {fb.addressDetails || "Đà Nẵng"}
-                      </span>
-                      <span className="font-mono text-[10px] text-[#667085]/70 shrink-0">{fb.trackingCode}</span>
-                    </div>
-                  </div>
-                  
-                  {/* Status and Arrow */}
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className={`px-2.5 py-1 rounded text-xs font-bold font-sans ${getStatusStyles(fb.status)}`}>
-                      {getStatusLabel(fb.status)}
-                    </span>
-                    <span className="text-[#667085] group-hover:text-[#0B4FC4] transition text-lg">&rarr;</span>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                ))}
 
               {/* Fallback to mock reports if no API data */}
-              {!isLoading && !hasApiData && mockReports.slice(0, 4).map((r) => (
-                <Link
-                  key={r.id}
-                  to={`/my-reports/${r.id}` as any}
-                  className="py-4 flex gap-4 group items-center hover:bg-slate-50/50 transition px-2 rounded-lg -mx-2"
-                >
-                  <div className="w-20 h-20 bg-slate-100 rounded-lg overflow-hidden shrink-0 border border-[#E4EAF2]">
-                    <img
-                      src={r.image}
-                      alt={r.title[locale]}
-                      className="w-full h-full object-cover font-sans"
-                    />
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                      <span className="px-2 py-0.5 bg-[#F5F9FF] text-[#0B4FC4] rounded text-[10px] font-bold uppercase tracking-wider font-sans">
-                        {r.category === "infra" ? "Hạ tầng" : r.category === "env" ? "Môi trường" : r.category === "traffic" ? "Giao thông" : "An ninh"}
+              {!isLoading &&
+                !hasApiData &&
+                mockReports.slice(0, 4).map((r) => (
+                  <Link
+                    key={r.id}
+                    to={`/my-reports/${r.id}` as any}
+                    className="py-4 flex gap-4 group items-center hover:bg-slate-50/50 transition px-2 rounded-lg -mx-2"
+                  >
+                    <div className="w-20 h-20 bg-slate-100 rounded-lg overflow-hidden shrink-0 border border-[#E4EAF2]">
+                      <img
+                        src={r.image}
+                        alt={r.title[locale]}
+                        className="w-full h-full object-cover font-sans"
+                      />
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                        <span className="px-2 py-0.5 bg-[#F5F9FF] text-[#0B4FC4] rounded text-[10px] font-bold uppercase tracking-wider font-sans">
+                          {r.category === "infra"
+                            ? "Hạ tầng"
+                            : r.category === "env"
+                              ? "Môi trường"
+                              : r.category === "traffic"
+                                ? "Giao thông"
+                                : "An ninh"}
+                        </span>
+                        <span className="text-xs text-[#667085] font-semibold font-sans">
+                          {r.createdAt}
+                        </span>
+                      </div>
+
+                      <h3 className="text-base font-bold text-[#123E8A] group-hover:text-[#0B4FC4] transition truncate font-sans mb-1 leading-snug">
+                        {r.title[locale]}
+                      </h3>
+
+                      <div className="flex items-center text-xs text-[#667085] gap-3">
+                        <span className="flex items-center gap-1 font-sans truncate max-w-[240px]">
+                          <MapPin size={14} className="text-[#667085]" />
+                          {r.address[locale]}
+                        </span>
+                        <span className="font-mono text-[10px] text-[#667085]/70 shrink-0">
+                          {r.id}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Status and Arrow */}
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span
+                        className={`px-2.5 py-1 rounded text-xs font-bold font-sans ${getStatusStylesMock(r.status)}`}
+                      >
+                        {getStatusLabelMock(r.status)}
                       </span>
-                      <span className="text-xs text-[#667085] font-semibold font-sans">
-                        {r.createdAt}
+                      <span className="text-[#667085] group-hover:text-[#0B4FC4] transition text-lg">
+                        &rarr;
                       </span>
                     </div>
-                    
-                    <h3 className="text-base font-bold text-[#123E8A] group-hover:text-[#0B4FC4] transition truncate font-sans mb-1 leading-snug">
-                      {r.title[locale]}
-                    </h3>
-                    
-                    <div className="flex items-center text-xs text-[#667085] gap-3">
-                      <span className="flex items-center gap-1 font-sans truncate max-w-[240px]">
-                        <MapPin size={14} className="text-[#667085]" />
-                        {r.address[locale]}
-                      </span>
-                      <span className="font-mono text-[10px] text-[#667085]/70 shrink-0">{r.id}</span>
-                    </div>
-                  </div>
-                  
-                  {/* Status and Arrow */}
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className={`px-2.5 py-1 rounded text-xs font-bold font-sans ${getStatusStylesMock(r.status)}`}>
-                      {getStatusLabelMock(r.status)}
-                    </span>
-                    <span className="text-[#667085] group-hover:text-[#0B4FC4] transition text-lg">&rarr;</span>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                ))}
             </div>
           </section>
 
@@ -563,30 +671,52 @@ function HomePage() {
                     Bản đồ phản ánh trực tuyến
                   </h2>
                 </div>
-                <Link 
-                  to="/ward" 
+                <Link
+                  to="/ward"
                   className="text-xs font-semibold text-[#0B4FC4] hover:underline font-sans"
                 >
                   Xem trên bản đồ &rarr;
                 </Link>
               </div>
-              
+
               <div className="aspect-[4/3] rounded-xl overflow-hidden border border-[#E4EAF2] mb-1">
                 <Suspense fallback={<div className="w-full h-full bg-slate-100 animate-pulse" />}>
                   <CivicMap
                     markers={
                       hasApiData
-                        ? apiFeedbacks.filter(f => f.latitude && f.longitude).map(f => ({
-                            position: [f.latitude!, f.longitude!] as [number, number],
-                            title: f.title,
-                            description: f.description,
-                            status: mapStatus(f.status)
-                          }))
+                        ? apiFeedbacks
+                            .filter((f) => f.latitude && f.longitude)
+                            .map((f) => ({
+                              position: [f.latitude!, f.longitude!] as [number, number],
+                              title: f.title,
+                              description: f.description,
+                              status: mapStatus(f.status),
+                            }))
                         : [
-                            { position: [16.062, 108.222], title: mockReports[0].title.vi, description: mockReports[0].description.vi, status: mockReports[0].status },
-                            { position: [16.080, 108.155], title: mockReports[1].title.vi, description: mockReports[1].description.vi, status: mockReports[1].status },
-                            { position: [16.078, 108.158], title: mockReports[2].title.vi, description: mockReports[2].description.vi, status: mockReports[2].status },
-                            { position: [16.060, 108.228], title: mockReports[3].title.vi, description: mockReports[3].description.vi, status: mockReports[3].status },
+                            {
+                              position: [16.062, 108.222],
+                              title: mockReports[0].title.vi,
+                              description: mockReports[0].description.vi,
+                              status: mockReports[0].status,
+                            },
+                            {
+                              position: [16.08, 108.155],
+                              title: mockReports[1].title.vi,
+                              description: mockReports[1].description.vi,
+                              status: mockReports[1].status,
+                            },
+                            {
+                              position: [16.078, 108.158],
+                              title: mockReports[2].title.vi,
+                              description: mockReports[2].description.vi,
+                              status: mockReports[2].status,
+                            },
+                            {
+                              position: [16.06, 108.228],
+                              title: mockReports[3].title.vi,
+                              description: mockReports[3].description.vi,
+                              status: mockReports[3].status,
+                            },
                           ]
                     }
                     height="100%"
@@ -610,7 +740,7 @@ function HomePage() {
               <p className="text-[#667085] text-[11px] font-semibold mb-4 font-sans">
                 24/7 &middot; Miễn phí
               </p>
-              
+
               <div className="grid grid-cols-2 gap-3">
                 <Link
                   to="/assistant"
@@ -632,18 +762,21 @@ function HomePage() {
         </div>
 
         {/* Section 7 — QUY TRÌNH GỬI PHẢN ÁNH */}
-        <section className="bg-white rounded-2xl border border-[#E4EAF2] p-6 animate-fade-in-up stagger-4">
+        <section
+          id="huong-dan"
+          className="bg-white rounded-2xl border border-[#E4EAF2] p-6 animate-fade-in-up stagger-4 scroll-mt-24"
+        >
           <div className="flex items-center gap-2 mb-6">
             <div className="w-1.5 h-6 bg-[#0B4FC4] rounded-sm" />
             <h2 className="text-[#123E8A] font-bold text-lg md:text-xl font-sans">
               Quy trình gửi phản ánh
             </h2>
           </div>
-          
+
           <div className="relative">
             {/* Connector Line (Desktop) */}
             <div className="hidden lg:block absolute top-[32px] left-[10%] right-[10%] h-[1.5px] border-t border-dashed border-[#E4EAF2] z-0" />
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative z-10">
               {/* Step 1 */}
               <div className="flex flex-col items-center text-center">
@@ -655,10 +788,14 @@ function HomePage() {
                     1
                   </div>
                 </div>
-                <h3 className="text-sm font-bold text-[#123E8A] mb-1 font-sans">Chụp ảnh / quay video</h3>
-                <p className="text-xs text-[#667085] max-w-[200px] leading-relaxed font-sans">Ghi lại hiện trạng vấn đề cần phản ánh.</p>
+                <h3 className="text-sm font-bold text-[#123E8A] mb-1 font-sans">
+                  Chụp ảnh / quay video
+                </h3>
+                <p className="text-xs text-[#667085] max-w-[200px] leading-relaxed font-sans">
+                  Ghi lại hiện trạng vấn đề cần phản ánh.
+                </p>
               </div>
-              
+
               {/* Step 2 */}
               <div className="flex flex-col items-center text-center">
                 <div className="relative mb-4">
@@ -670,9 +807,11 @@ function HomePage() {
                   </div>
                 </div>
                 <h3 className="text-sm font-bold text-[#123E8A] mb-1 font-sans">Nhập thông tin</h3>
-                <p className="text-xs text-[#667085] max-w-[200px] leading-relaxed font-sans">Cung cấp nội dung, địa điểm và thông tin liên hệ.</p>
+                <p className="text-xs text-[#667085] max-w-[200px] leading-relaxed font-sans">
+                  Cung cấp nội dung, địa điểm và thông tin liên hệ.
+                </p>
               </div>
-              
+
               {/* Step 3 */}
               <div className="flex flex-col items-center text-center">
                 <div className="relative mb-4">
@@ -684,9 +823,11 @@ function HomePage() {
                   </div>
                 </div>
                 <h3 className="text-sm font-bold text-[#123E8A] mb-1 font-sans">Gửi phản ánh</h3>
-                <p className="text-xs text-[#667085] max-w-[200px] leading-relaxed font-sans">Hệ thống tiếp nhận và chuyển đến cơ quan xử lý.</p>
+                <p className="text-xs text-[#667085] max-w-[200px] leading-relaxed font-sans">
+                  Hệ thống tiếp nhận và chuyển đến cơ quan xử lý.
+                </p>
               </div>
-              
+
               {/* Step 4 */}
               <div className="flex flex-col items-center text-center">
                 <div className="relative mb-4">
@@ -697,8 +838,12 @@ function HomePage() {
                     4
                   </div>
                 </div>
-                <h3 className="text-sm font-bold text-[#123E8A] mb-1 font-sans">Theo dõi kết quả</h3>
-                <p className="text-xs text-[#667085] max-w-[200px] leading-relaxed font-sans">Nhận thông báo và theo dõi tiến độ xử lý phản ánh.</p>
+                <h3 className="text-sm font-bold text-[#123E8A] mb-1 font-sans">
+                  Theo dõi kết quả
+                </h3>
+                <p className="text-xs text-[#667085] max-w-[200px] leading-relaxed font-sans">
+                  Nhận thông báo và theo dõi tiến độ xử lý phản ánh.
+                </p>
               </div>
             </div>
           </div>
@@ -706,9 +851,11 @@ function HomePage() {
 
         {/* Sections 1 & 2: Tin tức/thông báo & Câu hỏi thường gặp */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-          
           {/* Left panel: Tin tức & thông báo (65%) */}
-          <section className="lg:col-span-8 bg-white rounded-2xl border border-[#E4EAF2] p-5 md:p-6 flex flex-col justify-between animate-fade-in-up stagger-4">
+          <section
+            id="tin-tuc"
+            className="lg:col-span-8 bg-white rounded-2xl border border-[#E4EAF2] p-5 md:p-6 flex flex-col justify-between animate-fade-in-up stagger-4 scroll-mt-24"
+          >
             <div>
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-2">
@@ -747,14 +894,20 @@ function HomePage() {
                       <div className="p-4 flex-1 flex flex-col justify-between">
                         <div>
                           <div className="flex items-center gap-2 mb-2">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                              n.badge === "Thông báo" ? "bg-[#0B4FC4] text-white" :
-                              n.badge === "Hướng dẫn" ? "bg-[#FFF8E1] text-[#F97316]" :
-                              "bg-[#F5F9FF] text-[#0B4FC4]"
-                            }`}>
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                n.badge === "Thông báo"
+                                  ? "bg-[#0B4FC4] text-white"
+                                  : n.badge === "Hướng dẫn"
+                                    ? "bg-[#FFF8E1] text-[#F97316]"
+                                    : "bg-[#F5F9FF] text-[#0B4FC4]"
+                              }`}
+                            >
                               {n.badge}
                             </span>
-                            <span className="text-[11px] text-[#667085] font-semibold font-sans">{n.date}</span>
+                            <span className="text-[11px] text-[#667085] font-semibold font-sans">
+                              {n.date}
+                            </span>
                           </div>
                           <h3 className="text-sm font-bold text-[#123E8A] line-clamp-2 mb-1 group-hover:text-[#0B4FC4] transition leading-snug font-sans">
                             {n.title}
@@ -785,7 +938,10 @@ function HomePage() {
                 {staticFaqs.map((f) => {
                   const isOpen = openFaq === f.id;
                   return (
-                    <div key={f.id} className="border border-[#E4EAF2] rounded-lg overflow-hidden transition">
+                    <div
+                      key={f.id}
+                      className="border border-[#E4EAF2] rounded-lg overflow-hidden transition"
+                    >
                       <button
                         onClick={() => setOpenFaq(isOpen ? null : f.id)}
                         aria-expanded={isOpen}
@@ -800,7 +956,7 @@ function HomePage() {
                           <ChevronDown size={16} className="text-[#0B4FC4] shrink-0" />
                         )}
                       </button>
-                      
+
                       {isOpen && (
                         <div className="p-4 bg-white border-t border-[#E4EAF2] text-xs text-[#667085] leading-relaxed font-sans animate-fade-in">
                           {f.answer}
@@ -821,13 +977,11 @@ function HomePage() {
               </Link>
             </div>
           </section>
-
         </div>
 
         {/* Section 3: Public-service Trust-Benefit Strip */}
         <section className="bg-white rounded-2xl border border-[#E4EAF2] py-6 px-6 animate-fade-in-up stagger-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
-            
             {/* Item 1 */}
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-full bg-[#F5F9FF] flex items-center justify-center text-[#0B4FC4] shrink-0">
@@ -835,7 +989,9 @@ function HomePage() {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-[#123E8A] font-sans">Bảo mật thông tin</h3>
-                <p className="text-xs text-[#667085] leading-relaxed font-sans">Thông tin của bạn được bảo mật tuyệt đối</p>
+                <p className="text-xs text-[#667085] leading-relaxed font-sans">
+                  Thông tin của bạn được bảo mật tuyệt đối
+                </p>
               </div>
             </div>
 
@@ -846,7 +1002,9 @@ function HomePage() {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-[#123E8A] font-sans">Xử lý minh bạch</h3>
-                <p className="text-xs text-[#667085] leading-relaxed font-sans">Quy trình xử lý công khai, minh bạch</p>
+                <p className="text-xs text-[#667085] leading-relaxed font-sans">
+                  Quy trình xử lý công khai, minh bạch
+                </p>
               </div>
             </div>
 
@@ -857,7 +1015,9 @@ function HomePage() {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-[#123E8A] font-sans">Phản hồi nhanh chóng</h3>
-                <p className="text-xs text-[#667085] leading-relaxed font-sans">Cam kết phản hồi trong thời gian sớm nhất</p>
+                <p className="text-xs text-[#667085] leading-relaxed font-sans">
+                  Cam kết phản hồi trong thời gian sớm nhất
+                </p>
               </div>
             </div>
 
@@ -867,14 +1027,16 @@ function HomePage() {
                 <HeartHandshake size={20} />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-[#123E8A] font-sans">Vì một Đà Nẵng tốt đẹp hơn</h3>
-                <p className="text-xs text-[#667085] leading-relaxed font-sans">Chung tay xây dựng thành phố đáng sống</p>
+                <h3 className="text-sm font-bold text-[#123E8A] font-sans">
+                  Vì một Đà Nẵng tốt đẹp hơn
+                </h3>
+                <p className="text-xs text-[#667085] leading-relaxed font-sans">
+                  Chung tay xây dựng thành phố đáng sống
+                </p>
               </div>
             </div>
-
           </div>
         </section>
-
       </div>
     </div>
   );

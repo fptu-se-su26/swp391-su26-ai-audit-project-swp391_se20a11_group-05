@@ -49,8 +49,13 @@ export interface PageResponse<T> {
 // ─── Feedback Types ───────────────────────────────────────────
 
 export type FeedbackStatus =
-  | "PENDING" | "ASSIGNED" | "IN_PROGRESS"
-  | "WAITING_INFO" | "RESOLVED" | "REJECTED" | "PRE_EMPTIVE";
+  | "PENDING"
+  | "ASSIGNED"
+  | "IN_PROGRESS"
+  | "WAITING_INFO"
+  | "RESOLVED"
+  | "REJECTED"
+  | "PRE_EMPTIVE";
 
 export interface FeedbackResponse {
   id: number;

@@ -114,7 +114,11 @@ function NotificationsPage() {
           disabled={isFetching}
           className="btn-civic btn-civic-ghost"
         >
-          {isFetching && !isFetchingNextPage ? <Loader2 className="animate-spin" size={18} /> : <RefreshCw size={18} />}
+          {isFetching && !isFetchingNextPage ? (
+            <Loader2 className="animate-spin" size={18} />
+          ) : (
+            <RefreshCw size={18} />
+          )}
           {locale === "vi" ? "Làm mới" : "Refresh"}
         </button>
       </div>
@@ -163,7 +167,9 @@ function NotificationsPage() {
           </span>
         )}
         {!isLoading && notifications.length > 0 && !hasNextPage && (
-          <span>{locale === "vi" ? "Đã hiển thị tất cả thông báo" : "All notifications are shown"}</span>
+          <span>
+            {locale === "vi" ? "Đã hiển thị tất cả thông báo" : "All notifications are shown"}
+          </span>
         )}
       </div>
     </div>
@@ -202,7 +208,9 @@ function NotificationCard({
       }`}
     >
       <div className="grid grid-cols-[44px_minmax(0,1fr)_auto] gap-4 items-start">
-        <div className={`w-11 h-11 rounded-lg grid place-items-center ${item.read ? "bg-slate-100 text-gov-blue" : "bg-gov-blue text-white"}`}>
+        <div
+          className={`w-11 h-11 rounded-lg grid place-items-center ${item.read ? "bg-slate-100 text-gov-blue" : "bg-gov-blue text-white"}`}
+        >
           <Icon size={21} />
         </div>
 
@@ -221,7 +229,9 @@ function NotificationCard({
             <div className="rounded-lg border border-slate-200 bg-white/80 px-3 py-2 mb-3">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
                 {item.feedbackTrackingCode && (
-                  <span className="font-mono text-gov-blue font-semibold">{item.feedbackTrackingCode}</span>
+                  <span className="font-mono text-gov-blue font-semibold">
+                    {item.feedbackTrackingCode}
+                  </span>
                 )}
                 {statusLabel && (
                   <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-ink-soft">

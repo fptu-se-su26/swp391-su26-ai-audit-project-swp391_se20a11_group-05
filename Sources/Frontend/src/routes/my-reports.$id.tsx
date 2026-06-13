@@ -22,7 +22,12 @@ import { EmptyState, ErrorState } from "@/components/site/EmptyState";
 import { StatusBadge } from "@/components/site/StatusBadge";
 import { useFeedbackDetail } from "@/lib/hooks";
 import { useI18n } from "@/lib/i18n";
-import { getToken, type FeedbackAttachmentResponse, type FeedbackLogResponse, type FeedbackStatus } from "@/lib/api";
+import {
+  getToken,
+  type FeedbackAttachmentResponse,
+  type FeedbackLogResponse,
+  type FeedbackStatus,
+} from "@/lib/api";
 import { mapStatus } from "@/lib/status";
 import { AUTHORITY_ROLES, parseBackendRole, Role } from "@/lib/roles";
 
@@ -32,7 +37,10 @@ export const Route = createFileRoute("/my-reports/$id")({
     const raw = typeof window !== "undefined" ? localStorage.getItem("dn_auth_user_v2") : null;
 
     if (!token || !raw) {
-      throw redirect({ to: "/login", search: { redirect: `/my-reports/${params.id}`, error: undefined } });
+      throw redirect({
+        to: "/login",
+        search: { redirect: `/my-reports/${params.id}`, error: undefined },
+      });
     }
 
     let user: { role: string } | null = null;
@@ -102,22 +110,31 @@ function ReportDetail() {
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 md:py-8 animate-fade-in-up">
       <section className="mb-5 md:mb-6">
-        <Link to="/my-reports" className="inline-flex items-center gap-2 text-gov-blue font-semibold mb-4 hover:underline">
+        <Link
+          to="/my-reports"
+          className="inline-flex items-center gap-2 text-gov-blue font-semibold mb-4 hover:underline"
+        >
           <ArrowLeft size={18} />
           {t("my.title")}
         </Link>
 
         <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
           <StatusBadge status={status} />
-          <span className="font-mono text-sm text-ink-soft">{report.code || report.trackingCode || `#${report.id}`}</span>
+          <span className="font-mono text-sm text-ink-soft">
+            {report.code || report.trackingCode || `#${report.id}`}
+          </span>
         </div>
 
         <div className="max-w-3xl">
           <p className="text-xs font-bold uppercase text-ink-soft mb-2">
-            {report.category || report.categoryName || (locale === "vi" ? "Chưa phân loại" : "Uncategorized")}
+            {report.category ||
+              report.categoryName ||
+              (locale === "vi" ? "Chưa phân loại" : "Uncategorized")}
           </p>
           <h1 className="font-heading text-3xl md:text-4xl text-gov-blue mb-3">{report.title}</h1>
-          <p className="text-base md:text-lg text-ink-soft leading-relaxed">{report.content || report.description}</p>
+          <p className="text-base md:text-lg text-ink-soft leading-relaxed">
+            {report.content || report.description}
+          </p>
         </div>
       </section>
 
@@ -141,9 +158,19 @@ function ReportDetail() {
                     className="group relative aspect-video overflow-hidden rounded-lg border border-slate-200 bg-slate-100"
                   >
                     {isVideoAttachment(attachment) ? (
-                      <video src={attachment.fileUrl} className="w-full h-full object-cover bg-black" muted preload="metadata" />
+                      <video
+                        src={attachment.fileUrl}
+                        className="w-full h-full object-cover bg-black"
+                        muted
+                        preload="metadata"
+                      />
                     ) : (
-                      <img src={attachment.fileUrl} alt={attachment.fileName || report.title} className="w-full h-full object-cover" loading="lazy" />
+                      <img
+                        src={attachment.fileUrl}
+                        alt={attachment.fileName || report.title}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
                     )}
                     <span className="absolute left-2 bottom-2 inline-flex items-center gap-1 rounded-md bg-white/95 px-2 py-1 text-xs font-semibold text-ink shadow-sm">
                       {isVideoAttachment(attachment) ? <Video size={13} /> : <Image size={13} />}
@@ -155,9 +182,14 @@ function ReportDetail() {
             )}
           </InfoPanel>
 
-          <InfoPanel title={locale === "vi" ? "TIẾN TRÌNH XỬ LÝ" : "Processing Timeline"} icon={Clock}>
+          <InfoPanel
+            title={locale === "vi" ? "TIẾN TRÌNH XỬ LÝ" : "Processing Timeline"}
+            icon={Clock}
+          >
             {timeline.length === 0 ? (
-              <p className="text-sm text-ink-soft">{locale === "vi" ? "Chưa có lịch sử xử lý." : "No processing history yet."}</p>
+              <p className="text-sm text-ink-soft">
+                {locale === "vi" ? "Chưa có lịch sử xử lý." : "No processing history yet."}
+              </p>
             ) : (
               <ol className="relative space-y-4 before:absolute before:left-[15px] before:top-4 before:bottom-4 before:w-1 before:rounded-full before:bg-gov-blue/25">
                 {timeline.map((entry, index) => (
@@ -169,21 +201,46 @@ function ReportDetail() {
         </div>
 
         <aside className="space-y-4 lg:sticky lg:top-24 self-start">
-          <InfoPanel title={locale === "vi" ? "THÔNG TIN PHẢN ÁNH" : "Report Information"} icon={FileText}>
-            <DetailRow icon={MapPin} label={locale === "vi" ? "ĐỊA CHỈ" : "Address"} value={report.address || report.addressDetails || report.wardName} />
-            <DetailRow icon={UserRound} label={locale === "vi" ? "ĐƠN VỊ PHỤ TRÁCH" : "Assigned authority"} value={report.assignedAuthorityName || report.wardName || report.assigneeName} />
-            <DetailRow icon={CalendarClock} label={locale === "vi" ? "NGÀY TẠO" : "Created"} value={formatDateTime(report.createdAt)} />
-            <DetailRow icon={CalendarClock} label={locale === "vi" ? "CẬP NHẬT" : "Updated"} value={formatDateTime(report.updatedAt)} />
+          <InfoPanel
+            title={locale === "vi" ? "THÔNG TIN PHẢN ÁNH" : "Report Information"}
+            icon={FileText}
+          >
+            <DetailRow
+              icon={MapPin}
+              label={locale === "vi" ? "ĐỊA CHỈ" : "Address"}
+              value={report.address || report.addressDetails || report.wardName}
+            />
+            <DetailRow
+              icon={UserRound}
+              label={locale === "vi" ? "ĐƠN VỊ PHỤ TRÁCH" : "Assigned authority"}
+              value={report.assignedAuthorityName || report.wardName || report.assigneeName}
+            />
+            <DetailRow
+              icon={CalendarClock}
+              label={locale === "vi" ? "NGÀY TẠO" : "Created"}
+              value={formatDateTime(report.createdAt)}
+            />
+            <DetailRow
+              icon={CalendarClock}
+              label={locale === "vi" ? "CẬP NHẬT" : "Updated"}
+              value={formatDateTime(report.updatedAt)}
+            />
           </InfoPanel>
 
           {report.rejectionReason && (
-            <InfoPanel title={locale === "vi" ? "LÝ DO TỪ CHỐI" : "Rejection Reason"} icon={MessageSquareText}>
+            <InfoPanel
+              title={locale === "vi" ? "LÝ DO TỪ CHỐI" : "Rejection Reason"}
+              icon={MessageSquareText}
+            >
               <p className="text-sm text-ink-soft leading-relaxed">{report.rejectionReason}</p>
             </InfoPanel>
           )}
 
           {report.resultContent && (
-            <InfoPanel title={locale === "vi" ? "KẾT QUẢ XỬ LÝ" : "Processing Result"} icon={MessageSquareText}>
+            <InfoPanel
+              title={locale === "vi" ? "KẾT QUẢ XỬ LÝ" : "Processing Result"}
+              icon={MessageSquareText}
+            >
               <p className="text-sm text-ink-soft leading-relaxed">{report.resultContent}</p>
             </InfoPanel>
           )}
@@ -261,18 +318,27 @@ function TimelineItem({ entry }: { entry: TimelineEntry }) {
     pending: "bg-gov-gold text-gov-blue-deep ring-gov-gold/20",
     rejected: "bg-red-600 text-white ring-red-100",
   }[entry.tone];
-  const Icon = entry.tone === "rejected" ? XCircle : entry.tone === "pending" ? CircleDot : CheckCircle2;
+  const Icon =
+    entry.tone === "rejected" ? XCircle : entry.tone === "pending" ? CircleDot : CheckCircle2;
   const actor = entry.actorName || entry.authorityName || "Hệ thống";
   const action = timelineActionText(entry);
 
   return (
     <li className="relative grid grid-cols-[34px_minmax(0,1fr)] gap-4">
-      <span className={`relative z-10 mt-3 w-8 h-8 rounded-full grid place-items-center border-4 border-white shadow-sm ring-8 ${nodeClass}`}>
+      <span
+        className={`relative z-10 mt-3 w-8 h-8 rounded-full grid place-items-center border-4 border-white shadow-sm ring-8 ${nodeClass}`}
+      >
         <Icon size={15} strokeWidth={3} />
       </span>
-      <div className={`min-w-0 rounded-2xl border bg-white p-4 shadow-sm ${
-        entry.tone === "rejected" ? "border-red-100" : entry.tone === "pending" ? "border-amber-100" : "border-slate-100"
-      }`}>
+      <div
+        className={`min-w-0 rounded-2xl border bg-white p-4 shadow-sm ${
+          entry.tone === "rejected"
+            ? "border-red-100"
+            : entry.tone === "pending"
+              ? "border-amber-100"
+              : "border-slate-100"
+        }`}
+      >
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <span className="font-bold text-gov-blue">{actor}</span>
           {entry.actorRole && (
@@ -289,7 +355,9 @@ function TimelineItem({ entry }: { entry: TimelineEntry }) {
           <span className="text-ink-soft">Thời gian</span>
           <span className="font-semibold text-ink">{formatTimelineDate(entry.createdAt)}</span>
           <span className="text-ink-soft">Hạn xử lý</span>
-          <span className="font-semibold text-ink">{entry.deadline ? formatTimelineDate(entry.deadline) : "Không có hạn"}</span>
+          <span className="font-semibold text-ink">
+            {entry.deadline ? formatTimelineDate(entry.deadline) : "Không có hạn"}
+          </span>
           {entry.assignedToName && (
             <>
               <span className="text-ink-soft">Chuyển đến</span>
@@ -299,9 +367,11 @@ function TimelineItem({ entry }: { entry: TimelineEntry }) {
         </div>
 
         {entry.note && (
-          <p className={`mt-3 rounded-xl px-3 py-2 text-sm ${
-            entry.tone === "rejected" ? "bg-red-50 text-red-800" : "bg-slate-50 text-ink-soft"
-          }`}>
+          <p
+            className={`mt-3 rounded-xl px-3 py-2 text-sm ${
+              entry.tone === "rejected" ? "bg-red-50 text-red-800" : "bg-slate-50 text-ink-soft"
+            }`}
+          >
             {entry.note}
           </p>
         )}
@@ -310,9 +380,16 @@ function TimelineItem({ entry }: { entry: TimelineEntry }) {
   );
 }
 
-function buildTimeline(logs: FeedbackLogResponse[], currentStatus: FeedbackStatus): TimelineEntry[] {
-  const orderedLogs = [...logs].sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || ""));
-  const rejectedIndex = orderedLogs.findIndex((log) => log.status === "REJECTED" || log.newStatus === "REJECTED");
+function buildTimeline(
+  logs: FeedbackLogResponse[],
+  currentStatus: FeedbackStatus,
+): TimelineEntry[] {
+  const orderedLogs = [...logs].sort((a, b) =>
+    (a.createdAt || "").localeCompare(b.createdAt || ""),
+  );
+  const rejectedIndex = orderedLogs.findIndex(
+    (log) => log.status === "REJECTED" || log.newStatus === "REJECTED",
+  );
   const visibleLogs = rejectedIndex >= 0 ? orderedLogs.slice(0, rejectedIndex + 1) : orderedLogs;
 
   const entries = visibleLogs.map((log) => {
@@ -328,7 +405,7 @@ function buildTimeline(logs: FeedbackLogResponse[], currentStatus: FeedbackStatu
       assignedToName: log.assignedToName,
       deadline: log.deadline,
       createdAt: log.createdAt,
-      tone: rejected ? "rejected" as const : "completed" as const,
+      tone: rejected ? ("rejected" as const) : ("completed" as const),
     };
   });
 
@@ -349,8 +426,10 @@ function buildTimeline(logs: FeedbackLogResponse[], currentStatus: FeedbackStatu
 
 function nextPendingTitle(status: FeedbackStatus, entries: TimelineEntry[]) {
   const completedTitles = new Set(entries.map((entry) => entry.title));
-  if (status === "PENDING" && !completedTitles.has("Đã tiếp nhận phản ánh")) return "Đã tiếp nhận phản ánh";
-  if (status === "IN_PROGRESS" && !completedTitles.has("Đã hoàn thành xử lý")) return "Đã hoàn thành xử lý";
+  if (status === "PENDING" && !completedTitles.has("Đã tiếp nhận phản ánh"))
+    return "Đã tiếp nhận phản ánh";
+  if (status === "IN_PROGRESS" && !completedTitles.has("Đã hoàn thành xử lý"))
+    return "Đã hoàn thành xử lý";
   if (status === "WAITING_INFO") return "Chờ công dân bổ sung thông tin";
   return null;
 }

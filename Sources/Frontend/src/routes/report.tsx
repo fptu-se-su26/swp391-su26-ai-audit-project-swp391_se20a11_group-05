@@ -1,7 +1,5 @@
-﻿import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
-import L from "leaflet";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { useCategories, useCreateFeedbackWithMedia } from "@/lib/hooks";
@@ -41,61 +39,15 @@ export const Route = createFileRoute("/report")({
   component: ReportPage,
 });
 
+const ReportMap = lazy(() =>
+  import("@/components/site/ReportMap").then((m) => ({ default: m.ReportMap })),
+);
+
 const API_BASE: string =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) || "";
 
 const DEFAULT_MAP_CENTER: [number, number] = [16.0544, 108.2022];
 const CURRENT_LOCATION_ZOOM = 17;
-
-const currentLocationIcon = L.divIcon({
-  className: "",
-  html: `
-    <div style="position: relative; width: 32px; height: 42px;">
-      <div style="
-        position: absolute;
-        left: 3px;
-        top: 2px;
-        width: 26px;
-        height: 26px;
-        border-radius: 50% 50% 50% 0;
-        background: #0b5ed7;
-        border: 3px solid #ffffff;
-        box-shadow: 0 10px 22px rgba(11, 94, 215, 0.35);
-        transform: rotate(-45deg);
-        display: grid;
-        place-items: center;
-      ">
-        <div style="
-          width: 8px;
-          height: 8px;
-          border-radius: 9999px;
-          background: #111111;
-          transform: rotate(45deg);
-        "></div>
-      </div>
-    </div>
-  `,
-  iconSize: [32, 42],
-  iconAnchor: [16, 42],
-  popupAnchor: [0, -42],
-});
-
-function MapViewUpdater({ center, hasLocation }: { center: [number, number]; hasLocation: boolean }) {
-  const map = useMap();
-
-  useEffect(() => {
-    window.setTimeout(() => map.invalidateSize(), 0);
-
-    if (hasLocation) {
-      map.flyTo(center, CURRENT_LOCATION_ZOOM, { animate: true, duration: 0.8 });
-      return;
-    }
-
-    map.setView(center, 13, { animate: true });
-  }, [center, hasLocation, map]);
-
-  return null;
-}
 
 interface NominatimReverseResponse {
   display_name?: string;
@@ -136,9 +88,8 @@ function getWardNameFromAddress(readableAddress: string): string {
     readableAddress
       .split(",")
       .map((part) => part.trim())
-      .find((part) =>
-        ["Phường ", "Xã ", "Thị trấn "].some((prefix) => part.startsWith(prefix)),
-      ) || ""
+      .find((part) => ["Phường ", "Xã ", "Thị trấn "].some((prefix) => part.startsWith(prefix))) ||
+    ""
   );
 }
 
@@ -676,7 +627,12 @@ function ReportPage() {
               {videoPreviews.length > 0 && (
                 <div className="mt-4">
                   <div className="relative group aspect-video max-w-xl overflow-hidden rounded-lg border border-slate-200 bg-black">
-                    <video src={videoPreviews[0]} className="w-full h-full object-cover" muted controls />
+                    <video
+                      src={videoPreviews[0]}
+                      className="w-full h-full object-cover"
+                      muted
+                      controls
+                    />
                     <button
                       type="button"
                       onClick={removeVideo}
@@ -797,44 +753,24 @@ function ReportPage() {
           </div>
 
           <div className="relative h-[300px] sm:h-[360px] lg:h-[520px] overflow-hidden rounded-[20px] border border-slate-200 bg-slate-100">
-            <MapContainer
-              center={mapCenter}
-              zoom={hasLocation ? CURRENT_LOCATION_ZOOM : 13}
-              className="w-full h-full"
-              scrollWheelZoom={true}
-              dragging={true}
-              zoomControl={true}
-            >
-              <MapViewUpdater center={mapCenter} hasLocation={hasLocation} />
-              <TileLayer
-                attribution='&copy; Google Maps'
-                url="https://mt1.google.com/vt/lyrs=m&hl=vi&gl=VN&x={x}&y={y}&z={z}"
-              />
-              {markerDisplayed && latitude !== null && longitude !== null && (
-                <Marker position={[latitude, longitude]} icon={currentLocationIcon}>
-                  <Popup>
-                    <strong>Vị trí hiện tại</strong>
-                    <p className="text-sm mt-1">{address || "Đã xác định bằng GPS"}</p>
-                  </Popup>
-                </Marker>
-              )}
-            </MapContainer>
-
-            {!markerDisplayed && (
-              <div className="absolute inset-x-4 top-4 rounded-lg border border-white/70 bg-white/95 p-4 shadow-sm z-[500]">
-                <div className="flex items-start gap-3">
-                  <MapPin className="text-gov-blue shrink-0 mt-0.5" size={22} />
-                  <div>
-                    <p className="font-bold text-ink">Đang chờ vị trí</p>
-                    <p className="text-sm text-ink-soft">
-                      {locationLoading
-                        ? "Hệ thống đang xin quyền GPS..."
-                        : "Bấm Lấy lại vị trí để hiển thị ghim trên bản đồ."}
-                    </p>
-                  </div>
+            <Suspense
+              fallback={
+                <div className="w-full h-full flex items-center justify-center text-[#667085] font-sans">
+                  <Loader2 className="animate-spin text-gov-blue mr-2" size={20} />
+                  Đang tải bản đồ...
                 </div>
-              </div>
-            )}
+              }
+            >
+              <ReportMap
+                mapCenter={mapCenter}
+                hasLocation={hasLocation}
+                markerDisplayed={markerDisplayed}
+                latitude={latitude}
+                longitude={longitude}
+                address={address}
+                locationLoading={locationLoading}
+              />
+            </Suspense>
           </div>
         </aside>
       </div>

@@ -134,7 +134,8 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
         // Backend trả về chuẩn { status, message, data }
         if (body.status >= 400) {
           const error = new ApiError(body.status, body.message, body.data);
-          if (error.isUnauthorized && onUnauthorized && getToken() !== "demo-token") onUnauthorized();
+          if (error.isUnauthorized && onUnauthorized && getToken() !== "demo-token")
+            onUnauthorized();
           throw error;
         }
         return body.data as T;
@@ -201,8 +202,13 @@ export interface UpdateProfileRequest {
 // ─── Feedback Types ───────────────────────────────────────────
 
 export type FeedbackStatus =
-  | "PENDING" | "ASSIGNED" | "IN_PROGRESS"
-  | "WAITING_INFO" | "RESOLVED" | "REJECTED" | "PRE_EMPTIVE";
+  | "PENDING"
+  | "ASSIGNED"
+  | "IN_PROGRESS"
+  | "WAITING_INFO"
+  | "RESOLVED"
+  | "REJECTED"
+  | "PRE_EMPTIVE";
 
 export interface FeedbackResponse {
   id: number;
@@ -360,8 +366,11 @@ export const authApi = {
     }),
 
   register: (data: {
-    username: string; password: string; fullName: string;
-    phoneNumber?: string; email: string;
+    username: string;
+    password: string;
+    fullName: string;
+    phoneNumber?: string;
+    email: string;
   }) =>
     request<unknown>("/api/auth/register", {
       method: "POST",
@@ -421,11 +430,9 @@ export const feedbackApi = {
     return request<PageResponse<FeedbackResponse>>(`/api/feedbacks/my?${params}`);
   },
 
-  getStatuses: () =>
-    request<FeedbackStatusOption[]>("/api/feedbacks/statuses"),
+  getStatuses: () => request<FeedbackStatusOption[]>("/api/feedbacks/statuses"),
 
-  getById: (id: string | number) =>
-    request<FeedbackResponse>(`/api/feedback/my-reports/${id}`),
+  getById: (id: string | number) => request<FeedbackResponse>(`/api/feedback/my-reports/${id}`),
 
   create: (data: FeedbackRequest) =>
     request<FeedbackResponse>("/api/feedbacks/submit", {
@@ -446,8 +453,7 @@ export const feedbackApi = {
       body: JSON.stringify({ assigneeId }),
     }),
 
-  getLogs: (id: number | string) =>
-    request<unknown[]>(`/api/feedbacks/${id}/logs`),
+  getLogs: (id: number | string) => request<unknown[]>(`/api/feedbacks/${id}/logs`),
 };
 
 export const userApi = {
@@ -517,9 +523,7 @@ export const ragApi = {
     }),
 
   chatbot: (question: string, userId: string | number) =>
-    request<ChatbotResponse>(
-      `/api/rag/chatbot?q=${encodeURIComponent(question)}&userId=${userId}`,
-    ),
+    request<ChatbotResponse>(`/api/rag/chatbot?q=${encodeURIComponent(question)}&userId=${userId}`),
 
   chatHistory: (userId: string | number) =>
     request<unknown[]>(`/api/rag/chat-history?userId=${userId}`),
@@ -533,7 +537,6 @@ export const aiApi = {
       `/api/ai/router?message=${encodeURIComponent(message)}&userId=${encodeURIComponent(userId)}`,
     ),
 };
-
 
 // ─── Analytics Types ─────────────────────────────────────────
 
@@ -565,7 +568,8 @@ export interface DispatchAgency {
 export const analyticsApi = {
   kpi: () => request<KpiData>("/api/analytics/kpi"),
   wardPerformance: () => request<WardPerformance[]>("/api/analytics/ward-performance"),
-  monthlyTrend: (months = 12) => request<MonthlyTrend[]>(`/api/analytics/monthly-trend?months=${months}`),
+  monthlyTrend: (months = 12) =>
+    request<MonthlyTrend[]>(`/api/analytics/monthly-trend?months=${months}`),
   dispatch: () => request<DispatchAgency[]>("/api/analytics/dispatch"),
 };
 
@@ -580,5 +584,7 @@ export const wardApi = {
   getAll: () => request<Ward[]>("/api/wards"),
   search: (name: string) => request<Ward[]>(`/api/wards/search?name=${encodeURIComponent(name)}`),
   locate: (lat: number, lng: number) =>
-    request<Ward>(`/api/wards/locate?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`),
+    request<Ward>(
+      `/api/wards/locate?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`,
+    ),
 };

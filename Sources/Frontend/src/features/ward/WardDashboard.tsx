@@ -6,7 +6,9 @@ import { StaffShell } from "@/components/site/StaffShell";
 import { Loader2, RefreshCw } from "lucide-react";
 import { mapStatus } from "@/lib/status";
 
-const CivicMap = lazy(() => import("@/components/site/CivicMap").then(m => ({ default: m.CivicMap })));
+const CivicMap = lazy(() =>
+  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
+);
 
 export function WardDashboard() {
   const { t, locale } = useI18n();
@@ -17,7 +19,7 @@ export function WardDashboard() {
   const hasApiData = !!feedbacksPage && feedbacksPage.content.length > 0;
   const apiFeedbacks = feedbacksPage?.content ?? [];
   // Chỉ đưa các phản ánh có tọa độ lên bản đồ.
-  const mappedFeedbacks = apiFeedbacks.filter(f => f.latitude !== null && f.longitude !== null);
+  const mappedFeedbacks = apiFeedbacks.filter((f) => f.latitude !== null && f.longitude !== null);
 
   // Auto-select first item when data loads
   useEffect(() => {
@@ -64,7 +66,11 @@ export function WardDashboard() {
           ))}
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={() => refetch()} disabled={isFetching} className="btn-civic btn-civic-ghost flex items-center gap-2">
+          <button
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="btn-civic btn-civic-ghost flex items-center gap-2"
+          >
             {isFetching ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
             {locale === "vi" ? "Làm mới" : "Refresh"}
           </button>
@@ -83,10 +89,14 @@ export function WardDashboard() {
         <Suspense fallback={<div className="w-full h-[320px] bg-slate-800 animate-pulse" />}>
           {/* Bản đồ giúp cán bộ phường xem vị trí phản ánh theo pin GPS. */}
           <CivicMap
-            center={mappedFeedbacks[0] ? [mappedFeedbacks[0].latitude!, mappedFeedbacks[0].longitude!] : [15.8, 108.3]}
+            center={
+              mappedFeedbacks[0]
+                ? [mappedFeedbacks[0].latitude!, mappedFeedbacks[0].longitude!]
+                : [15.8, 108.3]
+            }
             zoom={13}
             height="320px"
-            markers={mappedFeedbacks.map(f => ({
+            markers={mappedFeedbacks.map((f) => ({
               position: [f.latitude!, f.longitude!] as [number, number],
               title: f.title,
               description: f.description,

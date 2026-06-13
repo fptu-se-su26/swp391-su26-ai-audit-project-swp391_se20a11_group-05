@@ -19,8 +19,10 @@ import com.example.smartcity.modules.user.entity.Role;
 import com.example.smartcity.common.exception.CustomException;
 import com.example.smartcity.common.exception.ResourceNotFoundException;
 import com.example.smartcity.modules.notification.WebSocketNotificationService;
+import com.example.smartcity.modules.notification.service.NotificationService;
 import org.springframework.http.HttpStatus;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -39,11 +41,13 @@ import com.example.smartcity.common.base.BaseServiceImpl;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
 
     private final FeedbackRepository feedbackRepository;
     private final FeedbackLogRepository feedbackLogRepository;
-    private final WebSocketNotificationService notificationService;
+    private final WebSocketNotificationService webSocketNotificationService;
+    private final NotificationService notificationService;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final AttachmentRepository attachmentRepository;
@@ -107,6 +111,11 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         feedback.setUpdatedAt(LocalDateTime.now());
 
         Feedback saved = feedbackRepository.save(feedback);
+        FeedbackLog submittedLog = new FeedbackLog(saved, citizen, null, FeedbackStatus.PENDING, "Công dân đã gửi phản ánh");
+        submittedLog.setAction("SUBMIT");
+        feedbackLogRepository.save(submittedLog);
+        log.info("[Feedback] Created feedback. feedbackId={}, currentUserId={}", saved.getId(), citizen.getId());
+        notificationService.createFeedbackSubmittedNotification(saved);
 
         // Kích hoạt AI Auto-Dispatch (Non-blocking)
         autoDispatchService.analyzeAndDispatch(saved.getId());
@@ -172,6 +181,25 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         return attachmentRepository.findByFeedbackIdIn(feedbackIds);
     }
 
+    @Transactional(readOnly = true)
+    public Feedback getMyFeedbackById(Long feedbackId, String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User: " + username));
+
+        if (user.getRole() != Role.CITIZEN) {
+            throw new CustomException("Chi cong dan moi duoc xem chi tiet phan anh ca nhan", HttpStatus.FORBIDDEN.value());
+        }
+
+        Feedback feedback = feedbackRepository.findById(feedbackId)
+                .orElseThrow(() -> new ResourceNotFoundException("Feedback", feedbackId));
+
+        if (!feedback.getCitizen().getId().equals(user.getId())) {
+            throw new CustomException("Ban khong co quyen xem phan anh nay", HttpStatus.FORBIDDEN.value());
+        }
+
+        return feedback;
+    }
+
     // ─── State Machine ────────────────────────────────────────────────
 
     @Transactional
@@ -197,10 +225,13 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         Feedback saved = feedbackRepository.save(feedback);
 
         FeedbackLog log = new FeedbackLog(feedback, actionBy, current, newStatus, note);
+        if (current == FeedbackStatus.PENDING && newStatus == FeedbackStatus.IN_PROGRESS) {
+            log.setAction("ACCEPT");
+        }
         feedbackLogRepository.save(log);
 
         // Gửi WebSocket notification
-        notificationService.notifyFeedbackStatusChange(
+        webSocketNotificationService.notifyFeedbackStatusChange(
                 feedbackId, newStatus.name(),
                 "Feedback #" + feedback.getTrackingCode() + " → " + newStatus);
 
@@ -230,7 +261,8 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         Feedback saved = feedbackRepository.save(feedback);
 
         FeedbackLog log = new FeedbackLog(feedback, actionBy, oldStatus, feedback.getStatus(),
-                "Giao cho " + assignee.getFullName());
+                "Đã chuyển đến " + resolveAuthorityName(feedback));
+        log.setAction("ASSIGN");
         feedbackLogRepository.save(log);
 
         return saved;
@@ -238,20 +270,85 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
 
     @Transactional(readOnly = true)
     public List<FeedbackLogResponse> getFeedbackLogs(Long feedbackId) {
-        return feedbackLogRepository.findByFeedbackIdOrderByCreatedAtDesc(feedbackId)
+        return feedbackLogRepository.findByFeedbackIdOrderByCreatedAtAsc(feedbackId)
                 .stream()
-                .map(log -> FeedbackLogResponse.builder()
-                        .id(log.getId())
-                        .actionByName(log.getActionBy().getFullName())
-                        .oldStatus(log.getOldStatus())
-                        .newStatus(log.getNewStatus())
-                        .note(log.getNote())
-                        .createdAt(log.getCreatedAt())
-                        .build())
+                .map(this::toFeedbackLogResponse)
                 .collect(Collectors.toList());
     }
 
+    private FeedbackLogResponse toFeedbackLogResponse(FeedbackLog log) {
+        String actorName = log.getActionBy() == null ? null : log.getActionBy().getFullName();
+        String actorRole = log.getActionBy() == null || log.getActionBy().getRole() == null
+                ? null
+                : log.getActionBy().getRole().name();
+        String authorityName = resolveAuthorityName(log.getFeedback());
+        FeedbackStatus status = log.getNewStatus() != null ? log.getNewStatus() : log.getOldStatus();
+
+        return FeedbackLogResponse.builder()
+                .id(log.getId())
+                .actionByName(actorName)
+                .actorName(actorName)
+                .actorRole(actorRole)
+                .authorityName(authorityName)
+                .assignedToName(resolveAssignedToName(log, authorityName))
+                .action(log.getAction())
+                .status(status == null ? null : status.name())
+                .title(resolveTimelineTitle(log))
+                .deadline(null)
+                .oldStatus(log.getOldStatus())
+                .newStatus(log.getNewStatus())
+                .note(log.getNote())
+                .createdAt(log.getCreatedAt())
+                .build();
+    }
+
+    private String resolveTimelineTitle(FeedbackLog log) {
+        if ("SUBMIT".equals(log.getAction())) {
+            return "Đã gửi phản ánh";
+        }
+        if ("ASSIGN".equals(log.getAction())) {
+            return "Đã chuyển đơn vị xử lý";
+        }
+        if ("ACCEPT".equals(log.getAction())) {
+            return "Đã tiếp nhận phản ánh";
+        }
+        if (log.getNewStatus() == FeedbackStatus.REJECTED) {
+            return "Phản ánh bị từ chối";
+        }
+        if (log.getNewStatus() == FeedbackStatus.WAITING_INFO) {
+            return "Cần bổ sung thông tin";
+        }
+        if (log.getNewStatus() == FeedbackStatus.RESOLVED) {
+            return "Đã hoàn thành xử lý";
+        }
+        if (log.getNewStatus() == FeedbackStatus.IN_PROGRESS) {
+            String note = log.getNote() == null ? "" : log.getNote().toLowerCase();
+            if (note.contains("tiếp nhận")) {
+                return "Đã tiếp nhận phản ánh";
+            }
+            return "Đang xử lý";
+        }
+        return "Đã cập nhật phản ánh";
+    }
+
+    private String resolveAuthorityName(Feedback feedback) {
+        if (feedback == null || feedback.getWard() == null) {
+            return null;
+        }
+        return "UBND Phường " + feedback.getWard().getName();
+    }
+
     // ─── Role-based access helpers ────────────────────────────────────
+
+    private String resolveAssignedToName(FeedbackLog log, String authorityName) {
+        if ("ASSIGN".equals(log.getAction())) {
+            return authorityName;
+        }
+        if (log.getFeedback() != null && log.getFeedback().getAssignee() != null) {
+            return log.getFeedback().getAssignee().getFullName();
+        }
+        return null;
+    }
 
     public boolean canAccessFeedback(Feedback feedback, String username) {
         User user = userRepository.findByUsername(username)

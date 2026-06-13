@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
 import org.springframework.security.access.prepost.PreAuthorize;
 import com.example.smartcity.common.exception.CustomException;
 @RestController
-@RequestMapping("/api/feedbacks")
+@RequestMapping({"/api/feedbacks", "/api/feedback"})
 @RequiredArgsConstructor
 public class FeedbackController extends BaseGenericController<Feedback, FeedbackResponse, Long> {
 
@@ -98,7 +98,16 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
         if (auth != null && !feedbackService.canAccessFeedback(feedback, auth.getName())) {
             throw new CustomException("Bạn không có quyền xem phản ánh này", 403);
         }
-        return super.getById(id);
+        return ResponseEntity.ok(toDetailResponse(feedback));
+    }
+
+    @GetMapping("/my-reports/{feedbackId}")
+    @PreAuthorize("hasRole('CITIZEN')")
+    public ResponseEntity<FeedbackResponse> getMyReportById(
+            @PathVariable Long feedbackId,
+            Authentication authentication) {
+        Feedback feedback = feedbackService.getMyFeedbackById(feedbackId, authentication.getName());
+        return ResponseEntity.ok(toDetailResponse(feedback));
     }
 
     @GetMapping("/my-feedbacks")
@@ -209,6 +218,7 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
                 .totalPages(page.getTotalPages())
                 .first(page.isFirst())
                 .last(page.isLast())
+                .hasNext(page.hasNext())
                 .build();
     }
 
@@ -221,6 +231,39 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
                 .fileSize(attachment.getFileSize())
                 .uploadedAt(attachment.getUploadedAt())
                 .build();
+    }
+
+    private FeedbackResponse toDetailResponse(Feedback feedback) {
+        FeedbackResponse response = feedbackMapper.toDto(feedback);
+        List<FeedbackAttachmentResponse> attachments = feedbackService
+                .getAttachmentsForFeedbacks(List.of(feedback.getId()))
+                .stream()
+                .map(this::toAttachmentResponse)
+                .toList();
+        List<FeedbackLogResponse> timeline = feedbackService.getFeedbackLogs(feedback.getId());
+
+        response.setCode(response.getTrackingCode());
+        response.setContent(response.getDescription());
+        response.setAddress(response.getAddressDetails());
+        response.setCategory(response.getCategoryName());
+        response.setAssignedAuthorityName(response.getWardName());
+        response.setAttachments(attachments);
+        response.setMediaUrls(attachments.stream().map(FeedbackAttachmentResponse::getFileUrl).toList());
+        response.setTimeline(timeline);
+
+        String latestNote = timeline.stream()
+                .filter(log -> log.getNote() != null && !log.getNote().isBlank())
+                .findFirst()
+                .map(FeedbackLogResponse::getNote)
+                .orElse(feedback.getResolutionNote());
+        if (feedback.getStatus() == FeedbackStatus.REJECTED) {
+            response.setRejectionReason(latestNote);
+        }
+        if (feedback.getStatus() == FeedbackStatus.RESOLVED) {
+            response.setResultContent(latestNote);
+        }
+
+        return response;
     }
 
     private String toStatusLabel(FeedbackStatus status) {

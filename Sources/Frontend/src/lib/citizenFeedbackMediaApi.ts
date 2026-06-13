@@ -1,4 +1,4 @@
-import { getToken } from "./api";
+import { ApiError, getToken } from "./api";
 
 const API_BASE: string =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) || "";
@@ -10,7 +10,6 @@ export interface CitizenFeedbackMediaRequest {
   longitude?: number;
   addressDetails?: string;
   categoryId: number;
-  citizenId: number;
   videoDurationsSeconds: number[];
 }
 
@@ -18,6 +17,8 @@ export interface FeedbackAttachmentResponse {
   id: number;
   fileUrl: string;
   fileType: string;
+  fileName: string | null;
+  fileSize: number | null;
   uploadedAt: string;
 }
 
@@ -58,8 +59,18 @@ export async function submitCitizenFeedbackMedia(
   });
 
   if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(body || `Submit feedback failed with status ${response.status}`);
+    const contentType = response.headers.get("content-type");
+    const body = contentType?.includes("application/json")
+      ? await response.json().catch(() => null)
+      : await response.text().catch(() => "");
+    const message =
+      body && typeof body === "object" && "message" in body
+        ? String(body.message)
+        : typeof body === "string" && body
+          ? body
+          : `Submit feedback failed with status ${response.status}`;
+
+    throw new ApiError(response.status, message, body);
   }
 
   return response.json();

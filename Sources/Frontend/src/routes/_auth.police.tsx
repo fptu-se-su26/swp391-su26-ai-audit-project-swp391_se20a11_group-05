@@ -21,8 +21,8 @@ export const Route = createFileRoute("/_auth/police")({
   },
   head: () => ({
     meta: [
-      { title: "Cổng Công an & CSGT — Đà Nẵng Kết Nối" },
-      { name: "description", content: "Cổng dành cho lực lượng Công an, CSGT, PCCC — giám sát giao thông và an ninh." },
+      { title: "Cổng Công an — Đà Nẵng Kết Nối" },
+      { name: "description", content: "Cổng dành cho lực lượng Công an — giám sát an ninh trật tự." },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),

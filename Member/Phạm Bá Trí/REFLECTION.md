@@ -451,6 +451,16 @@ Khi 2 đầu Frontend và Backend phát triển song song mà thiếu API contra
 
 ---
 
+### 9.17. Bài học về Thiết kế Luồng Đăng ký chuẩn Ngân hàng (Two-Step SMS OTP)
+
+```text
+- Vấn đề: Thiết kế luồng đăng ký ban đầu cực kỳ "Ngây ngô": OTP lưu dưới dạng Plaintext, dùng JPA query cơ bản (dễ bị xuyên thủng bằng 50 requests/s), và đặc biệt là bị Deadlock khi người dùng bỏ dở đăng ký làm kẹt luôn SĐT.
+- Giải pháp từ AI: AI hướng dẫn đập bỏ thiết kế cũ. Áp dụng chuẩn bảo mật OWASP: Băm OTP (BCrypt), Chống Race Condition bằng Database Row-level Lock (@Lock(PESSIMISTIC_WRITE)), giải quyết Deadlock bằng chiến thuật "Smart Cleanup" xóa cứng tài khoản INACTIVE cũ, và cuối cùng là thêm Cron Job tự động dọn DB rác lúc 2h sáng.
+- Kinh nghiệm: Đây là những "Vết sẹo" kinh điển của các hệ thống Production thực tế. Đồ án sẽ bị đánh trượt ngay lập tức nếu dữ liệu OTP có thể đọc được bằng mắt thường trong DB. Việc biến UI thành dạng 6-box input giống các App ngân hàng cũng làm tăng giá trị chuyên nghiệp của đồ án lên rất nhiều.
+```
+
+---
+
 ## 17. Cam kết Reflection
 
 Em/nhóm cam kết rằng nội dung reflection này phản ánh trung thực quá trình sử dụng AI và quá trình học tập trong bài tập/project.
@@ -465,3 +475,4 @@ Sinh viên/nhóm hiểu rằng:
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
 |  |  |
+

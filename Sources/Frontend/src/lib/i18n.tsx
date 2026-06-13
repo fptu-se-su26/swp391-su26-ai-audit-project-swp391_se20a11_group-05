@@ -89,7 +89,7 @@ export const dict: Dict = {
   "ward.reject": { vi: "Từ chối", en: "Reject" },
   "ward.resolve": { vi: "Đánh dấu hoàn thành", en: "Mark resolved" },
 
-  "police.title": { vi: "Cổng Công an & CSGT", en: "Police & Traffic Portal" },
+  "police.title": { vi: "Cổng Công an", en: "Police Portal" },
   "police.licensePlate": { vi: "Biển số nhận diện (OCR)", en: "Detected license plate (OCR)" },
   "police.broadcast": { vi: "Phát cảnh báo khu vực", en: "Broadcast area alert" },
 

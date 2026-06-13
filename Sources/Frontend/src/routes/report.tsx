@@ -1,11 +1,12 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+﻿import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
-import { useCategories, useCreateFeedback } from "@/lib/hooks";
-import { ApiError, getToken, wardApi } from "@/lib/api";
+import { useCategories, useCreateFeedbackWithMedia } from "@/lib/hooks";
+import { ApiError, wardApi } from "@/lib/api";
+import { getVideoDurationSeconds } from "@/lib/citizenFeedbackMediaApi";
 import {
   clearGpsLocation,
   getStoredGpsLocation,
@@ -44,35 +45,101 @@ const API_BASE: string =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) || "";
 
 const DEFAULT_MAP_CENTER: [number, number] = [16.0544, 108.2022];
+const CURRENT_LOCATION_ZOOM = 17;
 
 const currentLocationIcon = L.divIcon({
   className: "",
   html: `
-    <div style="
-      width: 34px;
-      height: 34px;
-      border-radius: 9999px;
-      background: #00387b;
-      border: 4px solid #ffffff;
-      box-shadow: 0 10px 24px rgba(0, 56, 123, 0.35);
-      display: grid;
-      place-items: center;
-    ">
-      <div style="width: 10px; height: 10px; border-radius: 9999px; background: #d4af37;"></div>
+    <div style="position: relative; width: 32px; height: 42px;">
+      <div style="
+        position: absolute;
+        left: 3px;
+        top: 2px;
+        width: 26px;
+        height: 26px;
+        border-radius: 50% 50% 50% 0;
+        background: #0b5ed7;
+        border: 3px solid #ffffff;
+        box-shadow: 0 10px 22px rgba(11, 94, 215, 0.35);
+        transform: rotate(-45deg);
+        display: grid;
+        place-items: center;
+      ">
+        <div style="
+          width: 8px;
+          height: 8px;
+          border-radius: 9999px;
+          background: #111111;
+          transform: rotate(45deg);
+        "></div>
+      </div>
     </div>
   `,
-  iconSize: [34, 34],
-  iconAnchor: [17, 17],
+  iconSize: [32, 42],
+  iconAnchor: [16, 42],
+  popupAnchor: [0, -42],
 });
 
-function MapViewUpdater({ center }: { center: [number, number] }) {
+function MapViewUpdater({ center, hasLocation }: { center: [number, number]; hasLocation: boolean }) {
   const map = useMap();
 
   useEffect(() => {
-    map.setView(center, 17, { animate: true });
-  }, [center, map]);
+    window.setTimeout(() => map.invalidateSize(), 0);
+
+    if (hasLocation) {
+      map.flyTo(center, CURRENT_LOCATION_ZOOM, { animate: true, duration: 0.8 });
+      return;
+    }
+
+    map.setView(center, 13, { animate: true });
+  }, [center, hasLocation, map]);
 
   return null;
+}
+
+interface NominatimReverseResponse {
+  display_name?: string;
+}
+
+async function reverseGeocodeAddress(
+  latitude: number,
+  longitude: number,
+  signal?: AbortSignal,
+): Promise<string> {
+  const params = new URLSearchParams({
+    format: "jsonv2",
+    lat: String(latitude),
+    lon: String(longitude),
+    zoom: "18",
+    addressdetails: "1",
+    "accept-language": "vi",
+  });
+
+  const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params}`, {
+    signal,
+  });
+
+  if (!response.ok) {
+    throw new Error("REVERSE_GEOCODING_FAILED");
+  }
+
+  const data = (await response.json()) as NominatimReverseResponse;
+  if (!data.display_name) {
+    throw new Error("REVERSE_GEOCODING_EMPTY");
+  }
+
+  return data.display_name;
+}
+
+function getWardNameFromAddress(readableAddress: string): string {
+  return (
+    readableAddress
+      .split(",")
+      .map((part) => part.trim())
+      .find((part) =>
+        ["Phường ", "Xã ", "Thị trấn "].some((prefix) => part.startsWith(prefix)),
+      ) || ""
+  );
 }
 
 function getVietnameseGpsErrorMessage(error: unknown): string {
@@ -106,7 +173,7 @@ function ReportPage() {
 
   const { data: categories } = useCategories();
   const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
-  const createFeedback = useCreateFeedback();
+  const createFeedback = useCreateFeedbackWithMedia();
 
   const storedLocation = getStoredGpsLocation();
   const [title, setTitle] = useState("");
@@ -114,27 +181,33 @@ function ReportPage() {
   const [latitude, setLatitude] = useState<number | null>(storedLocation?.latitude ?? null);
   const [longitude, setLongitude] = useState<number | null>(storedLocation?.longitude ?? null);
   const [locationLoading, setLocationLoading] = useState(false);
+  const [addressLoading, setAddressLoading] = useState(false);
   const [locationError, setLocationError] = useState("");
+  const [address, setAddress] = useState("");
+  const [addressError, setAddressError] = useState("");
   const [detectedWard, setDetectedWard] = useState("");
-  const [locationConfirmed, setLocationConfirmed] = useState(!!storedLocation);
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+  const [videos, setVideos] = useState<File[]>([]);
+  const [videoPreviews, setVideoPreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const geocodeAbortRef = useRef<AbortController | null>(null);
 
   const hasLocation = latitude !== null && longitude !== null;
   const markerDisplayed = hasLocation && !locationLoading;
+  const expectedWard = detectedWard || getWardNameFromAddress(address);
   const mapCenter = useMemo<[number, number]>(
     () => (hasLocation ? [latitude, longitude] : DEFAULT_MAP_CENTER),
     [hasLocation, latitude, longitude],
   );
   const canSubmit =
     photos.length > 0 &&
+    videos.length > 0 &&
     description.trim().length > 0 &&
     hasLocation &&
-    markerDisplayed &&
-    locationConfirmed &&
+    !locationLoading &&
     !createFeedback.isPending &&
     !uploading;
 
@@ -145,7 +218,9 @@ function ReportPage() {
   }, [categories, categoryId]);
 
   useEffect(() => {
-    if (!storedLocation) {
+    if (storedLocation) {
+      void loadAddress(storedLocation.latitude, storedLocation.longitude);
+    } else {
       detectLocation();
     }
     // Auto GPS runs once on page open.
@@ -204,19 +279,99 @@ function ReportPage() {
     });
   };
 
+  const handlePhotoFilesSelected = (files: FileList | null) => {
+    if (!files) {
+      if (photoInputRef.current) photoInputRef.current.value = "";
+      return;
+    }
+    const newFiles = Array.from(files);
+    const validFiles = newFiles.filter((file) => {
+      const validType = file.type.startsWith("image/");
+      const validSize = file.size <= 10 * 1024 * 1024;
+
+      if (!validType) {
+        toast.error(`${file.name} không phải file ảnh.`);
+      }
+      if (!validSize) {
+        toast.error(`${file.name} vượt quá 10MB.`);
+      }
+
+      return validType && validSize;
+    });
+
+    const availableSlots = Math.max(0, 5 - photos.length);
+    const acceptedFiles = validFiles.slice(0, availableSlots);
+    if (validFiles.length > availableSlots) {
+      toast.error("Chỉ được upload tối đa 5 ảnh.");
+    }
+
+    setPhotos((prev) => [...prev, ...acceptedFiles]);
+    acceptedFiles.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setPhotoPreviews((prev) => [...prev, event.target!.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    if (photoInputRef.current) photoInputRef.current.value = "";
+  };
+
+  const handleVideoFileSelected = (files: FileList | null) => {
+    if (!files) {
+      if (videoInputRef.current) videoInputRef.current.value = "";
+      return;
+    }
+    const file = Array.from(files)[0];
+    if (!file) {
+      if (videoInputRef.current) videoInputRef.current.value = "";
+      return;
+    }
+
+    if (!file.type.startsWith("video/")) {
+      toast.error(`${file.name} không phải file video.`);
+      if (videoInputRef.current) videoInputRef.current.value = "";
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error(`${file.name} vượt quá 50MB.`);
+      if (videoInputRef.current) videoInputRef.current.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setVideos([file]);
+        setVideoPreviews([event.target.result as string]);
+      }
+    };
+    reader.readAsDataURL(file);
+    if (videoInputRef.current) videoInputRef.current.value = "";
+  };
+
   const removePhoto = (idx: number) => {
     setPhotos((prev) => prev.filter((_, i) => i !== idx));
     setPhotoPreviews((prev) => prev.filter((_, i) => i !== idx));
+    if (photoInputRef.current) photoInputRef.current.value = "";
+  };
+
+  const removeVideo = () => {
+    setVideos([]);
+    setVideoPreviews([]);
+    if (videoInputRef.current) videoInputRef.current.value = "";
   };
 
   const uploadPhotos = async (feedbackId: number): Promise<string[]> => {
-    if (photos.length === 0) return [];
+    const selectedMedia = [...photos, ...videos];
+    if (selectedMedia.length === 0) return [];
     const token = getToken();
     const urls: string[] = [];
     setUploading(true);
 
     try {
-      for (const photo of photos) {
+      for (const photo of selectedMedia) {
         const formData = new FormData();
         formData.append("file", photo);
         const res = await fetch(`${API_BASE}/api/files/upload/${feedbackId}`, {
@@ -225,24 +380,58 @@ function ReportPage() {
           body: formData,
         });
 
-        if (res.ok) {
-          const data = await res.json();
-          urls.push(data.fileUrl);
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+          const message =
+            data?.message ||
+            data?.error ||
+            `Upload ${photo.name} thất bại với mã lỗi ${res.status}`;
+          throw new Error(message);
         }
+
+        urls.push(data.fileUrl);
       }
+      return urls;
     } finally {
       setUploading(false);
     }
+  };
 
-    return urls;
+  const loadAddress = async (nextLatitude: number, nextLongitude: number) => {
+    geocodeAbortRef.current?.abort();
+    const controller = new AbortController();
+    geocodeAbortRef.current = controller;
+
+    setAddress("");
+    setAddressError("");
+    setAddressLoading(true);
+
+    try {
+      const resolvedAddress = await reverseGeocodeAddress(
+        nextLatitude,
+        nextLongitude,
+        controller.signal,
+      );
+      setAddress(resolvedAddress);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+      setAddressError("Đã lấy được GPS nhưng chưa xác định được địa chỉ.");
+    } finally {
+      if (geocodeAbortRef.current === controller) {
+        geocodeAbortRef.current = null;
+        setAddressLoading(false);
+      }
+    }
   };
 
   const applyLocation = async (nextLatitude: number, nextLongitude: number) => {
     setLatitude(nextLatitude);
     setLongitude(nextLongitude);
     setLocationError("");
-    setLocationConfirmed(false);
     storeGpsLocation({ latitude: nextLatitude, longitude: nextLongitude });
+    void loadAddress(nextLatitude, nextLongitude);
 
     try {
       const ward = await wardApi.locate(nextLatitude, nextLongitude);
@@ -256,7 +445,6 @@ function ReportPage() {
     setLocationLoading(true);
     setLocationError("");
     setDetectedWard("");
-    setLocationConfirmed(false);
 
     try {
       const location = await requestCurrentGpsLocation();
@@ -267,6 +455,8 @@ function ReportPage() {
       clearGpsLocation();
       setLatitude(null);
       setLongitude(null);
+      setAddress("");
+      setAddressError("");
       setLocationError(message);
       toast.error(message);
     } finally {
@@ -284,7 +474,11 @@ function ReportPage() {
       return false;
     }
     if (photos.length === 0) {
-      toast.error("Vui lòng tải lên ít nhất một ảnh hoặc video.");
+      toast.error("Vui lòng tải lên ít nhất 1 ảnh.");
+      return false;
+    }
+    if (videos.length === 0) {
+      toast.error("Vui lòng tải lên ít nhất 1 video.");
       return false;
     }
     if (!description.trim()) {
@@ -293,14 +487,6 @@ function ReportPage() {
     }
     if (!hasLocation) {
       toast.error("Chưa có tọa độ GPS. Vui lòng bấm Lấy lại vị trí.");
-      return false;
-    }
-    if (!markerDisplayed) {
-      toast.error("Bản đồ chưa hiển thị ghim vị trí. Vui lòng đợi bản đồ tải xong.");
-      return false;
-    }
-    if (!locationConfirmed) {
-      toast.error("Vui lòng xác nhận vị trí trên bản đồ trước khi gửi.");
       return false;
     }
     return true;
@@ -312,26 +498,27 @@ function ReportPage() {
     }
 
     try {
+      const videoDurationsSeconds = await Promise.all(videos.map(getVideoDurationSeconds));
       const result = await createFeedback.mutateAsync({
-        title: title.trim() || (locale === "vi" ? "Phản ánh mới" : "New report"),
-        description: description.trim(),
-        latitude,
-        longitude,
-        addressDetails: detectedWard
-          ? `${detectedWard} (${latitude}, ${longitude})`
-          : `${latitude}, ${longitude}`,
-        categoryId,
+        data: {
+          title: title.trim() || (locale === "vi" ? "Phản ánh mới" : "New report"),
+          description: description.trim(),
+          latitude,
+          longitude,
+          addressDetails: address || detectedWard || `${latitude}, ${longitude}`,
+          categoryId,
+          videoDurationsSeconds,
+        },
+        files: [...photos, ...videos],
       });
-
-      if (photos.length > 0 && result.id) {
-        await uploadPhotos(result.id);
-      }
 
       setTrackingCode(result.trackingCode || "FB-XXXXXXXX");
       setSubmitted(true);
       toast.success("Gửi phản ánh thành công!");
     } catch (err) {
       if (err instanceof ApiError) {
+        toast.error(err.message);
+      } else if (err instanceof Error) {
         toast.error(err.message);
       } else {
         toast.error("Không thể gửi phản ánh. Vui lòng thử lại.");
@@ -426,37 +613,36 @@ function ReportPage() {
               <div className="grid sm:grid-cols-2 gap-4">
                 <button
                   type="button"
-                  onClick={() => cameraInputRef.current?.click()}
+                  onClick={() => photoInputRef.current?.click()}
                   className="w-full border-2 border-dashed border-gov-blue rounded-lg p-8 min-h-[148px] flex flex-col items-center justify-center gap-3 text-gov-blue hover:bg-gov-blue/5 transition-all duration-200"
                 >
                   <Camera size={42} />
-                  <span className="font-bold text-base">Chụp ảnh/quay video</span>
+                  <span className="font-bold text-base">Upload ảnh</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => videoInputRef.current?.click()}
                   className="w-full border-2 border-dashed border-[var(--status-pending)] rounded-lg p-8 min-h-[148px] flex flex-col items-center justify-center gap-3 text-[var(--status-pending)] hover:bg-[var(--status-pending)]/5 transition-all duration-200"
                 >
                   <Upload size={42} />
-                  <span className="font-bold text-base">Chọn từ thư viện</span>
+                  <span className="font-bold text-base">Upload video</span>
                 </button>
               </div>
               <input
-                ref={cameraInputRef}
+                ref={photoInputRef}
                 type="file"
-                accept="image/*,video/*"
+                accept="image/*"
                 capture="environment"
                 className="hidden"
-                onChange={(e) => handleFilesSelected(e.target.files)}
+                onChange={(e) => handlePhotoFilesSelected(e.target.files)}
                 multiple
               />
               <input
-                ref={fileInputRef}
+                ref={videoInputRef}
                 type="file"
-                accept="image/*,video/*"
+                accept="video/*"
                 className="hidden"
-                onChange={(e) => handleFilesSelected(e.target.files)}
-                multiple
+                onChange={(e) => handleVideoFileSelected(e.target.files)}
               />
               {photoPreviews.length > 0 && (
                 <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -487,6 +673,21 @@ function ReportPage() {
                   ))}
                 </div>
               )}
+              {videoPreviews.length > 0 && (
+                <div className="mt-4">
+                  <div className="relative group aspect-video max-w-xl overflow-hidden rounded-lg border border-slate-200 bg-black">
+                    <video src={videoPreviews[0]} className="w-full h-full object-cover" muted controls />
+                    <button
+                      type="button"
+                      onClick={removeVideo}
+                      className="absolute top-2 right-2 w-8 h-8 bg-red-600 text-white rounded-full grid place-items-center opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity"
+                      aria-label="Xóa video đã chọn"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>
@@ -501,12 +702,22 @@ function ReportPage() {
 
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                  <p className="font-bold text-ink">Xác nhận vị trí</p>
+                <div className="min-w-0">
+                  <p className="font-bold text-ink">Vị trí của bạn</p>
                   <p
-                    className={`text-sm font-semibold ${hasLocation ? "text-[var(--status-success)]" : "text-[var(--status-danger)]"}`}
+                    className={`text-sm font-semibold ${
+                      locationLoading
+                        ? "text-ink-soft"
+                        : hasLocation
+                          ? "text-[var(--status-success)]"
+                          : "text-[var(--status-danger)]"
+                    }`}
                   >
-                    {hasLocation ? "Đã lấy vị trí" : "Chưa có vị trí"}
+                    {locationLoading
+                      ? "Đang lấy vị trí..."
+                      : hasLocation
+                        ? "Đã xác định vị trí"
+                        : "Chưa có vị trí"}
                   </p>
                 </div>
                 <button
@@ -524,24 +735,26 @@ function ReportPage() {
                 </button>
               </div>
 
-              <div className="mt-4 grid sm:grid-cols-2 gap-3 text-sm">
-                <div className="rounded-lg bg-white border border-slate-200 p-3">
-                  <span className="block text-ink-soft mb-1">Latitude</span>
-                  <span className="font-mono font-bold">
-                    {latitude !== null ? latitude.toFixed(6) : "Chưa có"}
-                  </span>
-                </div>
-                <div className="rounded-lg bg-white border border-slate-200 p-3">
-                  <span className="block text-ink-soft mb-1">Longitude</span>
-                  <span className="font-mono font-bold">
-                    {longitude !== null ? longitude.toFixed(6) : "Chưa có"}
-                  </span>
+              <div className="mt-4 rounded-lg bg-white border border-slate-200 p-4 text-sm">
+                <div className="flex items-start gap-3">
+                  <MapPin className="mt-0.5 shrink-0 text-gov-blue" size={20} />
+                  <p className="min-w-0 leading-6 text-ink">
+                    {locationLoading
+                      ? "Đang yêu cầu vị trí GPS hiện tại..."
+                      : addressLoading
+                        ? "Đang xác định địa chỉ..."
+                        : address ||
+                          addressError ||
+                          (hasLocation
+                            ? "Đã lấy được GPS nhưng chưa xác định được địa chỉ."
+                            : "Bấm Lấy lại vị trí để xác định vị trí của bạn.")}
+                  </p>
                 </div>
               </div>
 
-              {detectedWard && (
+              {expectedWard && (
                 <p className="mt-3 text-sm font-semibold text-gov-blue">
-                  Phường/Xã xử lý dự kiến: {detectedWard}
+                  Phường/Xã xử lý dự kiến: {expectedWard}
                 </p>
               )}
               {locationLoading && (
@@ -555,17 +768,6 @@ function ReportPage() {
                   {locationError}
                 </p>
               )}
-
-              <label className="mt-4 flex items-start gap-3 text-sm font-semibold text-ink">
-                <input
-                  type="checkbox"
-                  checked={locationConfirmed}
-                  onChange={(e) => setLocationConfirmed(e.target.checked)}
-                  disabled={!markerDisplayed}
-                  className="mt-1 h-4 w-4 accent-[var(--gov-blue)] disabled:opacity-50"
-                />
-                Tôi đã kiểm tra ghim trên bản đồ và xác nhận vị trí phản ánh là chính xác.
-              </label>
             </div>
 
             <button
@@ -574,50 +776,45 @@ function ReportPage() {
               disabled={!canSubmit}
               className="btn-civic bg-status-success text-white shadow-lg hover:brightness-90 active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none w-full sm:w-auto"
             >
-              {createFeedback.isPending || uploading ? (
+              {createFeedback.isPending ? (
                 <Loader2 size={20} className="animate-spin" />
               ) : (
                 <Check size={20} />
               )}
-              {uploading ? "Đang tải tệp..." : t("report.submit")}
+              {createFeedback.isPending ? "Đang gửi..." : t("report.submit")}
             </button>
           </div>
         </section>
 
-        <aside className="card-civic p-4 md:p-5 lg:sticky lg:top-24 animate-fade-in-up">
-          <div className="flex items-start justify-between gap-3 mb-4">
+        <aside className="card-civic p-4 md:p-5 animate-fade-in-up lg:sticky lg:top-[120px] lg:self-start">
+          <div className="mb-4">
             <div>
               <h2 className="text-2xl font-heading text-gov-blue">Bản đồ vị trí</h2>
               <p className="text-sm text-ink-soft mt-1">
                 Kiểm tra ghim vị trí hiện tại trước khi gửi.
               </p>
             </div>
-            <span
-              className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${markerDisplayed ? "bg-green-50 text-[var(--status-success)]" : "bg-red-50 text-[var(--status-danger)]"}`}
-            >
-              {markerDisplayed ? "Có ghim" : "Chưa có ghim"}
-            </span>
           </div>
 
-          <div className="relative h-[360px] sm:h-[420px] lg:h-[560px] overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+          <div className="relative h-[300px] sm:h-[360px] lg:h-[520px] overflow-hidden rounded-[20px] border border-slate-200 bg-slate-100">
             <MapContainer
               center={mapCenter}
-              zoom={hasLocation ? 17 : 13}
+              zoom={hasLocation ? CURRENT_LOCATION_ZOOM : 13}
               className="w-full h-full"
-              scrollWheelZoom
+              scrollWheelZoom={true}
+              dragging={true}
+              zoomControl={true}
             >
-              <MapViewUpdater center={mapCenter} />
+              <MapViewUpdater center={mapCenter} hasLocation={hasLocation} />
               <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution='&copy; Google Maps'
+                url="https://mt1.google.com/vt/lyrs=m&hl=vi&gl=VN&x={x}&y={y}&z={z}"
               />
               {markerDisplayed && latitude !== null && longitude !== null && (
                 <Marker position={[latitude, longitude]} icon={currentLocationIcon}>
                   <Popup>
                     <strong>Vị trí hiện tại</strong>
-                    <p className="text-sm mt-1">
-                      {latitude.toFixed(6)}, {longitude.toFixed(6)}
-                    </p>
+                    <p className="text-sm mt-1">{address || "Đã xác định bằng GPS"}</p>
                   </Popup>
                 </Marker>
               )}

@@ -214,10 +214,33 @@ export interface FeedbackResponse {
   addressDetails: string | null;
   status: FeedbackStatus;
   categoryName: string | null;
+  wardName: string | null;
   citizenName: string | null;
   assigneeName: string | null;
+  attachments?: FeedbackAttachmentResponse[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface FeedbackAttachmentResponse {
+  id: number;
+  fileUrl: string;
+  fileType: string;
+  fileName: string | null;
+  fileSize: number | null;
+  uploadedAt: string;
+}
+
+export interface FeedbackStatusOption {
+  value: FeedbackStatus;
+  label: string;
+}
+
+export interface FeedbackListFilters {
+  keyword?: string;
+  status?: FeedbackStatus | "";
+  fromDate?: string;
+  toDate?: string;
 }
 
 export interface FeedbackRequest {
@@ -256,7 +279,8 @@ export interface PageResponse<T> {
   totalElements: number;
   totalPages: number;
   size: number;
-  number: number;
+  page?: number;
+  number?: number;
   first: boolean;
   last: boolean;
   empty: boolean;
@@ -314,6 +338,20 @@ export const authApi = {
       skipAuth: true,
     }),
 
+  registerConfirm: (phoneNumber: string, otpCode: string) =>
+    request<unknown>("/api/auth/register-confirm", {
+      method: "POST",
+      body: JSON.stringify({ phoneNumber, otpCode }),
+      skipAuth: true,
+    }),
+
+  sendSmsOtp: (phoneNumber: string) =>
+    request<unknown>("/api/auth/sms/send", {
+      method: "POST",
+      body: JSON.stringify({ phoneNumber }),
+      skipAuth: true,
+    }),
+
   mfaSetup: (username: string, password: string) =>
     request<string>("/api/auth/mfa/setup", {
       method: "POST",
@@ -337,10 +375,23 @@ export const authApi = {
 };
 
 export const feedbackApi = {
-  getAll: (page = 0, size = 20) =>
-    request<PageResponse<FeedbackResponse>>(
-      `/api/feedbacks/my-feedbacks?page=${page}&size=${size}`,
-    ),
+  getAll: (page = 0, size = 3, filters: FeedbackListFilters = {}) => {
+    const params = new URLSearchParams({
+      page: String(page),
+      size: String(size),
+    });
+
+    const keyword = filters.keyword?.trim();
+    if (keyword) params.set("keyword", keyword);
+    if (filters.status) params.set("status", filters.status);
+    if (filters.fromDate) params.set("fromDate", filters.fromDate);
+    if (filters.toDate) params.set("toDate", filters.toDate);
+
+    return request<PageResponse<FeedbackResponse>>(`/api/feedbacks/my?${params}`);
+  },
+
+  getStatuses: () =>
+    request<FeedbackStatusOption[]>("/api/feedbacks/statuses"),
 
   getById: (id: string | number) =>
     request<FeedbackResponse>(`/api/feedbacks/${id}`),
@@ -449,55 +500,6 @@ export const aiApi = {
     ),
 };
 
-// ─── Weather / Predictive Incident Types ──────────────────────
-
-export interface CurrentWeather {
-  temperature: number;
-  precipitation: number;
-  windspeed: number;
-  relativeHumidity: number;
-  weatherDescription: string;
-}
-
-export interface HourlyForecast {
-  time: string;
-  temperature: number;
-  precipitation: number;
-  windspeed: number;
-}
-
-export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
-export type AlertLevel = "NORMAL" | "WATCH" | "WARNING" | "DANGER";
-export type IncidentType = "FLOOD" | "FALLEN_TREE" | "ROAD_DAMAGE" | "POWER_OUTAGE";
-
-export interface PredictedHotspot {
-  wardName: string;
-  latitude: number;
-  longitude: number;
-  incidentType: IncidentType;
-  incidentLabel: string;
-  riskLevel: RiskLevel;
-  riskScore: number;
-  reason: string;
-}
-
-export interface WeatherForecastResponse {
-  current: CurrentWeather;
-  next24Hours: HourlyForecast[];
-  predictedHotspots: PredictedHotspot[] | null;
-  alertLevel: AlertLevel;
-  alertMessage: string;
-}
-
-export const weatherApi = {
-  /** Dự báo đầy đủ kèm điểm nguy cơ — chỉ dành cho cán bộ */
-  getForecast: () =>
-    request<WeatherForecastResponse>("/api/weather/forecast"),
-
-  /** Dự báo cơ bản — dành cho người dân, không cần đăng nhập */
-  getPublicForecast: () =>
-    request<WeatherForecastResponse>("/api/weather/forecast/public", { skipAuth: true }),
-};
 
 // ─── Analytics Types ─────────────────────────────────────────
 

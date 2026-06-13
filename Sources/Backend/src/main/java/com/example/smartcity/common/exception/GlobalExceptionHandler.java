@@ -51,22 +51,10 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(429, ex.getMessage()));
     }
 
-    @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ApiResponse<Object>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
-        String rootMessage = getRootMessage(ex).toLowerCase();
-        log.warn("Data integrity violation: {}", rootMessage);
-
-        String message = "Dữ liệu đã tồn tại hoặc không hợp lệ.";
-        if (rootMessage.contains("username")) {
-            message = "Tên đăng nhập đã tồn tại!";
-        } else if (rootMessage.contains("email")) {
-            message = "Email đã được sử dụng!";
-        } else if (rootMessage.contains("phone")) {
-            message = "Số điện thoại này đã được liên kết với tài khoản khác!";
-        }
-
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<Object>> handleIllegalArgument(IllegalArgumentException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(400, message));
+                .body(ApiResponse.error(400, ex.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)

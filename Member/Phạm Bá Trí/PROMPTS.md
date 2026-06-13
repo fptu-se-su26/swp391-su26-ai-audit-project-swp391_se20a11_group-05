@@ -1100,6 +1100,72 @@ Sinh viên/nhóm tự kiểm tra chất lượng prompt đã dùng.
 
 ---
 
+### Prompt số 11
+
+| Nội dung            | Thông tin                                                      |
+| ------------------- | -------------------------------------------------------------- |
+| Ngày sử dụng        | 10/06/2026                                                     |
+| Công cụ AI          | Antigravity                                                    |
+| Mục đích            | Khắc phục lỗ hổng SMS OTP và thiết kế lại kiến trúc xác thực   |
+| Phần việc liên quan | Security Audit / Database / Frontend                           |
+| Mức độ sử dụng      | Yêu cầu kiểm tra logic và sinh code fix hoàn chỉnh             |
+
+#### 5.1. Prompt nguyên văn
+
+```text
+kiểm tra logic nghiệp vụ của otp ... fix tiếp đi ... kiểm trâu sâu nữa so thầy tôi kêu cái sms này hơi yếu đc 3 điểm
+```
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Luồng xác thực SMS OTP ban đầu rất sơ sài (lưu plaintext, frontend chỉ 1 ô input, không chống brute-force). Thầy giáo chê "hơi yếu đc 3 điểm". Yêu cầu AI "vạch lá tìm sâu" và phải nâng lên mức Banking-level (bảo mật ngân hàng).
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI phát hiện các lỗi nghiêm trọng (Race condition khi verify đa luồng, Deadlock khi đăng ký lại bị dính INACTIVE). Sau đó viết code băm OTP bằng BCrypt, cấu hình Pessimistic Lock, Index DB và thêm Cron Job dọn rác 24h. Frontend thì AI tự đập đi làm lại giao diện 6-box thông minh.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Tích hợp thành công toàn bộ mã nguồn do AI viết, xử lý triệt để bài toán Đăng ký 2 bước và chống tấn công dò mật khẩu.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Tôi đã biên dịch kiểm tra lại bằng Postman, test thử kịch bản cố tình đăng ký 2 lần để xem bản nháp INACTIVE có thực sự bị xóa không. Yêu cầu AI lưu lại toàn bộ báo cáo và Changelog.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [ ] Cần hỏi lại AI nhiều lần
+- [ ] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung                                                                  |
+| --------------- | ------------------------------------------------------------------------- |
+| File liên quan  | `SmsService.java`, `OtpCleanupScheduler.java`, `verify-otp.tsx`           |
+| Ghi chú khác    | Nhờ gợi ý "thầy chê", AI đã đưa ra những fix đẳng cấp rất cao             |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Việc nói rõ "thầy chê" và "muốn điểm cao" kích thích AI tư duy ra các giải pháp ở cấp độ doanh nghiệp thay vì chỉ dừng ở mức Sinh viên cơ bản.
+```
+
+---
+
 ## 11. Cam kết sử dụng prompt minh bạch
 
 Sinh viên/nhóm cam kết rằng:
@@ -1113,3 +1179,4 @@ Sinh viên/nhóm cam kết rằng:
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 | ----------------------- | ------------- |
 |                         |               |
+

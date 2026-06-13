@@ -243,6 +243,19 @@
 
 ---
 
+### Entry #: 002
+**Prompt Type:** VERIFICATION / REFACTORING
+**Stage/Component:** Implementation stage (Logic OTP) + Security Audit
+**Problem/Context:** Xây dựng tính năng đăng ký 2 bước và phát hiện các lỗ hổng bảo mật nghiêm trọng trong luồng SMS OTP cũ (không mã hóa OTP, dễ bị race condition, kẹt tài khoản đăng ký).
+**Prompt to AI:** "kiểm tra logic nghiệp vụ của otp", "fix tiếp đi", "kiểm trâu sâu nữa so thầy tôi kêu cái sms này hơi yếu đc 3 điểm"
+**AI Response (Summary):** AI đã chỉ ra 4 lỗ hổng nghiêm trọng: 1. Plaintext OTP, 2. Database Bloat, 3. Race Condition khi dò mã, 4. Deadlock dữ liệu rác. Sau đó, AI đã chủ động viết mã vá lỗi: sử dụng BCrypt cho OTP, thêm `@Lock(PESSIMISTIC_WRITE)`, tạo Job dọn rác `@Scheduled`, và sửa logic xóa tài khoản `INACTIVE` cũ. Đồng thời thiết kế UI Frontend thành 6-box input.
+
+**Human Delta & Reflection:**
+- **Critical Thinking:** AI đã phân tích rất chính xác các điểm yếu "chí mạng" mà thầy giáo đã cảnh báo. Đặc biệt là việc băm OTP (Hashing) và khóa bi quan (Pessimistic Lock) là kiến thức cấp cao, giúp nâng tầm dự án thành chuẩn Ngân hàng.
+- **Decision Ownership:** Quyết định cho phép xóa vật lý (Hard delete) các tài khoản `INACTIVE` cũ là một nước đi dũng cảm nhưng chính xác, giúp giải quyết hoàn toàn Deadlock cho người dùng. Đã tự mình verify bằng cách compile và run test 19 cases.
+
+---
+
 ## V. Cam kết học thuật
 
 Sinh viên/nhóm cam kết rằng:
@@ -254,3 +267,4 @@ Sinh viên/nhóm cam kết rằng:
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
 | Phạm Bá Trí | 2026-05-21 |
+

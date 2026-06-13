@@ -8,7 +8,10 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "sms_verifications")
+@Table(name = "sms_verifications", indexes = {
+    // [UPGRADE] Đánh Index kép để tối ưu tốc độ truy vấn hàm findByPhoneNumberAndIsUsedFalse cho bảng 5 triệu records
+    @Index(name = "idx_phone_is_used", columnList = "phone_number, is_used")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -27,7 +30,8 @@ public class SmsVerification {
     @Column(name = "phone_number", nullable = false, length = 20)
     private String phoneNumber;
 
-    @Column(name = "otp_code", nullable = false, length = 10)
+    // [UPGRADE] Tăng độ dài để lưu chuỗi Hash (BCrypt) thay vì lưu mã Plaintext dễ bị lộ
+    @Column(name = "otp_code", nullable = false, length = 255)
     private String otpCode;
 
     @Column(name = "purpose", nullable = false, length = 30)

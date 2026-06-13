@@ -135,6 +135,13 @@
     background: var(--gov-gold);
     color: var(--gov-blue-deep);
   }
+
+  input[type="password"]::-ms-reveal,
+  input[type="password"]::-ms-clear {
+    display: none;
+    width: 0;
+    height: 0;
+  }
 }
 
 @layer utilities {

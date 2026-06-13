@@ -25,6 +25,9 @@ import { Role, AUTHORITY_ROLES, parseBackendRole } from "@/lib/roles";
 import { getToken, type FeedbackAttachmentResponse, type FeedbackStatus } from "@/lib/api";
 
 export const Route = createFileRoute("/my-reports/")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    q: (search.q as string) || "",
+  }),
   beforeLoad: async () => {
     const token = typeof window !== "undefined" ? getToken() : null;
     const raw = typeof window !== "undefined" ? localStorage.getItem("dn_auth_user_v2") : null;
@@ -68,10 +71,19 @@ const PAGE_SIZE = 3;
 function MyReports() {
   const { t, locale } = useI18n();
   const navigate = useNavigate();
+  const { q = "" } = Route.useSearch();
   const { user, isAuthenticated } = useAuth();
   const [page, setPage] = useState(0);
-  const [keywordInput, setKeywordInput] = useState("");
-  const [keyword, setKeyword] = useState("");
+  const [keywordInput, setKeywordInput] = useState(q);
+  const [keyword, setKeyword] = useState(q);
+
+  useEffect(() => {
+    if (q) {
+      setKeywordInput(q);
+      setKeyword(q);
+      setPage(0);
+    }
+  }, [q]);
   const [status, setStatus] = useState<FeedbackStatus | "">("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");

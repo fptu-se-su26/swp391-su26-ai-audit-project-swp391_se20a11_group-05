@@ -15,6 +15,14 @@ import java.time.LocalDateTime;
 public class FeedbackLogResponse {
     private Long id;
     private String actionByName;
+    private String actorName;
+    private String actorRole;
+    private String authorityName;
+    private String assignedToName;
+    private String action;
+    private String status;
+    private String title;
+    private String deadline;
     private FeedbackStatus oldStatus;
     private FeedbackStatus newStatus;
     private String note;

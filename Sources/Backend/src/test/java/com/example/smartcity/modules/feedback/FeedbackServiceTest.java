@@ -16,6 +16,7 @@ import com.example.smartcity.modules.feedback.repository.AttachmentRepository;
 import com.example.smartcity.modules.notification.WebSocketNotificationService;
 import com.example.smartcity.modules.feedback.service.AutoDispatchService;
 import com.example.smartcity.modules.core.service.LocationResolutionService;
+import com.example.smartcity.modules.feedback.repository.AttachmentRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,6 +46,7 @@ class FeedbackServiceTest {
     @Mock private WebSocketNotificationService notificationService;
     @Mock private AutoDispatchService autoDispatchService;
     @Mock private LocationResolutionService locationResolutionService;
+    @Mock private AttachmentRepository attachmentRepository;
 
     private FeedbackService feedbackService;
 

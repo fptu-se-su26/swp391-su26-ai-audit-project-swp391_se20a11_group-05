@@ -17,6 +17,10 @@ public class NotificationDTO {
     private String content;
     private String type;
     private Long referenceId;
+    private Long feedbackId;
+    private String feedbackTrackingCode;
+    private String feedbackTitle;
+    private String feedbackStatus;
     private boolean isRead;
     private LocalDateTime createdAt;
 }

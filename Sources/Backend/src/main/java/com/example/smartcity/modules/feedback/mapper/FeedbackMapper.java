@@ -21,11 +21,15 @@ public abstract class FeedbackMapper implements BaseMapper<Feedback, FeedbackRes
 
     @Override
     @Mapping(target = "categoryName", source = "category.name")
+    @Mapping(target = "category", source = "category.name")
     @Mapping(target = "wardName", source = "ward.name")
     @Mapping(target = "citizenName", source = "citizen.fullName")
     @Mapping(target = "assigneeName", source = "assignee.fullName")
     @Mapping(target = "attachments", ignore = true)
     public abstract FeedbackResponse toDto(Feedback entity);
-    
-    // We don't map back from Response to Entity usually, so we can ignore it or leave default
+
+    @Override
+    public Feedback toEntity(FeedbackResponse dto) {
+        throw new UnsupportedOperationException("FeedbackResponse is not mapped back to Feedback");
+    }
 }

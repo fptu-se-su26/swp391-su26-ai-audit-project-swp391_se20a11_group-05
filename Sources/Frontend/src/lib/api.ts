@@ -207,17 +207,26 @@ export type FeedbackStatus =
 export interface FeedbackResponse {
   id: number;
   trackingCode: string;
+  code?: string;
   title: string;
   description: string;
+  content?: string;
   latitude: number | null;
   longitude: number | null;
   addressDetails: string | null;
+  address?: string | null;
   status: FeedbackStatus;
   categoryName: string | null;
+  category?: string | null;
   wardName: string | null;
   citizenName: string | null;
   assigneeName: string | null;
+  assignedAuthorityName?: string | null;
+  rejectionReason?: string | null;
+  resultContent?: string | null;
   attachments?: FeedbackAttachmentResponse[];
+  mediaUrls?: string[];
+  timeline?: FeedbackLogResponse[];
   createdAt: string;
   updatedAt: string;
 }
@@ -260,7 +269,28 @@ export interface NotificationResponse {
   content: string;
   type: string;
   referenceId: number | null;
+  feedbackId?: number | null;
+  feedbackTrackingCode?: string | null;
+  feedbackTitle?: string | null;
+  feedbackStatus?: FeedbackStatus | null;
   read: boolean;
+  createdAt: string;
+}
+
+export interface FeedbackLogResponse {
+  id: number;
+  actionByName: string;
+  actorName?: string | null;
+  actorRole?: string | null;
+  authorityName?: string | null;
+  assignedToName?: string | null;
+  action?: string | null;
+  status?: FeedbackStatus | string | null;
+  title?: string | null;
+  deadline?: string | null;
+  oldStatus: FeedbackStatus | null;
+  newStatus: FeedbackStatus | null;
+  note: string | null;
   createdAt: string;
 }
 
@@ -283,6 +313,7 @@ export interface PageResponse<T> {
   number?: number;
   first: boolean;
   last: boolean;
+  hasNext?: boolean;
   empty: boolean;
 }
 
@@ -394,7 +425,7 @@ export const feedbackApi = {
     request<FeedbackStatusOption[]>("/api/feedbacks/statuses"),
 
   getById: (id: string | number) =>
-    request<FeedbackResponse>(`/api/feedbacks/${id}`),
+    request<FeedbackResponse>(`/api/feedback/my-reports/${id}`),
 
   create: (data: FeedbackRequest) =>
     request<FeedbackResponse>("/api/feedbacks/submit", {
@@ -431,6 +462,9 @@ export const userApi = {
 
 export const notificationApi = {
   getAll: () => request<NotificationResponse[]>("/api/notifications"),
+
+  getPage: (page = 0, size = 5) =>
+    request<PageResponse<NotificationResponse>>(`/api/notifications?page=${page}&size=${size}`),
 
   markAsRead: (id: number | string) =>
     request<NotificationResponse>(`/api/notifications/${id}/read`, {

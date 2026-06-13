@@ -67,7 +67,7 @@ function VerifyOtpPage() {
     setCountdown(60);
     try {
       await authApi.sendSmsOtp(phone);
-      toast.success(locale === "vi" ? "Da gui lai ma OTP!" : "OTP resent!");
+      toast.success(locale === "vi" ? "Đã gửi lại mã OTP!" : "OTP resent!");
     } catch {
       toast.error(locale === "vi" ? "Loi khi gui lai ma" : "Error resending OTP");
     }

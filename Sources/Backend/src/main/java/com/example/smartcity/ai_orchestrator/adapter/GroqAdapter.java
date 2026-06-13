@@ -43,6 +43,10 @@ public class GroqAdapter implements AiProviderAdapter {
     private final GroqKeyPool keyPool;
     private final WebClient   webClient;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    @org.springframework.context.annotation.Lazy
+    private GeminiAdapter geminiAdapter;
+
     public GroqAdapter(GroqKeyPool keyPool, WebClient.Builder webClientBuilder) {
         this.keyPool   = keyPool;
         this.webClient = webClientBuilder
@@ -59,6 +63,7 @@ public class GroqAdapter implements AiProviderAdapter {
      * Pipeline: nextKey() → POST /chat/completions → parse → retry nếu 429
      */
     @Override
+    @io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker(name = "groqLLM", fallbackMethod = "fallbackToGemini")
     public CompletableFuture<String> generateResponseAsync(String systemPrompt, String userMessage) {
         if (!keyPool.isConfigured()) {
             log.warn("⚠️  [Groq] Pool chưa cấu hình → MOCK.");
@@ -95,6 +100,11 @@ public class GroqAdapter implements AiProviderAdapter {
                 .onErrorResume(GroqKeyPool.PoolExhaustedException.class, Mono::error)
                 .onErrorReturn("❌ Groq lỗi không xác định. Vui lòng thử lại.")
                 .toFuture();
+    }
+
+    public CompletableFuture<String> fallbackToGemini(String systemPrompt, String userMessage, Throwable t) {
+        log.warn("🚨 [CircuitBreaker] Groq API sập hoặc Rate Limit quá nhiều. Tự động Fallback sang Gemini. Lỗi: {}", t.getMessage());
+        return geminiAdapter.generateResponseAsync(systemPrompt, userMessage);
     }
 
     /** Xây Mono cho 1 lần gọi API với key hiện tại */

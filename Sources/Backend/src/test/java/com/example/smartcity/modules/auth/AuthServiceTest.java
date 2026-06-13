@@ -4,10 +4,12 @@ import com.example.smartcity.common.exception.CustomException;
 import com.example.smartcity.modules.auth.payload.LoginRequest;
 import com.example.smartcity.modules.auth.payload.RegisterRequest;
 import com.example.smartcity.modules.auth.payload.TokenResponse;
+import com.example.smartcity.modules.auth.payload.AuthResponse;
 import com.example.smartcity.modules.auth.service.AuthService;
 import com.example.smartcity.modules.auth.service.MfaService;
 import com.example.smartcity.modules.auth.service.FirebaseService;
 import com.example.smartcity.modules.auth.service.SmsService;
+import com.example.smartcity.modules.auth.service.MfaSessionService;
 import com.example.smartcity.security.jwt.TokenBlacklistService;
 import com.example.smartcity.modules.user.entity.Role;
 import com.example.smartcity.modules.user.entity.User;
@@ -42,13 +44,15 @@ class AuthServiceTest {
     @Mock private FirebaseService firebaseService;
     @Mock private TokenBlacklistService blacklistService;
     @Mock private SmsService smsService;
+    @Mock private MfaSessionService mfaSessionService;
+    @Mock private com.example.smartcity.modules.auth.service.RefreshTokenService refreshTokenService;
 
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
         authService = new AuthService(authenticationManager, userRepository, passwordEncoder,
-                tokenProvider, mfaService, firebaseService, blacklistService, smsService);
+                tokenProvider, mfaService, firebaseService, blacklistService, smsService, mfaSessionService, refreshTokenService);
     }
 
     @Test
@@ -126,17 +130,21 @@ class AuthServiceTest {
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(auth);
         when(userRepository.findByUsername("citizen1")).thenReturn(Optional.of(citizen));
-        when(tokenProvider.generateToken(auth)).thenReturn("jwt-token");
-        when(auth.getAuthorities()).thenAnswer(inv -> java.util.List.of(
-                new SimpleGrantedAuthority("ROLE_CITIZEN")
-        ));
+        
+        com.example.smartcity.modules.auth.payload.TokenPairResponse tokenPair = com.example.smartcity.modules.auth.payload.TokenPairResponse.builder()
+                .accessToken("jwt-token")
+                .refreshToken("refresh-token")
+                .expiresIn(3600L)
+                .username("citizen1")
+                .role(Role.CITIZEN.name())
+                .build();
+        when(refreshTokenService.createTokenPair(any(User.class))).thenReturn(tokenPair);
 
-        Object result = authService.authenticateUser(request);
+        AuthResponse result = authService.authenticateUser(request);
 
-        assertTrue(result instanceof TokenResponse);
-        TokenResponse tokenResponse = (TokenResponse) result;
-        assertEquals("jwt-token", tokenResponse.getToken());
-        assertEquals("citizen1", tokenResponse.getUsername());
+        assertFalse(result.isMfaRequired());
+        assertEquals("jwt-token", result.getToken());
+        assertEquals("citizen1", result.getUsername());
     }
 
     @Test
@@ -154,12 +162,11 @@ class AuthServiceTest {
                 .thenReturn(auth);
         when(userRepository.findByUsername("staff1")).thenReturn(Optional.of(staff));
 
-        Object result = authService.authenticateUser(request);
+        AuthResponse result = authService.authenticateUser(request);
 
-        assertTrue(result instanceof java.util.Map);
-        @SuppressWarnings("unchecked")
-        java.util.Map<String, Object> map = (java.util.Map<String, Object>) result;
-        assertTrue((Boolean) map.get("mfaRequired"));
+        assertTrue(result.isMfaRequired());
+        assertEquals("staff1", result.getUsername());
+        assertNull(result.getToken());
     }
 
     @Test
@@ -169,9 +176,6 @@ class AuthServiceTest {
         request.setUsername("ghost");
         request.setPassword("pass123");
 
-        Authentication auth = mock(Authentication.class);
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenReturn(auth);
         when(userRepository.findByUsername("ghost")).thenReturn(Optional.empty());
 
         assertThrows(CustomException.class, () -> authService.authenticateUser(request));

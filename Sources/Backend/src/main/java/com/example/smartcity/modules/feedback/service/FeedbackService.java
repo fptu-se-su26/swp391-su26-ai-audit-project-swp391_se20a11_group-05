@@ -11,8 +11,8 @@ import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.feedback.repository.CategoryRepository;
 import com.example.smartcity.modules.feedback.repository.FeedbackRepository;
 import com.example.smartcity.modules.user.repository.UserRepository;
-import com.example.smartcity.modules.core.repository.WardRepository;
 import com.example.smartcity.modules.core.entity.Ward;
+import com.example.smartcity.modules.core.service.LocationResolutionService;
 import com.example.smartcity.modules.user.entity.Role;
 import com.example.smartcity.common.exception.CustomException;
 import com.example.smartcity.common.exception.ResourceNotFoundException;
@@ -42,18 +42,16 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
     private final NotificationService notificationService;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
-    private final WardRepository wardRepository;
     private final AutoDispatchService autoDispatchService;
+    private final LocationResolutionService locationResolutionService;
 
     // State machine: map of valid transitions
     private static final Map<FeedbackStatus, Set<FeedbackStatus>> VALID_TRANSITIONS = Map.of(
-        FeedbackStatus.PENDING,        Set.of(FeedbackStatus.ASSIGNED, FeedbackStatus.REJECTED),
-        FeedbackStatus.ASSIGNED,       Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.REJECTED, FeedbackStatus.PENDING),
+        FeedbackStatus.PENDING,        Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.REJECTED),
         FeedbackStatus.IN_PROGRESS,    Set.of(FeedbackStatus.RESOLVED, FeedbackStatus.WAITING_INFO, FeedbackStatus.REJECTED),
         FeedbackStatus.WAITING_INFO,   Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.RESOLVED, FeedbackStatus.REJECTED),
         FeedbackStatus.RESOLVED,       Set.of(),
-        FeedbackStatus.REJECTED,       Set.of(),
-        FeedbackStatus.PRE_EMPTIVE,    Set.of(FeedbackStatus.ASSIGNED, FeedbackStatus.REJECTED)
+        FeedbackStatus.REJECTED,       Set.of()
     );
 
     @Override
@@ -73,9 +71,18 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
 
         User citizen = userRepository.findByUsername(username)
                 .orElseThrow(() -> new com.example.smartcity.common.exception.ResourceNotFoundException("User: " + username));
-                
-        Ward ward = wardRepository.findById(request.getWardId())
-                .orElseThrow(() -> new com.example.smartcity.common.exception.ResourceNotFoundException("Ward", request.getWardId()));
+
+        if (citizen.getRole() != Role.CITIZEN) {
+            throw new CustomException("Chi cong dan moi duoc gui vi tri GPS khi tao phan anh", HttpStatus.FORBIDDEN.value());
+        }
+
+        // GPS là bắt buộc để tránh phản ánh không có vị trí xử lý.
+        if (request.getLatitude() == null || request.getLongitude() == null) {
+            throw new CustomException("Vui long cho phep GPS truoc khi gui phan anh", HttpStatus.BAD_REQUEST.value());
+        }
+
+        // Backend tự xác định phường/xã từ GPS, không tin wardId do frontend gửi lên.
+        Ward ward = locationResolutionService.findAuthorityByLocation(request.getLatitude(), request.getLongitude());
 
         Feedback feedback = new Feedback();
         feedback.setTrackingCode("FB-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
@@ -85,6 +92,9 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         feedback.setLongitude(request.getLongitude());
         feedback.setAddressDetails(request.getAddressDetails());
         feedback.setStatus(FeedbackStatus.PENDING);
+        feedback.setReceiverType(resolveReceiverType(category));
+        feedback.setPriority("MEDIUM");
+        feedback.setSource("CITIZEN_APP");
         feedback.setCategory(category);
         feedback.setWard(ward);
         feedback.setCitizen(citizen);
@@ -134,6 +144,9 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         User actionBy = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User: " + username));
 
+        // Fix BOLA/IDOR: Validate permission before action
+        validateActionPermission(actionBy, feedback);
+
         feedback.setStatus(newStatus);
         feedback.setUpdatedAt(LocalDateTime.now());
         Feedback saved = feedbackRepository.save(feedback);
@@ -160,10 +173,13 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         User actionBy = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User: " + username));
 
+        // Fix BOLA/IDOR: Validate permission before action
+        validateActionPermission(actionBy, feedback);
+
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setAssignee(assignee);
-        if (oldStatus == FeedbackStatus.PENDING || oldStatus == FeedbackStatus.PRE_EMPTIVE) {
-            feedback.setStatus(FeedbackStatus.ASSIGNED);
+        if (oldStatus == FeedbackStatus.PENDING) {
+            feedback.setStatus(FeedbackStatus.IN_PROGRESS);
         }
         feedback.setUpdatedAt(LocalDateTime.now());
         Feedback saved = feedbackRepository.save(feedback);
@@ -202,6 +218,31 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             case CITIZEN -> feedback.getCitizen().getId().equals(user.getId());
         };
     }
+
+    /**
+     * [SECURITY FIX] Kiểm tra quyền thực thi (Đổi trạng thái, Gán người xử lý).
+     * Ngăn chặn tình trạng IDOR/BOLA khi user tự ý chỉnh sửa feedback.
+     */
+    private void validateActionPermission(User actionBy, Feedback feedback) {
+        if (actionBy.getRole() == Role.CITIZEN) {
+            throw new CustomException("Công dân không có quyền thay đổi trạng thái phản ánh", HttpStatus.FORBIDDEN.value());
+        }
+        if (actionBy.getRole() == Role.WARD_STAFF) {
+            if (actionBy.getWard() == null || !actionBy.getWard().getId().equals(feedback.getWard().getId())) {
+                throw new CustomException("Cán bộ phường chỉ có quyền xử lý phản ánh thuộc phường quản lý", HttpStatus.FORBIDDEN.value());
+            }
+        }
+        if (actionBy.getRole() == Role.POLICE) {
+            if (feedback.getCategory() == null || !"An ninh".equals(feedback.getCategory().getName())) {
+                throw new CustomException("Công an chỉ có quyền xử lý phản ánh thuộc danh mục An ninh", HttpStatus.FORBIDDEN.value());
+            }
+        }
+    }
+
+    private String resolveReceiverType(Category category) {
+        return category != null && "An ninh".equalsIgnoreCase(category.getName()) ? "POLICE" : "WARD_STAFF";
+    }
+
 }
 
 

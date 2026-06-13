@@ -487,6 +487,112 @@ AI cung cấp bộ code khung siêu chuẩn mực cho `AutoDispatchService.java`
 
 ---
 
+# [Phase 13] Đánh giá & Tái cấu trúc Hybrid RAG chuẩn Enterprise
+
+## Ngày thực hiện
+
+```text
+28/05/2026
+```
+
+## Đã hoàn thành
+
+- [x] **Refactor Thread-Safety:** Loại bỏ biến toàn cục `lastUsedProvider`, thay bằng `LlmCallResult` record trong `HybridRagOrchestrator.java` để đảm bảo an toàn đa luồng.
+- [x] **Ngăn chặn Memory Leak & Treo hệ thống:** Thêm Timeout (5s) cho truy vấn DB song song và implement `DisposableBean` dọn dẹp Virtual Threads.
+- [x] **Tối ưu Hạt nhân RAG (Core Retrieval):** Tăng cửa sổ Token nạp Context từ 3000 lên 6000. Nâng cấp Semantic Chunker size từ 512 lên 1500 (overlap 200).
+- [x] **Truyền dẫn điểm số RRF:** Gắn `@Transient rrfScore` vào Entity `DocumentChunk` để dễ dàng theo dõi hiệu quả truy xuất.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi                                         | Người thực hiện | File/Module liên quan         |
+| --: | --------------------------------------------------------- | --------------- | ----------------------------- |
+|   1 | Tối ưu Semantic Chunker và Context Compressor             | Phạm Bá Trí     | `SemanticChunker.java`, `ContextCompressor.java` |
+|   2 | Fix Thread-Safety và Config Self-RAG động                 | Phạm Bá Trí     | `HybridRagOrchestrator.java`  |
+|   3 | Xử lý Lifecycle dọn rác Virtual Threads                   | Phạm Bá Trí     | `HybridRetriever.java`        |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI nhập vai Tech Lead "chấm điểm" nghiêm khắc hệ thống, phát hiện các lỗi bảo mật/hiệu năng ngầm và cung cấp giải pháp tái cấu trúc code chuyên sâu để chịu tải cao (High Concurrency).
+```
+
+# [Phase 14] Nâng cấp Kiến trúc Hybrid RAG chuẩn Enterprise Production-ready
+
+## Ngày thực hiện
+
+```text
+28/05/2026
+```
+
+## Đã hoàn thành
+
+- [x] **Tối ưu Cơ sở Dữ liệu (Database Optimization):** Đồng bộ cấu trúc Vector Dimension về 768 (khớp với Gemini), tiết kiệm 50% storage. Tích hợp HNSW Index giúp truy vấn nhanh gấp hàng trăm lần thuật toán IVF/Flat truyền thống.
+- [x] **Áp dụng Resilience Engineering:** Nhúng `Resilience4j` vào tầng gọi API LLM (Groq/Gemini). Xây dựng cơ chế Circuit Breaker, Exponential Retry và Rate Limiting để hệ thống luôn "sống sót" kể cả khi API bên thứ 3 sập mạng.
+- [x] **Giám sát & Đo lường (Observability):** Mở endpoint Actuator và xuất Custom Metrics cho Prometheus. Tích hợp MDC (Mapped Diagnostic Context) Logging giúp tracing request xuyên suốt các microservices.
+- [x] **Kiểm thử tự động (Integration Testing):** Cấu hình Testcontainers tự động spin-up PostgreSQL + pgvector để test real-world database mà không ảnh hưởng môi trường Dev.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi                                         | Người thực hiện | File/Module liên quan         |
+| --: | --------------------------------------------------------- | --------------- | ----------------------------- |
+|   1 | Chạy Migration sửa Dimension & tạo HNSW Index             | Phạm Bá Trí     | `V5__fix_dimension...`        |
+|   2 | Tách service gọi LLM và bọc Resilience4j                  | Phạm Bá Trí     | `LlmExecutionService.java`    |
+|   3 | Tạo Custom Metrics cho Prometheus và MDC Logging Filter   | Phạm Bá Trí     | `RagMetrics.java`, `RequestIdFilter.java` |
+|   4 | Viết Integration Test với Testcontainers                  | Phạm Bá Trí     | `VectorSearchIntegrationTest.java` |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI nhập vai Principal Software Engineer, lập một bản Implementation Plan chia 3 giai đoạn bài bản (Core Retrieval, Resilience, Observability) và từng bước code mẫu chuẩn chỉ nhất để đưa prototype "Vibe-coding" thành hệ thống chuẩn cấp doanh nghiệp (Enterprise).
+```
+
+---
+
+# [Phase 15] Audit Hệ thống AI Orchestrator (Bảo mật & Hiệu suất)
+
+## Ngày thực hiện
+
+```text
+04/06/2026
+```
+
+## Đã hoàn thành
+
+- [x] **Kiểm toán Bảo mật (Security Audit):** Phân tích `GroqKeyPool`, `AiController`, `ContentGuardrailService` và chỉ ra các rủi ro về In-memory Rate Limiting và cách chống Prompt Injection (Sandwiched Prompts).
+- [x] **Kiểm toán Hiệu suất (Performance Audit):** Rà soát `LlmExecutionService` và phát hiện lỗi cực kỳ nghiêm trọng (Critical) làm treo Thread Tomcat do sử dụng luồng chặn `.get()` của CompletableFuture trong Spring.
+- [x] **Xuất Báo cáo:** Sinh tài liệu Báo cáo Kiểm toán AI Orchestrator chi tiết để chuẩn bị cho công tác Refactor mã nguồn.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi                                         | Người thực hiện | File/Module liên quan         |
+| --: | --------------------------------------------------------- | --------------- | ----------------------------- |
+|   1 | Chạy Audit tổng thể hệ thống, phân tích code AI Adapter   | Phạm Bá Trí     | `GroqAdapter`, `LlmExecutionService` |
+|   2 | Xuất Báo cáo Audit AI Orchestrator Markdown file          | Phạm Bá Trí     | `AI_Orchestrator_Audit_Report.md` |
+|   3 | Cập nhật hồ sơ (Audit Log, Changelog, Prompts, Reflection)| Phạm Bá Trí     | `Member/Phạm Bá Trí/*`        |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Mô tả AI đã hỗ trợ phần nào:
+
+```text
+Antigravity đóng vai trò Principal AI/ML Engineer tiến hành rà soát kỹ lưỡng (vạch lá tìm sâu) toàn bộ hệ thống RAG và AI Orchestrator. AI đã phát hiện những lỗ hổng chí mạng về kiến trúc (Thread Blocking) và quản lý chi phí, đồng thời lập Báo cáo Đánh giá chuyên nghiệp và hướng dẫn cách khắc phục.
+```
+
+---
+
 # 5. Cam kết cập nhật Changelog
 
 Sinh viên/nhóm cam kết rằng nội dung changelog phản ánh đúng các thay đổi đã

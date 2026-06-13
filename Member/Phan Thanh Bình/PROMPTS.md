@@ -4,14 +4,14 @@
 
 | Thông tin | Nội dung |
 |---|---|
-| Môn học |  |
-| Mã môn học |  |
-| Lớp |  |
-| Học kỳ |  |
-| Tên bài tập / Project |  |
-| Tên sinh viên / Nhóm |  |
-| MSSV / Danh sách MSSV |  |
-| Giảng viên hướng dẫn |  |
+| Môn học | Software Development Project |
+| Mã môn học | SWP391 |
+| Lớp | SE20A11 |
+| Học kỳ | SU26 |
+| Tên bài tập / Project | The Listening City Systems |
+| Tên sinh viên / Nhóm | Phan Thanh Bình / Group05 |
+| MSSV / Danh sách MSSV | DE190210 |
+| Giảng viên hướng dẫn | Lê Thiện Nhật Quang |
 | Ngày bắt đầu |  |
 | Ngày cập nhật gần nhất |  |
 
@@ -53,7 +53,7 @@ Sinh viên/nhóm cần ghi lại:
 | STT | Ngày | Công cụ AI | Mục đích | Prompt tóm tắt | Kết quả chính | Có sử dụng vào bài không? | Minh chứng |
 |---:|---|---|---|---|---|---|---|
 | 1 |  |  |  |  |  | Có / Không |  |
-| 2 |  |  |  |  |  | Có / Không |  |
+| 2 | 28/05/2026 | ChatGPT | Hoàn thiện backend use case media và khớp frontend template | Yêu cầu AI chuẩn hóa API, bổ sung class thiếu và đảm bảo compile pass | Bổ sung service/controller/repository/DTO cho media + chuẩn endpoint /api/feedbacks/media + compile pass | Có | Commit: 37217fd, 99ad3b8, a0692cf |
 | 3 |  |  |  |  |  | Có / Không |  |
 | 4 |  |  |  |  |  | Có / Không |  |
 | 5 |  |  |  |  |  | Có / Không |  |
@@ -75,16 +75,18 @@ Sinh viên/nhóm cần ghi lại:
 
 | Nội dung | Thông tin |
 |---|---|
-| Ngày sử dụng |  |
-| Công cụ AI | ChatGPT / Gemini / Claude / GitHub Copilot / Cursor / Antigravity / Khác |
-| Mục đích |  |
-| Phần việc liên quan | Requirement / Design / Database / Coding / Testing / Debug / Report / Presentation / Other |
-| Mức độ sử dụng | Hỏi ý tưởng / Hỏi giải thích / Hỏi review / Hỏi debug / Hỏi sinh code / Hỏi tối ưu |
+| Ngày sử dụng | 28/05/2026 |
+| Công cụ AI | ChatGPT |
+| Mục đích | Hoàn thiện backend use case media và đồng bộ với frontend template |
+| Phần việc liên quan | Coding / Testing / Debug |
+| Mức độ sử dụng | Hỏi review / Hỏi debug / Hỏi sinh code / Hỏi tối ưu |
 
 #### 5.1. Prompt nguyên văn
 
 ```text
-Dán nguyên văn prompt đã hỏi AI tại đây.
+You must ensure that this backend code must be able to connect with the frontend and must match the frontend template.
+If there is any missing class for the usecase to work, please complete it for me and ensure the logic is correct for other members.
+Make sure the code is standard so that when I merge into the product branch there will be no errors, explain in Vietnamese.
 ```
 
 #### 5.2. Bối cảnh khi viết prompt
@@ -92,7 +94,9 @@ Dán nguyên văn prompt đã hỏi AI tại đây.
 Mô tả ngắn gọn vì sao sinh viên/nhóm cần dùng prompt này.
 
 ```text
-Viết tại đây...
+Dự án nhóm có backend Spring Boot và frontend React.
+Template frontend đã dùng sẵn feedbackApi với endpoint /api/feedbacks và payload cụ thể.
+Cần thêm flow upload media nhưng vẫn không làm vỡ các flow đang chạy của thành viên khác.
 ```
 
 #### 5.3. Kết quả AI trả về
@@ -100,7 +104,16 @@ Viết tại đây...
 Tóm tắt nội dung AI đã trả lời hoặc gợi ý.
 
 ```text
-Viết tại đây...
+Bổ sung đầy đủ class cho use case media:
+- AttachmentRepository
+- CitizenFeedbackMediaRequest/Response
+- FeedbackAttachmentResponse
+- SupabaseStorageService
+- CitizenFeedbackMediaService
+- endpoint media trong module feedback
+
+Đồng thời chỉnh logic FeedbackService để tương thích template frontend khi categoryId chưa gửi.
+Kết quả compile backend pass.
 ```
 
 #### 5.4. Kết quả đã áp dụng vào bài
@@ -108,7 +121,8 @@ Viết tại đây...
 Mô tả phần nào từ kết quả AI đã được sử dụng vào bài tập/project.
 
 ```text
-Viết tại đây...
+Áp dụng trực tiếp các thay đổi vào backend + helper frontend gọi endpoint media.
+Sử dụng commit nhỏ để dễ review trong nhóm.
 ```
 
 #### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
@@ -116,7 +130,11 @@ Viết tại đây...
 Mô tả sinh viên/nhóm đã thay đổi, kiểm tra, sửa lỗi hoặc cải tiến gì so với kết quả AI trả về.
 
 ```text
-Viết tại đây...
+Đã tự chỉnh các điểm sau để ổn định hơn:
+- Sửa endpoint helper frontend về /api/feedbacks/media.
+- Sửa lỗi trùng dòng fetch do merge patch.
+- Bổ sung validate request trong FeedbackService để tránh lỗi runtime khi thiếu categoryId.
+- Re-compile để xác nhận kết quả.
 ```
 
 #### 5.6. Đánh giá chất lượng prompt
@@ -136,17 +154,20 @@ Viết tại đây...
 
 | Loại minh chứng | Nội dung |
 |---|---|
-| Link commit |  |
-| File liên quan |  |
+| Link commit | 37217fd, 99ad3b8, a0692cf |
+| File liên quan | Sources/Backend/src/main/java/com/example/smartcity/modules/feedback/service/FeedbackService.java; Sources/Backend/src/main/java/com/example/smartcity/modules/feedback/controller/FeedbackController.java; Sources/Frontend/src/lib/citizenFeedbackMediaApi.ts |
 | Screenshot |  |
-| Kết quả chạy/test |  |
+| Kết quả chạy/test | mvn -q -DskipTests compile: PASS |
 | Link tài liệu/báo cáo |  |
-| Ghi chú khác |  |
+| Ghi chú khác | Đảm bảo code tương thích template frontend trước khi merge |
 
 #### 5.8. Ghi chú thêm
 
 ```text
-Viết tại đây...
+Prompt có hiệu quả cao vì:
+1) Nêu rõ mục tiêu kỹ thuật (compatibility backend-frontend).
+2) Nêu rõ ràng buộc project nhóm (không phá flow thành viên khác).
+3) Yêu cầu tiêu chí hoàn tất rõ (compile ổn định, có thể merge product branch).
 ```
 
 ---
@@ -225,51 +246,85 @@ Viết tại đây...
 
 | Nội dung | Thông tin |
 |---|---|
-| Ngày sử dụng |  |
-| Công cụ AI | ChatGPT / Gemini / Claude / GitHub Copilot / Cursor / Antigravity / Khác |
-| Mục đích |  |
-| Phần việc liên quan | Requirement / Design / Database / Coding / Testing / Debug / Report / Presentation / Other |
-| Mức độ sử dụng | Hỏi ý tưởng / Hỏi giải thích / Hỏi review / Hỏi debug / Hỏi sinh code / Hỏi tối ưu |
+| Ngày sử dụng | 02/06/2026 |
+| Công cụ AI | ChatGPT |
+| Mục đích | Phân tích kiến trúc và triển khai GPS integration |
+| Phần việc liên quan | Backend / Frontend / API / Securityr |
+| Mức độ sử dụng | Hỏi phân tích / Hỏi thiết kế / Hỏi sinh code / Hỏi kiểm chứng |
 
 #### 5.1. Prompt nguyên văn
 
 ```text
-Dán nguyên văn prompt đã hỏi AI tại đây.
+First use CodeGraph to understand the current code architecture...
+I want to add GPS integration...
+Citizens must allow location access to submit feedback.
+Store latitude and longitude.
+Use Reverse Geocoding to authenticate communes and wards.
+Authorities can view the reported location on the map.
+That location will be sent to the commune/ward unit where it will be processed.
+Ask necessary questions first.
+Wait for my approval before editing files.
 ```
 
 #### 5.2. Bối cảnh khi viết prompt
 
 ```text
-Viết tại đây...
+Hệ thống đã có chức năng gửi phản ánh nhưng vị trí GPS chưa được xử lý đúng nghiệp vụ.
+Frontend có gọi geolocation nhưng nếu lỗi lại fallback về tọa độ mặc định, có thể tạo dữ liệu sai.
+Backend có latitude/longitude nhưng chưa bắt buộc và wardId vẫn có nguy cơ bị frontend gửi sai/hardcode.
+Cần bổ sung GPS theo hướng an toàn, có kiểm chứng và không phá vỡ kiến trúc hiện có.
 ```
 
 #### 5.3. Kết quả AI trả về
 
 ```text
-Viết tại đây...
+AI dùng CodeGraph để xác định các file liên quan:
+- Feedback entity/request/response/service/controller.
+- WardController và WardRepository.
+- report.tsx, api.ts, types/api.ts.
+- CivicMap và WardDashboard.
+
+AI đề xuất và hỗ trợ triển khai:
+- LocationResolutionService để reverse geocoding.
+- Validation bắt buộc latitude/longitude.
+- Backend tự resolve ward.
+- Frontend chặn submit nếu chưa có GPS.
+- Ward dashboard hiển thị vị trí phản ánh trên map.
 ```
 
 #### 5.4. Kết quả đã áp dụng vào bài
 
 ```text
-Viết tại đây...
+Đã áp dụng vào code:
+- Bắt buộc GPS khi citizen gửi phản ánh.
+- Không dùng tọa độ fallback giả.
+- Không gửi wardId hardcode từ frontend.
+- Backend xác định phường/xã từ GPS.
+- Cán bộ phường xem được pin phản ánh trên bản đồ.
+- Backend compile pass và frontend build pass.
 ```
 
 #### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
 
 ```text
-Viết tại đây...
+Nhóm không copy toàn bộ theo AI một cách máy móc.
+Các điểm đã kiểm tra/chỉnh sửa:
+- Kiểm tra CodeGraph trước để biết hệ thống đã có sẵn latitude/longitude và CivicMap.
+- Giữ Leaflet/OpenStreetMap thay vì thêm Google Maps để tránh phụ thuộc API key.
+- Thêm guard ở cả frontend và backend để GPS thật sự bắt buộc.
+- Sửa lỗi compile do Spring Boot 4 không còn UriComponentsBuilder.fromHttpUrl.
+- Chạy mvn compile và npm build để xác nhận không lỗi build.
 ```
 
 #### 5.6. Đánh giá chất lượng prompt
 
-- [ ] Prompt rõ ràng
-- [ ] Prompt có đủ bối cảnh
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
 - [ ] Prompt còn thiếu thông tin
-- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả tốt
 - [ ] Prompt tạo ra kết quả chưa phù hợp
-- [ ] Cần hỏi lại AI nhiều lần
-- [ ] Cần tự kiểm tra và chỉnh sửa nhiều
+- [x] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
 - [ ] Kết quả AI có lỗi hoặc chưa chính xác
 
 #### 5.7. Minh chứng liên quan

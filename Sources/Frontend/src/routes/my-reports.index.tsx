@@ -30,7 +30,7 @@ export const Route = createFileRoute("/my-reports/")({
     const raw = typeof window !== "undefined" ? localStorage.getItem("dn_auth_user_v2") : null;
 
     if (!token || !raw) {
-      throw redirect({ to: "/login", search: { redirect: "/my-reports" } });
+      throw redirect({ to: "/login", search: { error: "auth_required", redirect: "/my-reports" } });
     }
 
     let user: { role: string } | null = null;
@@ -40,11 +40,18 @@ export const Route = createFileRoute("/my-reports/")({
       /* ignore */
     }
 
-    if (!user) throw redirect({ to: "/login" });
+    if (!user) throw redirect({ to: "/login", search: { redirect: undefined, error: "auth_required" } });
 
     const role = parseBackendRole(user.role);
-    if (AUTHORITY_ROLES.has(role) || role !== Role.CITIZEN) {
-      throw redirect({ to: "/login" });
+
+    // Authority staff should not access citizen report list
+    if (AUTHORITY_ROLES.has(role)) {
+      throw redirect({ to: "/login", search: { redirect: undefined, error: "forbidden" } });
+    }
+
+    // Confirm CITIZEN role
+    if (role !== Role.CITIZEN) {
+      throw redirect({ to: "/login", search: { redirect: undefined, error: "forbidden" } });
     }
   },
   head: () => ({

@@ -97,8 +97,6 @@ function AuthorityLoginPage() {
       if ("token" in data && data.token) {
         const role = parseBackendRole(data.role);
 
-        // SECURITY: If the backend returns a CITIZEN role for this staff login page,
-        // reject it — citizens must use /login, not this page.
         if (!AUTHORITY_ROLES.has(role)) {
           setError(
             locale === "vi"
@@ -112,12 +110,12 @@ function AuthorityLoginPage() {
         login({
           name: data.username,
           role,
-          org: "", // Will be populated from user profile
+          org: "",
           token: data.token,
         });
 
         const defaultRedirect = ROLE_REDIRECT[role] ?? "/city-admin";
-        navigate({ to: redirect || defaultRedirect });
+        navigate({ to: (redirect || defaultRedirect) as any });
       }
     } catch (err) {
       // Xử lý lỗi thông thường cho tài khoản thật
@@ -162,7 +160,7 @@ function AuthorityLoginPage() {
       }
 
       login({ name: data.username, role, org: "", token: data.token });
-      navigate({ to: redirect || ROLE_REDIRECT[role] || "/city-admin" });
+      navigate({ to: (redirect || ROLE_REDIRECT[role] || "/city-admin") as any });
     } catch (err) {
       if (err instanceof ApiError) {
         setError(locale === "vi" ? "Mã xác thực không đúng" : "Invalid MFA code");

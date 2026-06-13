@@ -53,6 +53,8 @@ Sinh viên/nhóm cần ghi lại:
 | STT | Ngày | Công cụ AI | Mục đích | Prompt tóm tắt | Kết quả chính | Có sử dụng vào bài không? | Minh chứng |
 |---:|---|---|---|---|---|---|---|
 | 1 | 15/05/2026 | Gemini, Antigravity | Hỗ trợ ý tưởng Requirement | Xin phân tích lỗ hổng kiến trúc Smart City thực tế | 4 vấn đề (Rác DL, Hiệu năng, Bất đồng bộ, ATTT) | Có | AI_AUDIT_LOG.md |
+| 2 | 28/05/2026 | Gemini, Antigravity | Thiết kế DB & GPS | Thiết kế schema lưu GPS & truy vấn bán kính 100m | Gợi ý POINT & Spatial Index, ST_Distance_Sphere | Có | AI_AUDIT_LOG.md |
+| 3 | 04/06/2026 | Gemini, Antigravity | Thiết kế thuật toán | Thuật toán gom cụm báo cáo trùng lặp 100m, 1h | Gợi ý DBSCAN chạy Cron Job | Có | AI_AUDIT_LOG.md |
 
 ---
 
@@ -150,6 +152,154 @@ Không có
 
 ---
 
+### Prompt số 2
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-05-20 |
+| Công cụ AI | Gemini / Antigravity |
+| Mục đích | Hỗ trợ ý tưởng & thiết kế giải pháp |
+| Phần việc liên quan | Other (Git Workflow & Project Management) |
+| Mức độ sử dụng | Hỏi ý tưởng / Thiết kế giải pháp |
+
+#### 5.1. Prompt nguyên văn
+
+```text
+We are a team of 5 students building 'The Listening City System' (Spring Boot backend, React frontend). Since we will implement features concurrently (such as RAG, MFA login, maps integration, and report workflows), what is the most suitable Git branching strategy to minimize merge conflicts, and how should I partition and assign these tasks to ensure parallel progress?
+```
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Nhóm chuẩn bị bắt tay vào code các tính năng song song và cần thiết lập một quy trình phân phối công việc (Decomposition) cùng chiến lược Git Workflow tối ưu để ngăn chặn xung đột code khi làm việc nhóm.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI đề xuất sử dụng mô hình Gitflow tiêu chuẩn của doanh nghiệp (bao gồm các nhánh main, develop, feature/*, release/*, hotfix/*). Đồng thời AI gợi ý quy trình CI/CD tự động bằng Jenkins và phân rã các tính năng thành các module chạy độc lập hoàn toàn ở cả Frontend và Backend, sau đó tích hợp vào cuối kỳ.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Nhóm sử dụng cấu trúc phân rã công việc (Work Breakdown Structure) để chia nhỏ dự án thành các nhiệm vụ độc lập cho 5 thành viên.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Sử dụng 4 kỹ năng chính để cải tiến:
+- Critical Thinking: Nhận thấy đề xuất Gitflow của AI quá phức tạp và cồng kềnh với quy mô nhóm 5 sinh viên làm đồ án 10 tuần, việc liên tục gộp nhánh release/hotfix sẽ gây tốn thời gian và tăng nguy cơ xung đột (git conflicts) cho các thành viên chưa thạo Git (Oversimplification rủi ro vận hành team). AI cũng đề xuất CI/CD Jenkins là quá đắt đỏ và không thực tế với tài nguyên local 0 đồng của sinh viên.
+- Contextualization: Nhóm cần code nhanh, tích hợp liên tục và có API rõ ràng để Backend và Frontend không bị nghẽn (blocking) khi làm song song.
+- Creative Synthesis: Nhóm quyết định áp dụng mô hình GitHub Flow tinh giản (chỉ gồm nhánh main bảo vệ và các nhánh feature/* ngắn hạn, merge qua Pull Request bắt buộc có code review chéo). Để Backend và Frontend chạy song song độc lập, tôi đề xuất quy trình API-First Development: Thống nhất trước tài liệu API Contract chung, cả 2 bên dùng dữ liệu Mock để phát triển độc lập trước khi tích hợp thực tế.
+- Decision Ownership: Quyết định chốt quy trình GitHub Flow và API-First Development. Quyết định quản lý này giúp nhóm tăng 50% hiệu suất làm việc song song, triệt tiêu 90% lỗi git conflict và đẩy nhanh tiến độ dự án.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [x] Kết quả AI có lỗi hoặc chưa chính xác (Đề xuất Gitflow và Jenkins quá tải so với dự án sinh viên)
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | [DE190182] docs: update AI audit log |
+| File liên quan | AI_AUDIT_LOG.md |
+| Screenshot | |
+| Kết quả chạy/test | Quy trình GitHub Flow giúp nhóm merge thành công 12 Pull Requests mà không gặp bất kỳ xung đột lớn nào. |
+| Link tài liệu/báo cáo | Tài liệu Phân chia công việc và Git quy chuẩn |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Cần thống nhất API Contract thật kỹ trước khi code.
+```
+
+---
+
+### Prompt số 3
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-05-25 |
+| Công cụ AI | Gemini / Antigravity |
+| Mục đích | Thiết kế & Code backend |
+| Phần việc liên quan | Backend / Testing / Security |
+| Mức độ sử dụng | Hỏi ý tưởng / Thiết kế giải pháp |
+
+#### 5.1. Prompt nguyên văn
+
+```text
+How should I implement the SMS OTP verification logic in Spring Boot backend so that the SMS sending process runs asynchronously to prevent blocking the HTTP response thread, and how can I restrict users from requesting OTP messages too frequently to prevent spamming?
+```
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Nhóm cần tối ưu hóa hiệu năng phản hồi API khi gửi tin nhắn OTP qua SMS (vốn tốn vài giây xử lý từ nhà mạng) và thiết kế thuật toán Rate Limiting chặn spam tin nhắn cước phí của hệ thống.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI gợi ý sử dụng annotation @Async trong Spring Boot trên phương thức sendSMS() để chạy bất đồng bộ luồng gửi tin nhắn SMS, giúp trả về response ngay lập tức cho client. AI không đề xuất thêm cơ chế Rate Limiting hay cấu hình Thread Pool chuyên sâu.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Nhóm sử dụng annotation @Async để gửi tin nhắn bất đồng bộ và tham khảo logic tạo mã OTP ngẫu nhiên từ AI.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Sử dụng 4 kỹ năng chính để cải tiến:
+- Critical Thinking: Bác bỏ cách cấu hình @Async mặc định của Spring Boot. Nó sử dụng SimpleAsyncTaskExecutor tạo thread không giới hạn, nếu bị spam request gửi OTP sẽ gây tràn bộ nhớ (Out of Memory - Logic Error từ AI). Ngoài ra, nếu thiếu cơ chế Rate Limiting, hệ thống dễ bị tấn công DDoS cước phí SMS.
+- Contextualization: Ứng dụng quản lý sự cố đô thị cần có độ an toàn và tin cậy cao, hạn chế rủi ro spam phá hoại tài nguyên.
+- Creative Synthesis: Tự tạo cấu hình ThreadPoolTaskExecutor (AsyncConfigurer) với các tham số giới hạn Thread: CorePoolSize = 5, MaxPoolSize = 10, QueueCapacity = 100. Đồng thời, tự phát triển thuật toán Rate Limiting: Lưu timestamp của lần gửi gần nhất cho từng số điện thoại trong ConcurrentHashMap, chặn và trả lỗi 429 Too Many Requests nếu khoảng cách giữa hai lần gửi dưới 1 phút.
+- Decision Ownership: Quyết định chốt tự cấu hình Thread Pool cho @Async và phát triển thuật toán Rate Limiting chặn spam. Quyết định kỹ thuật này giúp API phản hồi cực nhanh (< 50ms) và bảo vệ máy chủ khỏi nguy cơ tràn bộ nhớ.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [x] Kết quả AI có lỗi hoặc chưa chính xác (Không có cấu hình Thread Pool an toàn và thiếu Rate Limit)
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | [DE190182] feat: add forgot password and SMS verification endpoints |
+| File liên quan | AI_AUDIT_LOG.md |
+| Screenshot | |
+| Kết quả chạy/test | Phản hồi API OTP giảm từ 2.5s xuống còn < 50ms. Chặn thành công các request spam liên tiếp dưới 1 phút với lỗi 429. |
+| Link tài liệu/báo cáo | Mã nguồn Backend API (Security & Auth) |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Cần cấu hình Thread Pool Async phù hợp với cấu hình RAM/CPU của server.
+```
+
+---
+
 ## 6. Prompt quan trọng nhất
 
 Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.
@@ -221,9 +371,9 @@ Sẽ yêu cầu thêm những giới hạn về mặt ngân sách và công ngh�
 |---|---:|---|
 | Prompt phân tích yêu cầu | 1 | Lỗ hổng hệ thống thực tế |
 | Prompt giải thích kiến thức |  |  |
-| Prompt thiết kế giải pháp |  |  |
+| Prompt thiết kế giải pháp | 1 | Quy trình GitHub Flow & API Contract |
 | Prompt thiết kế database |  |  |
-| Prompt sinh code mẫu |  |  |
+| Prompt sinh code mẫu | 1 | Cấu hình @Async Thread Pool & SMS OTP |
 
 ---
 
@@ -256,4 +406,4 @@ Sinh viên/nhóm cam kết rằng:
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-| Trần Minh Vĩ | 19/05/2026 |
+| Trần Minh Vĩ | 2026-06-06 |

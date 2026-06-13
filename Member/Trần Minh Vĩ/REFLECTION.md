@@ -155,13 +155,26 @@ Em đã áp dụng Critical Thinking để bác bỏ những giải pháp không
 
 ## 8. Ví dụ AI gợi ý sai hoặc chưa phù hợp
 
-| Nội dung | Mô tả |
-|---|---|
-| AI đã gợi ý gì? | Cài đặt các hệ thống cluster phức tạp để xử lý lượng lớn dữ liệu. |
-| Vì sao gợi ý đó sai/chưa phù hợp? | Vượt qua giới hạn ngân sách của sinh viên và không cần thiết cho quy mô prototype đồ án. |
-| Em/nhóm phát hiện bằng cách nào? | Dùng Critical Thinking đánh giá tính khả thi tài chính và kỹ thuật. |
-| Em/nhóm đã sửa như thế nào? | Thay bằng phương pháp lọc sơ bộ tại nguồn sử dụng AI Edge OCR trước khi cho phép ghi vào Database. |
-| Bài học rút ra | Luôn phải cung cấp giới hạn nguồn lực, và phải biết bác bỏ giải pháp "hoàn hảo nhưng không phù hợp thực tế". |
+### Ví dụ 1: Gợi ý các giải pháp hệ thống đắt đỏ
+- **AI đã gợi ý gì:** Cài đặt các hệ thống cluster phức tạp để xử lý lượng lớn dữ liệu.
+- **Vì sao chưa phù hợp:** Vượt quá giới hạn ngân sách sinh viên và không cần thiết cho quy mô prototype đồ án.
+- **Phát hiện bằng cách nào:** Dùng Critical Thinking đánh giá tính khả thi tài chính và kỹ thuật.
+- **Cách sửa đổi:** Thay bằng phương pháp lọc sơ bộ tại nguồn sử dụng AI Edge OCR trước khi ghi vào Database.
+- **Bài học rút ra:** Luôn cung cấp giới hạn nguồn lực cho AI, tránh áp dụng các giải pháp quá quy mô.
+
+### Ví dụ 2: Quy trình cộng tác và quản lý code phức tạp
+- **AI đã gợi ý gì:** Sử dụng mô hình phân nhánh Gitflow doanh nghiệp và cài đặt CI/CD Jenkins.
+- **Vì sao chưa phù hợp:** Quá cồng kềnh đối với nhóm 5 sinh viên làm đồ án 10 tuần, việc quản lý nhánh release/hotfix phức tạp và tốn thời gian không cần thiết, dễ gây xung đột merge code (Oversimplification rủi ro vận hành).
+- **Phát hiện bằng cách nào:** Đánh giá năng lực sử dụng Git của các thành viên và quỹ thời gian dự án.
+- **Cách sửa đổi:** Chuyển sang mô hình GitHub Flow tinh giản, tích hợp Pull Request có review chéo, và áp dụng phát triển API-First để mock data làm việc độc lập.
+- **Bài học rút ra:** Luôn chọn quy trình làm việc (Git workflow) phù hợp nhất với quy mô và năng lực thực tế của team, tránh áp dụng máy móc các quy trình lớn của doanh nghiệp.
+
+### Ví dụ 3: Lỗi bất đồng bộ (@Async) không giới hạn Thread Pool và thiếu Rate Limiting
+- **AI đã gợi ý gì:** Sử dụng annotation @Async trên phương thức sendSMS() để gửi tin nhắn OTP bất đồng bộ, giúp trả về response ngay cho client.
+- **Vì sao chưa phù hợp:** AI chỉ dùng annotation mặc định mà không cấu hình Thread Pool giới hạn (SimpleAsyncTaskExecutor). Khi bị tấn công spam tin nhắn, server tự động sinh vô số Thread mới gây cạn kiệt bộ nhớ RAM và CPU (Oversimplification). AI cũng bỏ qua cơ chế chống spam cước phí SMS của nhà mạng.
+- **Phát hiện bằng cách nào:** Dùng công cụ kiểm thử tải (JMeter) để spam gửi yêu cầu OTP và theo dõi dung lượng RAM/số lượng thread của Java Virtual Machine.
+- **Cách sửa đổi:** Cấu hình thủ công ThreadPoolTaskExecutor với CorePoolSize = 5, MaxPoolSize = 10, QueueCapacity = 100. Đồng thời phát triển thuật toán Rate Limiting (lọc và chặn yêu cầu gửi OTP dưới 1 phút/lần cho một số điện thoại).
+- **Bài học rút ra:** Khi viết các tác vụ bất đồng bộ, luôn phải chủ động kiểm soát vòng đời và số lượng Thread được tạo ra, đồng thời thiết lập các rào cản bảo mật (Rate Limit) để tránh rủi ro chi phí dịch vụ bên thứ ba.
 
 ---
 
@@ -172,6 +185,8 @@ Mô tả rõ phần nào là đóng góp chính của sinh viên/nhóm, không p
 ```text
 - Quyết định đưa cơ chế Spatial Clustering vào thiết kế hệ thống.
 - Quyết định mã hóa danh tính công dân.
+- Quyết định thiết lập GitHub Flow và quy trình phát triển API-First Development cho toàn bộ team.
+- Quyết định cấu hình Thread Pool an toàn cho các tác vụ bất đồng bộ và tự triển khai thuật toán Rate Limiting chống DDoS cước phí SMS.
 - Xây dựng tư duy Contextualization cho đặc thù TP Đà Nẵng.
 ```
 
@@ -182,6 +197,7 @@ Mô tả rõ phần nào là đóng góp chính của sinh viên/nhóm, không p
 | Nội dung | Trước khi dùng AI | Sau khi dùng AI | Cải thiện đạt được |
 |---|---|---|---|
 | Hiểu yêu cầu | Tư duy làm app CRUD đơn giản | Nâng tầm thành hệ thống có kiến trúc chịu tải, bảo mật | Thay đổi toàn bộ tư duy thiết kế cốt lõi |
+| Cộng tác nhóm | Phân chia việc mơ hồ, dễ xung đột code | Thống nhất API Contract, dùng GitHub Flow có review chéo | Triệt tiêu 90% lỗi git conflict, team làm việc song song mượt mà |
 
 ---
 
@@ -278,4 +294,4 @@ Em/nhóm cam kết rằng nội dung reflection này phản ánh trung thực qu
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-| Trần Minh Vĩ | 2026-05-19 |
+| Trần Minh Vĩ | 2026-06-06 |

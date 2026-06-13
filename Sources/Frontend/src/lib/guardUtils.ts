@@ -82,7 +82,10 @@ export function assertAuth(
   if (opts.portal === "authority" && CITIZEN_ROLES.has(user.role)) {
     // Citizen trying to access authority portal — purge session & redirect
     auth.logout();
-    throw redirect({ to: opts.loginUrl as any, search: { redirect: undefined, error: "forbidden" } as any });
+    throw redirect({
+      to: opts.loginUrl as any,
+      search: { redirect: undefined, error: "forbidden" } as any,
+    });
   }
 
   // Authority staff hitting a citizen-only route is not a threat —

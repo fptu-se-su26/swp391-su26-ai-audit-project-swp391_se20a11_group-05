@@ -47,15 +47,13 @@ export function ReportCard({
   const title = isApi ? (report as FeedbackResponse).title : getVal(report.title);
   const description = isApi ? (report as FeedbackResponse).description : getVal(report.description);
   const address = isApi
-    ? ((report as FeedbackResponse).addressDetails || "Chưa cung cấp")
+    ? (report as FeedbackResponse).addressDetails || "Chưa cung cấp"
     : getVal((report as any).address);
 
   const imageSrc = !isApi && (report as any).image ? (report as any).image : null;
 
   return (
-    <div
-      className="card-civic p-5 md:p-6 grid md:grid-cols-12 gap-5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 animate-fade-in-up"
-    >
+    <div className="card-civic p-5 md:p-6 grid md:grid-cols-12 gap-5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 animate-fade-in-up">
       <div className="md:col-span-3 bg-slate-100 w-full aspect-video md:aspect-square flex items-center justify-center rounded-lg text-slate-400 overflow-hidden border border-slate-100">
         {imageSrc ? (
           <img
@@ -90,20 +88,22 @@ export function ReportCard({
             <div className="font-mono font-bold text-xl">{(report as any).licensePlate}</div>
           </div>
         )}
-        <button className={`btn-civic btn-civic-primary text-sm ${policeView ? "bg-[var(--status-danger)] border-[var(--status-danger)]" : ""}`}>
+        <button
+          className={`btn-civic btn-civic-primary text-sm ${policeView ? "bg-[var(--status-danger)] border-[var(--status-danger)]" : ""}`}
+        >
           <Video size={18} />
           {locale === "vi" ? "Xem video bằng chứng" : "View video evidence"}
         </button>
         {policeView && onReject && onRequestInfo ? (
           <>
-            <button 
+            <button
               onClick={() => onRequestInfo(report.id)}
               disabled={isLoading}
               className="btn-civic btn-civic-outline text-sm"
             >
               Yêu cầu bổ sung TT
             </button>
-            <button 
+            <button
               onClick={() => onReject(report.id)}
               disabled={isLoading}
               className="btn-civic btn-civic-ghost text-sm text-[var(--status-danger)]"

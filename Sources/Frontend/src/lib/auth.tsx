@@ -103,8 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const hasRole = (...roles: RoleType[]) =>
-    !!user && roles.includes(user.role);
+  const hasRole = (...roles: RoleType[]) => !!user && roles.includes(user.role);
 
   const isAuthenticated = !!user && !!getToken();
 
@@ -122,4 +121,3 @@ export function useAuth() {
   if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
   return ctx;
 }
-

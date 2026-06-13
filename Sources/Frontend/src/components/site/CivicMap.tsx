@@ -24,9 +24,18 @@ const markerColors: Record<string, string> = {
   urgent: "red",
 };
 
-export function CivicMap({ center = [15.8, 108.3], zoom = 10, markers = [], height = "h-72 md:h-96", interactive = true }: Props) {
+export function CivicMap({
+  center = [15.8, 108.3],
+  zoom = 10,
+  markers = [],
+  height = "h-72 md:h-96",
+  interactive = true,
+}: Props) {
   return (
-    <div className="rounded-xl overflow-hidden border border-slate-100 shadow-sm" style={{ height }}>
+    <div
+      className="rounded-xl overflow-hidden border border-slate-100 shadow-sm"
+      style={{ height }}
+    >
       <MapContainer
         center={center}
         zoom={zoom}
@@ -36,7 +45,7 @@ export function CivicMap({ center = [15.8, 108.3], zoom = 10, markers = [], heig
         scrollWheelZoom={interactive}
       >
         <TileLayer
-          attribution='&copy; Google Maps'
+          attribution="&copy; Google Maps"
           url="https://mt1.google.com/vt/lyrs=m&hl=vi&gl=VN&x={x}&y={y}&z={z}"
         />
         {markers.map((m, i) => (

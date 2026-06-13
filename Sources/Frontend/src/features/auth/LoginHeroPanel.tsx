@@ -57,12 +57,14 @@ export function LoginHeroPanel({ locale }: LoginHeroPanelProps) {
           <h1 className="font-heading text-5xl xl:text-6xl font-bold text-white leading-tight mb-4">
             {locale === "vi" ? (
               <>
-                Thành Phố<br />
+                Thành Phố
+                <br />
                 <span style={{ color: "#d4af37" }}>Kết Nối</span>
               </>
             ) : (
               <>
-                A City That<br />
+                A City That
+                <br />
                 <span style={{ color: "#d4af37" }}>Connect</span>
               </>
             )}
@@ -76,25 +78,35 @@ export function LoginHeroPanel({ locale }: LoginHeroPanelProps) {
 
         {/* Feature list */}
         <div className="space-y-3 mb-10">
-          <div className="flex items-start gap-3 px-4 py-3 rounded-xl" style={{ background: "rgba(255,255,255,0.07)" }}>
+          <div
+            className="flex items-start gap-3 px-4 py-3 rounded-xl"
+            style={{ background: "rgba(255,255,255,0.07)" }}
+          >
             <Zap size={16} className="text-gov-gold mt-0.5 shrink-0" />
             <div>
               <p className="text-white/80 text-xs font-bold uppercase tracking-wider">
                 {locale === "vi" ? "Tiện ích thông minh" : "Smart Services"}
               </p>
               <p className="text-white/50 text-xs mt-0.5">
-                {locale === "vi" ? "Tra cứu dịch vụ công 24/7 tức thì" : "Access public services 24/7 instantly"}
+                {locale === "vi"
+                  ? "Tra cứu dịch vụ công 24/7 tức thì"
+                  : "Access public services 24/7 instantly"}
               </p>
             </div>
           </div>
-          <div className="flex items-start gap-3 px-4 py-3 rounded-xl" style={{ background: "rgba(255,255,255,0.07)" }}>
+          <div
+            className="flex items-start gap-3 px-4 py-3 rounded-xl"
+            style={{ background: "rgba(255,255,255,0.07)" }}
+          >
             <MessageSquare size={16} className="text-gov-gold mt-0.5 shrink-0" />
             <div>
               <p className="text-white/80 text-xs font-bold uppercase tracking-wider">
                 {locale === "vi" ? "Tương tác trực tiếp" : "Direct Interaction"}
               </p>
               <p className="text-white/50 text-xs mt-0.5">
-                {locale === "vi" ? "Gửi phản ánh, nhận phản hồi minh bạch" : "Submit reports, get transparent feedback"}
+                {locale === "vi"
+                  ? "Gửi phản ánh, nhận phản hồi minh bạch"
+                  : "Submit reports, get transparent feedback"}
               </p>
             </div>
           </div>

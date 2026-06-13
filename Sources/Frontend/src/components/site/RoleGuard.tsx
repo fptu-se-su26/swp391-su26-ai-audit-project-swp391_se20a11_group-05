@@ -47,7 +47,11 @@ export function RoleGuard({ roles, children }: Props) {
             </span>
           </div>
         ) : null}
-        <Link to={"/login" as any} search={{} as any} className="btn-civic btn-civic-primary w-full">
+        <Link
+          to={"/login" as any}
+          search={{} as any}
+          className="btn-civic btn-civic-primary w-full"
+        >
           <LockKeyhole size={18} />
           {locale === "vi" ? "Chuyển đến trang Đăng nhập" : "Go to Login"}
         </Link>

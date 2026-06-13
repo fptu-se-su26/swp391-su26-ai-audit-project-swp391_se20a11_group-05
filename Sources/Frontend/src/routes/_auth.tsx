@@ -35,9 +35,7 @@ export const Route = createFileRoute("/_auth")({
   beforeLoad: async () => {
     // ── Read stored session ──────────────────────────────────
     const token = typeof window !== "undefined" ? getToken() : null;
-    const raw = typeof window !== "undefined"
-      ? localStorage.getItem("dn_auth_user_v2")
-      : null;
+    const raw = typeof window !== "undefined" ? localStorage.getItem("dn_auth_user_v2") : null;
 
     // ── 1. Not authenticated ─────────────────────────────────
     if (!token || !raw) {

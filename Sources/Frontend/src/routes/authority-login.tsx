@@ -20,7 +20,19 @@ import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { Role, AUTHORITY_ROLES, ROLE_LABEL, parseBackendRole } from "@/lib/roles";
 import { authApi, ApiError, getToken } from "@/lib/api";
-import { LogIn, Shield, Loader2, AlertCircle, ShieldCheck, Eye, EyeOff, Lock, UserCog, ClipboardList, Users } from "lucide-react";
+import {
+  LogIn,
+  Shield,
+  Loader2,
+  AlertCircle,
+  ShieldCheck,
+  Eye,
+  EyeOff,
+  Lock,
+  UserCog,
+  ClipboardList,
+  Users,
+} from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 
 type AuthorityLoginSearch = {
@@ -46,7 +58,11 @@ export const Route = createFileRoute("/authority-login")({
 
     if (token && raw) {
       let user: { role: string } | null = null;
-      try { user = JSON.parse(raw); } catch { /* ignore */ }
+      try {
+        user = JSON.parse(raw);
+      } catch {
+        /* ignore */
+      }
       if (user) {
         const role = parseBackendRole(user.role);
         if (AUTHORITY_ROLES.has(role)) {
@@ -59,7 +75,10 @@ export const Route = createFileRoute("/authority-login")({
   head: () => ({
     meta: [
       { title: "Đăng nhập Cán bộ — Đà Nẵng Kết Nối" },
-      { name: "description", content: "Cổng đăng nhập dành cho cán bộ phường, công an và lãnh đạo thành phố." },
+      {
+        name: "description",
+        content: "Cổng đăng nhập dành cho cán bộ phường, công an và lãnh đạo thành phố.",
+      },
       // SECURITY: Prevent indexing of the staff login page
       { name: "robots", content: "noindex, nofollow" },
     ],
@@ -101,7 +120,7 @@ function AuthorityLoginPage() {
           setError(
             locale === "vi"
               ? "Tài khoản này không có quyền truy cập cổng cán bộ."
-              : "This account does not have authority portal access."
+              : "This account does not have authority portal access.",
           );
           setLoading(false);
           return;
@@ -122,9 +141,7 @@ function AuthorityLoginPage() {
       if (err instanceof ApiError) {
         if (err.status === 401) {
           setError(
-            locale === "vi"
-              ? "Sai tài khoản hoặc mật khẩu"
-              : "Invalid username or password"
+            locale === "vi" ? "Sai tài khoản hoặc mật khẩu" : "Invalid username or password",
           );
         } else {
           setError(err.message);
@@ -133,7 +150,7 @@ function AuthorityLoginPage() {
         setError(
           locale === "vi"
             ? "Không thể kết nối tới máy chủ. Vui lòng thử lại."
-            : "Cannot connect to server. Please try again."
+            : "Cannot connect to server. Please try again.",
         );
       }
     } finally {
@@ -154,7 +171,7 @@ function AuthorityLoginPage() {
         setError(
           locale === "vi"
             ? "Tài khoản này không có quyền truy cập cổng cán bộ."
-            : "This account does not have authority portal access."
+            : "This account does not have authority portal access.",
         );
         return;
       }
@@ -174,7 +191,6 @@ function AuthorityLoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
-
       {/* ══ LEFT — Authority Hero Panel ════════════════════════════ */}
       <div
         className="hidden lg:flex lg:w-[42%] flex-col relative overflow-hidden"
@@ -225,10 +241,16 @@ function AuthorityLoginPage() {
           <div className="mb-6">
             <div
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold mb-6"
-              style={{ background: "rgba(212,175,55,0.15)", color: "#d4af37", border: "1px solid rgba(212,175,55,0.3)" }}
+              style={{
+                background: "rgba(212,175,55,0.15)",
+                color: "#d4af37",
+                border: "1px solid rgba(212,175,55,0.3)",
+              }}
             >
               <ShieldCheck size={14} />
-              {locale === "vi" ? "CỔNG CÁN BỘ — TRUY CẬP BẢO MẬT" : "AUTHORITY PORTAL — SECURE ACCESS"}
+              {locale === "vi"
+                ? "CỔNG CÁN BỘ — TRUY CẬP BẢO MẬT"
+                : "AUTHORITY PORTAL — SECURE ACCESS"}
             </div>
           </div>
 
@@ -237,14 +259,18 @@ function AuthorityLoginPage() {
             <h1 className="font-heading text-4xl xl:text-5xl font-bold text-white leading-tight mb-4">
               {locale === "vi" ? (
                 <>
-                  Hệ Thống<br />
-                  <span style={{ color: "#d4af37" }}>Quản Lý</span><br />
+                  Hệ Thống
+                  <br />
+                  <span style={{ color: "#d4af37" }}>Quản Lý</span>
+                  <br />
                   Chính Quyền
                 </>
               ) : (
                 <>
-                  Authority<br />
-                  <span style={{ color: "#d4af37" }}>Management</span><br />
+                  Authority
+                  <br />
+                  <span style={{ color: "#d4af37" }}>Management</span>
+                  <br />
                   System
                 </>
               )}
@@ -259,18 +285,37 @@ function AuthorityLoginPage() {
           {/* Authority role cards */}
           <div className="space-y-2.5 mb-10">
             {[
-              { icon: <Users size={14} />, label: locale === "vi" ? "CÁN BỘ PHƯỜNG" : "WARD STAFF", desc: locale === "vi" ? "Tiếp nhận và xử lý phản ánh" : "Receive and process reports" },
-              { icon: <Shield size={14} />, label: locale === "vi" ? "CÔNG AN" : "POLICE", desc: locale === "vi" ? "Giám sát an ninh trật tự" : "Monitor public security" },
-              { icon: <ClipboardList size={14} />, label: locale === "vi" ? "LÃNH ĐẠO THÀNH PHỐ" : "CITY LEADERSHIP", desc: locale === "vi" ? "Báo cáo tổng hợp toàn thành" : "City-wide reporting dashboard" },
+              {
+                icon: <Users size={14} />,
+                label: locale === "vi" ? "CÁN BỘ PHƯỜNG" : "WARD STAFF",
+                desc:
+                  locale === "vi" ? "Tiếp nhận và xử lý phản ánh" : "Receive and process reports",
+              },
+              {
+                icon: <Shield size={14} />,
+                label: locale === "vi" ? "CÔNG AN" : "POLICE",
+                desc: locale === "vi" ? "Giám sát an ninh trật tự" : "Monitor public security",
+              },
+              {
+                icon: <ClipboardList size={14} />,
+                label: locale === "vi" ? "LÃNH ĐẠO THÀNH PHỐ" : "CITY LEADERSHIP",
+                desc:
+                  locale === "vi" ? "Báo cáo tổng hợp toàn thành" : "City-wide reporting dashboard",
+              },
             ].map((item) => (
               <div
                 key={item.label}
                 className="flex items-start gap-3 px-4 py-3 rounded-xl"
-                style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.07)" }}
+                style={{
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.07)",
+                }}
               >
                 <span className="text-gov-gold mt-0.5 shrink-0">{item.icon}</span>
                 <div>
-                  <p className="text-white/75 text-xs font-bold uppercase tracking-wider">{item.label}</p>
+                  <p className="text-white/75 text-xs font-bold uppercase tracking-wider">
+                    {item.label}
+                  </p>
                   <p className="text-white/40 text-xs mt-0.5">{item.desc}</p>
                 </div>
               </div>
@@ -290,7 +335,6 @@ function AuthorityLoginPage() {
 
       {/* ══ RIGHT — Form Panel ═════════════════════════════════════ */}
       <div className="flex-1 flex flex-col min-h-screen" style={{ background: "#f4f7fa" }}>
-
         {/* Mobile logo */}
         <div className="flex lg:hidden items-center gap-3 px-6 pt-8 pb-4">
           <img src={logoUrl} alt="Đà Nẵng Kết Nối" className="h-10 w-auto object-contain" />
@@ -299,7 +343,6 @@ function AuthorityLoginPage() {
         {/* Form container */}
         <div className="flex-1 flex items-center justify-center px-6 py-8">
           <div className="w-full max-w-sm">
-
             {/* Header */}
             {!mfaRequired && (
               <div className="mb-8">
@@ -384,17 +427,18 @@ function AuthorityLoginPage() {
 
                 <button
                   type="button"
-                  onClick={() => { setMfaRequired(false); setMfaCode(""); }}
+                  onClick={() => {
+                    setMfaRequired(false);
+                    setMfaCode("");
+                  }}
                   className="btn-civic btn-civic-ghost w-full rounded-xl"
                 >
                   {locale === "vi" ? "Quay lại" : "Back"}
                 </button>
               </form>
-
             ) : (
               /* ── Login Form ── */
               <form className="space-y-4" onSubmit={handleLogin}>
-
                 {/* Username with icon */}
                 <div className="relative">
                   <UserCog
@@ -470,7 +514,10 @@ function AuthorityLoginPage() {
 
                 {/* Back to citizen portal */}
                 <div className="text-center">
-                  <Link to="/login" className="text-sm text-ink-soft hover:text-gov-blue transition-colors">
+                  <Link
+                    to="/login"
+                    className="text-sm text-ink-soft hover:text-gov-blue transition-colors"
+                  >
                     ← {locale === "vi" ? "Cổng người dân" : "Citizen Portal"}
                   </Link>
                 </div>
@@ -482,7 +529,12 @@ function AuthorityLoginPage() {
         {/* Footer */}
         <footer className="px-6 pb-8 text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <img src={logoUrl} alt="" className="h-6 w-auto object-contain opacity-40" aria-hidden="true" />
+            <img
+              src={logoUrl}
+              alt=""
+              className="h-6 w-auto object-contain opacity-40"
+              aria-hidden="true"
+            />
           </div>
           <p className="text-xs text-slate-400 leading-relaxed">
             © {new Date().getFullYear()}{" "}

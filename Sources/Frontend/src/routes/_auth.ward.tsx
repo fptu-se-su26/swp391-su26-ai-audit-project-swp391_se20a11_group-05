@@ -22,7 +22,10 @@ export const Route = createFileRoute("/_auth/ward")({
   head: () => ({
     meta: [
       { title: "Cổng cán bộ phường — UBND Hải Châu I" },
-      { name: "description", content: "Bảng điều khiển dành cho cán bộ phường: tiếp nhận, xử lý, hoàn thành phản ánh." },
+      {
+        name: "description",
+        content: "Bảng điều khiển dành cho cán bộ phường: tiếp nhận, xử lý, hoàn thành phản ánh.",
+      },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),

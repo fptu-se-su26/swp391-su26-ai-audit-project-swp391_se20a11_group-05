@@ -36,8 +36,8 @@ interface DonutChartProps {
 }
 
 const DONUT_COLORS = {
-  resolved: "#22c55e",   // green-500
-  pending: "#f59e0b",    // amber-500
+  resolved: "#22c55e", // green-500
+  pending: "#f59e0b", // amber-500
 };
 
 export function DonutChart({ resolved, pending }: DonutChartProps) {
@@ -170,10 +170,7 @@ export function HorizontalBarChart({
               boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
               fontSize: 13,
             }}
-            formatter={(value: number) => [
-              `${value.toLocaleString("en-US")}${unit}`,
-              "Đã xử lý",
-            ]}
+            formatter={(value: number) => [`${value.toLocaleString("en-US")}${unit}`, "Đã xử lý"]}
           />
           <Bar dataKey="value" radius={[0, 6, 6, 0]} fill={color} />
         </BarChart>
@@ -192,11 +189,7 @@ interface SparklineProps {
   height?: number;
 }
 
-export function Sparkline({
-  data,
-  color = "#2563eb",
-  height = 48,
-}: SparklineProps) {
+export function Sparkline({ data, color = "#2563eb", height = 48 }: SparklineProps) {
   if (!data || data.length === 0) return null;
 
   const chartData = data.map((v, i) => ({ i, v }));

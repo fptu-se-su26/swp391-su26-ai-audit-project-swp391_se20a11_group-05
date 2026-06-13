@@ -28,13 +28,17 @@ export function useFeedbackNotification(feedbackId?: number | string) {
       ws.onopen = () => {
         // Subscribe to feedback topic
         if (feedbackId) {
-          ws.send(JSON.stringify({
-            destination: "/topic/feedback/" + feedbackId,
-          }));
+          ws.send(
+            JSON.stringify({
+              destination: "/topic/feedback/" + feedbackId,
+            }),
+          );
         }
-        ws.send(JSON.stringify({
-          destination: "/topic/staff",
-        }));
+        ws.send(
+          JSON.stringify({
+            destination: "/topic/staff",
+          }),
+        );
       };
 
       ws.onmessage = (event) => {

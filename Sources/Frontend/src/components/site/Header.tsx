@@ -1,223 +1,647 @@
-import { Link, useRouterState } from "@tanstack/react-router";
-import { useI18n, useFontScale } from "@/lib/i18n";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
+import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { ROLE_LABEL, Role } from "@/lib/roles";
-import { Menu, X, LogOut } from "lucide-react";
-import { useState } from "react";
+import {
+  Menu,
+  X,
+  LogOut,
+  Bell,
+  User,
+  ChevronDown,
+  ClipboardList,
+  Loader2,
+  Send,
+  ClipboardCheck,
+  AlertCircle,
+  FileClock,
+  CheckCircle2,
+  MessageSquareWarning,
+  Clock3,
+  Route as RouteIcon,
+} from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import logoUrl from "@/assets/logo.png";
+import { useNotifications, useMarkNotificationReadMutation } from "@/lib/hooks";
+import { toast } from "sonner";
+import type { NotificationResponse } from "@/lib/api";
+
+function timeAgo(dateStr: string, locale: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return locale === "vi" ? "Vừa xong" : "Just now";
+  if (m < 60) return locale === "vi" ? `${m} phút trước` : `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return locale === "vi" ? `${h} giờ trước` : `${h}h ago`;
+  return locale === "vi" ? `${Math.floor(h / 24)} ngày trước` : `${Math.floor(h / 24)}d ago`;
+}
+
+function iconForType(type?: string) {
+  switch (type) {
+    case "FEEDBACK_SUBMITTED":
+      return Send;
+    case "FEEDBACK_ACCEPTED":
+      return ClipboardCheck;
+    case "FEEDBACK_REJECTED":
+      return AlertCircle;
+    case "FEEDBACK_ASSIGNED":
+      return RouteIcon;
+    case "FEEDBACK_IN_PROGRESS":
+      return FileClock;
+    case "FEEDBACK_COMPLETED":
+    case "FEEDBACK_CLOSED":
+      return CheckCircle2;
+    case "NEED_MORE_INFO":
+      return MessageSquareWarning;
+    default:
+      return Clock3;
+  }
+}
 
 export function Header() {
   const { locale, setLocale, t } = useI18n();
-  const { inc, dec } = useFontScale();
   const { user, logout, hasRole } = useAuth();
   const path = useRouterState({ select: (s) => s.location.pathname });
-  const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
 
-  const navItems = [
-    { to: "/", label: t("nav.home") },
-    { to: "/report", label: t("nav.report") },
-    { to: "/my-reports", label: t("nav.myReports") },
-    ...(user
-      ? [
-          { to: "/notifications", label: locale === "vi" ? "Thông báo" : "Notifications" },
-          { to: "/profile", label: locale === "vi" ? "Hồ sơ" : "Profile" },
-        ]
-      : []),
-    { to: "/assistant", label: t("nav.assistant") },
+  const [open, setOpen] = useState(false); // Mobile hamburger menu
+  const [langOpen, setLangOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [userOpen, setUserOpen] = useState(false);
+
+  const notifRef = useRef<HTMLDivElement>(null);
+  const userRef = useRef<HTMLDivElement>(null);
+  const langRef = useRef<HTMLDivElement>(null);
+
+  // Notifications logic
+  const {
+    data: notifications = [],
+    isLoading: notifLoading,
+    isError: notifError,
+    refetch: notifRefetch,
+  } = useNotifications();
+  const markRead = useMarkNotificationReadMutation();
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  // Click outside listener
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setNotifOpen(false);
+      }
+      if (userRef.current && !userRef.current.contains(event.target as Node)) {
+        setUserOpen(false);
+      }
+      if (langRef.current && !langRef.current.contains(event.target as Node)) {
+        setLangOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Escape key listener
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setNotifOpen(false);
+        setUserOpen(false);
+        setLangOpen(false);
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  const toggleNotif = () => {
+    setNotifOpen(!notifOpen);
+    setUserOpen(false);
+    setLangOpen(false);
+    setOpen(false);
+  };
+
+  const toggleUser = () => {
+    setUserOpen(!userOpen);
+    setNotifOpen(false);
+    setLangOpen(false);
+    setOpen(false);
+  };
+
+  const toggleLang = () => {
+    setLangOpen(!langOpen);
+    setNotifOpen(false);
+    setUserOpen(false);
+    setOpen(false);
+  };
+
+  // Mark all unread notifications in dropdown as read
+  const handleMarkAllRead = async () => {
+    const unreadItems = notifications.filter((n) => !n.read).slice(0, 5);
+    if (unreadItems.length === 0) return;
+    try {
+      await Promise.all(unreadItems.map((item) => markRead.mutateAsync(item.id)));
+      toast.success(
+        locale === "vi" ? "Đã đánh dấu đọc tất cả thông báo" : "All notifications marked as read",
+      );
+    } catch (err) {
+      toast.error(locale === "vi" ? "Thao tác thất bại" : "Action failed");
+    }
+  };
+
+  const handleNotifClick = async (item: NotificationResponse) => {
+    const feedbackId = item.feedbackId ?? item.referenceId;
+    setNotifOpen(false);
+    try {
+      if (!item.read) {
+        await markRead.mutateAsync(item.id);
+      }
+      if (feedbackId) {
+        await navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
+      } else {
+        await navigate({ to: "/notifications" });
+      }
+    } catch (err) {
+      // noop
+    }
+  };
+
+  // Simplified core navigation items
+  const menuItems = [
+    { to: "/", label: locale === "vi" ? "Trang chủ" : "Home" },
+    { to: "/tin-tuc", label: locale === "vi" ? "Tin tức" : "News" },
+    { to: "/my-reports", label: locale === "vi" ? "Tra cứu" : "Search" },
+    { to: "/", hash: "huong-dan", label: locale === "vi" ? "Hướng dẫn" : "Guide" },
   ];
 
-  // Role-aware staff links — only show portals the user can access
-  // SECURITY: Uses Role enum constants — never inline role strings
   const staffItemsAll = [
-    { to: "/ward",       label: t("nav.ward"),      roles: [Role.WARD_STAFF, Role.SUPER_ADMIN] as const },
-    { to: "/police",     label: t("nav.police"),    roles: [Role.POLICE, Role.SUPER_ADMIN] as const },
+    { to: "/ward", label: t("nav.ward"), roles: [Role.WARD_STAFF, Role.SUPER_ADMIN] as const },
+    { to: "/police", label: t("nav.police"), roles: [Role.POLICE, Role.SUPER_ADMIN] as const },
     { to: "/city-admin", label: t("nav.cityAdmin"), roles: [Role.SUPER_ADMIN] as const },
   ];
   const staffItems = staffItemsAll.filter((i) => hasRole(...i.roles));
 
+  // Determine active item based on pathname and label
+  const isItemActive = (item: (typeof menuItems)[0]) => {
+    if (typeof window === "undefined") {
+      if (item.label === "Trang chủ" || item.label === "Home") return path === "/";
+      return false;
+    }
+    const hash = window.location.hash;
+    if (item.label === "Trang chủ" || item.label === "Home") {
+      return path === "/" && hash !== "#huong-dan" && hash !== "#tin-tuc";
+    }
+    if (item.label === "Tin tức" || item.label === "News") {
+      return path === "/tin-tuc";
+    }
+    if (item.label === "Tra cứu" || item.label === "Search") {
+      return path === "/my-reports";
+    }
+    if (item.label === "Hướng dẫn" || item.label === "Guide") {
+      return path === "/" && hash === "#huong-dan";
+    }
+    return false;
+  };
+
   return (
-    <header className="sticky top-0 z-50 border-b border-gov-blue-deep/30 shadow-sm">
-      {/* Top utility bar */}
-      <div className="bg-gov-blue-deep text-white px-4 md:px-8 py-3 flex flex-wrap justify-between items-center gap-3">
-        <Link to="/" className="flex items-center gap-3 group">
-          <img src={logoUrl} alt="Đà Nẵng Kết Nối" className="h-14 w-auto object-contain" />
-          <div className="flex flex-col leading-tight">
-            <span className="text-base md:text-lg font-bold tracking-tight uppercase">
-              <span className="text-gov-gold">Đà Nẵng</span> Kết Nối
+    <header className="sticky top-0 z-50 bg-white border-b border-[#E4EAF2] shadow-sm">
+      <div className="max-w-[1440px] mx-auto px-4 md:px-8 h-[76px] flex items-center justify-between">
+        {/* Left: Brand logo & text */}
+        <Link to="/" className="flex items-center gap-2 group shrink-0">
+          <img src={logoUrl} alt="Đà Nẵng Kết Nối" className="h-9 w-auto object-contain md:h-10" />
+          <div className="flex flex-col leading-none">
+            <span className="text-sm md:text-base font-extrabold tracking-tight text-[#0B4FC4] uppercase font-sans">
+              ĐÀ NẴNG KẾT NỐI
             </span>
-            <span className="text-[11px] text-white/60 uppercase tracking-widest">{t("brand.tag")}</span>
+            <span className="text-[8px] md:text-[9px] text-[#667085] font-bold uppercase tracking-wider mt-0.5 font-sans hidden sm:block">
+              CỔNG THÔNG TIN PHẢN ÁNH HIỆN TRƯỜNG
+            </span>
           </div>
         </Link>
 
-        <div className="flex items-center gap-3 md:gap-5">
-          <div className="flex gap-3 text-sm font-medium" role="group" aria-label="Language">
+        {/* Center: Navigation Links */}
+        <nav className="hidden lg:flex items-center gap-1 xl:gap-2 h-full" aria-label="Main">
+          <ul className="flex items-center gap-5 xl:gap-7 h-full">
+            {menuItems.map((item, index) => {
+              const active = isItemActive(item);
+              return (
+                <li key={index} className="h-full flex items-center">
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  <Link
+                    to={item.to as any}
+                    hash={item.hash}
+                    className={`relative py-2 text-sm font-semibold transition-all font-sans ${
+                      active
+                        ? "text-[#0B4FC4] border-b-2 border-[#0B4FC4] pt-2"
+                        : "text-[#123E8A] hover:text-[#0B4FC4]"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              );
+            })}
+
+            {/* Staff access links if user is authority */}
+            {staffItems.map((item, index) => (
+              <li key={`staff-${index}`} className="h-full flex items-center">
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                <Link
+                  to={item.to as any}
+                  className="px-2.5 py-1 bg-amber-50 text-amber-700 rounded text-xs font-bold border border-amber-200 hover:bg-amber-100 transition font-sans"
+                >
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        {/* Right: Controls & Account + Mobile Menu Trigger */}
+        <div className="flex items-center gap-2 sm:gap-3 md:gap-4 lg:gap-6">
+          {/* Language Selector */}
+          <div className="relative hidden md:block" ref={langRef}>
             <button
-              onClick={() => setLocale("vi")}
-              className={`min-h-[44px] px-2 py-1 ${locale === "vi" ? "border-b-2 border-gov-gold text-white" : "text-white/60 hover:text-white"}`}
-              aria-pressed={locale === "vi"}
+              onClick={toggleLang}
+              className="flex items-center gap-1.5 text-sm font-semibold text-[#123E8A] hover:text-[#0B4FC4] transition min-h-[40px] px-2 cursor-pointer"
+              aria-label="Select Language"
+              aria-expanded={langOpen}
             >
-              VI
+              <span className="text-base">🇻🇳</span>
+              <span className="font-sans">VI</span>
+              <ChevronDown size={14} className="text-[#667085]" />
             </button>
-            <button
-              onClick={() => setLocale("en")}
-              className={`min-h-[44px] px-2 py-1 ${locale === "en" ? "border-b-2 border-gov-gold text-white" : "text-white/60 hover:text-white"}`}
-              aria-pressed={locale === "en"}
-            >
-              EN
-            </button>
-          </div>
-          <div className="hidden sm:flex items-center gap-1 border-l border-white/15 pl-4" role="group" aria-label="Text size">
-            <button
-              onClick={dec}
-              aria-label={t("a11y.fontSmaller")}
-              className="min-w-[44px] min-h-[44px] px-3 rounded border border-white/20 text-base font-bold hover:bg-white/10"
-            >
-              A−
-            </button>
-            <button
-              onClick={inc}
-              aria-label={t("a11y.fontLarger")}
-              className="min-w-[44px] min-h-[44px] px-3 rounded border border-white/20 text-xl font-bold hover:bg-white/10"
-            >
-              A+
-            </button>
+
+            {langOpen && (
+              <div className="absolute right-0 mt-1 w-28 bg-white border border-[#E4EAF2] rounded-lg shadow-lg py-1 z-50 animate-fade-in">
+                <button
+                  onClick={() => {
+                    setLocale("vi");
+                    setLangOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2 font-sans cursor-pointer"
+                >
+                  <span>🇻🇳</span> Tiếng Việt
+                </button>
+                <button
+                  onClick={() => {
+                    setLocale("en");
+                    setLangOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2 font-sans cursor-pointer"
+                >
+                  <span>🇬🇧</span> English
+                </button>
+              </div>
+            )}
           </div>
 
-          {user ? (
-            <div className="hidden md:flex items-center gap-3 border-l border-white/15 pl-4">
-              <div className="text-right leading-tight">
-                <div className="text-sm font-bold text-white">{user.name}</div>
-                <div className="text-[10px] uppercase tracking-widest text-gov-gold font-bold">
-                  {ROLE_LABEL[user.role][locale]}
+          {/* Notification bell & dropdown */}
+          <div className="relative" ref={notifRef}>
+            <button
+              onClick={toggleNotif}
+              className={`relative p-2 text-[#123E8A] hover:text-[#0B4FC4] transition rounded-full hover:bg-slate-50 min-w-[40px] min-h-[40px] flex items-center justify-center cursor-pointer`}
+              aria-label="Mở danh sách thông báo"
+              aria-expanded={notifOpen}
+            >
+              <Bell size={20} />
+              {unreadCount > 0 && (
+                <span className="absolute top-0.5 right-0.5 w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border border-white font-sans">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+
+            {/* Notification Dropdown Panel */}
+            {notifOpen && (
+              <div className="absolute right-0 mt-2 w-[300px] sm:w-[340px] md:w-[380px] bg-white border border-[#E4EAF2] rounded-xl shadow-lg py-3 z-50 animate-fade-in">
+                {/* Header */}
+                <div className="flex items-center justify-between px-4 pb-2 border-b border-[#E4EAF2]">
+                  <span className="text-sm font-bold text-[#123E8A] font-sans">
+                    {locale === "vi" ? "Thông báo" : "Notifications"}
+                  </span>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={handleMarkAllRead}
+                      className="text-xs text-[#0B4FC4] hover:underline font-semibold font-sans cursor-pointer"
+                    >
+                      {locale === "vi" ? "Đánh dấu đã đọc" : "Mark as read"}
+                    </button>
+                  )}
+                </div>
+
+                {/* Body */}
+                <div className="max-h-[300px] overflow-y-auto divide-y divide-[#E4EAF2]">
+                  {notifLoading && (
+                    <div className="p-4 space-y-3">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="flex gap-3 animate-pulse">
+                          <div className="w-8 h-8 bg-slate-100 rounded-full shrink-0" />
+                          <div className="flex-1 space-y-2">
+                            <div className="h-3.5 bg-slate-100 rounded w-1/3" />
+                            <div className="h-3 bg-slate-100 rounded w-4/5" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {notifError && (
+                    <div className="p-4 text-center text-xs text-red-500 font-sans">
+                      {locale === "vi"
+                        ? "Không thể tải thông báo."
+                        : "Could not load notifications."}
+                      <button
+                        onClick={() => void notifRefetch()}
+                        className="block mx-auto mt-2 text-[#0B4FC4] hover:underline font-bold cursor-pointer"
+                      >
+                        {locale === "vi" ? "Thử lại" : "Retry"}
+                      </button>
+                    </div>
+                  )}
+
+                  {!notifLoading && !notifError && notifications.length === 0 && (
+                    <div className="py-8 text-center text-xs text-[#667085] font-sans">
+                      {locale === "vi"
+                        ? "Bạn chưa có thông báo mới."
+                        : "You have no new notifications."}
+                    </div>
+                  )}
+
+                  {!notifLoading &&
+                    !notifError &&
+                    notifications.slice(0, 5).map((item) => {
+                      const NotifIcon = iconForType(item.type);
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => void handleNotifClick(item)}
+                          className={`w-full text-left p-3.5 flex gap-3 transition-colors cursor-pointer ${
+                            item.read
+                              ? "bg-white hover:bg-slate-50"
+                              : "bg-blue-50/60 hover:bg-blue-50/90 font-semibold"
+                          }`}
+                        >
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                              item.read ? "bg-slate-100 text-slate-500" : "bg-[#0B4FC4] text-white"
+                            }`}
+                          >
+                            <NotifIcon size={16} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-1 mb-0.5">
+                              <h4 className="text-xs font-bold text-[#123E8A] truncate font-sans">
+                                {item.title}
+                              </h4>
+                              <span className="text-[9px] text-[#667085] shrink-0 font-sans">
+                                {timeAgo(item.createdAt, locale)}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-[#667085] line-clamp-2 leading-relaxed font-sans">
+                              {item.content}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                </div>
+
+                {/* Footer */}
+                <div className="pt-2 text-center border-t border-[#E4EAF2]">
+                  <Link
+                    to="/notifications"
+                    onClick={() => setNotifOpen(false)}
+                    className="text-xs font-bold text-[#0B4FC4] hover:underline inline-block py-1 font-sans"
+                  >
+                    {locale === "vi" ? "Xem tất cả thông báo" : "See all notifications"}
+                  </Link>
                 </div>
               </div>
+            )}
+          </div>
+
+          {/* Authentication Area & Dropdown */}
+          {user ? (
+            <div className="relative" ref={userRef}>
               <button
-                onClick={logout}
-                className="min-h-[44px] px-3 rounded-md border border-white/20 text-sm font-semibold hover:bg-white/10 inline-flex items-center gap-1.5"
-                aria-label={locale === "vi" ? "Đăng xuất" : "Sign out"}
+                onClick={toggleUser}
+                className="flex items-center gap-2 border-l border-[#E4EAF2] pl-2 sm:pl-3 md:pl-4 lg:pl-6 focus:outline-none group min-h-[40px] text-left cursor-pointer"
+                aria-expanded={userOpen}
+                aria-haspopup="true"
               >
-                <LogOut size={16} /> {locale === "vi" ? "Đăng xuất" : "Sign out"}
+                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[#0B4FC4] border border-[#E4EAF2] group-hover:bg-[#F5F9FF] transition shrink-0">
+                  <User size={16} />
+                </div>
+                <div className="text-right leading-tight hidden md:block">
+                  <div className="text-sm font-bold text-[#123E8A] font-sans group-hover:text-[#0B4FC4] transition flex items-center gap-1">
+                    {user.name}
+                    <ChevronDown
+                      size={14}
+                      className="text-[#667085] group-hover:text-[#0B4FC4] transition"
+                    />
+                  </div>
+                  <div className="text-[9px] uppercase tracking-widest text-[#667085] font-extrabold font-sans">
+                    {ROLE_LABEL[user.role][locale]}
+                  </div>
+                </div>
               </button>
+
+              {/* User Dropdown Menu */}
+              {userOpen && (
+                <div className="absolute right-0 mt-2 w-[240px] bg-white border border-[#E4EAF2] rounded-xl shadow-lg py-2 z-50 animate-fade-in">
+                  {/* User info summary */}
+                  <div className="px-4 py-2 border-b border-[#E4EAF2] mb-1">
+                    <div className="text-xs font-bold text-[#123E8A] font-sans truncate">
+                      {user.name}
+                    </div>
+                    <div className="text-[9px] uppercase tracking-widest text-[#667085] font-extrabold font-sans truncate mt-0.5">
+                      {ROLE_LABEL[user.role][locale]}
+                    </div>
+                  </div>
+
+                  <Link
+                    to="/profile"
+                    onClick={() => setUserOpen(false)}
+                    className="w-full text-left px-4 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2.5 font-sans"
+                  >
+                    <User size={14} className="text-[#667085]" />
+                    {locale === "vi" ? "Thông tin cá nhân" : "Personal info"}
+                  </Link>
+
+                  <Link
+                    to="/my-reports"
+                    onClick={() => setUserOpen(false)}
+                    className="w-full text-left px-4 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2.5 font-sans"
+                  >
+                    <ClipboardList size={14} className="text-[#667085]" />
+                    {locale === "vi" ? "Phản ánh của tôi" : "My reports"}
+                  </Link>
+
+                  <Link
+                    to="/notifications"
+                    onClick={() => setUserOpen(false)}
+                    className="w-full text-left px-4 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2.5 font-sans"
+                  >
+                    <Bell size={14} className="text-[#667085]" />
+                    {locale === "vi" ? "Thông báo của tôi" : "My notifications"}
+                  </Link>
+
+                  <div className="border-t border-[#E4EAF2] my-1" />
+
+                  <button
+                    onClick={() => {
+                      logout();
+                      setUserOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50/50 transition flex items-center gap-2.5 font-sans cursor-pointer"
+                  >
+                    <LogOut size={14} />
+                    {locale === "vi" ? "Đăng xuất" : "Log out"}
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <Link
-              to={"/login" as any}
-              className="hidden md:inline-flex min-h-[44px] items-center px-4 rounded-md bg-gov-gold text-gov-blue-deep font-bold text-sm hover:brightness-105"
+              to="/login"
+              className="px-3 py-1.5 md:px-4 md:py-2 bg-[#0B4FC4] text-white rounded-lg text-xs md:text-sm font-semibold hover:bg-blue-700 transition flex items-center gap-1.5 shadow-sm font-sans shrink-0"
             >
-              {t("nav.login")}
+              <User size={16} />
+              <span className="hidden sm:inline">Đăng nhập / Đăng ký</span>
+              <span className="sm:hidden">Đăng nhập</span>
             </Link>
           )}
+
+          {/* Mobile menu trigger */}
           <button
-            className="md:hidden min-w-[44px] min-h-[44px] grid place-items-center text-white"
-            onClick={() => setOpen((o) => !o)}
+            className="lg:hidden min-w-[40px] min-h-[40px] grid place-items-center text-[#123E8A] hover:text-[#0B4FC4] border border-[#E4EAF2] rounded-lg bg-slate-50/50 hover:bg-slate-50 transition ml-1 cursor-pointer"
+            onClick={() => {
+              setOpen(!open);
+              setNotifOpen(false);
+              setUserOpen(false);
+              setLangOpen(false);
+            }}
             aria-label="Menu"
             aria-expanded={open}
           >
-            {open ? <X size={24} /> : <Menu size={24} />}
+            {open ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
       </div>
 
-      {/* Navigation row */}
-      <nav className="bg-gov-blue text-white hidden md:flex px-8" aria-label="Main">
-        <ul className="flex flex-wrap items-stretch w-full">
-          {navItems.map((n) => {
-            const active = path === n.to;
+      {/* Mobile Menu */}
+      {open && (
+        <nav
+          className="lg:hidden bg-white border-t border-[#E4EAF2] py-4 px-4 space-y-1 animate-fade-in"
+          aria-label="Mobile"
+        >
+          {menuItems.map((item, index) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return (
-              <li key={n.to}>
-                <Link
-                  to={n.to}
-                  className={`inline-flex items-center min-h-[52px] px-5 text-[15px] font-semibold border-b-4 ${
-                    active ? "border-gov-gold text-white" : "border-transparent text-white/80 hover:text-white hover:border-white/30"
-                  }`}
-                >
-                  {n.label}
-                </Link>
-              </li>
+              <Link
+                key={index}
+                to={item.to as any}
+                hash={item.hash}
+                onClick={() => setOpen(false)}
+                className={`block min-h-[48px] px-4 py-3 rounded-md font-semibold transition-all font-sans ${
+                  isItemActive(item)
+                    ? "bg-[#F5F9FF] text-[#0B4FC4]"
+                    : "text-[#123E8A] hover:bg-slate-50"
+                }`}
+              >
+                {item.label}
+              </Link>
             );
           })}
+
           {staffItems.length > 0 && (
-            <li className="ml-auto flex items-center">
-              <span className="text-[10px] uppercase tracking-widest text-gov-gold/80 font-bold pr-3 border-r border-white/15 mr-3">
-                {locale === "vi" ? "Khu vực cán bộ" : "Staff area"}
-              </span>
-              {staffItems.map((n) => {
-                const active = path === n.to;
+            <>
+              <div className="pt-2 pb-1 px-4 text-[10px] uppercase tracking-widest text-[#667085] font-extrabold font-sans">
+                Khu vực cán bộ
+              </div>
+              {staffItems.map((item, index) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 return (
                   <Link
-                    key={n.to}
-                    to={n.to}
-                    className={`inline-flex items-center min-h-[52px] px-4 text-[13px] uppercase tracking-wider font-bold border-b-4 ${
-                      active ? "border-gov-gold text-gov-gold" : "border-transparent text-white/70 hover:text-gov-gold"
-                    }`}
+                    key={`mobile-staff-${index}`}
+                    to={item.to as any}
+                    onClick={() => setOpen(false)}
+                    className="block min-h-[48px] px-4 py-3 rounded-md text-amber-700 bg-amber-50 border border-amber-100 font-bold font-sans"
                   >
-                    {n.label}
+                    {item.label}
                   </Link>
                 );
               })}
-            </li>
-          )}
-        </ul>
-      </nav>
-
-      {/* Mobile menu with animation */}
-      <div
-        className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
-          open ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
-        }`}
-      >
-        <nav className="bg-gov-blue text-white px-4 py-4 space-y-1" aria-label="Mobile">
-          {navItems.map((n) => (
-            <Link
-              key={n.to}
-              to={n.to}
-              onClick={() => setOpen(false)}
-              className={`block min-h-[48px] px-4 py-3 rounded-md font-semibold transition-all ${
-                path === n.to ? "bg-white/15 text-gov-gold" : "hover:bg-white/10"
-              }`}
-            >
-              {n.label}
-            </Link>
-          ))}
-          {staffItems.length > 0 && (
-            <>
-              <div className="mt-3 px-4 text-[10px] uppercase tracking-widest text-gov-gold font-bold">
-                {locale === "vi" ? "Khu vực cán bộ" : "Staff area"}
-              </div>
-              {staffItems.map((n) => (
-                <Link
-                  key={n.to}
-                  to={n.to}
-                  onClick={() => setOpen(false)}
-                  className={`block min-h-[48px] px-4 py-3 rounded-md font-semibold transition-all ${
-                    path === n.to ? "bg-white/15 text-gov-gold" : "hover:bg-white/10"
-                  }`}
-                >
-                  {n.label}
-                </Link>
-              ))}
             </>
           )}
-          <div className="pt-3 mt-3 border-t border-white/10">
+
+          {/* Mobile Utility Actions */}
+          <div className="pt-3 mt-3 border-t border-[#E4EAF2] flex flex-col gap-3">
+            <div className="flex items-center justify-between px-4">
+              <span className="text-sm font-semibold text-[#123E8A] font-sans">
+                Ngôn ngữ / Language:
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setLocale("vi");
+                    setOpen(false);
+                  }}
+                  className={`px-3 py-1 rounded text-xs font-bold border ${locale === "vi" ? "bg-[#0B4FC4] text-white border-[#0B4FC4]" : "border-[#E4EAF2] text-[#123E8A]"}`}
+                >
+                  VI
+                </button>
+                <button
+                  onClick={() => {
+                    setLocale("en");
+                    setOpen(false);
+                  }}
+                  className={`px-3 py-1 rounded text-xs font-bold border ${locale === "en" ? "bg-[#0B4FC4] text-white border-[#0B4FC4]" : "border-[#E4EAF2] text-[#123E8A]"}`}
+                >
+                  EN
+                </button>
+              </div>
+            </div>
+
             {user ? (
-              <button
-                onClick={() => { logout(); setOpen(false); }}
-                className="w-full text-left min-h-[48px] px-4 py-3 rounded-md hover:bg-white/10 font-semibold inline-flex items-center gap-2 transition-all"
-              >
-                <LogOut size={18} /> {locale === "vi" ? "Đăng xuất" : "Sign out"} — {user.name}
-              </button>
+              <>
+                <Link
+                  to="/profile"
+                  onClick={() => setOpen(false)}
+                  className="block min-h-[48px] px-4 py-3 rounded-md font-semibold text-[#123E8A] hover:bg-slate-50 font-sans"
+                >
+                  Thông tin cá nhân
+                </Link>
+                <Link
+                  to="/my-reports"
+                  onClick={() => setOpen(false)}
+                  className="block min-h-[48px] px-4 py-3 rounded-md font-semibold text-[#123E8A] hover:bg-slate-50 font-sans"
+                >
+                  Phản ánh của tôi
+                </Link>
+                <button
+                  onClick={() => {
+                    logout();
+                    setOpen(false);
+                  }}
+                  className="w-full text-left min-h-[48px] px-4 py-3 rounded-md hover:bg-red-50 text-red-600 font-semibold inline-flex items-center gap-2 transition-all font-sans cursor-pointer"
+                >
+                  <LogOut size={18} /> Đăng xuất ({user.name})
+                </button>
+              </>
             ) : (
               <Link
-                to={"/login" as any}
+                to="/login"
                 onClick={() => setOpen(false)}
-                className="block min-h-[48px] px-4 py-3 rounded-md bg-gov-gold text-gov-blue-deep font-bold text-center"
+                className="block min-h-[48px] px-4 py-3 rounded-lg bg-[#0B4FC4] text-white font-bold text-center font-sans"
               >
-                {t("nav.login")}
+                Đăng nhập / Đăng ký
               </Link>
             )}
           </div>
         </nav>
-      </div>
+      )}
     </header>
   );
 }

@@ -284,15 +284,6 @@ export function LoginPage() {
                   {locale === "vi" ? "Tiếp tục với Google" : "Continue with Google"}
                 </button>
 
-                {/* Quick link to staff portal for staff members */}
-                <div className="text-center pt-2">
-                  <Link
-                    to="/authority-login"
-                    className="text-xs font-semibold text-gov-blue hover:underline inline-flex items-center gap-1"
-                  >
-                    {locale === "vi" ? "Cổng đăng nhập dành cho Cán bộ →" : "Authority Staff Portal →"}
-                  </Link>
-                </div>
               </form>
             )}
           </div>

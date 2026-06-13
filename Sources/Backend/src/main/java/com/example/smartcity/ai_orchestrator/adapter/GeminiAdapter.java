@@ -89,6 +89,60 @@ public class GeminiAdapter implements AiProviderAdapter {
                 .toFuture();
     }
 
+    @io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker(name = "geminiLLM", fallbackMethod = "fallbackToMockMultimodal")
+    public CompletableFuture<String> generateMultimodalResponseAsync(String systemPrompt, String userMessage, List<String> base64Images) {
+        if (!keyPool.isConfigured()) {
+            return CompletableFuture.completedFuture(buildMockFallback(userMessage));
+        }
+
+        String apiKey = keyPool.nextKey();
+        if (apiKey == null) {
+            return CompletableFuture.completedFuture(buildMockFallback(userMessage));
+        }
+
+        log.info("🔵 [Gemini] Gọi API Multimodal | model={} | key={}...", model, apiKey.substring(0, Math.min(8, apiKey.length())));
+
+        java.util.List<Object> userParts = new java.util.ArrayList<>();
+        userParts.add(Map.of("text", userMessage));
+
+        if (base64Images != null) {
+            for (String b64 : base64Images) {
+                userParts.add(Map.of("inlineData", Map.of("mimeType", "image/jpeg", "data", b64)));
+            }
+        }
+
+        Map<String, Object> body = Map.of(
+            "system_instruction", Map.of("parts", List.of(Map.of("text", systemPrompt))),
+            "contents", List.of(
+                Map.of("role", "user", "parts", userParts)
+            ),
+            "generationConfig", Map.of("temperature", 0.3, "maxOutputTokens", 1024)
+        );
+
+        String finalApiKey = apiKey;
+        return webClient.post()
+                .uri("/v1beta/models/" + model + ":generateContent?key=" + apiKey)
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono(Map.class)
+                .map(this::parseGeminiResponse)
+                .timeout(Duration.ofSeconds(12))
+                .doOnSuccess(r -> log.info("✅ [Gemini] OK ({} ký tự)", r.length()))
+                .doOnError(e -> {
+                    log.error("❌ [Gemini Multimodal] Lỗi: {}", e.getMessage());
+                    if (e.getMessage() != null && e.getMessage().contains("429")) {
+                        keyPool.markRateLimited(finalApiKey);
+                    }
+                })
+                .onErrorReturn(buildMockFallback(userMessage))
+                .toFuture();
+    }
+
+    public CompletableFuture<String> fallbackToMockMultimodal(String systemPrompt, String userMessage, List<String> base64Images, Throwable t) {
+        log.warn("🚨 [CircuitBreaker] Gemini Multimodal API sập. Kích hoạt Mock Fallback. Lỗi: {}", t.getMessage());
+        return CompletableFuture.completedFuture(buildMockFallback(userMessage));
+    }
+
     public CompletableFuture<String> fallbackToMock(String systemPrompt, String userMessage, Throwable t) {
         log.warn("🚨 [CircuitBreaker] Gemini API sập. Kích hoạt Mock Fallback an toàn. Lỗi: {}", t.getMessage());
         return CompletableFuture.completedFuture(buildMockFallback(userMessage));

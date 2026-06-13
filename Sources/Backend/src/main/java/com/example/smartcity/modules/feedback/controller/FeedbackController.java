@@ -2,10 +2,14 @@ package com.example.smartcity.modules.feedback.controller;
 
 import com.example.smartcity.modules.feedback.dto.FeedbackRequest;
 import com.example.smartcity.modules.feedback.dto.FeedbackResponse;
+import com.example.smartcity.modules.feedback.dto.FeedbackAttachmentResponse;
+import com.example.smartcity.modules.feedback.dto.PagedResponse;
+import com.example.smartcity.modules.feedback.dto.StatusOptionResponse;
 import com.example.smartcity.modules.feedback.service.FeedbackService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -17,12 +21,20 @@ import com.example.smartcity.common.base.BaseGenericController;
 import com.example.smartcity.common.base.BaseMapper;
 import com.example.smartcity.common.base.BaseService;
 import com.example.smartcity.modules.feedback.entity.Feedback;
+import com.example.smartcity.modules.feedback.entity.Attachment;
+import com.example.smartcity.modules.feedback.entity.FeedbackStatus;
 import com.example.smartcity.modules.feedback.mapper.FeedbackMapper;
 import com.example.smartcity.modules.feedback.dto.StatusChangeRequest;
 import com.example.smartcity.modules.feedback.dto.AssignRequest;
 import com.example.smartcity.modules.feedback.dto.FeedbackLogResponse;
 
 import java.util.List;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.springframework.security.access.prepost.PreAuthorize;
 import com.example.smartcity.common.exception.CustomException;
 @RestController
@@ -90,12 +102,51 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
     }
 
     @GetMapping("/my-feedbacks")
-    public ResponseEntity<Page<FeedbackResponse>> getAllFeedbacks(
+    public ResponseEntity<PagedResponse<FeedbackResponse>> getAllFeedbacks(
             Authentication authentication,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) FeedbackStatus status,
+            @RequestParam(required = false) LocalDate fromDate,
+            @RequestParam(required = false) LocalDate toDate,
+            @PageableDefault(size = 3, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return getMyFeedbacks(authentication, keyword, status, fromDate, toDate, pageable);
+    }
+
+    @GetMapping("/my")
+    public ResponseEntity<PagedResponse<FeedbackResponse>> getMyFeedbacks(
+            Authentication authentication,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) FeedbackStatus status,
+            @RequestParam(required = false) LocalDate fromDate,
+            @RequestParam(required = false) LocalDate toDate,
+            @PageableDefault(size = 3, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         String username = authentication.getName();
-        Page<Feedback> entities = feedbackService.getAllFeedbacks(username, pageable);
-        return ResponseEntity.ok(entities.map(feedbackMapper::toDto));
+        LocalDateTime fromDateTime = fromDate == null ? null : fromDate.atStartOfDay();
+        LocalDateTime toDateTime = toDate == null ? null : toDate.atTime(LocalTime.MAX);
+        Pageable newestFirstPage = PageRequest.of(
+                pageable.getPageNumber(),
+                3,
+                Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        Page<Feedback> entities = feedbackService.getMyFeedbacks(
+                username,
+                keyword,
+                status,
+                fromDateTime,
+                toDateTime,
+                newestFirstPage);
+        return ResponseEntity.ok(toPagedResponse(entities));
+    }
+
+    @GetMapping("/statuses")
+    public ResponseEntity<List<StatusOptionResponse>> getStatuses() {
+        List<StatusOptionResponse> statuses = Arrays.stream(FeedbackStatus.values())
+                .map(status -> StatusOptionResponse.builder()
+                        .value(status.name())
+                        .label(toStatusLabel(status))
+                        .build())
+                .toList();
+        return ResponseEntity.ok(statuses);
     }
 
     @PostMapping("/submit")
@@ -130,5 +181,55 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
     @GetMapping("/{id}/logs")
     public ResponseEntity<List<FeedbackLogResponse>> getLogs(@PathVariable Long id) {
         return ResponseEntity.ok(feedbackService.getFeedbackLogs(id));
+    }
+
+    private PagedResponse<FeedbackResponse> toPagedResponse(Page<Feedback> page) {
+        List<Long> feedbackIds = page.getContent().stream()
+                .map(Feedback::getId)
+                .toList();
+        Map<Long, List<FeedbackAttachmentResponse>> attachmentsByFeedbackId =
+                feedbackService.getAttachmentsForFeedbacks(feedbackIds).stream()
+                        .collect(Collectors.groupingBy(
+                                attachment -> attachment.getFeedback().getId(),
+                                Collectors.mapping(this::toAttachmentResponse, Collectors.toList())));
+
+        List<FeedbackResponse> content = page.getContent().stream()
+                .map(feedback -> {
+                    FeedbackResponse response = feedbackMapper.toDto(feedback);
+                    response.setAttachments(attachmentsByFeedbackId.getOrDefault(feedback.getId(), List.of()));
+                    return response;
+                })
+                .toList();
+
+        return PagedResponse.<FeedbackResponse>builder()
+                .content(content)
+                .page(page.getNumber())
+                .size(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .first(page.isFirst())
+                .last(page.isLast())
+                .build();
+    }
+
+    private FeedbackAttachmentResponse toAttachmentResponse(Attachment attachment) {
+        return FeedbackAttachmentResponse.builder()
+                .id(attachment.getId())
+                .fileUrl(attachment.getFileUrl())
+                .fileType(attachment.getFileType())
+                .fileName(attachment.getFileName())
+                .fileSize(attachment.getFileSize())
+                .uploadedAt(attachment.getUploadedAt())
+                .build();
+    }
+
+    private String toStatusLabel(FeedbackStatus status) {
+        return switch (status) {
+            case PENDING -> "Pending Review";
+            case IN_PROGRESS -> "Processing";
+            case WAITING_INFO -> "Waiting for Information";
+            case RESOLVED -> "Resolved";
+            case REJECTED -> "Rejected";
+        };
     }
 }

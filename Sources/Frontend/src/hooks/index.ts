@@ -3,7 +3,7 @@
  * Dùng thay thế cho useEffect + fetch pattern cũ.
  */
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   feedbackApi, categoryApi, ragApi, authApi, userApi, notificationApi, policeApi,
   type FeedbackResponse, type CategoryResponse,
@@ -40,6 +40,7 @@ export const queryKeys = {
   },
   notifications: {
     all: ["notifications"] as const,
+    page: (size: number) => ["notifications", "page", size] as const,
   },
   rag: {
     query: (q: string) => ["rag", "query", q] as const,
@@ -233,6 +234,19 @@ export function useNotifications() {
   return useQuery<NotificationResponse[]>({
     queryKey: queryKeys.notifications.all,
     queryFn: () => notificationApi.getAll(),
+    staleTime: 30_000,
+  });
+}
+
+export function useInfiniteNotifications(size = 5) {
+  return useInfiniteQuery<PageResponse<NotificationResponse>>({
+    queryKey: queryKeys.notifications.page(size),
+    queryFn: ({ pageParam }) => notificationApi.getPage(Number(pageParam ?? 0), size),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => {
+      const currentPage = lastPage.page ?? lastPage.number ?? 0;
+      return lastPage.hasNext ? currentPage + 1 : undefined;
+    },
     staleTime: 30_000,
   });
 }

@@ -2,7 +2,8 @@ import potholeImg from "@/assets/report-pothole.jpg";
 import trashImg from "@/assets/report-trash.jpg";
 import streetlightImg from "@/assets/report-streetlight.jpg";
 
-export type ReportStatus = "pending" | "inProgress" | "resolved" | "urgent";
+import { type ReportStatus } from "@/types/status";
+import { type WardPerformance } from "@/types/api";
 export type Category = "infra" | "env" | "traffic" | "safety";
 
 export interface Report {
@@ -117,8 +118,7 @@ export const kpis = {
   avgHours: 48,
 };
 
-// Note: field names match WardPerformance interface in api.ts (name, resolved, satisfactionPct)
-export const wardPerformance = [
+export const wardPerformance: WardPerformance[] = [
   { name: "Hải Châu I",       resolved: 312, satisfactionPct: 94, avgHrs: 36 },
   { name: "Hòa Khánh Nam",   resolved: 248, satisfactionPct: 91, avgHrs: 41 },
   { name: "Hòa Minh",        resolved: 189, satisfactionPct: 88, avgHrs: 52 },

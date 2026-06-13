@@ -23,7 +23,6 @@ import java.util.stream.Collectors;
 public class AnalyticsController {
 
     private final FeedbackRepository feedbackRepository;
-    private final WardRepository wardRepository;
 
     @GetMapping("/kpi")
     public ResponseEntity<KpiResponse> getKpi() {
@@ -35,28 +34,13 @@ public class AnalyticsController {
 
     @GetMapping("/ward-performance")
     public ResponseEntity<List<WardPerformance>> getWardPerformance() {
-        List<Feedback> all = feedbackRepository.findAll();
-        Map<String, Long> resolvedMap = all.stream()
-                .filter(f -> f.getStatus() == FeedbackStatus.RESOLVED && f.getWard() != null)
-                .collect(Collectors.groupingBy(
-                        f -> f.getWard().getName(),
-                        Collectors.counting()
-                ));
-        Map<String, Long> totalMap = all.stream()
-                .filter(f -> f.getWard() != null)
-                .collect(Collectors.groupingBy(
-                        f -> f.getWard().getName(),
-                        Collectors.counting()
-                ));
-
-        List<WardPerformance> result = new ArrayList<>();
-        Set<String> wardNames = new LinkedHashSet<>(totalMap.keySet());
-        wardNames.addAll(resolvedMap.keySet());
-        for (String name : wardNames) {
-            long t = totalMap.getOrDefault(name, 0L);
-            long r = resolvedMap.getOrDefault(name, 0L);
-            result.add(new WardPerformance(name, (int) r, t > 0 ? (int) (r * 100 / t) : 0));
-        }
+        List<Object[]> stats = feedbackRepository.getWardPerformanceStats();
+        List<WardPerformance> result = stats.stream().map(row -> {
+            String name = (String) row[0];
+            long total = ((Number) row[1]).longValue();
+            long resolved = ((Number) row[2]).longValue();
+            return new WardPerformance(name, (int) resolved, total > 0 ? (int) (resolved * 100 / total) : 0);
+        }).collect(Collectors.toList());
         return ResponseEntity.ok(result);
     }
 

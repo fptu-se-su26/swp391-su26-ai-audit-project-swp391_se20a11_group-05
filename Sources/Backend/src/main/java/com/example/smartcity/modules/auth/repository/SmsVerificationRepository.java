@@ -11,4 +11,7 @@ public interface SmsVerificationRepository extends JpaRepository<SmsVerification
 
     // Tìm mã OTP chưa sử dụng gần nhất của một số điện thoại
     Optional<SmsVerification> findTopByPhoneNumberAndIsUsedFalseOrderByCreatedAtDesc(String phoneNumber);
+
+    // Lấy danh sách tất cả các mã chưa sử dụng (để hủy trước khi tạo mã mới)
+    java.util.List<SmsVerification> findByPhoneNumberAndIsUsedFalse(String phoneNumber);
 }

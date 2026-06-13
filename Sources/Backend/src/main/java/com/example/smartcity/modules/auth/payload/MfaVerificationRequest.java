@@ -5,11 +5,8 @@ import lombok.Data;
 
 @Data
 public class MfaVerificationRequest {
-    @NotBlank(message = "Username không được để trống")
-    private String username;
-
-    @NotBlank(message = "Password không được để trống")
-    private String password;
+    @NotBlank(message = "MFA Token không được để trống")
+    private String mfaToken;
 
     @NotBlank(message = "Mã MFA không được để trống")
     private String mfaCode;

@@ -118,8 +118,8 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
     if (!response.ok) {
       const error = ApiError.fromResponse(response, body);
 
-      // Auto-logout on 401
-      if (error.isUnauthorized && onUnauthorized) {
+      // Auto-logout on 401, but bypass if using the dummy demo token
+      if (error.isUnauthorized && onUnauthorized && getToken() !== "demo-token") {
         onUnauthorized();
       }
 
@@ -134,7 +134,7 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
         // Backend trả về chuẩn { status, message, data }
         if (body.status >= 400) {
           const error = new ApiError(body.status, body.message, body.data);
-          if (error.isUnauthorized && onUnauthorized) onUnauthorized();
+          if (error.isUnauthorized && onUnauthorized && getToken() !== "demo-token") onUnauthorized();
           throw error;
         }
         return body.data as T;
@@ -154,7 +154,8 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
 }
 
 // ═══════════════════════════════════════════════════════════════
-// TYPE DEFINITIONS — Đồng bộ với Java DTOs/Entities/Enums
+// TYPE DEFINITIONS — re-exported from @/types/api for backward compat.
+// In new code, import types directly from "@/types/api".
 // ═══════════════════════════════════════════════════════════════
 
 export interface ApiResponse<T> {
@@ -179,6 +180,23 @@ export interface MfaRequiredResponse {
 }
 
 export type BackendRole = "CITIZEN" | "WARD_STAFF" | "POLICE" | "SUPER_ADMIN";
+
+export interface UserProfile {
+  id: number;
+  username: string;
+  fullName: string;
+  phoneNumber?: string;
+  email?: string;
+  role: BackendRole;
+  active: boolean;
+  mfaEnabled: boolean;
+}
+
+export interface UpdateProfileRequest {
+  fullName: string;
+  phoneNumber?: string;
+  email?: string;
+}
 
 // ─── Feedback Types ───────────────────────────────────────────
 
@@ -205,11 +223,22 @@ export interface FeedbackResponse {
 export interface FeedbackRequest {
   title: string;
   description: string;
-  latitude?: number;
-  longitude?: number;
+  latitude: number;
+  longitude: number;
   addressDetails?: string;
   categoryId: number;
-  wardId: number;
+  wardId?: number;
+}
+
+export interface NotificationResponse {
+  id: number;
+  userId: number;
+  title: string;
+  content: string;
+  type: string;
+  referenceId: number | null;
+  read: boolean;
+  createdAt: string;
 }
 
 // ─── Category Types ───────────────────────────────────────────
@@ -310,14 +339,14 @@ export const authApi = {
 export const feedbackApi = {
   getAll: (page = 0, size = 20) =>
     request<PageResponse<FeedbackResponse>>(
-      `/api/feedbacks/page?page=${page}&size=${size}`,
+      `/api/feedbacks/my-feedbacks?page=${page}&size=${size}`,
     ),
 
   getById: (id: string | number) =>
     request<FeedbackResponse>(`/api/feedbacks/${id}`),
 
   create: (data: FeedbackRequest) =>
-    request<FeedbackResponse>("/api/feedbacks", {
+    request<FeedbackResponse>("/api/feedbacks/submit", {
       method: "POST",
       body: JSON.stringify(data),
     }),
@@ -337,6 +366,44 @@ export const feedbackApi = {
 
   getLogs: (id: number | string) =>
     request<unknown[]>(`/api/feedbacks/${id}/logs`),
+};
+
+export const userApi = {
+  profile: () => request<UserProfile>("/api/users/profile"),
+
+  updateProfile: (data: UpdateProfileRequest) =>
+    request<UserProfile>("/api/users/profile", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+};
+
+export const notificationApi = {
+  getAll: () => request<NotificationResponse[]>("/api/notifications"),
+
+  markAsRead: (id: number | string) =>
+    request<NotificationResponse>(`/api/notifications/${id}/read`, {
+      method: "PATCH",
+    }),
+};
+
+export const policeApi = {
+  rejectFeedback: (id: number | string, reason: string) =>
+    request<FeedbackResponse>(`/api/police/feedbacks/${id}/reject`, {
+      method: "PATCH",
+      body: JSON.stringify({ reason }),
+    }),
+
+  requestMoreInfo: (id: number | string, reason: string) =>
+    request<FeedbackResponse>(`/api/police/feedbacks/${id}/request-info`, {
+      method: "PATCH",
+      body: JSON.stringify({ reason }),
+    }),
+
+  getHotspots: () =>
+    request<any[]>("/api/police/feedbacks/hotspots", {
+      method: "GET",
+    }),
 };
 
 export const categoryApi = {
@@ -476,4 +543,6 @@ export interface Ward {
 export const wardApi = {
   getAll: () => request<Ward[]>("/api/wards"),
   search: (name: string) => request<Ward[]>(`/api/wards/search?name=${encodeURIComponent(name)}`),
+  locate: (lat: number, lng: number) =>
+    request<Ward>(`/api/wards/locate?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`),
 };

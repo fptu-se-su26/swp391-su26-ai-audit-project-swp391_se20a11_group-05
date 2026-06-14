@@ -133,43 +133,45 @@ function HomePage() {
     navigate({ to: "/my-reports" as any, search: { q: chip } as any });
   };
 
-  const popularChips = ["Giao thông", "Môi trường", "An ninh trật tự", "Hạ tầng", "Trật tự đô thị"];
+  const popularChips = locale === "vi"
+    ? ["Giao thông", "Môi trường", "An ninh trật tự", "Hạ tầng", "Trật tự đô thị"]
+    : ["Traffic", "Environment", "Public safety", "Infrastructure", "Urban order"];
 
   const categories = [
     {
-      name: "Giao thông",
+      name: t("home.category.traffic"),
       keyword: "Giao thông",
-      description: "Kẹt xe, đèn tín hiệu hỏng, vi phạm giao thông...",
+      description: t("home.category.trafficDesc"),
       icon: <Car size={24} />,
     },
     {
-      name: "Môi trường",
+      name: t("home.category.env"),
       keyword: "Môi trường",
-      description: "Rác thải, ô nhiễm tiếng ồn, nước thải...",
+      description: t("home.category.envDesc"),
       icon: <Leaf size={24} />,
     },
     {
-      name: "Hạ tầng đô thị",
+      name: t("home.category.infra"),
       keyword: "Hạ tầng",
-      description: "Đường hỏng, nắp cống mất, đèn đường hỏng...",
+      description: t("home.category.infraDesc"),
       icon: <Cone size={24} />,
     },
     {
-      name: "An ninh trật tự",
+      name: t("home.category.security"),
       keyword: "An ninh trật tự",
-      description: "Trộm cắp, gây rối trật tự công cộng...",
+      description: t("home.category.securityDesc"),
       icon: <Shield size={24} />,
     },
     {
-      name: "Trật tự đô thị",
+      name: t("home.category.order"),
       keyword: "Trật tự đô thị",
-      description: "Lấn chiếm lòng đường, vỉa hè...",
+      description: t("home.category.orderDesc"),
       icon: <Store size={24} />,
     },
     {
-      name: "Khác",
+      name: t("home.category.other"),
       keyword: "Khác",
-      description: "Các vấn đề khác chưa được phân loại...",
+      description: t("home.category.otherDesc"),
       icon: <Grid size={24} />,
     },
   ];
@@ -224,15 +226,15 @@ function HomePage() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case "RESOLVED":
-        return "Đã xử lý";
+        return t("status.resolvedLabel");
       case "ASSIGNED":
       case "IN_PROGRESS":
-        return "Đang xử lý";
+        return t("status.inProgressLabel");
       case "REJECTED":
-        return "Từ chối";
+        return t("status.rejected");
       case "PENDING":
       default:
-        return "Chờ tiếp nhận";
+        return t("status.pendingReview");
     }
   };
 
@@ -253,14 +255,14 @@ function HomePage() {
   const getStatusLabelMock = (status: string) => {
     switch (status) {
       case "resolved":
-        return "Đã xử lý";
+        return t("status.resolvedLabel");
       case "inProgress":
-        return "Đang xử lý";
+        return t("status.inProgressLabel");
       case "urgent":
-        return "Khẩn cấp";
+        return t("status.urgent");
       case "pending":
       default:
-        return "Chờ tiếp nhận";
+        return t("status.pendingReview");
     }
   };
 
@@ -278,16 +280,15 @@ function HomePage() {
           <div className="lg:col-span-7 flex flex-col justify-center animate-fade-in pr-0 lg:pr-10">
             <h1 className="font-heading text-[#123E8A] font-bold leading-tight mb-3">
               <span className="block text-3xl md:text-[38px] xl:text-[44px] font-medium leading-none">
-                Cùng xây dựng
+                {t("home.hero.line1")}
               </span>
               <span className="block text-4xl md:text-[46px] xl:text-[52px] mt-1 font-bold">
-                Đà Nẵng văn minh, hiện đại
+                {t("home.hero.line2")}
               </span>
             </h1>
 
             <p className="text-[#667085] text-sm md:text-base leading-relaxed mb-6 max-w-[500px]">
-              Nền tảng kết nối người dân với chính quyền thành phố. Tiếp nhận, xử lý và phản hồi
-              nhanh chóng các vấn đề đô thị, an ninh trật tự, môi trường, hạ tầng...
+              {t("home.hero.desc")}
             </p>
 
             <div className="flex flex-wrap gap-3">
@@ -296,7 +297,7 @@ function HomePage() {
                 className="px-5 py-3 bg-[#0B4FC4] text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition flex items-center gap-2 shadow-sm font-sans"
               >
                 <Camera size={18} />
-                Gửi phản ánh ngay
+                {t("home.cta.report")}
               </Link>
 
               <Link
@@ -304,7 +305,7 @@ function HomePage() {
                 className="px-5 py-3 bg-white text-[#0B4FC4] border border-[#0B4FC4] rounded-lg text-sm font-semibold hover:bg-blue-50 transition flex items-center gap-2 shadow-sm font-sans"
               >
                 <PlayCircle size={18} />
-                Hướng dẫn sử dụng
+                {t("home.cta.guide")}
               </Link>
             </div>
           </div>
@@ -313,14 +314,14 @@ function HomePage() {
           <div className="lg:col-span-5 flex justify-center lg:justify-end animate-slide-in-right">
             <div className="w-full max-w-[480px] bg-white rounded-2xl p-6 shadow-lg border border-[#E4EAF2]">
               <h2 className="text-[#0B4FC4] font-bold text-lg md:text-xl mb-4 font-sans">
-                Tìm kiếm thông tin
+                {t("home.search.title")}
               </h2>
 
               {/* Search form */}
               <div className="relative mb-5">
                 <input
                   type="text"
-                  placeholder="Nhập từ khóa, mã phản ánh, địa điểm..."
+                  placeholder={t("home.search.placeholder")}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => {
@@ -331,7 +332,7 @@ function HomePage() {
                 <button
                   onClick={handleSearch}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[#667085] hover:text-[#0B4FC4] transition"
-                  aria-label="Tìm kiếm"
+                  aria-label={t("home.search.label")}
                 >
                   <Search size={18} />
                 </button>
@@ -340,7 +341,7 @@ function HomePage() {
               {/* Popular searches */}
               <div>
                 <span className="block text-xs font-semibold text-[#667085] uppercase tracking-wider mb-2 font-sans">
-                  Tìm kiếm phổ biến
+                  {t("home.search.popular")}
                 </span>
                 <div className="flex flex-wrap gap-2">
                   {popularChips.map((chip) => (
@@ -366,7 +367,7 @@ function HomePage() {
           <div className="flex items-center gap-2 mb-5">
             <div className="w-1.5 h-6 bg-[#0B4FC4] rounded-sm" />
             <h2 className="text-[#123E8A] font-bold text-lg md:text-xl font-sans">
-              Phản ánh theo lĩnh vực
+              {t("home.category.title")}
             </h2>
           </div>
 
@@ -395,14 +396,14 @@ function HomePage() {
             <div className="flex items-center gap-2">
               <div className="w-1.5 h-6 bg-[#0B4FC4] rounded-sm" />
               <h2 className="text-[#123E8A] font-bold text-lg md:text-xl font-sans">
-                Thống kê toàn thành phố
+                {t("home.stats.title")}
               </h2>
             </div>
             <div className="relative">
               <select className="bg-white border border-[#E4EAF2] rounded-lg px-3 py-1.5 text-xs font-semibold text-[#123E8A] outline-none focus:border-[#0B4FC4] font-sans">
-                <option>7 ngày qua</option>
-                <option>30 ngày qua</option>
-                <option>Tháng này</option>
+                <option>{t("home.stats.7days")}</option>
+                <option>{t("home.stats.30days")}</option>
+                <option>{t("home.stats.thisMonth")}</option>
               </select>
             </div>
           </div>
@@ -412,7 +413,7 @@ function HomePage() {
             <div className="bg-white border border-[#E4EAF2] rounded-xl p-5 flex flex-col justify-between hover:shadow-sm transition">
               <div>
                 <span className="text-[#667085] text-xs font-bold uppercase tracking-wider font-sans">
-                  Tổng phản ánh
+                  {t("home.stats.total")}
                 </span>
                 <div className="text-2xl md:text-3xl font-extrabold text-[#0B4FC4] mt-1 font-sans">
                   {totalCount.toLocaleString()}
@@ -432,7 +433,7 @@ function HomePage() {
               <div>
                 <div className="flex items-center justify-between">
                   <span className="text-[#667085] text-xs font-bold uppercase tracking-wider font-sans">
-                    Đã xử lý
+                    {t("home.stats.resolved")}
                   </span>
                   <span className="text-xs font-bold text-[#16A34A] bg-[#E8F5E9] px-2 py-0.5 rounded font-sans">
                     {resolvedPct}%
@@ -455,7 +456,7 @@ function HomePage() {
             <div className="bg-white border border-[#E4EAF2] rounded-xl p-5 flex flex-col justify-between hover:shadow-sm transition">
               <div>
                 <span className="text-[#667085] text-xs font-bold uppercase tracking-wider font-sans">
-                  Đang xử lý
+                  {t("home.stats.inProgress")}
                 </span>
                 <div className="text-2xl md:text-3xl font-extrabold text-[#F97316] mt-1 font-sans">
                   {pendingCount.toLocaleString()}
@@ -474,7 +475,7 @@ function HomePage() {
             <div className="bg-white border border-[#E4EAF2] rounded-xl p-5 flex flex-col justify-between hover:shadow-sm transition">
               <div>
                 <span className="text-[#667085] text-xs font-bold uppercase tracking-wider font-sans">
-                  Quá hạn
+                  {t("home.stats.overdue")}
                 </span>
                 <div className="text-2xl md:text-3xl font-extrabold text-[#DC2626] mt-1 font-sans">
                   {overdueCount.toLocaleString()}
@@ -502,14 +503,14 @@ function HomePage() {
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-6 bg-[#0B4FC4] rounded-sm" />
                 <h2 className="text-[#123E8A] font-bold text-lg md:text-xl font-sans">
-                  Phản ánh gần đây
+                  {t("home.recent")}
                 </h2>
               </div>
               <Link
                 to="/my-reports"
                 className="text-sm font-semibold text-[#0B4FC4] hover:underline flex items-center gap-1 font-sans"
               >
-                Xem tất cả &rarr;
+                {t("home.recent.viewAll")} &rarr;
               </Link>
             </div>
 
@@ -532,7 +533,7 @@ function HomePage() {
             {/* Empty state */}
             {!isLoading && !hasApiData && mockReports.length === 0 && (
               <div className="py-10 text-center text-[#667085] font-sans">
-                Không có phản ánh nào gần đây.
+                {t("home.recent.empty")}
               </div>
             )}
 
@@ -558,7 +559,7 @@ function HomePage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                         <span className="px-2 py-0.5 bg-[#F5F9FF] text-[#0B4FC4] rounded text-[10px] font-bold uppercase tracking-wider font-sans">
-                          {fb.categoryName || "Khác"}
+                          {fb.categoryName || t("home.category.other")}
                         </span>
                         <span className="text-xs text-[#667085] font-semibold font-sans">
                           {new Date(fb.createdAt).toLocaleDateString(
@@ -617,12 +618,12 @@ function HomePage() {
                       <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                         <span className="px-2 py-0.5 bg-[#F5F9FF] text-[#0B4FC4] rounded text-[10px] font-bold uppercase tracking-wider font-sans">
                           {r.category === "infra"
-                            ? "Hạ tầng"
+                            ? t("category.infra")
                             : r.category === "env"
-                              ? "Môi trường"
+                              ? t("category.env")
                               : r.category === "traffic"
-                                ? "Giao thông"
-                                : "An ninh"}
+                                ? t("category.traffic")
+                                : t("category.security")}
                         </span>
                         <span className="text-xs text-[#667085] font-semibold font-sans">
                           {r.createdAt}
@@ -668,14 +669,14 @@ function HomePage() {
                 <div className="flex items-center gap-2">
                   <div className="w-1.5 h-6 bg-[#0B4FC4] rounded-sm" />
                   <h2 className="text-[#123E8A] font-bold text-base md:text-lg font-sans">
-                    Bản đồ phản ánh trực tuyến
+                    {t("home.map.title")}
                   </h2>
                 </div>
                 <Link
                   to="/ward"
                   className="text-xs font-semibold text-[#0B4FC4] hover:underline font-sans"
                 >
-                  Xem trên bản đồ &rarr;
+                  {t("home.map.viewOnMap")} &rarr;
                 </Link>
               </div>
 
@@ -729,16 +730,16 @@ function HomePage() {
             {/* Hotline Section */}
             <section className="bg-white rounded-2xl border border-[#E4EAF2] p-5 animate-fade-in-up stagger-4">
               <h2 className="text-[#123E8A] font-bold text-base md:text-lg mb-3 font-sans">
-                Tổng đài hỗ trợ
+                {t("home.hotline.support")}
               </h2>
               <p className="text-[#667085] text-xs font-semibold mb-1 font-sans">
-                Mọi thắc mắc cần hỗ trợ, vui lòng gọi
+                {t("home.hotline.desc")}
               </p>
               <div className="text-3xl font-extrabold text-[#0B4FC4] tracking-wide font-sans mb-1">
                 1022
               </div>
               <p className="text-[#667085] text-[11px] font-semibold mb-4 font-sans">
-                24/7 &middot; Miễn phí
+                24/7 &middot; {t("home.hotline.free")}
               </p>
 
               <div className="grid grid-cols-2 gap-3">
@@ -747,14 +748,14 @@ function HomePage() {
                   className="flex items-center justify-center gap-1.5 py-2.5 bg-[#F5F9FF] text-[#0B4FC4] hover:bg-[#0B4FC4] hover:text-white rounded-lg text-xs font-bold border border-transparent hover:border-[#E4EAF2] transition font-sans"
                 >
                   <User size={14} />
-                  Chat với trợ lý ảo
+                  {t("home.hotline.chat")}
                 </Link>
                 <a
                   href="mailto:gopy@danang.gov.vn"
                   className="flex items-center justify-center gap-1.5 py-2.5 bg-[#F5F9FF] text-[#0B4FC4] hover:bg-[#0B4FC4] hover:text-white rounded-lg text-xs font-bold border border-transparent hover:border-[#E4EAF2] transition font-sans"
                 >
                   <Send size={14} />
-                  Gửi email hỗ trợ
+                  {t("home.hotline.email")}
                 </a>
               </div>
             </section>
@@ -769,7 +770,7 @@ function HomePage() {
           <div className="flex items-center gap-2 mb-6">
             <div className="w-1.5 h-6 bg-[#0B4FC4] rounded-sm" />
             <h2 className="text-[#123E8A] font-bold text-lg md:text-xl font-sans">
-              Quy trình gửi phản ánh
+              {t("home.process.title")}
             </h2>
           </div>
 
@@ -789,10 +790,10 @@ function HomePage() {
                   </div>
                 </div>
                 <h3 className="text-sm font-bold text-[#123E8A] mb-1 font-sans">
-                  Chụp ảnh / quay video
+                  {t("home.process.step1")}
                 </h3>
                 <p className="text-xs text-[#667085] max-w-[200px] leading-relaxed font-sans">
-                  Ghi lại hiện trạng vấn đề cần phản ánh.
+                  {t("home.process.step1Desc")}
                 </p>
               </div>
 
@@ -806,9 +807,9 @@ function HomePage() {
                     2
                   </div>
                 </div>
-                <h3 className="text-sm font-bold text-[#123E8A] mb-1 font-sans">Nhập thông tin</h3>
+                <h3 className="text-sm font-bold text-[#123E8A] mb-1 font-sans">{t("home.process.step2")}</h3>
                 <p className="text-xs text-[#667085] max-w-[200px] leading-relaxed font-sans">
-                  Cung cấp nội dung, địa điểm và thông tin liên hệ.
+                  {t("home.process.step2Desc")}
                 </p>
               </div>
 
@@ -822,9 +823,9 @@ function HomePage() {
                     3
                   </div>
                 </div>
-                <h3 className="text-sm font-bold text-[#123E8A] mb-1 font-sans">Gửi phản ánh</h3>
+                <h3 className="text-sm font-bold text-[#123E8A] mb-1 font-sans">{t("home.process.step3")}</h3>
                 <p className="text-xs text-[#667085] max-w-[200px] leading-relaxed font-sans">
-                  Hệ thống tiếp nhận và chuyển đến cơ quan xử lý.
+                  {t("home.process.step3Desc")}
                 </p>
               </div>
 
@@ -839,10 +840,10 @@ function HomePage() {
                   </div>
                 </div>
                 <h3 className="text-sm font-bold text-[#123E8A] mb-1 font-sans">
-                  Theo dõi kết quả
+                  {t("home.process.step4")}
                 </h3>
                 <p className="text-xs text-[#667085] max-w-[200px] leading-relaxed font-sans">
-                  Nhận thông báo và theo dõi tiến độ xử lý phản ánh.
+                  {t("home.process.step4Desc")}
                 </p>
               </div>
             </div>
@@ -861,20 +862,20 @@ function HomePage() {
                 <div className="flex items-center gap-2">
                   <div className="w-1.5 h-6 bg-[#0B4FC4] rounded-sm" />
                   <h2 className="text-[#123E8A] font-bold text-lg md:text-xl font-sans">
-                    Tin tức & thông báo
+                    {t("home.news.title")}
                   </h2>
                 </div>
                 <Link
                   to="/notifications"
                   className="text-sm font-semibold text-[#0B4FC4] hover:underline flex items-center gap-1 font-sans"
                 >
-                  Xem tất cả &rarr;
+                  {t("home.recent.viewAll")} &rarr;
                 </Link>
               </div>
 
               {staticNews.length === 0 ? (
                 <div className="py-10 text-center text-[#667085] font-sans">
-                  Chưa có tin tức hoặc thông báo mới.
+                  {t("home.news.empty")}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -930,7 +931,7 @@ function HomePage() {
               <div className="flex items-center gap-2 mb-5">
                 <div className="w-1.5 h-6 bg-[#0B4FC4] rounded-sm" />
                 <h2 className="text-[#123E8A] font-bold text-lg md:text-xl font-sans">
-                  Câu hỏi thường gặp
+                  {t("home.faq.title")}
                 </h2>
               </div>
 
@@ -973,7 +974,7 @@ function HomePage() {
                 to="/my-reports"
                 className="text-xs font-bold text-[#0B4FC4] hover:underline font-sans"
               >
-                Xem tất cả câu hỏi &rarr;
+                {t("home.faq.viewAll")} &rarr;
               </Link>
             </div>
           </section>
@@ -988,9 +989,9 @@ function HomePage() {
                 <Lock size={20} />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-[#123E8A] font-sans">Bảo mật thông tin</h3>
+                <h3 className="text-sm font-bold text-[#123E8A] font-sans">{t("home.trust.security")}</h3>
                 <p className="text-xs text-[#667085] leading-relaxed font-sans">
-                  Thông tin của bạn được bảo mật tuyệt đối
+                  {t("home.trust.securityDesc")}
                 </p>
               </div>
             </div>
@@ -1001,9 +1002,9 @@ function HomePage() {
                 <ShieldCheck size={20} />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-[#123E8A] font-sans">Xử lý minh bạch</h3>
+                <h3 className="text-sm font-bold text-[#123E8A] font-sans">{t("home.trust.transparent")}</h3>
                 <p className="text-xs text-[#667085] leading-relaxed font-sans">
-                  Quy trình xử lý công khai, minh bạch
+                  {t("home.trust.transparentDesc")}
                 </p>
               </div>
             </div>
@@ -1014,9 +1015,9 @@ function HomePage() {
                 <Clock size={20} />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-[#123E8A] font-sans">Phản hồi nhanh chóng</h3>
+                <h3 className="text-sm font-bold text-[#123E8A] font-sans">{t("home.trust.fast")}</h3>
                 <p className="text-xs text-[#667085] leading-relaxed font-sans">
-                  Cam kết phản hồi trong thời gian sớm nhất
+                  {t("home.trust.fastDesc")}
                 </p>
               </div>
             </div>
@@ -1028,10 +1029,10 @@ function HomePage() {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-[#123E8A] font-sans">
-                  Vì một Đà Nẵng tốt đẹp hơn
+                  {t("home.trust.better")}
                 </h3>
                 <p className="text-xs text-[#667085] leading-relaxed font-sans">
-                  Chung tay xây dựng thành phố đáng sống
+                  {t("home.trust.betterDesc")}
                 </p>
               </div>
             </div>

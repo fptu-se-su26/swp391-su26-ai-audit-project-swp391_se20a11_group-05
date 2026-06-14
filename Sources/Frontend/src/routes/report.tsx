@@ -93,27 +93,27 @@ function getWardNameFromAddress(readableAddress: string): string {
   );
 }
 
-function getVietnameseGpsErrorMessage(error: unknown): string {
+function getGpsErrorMessage(error: unknown, t: ReturnType<typeof useI18n>["t"]): string {
   const code =
     typeof error === "object" && error && "code" in error ? Number(error.code) : undefined;
 
   if (error instanceof Error && error.message === "GEOLOCATION_UNSUPPORTED") {
-    return "Trình duyệt của bạn không hỗ trợ GPS.";
+    return t("report.gps.unsupported");
   }
 
   if (code === 1) {
-    return "Bạn đã từ chối quyền truy cập vị trí. Vui lòng cấp quyền GPS để gửi phản ánh.";
+    return t("report.gps.denied");
   }
 
   if (code === 2) {
-    return "Không thể xác định vị trí hiện tại. Vui lòng kiểm tra GPS hoặc kết nối mạng.";
+    return t("report.gps.unavailable");
   }
 
   if (code === 3) {
-    return "Yêu cầu lấy vị trí đã hết thời gian chờ. Vui lòng thử lại.";
+    return t("report.gps.timeout");
   }
 
-  return "Không thể lấy vị trí hiện tại. Vui lòng thử lại.";
+  return t("report.gps.generic");
 }
 
 function ReportPage() {
@@ -368,7 +368,7 @@ function ReportPage() {
       if (error instanceof DOMException && error.name === "AbortError") {
         return;
       }
-      setAddressError("Đã lấy được GPS nhưng chưa xác định được địa chỉ.");
+      setAddressError(t("report.err.geocodeFailed"));
     } finally {
       if (geocodeAbortRef.current === controller) {
         geocodeAbortRef.current = null;
@@ -400,9 +400,9 @@ function ReportPage() {
     try {
       const location = await requestCurrentGpsLocation();
       await applyLocation(location.latitude, location.longitude);
-      toast.success("Đã lấy vị trí GPS hiện tại.");
+      toast.success(t("report.loc.gpsSuccess"));
     } catch (err) {
-      const message = getVietnameseGpsErrorMessage(err);
+      const message = getGpsErrorMessage(err, t);
       clearGpsLocation();
       setLatitude(null);
       setLongitude(null);
@@ -417,27 +417,27 @@ function ReportPage() {
 
   const validateBeforeSubmit = () => {
     if (!user) {
-      toast.error("Vui lòng đăng nhập để gửi phản ánh.");
+      toast.error(t("report.err.login"));
       return false;
     }
     if (!categoryId) {
-      toast.error("Vui lòng chọn loại phản ánh.");
+      toast.error(t("report.err.category"));
       return false;
     }
     if (photos.length === 0) {
-      toast.error("Vui lòng tải lên ít nhất 1 ảnh.");
+      toast.error(t("report.err.photo"));
       return false;
     }
     if (videos.length === 0) {
-      toast.error("Vui lòng tải lên ít nhất 1 video.");
+      toast.error(t("report.err.video"));
       return false;
     }
     if (!description.trim()) {
-      toast.error("Vui lòng nhập nội dung phản ánh.");
+      toast.error(t("report.err.description"));
       return false;
     }
     if (!hasLocation) {
-      toast.error("Chưa có tọa độ GPS. Vui lòng bấm Lấy lại vị trí.");
+      toast.error(t("report.err.gps"));
       return false;
     }
     return true;
@@ -465,14 +465,14 @@ function ReportPage() {
 
       setTrackingCode(result.trackingCode || "FB-XXXXXXXX");
       setSubmitted(true);
-      toast.success("Gửi phản ánh thành công!");
+      toast.success(t("report.success.toast"));
     } catch (err) {
       if (err instanceof ApiError) {
         toast.error(err.message);
       } else if (err instanceof Error) {
         toast.error(err.message);
       } else {
-        toast.error("Không thể gửi phản ánh. Vui lòng thử lại.");
+        toast.error(t("report.err.generic"));
       }
     }
   };
@@ -486,14 +486,14 @@ function ReportPage() {
         <h1 className="text-3xl md:text-4xl font-heading text-gov-blue mb-4">
           {t("report.submitted")}
         </h1>
-        <p className="text-lg text-ink-soft mb-2">Mã phản ánh / Report ID:</p>
+        <p className="text-lg text-ink-soft mb-2">{t("report.success.codeLabel")}</p>
         <p className="text-2xl font-mono font-bold mb-8">{trackingCode}</p>
         <div className="flex flex-wrap gap-3 justify-center">
           <Link to="/my-reports" className="btn-civic btn-civic-primary">
-            Xem báo cáo của tôi
+            {t("report.success.viewReports")}
           </Link>
           <Link to="/" className="btn-civic btn-civic-ghost">
-            Về trang chủ
+            {t("report.success.goHome")}
           </Link>
         </div>
       </div>
@@ -508,18 +508,18 @@ function ReportPage() {
         <section className="card-civic p-5 md:p-8 animate-fade-in-up">
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-bold mb-2">Tiêu đề phản ánh</label>
+              <label className="block text-sm font-bold mb-2">{t("report.form.titleLabel")}</label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full min-h-[48px] px-4 rounded-lg border-2 border-slate-200 text-base focus:border-gov-blue outline-none bg-white"
-                placeholder="VD: Ổ gà lớn trên đường Hùng Vương"
+                placeholder={t("report.form.titlePlaceholder")}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-bold mb-2">Loại phản ánh</label>
+              <label className="block text-sm font-bold mb-2">{t("report.form.category")}</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {(categories && categories.length > 0
                   ? categories.map((category) => ({ id: category.id, name: category.name }))
@@ -560,7 +560,7 @@ function ReportPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold mb-2">Ảnh / Video</label>
+              <label className="block text-sm font-bold mb-2">{t("report.form.media")}</label>
               <div className="grid sm:grid-cols-2 gap-4">
                 <button
                   type="button"
@@ -568,7 +568,7 @@ function ReportPage() {
                   className="w-full border-2 border-dashed border-gov-blue rounded-lg p-8 min-h-[148px] flex flex-col items-center justify-center gap-3 text-gov-blue hover:bg-gov-blue/5 transition-all duration-200"
                 >
                   <Camera size={42} />
-                  <span className="font-bold text-base">Upload ảnh</span>
+                  <span className="font-bold text-base">{t("report.form.uploadPhoto")}</span>
                 </button>
                 <button
                   type="button"
@@ -576,7 +576,7 @@ function ReportPage() {
                   className="w-full border-2 border-dashed border-[var(--status-pending)] rounded-lg p-8 min-h-[148px] flex flex-col items-center justify-center gap-3 text-[var(--status-pending)] hover:bg-[var(--status-pending)]/5 transition-all duration-200"
                 >
                   <Upload size={42} />
-                  <span className="font-bold text-base">Upload video</span>
+                  <span className="font-bold text-base">{t("report.form.uploadVideo")}</span>
                 </button>
               </div>
               <input
@@ -616,7 +616,7 @@ function ReportPage() {
                         type="button"
                         onClick={() => removePhoto(idx)}
                         className="absolute top-1 right-1 w-7 h-7 bg-red-600 text-white rounded-full grid place-items-center opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity"
-                        aria-label="Xóa tệp đã chọn"
+                        aria-label={t("report.err.removeFile")}
                       >
                         <X size={15} />
                       </button>
@@ -637,7 +637,7 @@ function ReportPage() {
                       type="button"
                       onClick={removeVideo}
                       className="absolute top-2 right-2 w-8 h-8 bg-red-600 text-white rounded-full grid place-items-center opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity"
-                      aria-label="Xóa video đã chọn"
+                      aria-label={t("report.err.removeVideo")}
                     >
                       <X size={16} />
                     </button>
@@ -647,19 +647,19 @@ function ReportPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold mb-2">Nội dung phản ánh</label>
+              <label className="block text-sm font-bold mb-2">{t("report.form.content")}</label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="w-full min-h-[150px] p-4 rounded-lg border-2 border-slate-200 text-base focus:border-gov-blue outline-none bg-white"
-                placeholder="Mô tả rõ sự cố, mức độ ảnh hưởng và thông tin cần cơ quan chức năng biết..."
+                placeholder={t("report.form.contentPlaceholder")}
               />
             </div>
 
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="font-bold text-ink">Vị trí của bạn</p>
+                  <p className="font-bold text-ink">{t("report.loc.title")}</p>
                   <p
                     className={`text-sm font-semibold ${
                       locationLoading
@@ -670,10 +670,10 @@ function ReportPage() {
                     }`}
                   >
                     {locationLoading
-                      ? "Đang lấy vị trí..."
+                      ? t("report.loc.loading")
                       : hasLocation
-                        ? "Đã xác định vị trí"
-                        : "Chưa có vị trí"}
+                        ? t("report.loc.confirmed")
+                        : t("report.loc.none")}
                   </p>
                 </div>
                 <button
@@ -687,7 +687,7 @@ function ReportPage() {
                   ) : (
                     <LocateFixed size={20} />
                   )}
-                  Lấy lại vị trí
+                  {t("report.loc.refresh")}
                 </button>
               </div>
 
@@ -696,27 +696,27 @@ function ReportPage() {
                   <MapPin className="mt-0.5 shrink-0 text-gov-blue" size={20} />
                   <p className="min-w-0 leading-6 text-ink">
                     {locationLoading
-                      ? "Đang yêu cầu vị trí GPS hiện tại..."
+                      ? t("report.loc.gpsRequest")
                       : addressLoading
-                        ? "Đang xác định địa chỉ..."
+                        ? t("report.loc.addressLoading")
                         : address ||
                           addressError ||
                           (hasLocation
-                            ? "Đã lấy được GPS nhưng chưa xác định được địa chỉ."
-                            : "Bấm Lấy lại vị trí để xác định vị trí của bạn.")}
+                            ? t("report.loc.noAddress")
+                            : t("report.loc.clickRefresh"))}
                   </p>
                 </div>
               </div>
 
               {expectedWard && (
                 <p className="mt-3 text-sm font-semibold text-gov-blue">
-                  Phường/Xã xử lý dự kiến: {expectedWard}
+                  {t("report.loc.expectedWard")} {expectedWard}
                 </p>
               )}
               {locationLoading && (
                 <p className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-ink-soft">
                   <Loader2 size={16} className="animate-spin" />
-                  Đang lấy vị trí GPS hiện tại...
+                  {t("report.loc.gpsLoading")}
                 </p>
               )}
               {locationError && (
@@ -737,7 +737,7 @@ function ReportPage() {
               ) : (
                 <Check size={20} />
               )}
-              {createFeedback.isPending ? "Đang gửi..." : t("report.submit")}
+              {createFeedback.isPending ? t("report.form.submitting") : t("report.submit")}
             </button>
           </div>
         </section>
@@ -745,9 +745,9 @@ function ReportPage() {
         <aside className="card-civic p-4 md:p-5 animate-fade-in-up lg:sticky lg:top-[120px] lg:self-start">
           <div className="mb-4">
             <div>
-              <h2 className="text-2xl font-heading text-gov-blue">Bản đồ vị trí</h2>
+              <h2 className="text-2xl font-heading text-gov-blue">{t("report.loc.mapTitle")}</h2>
               <p className="text-sm text-ink-soft mt-1">
-                Kiểm tra ghim vị trí hiện tại trước khi gửi.
+                {t("report.loc.mapHint")}
               </p>
             </div>
           </div>
@@ -757,7 +757,7 @@ function ReportPage() {
               fallback={
                 <div className="w-full h-full flex items-center justify-center text-[#667085] font-sans">
                   <Loader2 className="animate-spin text-gov-blue mr-2" size={20} />
-                  Đang tải bản đồ...
+                  {t("report.loc.loadingMap")}
                 </div>
               }
             >

@@ -20,7 +20,7 @@ import {
 import type { ReactNode } from "react";
 import { EmptyState, ErrorState } from "@/components/site/EmptyState";
 import { StatusBadge } from "@/components/site/StatusBadge";
-import { useFeedbackDetail } from "@/lib/hooks";
+import { usePublicFeedbackDetail } from "@/lib/hooks";
 import { useI18n } from "@/lib/i18n";
 import {
   getToken,
@@ -32,31 +32,6 @@ import { mapStatus } from "@/lib/status";
 import { AUTHORITY_ROLES, parseBackendRole, Role } from "@/lib/roles";
 
 export const Route = createFileRoute("/my-reports/$id")({
-  beforeLoad: async ({ params }) => {
-    const token = typeof window !== "undefined" ? getToken() : null;
-    const raw = typeof window !== "undefined" ? localStorage.getItem("dn_auth_user_v2") : null;
-
-    if (!token || !raw) {
-      throw redirect({
-        to: "/login",
-        search: { redirect: `/my-reports/${params.id}`, error: undefined },
-      });
-    }
-
-    let user: { role: string } | null = null;
-    try {
-      user = JSON.parse(raw);
-    } catch {
-      /* ignore */
-    }
-
-    if (!user) throw redirect({ to: "/login" });
-
-    const role = parseBackendRole(user.role);
-    if (AUTHORITY_ROLES.has(role) || role !== Role.CITIZEN) {
-      throw redirect({ to: "/login" });
-    }
-  },
   head: ({ params }) => ({
     meta: [
       { title: `Phản ánh ${params.id} - Đà Nẵng Kết Nối` },
@@ -69,7 +44,7 @@ export const Route = createFileRoute("/my-reports/$id")({
 function ReportDetail() {
   const { id } = Route.useParams();
   const { locale, t } = useI18n();
-  const { data: report, isLoading, isError, error, refetch } = useFeedbackDetail(id);
+  const { data: report, isLoading, isError, error, refetch } = usePublicFeedbackDetail(id);
 
   if (isLoading) {
     return (
@@ -104,7 +79,7 @@ function ReportDetail() {
   }
 
   const attachments = report.attachments ?? [];
-  const timeline = buildTimeline(report.timeline ?? [], report.status);
+  const timeline = buildTimeline(report.timeline ?? [], report.status, locale);
   const status = mapStatus(report.status);
 
   return (
@@ -193,7 +168,7 @@ function ReportDetail() {
             ) : (
               <ol className="relative space-y-4 before:absolute before:left-[15px] before:top-4 before:bottom-4 before:w-1 before:rounded-full before:bg-gov-blue/25">
                 {timeline.map((entry, index) => (
-                  <TimelineItem key={`${entry.createdAt}-${entry.title}-${index}`} entry={entry} />
+                  <TimelineItem key={`${entry.createdAt}-${entry.title}-${index}`} entry={entry} locale={locale} />
                 ))}
               </ol>
             )}
@@ -218,12 +193,12 @@ function ReportDetail() {
             <DetailRow
               icon={CalendarClock}
               label={locale === "vi" ? "NGÀY TẠO" : "Created"}
-              value={formatDateTime(report.createdAt)}
+              value={formatDateTime(report.createdAt, locale)}
             />
             <DetailRow
               icon={CalendarClock}
               label={locale === "vi" ? "CẬP NHẬT" : "Updated"}
-              value={formatDateTime(report.updatedAt)}
+              value={formatDateTime(report.updatedAt, locale)}
             />
           </InfoPanel>
 
@@ -312,7 +287,7 @@ interface TimelineEntry {
   tone: TimelineTone;
 }
 
-function TimelineItem({ entry }: { entry: TimelineEntry }) {
+function TimelineItem({ entry, locale }: { entry: TimelineEntry; locale: string }) {
   const nodeClass = {
     completed: "bg-gov-blue text-white ring-gov-blue/15",
     pending: "bg-gov-gold text-gov-blue-deep ring-gov-gold/20",
@@ -320,8 +295,8 @@ function TimelineItem({ entry }: { entry: TimelineEntry }) {
   }[entry.tone];
   const Icon =
     entry.tone === "rejected" ? XCircle : entry.tone === "pending" ? CircleDot : CheckCircle2;
-  const actor = entry.actorName || entry.authorityName || "Hệ thống";
-  const action = timelineActionText(entry);
+  const actor = entry.actorName || entry.authorityName || (locale === "vi" ? "Hệ thống" : "System");
+  const action = timelineActionText(entry, locale);
 
   return (
     <li className="relative grid grid-cols-[34px_minmax(0,1fr)] gap-4">
@@ -343,7 +318,7 @@ function TimelineItem({ entry }: { entry: TimelineEntry }) {
           <span className="font-bold text-gov-blue">{actor}</span>
           {entry.actorRole && (
             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold uppercase text-ink-soft">
-              {roleLabel(entry.actorRole)}
+              {roleLabel(entry.actorRole, locale)}
             </span>
           )}
           <span className={entry.tone === "rejected" ? "text-red-700 font-semibold" : "text-ink"}>
@@ -352,15 +327,15 @@ function TimelineItem({ entry }: { entry: TimelineEntry }) {
         </div>
 
         <div className="mt-3 grid gap-2 text-sm sm:grid-cols-[120px_minmax(0,1fr)]">
-          <span className="text-ink-soft">Thời gian</span>
-          <span className="font-semibold text-ink">{formatTimelineDate(entry.createdAt)}</span>
-          <span className="text-ink-soft">Hạn xử lý</span>
+          <span className="text-ink-soft">{locale === "vi" ? "Thời gian" : "Time"}</span>
+          <span className="font-semibold text-ink">{formatTimelineDate(entry.createdAt, locale)}</span>
+          <span className="text-ink-soft">{locale === "vi" ? "Hạn xử lý" : "Deadline"}</span>
           <span className="font-semibold text-ink">
-            {entry.deadline ? formatTimelineDate(entry.deadline) : "Không có hạn"}
+            {entry.deadline ? formatTimelineDate(entry.deadline, locale) : (locale === "vi" ? "Không có hạn" : "No deadline")}
           </span>
           {entry.assignedToName && (
             <>
-              <span className="text-ink-soft">Chuyển đến</span>
+              <span className="text-ink-soft">{locale === "vi" ? "Chuyển đến" : "Assigned to"}</span>
               <span className="font-semibold text-ink">{entry.assignedToName}</span>
             </>
           )}
@@ -383,6 +358,7 @@ function TimelineItem({ entry }: { entry: TimelineEntry }) {
 function buildTimeline(
   logs: FeedbackLogResponse[],
   currentStatus: FeedbackStatus,
+  locale: string,
 ): TimelineEntry[] {
   const orderedLogs = [...logs].sort((a, b) =>
     (a.createdAt || "").localeCompare(b.createdAt || ""),
@@ -396,7 +372,7 @@ function buildTimeline(
     const status = log.status || log.newStatus || log.oldStatus;
     const rejected = status === "REJECTED";
     return {
-      title: log.title || statusTitle(status),
+      title: log.title || statusTitle(status, locale),
       action: log.action,
       note: log.note,
       actorName: log.actorName || log.actionByName,
@@ -413,7 +389,7 @@ function buildTimeline(
     return entries;
   }
 
-  const pendingTitle = nextPendingTitle(currentStatus, entries);
+  const pendingTitle = nextPendingTitle(currentStatus, entries, locale);
   if (pendingTitle) {
     entries.push({
       title: pendingTitle,
@@ -424,62 +400,65 @@ function buildTimeline(
   return entries;
 }
 
-function nextPendingTitle(status: FeedbackStatus, entries: TimelineEntry[]) {
+function nextPendingTitle(status: FeedbackStatus, entries: TimelineEntry[], locale: string) {
   const completedTitles = new Set(entries.map((entry) => entry.title));
-  if (status === "PENDING" && !completedTitles.has("Đã tiếp nhận phản ánh"))
-    return "Đã tiếp nhận phản ánh";
-  if (status === "IN_PROGRESS" && !completedTitles.has("Đã hoàn thành xử lý"))
-    return "Đã hoàn thành xử lý";
-  if (status === "WAITING_INFO") return "Chờ công dân bổ sung thông tin";
+  const recv = locale === "vi" ? "Đã tiếp nhận phản ánh" : "Report received";
+  const done = locale === "vi" ? "Đã hoàn thành xử lý" : "Processing completed";
+  const wait = locale === "vi" ? "Chờ công dân bổ sung thông tin" : "Awaiting citizen info";
+
+  if (status === "PENDING" && !completedTitles.has(recv))
+    return recv;
+  if (status === "IN_PROGRESS" && !completedTitles.has(done))
+    return done;
+  if (status === "WAITING_INFO") return wait;
   return null;
 }
 
-function timelineActionText(entry: TimelineEntry) {
-  if (entry.tone === "rejected") return "từ chối phản ánh";
+function timelineActionText(entry: TimelineEntry, locale: string) {
+  const isVi = locale === "vi";
+  if (entry.tone === "rejected") return isVi ? "từ chối phản ánh" : "rejected report";
   if (entry.action === "ASSIGN") {
-    return `chuyển xử lý đến ${entry.assignedToName || entry.authorityName || "đơn vị phụ trách"}`;
+    return isVi
+      ? `chuyển xử lý đến ${entry.assignedToName || entry.authorityName || "đơn vị phụ trách"}`
+      : `assigned processing to ${entry.assignedToName || entry.authorityName || "responsible unit"}`;
   }
-  if (entry.title === "Đã gửi phản ánh") return "đã gửi phản ánh";
-  if (entry.title === "Đã tiếp nhận phản ánh") return "đã tiếp nhận phản ánh";
-  if (entry.title === "Đang xử lý") return "đang xử lý phản ánh";
-  if (entry.title === "Đã cập nhật kết quả xử lý") return "đã cập nhật kết quả xử lý";
-  if (entry.title === "Đã hoàn thành xử lý") return "đã hoàn thành xử lý";
-  if (entry.title === "Đã đóng phản ánh") return "đã đóng phản ánh";
+  if (entry.title === (isVi ? "Đã gửi phản ánh" : "Report submitted")) return isVi ? "đã gửi phản ánh" : "submitted report";
+  if (entry.title === (isVi ? "Đã tiếp nhận phản ánh" : "Report received")) return isVi ? "đã tiếp nhận phản ánh" : "received report";
+  if (entry.title === (isVi ? "Đang xử lý" : "Processing")) return isVi ? "đang xử lý phản ánh" : "processing report";
+  if (entry.title === (isVi ? "Đã cập nhật kết quả xử lý" : "Updated processing result")) return isVi ? "đã cập nhật kết quả xử lý" : "updated processing result";
+  if (entry.title === (isVi ? "Đã hoàn thành xử lý" : "Processing completed")) return isVi ? "đã hoàn thành xử lý" : "completed processing";
+  if (entry.title === (isVi ? "Đã đóng phản ánh" : "Report closed")) return isVi ? "đã đóng phản ánh" : "closed report";
   return entry.title.charAt(0).toLowerCase() + entry.title.slice(1);
 }
 
-function roleLabel(role: string) {
-  const labels: Record<string, string> = {
-    CITIZEN: "Người dân",
-    WARD_STAFF: "Cán bộ phường",
-    POLICE: "Công an",
-    SUPER_ADMIN: "Quản trị",
+function roleLabel(role: string, locale: string) {
+  const labels: Record<string, Record<string, string>> = {
+    CITIZEN: { vi: "Người dân", en: "Citizen" },
+    WARD_STAFF: { vi: "Cán bộ phường", en: "Ward Staff" },
+    POLICE: { vi: "Công an", en: "Police" },
+    SUPER_ADMIN: { vi: "Quản trị", en: "Admin" },
   };
-  return labels[role] || role;
+  return labels[role]?.[locale === "vi" ? "vi" : "en"] || role;
 }
 
-function statusTitle(status: string | null | undefined) {
+function statusTitle(status: string | null | undefined, locale: string) {
+  const isVi = locale === "vi";
   const labels: Record<string, string> = {
-    PENDING: "Đã gửi phản ánh",
-    IN_PROGRESS: "Đang xử lý",
-    WAITING_INFO: "Cần bổ sung thông tin",
-    RESOLVED: "Đã hoàn thành xử lý",
-    REJECTED: "Phản ánh bị từ chối",
+    PENDING: isVi ? "Đã gửi phản ánh" : "Report submitted",
+    IN_PROGRESS: isVi ? "Đang xử lý" : "Processing",
+    WAITING_INFO: isVi ? "Cần bổ sung thông tin" : "Info required",
+    RESOLVED: isVi ? "Đã hoàn thành xử lý" : "Processing completed",
+    REJECTED: isVi ? "Phản ánh bị từ chối" : "Report rejected",
   };
-  return status ? labels[status] || status : "Đã cập nhật phản ánh";
+  return status ? labels[status] || status : (isVi ? "Đã cập nhật phản ánh" : "Report updated");
 }
 
-function formatDateTime(value?: string | null) {
-  if (!value) return "N/A";
-  return value.slice(0, 16).replace("T", " ");
-}
-
-function formatTimelineDate(value?: string | null) {
+function formatDateTime(value?: string | null, locale = "vi") {
   if (!value) return "N/A";
   const normalized = value.includes("T") ? value : value.replace(" ", "T");
   const date = new Date(normalized);
-  if (Number.isNaN(date.getTime())) return formatDateTime(value);
-  return new Intl.DateTimeFormat("vi-VN", {
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(locale === "vi" ? "vi-VN" : "en-US", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -487,6 +466,10 @@ function formatTimelineDate(value?: string | null) {
     minute: "2-digit",
     hour12: false,
   }).format(date);
+}
+
+function formatTimelineDate(value?: string | null, locale = "vi") {
+  return formatDateTime(value, locale);
 }
 
 function isVideoAttachment(attachment: FeedbackAttachmentResponse) {

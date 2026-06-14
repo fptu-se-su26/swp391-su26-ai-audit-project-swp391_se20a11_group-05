@@ -3,7 +3,7 @@ import logoUrl from "@/assets/logo.png";
 import { MapPin, Mail, Phone } from "lucide-react";
 
 export function Footer() {
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
   const year = new Date().getFullYear();
 
   return (
@@ -21,33 +21,32 @@ export function Footer() {
               />
               <div>
                 <h3 className="text-base font-extrabold text-white tracking-wider font-sans">
-                  ĐÀ NẴNG KẾT NỐI
+                  {t("footer.brand")}
                 </h3>
                 <p className="text-[10px] text-white/70 font-semibold uppercase tracking-wider font-sans">
-                  CỔNG THÔNG TIN PHẢN ÁNH HIỆN TRƯỜNG
+                  {t("footer.brandSub")}
                 </p>
               </div>
             </div>
 
             <p className="text-xs leading-relaxed text-white/70 max-w-sm font-sans">
-              Hệ thống kết nối người dân với chính quyền thành phố Đà Nẵng, tiếp nhận và xử lý các
-              phản ánh hiện trường nhằm xây dựng thành phố văn minh, hiện đại.
+              {t("footer.intro")}
             </p>
           </div>
 
-          {/* Column 2: Điều hướng */}
+          {/* Column 2: Navigation */}
           <div className="flex flex-col space-y-3 md:pl-10">
             <h4 className="text-xs font-bold uppercase tracking-wider text-white font-sans">
-              ĐIỀU HƯỚNG
+              {t("footer.nav")}
             </h4>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { href: "/", label: "Trang chủ" },
-                { href: "/my-reports", label: "Phản ánh của tôi" },
-                { href: "/my-reports", label: "Tra cứu" },
-                { href: "/notifications", label: "Thông báo" },
-                { href: "/my-reports", label: "Hướng dẫn" },
-                { href: "/", label: "Về chúng tôi" },
+                { href: "/", label: t("footer.navHome") },
+                { href: "/my-reports", label: t("footer.navMyReports") },
+                { href: "/my-reports", label: t("footer.navSearch") },
+                { href: "/notifications", label: t("footer.navNotif") },
+                { href: "/my-reports", label: t("footer.navGuide") },
+                { href: "/", label: t("footer.navAbout") },
               ].map((item, idx) => (
                 <a
                   key={idx}
@@ -60,10 +59,10 @@ export function Footer() {
             </div>
           </div>
 
-          {/* Column 3: Liên hệ */}
+          {/* Column 3: Contact */}
           <div className="flex flex-col space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-white font-sans">
-              LIÊN HỆ
+              {t("footer.contact")}
             </h4>
 
             <div className="space-y-2.5 text-xs text-white/70">
@@ -81,7 +80,7 @@ export function Footer() {
               <div className="flex items-center gap-2.5">
                 <Phone size={16} className="text-[#F5C542] shrink-0" />
                 <span className="font-sans">
-                  Đường dây nóng: <span className="text-[#F5C542] font-bold font-sans">1022</span>
+                  {t("footer.hotlineLabel")} <span className="text-[#F5C542] font-bold font-sans">1022</span>
                 </span>
               </div>
             </div>
@@ -92,7 +91,7 @@ export function Footer() {
                 className="inline-flex items-center gap-2 px-4 py-2 bg-transparent border border-[#F5C542] text-[#F5C542] hover:bg-[#F5C542]/10 transition-all rounded-lg text-xs font-bold font-sans"
               >
                 <Phone size={14} />
-                Gọi ngay 1022
+                {t("footer.callNow")}
               </a>
             </div>
           </div>
@@ -103,7 +102,7 @@ export function Footer() {
 
         {/* Bottom Bar */}
         <div className="flex flex-col md:flex-row items-center justify-between text-[11px] text-white/50 pt-2 gap-3">
-          <p className="font-sans">© 2026 UBND Thành phố Đà Nẵng. Bảo lưu mọi quyền.</p>
+          <p className="font-sans">{t("footer.copyright")}</p>
           <p className="font-sans text-right md:text-left">
             Trung tâm Chuyển đổi số · SWP391 SE20A11
           </p>

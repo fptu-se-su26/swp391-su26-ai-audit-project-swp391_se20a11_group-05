@@ -24,6 +24,7 @@ import {
   type UpdateProfileRequest,
   type UserProfile,
   type NotificationResponse,
+  type FeedbackLookupStatsResponse,
 } from "@/lib/api";
 import {
   submitCitizenFeedbackMedia,
@@ -38,8 +39,13 @@ export const queryKeys = {
     all: ["feedbacks"] as const,
     list: (page: number, size: number, filters: FeedbackListFilters) =>
       ["feedbacks", "list", page, size, filters] as const,
+    publicList: (page: number, size: number, filters: FeedbackListFilters) =>
+      ["feedbacks", "publicList", page, size, filters] as const,
+    publicStats: (filters: FeedbackListFilters) =>
+      ["feedbacks", "publicStats", filters] as const,
     statuses: ["feedbacks", "statuses"] as const,
     detail: (id: string | number) => ["feedbacks", id] as const,
+    publicDetail: (id: string | number) => ["feedbacks", "publicDetail", id] as const,
   },
   categories: {
     all: ["categories"] as const,
@@ -51,6 +57,7 @@ export const queryKeys = {
   notifications: {
     all: ["notifications"] as const,
     page: (size: number) => ["notifications", "page", size] as const,
+    unreadCount: ["notifications", "unreadCount"] as const,
   },
   rag: {
     query: (q: string) => ["rag", "query", q] as const,
@@ -85,14 +92,39 @@ export function useFeedbackDetail(id: string | number) {
   });
 }
 
+export function usePublicFeedbacks(page = 0, size = 10, filters: FeedbackListFilters = {}) {
+  return useQuery<PageResponse<FeedbackResponse>>({
+    queryKey: queryKeys.feedbacks.publicList(page, size, filters),
+    queryFn: () => feedbackApi.getPublic(page, size, filters),
+    staleTime: 30_000,
+  });
+}
+
+export function usePublicFeedbackStats(filters: FeedbackListFilters = {}) {
+  return useQuery<FeedbackLookupStatsResponse>({
+    queryKey: queryKeys.feedbacks.publicStats(filters),
+    queryFn: () => feedbackApi.getPublicStats(filters),
+    staleTime: 30_000,
+  });
+}
+
+export function usePublicFeedbackDetail(id: string | number) {
+  return useQuery<FeedbackResponse>({
+    queryKey: queryKeys.feedbacks.publicDetail(id),
+    queryFn: () => feedbackApi.getPublicById(id),
+    enabled: !!id,
+  });
+}
+
 export function useCreateFeedback() {
   const queryClient = useQueryClient();
 
   return useMutation<FeedbackResponse, Error, FeedbackRequest>({
     mutationFn: (data) => feedbackApi.create(data),
     onSuccess: () => {
-      // Invalidate all feedback lists to refetch
+      // Invalidate all feedback lists and notifications to refetch
       queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
   });
 }
@@ -108,6 +140,7 @@ export function useCreateFeedbackWithMedia() {
     mutationFn: ({ data, files }) => submitCitizenFeedbackMedia(data, files),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
   });
 }
@@ -122,6 +155,7 @@ export function useChangeFeedbackStatus() {
     mutationFn: ({ id, status, note }) => feedbackApi.changeStatus(id, status, note),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
   });
 }
@@ -132,6 +166,7 @@ export function useAssignFeedback() {
     mutationFn: ({ id, assigneeId }) => feedbackApi.assignFeedback(id, assigneeId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
   });
 }
@@ -142,6 +177,7 @@ export function useRejectFeedback() {
     mutationFn: ({ id, reason }) => policeApi.rejectFeedback(id, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
   });
 }
@@ -152,6 +188,7 @@ export function useRequestMoreInfo() {
     mutationFn: ({ id, reason }) => policeApi.requestMoreInfo(id, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
   });
 }
@@ -257,6 +294,17 @@ export function useNotifications() {
     queryKey: queryKeys.notifications.all,
     queryFn: () => notificationApi.getAll(),
     staleTime: 30_000,
+    refetchInterval: 10_000,
+  });
+}
+
+export function useNotificationUnreadCount(enabled = true) {
+  return useQuery<number>({
+    queryKey: queryKeys.notifications.unreadCount,
+    queryFn: () => notificationApi.getUnreadCount(),
+    staleTime: 30_000,
+    enabled,
+    refetchInterval: 10_000,
   });
 }
 
@@ -270,6 +318,7 @@ export function useInfiniteNotifications(size = 5) {
       return lastPage.hasNext ? currentPage + 1 : undefined;
     },
     staleTime: 30_000,
+    refetchInterval: 10_000,
   });
 }
 
@@ -278,8 +327,84 @@ export function useMarkNotificationReadMutation() {
 
   return useMutation<NotificationResponse, Error, number | string>({
     mutationFn: (id) => notificationApi.markAsRead(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.notifications.all });
+      await queryClient.cancelQueries({ queryKey: queryKeys.notifications.unreadCount });
+
+      const previousNotifications = queryClient.getQueryData<NotificationResponse[]>(
+        queryKeys.notifications.all
+      );
+      const previousUnreadCount = queryClient.getQueryData<number>(
+        queryKeys.notifications.unreadCount
+      );
+
+      if (previousNotifications) {
+        queryClient.setQueryData<NotificationResponse[]>(
+          queryKeys.notifications.all,
+          previousNotifications.map((n) =>
+            String(n.id) === String(id) ? { ...n, isRead: true } : n
+          )
+        );
+      }
+
+      if (typeof previousUnreadCount === "number") {
+        queryClient.setQueryData<number>(
+          queryKeys.notifications.unreadCount,
+          Math.max(0, previousUnreadCount - 1)
+        );
+      }
+
+      return { previousNotifications, previousUnreadCount };
+    },
+    onError: (err, id, context) => {
+      if (context) {
+        queryClient.setQueryData(queryKeys.notifications.all, context.previousNotifications);
+        queryClient.setQueryData(queryKeys.notifications.unreadCount, context.previousUnreadCount);
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.unreadCount });
+    },
+  });
+}
+
+export function useMarkAllNotificationsReadMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, void>({
+    mutationFn: () => notificationApi.markAllAsRead(),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.notifications.all });
+      await queryClient.cancelQueries({ queryKey: queryKeys.notifications.unreadCount });
+
+      const previousNotifications = queryClient.getQueryData<NotificationResponse[]>(
+        queryKeys.notifications.all
+      );
+      const previousUnreadCount = queryClient.getQueryData<number>(
+        queryKeys.notifications.unreadCount
+      );
+
+      if (previousNotifications) {
+        queryClient.setQueryData<NotificationResponse[]>(
+          queryKeys.notifications.all,
+          previousNotifications.map((n) => ({ ...n, isRead: true }))
+        );
+      }
+
+      queryClient.setQueryData<number>(queryKeys.notifications.unreadCount, 0);
+
+      return { previousNotifications, previousUnreadCount };
+    },
+    onError: (err, variables, context) => {
+      if (context) {
+        queryClient.setQueryData(queryKeys.notifications.all, context.previousNotifications);
+        queryClient.setQueryData(queryKeys.notifications.unreadCount, context.previousUnreadCount);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.unreadCount });
     },
   });
 }

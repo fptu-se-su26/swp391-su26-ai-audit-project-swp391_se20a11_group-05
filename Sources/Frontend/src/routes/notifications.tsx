@@ -74,7 +74,7 @@ function NotificationsPage() {
 
     try {
       setOpeningId(item.id);
-      if (!item.read) {
+      if (!item.isRead) {
         await markRead.mutateAsync(item.id);
       }
 
@@ -202,14 +202,14 @@ function NotificationCard({
         }
       }}
       className={`card-civic p-5 border-l-4 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gov-blue ${
-        item.read
+        item.isRead
           ? "!bg-white !border-slate-200 border-l-slate-200"
           : "!bg-blue-50 !border-gov-blue border-l-gov-blue ring-1 ring-gov-blue/20"
       }`}
     >
       <div className="grid grid-cols-[44px_minmax(0,1fr)_auto] gap-4 items-start">
         <div
-          className={`w-11 h-11 rounded-lg grid place-items-center ${item.read ? "bg-slate-100 text-gov-blue" : "bg-gov-blue text-white"}`}
+          className={`w-11 h-11 rounded-lg grid place-items-center ${item.isRead ? "bg-slate-100 text-gov-blue" : "bg-gov-blue text-white"}`}
         >
           <Icon size={21} />
         </div>
@@ -217,7 +217,7 @@ function NotificationCard({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
             <h2 className="font-bold text-lg text-ink leading-snug">{item.title}</h2>
-            {!item.read && (
+            {!item.isRead && (
               <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-gov-gold text-gov-blue-deep">
                 {locale === "vi" ? "Mới" : "New"}
               </span>

@@ -107,6 +107,16 @@ public class NotificationService extends BaseServiceImpl<Notification, Long> {
         return notificationRepository.save(notification);
     }
 
+    @Transactional
+    public void markAllAsRead(Long userId) {
+        notificationRepository.markAllAsReadForUser(userId);
+    }
+
+    @Transactional(readOnly = true)
+    public long countUnreadNotifications(Long userId) {
+        return notificationRepository.countByUserIdAndIsReadFalse(userId);
+    }
+
     private NotificationDTO toNotificationDto(Notification notification, Feedback feedback) {
         return NotificationDTO.builder()
                 .id(notification.getId())

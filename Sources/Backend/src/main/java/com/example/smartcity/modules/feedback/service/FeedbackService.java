@@ -6,6 +6,7 @@ import com.example.smartcity.modules.feedback.entity.Feedback;
 import com.example.smartcity.modules.feedback.entity.FeedbackStatus;
 import com.example.smartcity.modules.feedback.entity.FeedbackLog;
 import com.example.smartcity.modules.feedback.dto.FeedbackLogResponse;
+import com.example.smartcity.modules.feedback.dto.FeedbackLookupStatsResponse;
 import com.example.smartcity.modules.feedback.repository.FeedbackLogRepository;
 import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.feedback.repository.CategoryRepository;
@@ -171,6 +172,83 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
                 effectiveFromDate,
                 effectiveToDate,
                 pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Feedback> getPublicFeedbacks(
+            String keyword,
+            String category,
+            FeedbackStatus status,
+            LocalDateTime fromDate,
+            LocalDateTime toDate,
+            Pageable pageable) {
+        String normalizedKeyword = keyword == null ? null : keyword.trim();
+        String normalizedCategory = category == null ? null : category.trim();
+        LocalDateTime effectiveFromDate = fromDate == null
+                ? LocalDate.of(1970, 1, 1).atStartOfDay()
+                : fromDate;
+        LocalDateTime effectiveToDate = toDate == null
+                ? LocalDate.of(9999, 12, 31).atTime(LocalTime.MAX)
+                : toDate;
+
+        return feedbackRepository.searchPublicFeedbacks(
+                normalizedKeyword,
+                normalizedCategory,
+                status,
+                effectiveFromDate,
+                effectiveToDate,
+                pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public FeedbackLookupStatsResponse getPublicFeedbackStats(
+            String keyword,
+            String category,
+            FeedbackStatus status,
+            LocalDateTime fromDate,
+            LocalDateTime toDate) {
+        String normalizedKeyword = keyword == null ? null : keyword.trim();
+        String normalizedCategory = category == null ? null : category.trim();
+        LocalDateTime effectiveFromDate = fromDate == null
+                ? LocalDate.of(1970, 1, 1).atStartOfDay()
+                : fromDate;
+        LocalDateTime effectiveToDate = toDate == null
+                ? LocalDate.of(9999, 12, 31).atTime(LocalTime.MAX)
+                : toDate;
+
+        List<Object[]> rawCounts = feedbackRepository.countPublicFeedbacksByStatus(
+                normalizedKeyword,
+                normalizedCategory,
+                status,
+                effectiveFromDate,
+                effectiveToDate);
+
+        long total = 0;
+        long pending = 0;
+        long resolved = 0;
+        long rejected = 0;
+
+        for (Object[] row : rawCounts) {
+            FeedbackStatus statStatus = (FeedbackStatus) row[0];
+            long count = ((Number) row[1]).longValue();
+            total += count;
+            if (statStatus != FeedbackStatus.RESOLVED && statStatus != FeedbackStatus.REJECTED) {
+                pending += count;
+            }
+            if (statStatus == FeedbackStatus.RESOLVED) {
+                resolved += count;
+            }
+            if (statStatus == FeedbackStatus.REJECTED) {
+                rejected += count;
+            }
+        }
+
+        return FeedbackLookupStatsResponse.builder()
+                .total(total)
+                .pending(pending)
+                .resolved(resolved)
+                .rejected(rejected)
+                .build();
     }
 
     @Transactional(readOnly = true)

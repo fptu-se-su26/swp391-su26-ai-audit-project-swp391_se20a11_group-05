@@ -22,9 +22,20 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import logoUrl from "@/assets/logo.png";
-import { useNotifications, useMarkNotificationReadMutation } from "@/lib/hooks";
+import { useNotifications, useMarkNotificationReadMutation, useMarkAllNotificationsReadMutation, useNotificationUnreadCount } from "@/lib/hooks";
 import { toast } from "sonner";
-import type { NotificationResponse } from "@/lib/api";
+import { authApi, type NotificationResponse } from "@/lib/api";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 function timeAgo(dateStr: string, locale: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -63,11 +74,13 @@ export function Header() {
   const { user, logout, hasRole } = useAuth();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [open, setOpen] = useState(false); // Mobile hamburger menu
   const [langOpen, setLangOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
 
   const notifRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
@@ -81,8 +94,24 @@ export function Header() {
     refetch: notifRefetch,
   } = useNotifications();
   const markRead = useMarkNotificationReadMutation();
+  const markAllRead = useMarkAllNotificationsReadMutation();
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const { data: unreadCountData } = useNotificationUnreadCount(!!user);
+  const unreadCount = unreadCountData ?? notifications.filter((n) => !n.isRead).length;
+
+  // Debug log in dev mode
+  useEffect(() => {
+    if (import.meta.env.DEV && notifications.length > 0) {
+      console.table(
+        notifications.map((n) => ({
+          id: n.id,
+          title: n.title,
+          isRead: n.isRead,
+          createdAt: n.createdAt,
+        }))
+      );
+    }
+  }, [notifications]);
 
   // Click outside listener
   useEffect(() => {
@@ -137,10 +166,8 @@ export function Header() {
 
   // Mark all unread notifications in dropdown as read
   const handleMarkAllRead = async () => {
-    const unreadItems = notifications.filter((n) => !n.read).slice(0, 5);
-    if (unreadItems.length === 0) return;
     try {
-      await Promise.all(unreadItems.map((item) => markRead.mutateAsync(item.id)));
+      await markAllRead.mutateAsync();
       toast.success(
         locale === "vi" ? "Đã đánh dấu đọc tất cả thông báo" : "All notifications marked as read",
       );
@@ -153,7 +180,7 @@ export function Header() {
     const feedbackId = item.feedbackId ?? item.referenceId;
     setNotifOpen(false);
     try {
-      if (!item.read) {
+      if (!item.isRead) {
         await markRead.mutateAsync(item.id);
       }
       if (feedbackId) {
@@ -164,6 +191,17 @@ export function Header() {
     } catch (err) {
       // noop
     }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await authApi.logout().catch(() => {});
+    } catch (err) {
+      // noop
+    }
+    logout();
+    queryClient.clear();
+    void navigate({ to: "/login" });
   };
 
   // Simplified core navigation items
@@ -267,30 +305,34 @@ export function Header() {
               aria-label="Select Language"
               aria-expanded={langOpen}
             >
-              <span className="text-base">🇻🇳</span>
-              <span className="font-sans">VI</span>
+              <span className="text-base">{locale === "vi" ? "🇻🇳" : "🇬🇧"}</span>
+              <span className="font-sans">{locale === "vi" ? "VI" : "EN"}</span>
               <ChevronDown size={14} className="text-[#667085]" />
             </button>
 
             {langOpen && (
-              <div className="absolute right-0 mt-1 w-28 bg-white border border-[#E4EAF2] rounded-lg shadow-lg py-1 z-50 animate-fade-in">
+              <div className="absolute right-0 mt-1 w-36 bg-white border border-[#E4EAF2] rounded-lg shadow-lg py-1 z-50 animate-fade-in">
                 <button
                   onClick={() => {
                     setLocale("vi");
                     setLangOpen(false);
                   }}
-                  className="w-full text-left px-3 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2 font-sans cursor-pointer"
+                  className={`w-full text-left px-3 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2 font-sans cursor-pointer ${
+                    locale === "vi" ? "bg-slate-50 text-[#0B4FC4]" : ""
+                  }`}
                 >
-                  <span>🇻🇳</span> Tiếng Việt
+                  <span>🇻🇳</span> {locale === "vi" ? "Tiếng Việt" : "Vietnamese"}
                 </button>
                 <button
                   onClick={() => {
                     setLocale("en");
                     setLangOpen(false);
                   }}
-                  className="w-full text-left px-3 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2 font-sans cursor-pointer"
+                  className={`w-full text-left px-3 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2 font-sans cursor-pointer ${
+                    locale === "en" ? "bg-slate-50 text-[#0B4FC4]" : ""
+                  }`}
                 >
-                  <span>🇬🇧</span> English
+                  <span>🇬🇧</span> {locale === "vi" ? "Tiếng Anh" : "English"}
                 </button>
               </div>
             )}
@@ -376,24 +418,33 @@ export function Header() {
                         <button
                           key={item.id}
                           onClick={() => void handleNotifClick(item)}
-                          className={`w-full text-left p-3.5 flex gap-3 transition-colors cursor-pointer ${
-                            item.read
-                              ? "bg-white hover:bg-slate-50"
-                              : "bg-blue-50/60 hover:bg-blue-50/90 font-semibold"
+                          className={`w-full text-left p-3.5 flex gap-3 transition-colors cursor-pointer border-l-4 ${
+                            item.isRead
+                              ? "bg-[#FFFFFF] hover:bg-[#F8FAFC] border-l-transparent"
+                              : "bg-[#EFF6FF] hover:bg-[#DBEAFE] border-l-[#0F5BD8]"
                           }`}
                         >
                           <div
                             className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                              item.read ? "bg-slate-100 text-slate-500" : "bg-[#0B4FC4] text-white"
+                              item.isRead ? "bg-slate-100 text-slate-500" : "bg-[#0F5BD8] text-white"
                             }`}
                           >
                             <NotifIcon size={16} />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-1 mb-0.5">
-                              <h4 className="text-xs font-bold text-[#123E8A] truncate font-sans">
-                                {item.title}
-                              </h4>
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <h4 className={`text-xs text-[#123E8A] truncate font-sans ${
+                                  item.isRead ? "font-semibold" : "font-bold"
+                                }`}>
+                                  {item.title}
+                                </h4>
+                                {!item.isRead && (
+                                  <span className="px-1.5 py-0.2 bg-[#F59E0B] text-white text-[9px] font-bold rounded-full font-sans uppercase shrink-0">
+                                    {locale === "vi" ? "Mới" : "New"}
+                                  </span>
+                                )}
+                              </div>
                               <span className="text-[9px] text-[#667085] shrink-0 font-sans">
                                 {timeAgo(item.createdAt, locale)}
                               </span>
@@ -491,7 +542,7 @@ export function Header() {
 
                   <button
                     onClick={() => {
-                      logout();
+                      setLogoutConfirmOpen(true);
                       setUserOpen(false);
                     }}
                     className="w-full text-left px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50/50 transition flex items-center gap-2.5 font-sans cursor-pointer"
@@ -622,12 +673,12 @@ export function Header() {
                 </Link>
                 <button
                   onClick={() => {
-                    logout();
+                    setLogoutConfirmOpen(true);
                     setOpen(false);
                   }}
                   className="w-full text-left min-h-[48px] px-4 py-3 rounded-md hover:bg-red-50 text-red-600 font-semibold inline-flex items-center gap-2 transition-all font-sans cursor-pointer"
                 >
-                  <LogOut size={18} /> Đăng xuất ({user.name})
+                  <LogOut size={18} /> {locale === "vi" ? `Đăng xuất (${user.name})` : `Log out (${user.name})`}
                 </button>
               </>
             ) : (
@@ -642,6 +693,32 @@ export function Header() {
           </div>
         </nav>
       )}
+
+      <AlertDialog open={logoutConfirmOpen} onOpenChange={setLogoutConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-sans">
+              {locale === "vi" ? "Bạn chắc chắn muốn đăng xuất?" : "Are you sure you want to log out?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="font-sans">
+              {locale === "vi"
+                ? "Phiên đăng nhập của bạn sẽ kết thúc. Bạn sẽ cần đăng nhập lại để thực hiện các chức năng cá nhân."
+                : "Your login session will end. You will need to log in again to perform personal actions."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="font-sans">
+              {locale === "vi" ? "Hủy" : "Cancel"}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => void handleLogout()}
+              className="bg-red-600 hover:bg-red-700 text-white font-sans font-bold"
+            >
+              {locale === "vi" ? "Đăng xuất" : "Log out"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </header>
   );
 }

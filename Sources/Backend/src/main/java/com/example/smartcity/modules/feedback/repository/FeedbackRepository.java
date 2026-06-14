@@ -66,6 +66,59 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
             @Param("toDate") java.time.LocalDateTime toDate,
             Pageable pageable);
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"category", "ward", "citizen"})
+    @org.springframework.data.jpa.repository.Query("""
+            SELECT f
+            FROM Feedback f
+            LEFT JOIN f.ward w
+            LEFT JOIN f.category c
+            WHERE (:status IS NULL OR f.status = :status)
+              AND f.createdAt >= :fromDate
+              AND f.createdAt <= :toDate
+              AND (:category IS NULL OR :category = '' OR LOWER(c.name) LIKE LOWER(CONCAT('%', :category, '%')))
+              AND (
+                :keyword IS NULL OR :keyword = '' OR
+                LOWER(function('unaccent', COALESCE(f.trackingCode, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(f.title, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(f.description, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(f.addressDetails, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(w.name, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%')))
+              )
+            """)
+    Page<Feedback> searchPublicFeedbacks(
+            @Param("keyword") String keyword,
+            @Param("category") String category,
+            @Param("status") FeedbackStatus status,
+            @Param("fromDate") java.time.LocalDateTime fromDate,
+            @Param("toDate") java.time.LocalDateTime toDate,
+            Pageable pageable);
+
+    @org.springframework.data.jpa.repository.Query("""
+            SELECT f.status, COUNT(f.id)
+            FROM Feedback f
+            LEFT JOIN f.ward w
+            LEFT JOIN f.category c
+            WHERE (:status IS NULL OR f.status = :status)
+              AND f.createdAt >= :fromDate
+              AND f.createdAt <= :toDate
+              AND (:category IS NULL OR :category = '' OR LOWER(c.name) LIKE LOWER(CONCAT('%', :category, '%')))
+              AND (
+                :keyword IS NULL OR :keyword = '' OR
+                LOWER(function('unaccent', COALESCE(f.trackingCode, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(f.title, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(f.description, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(f.addressDetails, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(w.name, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%')))
+              )
+            GROUP BY f.status
+            """)
+    List<Object[]> countPublicFeedbacksByStatus(
+            @Param("keyword") String keyword,
+            @Param("category") String category,
+            @Param("status") FeedbackStatus status,
+            @Param("fromDate") java.time.LocalDateTime fromDate,
+            @Param("toDate") java.time.LocalDateTime toDate);
+
     @org.springframework.data.jpa.repository.Query("SELECT w.name, COUNT(f.id), SUM(CASE WHEN f.status = 'RESOLVED' THEN 1L ELSE 0L END) FROM Feedback f JOIN f.ward w GROUP BY w.name")
     List<Object[]> getWardPerformanceStats();
 }

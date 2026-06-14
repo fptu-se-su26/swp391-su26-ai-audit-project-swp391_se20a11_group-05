@@ -1,5 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type Locale } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { ROLE_LABEL, Role } from "@/lib/roles";
 import {
@@ -9,6 +9,7 @@ import {
   Bell,
   User,
   ChevronDown,
+  Check,
   ClipboardList,
   Loader2,
   Send,
@@ -58,6 +59,16 @@ function iconForType(type?: string) {
   }
 }
 
+const LANGUAGE_OPTIONS: Array<{
+  code: Locale;
+  shortLabel: string;
+  nativeLabel: string;
+  helperLabel: string;
+}> = [
+  { code: "vi", shortLabel: "VI", nativeLabel: "Tiếng Việt", helperLabel: "Vietnamese" },
+  { code: "en", shortLabel: "EN", nativeLabel: "English", helperLabel: "English" },
+];
+
 export function Header() {
   const { locale, setLocale, t } = useI18n();
   const { user, logout, hasRole } = useAuth();
@@ -72,6 +83,8 @@ export function Header() {
   const notifRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
   const langRef = useRef<HTMLDivElement>(null);
+  const activeLanguage =
+    LANGUAGE_OPTIONS.find((language) => language.code === locale) ?? LANGUAGE_OPTIONS[0];
 
   // Notifications logic
   const {
@@ -172,17 +185,17 @@ export function Header() {
     { to: "/tin-tuc", label: locale === "vi" ? "Tin tức" : "News" },
     { to: "/my-reports", label: locale === "vi" ? "Tra cứu" : "Search" },
     { to: "/", hash: "huong-dan", label: locale === "vi" ? "Hướng dẫn" : "Guide" },
-  ];
+  ] as const;
 
   const staffItemsAll = [
     { to: "/ward", label: t("nav.ward"), roles: [Role.WARD_STAFF, Role.SUPER_ADMIN] as const },
     { to: "/police", label: t("nav.police"), roles: [Role.POLICE, Role.SUPER_ADMIN] as const },
     { to: "/city-admin", label: t("nav.cityAdmin"), roles: [Role.SUPER_ADMIN] as const },
-  ];
+  ] as const;
   const staffItems = staffItemsAll.filter((i) => hasRole(...i.roles));
 
   // Determine active item based on pathname and label
-  const isItemActive = (item: (typeof menuItems)[0]) => {
+  const isItemActive = (item: (typeof menuItems)[number]) => {
     if (typeof window === "undefined") {
       if (item.label === "Trang chủ" || item.label === "Home") return path === "/";
       return false;
@@ -211,10 +224,10 @@ export function Header() {
           <img src={logoUrl} alt="Đà Nẵng Kết Nối" className="h-9 w-auto object-contain md:h-10" />
           <div className="flex flex-col leading-none">
             <span className="text-sm md:text-base font-extrabold tracking-tight text-[#0B4FC4] uppercase font-sans">
-              ĐÀ NẴNG KẾT NỐI
+              {t("header.brand")}
             </span>
             <span className="text-[8px] md:text-[9px] text-[#667085] font-bold uppercase tracking-wider mt-0.5 font-sans hidden sm:block">
-              CỔNG THÔNG TIN PHẢN ÁNH HIỆN TRƯỜNG
+              {t("header.brandSub")}
             </span>
           </div>
         </Link>
@@ -226,9 +239,8 @@ export function Header() {
               const active = isItemActive(item);
               return (
                 <li key={index} className="h-full flex items-center">
-                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   <Link
-                    to={item.to as any}
+                    to={item.to}
                     hash={item.hash}
                     className={`relative py-2 text-sm font-semibold transition-all font-sans ${
                       active
@@ -245,9 +257,8 @@ export function Header() {
             {/* Staff access links if user is authority */}
             {staffItems.map((item, index) => (
               <li key={`staff-${index}`} className="h-full flex items-center">
-                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 <Link
-                  to={item.to as any}
+                  to={item.to}
                   className="px-2.5 py-1 bg-amber-50 text-amber-700 rounded text-xs font-bold border border-amber-200 hover:bg-amber-100 transition font-sans"
                 >
                   {item.label}
@@ -263,35 +274,63 @@ export function Header() {
           <div className="relative hidden md:block" ref={langRef}>
             <button
               onClick={toggleLang}
-              className="flex items-center gap-1.5 text-sm font-semibold text-[#123E8A] hover:text-[#0B4FC4] transition min-h-[40px] px-2 cursor-pointer"
+              className="group flex min-h-[40px] items-center gap-2 rounded-full border border-transparent px-2.5 text-sm font-semibold text-[#123E8A] transition hover:border-[#E4EAF2] hover:bg-[#F5F9FF] hover:text-[#0B4FC4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B4FC4]/20 cursor-pointer"
               aria-label="Select Language"
+              aria-haspopup="menu"
               aria-expanded={langOpen}
             >
-              <span className="text-base">🇻🇳</span>
-              <span className="font-sans">VI</span>
-              <ChevronDown size={14} className="text-[#667085]" />
+              <span className="grid h-6 w-8 place-items-center rounded-md bg-[#EEF4FF] text-[11px] font-extrabold tracking-wide text-[#0B4FC4] font-sans">
+                {activeLanguage.shortLabel}
+              </span>
+              <span className="hidden xl:inline font-sans">{activeLanguage.nativeLabel}</span>
+              <ChevronDown
+                size={14}
+                className={`text-[#667085] transition-transform group-hover:text-[#0B4FC4] ${
+                  langOpen ? "rotate-180" : ""
+                }`}
+              />
             </button>
 
             {langOpen && (
-              <div className="absolute right-0 mt-1 w-28 bg-white border border-[#E4EAF2] rounded-lg shadow-lg py-1 z-50 animate-fade-in">
-                <button
-                  onClick={() => {
-                    setLocale("vi");
-                    setLangOpen(false);
-                  }}
-                  className="w-full text-left px-3 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2 font-sans cursor-pointer"
-                >
-                  <span>🇻🇳</span> Tiếng Việt
-                </button>
-                <button
-                  onClick={() => {
-                    setLocale("en");
-                    setLangOpen(false);
-                  }}
-                  className="w-full text-left px-3 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2 font-sans cursor-pointer"
-                >
-                  <span>🇬🇧</span> English
-                </button>
+              <div
+                role="menu"
+                className="absolute right-0 mt-2 w-44 rounded-xl border border-[#E4EAF2] bg-white p-1.5 shadow-[0_16px_40px_rgba(16,24,40,0.12)] z-50 animate-fade-in"
+              >
+                {LANGUAGE_OPTIONS.map((language) => {
+                  const active = language.code === locale;
+                  return (
+                    <button
+                      key={language.code}
+                      type="button"
+                      role="menuitem"
+                      aria-current={active ? "true" : undefined}
+                      onClick={() => {
+                        setLocale(language.code);
+                        setLangOpen(false);
+                      }}
+                      className={`w-full rounded-lg px-2.5 py-2.5 text-left transition flex items-center gap-2.5 font-sans cursor-pointer ${
+                        active ? "bg-[#F5F9FF] text-[#0B4FC4]" : "text-[#123E8A] hover:bg-slate-50"
+                      }`}
+                    >
+                      <span
+                        className={`grid h-7 w-8 place-items-center rounded-md text-[11px] font-extrabold tracking-wide ${
+                          active ? "bg-white text-[#0B4FC4]" : "bg-slate-100 text-[#123E8A]"
+                        }`}
+                      >
+                        {language.shortLabel}
+                      </span>
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-sm font-bold leading-5">
+                          {language.nativeLabel}
+                        </span>
+                        <span className="block text-[10px] font-semibold leading-4 text-[#667085]">
+                          {language.helperLabel}
+                        </span>
+                      </span>
+                      <Check size={14} className={active ? "text-[#0B4FC4]" : "text-transparent"} />
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -466,7 +505,7 @@ export function Header() {
                     className="w-full text-left px-4 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2.5 font-sans"
                   >
                     <User size={14} className="text-[#667085]" />
-                    {locale === "vi" ? "Thông tin cá nhân" : "Personal info"}
+                    {t("header.profile")}
                   </Link>
 
                   <Link
@@ -475,7 +514,7 @@ export function Header() {
                     className="w-full text-left px-4 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2.5 font-sans"
                   >
                     <ClipboardList size={14} className="text-[#667085]" />
-                    {locale === "vi" ? "Phản ánh của tôi" : "My reports"}
+                    {t("header.myReports")}
                   </Link>
 
                   <Link
@@ -484,7 +523,7 @@ export function Header() {
                     className="w-full text-left px-4 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2.5 font-sans"
                   >
                     <Bell size={14} className="text-[#667085]" />
-                    {locale === "vi" ? "Thông báo của tôi" : "My notifications"}
+                    {t("header.myNotifications")}
                   </Link>
 
                   <div className="border-t border-[#E4EAF2] my-1" />
@@ -497,7 +536,7 @@ export function Header() {
                     className="w-full text-left px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50/50 transition flex items-center gap-2.5 font-sans cursor-pointer"
                   >
                     <LogOut size={14} />
-                    {locale === "vi" ? "Đăng xuất" : "Log out"}
+                    {t("header.logout")}
                   </button>
                 </div>
               )}
@@ -508,8 +547,8 @@ export function Header() {
               className="px-3 py-1.5 md:px-4 md:py-2 bg-[#0B4FC4] text-white rounded-lg text-xs md:text-sm font-semibold hover:bg-blue-700 transition flex items-center gap-1.5 shadow-sm font-sans shrink-0"
             >
               <User size={16} />
-              <span className="hidden sm:inline">Đăng nhập / Đăng ký</span>
-              <span className="sm:hidden">Đăng nhập</span>
+              <span className="hidden sm:inline">{t("header.login")}</span>
+              <span className="sm:hidden">{t("header.loginShort")}</span>
             </Link>
           )}
 
@@ -537,11 +576,10 @@ export function Header() {
           aria-label="Mobile"
         >
           {menuItems.map((item, index) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return (
               <Link
                 key={index}
-                to={item.to as any}
+                to={item.to}
                 hash={item.hash}
                 onClick={() => setOpen(false)}
                 className={`block min-h-[48px] px-4 py-3 rounded-md font-semibold transition-all font-sans ${
@@ -558,14 +596,13 @@ export function Header() {
           {staffItems.length > 0 && (
             <>
               <div className="pt-2 pb-1 px-4 text-[10px] uppercase tracking-widest text-[#667085] font-extrabold font-sans">
-                Khu vực cán bộ
+                {t("header.staffArea")}
               </div>
               {staffItems.map((item, index) => {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 return (
                   <Link
                     key={`mobile-staff-${index}`}
-                    to={item.to as any}
+                    to={item.to}
                     onClick={() => setOpen(false)}
                     className="block min-h-[48px] px-4 py-3 rounded-md text-amber-700 bg-amber-50 border border-amber-100 font-bold font-sans"
                   >
@@ -580,27 +617,29 @@ export function Header() {
           <div className="pt-3 mt-3 border-t border-[#E4EAF2] flex flex-col gap-3">
             <div className="flex items-center justify-between px-4">
               <span className="text-sm font-semibold text-[#123E8A] font-sans">
-                Ngôn ngữ / Language:
+                {t("header.langLabel")}
               </span>
               <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setLocale("vi");
-                    setOpen(false);
-                  }}
-                  className={`px-3 py-1 rounded text-xs font-bold border ${locale === "vi" ? "bg-[#0B4FC4] text-white border-[#0B4FC4]" : "border-[#E4EAF2] text-[#123E8A]"}`}
-                >
-                  VI
-                </button>
-                <button
-                  onClick={() => {
-                    setLocale("en");
-                    setOpen(false);
-                  }}
-                  className={`px-3 py-1 rounded text-xs font-bold border ${locale === "en" ? "bg-[#0B4FC4] text-white border-[#0B4FC4]" : "border-[#E4EAF2] text-[#123E8A]"}`}
-                >
-                  EN
-                </button>
+                {LANGUAGE_OPTIONS.map((language) => {
+                  const active = language.code === locale;
+                  return (
+                    <button
+                      key={language.code}
+                      type="button"
+                      onClick={() => {
+                        setLocale(language.code);
+                        setOpen(false);
+                      }}
+                      className={`min-h-9 rounded-lg border px-3 text-xs font-extrabold transition font-sans ${
+                        active
+                          ? "bg-[#0B4FC4] text-white border-[#0B4FC4] shadow-sm"
+                          : "border-[#E4EAF2] text-[#123E8A] hover:bg-[#F5F9FF]"
+                      }`}
+                    >
+                      {language.shortLabel}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -611,14 +650,14 @@ export function Header() {
                   onClick={() => setOpen(false)}
                   className="block min-h-[48px] px-4 py-3 rounded-md font-semibold text-[#123E8A] hover:bg-slate-50 font-sans"
                 >
-                  Thông tin cá nhân
+                  {t("header.profile")}
                 </Link>
                 <Link
                   to="/my-reports"
                   onClick={() => setOpen(false)}
                   className="block min-h-[48px] px-4 py-3 rounded-md font-semibold text-[#123E8A] hover:bg-slate-50 font-sans"
                 >
-                  Phản ánh của tôi
+                  {t("header.myReports")}
                 </Link>
                 <button
                   onClick={() => {
@@ -627,7 +666,7 @@ export function Header() {
                   }}
                   className="w-full text-left min-h-[48px] px-4 py-3 rounded-md hover:bg-red-50 text-red-600 font-semibold inline-flex items-center gap-2 transition-all font-sans cursor-pointer"
                 >
-                  <LogOut size={18} /> Đăng xuất ({user.name})
+                  <LogOut size={18} /> {t("header.logout")} ({user.name})
                 </button>
               </>
             ) : (
@@ -636,7 +675,7 @@ export function Header() {
                 onClick={() => setOpen(false)}
                 className="block min-h-[48px] px-4 py-3 rounded-lg bg-[#0B4FC4] text-white font-bold text-center font-sans"
               >
-                Đăng nhập / Đăng ký
+                {t("header.login")}
               </Link>
             )}
           </div>

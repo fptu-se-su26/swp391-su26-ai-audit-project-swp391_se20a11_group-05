@@ -84,13 +84,32 @@ public class NotificationController extends BaseGenericController<Notification, 
         return ResponseEntity.ok(notifications);
     }
 
+    @GetMapping("/unread-count")
+    public ResponseEntity<ApiResponse<Long>> getUnreadCount() {
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userService.findByUsername(currentUsername);
+        long count = notificationService.countUnreadNotifications(user.getId());
+        return ResponseEntity.ok(ApiResponse.success("Lấy số lượng thông báo chưa đọc thành công", count));
+    }
+
     /**
      * Đánh dấu thông báo là đã đọc.
      */
-    @PatchMapping("/{id}/read")
+    @RequestMapping(value = "/{id}/read", method = {RequestMethod.PATCH, RequestMethod.PUT})
     public ResponseEntity<ApiResponse<NotificationDTO>> markAsRead(@PathVariable Long id) {
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
         Notification updated = notificationService.markAsRead(id, currentUsername);
         return ResponseEntity.ok(ApiResponse.success("Đánh dấu đã đọc thông báo thành công", notificationMapper.toDto(updated)));
+    }
+
+    /**
+     * Đánh dấu tất cả thông báo của người dùng hiện tại là đã đọc.
+     */
+    @RequestMapping(value = "/read-all", method = {RequestMethod.PATCH, RequestMethod.PUT})
+    public ResponseEntity<ApiResponse<Void>> markAllAsRead() {
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userService.findByUsername(currentUsername);
+        notificationService.markAllAsRead(user.getId());
+        return ResponseEntity.ok(ApiResponse.success("Đánh dấu đã đọc tất cả thông báo thành công", null));
     }
 }

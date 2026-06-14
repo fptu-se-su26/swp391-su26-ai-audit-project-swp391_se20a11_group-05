@@ -253,9 +253,17 @@ export interface FeedbackStatusOption {
 
 export interface FeedbackListFilters {
   keyword?: string;
+  category?: string;
   status?: FeedbackStatus | "";
   fromDate?: string;
   toDate?: string;
+}
+
+export interface FeedbackLookupStatsResponse {
+  total: number;
+  pending: number;
+  resolved: number;
+  rejected: number;
 }
 
 export interface FeedbackRequest {
@@ -279,7 +287,7 @@ export interface NotificationResponse {
   feedbackTrackingCode?: string | null;
   feedbackTitle?: string | null;
   feedbackStatus?: FeedbackStatus | null;
-  read: boolean;
+  isRead: boolean;
   createdAt: string;
 }
 
@@ -412,6 +420,11 @@ export const authApi = {
       body: JSON.stringify({ firebaseToken }),
       skipAuth: true,
     }),
+
+  logout: () =>
+    request<unknown>("/api/auth/logout", {
+      method: "POST",
+    }),
 };
 
 export const feedbackApi = {
@@ -429,6 +442,38 @@ export const feedbackApi = {
 
     return request<PageResponse<FeedbackResponse>>(`/api/feedbacks/my?${params}`);
   },
+
+  getPublic: (page = 0, size = 10, filters: FeedbackListFilters = {}) => {
+    const params = new URLSearchParams({
+      page: String(page),
+      size: String(size),
+    });
+
+    const keyword = filters.keyword?.trim();
+    if (keyword) params.set("keyword", keyword);
+    if (filters.category?.trim()) params.set("category", filters.category.trim());
+    if (filters.status) params.set("status", filters.status);
+    if (filters.fromDate) params.set("fromDate", filters.fromDate);
+    if (filters.toDate) params.set("toDate", filters.toDate);
+
+    return request<PageResponse<FeedbackResponse>>(`/api/feedbacks/public?${params}`, { skipAuth: true });
+  },
+
+  getPublicStats: (filters: FeedbackListFilters = {}) => {
+    const params = new URLSearchParams();
+
+    const keyword = filters.keyword?.trim();
+    if (keyword) params.set("keyword", keyword);
+    if (filters.category?.trim()) params.set("category", filters.category.trim());
+    if (filters.status) params.set("status", filters.status);
+    if (filters.fromDate) params.set("fromDate", filters.fromDate);
+    if (filters.toDate) params.set("toDate", filters.toDate);
+
+    return request<FeedbackLookupStatsResponse>(`/api/feedbacks/public/stats?${params}`, { skipAuth: true });
+  },
+
+  getPublicById: (id: string | number) =>
+    request<FeedbackResponse>(`/api/feedbacks/public/${id}`, { skipAuth: true }),
 
   getStatuses: () => request<FeedbackStatusOption[]>("/api/feedbacks/statuses"),
 
@@ -474,8 +519,16 @@ export const notificationApi = {
 
   markAsRead: (id: number | string) =>
     request<NotificationResponse>(`/api/notifications/${id}/read`, {
-      method: "PATCH",
+      method: "PUT",
     }),
+
+  markAllAsRead: () =>
+    request<void>("/api/notifications/read-all", {
+      method: "PUT",
+    }),
+
+  getUnreadCount: () =>
+    request<number>("/api/notifications/unread-count"),
 };
 
 export const policeApi = {

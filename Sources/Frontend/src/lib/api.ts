@@ -202,7 +202,10 @@ export interface UpdateProfileRequest {
 // ─── Feedback Types ───────────────────────────────────────────
 
 export type FeedbackStatus =
+  | "SUBMITTED"
+  | "PENDING_RECEIVE"
   | "PENDING"
+  | "NEED_LOCATION_REVIEW"
   | "ASSIGNED"
   | "IN_PROGRESS"
   | "WAITING_INFO"
@@ -222,9 +225,18 @@ export interface FeedbackResponse {
   addressDetails: string | null;
   address?: string | null;
   status: FeedbackStatus;
+  categoryCode?: string | null;
   categoryName: string | null;
   category?: string | null;
+  managedByRole?: BackendRole | null;
+  wardId?: number | null;
   wardName: string | null;
+  districtName?: string | null;
+  cityName?: string | null;
+  assignedUnitId?: number | null;
+  assignedUnitName?: string | null;
+  assignedToRole?: BackendRole | null;
+  assignedStaffId?: number | null;
   citizenName: string | null;
   assigneeName: string | null;
   assignedAuthorityName?: string | null;
@@ -233,6 +245,9 @@ export interface FeedbackResponse {
   attachments?: FeedbackAttachmentResponse[];
   mediaUrls?: string[];
   timeline?: FeedbackLogResponse[];
+  submittedAt?: string | null;
+  receivedAt?: string | null;
+  resolvedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -272,7 +287,8 @@ export interface FeedbackRequest {
   latitude: number;
   longitude: number;
   addressDetails?: string;
-  categoryId: number;
+  categoryId?: number;
+  categoryCode: string;
   wardId?: number;
 }
 
@@ -312,8 +328,15 @@ export interface FeedbackLogResponse {
 
 export interface CategoryResponse {
   id: number;
+  code: string;
   name: string;
   description: string;
+  nameVi?: string;
+  nameEn?: string;
+  descriptionVi?: string;
+  descriptionEn?: string;
+  managedByRole?: BackendRole;
+  active?: boolean;
 }
 
 // ─── Pagination ───────────────────────────────────────────────

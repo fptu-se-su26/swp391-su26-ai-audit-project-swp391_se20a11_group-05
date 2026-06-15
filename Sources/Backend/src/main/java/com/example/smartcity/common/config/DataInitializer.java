@@ -36,6 +36,8 @@ public class DataInitializer implements CommandLineRunner {
             log.warn("Could not ALTER sms_verifications.otp_code (may already be correct type): {}", e.getMessage());
         }
 
+        ensureOfficialFeedbackSchema();
+
         if (userRepository.count() == 0) {
             log.info("Database is empty. Seeding default user accounts...");
 
@@ -117,19 +119,95 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void seedDefaultCategories() {
-        if (categoryRepository.count() > 0) return;
-
-        seedCategory("Môi trường", "Rác thải, ô nhiễm, vệ sinh đô thị");
-        seedCategory("Giao thông", "Đường hư hỏng, ùn tắc, biển báo");
-        seedCategory("An ninh", "Sự cố cần công an hoặc lực lượng an ninh");
-        seedCategory("Cây xanh", "Cây đổ, cành nguy hiểm, chăm sóc cây xanh");
-        log.info("Seeded default feedback categories.");
+        seedCategory("TRAFFIC", "Giao th\u00f4ng", "Traffic",
+                "Duong hu hong, un tac, bien bao, an toan giao thong",
+                "Road damage, congestion, traffic signs, and traffic safety",
+                "POLICE");
+        seedCategory("URBAN_INFRASTRUCTURE", "H\u1ea1 t\u1ea7ng \u0111\u00f4 th\u1ecb", "Urban Infrastructure",
+                "Den chieu sang, cong thoat nuoc, via he va cong trinh cong cong",
+                "Lighting, drainage, sidewalks, and public infrastructure",
+                "WARD_STAFF");
+        seedCategory("ENVIRONMENT", "M\u00f4i tr\u01b0\u1eddng", "Environment",
+                "Rac thai, o nhiem, cay xanh va ve sinh do thi",
+                "Waste, pollution, greenery, and urban sanitation",
+                "WARD_STAFF");
+        seedCategory("PUBLIC_SECURITY", "An ninh tr\u1eadt t\u1ef1", "Public Security",
+                "Mat trat tu, gay roi, trom cap va nguy co an ninh",
+                "Disorder, disturbance, theft, and public security risks",
+                "POLICE");
+        seedCategory("CONSTRUCTION", "X\u00e2y d\u1ef1ng", "Construction",
+                "Xay dung trai phep, che chan cong trinh va an toan thi cong",
+                "Illegal construction, site obstruction, and construction safety",
+                "WARD_STAFF");
+        seedCategory("FIRE_SAFETY", "Ph\u00f2ng ch\u00e1y ch\u1eefa ch\u00e1y", "Fire Safety",
+                "Nguy co chay no, loi thoat hiem va thiet bi PCCC",
+                "Fire hazards, emergency exits, and fire safety equipment",
+                "POLICE");
+        deactivateDemoCategory("Test Feedback");
+        deactivateDemoCategory("Sample Feedback");
+        deactivateDemoCategory("Demo Category");
+        log.info("Seeded official feedback categories.");
     }
 
-    private void seedCategory(String name, String description) {
-        Category category = new Category();
-        category.setName(name);
-        category.setDescription(description);
+    private void ensureOfficialFeedbackSchema() {
+        executeSchemaSql("ALTER TABLE IF EXISTS categories ADD COLUMN IF NOT EXISTS code VARCHAR(80)");
+        executeSchemaSql("ALTER TABLE IF EXISTS categories ADD COLUMN IF NOT EXISTS name_vi VARCHAR(255)");
+        executeSchemaSql("ALTER TABLE IF EXISTS categories ADD COLUMN IF NOT EXISTS name_en VARCHAR(255)");
+        executeSchemaSql("ALTER TABLE IF EXISTS categories ADD COLUMN IF NOT EXISTS description_vi TEXT");
+        executeSchemaSql("ALTER TABLE IF EXISTS categories ADD COLUMN IF NOT EXISTS description_en TEXT");
+        executeSchemaSql("ALTER TABLE IF EXISTS categories ADD COLUMN IF NOT EXISTS managed_by_role VARCHAR(30)");
+        executeSchemaSql("ALTER TABLE IF EXISTS categories ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE");
+        executeSchemaSql("UPDATE categories SET code = COALESCE(code, 'LEGACY_' || id), name_vi = COALESCE(name_vi, name), name_en = COALESCE(name_en, name), description_vi = COALESCE(description_vi, description), description_en = COALESCE(description_en, description), managed_by_role = COALESCE(managed_by_role, 'WARD_STAFF') WHERE code IS NULL OR name_vi IS NULL OR name_en IS NULL OR managed_by_role IS NULL");
+        executeSchemaSql("CREATE UNIQUE INDEX IF NOT EXISTS ux_categories_code ON categories(code)");
+
+        executeSchemaSql("ALTER TABLE IF EXISTS wards ADD COLUMN IF NOT EXISTS ward_code VARCHAR(50)");
+        executeSchemaSql("ALTER TABLE IF EXISTS wards ADD COLUMN IF NOT EXISTS type VARCHAR(30) NOT NULL DEFAULT 'WARD'");
+        executeSchemaSql("ALTER TABLE IF EXISTS wards ADD COLUMN IF NOT EXISTS city_name VARCHAR(100) NOT NULL DEFAULT 'Da Nang'");
+        executeSchemaSql("ALTER TABLE IF EXISTS wards ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE");
+
+        executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD COLUMN IF NOT EXISTS category_code VARCHAR(80)");
+        executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD COLUMN IF NOT EXISTS category_name VARCHAR(255)");
+        executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD COLUMN IF NOT EXISTS managed_by_role VARCHAR(30)");
+        executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD COLUMN IF NOT EXISTS ward_name VARCHAR(255)");
+        executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD COLUMN IF NOT EXISTS district_name VARCHAR(255)");
+        executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD COLUMN IF NOT EXISTS city_name VARCHAR(255)");
+        executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD COLUMN IF NOT EXISTS assigned_unit_id BIGINT");
+        executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD COLUMN IF NOT EXISTS assigned_unit_name VARCHAR(255)");
+        executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD COLUMN IF NOT EXISTS assigned_to_role VARCHAR(30)");
+        executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD COLUMN IF NOT EXISTS assigned_staff_id BIGINT");
+        executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD COLUMN IF NOT EXISTS submitted_at TIMESTAMP");
+        executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD COLUMN IF NOT EXISTS received_at TIMESTAMP");
+        executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ALTER COLUMN ward_id DROP NOT NULL");
+        executeSchemaSql("ALTER TABLE IF EXISTS feedbacks DROP CONSTRAINT IF EXISTS feedbacks_status_check");
+        executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD CONSTRAINT feedbacks_status_check CHECK (status IN ('SUBMITTED', 'PENDING_RECEIVE', 'PENDING', 'NEED_LOCATION_REVIEW', 'IN_PROGRESS', 'WAITING_INFO', 'RESOLVED', 'REJECTED'))");
+    }
+
+    private void executeSchemaSql(String sql) {
+        try {
+            jdbcTemplate.execute(sql);
+        } catch (Exception e) {
+            log.warn("Could not apply schema alignment SQL [{}]: {}", sql, e.getMessage());
+        }
+    }
+
+    private void seedCategory(String code, String nameVi, String nameEn, String descriptionVi, String descriptionEn, String managedByRole) {
+        Category category = categoryRepository.findByCode(code).orElseGet(Category::new);
+        category.setCode(code);
+        category.setName(nameVi);
+        category.setDescription(descriptionVi);
+        category.setNameVi(nameVi);
+        category.setNameEn(nameEn);
+        category.setDescriptionVi(descriptionVi);
+        category.setDescriptionEn(descriptionEn);
+        category.setManagedByRole(managedByRole);
+        category.setActive(true);
         categoryRepository.save(category);
+    }
+
+    private void deactivateDemoCategory(String name) {
+        categoryRepository.findByName(name).ifPresent(category -> {
+            category.setActive(false);
+            categoryRepository.save(category);
+        });
     }
 }

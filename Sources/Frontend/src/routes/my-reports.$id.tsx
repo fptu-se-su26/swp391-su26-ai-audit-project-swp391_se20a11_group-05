@@ -181,6 +181,16 @@ function ReportDetail() {
             icon={FileText}
           >
             <DetailRow
+              icon={FileText}
+              label={locale === "vi" ? "DANH MỤC" : "Category"}
+              value={report.categoryName || report.category}
+            />
+            <DetailRow
+              icon={MapPin}
+              label={locale === "vi" ? "PHƯỜNG/XÃ PHỤ TRÁCH" : "Responsible ward"}
+              value={report.wardName || (locale === "vi" ? "Cần kiểm tra vị trí" : "Location review needed")}
+            />
+            <DetailRow
               icon={MapPin}
               label={locale === "vi" ? "ĐỊA CHỈ" : "Address"}
               value={report.address || report.addressDetails || report.wardName}
@@ -188,7 +198,7 @@ function ReportDetail() {
             <DetailRow
               icon={UserRound}
               label={locale === "vi" ? "ĐƠN VỊ PHỤ TRÁCH" : "Assigned authority"}
-              value={report.assignedAuthorityName || report.wardName || report.assigneeName}
+              value={report.assignedUnitName || report.assignedAuthorityName || report.wardName || report.assigneeName}
             />
             <DetailRow
               icon={CalendarClock}

@@ -40,7 +40,7 @@ export function PoliceDashboard() {
 
   // Filter traffic/urgent for police view
   const filteredApi = apiFeedbacks.filter(
-    (r) => r.categoryName === "Giao thông" || r.status === "REJECTED",
+    (r) => r.managedByRole === "POLICE" || r.status === "REJECTED",
   );
   const trafficReports = mockReports.filter(
     (r) => r.category === "traffic" || r.status === "urgent",

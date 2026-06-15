@@ -7,6 +7,7 @@ import com.example.smartcity.modules.feedback.entity.Feedback;
 import com.example.smartcity.modules.feedback.entity.FeedbackStatus;
 import com.example.smartcity.modules.feedback.repository.CategoryRepository;
 import com.example.smartcity.modules.feedback.repository.FeedbackRepository;
+import com.example.smartcity.modules.feedback.service.CategoryRoutingService;
 import com.example.smartcity.modules.feedback.service.FeedbackService;
 import com.example.smartcity.modules.user.entity.Role;
 import com.example.smartcity.modules.user.entity.User;
@@ -47,6 +48,7 @@ class FeedbackServiceTest {
     @Mock private NotificationService notificationService;
     @Mock private AutoDispatchService autoDispatchService;
     @Mock private LocationResolutionService locationResolutionService;
+    private CategoryRoutingService categoryRoutingService;
 
     private FeedbackService feedbackService;
 
@@ -59,6 +61,7 @@ class FeedbackServiceTest {
 
     @BeforeEach
     void setUp() {
+        categoryRoutingService = new CategoryRoutingService();
         feedbackService = new FeedbackService(
                 feedbackRepository,
                 feedbackLogRepository,
@@ -68,7 +71,8 @@ class FeedbackServiceTest {
                 userRepository,
                 attachmentRepository,
                 autoDispatchService,
-                locationResolutionService
+                locationResolutionService,
+                categoryRoutingService
         );
 
         citizen = new User("citizen1", "encoded", "Người Dân", "0905123456",
@@ -89,7 +93,12 @@ class FeedbackServiceTest {
 
         category = new Category();
         category.setId(1L);
-        category.setName("Hạ tầng");
+        category.setCode("TRAFFIC");
+        category.setName("Giao thong");
+        category.setNameVi("Giao thong");
+        category.setNameEn("Traffic");
+        category.setManagedByRole("POLICE");
+        category.setActive(true);
 
         validRequest = FeedbackRequest.builder()
                 .title("Ổ gà trên đường Hùng Vương")
@@ -97,7 +106,7 @@ class FeedbackServiceTest {
                 .latitude(16.0544)
                 .longitude(108.2022)
                 .addressDetails("123 Nguyễn Văn Linh")
-                .categoryId(1L)
+                .categoryCode("TRAFFIC")
                 .wardId(1L)
                 .build();
     }
@@ -105,7 +114,7 @@ class FeedbackServiceTest {
     @Test
     @DisplayName("Should create feedback successfully")
     void createFeedback_success() {
-        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
+        when(categoryRepository.findByCodeAndActiveTrue("TRAFFIC")).thenReturn(Optional.of(category));
         when(userRepository.findByUsername("citizen1")).thenReturn(Optional.of(citizen));
         when(locationResolutionService.findAuthorityByLocation(16.0544, 108.2022)).thenReturn(ward);
         when(feedbackRepository.save(any(Feedback.class))).thenAnswer(invocation -> {
@@ -119,7 +128,7 @@ class FeedbackServiceTest {
         assertNotNull(result);
         assertTrue(result.getTrackingCode().startsWith("FB-"));
         assertEquals("Ổ gà trên đường Hùng Vương", result.getTitle());
-        assertEquals(FeedbackStatus.PENDING, result.getStatus());
+        assertEquals(FeedbackStatus.PENDING_RECEIVE, result.getStatus());
         assertEquals(category, result.getCategory());
         assertEquals(citizen, result.getCitizen());
         assertEquals(16.0544, result.getLatitude());
@@ -129,13 +138,13 @@ class FeedbackServiceTest {
     @Test
     @DisplayName("Should require GPS coordinates when creating feedback")
     void createFeedback_requiresGps() {
-        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
+        when(categoryRepository.findByCodeAndActiveTrue("TRAFFIC")).thenReturn(Optional.of(category));
         when(userRepository.findByUsername("citizen1")).thenReturn(Optional.of(citizen));
 
         FeedbackRequest invalid = FeedbackRequest.builder()
                 .title("Test")
                 .description("Test desc")
-                .categoryId(1L)
+                .categoryCode("TRAFFIC")
                 .build();
 
         assertThrows(com.example.smartcity.common.exception.CustomException.class,
@@ -146,14 +155,12 @@ class FeedbackServiceTest {
     @Test
     @DisplayName("Should throw when category not found")
     void createFeedback_categoryNotFound() {
-        when(categoryRepository.findById(999L)).thenReturn(Optional.empty());
-
         FeedbackRequest invalid = FeedbackRequest.builder()
                 .title("Test").description("Test desc")
-                .categoryId(999L).wardId(1L)
+                .categoryCode("INVALID").wardId(1L)
                 .build();
 
-        assertThrows(com.example.smartcity.common.exception.ResourceNotFoundException.class,
+        assertThrows(com.example.smartcity.common.exception.CustomException.class,
                 () -> feedbackService.createFeedback(invalid, "citizen1"));
     }
 

@@ -22,6 +22,8 @@ import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MyReportsIndexRouteImport } from './routes/my-reports.index'
 import { Route as MyReportsIdRouteImport } from './routes/my-reports.$id'
+import { Route as CampaignsCreateRouteImport } from './routes/campaigns.create'
+import { Route as CampaignsIdRouteImport } from './routes/campaigns.$id'
 import { Route as AuthWardRouteImport } from './routes/_auth.ward'
 import { Route as AuthPoliceRouteImport } from './routes/_auth.police'
 import { Route as AuthCityAdminRouteImport } from './routes/_auth.city-admin'
@@ -91,6 +93,16 @@ const MyReportsIdRoute = MyReportsIdRouteImport.update({
   path: '/my-reports/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CampaignsCreateRoute = CampaignsCreateRouteImport.update({
+  id: '/campaigns/create',
+  path: '/campaigns/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CampaignsIdRoute = CampaignsIdRouteImport.update({
+  id: '/campaigns/$id',
+  path: '/campaigns/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthWardRoute = AuthWardRouteImport.update({
   id: '/ward',
   path: '/ward',
@@ -127,6 +139,8 @@ export interface FileRoutesByFullPath {
   '/city-admin': typeof AuthCityAdminRoute
   '/police': typeof AuthPoliceRoute
   '/ward': typeof AuthWardRoute
+  '/campaigns/$id': typeof CampaignsIdRoute
+  '/campaigns/create': typeof CampaignsCreateRoute
   '/my-reports/$id': typeof MyReportsIdRoute
   '/my-reports/': typeof MyReportsIndexRoute
 }
@@ -145,6 +159,8 @@ export interface FileRoutesByTo {
   '/city-admin': typeof AuthCityAdminRoute
   '/police': typeof AuthPoliceRoute
   '/ward': typeof AuthWardRoute
+  '/campaigns/$id': typeof CampaignsIdRoute
+  '/campaigns/create': typeof CampaignsCreateRoute
   '/my-reports/$id': typeof MyReportsIdRoute
   '/my-reports': typeof MyReportsIndexRoute
 }
@@ -165,6 +181,8 @@ export interface FileRoutesById {
   '/_auth/city-admin': typeof AuthCityAdminRoute
   '/_auth/police': typeof AuthPoliceRoute
   '/_auth/ward': typeof AuthWardRoute
+  '/campaigns/$id': typeof CampaignsIdRoute
+  '/campaigns/create': typeof CampaignsCreateRoute
   '/my-reports/$id': typeof MyReportsIdRoute
   '/my-reports/': typeof MyReportsIndexRoute
 }
@@ -185,6 +203,8 @@ export interface FileRouteTypes {
     | '/city-admin'
     | '/police'
     | '/ward'
+    | '/campaigns/$id'
+    | '/campaigns/create'
     | '/my-reports/$id'
     | '/my-reports/'
   fileRoutesByTo: FileRoutesByTo
@@ -203,6 +223,8 @@ export interface FileRouteTypes {
     | '/city-admin'
     | '/police'
     | '/ward'
+    | '/campaigns/$id'
+    | '/campaigns/create'
     | '/my-reports/$id'
     | '/my-reports'
   id:
@@ -222,6 +244,8 @@ export interface FileRouteTypes {
     | '/_auth/city-admin'
     | '/_auth/police'
     | '/_auth/ward'
+    | '/campaigns/$id'
+    | '/campaigns/create'
     | '/my-reports/$id'
     | '/my-reports/'
   fileRoutesById: FileRoutesById
@@ -238,6 +262,8 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TinTucRoute: typeof TinTucRoute
   VerifyOtpRoute: typeof VerifyOtpRoute
+  CampaignsIdRoute: typeof CampaignsIdRoute
+  CampaignsCreateRoute: typeof CampaignsCreateRoute
   MyReportsIdRoute: typeof MyReportsIdRoute
   MyReportsIndexRoute: typeof MyReportsIndexRoute
 }
@@ -335,6 +361,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MyReportsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/campaigns/create': {
+      id: '/campaigns/create'
+      path: '/campaigns/create'
+      fullPath: '/campaigns/create'
+      preLoaderRoute: typeof CampaignsCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/campaigns/$id': {
+      id: '/campaigns/$id'
+      path: '/campaigns/$id'
+      fullPath: '/campaigns/$id'
+      preLoaderRoute: typeof CampaignsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_auth/ward': {
       id: '/_auth/ward'
       path: '/ward'
@@ -394,6 +434,8 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TinTucRoute: TinTucRoute,
   VerifyOtpRoute: VerifyOtpRoute,
+  CampaignsIdRoute: CampaignsIdRoute,
+  CampaignsCreateRoute: CampaignsCreateRoute,
   MyReportsIdRoute: MyReportsIdRoute,
   MyReportsIndexRoute: MyReportsIndexRoute,
 }

@@ -7,6 +7,8 @@ import com.example.smartcity.modules.feedback.repository.CategoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class CategoryService extends BaseServiceImpl<Category, Long> {
@@ -21,6 +23,10 @@ public class CategoryService extends BaseServiceImpl<Category, Long> {
     @Override
     protected String getResourceName() {
         return "Category";
+    }
+
+    public List<Category> findActiveCategories() {
+        return categoryRepository.findByActiveTrueOrderByIdAsc();
     }
 }
 

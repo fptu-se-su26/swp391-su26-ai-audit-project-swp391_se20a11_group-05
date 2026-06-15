@@ -2,8 +2,8 @@ import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-ro
 import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
-import { useFeedbacks, useFeedbackStatuses } from "@/lib/hooks";
-import { EmptyState, ErrorState, NotLoggedIn } from "@/components/site/EmptyState";
+import { usePublicFeedbacks, usePublicFeedbackStats, useFeedbackStatuses } from "@/lib/hooks";
+import { EmptyState, ErrorState } from "@/components/site/EmptyState";
 import { useQuery } from "@tanstack/react-query";
 import {
   Search,
@@ -31,11 +31,9 @@ import { Role, AUTHORITY_ROLES, parseBackendRole } from "@/lib/roles";
 import {
   getToken,
   categoryApi,
-  analyticsApi,
   type FeedbackAttachmentResponse,
   type FeedbackStatus,
   type CategoryResponse,
-  type KpiData,
 } from "@/lib/api";
 
 const CivicMap = lazy(() =>
@@ -46,36 +44,6 @@ export const Route = createFileRoute("/my-reports/")({
   validateSearch: (search: Record<string, unknown>) => ({
     q: (search.q as string) || "",
   }),
-  beforeLoad: async () => {
-    const token = typeof window !== "undefined" ? getToken() : null;
-    const raw = typeof window !== "undefined" ? localStorage.getItem("dn_auth_user_v2") : null;
-
-    if (!token || !raw) {
-      throw redirect({ to: "/login", search: { error: "auth_required", redirect: "/my-reports" } });
-    }
-
-    let user: { role: string } | null = null;
-    try {
-      user = JSON.parse(raw);
-    } catch {
-      /* ignore */
-    }
-
-    if (!user)
-      throw redirect({ to: "/login", search: { redirect: undefined, error: "auth_required" } });
-
-    const role = parseBackendRole(user.role);
-
-    // Authority staff should not access citizen report list
-    if (AUTHORITY_ROLES.has(role)) {
-      throw redirect({ to: "/login", search: { redirect: undefined, error: "forbidden" } });
-    }
-
-    // Confirm CITIZEN role
-    if (role !== Role.CITIZEN) {
-      throw redirect({ to: "/login", search: { redirect: undefined, error: "forbidden" } });
-    }
-  },
   head: () => ({
     meta: [
       { title: "Tra cứu phản ánh — Đà Nẵng Kết Nối" },
@@ -102,7 +70,6 @@ function MyReports() {
   const [toDateInput, setToDateInput] = useState("");
 
   const [dateRangeOpen, setDateRangeOpen] = useState(false);
-  const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortBy, setSortBy] = useState("newest");
 
   // Committed search filters
@@ -114,6 +81,17 @@ function MyReports() {
     fromDate: "",
     toDate: "",
   });
+
+  const isFiltered = useMemo(() => {
+    return (
+      filters.keyword.trim() !== "" ||
+      filters.location.trim() !== "" ||
+      filters.category !== "" ||
+      filters.status !== "" ||
+      filters.fromDate !== "" ||
+      filters.toDate !== ""
+    );
+  }, [filters]);
 
   // Sync search URL query parameter
   useEffect(() => {
@@ -130,13 +108,6 @@ function MyReports() {
     queryFn: () => categoryApi.getAll(),
   });
 
-  // KPI Overview stats query
-  const { data: analyticsKpi } = useQuery<KpiData>({
-    queryKey: ["analytics", "kpi"],
-    queryFn: () => analyticsApi.kpi(),
-    retry: false,
-  });
-
   // Construct query filters to send to backend API
   const apiFilters = useMemo(() => {
     const parts = [];
@@ -146,13 +117,14 @@ function MyReports() {
 
     return {
       keyword: mergedKeyword,
+      category: filters.category,
       status: filters.status,
       fromDate: filters.fromDate,
       toDate: filters.toDate,
     };
   }, [filters]);
 
-  // Main reports list fetch
+  // Main reports list fetch (Public lookup)
   const {
     data: feedbacksPage,
     isLoading,
@@ -160,15 +132,10 @@ function MyReports() {
     refetch,
     error,
     isError,
-  } = useFeedbacks(page, pageSize, apiFilters);
+  } = usePublicFeedbacks(page, pageSize, apiFilters);
 
-  // Fetch all citizen reports in background to calculate fallback statistics
-  const { data: allCitizenFeedbacks } = useFeedbacks(0, 1000, {
-    keyword: "",
-    status: "",
-    fromDate: "",
-    toDate: "",
-  });
+  // Fetch public statistics for overview panel
+  const { data: publicStats } = usePublicFeedbackStats(apiFilters);
 
   const { data: statuses = [] } = useFeedbackStatuses();
 
@@ -177,24 +144,11 @@ function MyReports() {
     setPage(0);
   }, [filters.keyword, filters.location, filters.category, filters.status, filters.fromDate, filters.toDate]);
 
-  if (!isAuthenticated) {
-    return <NotLoggedIn />;
-  }
-
   const feedbacks = feedbacksPage?.content ?? [];
   const totalPages = feedbacksPage?.totalPages ?? 0;
 
-  // Client-side category filter fallback (backend doesn't support category param)
-  const filteredFeedbacks = useMemo(() => {
-    let list = feedbacks;
-    if (filters.category) {
-      list = list.filter((f) => {
-        const catName = f.categoryName || f.category || "";
-        return catName.toLowerCase().includes(filters.category.toLowerCase());
-      });
-    }
-    return list;
-  }, [feedbacks, filters.category]);
+  // Since we query public endpoint with category directly, no client-side category filter is needed
+  const filteredFeedbacks = feedbacks;
 
   // Client-side sorting fallback (backend forces newest first)
   const sortedFeedbacks = useMemo(() => {
@@ -213,32 +167,26 @@ function MyReports() {
     return list;
   }, [filteredFeedbacks, sortBy]);
 
-  // Combined statistics helper
+  // Combined statistics helper from backend
   const stats = useMemo(() => {
-    if (analyticsKpi) {
-      const total = analyticsKpi.total;
-      const resolved = analyticsKpi.resolved;
-      const pending = analyticsKpi.pending;
-      const rejected = Math.max(0, total - resolved - pending);
-      return { total, resolved, pending, rejected };
+    if (publicStats) {
+      return {
+        total: publicStats.total,
+        resolved: publicStats.resolved,
+        pending: publicStats.pending,
+        rejected: publicStats.rejected,
+      };
     }
-
-    // Fallback: Calculate citizen's own report summary
-    const list = allCitizenFeedbacks?.content ?? [];
-    const total = allCitizenFeedbacks?.totalElements ?? list.length;
-    const resolved = list.filter((f) => f.status === "RESOLVED").length;
-    const rejected = list.filter((f) => f.status === "REJECTED").length;
-    const pending = Math.max(0, total - resolved - rejected);
-    return { total, resolved, pending, rejected };
-  }, [analyticsKpi, allCitizenFeedbacks]);
+    return { total: 0, resolved: 0, pending: 0, rejected: 0 };
+  }, [publicStats]);
 
   // Popular categories calculations based on real data list
   const categoryStats = useMemo(() => {
-    const list = allCitizenFeedbacks?.content ?? feedbacks;
+    const list = feedbacks;
     if (!list || list.length === 0) return [];
     const counts: Record<string, number> = {};
     list.forEach((f) => {
-      const cat = f.categoryName || f.category || "Khác";
+      const cat = f.categoryName || f.category || (locale === "vi" ? "Khác" : "Other");
       counts[cat] = (counts[cat] || 0) + 1;
     });
     const total = list.length;
@@ -249,7 +197,7 @@ function MyReports() {
         percentage: Math.round((count / total) * 100),
       }))
       .sort((a, b) => b.count - a.count);
-  }, [allCitizenFeedbacks, feedbacks]);
+  }, [feedbacks, locale]);
 
   const handleSearchSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -291,9 +239,15 @@ function MyReports() {
         };
       case "IN_PROGRESS":
       case "ASSIGNED":
+      case "PENDING_RECEIVE":
         return {
           label: locale === "vi" ? "Đang xử lý" : "Processing",
           badgeClass: "bg-[#FFF4E8] text-[#F97316]",
+        };
+      case "NEED_LOCATION_REVIEW":
+        return {
+          label: locale === "vi" ? "Cần kiểm tra vị trí" : "Location review",
+          badgeClass: "bg-[#FFF7D6] text-[#A16207]",
         };
       case "REJECTED":
         return {
@@ -301,6 +255,7 @@ function MyReports() {
           badgeClass: "bg-[#FDECEC] text-[#DC2626]",
         };
       case "PENDING":
+      case "SUBMITTED":
       default:
         return {
           label: locale === "vi" ? "Tiếp nhận" : "Received",
@@ -342,16 +297,16 @@ function MyReports() {
               </div>
               <div className="flex flex-col">
                 <span className="text-xs font-bold text-[#667085] uppercase tracking-wider leading-none mb-1">
-                  Cần hỗ trợ?
+                  {locale === "vi" ? "Cần hỗ trợ?" : "Need support?"}
                 </span>
                 <span className="text-xs text-[#475467] leading-none mb-1">
-                  Gọi ngay đường dây nóng
+                  {locale === "vi" ? "Gọi ngay đường dây nóng" : "Call hotline now"}
                 </span>
                 <span className="text-2xl font-extrabold text-[#0B4FC4] leading-tight font-sans">
                   1022
                 </span>
                 <span className="text-[10px] text-[#667085] mt-0.5 leading-none">
-                  24/7 · Miễn phí
+                  {locale === "vi" ? "24/7 · Miễn phí" : "24/7 · Free"}
                 </span>
               </div>
             </a>
@@ -368,7 +323,7 @@ function MyReports() {
               {/* Field 1: Từ khóa */}
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="filter-keyword" className="text-xs font-bold text-[#667085] uppercase tracking-wider">
-                  Từ khóa
+                  {locale === "vi" ? "Từ khóa" : "Keyword"}
                 </label>
                 <div className="relative">
                   <input
@@ -376,7 +331,7 @@ function MyReports() {
                     type="text"
                     value={keywordInput}
                     onChange={(e) => setKeywordInput(e.target.value)}
-                    placeholder="Nhập mã, tiêu đề, nội dung..."
+                    placeholder={locale === "vi" ? "Nhập mã, tiêu đề, nội dung..." : "Enter code, title, content..."}
                     className="w-full min-h-[48px] pl-4 pr-10 rounded-xl border-2 border-slate-200 bg-white text-sm focus:border-[#0B4FC4] outline-none transition-colors"
                   />
                   <Search size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -386,7 +341,7 @@ function MyReports() {
               {/* Field 2: Lĩnh vực */}
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="filter-category" className="text-xs font-bold text-[#667085] uppercase tracking-wider">
-                  Lĩnh vực
+                  {locale === "vi" ? "Lĩnh vực" : "Category"}
                 </label>
                 <select
                   id="filter-category"
@@ -399,7 +354,7 @@ function MyReports() {
                     backgroundRepeat: "no-repeat",
                   }}
                 >
-                  <option value="">Tất cả lĩnh vực</option>
+                  <option value="">{locale === "vi" ? "Tất cả lĩnh vực" : "All categories"}</option>
                   {categories.map((c) => (
                     <option key={c.id} value={c.name}>
                       {c.name}
@@ -411,7 +366,7 @@ function MyReports() {
               {/* Field 3: Địa điểm */}
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="filter-location" className="text-xs font-bold text-[#667085] uppercase tracking-wider">
-                  Địa điểm
+                  {locale === "vi" ? "Địa điểm" : "Location"}
                 </label>
                 <div className="relative">
                   <input
@@ -419,7 +374,7 @@ function MyReports() {
                     type="text"
                     value={locationInput}
                     onChange={(e) => setLocationInput(e.target.value)}
-                    placeholder="Nhập địa điểm, phường, quận..."
+                    placeholder={locale === "vi" ? "Nhập địa điểm, phường, quận..." : "Enter location, ward, district..."}
                     className="w-full min-h-[48px] pl-4 pr-10 rounded-xl border-2 border-slate-200 bg-white text-sm focus:border-[#0B4FC4] outline-none transition-colors"
                   />
                   <MapPin size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -429,7 +384,7 @@ function MyReports() {
               {/* Field 4: Trạng thái */}
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="filter-status" className="text-xs font-bold text-[#667085] uppercase tracking-wider">
-                  Trạng thái
+                  {locale === "vi" ? "Trạng thái" : "Status"}
                 </label>
                 <select
                   id="filter-status"
@@ -442,7 +397,7 @@ function MyReports() {
                     backgroundRepeat: "no-repeat",
                   }}
                 >
-                  <option value="">Tất cả trạng thái</option>
+                  <option value="">{locale === "vi" ? "Tất cả trạng thái" : "All statuses"}</option>
                   {statuses.map((opt) => (
                     <option key={opt.value} value={opt.value}>
                       {opt.label}
@@ -454,7 +409,7 @@ function MyReports() {
               {/* Field 5: Thời gian */}
               <div className="flex flex-col gap-1.5 relative">
                 <label className="text-xs font-bold text-[#667085] uppercase tracking-wider">
-                  Thời gian
+                  {locale === "vi" ? "Thời gian" : "Date range"}
                 </label>
                 <button
                   type="button"
@@ -465,7 +420,7 @@ function MyReports() {
                     <Calendar size={16} className="text-slate-400" />
                     {fromDateInput || toDateInput
                       ? `${fromDateInput || "..."} → ${toDateInput || "..."}`
-                      : "Chọn khoảng thời gian"}
+                      : (locale === "vi" ? "Chọn khoảng thời gian" : "Select date range")}
                   </span>
                   <ChevronDown size={14} className="text-slate-400" />
                 </button>
@@ -473,7 +428,7 @@ function MyReports() {
                 {dateRangeOpen && (
                   <div className="absolute top-[70px] left-0 right-0 lg:left-auto lg:right-0 w-[280px] bg-white border border-[#E4EAF2] rounded-xl shadow-lg p-4 z-50 space-y-3">
                     <div className="space-y-1">
-                      <span className="text-[10px] uppercase font-bold text-[#667085]">Từ ngày</span>
+                      <span className="text-[10px] uppercase font-bold text-[#667085]">{locale === "vi" ? "Từ ngày" : "From date"}</span>
                       <input
                         type="date"
                         value={fromDateInput}
@@ -482,7 +437,7 @@ function MyReports() {
                       />
                     </div>
                     <div className="space-y-1">
-                      <span className="text-[10px] uppercase font-bold text-[#667085]">Đến ngày</span>
+                      <span className="text-[10px] uppercase font-bold text-[#667085]">{locale === "vi" ? "Đến ngày" : "To date"}</span>
                       <input
                         type="date"
                         value={toDateInput}
@@ -499,14 +454,14 @@ function MyReports() {
                         }}
                         className="px-2.5 py-1 text-xs font-semibold text-[#667085] hover:text-[#0B4FC4] hover:bg-slate-50 rounded"
                       >
-                        Xóa
+                        {locale === "vi" ? "Xóa" : "Clear"}
                       </button>
                       <button
                         type="button"
                         onClick={() => setDateRangeOpen(false)}
                         className="px-3 py-1 bg-[#0B4FC4] text-white text-xs font-semibold rounded hover:bg-blue-700"
                       >
-                        Áp dụng
+                        {locale === "vi" ? "Áp dụng" : "Apply"}
                       </button>
                     </div>
                   </div>
@@ -515,66 +470,55 @@ function MyReports() {
             </div>
 
             {/* Bottom Actions Row */}
-            <div className="flex items-center justify-between border-t border-slate-100 pt-4 flex-wrap gap-3">
+            <div className="flex items-center justify-end border-t border-slate-100 pt-4 gap-3">
               <button
                 type="button"
-                onClick={() => setFiltersOpen(!filtersOpen)}
-                className={`min-h-[40px] px-4 rounded-lg border-2 text-xs font-bold transition-colors flex items-center gap-2 ${
-                  filtersOpen
-                    ? "border-[#0B4FC4] bg-[#0B4FC4] text-white"
-                    : "border-slate-200 bg-white text-[#0B4FC4] hover:bg-blue-50/50"
-                }`}
+                onClick={handleReset}
+                className="min-h-[40px] px-4 rounded-lg border-2 border-slate-200 bg-white text-xs font-bold text-[#475467] hover:bg-slate-50 transition-colors flex items-center gap-2"
               >
-                <SlidersHorizontal size={14} />
-                Bộ lọc nâng cao
+                <RefreshCw size={14} />
+                {locale === "vi" ? "Đặt lại" : "Reset"}
               </button>
-
-              <div className="flex items-center gap-3 ml-auto">
-                <button
-                  type="button"
-                  onClick={handleReset}
-                  className="min-h-[40px] px-4 rounded-lg border-2 border-slate-200 bg-white text-xs font-bold text-[#475467] hover:bg-slate-50 transition-colors flex items-center gap-2"
-                >
-                  <RefreshCw size={14} />
-                  Đặt lại
-                </button>
-                <button
-                  type="submit"
-                  className="min-h-[40px] px-6 rounded-lg bg-[#0B4FC4] hover:bg-blue-700 text-xs font-bold text-white transition-colors flex items-center gap-2 shadow-sm"
-                >
-                  <Search size={14} />
-                  Tìm kiếm
-                </button>
-              </div>
+              <button
+                type="submit"
+                className="min-h-[40px] px-6 rounded-lg bg-[#0B4FC4] hover:bg-blue-700 text-xs font-bold text-white transition-colors flex items-center gap-2 shadow-sm"
+              >
+                <Search size={14} />
+                {locale === "vi" ? "Tìm kiếm" : "Search"}
+              </button>
             </div>
           </form>
         </div>
 
         {/* 3. Two-Column split area */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
           {/* Left Column: Report results list */}
-          <div className="lg:col-span-8 space-y-6">
+          <div className="md:col-span-8 space-y-6">
             <div className="bg-white border border-[#E4EAF2] rounded-2xl p-5 md:p-6 shadow-sm space-y-6">
               {/* Header result info */}
               <div className="flex items-center justify-between border-b border-slate-100 pb-4 flex-wrap gap-2">
                 <div className="text-sm font-semibold text-[#475467]">
-                  Tổng số{" "}
-                  <span className="text-2xl font-extrabold text-[#0B4FC4] font-sans inline-block align-middle -mt-1 mx-1">
-                    {feedbacksPage?.totalElements ?? sortedFeedbacks.length}
-                  </span>{" "}
-                  phản ánh
+                  {isFiltered ? (
+                    <>
+                      {locale === "vi" ? "Tìm thấy" : "Found"}{" "}
+                      <span className="text-2xl font-extrabold text-[#0B4FC4] font-sans inline-block align-middle -mt-1 mx-1">
+                        {feedbacksPage?.totalElements ?? 0}
+                      </span>{" "}
+                      {locale === "vi" ? "kết quả" : "results"}
+                    </>
+                  ) : null}
                 </div>
 
                 <div className="flex items-center gap-2 text-xs font-bold">
-                  <span className="text-[#667085]">Sắp xếp theo:</span>
+                  <span className="text-[#667085]">{locale === "vi" ? "Sắp xếp theo:" : "Sort by:"}</span>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
                     className="bg-transparent text-[#123E8A] outline-none border-b-2 border-transparent focus:border-[#0B4FC4] cursor-pointer py-1 font-bold"
                   >
-                    <option value="newest">Mới nhất</option>
-                    <option value="oldest">Cũ nhất</option>
-                    <option value="updated">Cập nhật gần nhất</option>
+                    <option value="newest">{locale === "vi" ? "Mới nhất" : "Newest"}</option>
+                    <option value="oldest">{locale === "vi" ? "Cũ nhất" : "Oldest"}</option>
+                    <option value="updated">{locale === "vi" ? "Cập nhật gần nhất" : "Last updated"}</option>
                   </select>
                 </div>
               </div>
@@ -613,11 +557,11 @@ function MyReports() {
               {/* Empty state */}
               {!isLoading && !isError && sortedFeedbacks.length === 0 && (
                 <EmptyState
-                  title="Không tìm thấy phản ánh phù hợp."
-                  description="Vui lòng thử thay đổi từ khóa hoặc bộ lọc tìm kiếm."
+                  title={locale === "vi" ? "Không tìm thấy phản ánh phù hợp." : "No matching reports found."}
+                  description={locale === "vi" ? "Vui lòng thử thay đổi từ khóa hoặc bộ lọc tìm kiếm." : "Please try modifying your keywords or filters."}
                   action={
                     <button onClick={handleReset} className="btn-civic btn-civic-primary">
-                      Xóa bộ lọc
+                      {locale === "vi" ? "Xóa bộ lọc" : "Clear filters"}
                     </button>
                   }
                 />
@@ -650,25 +594,33 @@ function MyReports() {
                         <div>
                           <div className="flex items-center gap-2 mb-1">
                             <span className="px-2 py-0.5 bg-[#EAF2FF] text-[#0B4FC4] text-[9px] font-bold rounded font-mono uppercase tracking-wider">
-                              Mã: {report.trackingCode}
+                              {locale === "vi" ? "Mã:" : "Code:"} {report.trackingCode}
                             </span>
                           </div>
                           <h3 className="text-base font-bold text-[#123E8A] leading-snug line-clamp-1 mb-2 hover:text-[#0B4FC4] transition-colors">
                             {report.title}
                           </h3>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-2 gap-x-4 text-[11px] text-[#667085]">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-y-2 gap-x-4 text-[11px] text-[#667085]">
                             <span className="flex items-center gap-1.5 truncate">
                               <MapPin size={13} className="shrink-0 text-slate-400" />
-                              {report.addressDetails || report.wardName || "Đà Nẵng"}
+                              {report.addressDetails || report.wardName || (locale === "vi" ? "Đà Nẵng" : "Da Nang")}
                             </span>
                             <span className="flex items-center gap-1.5 truncate">
                               <Grid size={13} className="shrink-0 text-slate-400" />
-                              {report.categoryName || report.category || "Khác"}
+                              {report.categoryName || report.category || (locale === "vi" ? "Khác" : "Other")}
+                            </span>
+                            <span className="flex items-center gap-1.5 truncate">
+                              <MapPin size={13} className="shrink-0 text-slate-400" />
+                              {report.wardName || (locale === "vi" ? "Cần kiểm tra vị trí" : "Location review needed")}
+                            </span>
+                            <span className="flex items-center gap-1.5 truncate">
+                              <Grid size={13} className="shrink-0 text-slate-400" />
+                              {report.assignedUnitName || (locale === "vi" ? "Chưa phân đơn vị" : "Unassigned unit")}
                             </span>
                             <span className="flex items-center gap-1.5 truncate">
                               <Calendar size={13} className="shrink-0 text-slate-400" />
-                              {new Date(report.createdAt).toLocaleDateString("vi-VN")} -{" "}
-                              {new Date(report.createdAt).toLocaleTimeString("vi-VN", {
+                              {new Date(report.createdAt).toLocaleDateString(locale === "vi" ? "vi-VN" : "en-US")} -{" "}
+                              {new Date(report.createdAt).toLocaleTimeString(locale === "vi" ? "vi-VN" : "en-US", {
                                 hour: "2-digit",
                                 minute: "2-digit",
                               })}
@@ -683,7 +635,7 @@ function MyReports() {
                           {getStatusInfo(report.status).label}
                         </span>
                         <span className="text-[10px] text-[#667085] font-medium mt-auto md:mb-0 mb-1">
-                          Cập nhật: {new Date(report.updatedAt || report.createdAt).toLocaleDateString("vi-VN")}
+                          {locale === "vi" ? "Cập nhật:" : "Updated:"} {new Date(report.updatedAt || report.createdAt).toLocaleDateString(locale === "vi" ? "vi-VN" : "en-US")}
                         </span>
                       </div>
                     </article>
@@ -701,7 +653,7 @@ function MyReports() {
                       onClick={() => setPage((p) => Math.max(0, p - 1))}
                       disabled={feedbacksPage?.first}
                       className="w-9 h-9 rounded-xl border border-[#E4EAF2] bg-white flex items-center justify-center text-slate-400 disabled:opacity-30 hover:bg-slate-50 transition-colors"
-                      aria-label="Trang trước"
+                      aria-label={locale === "vi" ? "Trang trước" : "Previous page"}
                     >
                       <ChevronLeft size={16} />
                     </button>
@@ -728,14 +680,14 @@ function MyReports() {
                       onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                       disabled={feedbacksPage?.last}
                       className="w-9 h-9 rounded-xl border border-[#E4EAF2] bg-white flex items-center justify-center text-slate-400 disabled:opacity-30 hover:bg-slate-50 transition-colors"
-                      aria-label="Trang sau"
+                      aria-label={locale === "vi" ? "Trang sau" : "Next page"}
                     >
                       <ChevronRight size={16} />
                     </button>
                   </div>
 
                   <div className="flex items-center gap-2 text-xs font-bold text-[#475467]">
-                    <span>Hiển thị:</span>
+                    <span>{locale === "vi" ? "Hiển thị:" : "Show:"}</span>
                     <select
                       value={pageSize}
                       onChange={(e) => {
@@ -744,9 +696,9 @@ function MyReports() {
                       }}
                       className="bg-white border-2 border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-[#123E8A] focus:border-[#0B4FC4] outline-none cursor-pointer"
                     >
-                      <option value={5}>5 / trang</option>
-                      <option value={10}>10 / trang</option>
-                      <option value={20}>20 / trang</option>
+                      <option value={5}>5 / {locale === "vi" ? "trang" : "page"}</option>
+                      <option value={10}>10 / {locale === "vi" ? "trang" : "page"}</option>
+                      <option value={20}>20 / {locale === "vi" ? "trang" : "page"}</option>
                     </select>
                   </div>
                 </div>
@@ -757,17 +709,19 @@ function MyReports() {
             <div className="bg-[#F4F9FF] border border-[#E1EEFF] rounded-2xl p-4 flex items-start gap-3">
               <Info size={16} className="text-[#0B4FC4] shrink-0 mt-0.5" />
               <p className="text-xs text-[#475467] leading-relaxed">
-                Kết quả được cập nhật liên tục. Vui lòng chọn bộ lọc phù hợp để tìm kiếm chính xác hơn.
+                {locale === "vi"
+                  ? "Kết quả được cập nhật liên tục. Vui lòng chọn bộ lọc phù hợp để tìm kiếm chính xác hơn."
+                  : "Results are updated continuously. Please select appropriate filters for a more accurate search."}
               </p>
             </div>
           </div>
 
           {/* Right Column: Sidebar panels */}
-          <div className="lg:col-span-4 space-y-6">
+          <div className="md:col-span-4 md:sticky md:top-[100px] md:self-start space-y-6 md:max-h-[calc(100vh-120px)] md:overflow-y-auto pr-1">
             {/* Sidebar 1: Overview Statistics */}
             <div className="bg-white border border-[#E4EAF2] rounded-2xl p-5 shadow-sm space-y-4">
               <h3 className="text-[#123E8A] font-bold text-base border-b border-slate-100 pb-3 flex items-center gap-2">
-                Thống kê tổng quan
+                {locale === "vi" ? "Thống kê tổng quan" : "Overview Statistics"}
               </h3>
               {isLoading ? (
                 <div className="grid grid-cols-2 gap-3">
@@ -780,7 +734,7 @@ function MyReports() {
                   {/* Total */}
                   <div className="bg-white border border-[#E4EAF2] rounded-xl p-3 flex items-center justify-between shadow-sm">
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-bold uppercase text-[#667085] tracking-wider">Tổng phản ánh</span>
+                      <span className="text-[10px] font-bold uppercase text-[#667085] tracking-wider">{locale === "vi" ? "Tổng phản ánh" : "Total reports"}</span>
                       <span className="text-xl font-extrabold text-[#0B4FC4] mt-0.5">{stats.total.toLocaleString()}</span>
                     </div>
                     <div className="w-8 h-8 rounded-full bg-blue-50 text-[#0B4FC4] flex items-center justify-center shrink-0">
@@ -791,7 +745,7 @@ function MyReports() {
                   {/* Processing */}
                   <div className="bg-white border border-[#E4EAF2] rounded-xl p-3 flex items-center justify-between shadow-sm">
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-bold uppercase text-[#667085] tracking-wider">Đang xử lý</span>
+                      <span className="text-[10px] font-bold uppercase text-[#667085] tracking-wider">{locale === "vi" ? "Đang xử lý" : "Processing"}</span>
                       <span className="text-xl font-extrabold text-[#F97316] mt-0.5">{stats.pending.toLocaleString()}</span>
                     </div>
                     <div className="w-8 h-8 rounded-full bg-orange-50 text-[#F97316] flex items-center justify-center shrink-0">
@@ -802,7 +756,7 @@ function MyReports() {
                   {/* Resolved */}
                   <div className="bg-white border border-[#E4EAF2] rounded-xl p-3 flex items-center justify-between shadow-sm">
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-bold uppercase text-[#667085] tracking-wider">Đã xử lý</span>
+                      <span className="text-[10px] font-bold uppercase text-[#667085] tracking-wider">{locale === "vi" ? "Đã xử lý" : "Resolved"}</span>
                       <span className="text-xl font-extrabold text-[#16A34A] mt-0.5">{stats.resolved.toLocaleString()}</span>
                     </div>
                     <div className="w-8 h-8 rounded-full bg-green-50 text-[#16A34A] flex items-center justify-center shrink-0">
@@ -813,7 +767,7 @@ function MyReports() {
                   {/* Rejected */}
                   <div className="bg-white border border-[#E4EAF2] rounded-xl p-3 flex items-center justify-between shadow-sm">
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-bold uppercase text-[#667085] tracking-wider">Từ chối</span>
+                      <span className="text-[10px] font-bold uppercase text-[#667085] tracking-wider">{locale === "vi" ? "Từ chối" : "Rejected"}</span>
                       <span className="text-xl font-extrabold text-[#DC2626] mt-0.5">{stats.rejected.toLocaleString()}</span>
                     </div>
                     <div className="w-8 h-8 rounded-full bg-red-50 text-[#DC2626] flex items-center justify-center shrink-0">
@@ -828,10 +782,10 @@ function MyReports() {
             <div className="bg-white border border-[#E4EAF2] rounded-2xl p-5 shadow-sm space-y-4">
               <div className="flex items-center justify-between pb-1">
                 <h3 className="text-[#123E8A] font-bold text-base">
-                  Phân bố theo khu vực
+                  {locale === "vi" ? "Phân bố theo khu vực" : "Geographic Distribution"}
                 </h3>
                 <Link to="/" className="text-xs font-semibold text-[#0B4FC4] hover:underline">
-                  Xem chi tiết
+                  {locale === "vi" ? "Xem chi tiết" : "View details"}
                 </Link>
               </div>
               <div className="aspect-[4/3] rounded-xl overflow-hidden border border-[#E4EAF2] relative z-0">
@@ -854,7 +808,7 @@ function MyReports() {
                 to="/"
                 className="w-full min-h-[40px] rounded-lg border border-slate-200 hover:border-[#0B4FC4] bg-white text-xs font-bold text-[#475467] hover:text-[#0B4FC4] transition-colors flex items-center justify-center gap-2 border-2"
               >
-                Xem trên bản đồ lớn
+                {locale === "vi" ? "Xem trên bản đồ lớn" : "View on larger map"}
                 <ExternalLink size={14} />
               </Link>
             </div>
@@ -864,10 +818,10 @@ function MyReports() {
               <div className="bg-white border border-[#E4EAF2] rounded-2xl p-5 shadow-sm space-y-4">
                 <div className="flex items-center justify-between pb-1">
                   <h3 className="text-[#123E8A] font-bold text-base">
-                    Lĩnh vực phổ biến
+                    {locale === "vi" ? "Lĩnh vực phổ biến" : "Popular Categories"}
                   </h3>
                   <Link to="/my-reports" className="text-xs font-semibold text-[#0B4FC4] hover:underline">
-                    Xem chi tiết
+                    {locale === "vi" ? "Xem chi tiết" : "View details"}
                   </Link>
                 </div>
                 <div className="space-y-3">

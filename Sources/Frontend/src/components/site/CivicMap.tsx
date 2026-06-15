@@ -1,5 +1,5 @@
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import { type LatLngExpression } from "leaflet";
+import { useState, useEffect } from "react";
+import type { LatLngExpression } from "leaflet";
 
 interface MapMarker {
   position: [number, number];
@@ -31,6 +31,43 @@ export function CivicMap({
   height = "h-72 md:h-96",
   interactive = true,
 }: Props) {
+  // Dynamic import: Leaflet requires `window` at module-load time,
+  // so we lazy-load react-leaflet only on the client.
+  const [leafletComponents, setLeafletComponents] = useState<{
+    MapContainer: any;
+    TileLayer: any;
+    Marker: any;
+    Popup: any;
+  } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void import("react-leaflet").then((mod) => {
+      if (!cancelled) {
+        setLeafletComponents({
+          MapContainer: mod.MapContainer,
+          TileLayer: mod.TileLayer,
+          Marker: mod.Marker,
+          Popup: mod.Popup,
+        });
+      }
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  if (!leafletComponents) {
+    return (
+      <div
+        className="rounded-xl overflow-hidden border border-slate-100 shadow-sm bg-slate-50 flex items-center justify-center"
+        style={{ height }}
+      >
+        <span className="text-slate-400 text-sm">Đang tải bản đồ...</span>
+      </div>
+    );
+  }
+
+  const { MapContainer, TileLayer, Marker, Popup } = leafletComponents;
+
   return (
     <div
       className="rounded-xl overflow-hidden border border-slate-100 shadow-sm"

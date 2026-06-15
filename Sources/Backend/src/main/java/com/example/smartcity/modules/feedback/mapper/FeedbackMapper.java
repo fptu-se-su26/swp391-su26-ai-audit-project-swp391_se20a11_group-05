@@ -20,9 +20,8 @@ public abstract class FeedbackMapper implements BaseMapper<Feedback, FeedbackRes
     protected AttachmentRepository attachmentRepository;
 
     @Override
-    @Mapping(target = "categoryName", source = "category.name")
-    @Mapping(target = "category", source = "category.name")
-    @Mapping(target = "wardName", source = "ward.name")
+    @Mapping(target = "category", source = "categoryName")
+    @Mapping(target = "wardId", source = "ward.id")
     @Mapping(target = "citizenName", source = "citizen.fullName")
     @Mapping(target = "assigneeName", source = "assignee.fullName")
     @Mapping(target = "attachments", ignore = true)

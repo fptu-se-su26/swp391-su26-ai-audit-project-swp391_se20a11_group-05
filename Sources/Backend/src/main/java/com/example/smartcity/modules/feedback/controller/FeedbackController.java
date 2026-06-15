@@ -293,7 +293,7 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
         response.setContent(response.getDescription());
         response.setAddress(response.getAddressDetails());
         response.setCategory(response.getCategoryName());
-        response.setAssignedAuthorityName(response.getWardName());
+        response.setAssignedAuthorityName(response.getAssignedUnitName());
         response.setAttachments(attachments);
         response.setMediaUrls(attachments.stream().map(FeedbackAttachmentResponse::getFileUrl).toList());
         response.setTimeline(timeline);
@@ -316,6 +316,9 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
     private String toStatusLabel(FeedbackStatus status) {
         return switch (status) {
             case PENDING -> "Pending Review";
+            case SUBMITTED -> "Submitted";
+            case PENDING_RECEIVE -> "Pending Receive";
+            case NEED_LOCATION_REVIEW -> "Needs Location Review";
             case IN_PROGRESS -> "Processing";
             case WAITING_INFO -> "Waiting for Information";
             case RESOLVED -> "Resolved";

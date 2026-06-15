@@ -36,8 +36,10 @@ public class FeedbackRequest {
     @Size(max = 255, message = "Dia chi toi da 255 ky tu")
     private String addressDetails;
 
-    @NotNull(message = "Category khong duoc de trong")
     private Long categoryId;
+
+    @NotBlank(message = "Category code is required")
+    private String categoryCode;
 
     private Long wardId;
 }

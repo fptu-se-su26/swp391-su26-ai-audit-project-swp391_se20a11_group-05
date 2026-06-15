@@ -31,7 +31,7 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
     Page<Feedback> findByWardId(Long wardId, Pageable pageable);
 
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"category", "ward", "citizen"})
-    Page<Feedback> findByCategoryName(String categoryName, Pageable pageable);
+    Page<Feedback> findByManagedByRole(String managedByRole, Pageable pageable);
 
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"category", "ward", "citizen"})
     Page<Feedback> findByAssigneeId(Long assigneeId, Pageable pageable);

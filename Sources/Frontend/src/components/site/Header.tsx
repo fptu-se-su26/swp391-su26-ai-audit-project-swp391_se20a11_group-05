@@ -317,7 +317,6 @@ export function Header() {
               aria-haspopup="menu"
               aria-expanded={langOpen}
             >
-<<<<<<< HEAD
               <span className="grid h-6 w-8 place-items-center rounded-md bg-[#EEF4FF] text-[11px] font-extrabold tracking-wide text-[#0B4FC4] font-sans">
                 {activeLanguage.shortLabel}
               </span>
@@ -370,37 +369,6 @@ export function Header() {
                     </button>
                   );
                 })}
-=======
-              <span className="text-base">{locale === "vi" ? "🇻🇳" : "🇬🇧"}</span>
-              <span className="font-sans">{locale === "vi" ? "VI" : "EN"}</span>
-              <ChevronDown size={14} className="text-[#667085]" />
-            </button>
-
-            {langOpen && (
-              <div className="absolute right-0 mt-1 w-36 bg-white border border-[#E4EAF2] rounded-lg shadow-lg py-1 z-50 animate-fade-in">
-                <button
-                  onClick={() => {
-                    setLocale("vi");
-                    setLangOpen(false);
-                  }}
-                  className={`w-full text-left px-3 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2 font-sans cursor-pointer ${
-                    locale === "vi" ? "bg-slate-50 text-[#0B4FC4]" : ""
-                  }`}
-                >
-                  <span>🇻🇳</span> {locale === "vi" ? "Tiếng Việt" : "Vietnamese"}
-                </button>
-                <button
-                  onClick={() => {
-                    setLocale("en");
-                    setLangOpen(false);
-                  }}
-                  className={`w-full text-left px-3 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2 font-sans cursor-pointer ${
-                    locale === "en" ? "bg-slate-50 text-[#0B4FC4]" : ""
-                  }`}
-                >
-                  <span>🇬🇧</span> {locale === "vi" ? "Tiếng Anh" : "English"}
-                </button>
->>>>>>> b382096858fdf40a7e75121410df6f6f17f5e80a
               </div>
             )}
           </div>
@@ -745,11 +713,7 @@ export function Header() {
                   }}
                   className="w-full text-left min-h-[48px] px-4 py-3 rounded-md hover:bg-red-50 text-red-600 font-semibold inline-flex items-center gap-2 transition-all font-sans cursor-pointer"
                 >
-<<<<<<< HEAD
                   <LogOut size={18} /> {t("header.logout")} ({user.name})
-=======
-                  <LogOut size={18} /> {locale === "vi" ? `Đăng xuất (${user.name})` : `Log out (${user.name})`}
->>>>>>> b382096858fdf40a7e75121410df6f6f17f5e80a
                 </button>
               </>
             ) : (

@@ -1,6 +1,4 @@
-import React, { useMemo } from "react";
-import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
+import React, { useMemo, useState, useEffect } from "react";
 
 interface Hotspot {
   latitude: number;
@@ -53,6 +51,43 @@ export function HeatmapMap({ hotspots }: HeatmapMapProps) {
   const center = [15.8, 108.3] as [number, number];
 
   const clusters = useMemo(() => clusterHotspots(hotspots || []), [hotspots]);
+
+  // Dynamic import: Leaflet requires `window` at module-load time,
+  // so we lazy-load react-leaflet only on the client.
+  const [leafletComponents, setLeafletComponents] = useState<{
+    MapContainer: any;
+    TileLayer: any;
+    CircleMarker: any;
+    Popup: any;
+  } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void Promise.all([
+      import("react-leaflet"),
+      import("leaflet/dist/leaflet.css"),
+    ]).then(([mod]) => {
+      if (!cancelled) {
+        setLeafletComponents({
+          MapContainer: mod.MapContainer,
+          TileLayer: mod.TileLayer,
+          CircleMarker: mod.CircleMarker,
+          Popup: mod.Popup,
+        });
+      }
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  if (!leafletComponents) {
+    return (
+      <div className="h-[400px] w-full rounded-lg overflow-hidden border border-slate-200 shadow-sm bg-slate-50 flex items-center justify-center">
+        <span className="text-slate-400 text-sm">Đang tải bản đồ...</span>
+      </div>
+    );
+  }
+
+  const { MapContainer, TileLayer, CircleMarker, Popup } = leafletComponents;
 
   return (
     <div className="h-[400px] w-full rounded-lg overflow-hidden border border-slate-200 shadow-sm relative z-0">

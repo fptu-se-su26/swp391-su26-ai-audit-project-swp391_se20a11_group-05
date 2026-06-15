@@ -170,7 +170,11 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isStandalonePage =
-    pathname === "/login" || pathname === "/authority-login" || pathname === "/register";
+    pathname === "/login" ||
+    pathname === "/authority-login" ||
+    pathname === "/register" ||
+    pathname.startsWith("/police") ||
+    pathname.startsWith("/ward");
 
   return (
     <QueryClientProvider client={queryClient}>

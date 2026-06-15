@@ -239,9 +239,15 @@ function MyReports() {
         };
       case "IN_PROGRESS":
       case "ASSIGNED":
+      case "PENDING_RECEIVE":
         return {
           label: locale === "vi" ? "Đang xử lý" : "Processing",
           badgeClass: "bg-[#FFF4E8] text-[#F97316]",
+        };
+      case "NEED_LOCATION_REVIEW":
+        return {
+          label: locale === "vi" ? "Cần kiểm tra vị trí" : "Location review",
+          badgeClass: "bg-[#FFF7D6] text-[#A16207]",
         };
       case "REJECTED":
         return {
@@ -249,6 +255,7 @@ function MyReports() {
           badgeClass: "bg-[#FDECEC] text-[#DC2626]",
         };
       case "PENDING":
+      case "SUBMITTED":
       default:
         return {
           label: locale === "vi" ? "Tiếp nhận" : "Received",
@@ -593,7 +600,7 @@ function MyReports() {
                           <h3 className="text-base font-bold text-[#123E8A] leading-snug line-clamp-1 mb-2 hover:text-[#0B4FC4] transition-colors">
                             {report.title}
                           </h3>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-2 gap-x-4 text-[11px] text-[#667085]">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-y-2 gap-x-4 text-[11px] text-[#667085]">
                             <span className="flex items-center gap-1.5 truncate">
                               <MapPin size={13} className="shrink-0 text-slate-400" />
                               {report.addressDetails || report.wardName || (locale === "vi" ? "Đà Nẵng" : "Da Nang")}
@@ -601,6 +608,14 @@ function MyReports() {
                             <span className="flex items-center gap-1.5 truncate">
                               <Grid size={13} className="shrink-0 text-slate-400" />
                               {report.categoryName || report.category || (locale === "vi" ? "Khác" : "Other")}
+                            </span>
+                            <span className="flex items-center gap-1.5 truncate">
+                              <MapPin size={13} className="shrink-0 text-slate-400" />
+                              {report.wardName || (locale === "vi" ? "Cần kiểm tra vị trí" : "Location review needed")}
+                            </span>
+                            <span className="flex items-center gap-1.5 truncate">
+                              <Grid size={13} className="shrink-0 text-slate-400" />
+                              {report.assignedUnitName || (locale === "vi" ? "Chưa phân đơn vị" : "Unassigned unit")}
                             </span>
                             <span className="flex items-center gap-1.5 truncate">
                               <Calendar size={13} className="shrink-0 text-slate-400" />

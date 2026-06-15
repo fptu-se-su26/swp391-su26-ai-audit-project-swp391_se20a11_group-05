@@ -14,7 +14,6 @@ import com.example.smartcity.modules.feedback.repository.FeedbackLogRepository;
 import com.example.smartcity.modules.feedback.repository.FeedbackRepository;
 import com.example.smartcity.modules.notification.service.NotificationService;
 import com.example.smartcity.modules.core.entity.Ward;
-import com.example.smartcity.modules.core.repository.WardRepository;
 import com.example.smartcity.modules.core.service.LocationResolutionService;
 import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.user.entity.Role;
@@ -54,13 +53,12 @@ public class CitizenFeedbackMediaService {
     private final FeedbackLogRepository feedbackLogRepository;
     private final SupabaseStorageService supabaseStorageService;
     private final LocationResolutionService locationResolutionService;
-    private final WardRepository wardRepository;
     private final NotificationService notificationService;
+    private final CategoryRoutingService categoryRoutingService;
 
     @Transactional
     public CitizenFeedbackMediaResponse submit(CitizenFeedbackMediaRequest request, List<MultipartFile> files, String username) {
-        Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new IllegalArgumentException("Category not found: " + request.getCategoryId()));
+        Category category = resolveOfficialCategory(request.getCategoryCode());
         User citizen = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("Citizen not found: " + username));
 
@@ -73,7 +71,12 @@ public class CitizenFeedbackMediaService {
         if (request.getLatitude() == null || request.getLongitude() == null) {
             throw new IllegalArgumentException("Latitude and longitude are required");
         }
-        Ward ward = resolveWard(request.getWardId(), request.getLatitude(), request.getLongitude());
+        Ward ward = null;
+        try {
+            ward = locationResolutionService.resolveWard(request.getLatitude(), request.getLongitude());
+        } catch (CustomException ex) {
+            // Keep the submitted feedback and route it to manual location review.
+        }
 
         LocalDateTime now = LocalDateTime.now();
         Feedback feedback = new Feedback();
@@ -83,18 +86,16 @@ public class CitizenFeedbackMediaService {
         feedback.setLatitude(request.getLatitude());
         feedback.setLongitude(request.getLongitude());
         feedback.setAddressDetails(request.getAddressDetails());
-        feedback.setStatus(FeedbackStatus.PENDING);
-        feedback.setReceiverType(resolveReceiverType(category));
         feedback.setPriority("MEDIUM");
         feedback.setSource("CITIZEN_APP");
         feedback.setCategory(category);
-        feedback.setWard(ward);
         feedback.setCitizen(citizen);
         feedback.setCreatedAt(now);
         feedback.setUpdatedAt(now);
+        categoryRoutingService.applyAssignment(feedback, category, ward, now);
 
         Feedback savedFeedback = feedbackRepository.save(feedback);
-        FeedbackLog submittedLog = new FeedbackLog(savedFeedback, citizen, null, FeedbackStatus.PENDING, "Công dân đã gửi phản ánh");
+        FeedbackLog submittedLog = new FeedbackLog(savedFeedback, citizen, null, savedFeedback.getStatus(), "Citizen submitted feedback");
         submittedLog.setAction("SUBMIT");
         feedbackLogRepository.save(submittedLog);
         notificationService.createFeedbackSubmittedNotification(savedFeedback);
@@ -197,8 +198,20 @@ public class CitizenFeedbackMediaService {
                 .longitude(feedback.getLongitude())
                 .addressDetails(feedback.getAddressDetails())
                 .status(feedback.getStatus())
-                .categoryName(feedback.getCategory() == null ? null : feedback.getCategory().getName())
+                .categoryCode(feedback.getCategoryCode())
+                .categoryName(feedback.getCategoryName())
+                .managedByRole(feedback.getManagedByRole())
+                .wardId(feedback.getWard() == null ? null : feedback.getWard().getId())
+                .wardName(feedback.getWardName())
+                .districtName(feedback.getDistrictName())
+                .cityName(feedback.getCityName())
+                .assignedUnitId(feedback.getAssignedUnitId())
+                .assignedUnitName(feedback.getAssignedUnitName())
+                .assignedToRole(feedback.getAssignedToRole())
                 .citizenName(feedback.getCitizen() == null ? null : feedback.getCitizen().getFullName())
+                .submittedAt(feedback.getSubmittedAt())
+                .receivedAt(feedback.getReceivedAt())
+                .resolvedAt(feedback.getResolvedAt())
                 .createdAt(feedback.getCreatedAt())
                 .updatedAt(feedback.getUpdatedAt())
                 .attachments(attachments.stream().map(this::toAttachmentResponse).toList())
@@ -216,16 +229,13 @@ public class CitizenFeedbackMediaService {
                 .build();
     }
 
-    private String resolveReceiverType(Category category) {
-        return category != null && "An ninh".equalsIgnoreCase(category.getName()) ? "POLICE" : "WARD_STAFF";
-    }
-
-    private Ward resolveWard(Long wardId, Double latitude, Double longitude) {
-        if (wardId != null) {
-            return wardRepository.findById(wardId)
-                    .orElseThrow(() -> new IllegalArgumentException("Ward not found: " + wardId));
+    private Category resolveOfficialCategory(String categoryCode) {
+        String normalizedCode = categoryCode == null ? "" : categoryCode.trim().toUpperCase();
+        if (!categoryRoutingService.isOfficialCode(normalizedCode)) {
+            throw new CustomException("Invalid feedback category.", HttpStatus.BAD_REQUEST.value());
         }
-        return locationResolutionService.resolveWard(latitude, longitude);
+        return categoryRepository.findByCodeAndActiveTrue(normalizedCode)
+                .orElseThrow(() -> new CustomException("Invalid feedback category.", HttpStatus.BAD_REQUEST.value()));
     }
 
     private String toDatabaseFileType(String contentType) {

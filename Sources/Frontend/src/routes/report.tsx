@@ -17,6 +17,8 @@ import {
   Camera,
   Car,
   Check,
+  Flame,
+  HardHat,
   Loader2,
   LocateFixed,
   MapPin,
@@ -48,6 +50,57 @@ const API_BASE: string =
 
 const DEFAULT_MAP_CENTER: [number, number] = [16.0544, 108.2022];
 const CURRENT_LOCATION_ZOOM = 17;
+
+const OFFICIAL_CATEGORY_CODES = [
+  "TRAFFIC",
+  "URBAN_INFRASTRUCTURE",
+  "ENVIRONMENT",
+  "PUBLIC_SECURITY",
+  "CONSTRUCTION",
+  "FIRE_SAFETY",
+] as const;
+
+const OFFICIAL_CATEGORY_CONTENT: Record<
+  (typeof OFFICIAL_CATEGORY_CODES)[number],
+  { vi: string; en: string; descriptionVi: string; descriptionEn: string }
+> = {
+  TRAFFIC: {
+    vi: "Giao thông",
+    en: "Traffic",
+    descriptionVi: "Đường sá, ùn tắc, biển báo và an toàn giao thông",
+    descriptionEn: "Road issues, congestion, signs, and traffic safety",
+  },
+  URBAN_INFRASTRUCTURE: {
+    vi: "Hạ tầng đô thị",
+    en: "Urban Infrastructure",
+    descriptionVi: "Đèn chiếu sáng, cống thoát nước, vỉa hè và hạ tầng công cộng",
+    descriptionEn: "Lighting, drainage, sidewalks, and public infrastructure",
+  },
+  ENVIRONMENT: {
+    vi: "Môi trường",
+    en: "Environment",
+    descriptionVi: "Rác thải, ô nhiễm, cây xanh và vệ sinh đô thị",
+    descriptionEn: "Waste, pollution, greenery, and urban sanitation",
+  },
+  PUBLIC_SECURITY: {
+    vi: "An ninh trật tự",
+    en: "Public Security",
+    descriptionVi: "Mất trật tự, gây rối và nguy cơ an ninh",
+    descriptionEn: "Disorder, disturbance, and public security risks",
+  },
+  CONSTRUCTION: {
+    vi: "Xây dựng",
+    en: "Construction",
+    descriptionVi: "Xây dựng trái phép, che chắn và an toàn thi công",
+    descriptionEn: "Illegal construction, site obstruction, and construction safety",
+  },
+  FIRE_SAFETY: {
+    vi: "Phòng cháy chữa cháy",
+    en: "Fire Safety",
+    descriptionVi: "Nguy cơ cháy nổ, lối thoát hiểm và thiết bị PCCC",
+    descriptionEn: "Fire hazards, emergency exits, and fire safety equipment",
+  },
+};
 
 interface NominatimReverseResponse {
   display_name?: string;
@@ -123,7 +176,7 @@ function ReportPage() {
   const [trackingCode, setTrackingCode] = useState("");
 
   const { data: categories } = useCategories();
-  const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
+  const [categoryCode, setCategoryCode] = useState<string | undefined>(undefined);
   const createFeedback = useCreateFeedbackWithMedia();
 
   const storedLocation = getStoredGpsLocation();
@@ -153,7 +206,26 @@ function ReportPage() {
     () => (hasLocation ? [latitude, longitude] : DEFAULT_MAP_CENTER),
     [hasLocation, latitude, longitude],
   );
+  const categoryOptions = useMemo(
+    () =>
+      OFFICIAL_CATEGORY_CODES.map((code) => {
+        const apiCategory = categories?.find((category) => category.code === code);
+        const content = OFFICIAL_CATEGORY_CONTENT[code];
+        return {
+          id: apiCategory?.id,
+          code,
+          name: locale === "vi" ? content.vi : content.en,
+          description:
+            locale === "vi"
+              ? apiCategory?.descriptionVi || content.descriptionVi
+              : apiCategory?.descriptionEn || content.descriptionEn,
+        };
+      }),
+    [categories, locale],
+  );
   const canSubmit =
+    !!categoryCode &&
+    title.trim().length > 0 &&
     photos.length > 0 &&
     videos.length > 0 &&
     description.trim().length > 0 &&
@@ -163,10 +235,10 @@ function ReportPage() {
     !uploading;
 
   useEffect(() => {
-    if (categories && categories.length > 0 && categoryId === undefined) {
-      setCategoryId(categories[0].id);
+    if (categoryCode === undefined) {
+      setCategoryCode(OFFICIAL_CATEGORY_CODES[0]);
     }
-  }, [categories, categoryId]);
+  }, [categoryCode]);
 
   useEffect(() => {
     if (storedLocation) {
@@ -178,26 +250,13 @@ function ReportPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const getCategoryIcon = (name: string) => {
-    const n = name.toLowerCase();
-    if (
-      n.includes("infrastructure") ||
-      n.includes("hạ tầng") ||
-      n.includes("ha tang") ||
-      n.includes("infra")
-    )
-      return <Building2 size={24} />;
-    if (
-      n.includes("environment") ||
-      n.includes("môi trường") ||
-      n.includes("moi truong") ||
-      n.includes("env")
-    )
-      return <TreePine size={24} />;
-    if (n.includes("traffic") || n.includes("giao thông") || n.includes("giao thong"))
-      return <Car size={24} />;
-    if (n.includes("safety") || n.includes("security") || n.includes("an ninh"))
-      return <ShieldCheck size={24} />;
+  const getCategoryIcon = (code: string) => {
+    if (code === "TRAFFIC") return <Car size={24} />;
+    if (code === "URBAN_INFRASTRUCTURE") return <Building2 size={24} />;
+    if (code === "ENVIRONMENT") return <TreePine size={24} />;
+    if (code === "PUBLIC_SECURITY") return <ShieldCheck size={24} />;
+    if (code === "CONSTRUCTION") return <HardHat size={24} />;
+    if (code === "FIRE_SAFETY") return <Flame size={24} />;
     return <Building2 size={24} />;
   };
 
@@ -420,8 +479,12 @@ function ReportPage() {
       toast.error(t("report.err.login"));
       return false;
     }
-    if (!categoryId) {
+    if (!categoryCode) {
       toast.error(t("report.err.category"));
+      return false;
+    }
+    if (!title.trim()) {
+      toast.error(locale === "vi" ? "Vui lòng nhập tiêu đề phản ánh." : "Please enter a report title.");
       return false;
     }
     if (photos.length === 0) {
@@ -444,7 +507,7 @@ function ReportPage() {
   };
 
   const handleSubmit = async () => {
-    if (!validateBeforeSubmit() || latitude === null || longitude === null || !categoryId) {
+    if (!validateBeforeSubmit() || latitude === null || longitude === null || !categoryCode) {
       return;
     }
 
@@ -452,12 +515,12 @@ function ReportPage() {
       const videoDurationsSeconds = await Promise.all(videos.map(getVideoDurationSeconds));
       const result = await createFeedback.mutateAsync({
         data: {
-          title: title.trim() || (locale === "vi" ? "Phản ánh mới" : "New report"),
+          title: title.trim(),
           description: description.trim(),
           latitude,
           longitude,
           addressDetails: address || detectedWard || `${latitude}, ${longitude}`,
-          categoryId,
+          categoryCode,
           videoDurationsSeconds,
         },
         files: [...photos, ...videos],
@@ -521,38 +584,30 @@ function ReportPage() {
             <div>
               <label className="block text-sm font-bold mb-2">{t("report.form.category")}</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {(categories && categories.length > 0
-                  ? categories.map((category) => ({ id: category.id, name: category.name }))
-                  : [
-                      { id: 1, name: "Hạ tầng" },
-                      { id: 2, name: "Môi trường" },
-                      { id: 3, name: "Giao thông" },
-                      { id: 4, name: "An ninh" },
-                    ]
-                ).map((category) => {
-                  const selected = categoryId === category.id;
+                {categoryOptions.map((category) => {
+                  const selected = categoryCode === category.code;
                   return (
                     <button
-                      key={category.id}
+                      key={category.code}
                       type="button"
-                      onClick={() => setCategoryId(category.id)}
-                      className={`relative p-4 rounded-lg border-2 text-left transition-all duration-200 ${
-                        selected
-                          ? "border-gov-blue bg-gov-blue/5 shadow-sm ring-2 ring-gov-blue/20"
+                      onClick={() => setCategoryCode(category.code)}
+                      className={`relative p-4 rounded-lg border-2 text-left transition-all duration-200 ${selected
+                          ? "border-[var(--status-success)] bg-[var(--status-success)]/5 shadow-sm ring-2 ring-[var(--status-success)]/20"
                           : "border-slate-200 bg-white hover:border-gov-blue/40 hover:shadow-sm"
-                      }`}
+                        }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <span className="text-gov-blue shrink-0">
-                          {getCategoryIcon(category.name)}
+                          {getCategoryIcon(category.code)}
                         </span>
                         {selected && (
-                          <span className="w-6 h-6 rounded-full bg-gov-blue text-white grid place-items-center shrink-0 animate-scale-in">
+                          <span className="w-6 h-6 rounded-full bg-[var(--status-success)] text-white grid place-items-center shrink-0 animate-scale-in">
                             <Check size={14} strokeWidth={3} />
                           </span>
                         )}
                       </div>
                       <div className="mt-2 font-semibold text-sm">{category.name}</div>
+                      <p className="mt-1 text-xs leading-5 text-ink-soft">{category.description}</p>
                     </button>
                   );
                 })}
@@ -661,13 +716,12 @@ function ReportPage() {
                 <div className="min-w-0">
                   <p className="font-bold text-ink">{t("report.loc.title")}</p>
                   <p
-                    className={`text-sm font-semibold ${
-                      locationLoading
+                    className={`text-sm font-semibold ${locationLoading
                         ? "text-ink-soft"
                         : hasLocation
                           ? "text-[var(--status-success)]"
                           : "text-[var(--status-danger)]"
-                    }`}
+                      }`}
                   >
                     {locationLoading
                       ? t("report.loc.loading")
@@ -700,10 +754,10 @@ function ReportPage() {
                       : addressLoading
                         ? t("report.loc.addressLoading")
                         : address ||
-                          addressError ||
-                          (hasLocation
-                            ? t("report.loc.noAddress")
-                            : t("report.loc.clickRefresh"))}
+                        addressError ||
+                        (hasLocation
+                          ? t("report.loc.noAddress")
+                          : t("report.loc.clickRefresh"))}
                   </p>
                 </div>
               </div>

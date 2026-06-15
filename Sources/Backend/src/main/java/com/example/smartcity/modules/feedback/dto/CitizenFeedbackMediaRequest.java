@@ -30,8 +30,10 @@ public class CitizenFeedbackMediaRequest {
     @Size(max = 255, message = "Address details must be at most 255 characters")
     private String addressDetails;
 
-    @NotNull(message = "Category id is required")
     private Long categoryId;
+
+    @NotBlank(message = "Category code is required")
+    private String categoryCode;
 
     private Long wardId;
 

@@ -9,7 +9,8 @@ export interface CitizenFeedbackMediaRequest {
   latitude?: number;
   longitude?: number;
   addressDetails?: string;
-  categoryId: number;
+  categoryId?: number;
+  categoryCode: string;
   videoDurationsSeconds: number[];
 }
 
@@ -31,8 +32,20 @@ export interface CitizenFeedbackMediaResponse {
   longitude: number | null;
   addressDetails: string | null;
   status: string;
+  categoryCode: string | null;
   categoryName: string | null;
+  managedByRole: string | null;
+  wardId: number | null;
+  wardName: string | null;
+  districtName: string | null;
+  cityName: string | null;
+  assignedUnitId: number | null;
+  assignedUnitName: string | null;
+  assignedToRole: string | null;
   citizenName: string | null;
+  submittedAt: string | null;
+  receivedAt: string | null;
+  resolvedAt: string | null;
   createdAt: string;
   updatedAt: string;
   attachments: FeedbackAttachmentResponse[];

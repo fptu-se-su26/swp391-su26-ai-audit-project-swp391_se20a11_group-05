@@ -6,6 +6,7 @@ import com.example.smartcity.modules.feedback.entity.Feedback;
 import com.example.smartcity.modules.feedback.entity.FeedbackStatus;
 import com.example.smartcity.modules.feedback.entity.FeedbackLog;
 import com.example.smartcity.modules.feedback.dto.FeedbackLogResponse;
+import com.example.smartcity.modules.feedback.dto.FeedbackLookupStatsResponse;
 import com.example.smartcity.modules.feedback.repository.FeedbackLogRepository;
 import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.feedback.repository.CategoryRepository;
@@ -53,10 +54,14 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
     private final AttachmentRepository attachmentRepository;
     private final AutoDispatchService autoDispatchService;
     private final LocationResolutionService locationResolutionService;
+    private final CategoryRoutingService categoryRoutingService;
 
     // State machine: map of valid transitions
     private static final Map<FeedbackStatus, Set<FeedbackStatus>> VALID_TRANSITIONS = Map.of(
+        FeedbackStatus.SUBMITTED,      Set.of(FeedbackStatus.PENDING_RECEIVE, FeedbackStatus.IN_PROGRESS, FeedbackStatus.REJECTED),
+        FeedbackStatus.PENDING_RECEIVE,Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.REJECTED),
         FeedbackStatus.PENDING,        Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.REJECTED),
+        FeedbackStatus.NEED_LOCATION_REVIEW, Set.of(FeedbackStatus.PENDING_RECEIVE, FeedbackStatus.REJECTED),
         FeedbackStatus.IN_PROGRESS,    Set.of(FeedbackStatus.RESOLVED, FeedbackStatus.WAITING_INFO, FeedbackStatus.REJECTED),
         FeedbackStatus.WAITING_INFO,   Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.RESOLVED, FeedbackStatus.REJECTED),
         FeedbackStatus.RESOLVED,       Set.of(),
@@ -75,8 +80,7 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
 
     @Transactional
     public Feedback createFeedback(FeedbackRequest request, String username) {
-        Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new com.example.smartcity.common.exception.ResourceNotFoundException("Category", request.getCategoryId()));
+        Category category = resolveOfficialCategory(request.getCategoryCode());
 
         User citizen = userRepository.findByUsername(username)
                 .orElseThrow(() -> new com.example.smartcity.common.exception.ResourceNotFoundException("User: " + username));
@@ -90,9 +94,14 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             throw new CustomException("Vui long cho phep GPS truoc khi gui phan anh", HttpStatus.BAD_REQUEST.value());
         }
 
-        // Backend tự xác định phường/xã từ GPS, không tin wardId do frontend gửi lên.
-        Ward ward = locationResolutionService.findAuthorityByLocation(request.getLatitude(), request.getLongitude());
+        Ward ward = null;
+        try {
+            ward = locationResolutionService.findAuthorityByLocation(request.getLatitude(), request.getLongitude());
+        } catch (CustomException ex) {
+            log.warn("[Feedback] Location requires manual review. lat={}, lng={}", request.getLatitude(), request.getLongitude());
+        }
 
+        LocalDateTime now = LocalDateTime.now();
         Feedback feedback = new Feedback();
         feedback.setTrackingCode("FB-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         feedback.setTitle(request.getTitle());
@@ -100,18 +109,16 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         feedback.setLatitude(request.getLatitude());
         feedback.setLongitude(request.getLongitude());
         feedback.setAddressDetails(request.getAddressDetails());
-        feedback.setStatus(FeedbackStatus.PENDING);
-        feedback.setReceiverType(resolveReceiverType(category));
         feedback.setPriority("MEDIUM");
         feedback.setSource("CITIZEN_APP");
         feedback.setCategory(category);
-        feedback.setWard(ward);
         feedback.setCitizen(citizen);
-        feedback.setCreatedAt(LocalDateTime.now());
-        feedback.setUpdatedAt(LocalDateTime.now());
+        feedback.setCreatedAt(now);
+        feedback.setUpdatedAt(now);
+        categoryRoutingService.applyAssignment(feedback, category, ward, now);
 
         Feedback saved = feedbackRepository.save(feedback);
-        FeedbackLog submittedLog = new FeedbackLog(saved, citizen, null, FeedbackStatus.PENDING, "Công dân đã gửi phản ánh");
+        FeedbackLog submittedLog = new FeedbackLog(saved, citizen, null, saved.getStatus(), "Citizen submitted feedback");
         submittedLog.setAction("SUBMIT");
         feedbackLogRepository.save(submittedLog);
         log.info("[Feedback] Created feedback. feedbackId={}, currentUserId={}", saved.getId(), citizen.getId());
@@ -134,8 +141,7 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             if (user.getWard() == null) return Page.empty();
             return feedbackRepository.findByWardId(user.getWard().getId(), pageable);
         } else if (user.getRole() == Role.POLICE) {
-            // Enterprise Fix: Should use Category ID or dynamic config instead of hardcoded name, but we keep it query-based for now
-            return feedbackRepository.findByCategoryName("An ninh", pageable);
+            return feedbackRepository.findByManagedByRole(CategoryRoutingService.ROLE_POLICE, pageable);
         } else {
             return feedbackRepository.findByCitizenId(user.getId(), pageable);
         }
@@ -171,6 +177,83 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
                 effectiveFromDate,
                 effectiveToDate,
                 pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Feedback> getPublicFeedbacks(
+            String keyword,
+            String category,
+            FeedbackStatus status,
+            LocalDateTime fromDate,
+            LocalDateTime toDate,
+            Pageable pageable) {
+        String normalizedKeyword = keyword == null ? null : keyword.trim();
+        String normalizedCategory = category == null ? null : category.trim();
+        LocalDateTime effectiveFromDate = fromDate == null
+                ? LocalDate.of(1970, 1, 1).atStartOfDay()
+                : fromDate;
+        LocalDateTime effectiveToDate = toDate == null
+                ? LocalDate.of(9999, 12, 31).atTime(LocalTime.MAX)
+                : toDate;
+
+        return feedbackRepository.searchPublicFeedbacks(
+                normalizedKeyword,
+                normalizedCategory,
+                status,
+                effectiveFromDate,
+                effectiveToDate,
+                pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public FeedbackLookupStatsResponse getPublicFeedbackStats(
+            String keyword,
+            String category,
+            FeedbackStatus status,
+            LocalDateTime fromDate,
+            LocalDateTime toDate) {
+        String normalizedKeyword = keyword == null ? null : keyword.trim();
+        String normalizedCategory = category == null ? null : category.trim();
+        LocalDateTime effectiveFromDate = fromDate == null
+                ? LocalDate.of(1970, 1, 1).atStartOfDay()
+                : fromDate;
+        LocalDateTime effectiveToDate = toDate == null
+                ? LocalDate.of(9999, 12, 31).atTime(LocalTime.MAX)
+                : toDate;
+
+        List<Object[]> rawCounts = feedbackRepository.countPublicFeedbacksByStatus(
+                normalizedKeyword,
+                normalizedCategory,
+                status,
+                effectiveFromDate,
+                effectiveToDate);
+
+        long total = 0;
+        long pending = 0;
+        long resolved = 0;
+        long rejected = 0;
+
+        for (Object[] row : rawCounts) {
+            FeedbackStatus statStatus = (FeedbackStatus) row[0];
+            long count = ((Number) row[1]).longValue();
+            total += count;
+            if (statStatus != FeedbackStatus.RESOLVED && statStatus != FeedbackStatus.REJECTED) {
+                pending += count;
+            }
+            if (statStatus == FeedbackStatus.RESOLVED) {
+                resolved += count;
+            }
+            if (statStatus == FeedbackStatus.REJECTED) {
+                rejected += count;
+            }
+        }
+
+        return FeedbackLookupStatsResponse.builder()
+                .total(total)
+                .pending(pending)
+                .resolved(resolved)
+                .rejected(rejected)
+                .build();
     }
 
     @Transactional(readOnly = true)
@@ -332,10 +415,7 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
     }
 
     private String resolveAuthorityName(Feedback feedback) {
-        if (feedback == null || feedback.getWard() == null) {
-            return null;
-        }
-        return "UBND Phường " + feedback.getWard().getName();
+        return feedback == null ? null : feedback.getAssignedUnitName();
     }
 
     // ─── Role-based access helpers ────────────────────────────────────
@@ -355,8 +435,8 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
                 .orElseThrow(() -> new ResourceNotFoundException("User: " + username));
         return switch (user.getRole()) {
             case SUPER_ADMIN -> true;
-            case WARD_STAFF -> user.getWard() != null && user.getWard().getId().equals(feedback.getWard().getId());
-            case POLICE -> feedback.getCategory() != null && "An ninh".equals(feedback.getCategory().getName());
+            case WARD_STAFF -> user.getWard() != null && feedback.getWard() != null && user.getWard().getId().equals(feedback.getWard().getId());
+            case POLICE -> CategoryRoutingService.ROLE_POLICE.equals(feedback.getManagedByRole());
             case CITIZEN -> feedback.getCitizen().getId().equals(user.getId());
         };
     }
@@ -370,19 +450,24 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             throw new CustomException("Công dân không có quyền thay đổi trạng thái phản ánh", HttpStatus.FORBIDDEN.value());
         }
         if (actionBy.getRole() == Role.WARD_STAFF) {
-            if (actionBy.getWard() == null || !actionBy.getWard().getId().equals(feedback.getWard().getId())) {
+            if (actionBy.getWard() == null || feedback.getWard() == null || !actionBy.getWard().getId().equals(feedback.getWard().getId())) {
                 throw new CustomException("Cán bộ phường chỉ có quyền xử lý phản ánh thuộc phường quản lý", HttpStatus.FORBIDDEN.value());
             }
         }
         if (actionBy.getRole() == Role.POLICE) {
-            if (feedback.getCategory() == null || !"An ninh".equals(feedback.getCategory().getName())) {
-                throw new CustomException("Công an chỉ có quyền xử lý phản ánh thuộc danh mục An ninh", HttpStatus.FORBIDDEN.value());
+            if (!CategoryRoutingService.ROLE_POLICE.equals(feedback.getManagedByRole())) {
+                throw new CustomException("Police can only process police-managed feedback", HttpStatus.FORBIDDEN.value());
             }
         }
     }
 
-    private String resolveReceiverType(Category category) {
-        return category != null && "An ninh".equalsIgnoreCase(category.getName()) ? "POLICE" : "WARD_STAFF";
+    private Category resolveOfficialCategory(String categoryCode) {
+        String normalizedCode = categoryCode == null ? "" : categoryCode.trim().toUpperCase();
+        if (!categoryRoutingService.isOfficialCode(normalizedCode)) {
+            throw new CustomException("Invalid feedback category.", HttpStatus.BAD_REQUEST.value());
+        }
+        return categoryRepository.findByCodeAndActiveTrue(normalizedCode)
+                .orElseThrow(() -> new CustomException("Invalid feedback category.", HttpStatus.BAD_REQUEST.value()));
     }
 
 }

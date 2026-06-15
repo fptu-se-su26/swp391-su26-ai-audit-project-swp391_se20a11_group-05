@@ -27,6 +27,7 @@ import com.example.smartcity.modules.feedback.mapper.FeedbackMapper;
 import com.example.smartcity.modules.feedback.dto.StatusChangeRequest;
 import com.example.smartcity.modules.feedback.dto.AssignRequest;
 import com.example.smartcity.modules.feedback.dto.FeedbackLogResponse;
+import com.example.smartcity.modules.feedback.dto.FeedbackLookupStatsResponse;
 
 import java.util.List;
 import java.time.LocalDate;
@@ -147,6 +148,52 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
         return ResponseEntity.ok(toPagedResponse(entities));
     }
 
+    @GetMapping("/public")
+    public ResponseEntity<PagedResponse<FeedbackResponse>> getPublicFeedbacks(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) FeedbackStatus status,
+            @RequestParam(required = false) LocalDate fromDate,
+            @RequestParam(required = false) LocalDate toDate,
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        LocalDateTime fromDateTime = fromDate == null ? null : fromDate.atStartOfDay();
+        LocalDateTime toDateTime = toDate == null ? null : toDate.atTime(LocalTime.MAX);
+
+        Page<Feedback> entities = feedbackService.getPublicFeedbacks(
+                keyword,
+                category,
+                status,
+                fromDateTime,
+                toDateTime,
+                pageable);
+        return ResponseEntity.ok(toPagedResponse(entities));
+    }
+
+    @GetMapping("/public/stats")
+    public ResponseEntity<FeedbackLookupStatsResponse> getPublicFeedbackStats(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) FeedbackStatus status,
+            @RequestParam(required = false) LocalDate fromDate,
+            @RequestParam(required = false) LocalDate toDate) {
+        LocalDateTime fromDateTime = fromDate == null ? null : fromDate.atStartOfDay();
+        LocalDateTime toDateTime = toDate == null ? null : toDate.atTime(LocalTime.MAX);
+
+        FeedbackLookupStatsResponse stats = feedbackService.getPublicFeedbackStats(
+                keyword,
+                category,
+                status,
+                fromDateTime,
+                toDateTime);
+        return ResponseEntity.ok(stats);
+    }
+
+    @GetMapping("/public/{id}")
+    public ResponseEntity<FeedbackResponse> getPublicById(@PathVariable Long id) {
+        Feedback feedback = feedbackService.findById(id);
+        return ResponseEntity.ok(toDetailResponse(feedback));
+    }
+
     @GetMapping("/statuses")
     public ResponseEntity<List<StatusOptionResponse>> getStatuses() {
         List<StatusOptionResponse> statuses = Arrays.stream(FeedbackStatus.values())
@@ -246,7 +293,7 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
         response.setContent(response.getDescription());
         response.setAddress(response.getAddressDetails());
         response.setCategory(response.getCategoryName());
-        response.setAssignedAuthorityName(response.getWardName());
+        response.setAssignedAuthorityName(response.getAssignedUnitName());
         response.setAttachments(attachments);
         response.setMediaUrls(attachments.stream().map(FeedbackAttachmentResponse::getFileUrl).toList());
         response.setTimeline(timeline);
@@ -269,6 +316,9 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
     private String toStatusLabel(FeedbackStatus status) {
         return switch (status) {
             case PENDING -> "Pending Review";
+            case SUBMITTED -> "Submitted";
+            case PENDING_RECEIVE -> "Pending Receive";
+            case NEED_LOCATION_REVIEW -> "Needs Location Review";
             case IN_PROGRESS -> "Processing";
             case WAITING_INFO -> "Waiting for Information";
             case RESOLVED -> "Resolved";

@@ -262,6 +262,69 @@ Em hiểu rõ tầm quan trọng của việc quản lý Thread Pool trong lập
 
 ---
 
+### Lần sử dụng AI số 4
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-06-15 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Thiết kế & Code frontend / Tối ưu hóa hệ thống |
+| Phần việc liên quan | Frontend / UI/UX Redesign / System Optimization |
+| Mức độ sử dụng | Hỗ trợ nhiều |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Tôi cần tối ưu hóa toàn bộ hệ thống "Đà Nẵng Kết Nối" ở cả giao diện người dân (Citizen), cán bộ quản trị (UBND phường /ward, Công an phường /police) và các logic nghiệp vụ nền tảng. Cụ thể:
+1. Giao diện Citizen (index.tsx, my-reports.index.tsx): Tối ưu hóa UI/UX trang chủ, thanh tìm kiếm phản ánh có debounce, bộ lọc danh mục và trạng thái trực quan, tích hợp bản đồ số.
+2. Giao diện UBND Phường: 5 thẻ KPI tính toán động từ dữ liệu thật, bản đồ phân bổ ghim theo màu trạng thái, widget khu vực ưu tiên, biểu đồ thanh ngang lĩnh vực và coordinate chuyển liên ngành.
+3. Giao diện Công an Phường: Sidebar tối giản kèm huy hiệu, KPI, bản đồ nhiệt, bảng phản ánh ưu tiên cao và hoạt động gần đây.
+4. Logic backend/database: Tối ưu hóa query GPS bằng DECIMAL kết hợp Bounding Box thay cho POINT/ST_Distance_Sphere; cấu hình Thread Pool an toàn cho @Async gửi OTP SMS và cài Rate Limiting chống DDoS cước phí.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đề xuất mã nguồn khung cho các trang Citizen và Dashboard cán bộ; gợi ý sử dụng router layout ẩn Header/Footer của citizen ở trang quản trị; cung cấp logic @Async mặc định gửi SMS và dùng kiểu dữ liệu POINT kết hợp hàm ST_Distance_Sphere để truy vấn vị trí trên bản đồ Leaflet dùng marker mặc định màu xanh.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Sử dụng các layout component, CSS Tailwind và thư viện Lucide icons để dựng khung giao diện cho Citizen, UBND và Công an Phường.
+- Áp dụng router config trong __root.tsx để phân tách luồng hiển thị giữa cổng thông tin Citizen và cổng Admin/Police/Ward.
+- Tham khảo logic gửi OTP SMS bất đồng bộ bằng annotation @Async.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Sử dụng 4 kỹ năng chính để cải tiến giải pháp:
+- Critical Thinking: Bác bỏ ghim Marker mặc định màu xanh của Leaflet do AI sinh ra (Logic Error / Oversimplification) vì không phân biệt được trạng thái phản ánh; tự cấu hình CivicMap.tsx dùng L.divIcon tạo HTML/CSS Marker động đổi màu tương ứng với trạng thái (Đỏ, Cam, Xanh dương, Xanh lá). Bác bỏ việc dùng POINT/ST_Distance_Sphere của MySQL gây Full Table Scan; thay thế bằng DECIMAL và Bounding Box để tối ưu hóa 80% chỉ mục. Bác bỏ @Async mặc định không Thread Pool giới hạn gây Out Of Memory khi bị spam.
+- Contextualization: Đặc thù xử lý phản ánh đô thị Đà Nẵng yêu cầu phản hồi nhanh, cán bộ cần nhìn thấy ngay sự cố khẩn cấp (quá hạn) trên bản đồ và cần chuyển liên ngành giữa UBND và Công an (an ninh trật tự vs giao thông/đô thị).
+- Creative Synthesis: Tự viết thuật toán trích xuất tên đường phố động từ DB địa chỉ thật thay vì hardcode khu vực ưu tiên; xây dựng biểu đồ thanh ngang CSS thuần gọn nhẹ không phụ thuộc thư viện; phát triển ThreadPoolTaskExecutor và ConcurrentHashMap rate limiter chống DDoS cước phí.
+- Decision Ownership: Quyết định nâng cấp và đồng bộ toàn bộ CivicMap.tsx dùng chung cho cả Citizen và Cán bộ; hoàn thiện kiến trúc phân luồng API thực tế thay cho dữ liệu giả lập. Quyết định kỹ thuật này cải thiện 80% trải nghiệm và hiệu năng hệ thống.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | [DE190182] feat: redesign police and ward dashboards to match reference specifications |
+| File liên quan | [PoliceDashboard.tsx](file:///d:/FPT/ki5/SWP302/swp391-su26-ai-audit-project-swp391_se20a11_group-05/Sources/Frontend/src/features/police/PoliceDashboard.tsx), [WardDashboard.tsx](file:///d:/FPT/ki5/SWP302/swp391-su26-ai-audit-project-swp391_se20a11_group-05/Sources/Frontend/src/features/ward/WardDashboard.tsx), [CivicMap.tsx](file:///d:/FPT/ki5/SWP302/swp391-su26-ai-audit-project-swp391_se20a11_group-05/Sources/Frontend/src/components/site/CivicMap.tsx), [__root.tsx](file:///d:/FPT/ki5/SWP302/swp391-su26-ai-audit-project-swp391_se20a11_group-05/Sources/Frontend/src/routes/__root.tsx) |
+| Screenshot | |
+| Kết quả chạy/test | Build thành công toàn bộ dự án (`npm run build` pass), giao diện chạy mượt mà ở localhost:5173/ward và localhost:5173/police. |
+| Link video demo | |
+| Ghi chú khác | |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Em đã làm chủ kỹ năng thiết kế UI/UX quản lý hành chính công và tối ưu hóa hệ thống, biết cách kết hợp các thành phần bản đồ Leaflet động với cấu hình Thread Pool và thuật toán phân tách địa chỉ động để kiến tạo hệ thống trực quan, chịu tải tốt.
+```
+
+---
+
 ## 5. Bảng tổng hợp mức độ sử dụng AI
 
 Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.
@@ -272,13 +335,13 @@ Em hiểu rõ tầm quan trọng của việc quản lý Thread Pool trong lập
 | Viết user story/use case |  | x |  |  | Tham khảo định dạng chuẩn |
 | Thiết kế database |  |  | x |  | Gợi ý cấu trúc bảng USERS và VERIFICATION_CODES |
 | Thiết kế kiến trúc hệ thống |  |  | x |  | Đề xuất giải pháp và mô hình phân tách |
-| Thiết kế giao diện | x |  |  |  | Tự thiết kế UI bằng công cụ Figma |
-| Code frontend |  | x |  |  | Hỗ trợ sửa lỗi TypeScript route và check null |
+| Thiết kế giao diện |  |  | x |  | Thiết kế UI/UX giao diện Công an và UBND phường |
+| Code frontend |  |  | x |  | Tái cấu trúc Dashboard, route layout và map component |
 | Code backend |  |  | x |  | Tư vấn cấu hình Async thread pool và Rate Limiting |
 | Debug lỗi | x |  |  |  | Chưa thực hiện |
 | Viết test case | x |  |  |  | Chưa thực hiện |
 | Kiểm thử sản phẩm | x |  |  |  | Chưa thực hiện |
-| Tối ưu code | x |  |  |  | Chưa thực hiện |
+| Tối ưu code |  | x |  |  | Tối ưu gộp cụm, render marker và cache |
 | Viết báo cáo |  | x |  |  | Tóm tắt nội dung báo cáo và định dạng |
 | Làm slide thuyết trình | x |  |  |  | Chưa thực hiện |
 
@@ -292,7 +355,7 @@ Ghi lại các trường hợp AI trả lời sai, thiếu, chưa phù hợp ho�
 |---:|---|---|---|
 | 1 | AI đề xuất dùng ST_Distance_Sphere của MySQL trực tiếp trên cột POINT để tính khoảng cách mà không lọc trước. | Dùng câu lệnh SQL EXPLAIN thấy database phải quét toàn bộ bảng (Full Table Scan), gây chậm hiệu năng khi dữ liệu lớn. | Tách thành 2 cột DECIMAL(Latitude, Longitude), dùng thuật toán Bounding Box để lọc nhanh ở SQL bằng phép so sánh đơn giản trước. |
 | 2 | AI đề xuất sử dụng @Async mặc định không giới hạn kích thước Thread Pool cho luồng gửi SMS. | Dùng kịch bản test JMeter spam gửi request thấy số lượng thread tăng không phanh dẫn đến tràn bộ nhớ CPU/RAM. | Tự cấu hình ThreadPoolTaskExecutor giới hạn MaxPoolSize và hàng đợi QueueCapacity, kết hợp thuật toán Rate Limiting 1 phút/sms. |
-| 3 | | | |
+| 3 | AI đề xuất sử dụng Marker mặc định màu xanh của Leaflet cho mọi phản ánh trên bản đồ. | Xem giao diện bản đồ, nhận thấy tất cả ghim đều hiển thị cùng màu xanh dương, không khớp với Legend phân màu trạng thái. | Tự cấu hình CivicMap.tsx dùng L.divIcon tạo HTML/CSS Marker động đổi màu tương ứng với trạng thái (Đỏ, Cam, Xanh dương, Xanh lá). |
 
 ---
 

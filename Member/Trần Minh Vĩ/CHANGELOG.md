@@ -40,7 +40,7 @@ Nguyên tắc ghi changelog:
 | Phase 01 | 2026-05-12 | Khởi tạo project | Completed |
 | Phase 02 | 2026-05-15 | Phân tích yêu cầu | Completed |
 | Phase 03 | 2026-05-28 | Thiết kế hệ thống | Completed |
-| Phase 04 |  | Implementation | Not Started |
+| Phase 04 | 2026-06-15 | Implementation & UI/UX Redesign | Completed |
 | Phase 05 |  | Testing & Debug | Not Started |
 | Phase 06 |  | Hoàn thiện báo cáo và demo | Not Started |
 
@@ -201,8 +201,55 @@ Kiểm chứng cho thấy thuật toán Bounding Box DECIMAL tối ưu hơn 80% 
 
 ---
 
-# [Phase 04] Implementation
-*(Chưa bắt đầu)*
+# [Phase 04] Implementation & UI/UX Redesign
+
+## Ngày thực hiện
+
+```text
+15/06/2026
+```
+
+## Đã hoàn thành
+
+- [x] Thiết lập layout standalone trong __root.tsx để ẩn Header/Footer của Citizen khi truy cập trang cán bộ quản trị
+- [x] Thiết kế lại giao diện UBND Phường (/ward) hiển thị 5 thẻ KPI động, bản đồ, khu vực ưu tiên, thống kê lĩnh vực, phản ánh ưu tiên cao và liên ngành
+- [x] Thiết kế lại giao diện Công an Phường (/police) hiển thị sidebar tối giản kèm huy hiệu Công an nhân dân, hàng 5 KPI, bản đồ và nhật ký hoạt động
+- [x] Tối ưu hóa CivicMap.tsx để đổi màu pin Marker động dựa trên trạng thái của phản ánh dùng L.divIcon
+- [x] Trích xuất địa danh đường phố/tổ dân phố tự động từ địa chỉ thật trong database thay vì hardcode
+- [x] Tích hợp dữ liệu API thực tế vào các thẻ KPI, bảng biểu, danh sách phản ánh của cả hai Dashboard
+- [x] Kiểm thử build production dự án thành công (`npm run build` pass)
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Ẩn/hiện Header/Footer dựa trên route | Trần Minh Vĩ | [__root.tsx](file:///d:/FPT/ki5/SWP302/swp391-su26-ai-audit-project-swp391_se20a11_group-05/Sources/Frontend/src/routes/__root.tsx) | Commit a119c12 |
+| 2 | Redesign Dashboard UBND Phường | Trần Minh Vĩ | [WardDashboard.tsx](file:///d:/FPT/ki5/SWP302/swp391-su26-ai-audit-project-swp391_se20a11_group-05/Sources/Frontend/src/features/ward/WardDashboard.tsx) | Commit a119c12 |
+| 3 | Redesign Dashboard Công an Phường | Trần Minh Vĩ | [PoliceDashboard.tsx](file:///d:/FPT/ki5/SWP302/swp391-su26-ai-audit-project-swp391_se20a11_group-05/Sources/Frontend/src/features/police/PoliceDashboard.tsx) | Commit a119c12 |
+| 4 | Cấu hình marker Leaflet đổi màu động | Trần Minh Vĩ | [CivicMap.tsx](file:///d:/FPT/ki5/SWP302/swp391-su26-ai-audit-project-swp391_se20a11_group-05/Sources/Frontend/src/components/site/CivicMap.tsx) | Commit a119c12 |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+Sử dụng Antigravity để đề xuất cấu trúc layout, code giao diện khung (Grid layout, Tailwind classes) và cấu hình router.
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+a119c12 [DE190182] feat: redesign police and ward dashboards to match reference specifications
+```
+
+## Ghi chú
+
+```text
+Chạy thử thực tế trên dev server và build production đều thành công, giao diện mượt mà và trực quan hóa dữ liệu tốt.
+```
 
 ---
 
@@ -222,7 +269,11 @@ Kiểm chứng cho thấy thuật toán Bounding Box DECIMAL tối ưu hơn 80% 
 
 | STT | Chức năng | Trạng thái | Minh chứng | Ghi chú |
 |---:|---|---|---|---|
-| 1 |  | Completed / Partial / Not Completed |  |  |
+| 1 | Ẩn/hiện Header/Footer theo Route | Completed | [__root.tsx](file:///d:/FPT/ki5/SWP302/swp391-su26-ai-audit-project-swp391_se20a11_group-05/Sources/Frontend/src/routes/__root.tsx) | Hỗ trợ cổng cán bộ độc lập |
+| 2 | Redesign Giao diện UBND Phường | Completed | [WardDashboard.tsx](file:///d:/FPT/ki5/SWP302/swp391-su26-ai-audit-project-swp391_se20a11_group-05/Sources/Frontend/src/features/ward/WardDashboard.tsx) | Đầy đủ 5 KPI, bản đồ và các widgets |
+| 3 | Redesign Giao diện Công an Phường | Completed | [PoliceDashboard.tsx](file:///d:/FPT/ki5/SWP302/swp391-su26-ai-audit-project-swp391_se20a11_group-05/Sources/Frontend/src/features/police/PoliceDashboard.tsx) | Sidebar tối giản, emblem, 5 KPI, nhật ký |
+| 4 | Marker Leaflet phân loại theo trạng thái | Completed | [CivicMap.tsx](file:///d:/FPT/ki5/SWP302/swp391-su26-ai-audit-project-swp391_se20a11_group-05/Sources/Frontend/src/components/site/CivicMap.tsx) | Dùng L.divIcon đổi màu markers |
+| 5 | Trích xuất tên đường phố động từ DB | Completed | [WardDashboard.tsx](file:///d:/FPT/ki5/SWP302/swp391-su26-ai-audit-project-swp391_se20a11_group-05/Sources/Frontend/src/features/ward/WardDashboard.tsx) | Động hóa danh sách Tổ dân phố / Khu vực ưu tiên |
 
 ---
 
@@ -239,13 +290,13 @@ Kiểm chứng cho thấy thuật toán Bounding Box DECIMAL tối ưu hơn 80% 
 | Hạng mục | AI có hỗ trợ không? | Mức độ hỗ trợ | Ghi chú |
 |---|---|---|---|
 | Requirement | Có | Nhiều | Hỗ trợ phân tích lỗ hổng kiến trúc |
-| Design | Có / Không | Ít / Trung bình / Nhiều |  |
-| Database | Có / Không | Ít / Trung bình / Nhiều |  |
-| Coding | Có / Không | Ít / Trung bình / Nhiều |  |
-| Debug | Có / Không | Ít / Trung bình / Nhiều |  |
-| Testing | Có / Không | Ít / Trung bình / Nhiều |  |
-| Report | Có / Không | Ít / Trung bình / Nhiều |  |
-| Presentation | Có / Không | Ít / Trung bình / Nhiều |  |
+| Design | Có | Nhiều | Giao diện Công an và UBND Phường |
+| Database | Có | Nhiều | Đề xuất cấu trúc USERS, VERIFICATION_CODES |
+| Coding | Có | Nhiều | Code khung React, Tailwind CSS, Thread Pool Async |
+| Debug | Không | Ít | Tự debug và tối ưu markers/hàm |
+| Testing | Không | Ít | Tự viết test script giả lập tải |
+| Report | Có | Ít | Định dạng và cấu trúc log |
+| Presentation | Không | Không | Chưa thực hiện |
 
 ---
 
@@ -271,4 +322,4 @@ Sinh viên/nhóm cam kết rằng nội dung changelog phản ánh đúng các t
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-| Trần Minh Vĩ | 19/05/2026 |
+| Trần Minh Vĩ | 15/06/2026 |

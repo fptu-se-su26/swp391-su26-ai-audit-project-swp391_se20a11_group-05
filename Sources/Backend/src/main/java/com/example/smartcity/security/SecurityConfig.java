@@ -52,7 +52,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll() // Login/Register/MFA are public
                         .requestMatchers("/api/rag/chatbot", "/api/rag/stream").permitAll() // Public Chatbot endpoints
                         .requestMatchers("/actuator/health").permitAll() // Health check only
-                        .requestMatchers("/api/feedbacks/public/**").permitAll() // Public Feedback Lookups
+                        .requestMatchers("/api/feedbacks/public/**", "/api/feedbacks/statuses").permitAll() // Public Feedback Lookups & Statuses
                         // Authenticated: all business endpoints
                         .requestMatchers("/api/ai/**").authenticated()
                         .requestMatchers("/api/rag/**").authenticated()

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { MapPin } from "lucide-react";
 
 const CURRENT_LOCATION_ZOOM = 17;
@@ -11,6 +11,7 @@ interface ReportMapProps {
   longitude: number | null;
   address: string;
   locationLoading: boolean;
+  onChangeLocation?: (lat: number, lng: number) => void;
 }
 
 // Inner component that uses useMap — must be rendered inside MapContainer
@@ -39,6 +40,24 @@ function MapViewUpdaterInner({
   return null;
 }
 
+// Map event handler component using useMapEvents hook from react-leaflet
+function MapEventsHandler({
+  useMapEvents,
+  onChangeLocation,
+}: {
+  useMapEvents: any;
+  onChangeLocation?: (lat: number, lng: number) => void;
+}) {
+  useMapEvents({
+    click(e: any) {
+      if (onChangeLocation) {
+        onChangeLocation(e.latlng.lat, e.latlng.lng);
+      }
+    },
+  });
+  return null;
+}
+
 export function ReportMap({
   mapCenter,
   hasLocation,
@@ -47,6 +66,7 @@ export function ReportMap({
   longitude,
   address,
   locationLoading,
+  onChangeLocation,
 }: ReportMapProps) {
   // Dynamic import: Leaflet requires `window` at module-load time,
   // so we lazy-load react-leaflet and leaflet only on the client.
@@ -56,8 +76,24 @@ export function ReportMap({
     Marker: any;
     Popup: any;
     useMap: () => any;
+    useMapEvents: any;
     currentLocationIcon: any;
   } | null>(null);
+
+  const markerEventHandlers = useMemo(
+    () => ({
+      dragend(e: any) {
+        const marker = e.target;
+        if (marker != null) {
+          const latLng = marker.getLatLng();
+          if (onChangeLocation) {
+            onChangeLocation(latLng.lat, latLng.lng);
+          }
+        }
+      },
+    }),
+    [onChangeLocation]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -106,6 +142,7 @@ export function ReportMap({
         Marker: rl.Marker,
         Popup: rl.Popup,
         useMap: rl.useMap,
+        useMapEvents: rl.useMapEvents,
         currentLocationIcon: icon,
       });
     });
@@ -120,7 +157,15 @@ export function ReportMap({
     );
   }
 
-  const { MapContainer, TileLayer, Marker, Popup, useMap, currentLocationIcon } = modules;
+  const {
+    MapContainer,
+    TileLayer,
+    Marker,
+    Popup,
+    useMap,
+    useMapEvents,
+    currentLocationIcon,
+  } = modules;
 
   return (
     <div className="w-full h-full relative">
@@ -133,12 +178,18 @@ export function ReportMap({
         zoomControl={true}
       >
         <MapViewUpdaterInner center={mapCenter} hasLocation={hasLocation} useMap={useMap} />
+        <MapEventsHandler useMapEvents={useMapEvents} onChangeLocation={onChangeLocation} />
         <TileLayer
           attribution="&copy; Google Maps"
           url="https://mt1.google.com/vt/lyrs=m&hl=vi&gl=VN&x={x}&y={y}&z={z}"
         />
         {markerDisplayed && latitude !== null && longitude !== null && currentLocationIcon && (
-          <Marker position={[latitude, longitude]} icon={currentLocationIcon}>
+          <Marker
+            position={[latitude, longitude]}
+            icon={currentLocationIcon}
+            draggable={true}
+            eventHandlers={markerEventHandlers}
+          >
             <Popup>
               <strong>Vị trí hiện tại</strong>
               <p className="text-sm mt-1">{address || "Đã xác định bằng GPS"}</p>

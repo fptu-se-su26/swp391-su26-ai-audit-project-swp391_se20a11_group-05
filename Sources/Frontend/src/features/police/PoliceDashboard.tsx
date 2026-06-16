@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 import { useI18n } from "@/lib/i18n";
-import { useFeedbacks, useRejectFeedback, useRequestMoreInfo, useHotspots } from "@/hooks";
+import { usePoliceAssignedFeedbacks, useRejectFeedback, useRequestMoreInfo, useHotspots } from "@/hooks";
 import { reports as mockReports } from "@/lib/mock-data";
 import { StaffShell } from "@/components/site/StaffShell";
 import { Sparkline, textClassToHex } from "@/components/site/KpiChart";
@@ -16,13 +16,16 @@ const HeatmapMap = lazy(() =>
 export function PoliceDashboard() {
   const { t, locale } = useI18n();
 
-  const { data: feedbacksPage, isLoading } = useFeedbacks(0, 50);
+  const { data: apiFeedbacks, isLoading } = usePoliceAssignedFeedbacks();
   const { data: hotspots } = useHotspots();
   const rejectMutation = useRejectFeedback();
   const requestInfoMutation = useRequestMoreInfo();
 
-  const hasApiData = !!feedbacksPage && feedbacksPage.content.length > 0;
-  const apiFeedbacks = feedbacksPage?.content ?? [];
+  // Cố gắng sử dụng dữ liệu từ API nếu có, nếu không thì dùng mock
+  const hasApiData = !!apiFeedbacks && apiFeedbacks.length > 0;
+  
+  // Chúng ta không cần lọc lại nữa vì API getAssignedFeedbacks đã lọc sẵn theo assignee_id (Cán bộ Công an)
+  const filteredApi = apiFeedbacks || [];
 
   const handleReject = (id: string | number) => {
     const reason = window.prompt("Nhập lý do từ chối hoặc yêu cầu chuyển tiếp:");
@@ -38,12 +41,8 @@ export function PoliceDashboard() {
     }
   };
 
-  // Filter traffic/urgent for police view
-  const filteredApi = apiFeedbacks.filter(
-    (r) => r.managedByRole === "POLICE" || r.status === "REJECTED",
-  );
   const trafficReports = mockReports.filter(
-    (r) => r.category === "traffic" || r.status === "urgent",
+    (r) => r.category === "traffic" || r.status === "urgent" || r.category === "safety",
   );
 
   return (
@@ -153,7 +152,6 @@ export function PoliceDashboard() {
       <div className="space-y-4">
         {/* API Data */}
         {!isLoading &&
-          hasApiData &&
           filteredApi.map((r) => (
             <ReportCard
               key={r.id}
@@ -169,7 +167,6 @@ export function PoliceDashboard() {
 
         {/* Fallback Mock Data */}
         {!isLoading &&
-          !hasApiData &&
           trafficReports.map((r) => (
             <ReportCard
               key={r.id}

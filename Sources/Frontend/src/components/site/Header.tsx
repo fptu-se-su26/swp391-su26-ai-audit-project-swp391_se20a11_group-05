@@ -222,7 +222,7 @@ export function Header() {
     { to: "/", label: locale === "vi" ? "Trang chủ" : "Home" },
     { to: "/tin-tuc", label: locale === "vi" ? "Tin tức" : "News" },
     { to: "/my-reports", label: locale === "vi" ? "Tra cứu" : "Lookup" },
-    { to: "/campaigns/green-hoa-xuan", label: locale === "vi" ? "Chiến dịch" : "Campaigns" },
+    { to: "/campaigns/", label: locale === "vi" ? "Chiến dịch" : "Campaigns" },
     { to: "/", hash: "huong-dan", label: locale === "vi" ? "Hướng dẫn" : "Guides" },
     { to: "/", hash: "lien-he", label: locale === "vi" ? "Liên hệ" : "Contact" },
   ] as const;

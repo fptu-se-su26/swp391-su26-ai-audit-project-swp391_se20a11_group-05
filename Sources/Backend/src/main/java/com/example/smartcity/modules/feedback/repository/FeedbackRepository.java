@@ -75,7 +75,7 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
             WHERE (:status IS NULL OR f.status = :status)
               AND f.createdAt >= :fromDate
               AND f.createdAt <= :toDate
-              AND (:category IS NULL OR :category = '' OR LOWER(c.name) LIKE LOWER(CONCAT('%', :category, '%')))
+              AND (:category IS NULL OR :category = '' OR LOWER(c.name) LIKE LOWER(CONCAT('%', :category, '%')) OR LOWER(c.code) = LOWER(:category))
               AND (
                 :keyword IS NULL OR :keyword = '' OR
                 LOWER(function('unaccent', COALESCE(f.trackingCode, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
@@ -101,7 +101,7 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
             WHERE (:status IS NULL OR f.status = :status)
               AND f.createdAt >= :fromDate
               AND f.createdAt <= :toDate
-              AND (:category IS NULL OR :category = '' OR LOWER(c.name) LIKE LOWER(CONCAT('%', :category, '%')))
+              AND (:category IS NULL OR :category = '' OR LOWER(c.name) LIKE LOWER(CONCAT('%', :category, '%')) OR LOWER(c.code) = LOWER(:category))
               AND (
                 :keyword IS NULL OR :keyword = '' OR
                 LOWER(function('unaccent', COALESCE(f.trackingCode, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR

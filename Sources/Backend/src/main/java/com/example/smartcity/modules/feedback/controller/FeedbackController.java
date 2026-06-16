@@ -252,7 +252,9 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
         List<FeedbackResponse> content = page.getContent().stream()
                 .map(feedback -> {
                     FeedbackResponse response = feedbackMapper.toDto(feedback);
-                    response.setAttachments(attachmentsByFeedbackId.getOrDefault(feedback.getId(), List.of()));
+                    List<FeedbackAttachmentResponse> attachments = attachmentsByFeedbackId.getOrDefault(feedback.getId(), List.of());
+                    response.setAttachments(attachments);
+                    response.setMediaUrls(attachments.stream().map(FeedbackAttachmentResponse::getFileUrl).toList());
                     return response;
                 })
                 .toList();

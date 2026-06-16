@@ -17,6 +17,7 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as FeedbackSearchRouteImport } from './routes/feedback-search'
 import { Route as AuthorityLoginRouteImport } from './routes/authority-login'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
@@ -67,6 +68,11 @@ const NotificationsRoute = NotificationsRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeedbackSearchRoute = FeedbackSearchRouteImport.update({
+  id: '/feedback-search',
+  path: '/feedback-search',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthorityLoginRoute = AuthorityLoginRouteImport.update({
@@ -127,6 +133,7 @@ const AuthAssistantRoute = AuthAssistantRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/authority-login': typeof AuthorityLoginRoute
+  '/feedback-search': typeof FeedbackSearchRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
@@ -147,6 +154,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/authority-login': typeof AuthorityLoginRoute
+  '/feedback-search': typeof FeedbackSearchRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
@@ -169,6 +177,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_auth': typeof AuthRouteWithChildren
   '/authority-login': typeof AuthorityLoginRoute
+  '/feedback-search': typeof FeedbackSearchRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
@@ -191,6 +200,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/authority-login'
+    | '/feedback-search'
     | '/login'
     | '/notifications'
     | '/profile'
@@ -211,6 +221,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/authority-login'
+    | '/feedback-search'
     | '/login'
     | '/notifications'
     | '/profile'
@@ -232,6 +243,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_auth'
     | '/authority-login'
+    | '/feedback-search'
     | '/login'
     | '/notifications'
     | '/profile'
@@ -254,6 +266,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRouteWithChildren
   AuthorityLoginRoute: typeof AuthorityLoginRoute
+  FeedbackSearchRoute: typeof FeedbackSearchRoute
   LoginRoute: typeof LoginRoute
   NotificationsRoute: typeof NotificationsRoute
   ProfileRoute: typeof ProfileRoute
@@ -324,6 +337,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/feedback-search': {
+      id: '/feedback-search'
+      path: '/feedback-search'
+      fullPath: '/feedback-search'
+      preLoaderRoute: typeof FeedbackSearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/authority-login': {
@@ -426,6 +446,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRouteWithChildren,
   AuthorityLoginRoute: AuthorityLoginRoute,
+  FeedbackSearchRoute: FeedbackSearchRoute,
   LoginRoute: LoginRoute,
   NotificationsRoute: NotificationsRoute,
   ProfileRoute: ProfileRoute,

@@ -163,13 +163,17 @@ export function LoginPage() {
             )}
 
             {/* Access-denied error */}
-            {authError === "forbidden" && !error && (
+            {(authError === "forbidden" || authError === "login_required") && !error && (
               <div className="mb-5 p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-3 text-amber-800">
                 <AlertCircle size={16} className="shrink-0" />
                 <span className="text-sm">
-                  {locale === "vi"
-                    ? "Vui lòng đăng nhập để tiếp tục."
-                    : "Please sign in to continue."}
+                  {authError === "login_required"
+                    ? locale === "vi"
+                      ? "Vui lòng đăng nhập để gửi phản ánh sự cố."
+                      : "Please log in to submit a feedback report."
+                    : locale === "vi"
+                      ? "Vui lòng đăng nhập để tiếp tục."
+                      : "Please sign in to continue."}
                 </span>
               </div>
             )}

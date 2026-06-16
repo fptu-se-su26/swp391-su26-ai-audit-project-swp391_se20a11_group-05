@@ -75,6 +75,7 @@ export function CivicMap({
     TileLayer: any;
     Marker: any;
     Popup: any;
+    Circle: any;
   } | null>(null);
 
   useEffect(() => {
@@ -86,6 +87,7 @@ export function CivicMap({
           TileLayer: mod.TileLayer,
           Marker: mod.Marker,
           Popup: mod.Popup,
+          Circle: mod.Circle,
         });
       }
     });
@@ -103,7 +105,7 @@ export function CivicMap({
     );
   }
 
-  const { MapContainer, TileLayer, Marker, Popup } = leafletComponents;
+  const { MapContainer, TileLayer, Marker, Popup, Circle } = leafletComponents;
 
   return (
     <div

@@ -109,7 +109,7 @@ export function HeatmapMap({ hotspots }: HeatmapMapProps) {
 
   if (!leafletComponents) {
     return (
-      <div className="h-[500px] w-full rounded-lg overflow-hidden border border-slate-200 shadow-sm bg-slate-50 flex items-center justify-center">
+      <div className="h-full w-full rounded-lg overflow-hidden border border-slate-200 shadow-sm bg-slate-50 flex items-center justify-center">
         <span className="text-slate-400 text-sm">Đang tải bản đồ nhu cầu...</span>
       </div>
     );
@@ -118,7 +118,7 @@ export function HeatmapMap({ hotspots }: HeatmapMapProps) {
   const { MapContainer, TileLayer, Rectangle, Popup } = leafletComponents;
 
   return (
-    <div className="h-[500px] w-full rounded-lg overflow-hidden border border-slate-200 shadow-sm relative z-0 bg-white">
+    <div className="h-full w-full rounded-lg overflow-hidden border border-slate-200 shadow-sm relative z-0 bg-white">
       {/* Nút bật/tắt Layer (như UI Grab) */}
       <div className="absolute top-4 right-4 z-[1000]">
         <button

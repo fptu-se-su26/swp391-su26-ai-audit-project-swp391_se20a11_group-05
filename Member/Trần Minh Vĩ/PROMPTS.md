@@ -55,6 +55,7 @@ Sinh viên/nhóm cần ghi lại:
 | 1 | 15/05/2026 | Gemini, Antigravity | Hỗ trợ ý tưởng Requirement | Xin phân tích lỗ hổng kiến trúc Smart City thực tế | 4 vấn đề (Rác DL, Hiệu năng, Bất đồng bộ, ATTT) | Có | AI_AUDIT_LOG.md |
 | 2 | 28/05/2026 | Gemini, Antigravity | Thiết kế DB & GPS | Thiết kế schema lưu GPS & truy vấn bán kính 100m | Gợi ý POINT & Spatial Index, ST_Distance_Sphere | Có | AI_AUDIT_LOG.md |
 | 3 | 04/06/2026 | Gemini, Antigravity | Thiết kế thuật toán | Thuật toán gom cụm báo cáo trùng lặp 100m, 1h | Gợi ý DBSCAN chạy Cron Job | Có | AI_AUDIT_LOG.md |
+| 4 | 15/06/2026 | Antigravity | UI/UX Redesign & Optimization | Thiết kế lại giao diện UBND & Công an Phường | Giao diện dashboard tối ưu kèm bản đồ Leaflet động | Có | AI_AUDIT_LOG.md |
 
 ---
 
@@ -300,6 +301,80 @@ Cần cấu hình Thread Pool Async phù hợp với cấu hình RAM/CPU của s
 
 ---
 
+### Prompt số 4
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-06-15 |
+| Công cụ AI | Antigravity |
+| Mục đích | Thiết kế & Code frontend |
+| Phần việc liên quan | Frontend / UI/UX Redesign |
+| Mức độ sử dụng | Hỏi ý tưởng / Thiết kế giải pháp |
+
+#### 5.1. Prompt nguyên văn
+
+```text
+- Tôi cần thiết kế lại giao diện trang tổng quan của UBND Phường (/ward) và Công an Phường (/police) để tối ưu hoá khả năng giám sát thông tin của cán bộ địa phương. Yêu cầu giao diện UBND phường gọn gàng, hiển thị 5 thẻ KPI động, bản đồ nhiệt phản ánh Leaflet có chú thích, thống kê lĩnh vực, phản ánh ưu tiên cao và phân phối phối hợp chuyển liên ngành. Giao diện Công an phường có sidebar tối giản 5 mục kèm huy hiệu Công an nhân dân, hàng 5 KPI động, và nhật ký hoạt động gần đây. Phải sử dụng dữ liệu thực tế từ API.
+```
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Nhóm cần nâng cấp giao diện cổng thông tin dành cho cán bộ phường (UBND phường và Công an phường) để trực quan hóa dữ liệu phản ánh từ citizen và tích hợp bản đồ Leaflet động hiển thị vị trí các phản ánh phân loại theo trạng thái.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI đề xuất mã nguồn React cho cả hai dashboard (PoliceDashboard.tsx và WardDashboard.tsx), cấu trúc lại __root.tsx để cho phép chạy chế độ không thanh tiêu đề (standalone), và gợi ý sử dụng thư viện Leaflet mặc định để vẽ bản đồ.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Sử dụng cấu trúc phân chia giao diện (Header, Sidebar, Main Content, Grid Layout), các class CSS Tailwind để dựng giao diện và sử dụng cấu hình layout trong __root.tsx để ẩn Header/Footer của Citizen ở cổng cán bộ.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Sử dụng 4 kỹ năng chính để cải tiến:
+- Critical Thinking: Bác bỏ việc dùng các ghim Marker mặc định màu xanh của Leaflet do AI sinh ra (Logic Error / Oversimplification) vì không phân biệt được trạng thái. Đã tự cấu hình lại CivicMap.tsx sử dụng L.divIcon tạo HTML/CSS Marker động đổi màu tương ứng với trạng thái (Đỏ, Cam, Xanh dương, Xanh lá). Bác bỏ việc hardcode các quận/tổ dân phố, thay bằng hàm trích xuất tên đường phố động từ chuỗi địa chỉ phản ánh thật.
+- Contextualization: Cán bộ UBND phường chỉ chịu trách nhiệm chính với Môi trường, Đô thị, Xây dựng và Giao thông nhỏ; trong khi các vụ việc An ninh hay PCCC phải chuyển giao cho lực lượng công an. Do đó, cần tách biệt khu vực phối hợp liên ngành.
+- Creative Synthesis: Tự viết thuật toán tính toán % tăng trưởng tuần trước so với tuần này cho từng thẻ KPI một cách an toàn (tránh lỗi chia cho 0). Xây dựng biểu đồ thanh ngang CSS thuần cho tỷ lệ lĩnh vực để tránh cài đặt thư viện biểu đồ quá nặng, và thiết lập bảng "Phối hợp liên ngành" tự động đếm các phản ánh thuộc loại PUBLIC_SECURITY và FIRE_SAFETY.
+- Decision Ownership: Quyết định nâng cấp CivicMap.tsx dùng chung cho toàn bộ cổng cán bộ và tách riêng hai luồng hiển thị đặc thù cho Công an và UBND. Quyết định này giúp nâng cao 80% trải nghiệm nghiệp vụ của người sử dụng và giúp hệ thống chuyên nghiệp như thực tế.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [x] Kết quả AI có lỗi hoặc chưa chính xác (Marker Leaflet mặc định không phân màu, thiếu logic tính toán tăng trưởng an toàn và trích xuất địa chỉ)
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | [DE190182] feat: redesign police and ward dashboards to match reference specifications |
+| File liên quan | PoliceDashboard.tsx, WardDashboard.tsx, CivicMap.tsx, __root.tsx |
+| Screenshot | |
+| Kết quả chạy/test | Build thành công toàn bộ dự án (`npm run build` pass), giao diện chạy mượt mà ở localhost:5173/ward và localhost:5173/police. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Cần đảm bảo CivicMap nhận prop markers động và render pins chính xác trên nền tảng Leaflet.
+```
+
+---
+
 ## 6. Prompt quan trọng nhất
 
 Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.
@@ -371,7 +446,7 @@ Sẽ yêu cầu thêm những giới hạn về mặt ngân sách và công ngh�
 |---|---:|---|
 | Prompt phân tích yêu cầu | 1 | Lỗ hổng hệ thống thực tế |
 | Prompt giải thích kiến thức |  |  |
-| Prompt thiết kế giải pháp | 1 | Quy trình GitHub Flow & API Contract |
+| Prompt thiết kế giải pháp | 2 | Quy trình GitHub Flow & API Contract; Thiết kế lại giao diện UBND & Công an Phường |
 | Prompt thiết kế database |  |  |
 | Prompt sinh code mẫu | 1 | Cấu hình @Async Thread Pool & SMS OTP |
 

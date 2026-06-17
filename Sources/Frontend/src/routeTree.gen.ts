@@ -17,11 +17,15 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as FeedbackSearchRouteImport } from './routes/feedback-search'
 import { Route as AuthorityLoginRouteImport } from './routes/authority-login'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MyReportsIndexRouteImport } from './routes/my-reports.index'
+import { Route as CampaignsIndexRouteImport } from './routes/campaigns.index'
 import { Route as MyReportsIdRouteImport } from './routes/my-reports.$id'
+import { Route as CampaignsCreateRouteImport } from './routes/campaigns.create'
+import { Route as CampaignsIdRouteImport } from './routes/campaigns.$id'
 import { Route as AuthWardRouteImport } from './routes/_auth.ward'
 import { Route as AuthPoliceRouteImport } from './routes/_auth.police'
 import { Route as AuthCityAdminRouteImport } from './routes/_auth.city-admin'
@@ -67,6 +71,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FeedbackSearchRoute = FeedbackSearchRouteImport.update({
+  id: '/feedback-search',
+  path: '/feedback-search',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthorityLoginRoute = AuthorityLoginRouteImport.update({
   id: '/authority-login',
   path: '/authority-login',
@@ -86,9 +95,24 @@ const MyReportsIndexRoute = MyReportsIndexRouteImport.update({
   path: '/my-reports/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CampaignsIndexRoute = CampaignsIndexRouteImport.update({
+  id: '/campaigns/',
+  path: '/campaigns/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MyReportsIdRoute = MyReportsIdRouteImport.update({
   id: '/my-reports/$id',
   path: '/my-reports/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CampaignsCreateRoute = CampaignsCreateRouteImport.update({
+  id: '/campaigns/create',
+  path: '/campaigns/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CampaignsIdRoute = CampaignsIdRouteImport.update({
+  id: '/campaigns/$id',
+  path: '/campaigns/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthWardRoute = AuthWardRouteImport.update({
@@ -115,6 +139,7 @@ const AuthAssistantRoute = AuthAssistantRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/authority-login': typeof AuthorityLoginRoute
+  '/feedback-search': typeof FeedbackSearchRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
@@ -127,12 +152,16 @@ export interface FileRoutesByFullPath {
   '/city-admin': typeof AuthCityAdminRoute
   '/police': typeof AuthPoliceRoute
   '/ward': typeof AuthWardRoute
+  '/campaigns/$id': typeof CampaignsIdRoute
+  '/campaigns/create': typeof CampaignsCreateRoute
   '/my-reports/$id': typeof MyReportsIdRoute
+  '/campaigns/': typeof CampaignsIndexRoute
   '/my-reports/': typeof MyReportsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/authority-login': typeof AuthorityLoginRoute
+  '/feedback-search': typeof FeedbackSearchRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
@@ -145,7 +174,10 @@ export interface FileRoutesByTo {
   '/city-admin': typeof AuthCityAdminRoute
   '/police': typeof AuthPoliceRoute
   '/ward': typeof AuthWardRoute
+  '/campaigns/$id': typeof CampaignsIdRoute
+  '/campaigns/create': typeof CampaignsCreateRoute
   '/my-reports/$id': typeof MyReportsIdRoute
+  '/campaigns': typeof CampaignsIndexRoute
   '/my-reports': typeof MyReportsIndexRoute
 }
 export interface FileRoutesById {
@@ -153,6 +185,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_auth': typeof AuthRouteWithChildren
   '/authority-login': typeof AuthorityLoginRoute
+  '/feedback-search': typeof FeedbackSearchRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
@@ -165,7 +198,10 @@ export interface FileRoutesById {
   '/_auth/city-admin': typeof AuthCityAdminRoute
   '/_auth/police': typeof AuthPoliceRoute
   '/_auth/ward': typeof AuthWardRoute
+  '/campaigns/$id': typeof CampaignsIdRoute
+  '/campaigns/create': typeof CampaignsCreateRoute
   '/my-reports/$id': typeof MyReportsIdRoute
+  '/campaigns/': typeof CampaignsIndexRoute
   '/my-reports/': typeof MyReportsIndexRoute
 }
 export interface FileRouteTypes {
@@ -173,6 +209,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/authority-login'
+    | '/feedback-search'
     | '/login'
     | '/notifications'
     | '/profile'
@@ -185,12 +222,16 @@ export interface FileRouteTypes {
     | '/city-admin'
     | '/police'
     | '/ward'
+    | '/campaigns/$id'
+    | '/campaigns/create'
     | '/my-reports/$id'
+    | '/campaigns/'
     | '/my-reports/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/authority-login'
+    | '/feedback-search'
     | '/login'
     | '/notifications'
     | '/profile'
@@ -203,13 +244,17 @@ export interface FileRouteTypes {
     | '/city-admin'
     | '/police'
     | '/ward'
+    | '/campaigns/$id'
+    | '/campaigns/create'
     | '/my-reports/$id'
+    | '/campaigns'
     | '/my-reports'
   id:
     | '__root__'
     | '/'
     | '/_auth'
     | '/authority-login'
+    | '/feedback-search'
     | '/login'
     | '/notifications'
     | '/profile'
@@ -222,7 +267,10 @@ export interface FileRouteTypes {
     | '/_auth/city-admin'
     | '/_auth/police'
     | '/_auth/ward'
+    | '/campaigns/$id'
+    | '/campaigns/create'
     | '/my-reports/$id'
+    | '/campaigns/'
     | '/my-reports/'
   fileRoutesById: FileRoutesById
 }
@@ -230,6 +278,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRouteWithChildren
   AuthorityLoginRoute: typeof AuthorityLoginRoute
+  FeedbackSearchRoute: typeof FeedbackSearchRoute
   LoginRoute: typeof LoginRoute
   NotificationsRoute: typeof NotificationsRoute
   ProfileRoute: typeof ProfileRoute
@@ -238,7 +287,10 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TinTucRoute: typeof TinTucRoute
   VerifyOtpRoute: typeof VerifyOtpRoute
+  CampaignsIdRoute: typeof CampaignsIdRoute
+  CampaignsCreateRoute: typeof CampaignsCreateRoute
   MyReportsIdRoute: typeof MyReportsIdRoute
+  CampaignsIndexRoute: typeof CampaignsIndexRoute
   MyReportsIndexRoute: typeof MyReportsIndexRoute
 }
 
@@ -300,6 +352,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/feedback-search': {
+      id: '/feedback-search'
+      path: '/feedback-search'
+      fullPath: '/feedback-search'
+      preLoaderRoute: typeof FeedbackSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/authority-login': {
       id: '/authority-login'
       path: '/authority-login'
@@ -328,11 +387,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MyReportsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/campaigns/': {
+      id: '/campaigns/'
+      path: '/campaigns'
+      fullPath: '/campaigns/'
+      preLoaderRoute: typeof CampaignsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/my-reports/$id': {
       id: '/my-reports/$id'
       path: '/my-reports/$id'
       fullPath: '/my-reports/$id'
       preLoaderRoute: typeof MyReportsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/campaigns/create': {
+      id: '/campaigns/create'
+      path: '/campaigns/create'
+      fullPath: '/campaigns/create'
+      preLoaderRoute: typeof CampaignsCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/campaigns/$id': {
+      id: '/campaigns/$id'
+      path: '/campaigns/$id'
+      fullPath: '/campaigns/$id'
+      preLoaderRoute: typeof CampaignsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_auth/ward': {
@@ -386,6 +466,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRouteWithChildren,
   AuthorityLoginRoute: AuthorityLoginRoute,
+  FeedbackSearchRoute: FeedbackSearchRoute,
   LoginRoute: LoginRoute,
   NotificationsRoute: NotificationsRoute,
   ProfileRoute: ProfileRoute,
@@ -394,7 +475,10 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TinTucRoute: TinTucRoute,
   VerifyOtpRoute: VerifyOtpRoute,
+  CampaignsIdRoute: CampaignsIdRoute,
+  CampaignsCreateRoute: CampaignsCreateRoute,
   MyReportsIdRoute: MyReportsIdRoute,
+  CampaignsIndexRoute: CampaignsIndexRoute,
   MyReportsIndexRoute: MyReportsIndexRoute,
 }
 export const routeTree = rootRouteImport

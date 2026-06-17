@@ -1,9 +1,9 @@
-import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useLocation } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { useCategories, useCreateFeedbackWithMedia } from "@/lib/hooks";
-import { ApiError, wardApi } from "@/lib/api";
+import { ApiError, wardApi, getToken } from "@/lib/api";
 import { getVideoDurationSeconds } from "@/lib/citizenFeedbackMediaApi";
 import {
   clearGpsLocation,
@@ -29,6 +29,20 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/report")({
+  beforeLoad: () => {
+    if (typeof window === "undefined") return;
+    const token = getToken();
+    const raw = localStorage.getItem("dn_auth_user_v2");
+    if (!token || !raw) {
+      throw redirect({
+        to: "/login",
+        search: {
+          redirect: "/report",
+          error: "login_required",
+        },
+      });
+    }
+  },
   head: () => ({
     meta: [
       { title: "Gửi phản ánh mới - Đà Nẵng Kết Nối" },
@@ -169,6 +183,10 @@ function getGpsErrorMessage(error: unknown, t: ReturnType<typeof useI18n>["t"]):
   return t("report.gps.generic");
 }
 
+function isWithinVietnam(lat: number, lng: number): boolean {
+  return lat >= 8.0 && lat <= 24.0 && lng >= 102.0 && lng <= 110.0;
+}
+
 // ─── PII Guard — Tầng 1 Frontend ────────────────────────────────────
 // Phát hiện SĐT Việt Nam (0xxxxxxxxx) và CCCD mới 2021+ (12 số)
 // Tương thích đa trình duyệt (kể cả Safari cũ < 16.4 do không dùng negative lookbehind)
@@ -194,10 +212,19 @@ function ReportPage() {
   const createFeedback = useCreateFeedbackWithMedia();
 
   const storedLocation = getStoredGpsLocation();
+  const initialLat =
+    storedLocation && isWithinVietnam(storedLocation.latitude, storedLocation.longitude)
+      ? storedLocation.latitude
+      : null;
+  const initialLng =
+    storedLocation && isWithinVietnam(storedLocation.latitude, storedLocation.longitude)
+      ? storedLocation.longitude
+      : null;
+
   const [title, setTitle] = useState(state?.initialTitle || "");
   const [description, setDescription] = useState(state?.initialDescription || "");
-  const [latitude, setLatitude] = useState<number | null>(storedLocation?.latitude ?? null);
-  const [longitude, setLongitude] = useState<number | null>(storedLocation?.longitude ?? null);
+  const [latitude, setLatitude] = useState<number | null>(initialLat);
+  const [longitude, setLongitude] = useState<number | null>(initialLng);
   const [locationLoading, setLocationLoading] = useState(false);
   const [addressLoading, setAddressLoading] = useState(false);
   const [locationError, setLocationError] = useState("");
@@ -255,7 +282,7 @@ function ReportPage() {
   }, [categoryCode]);
 
   useEffect(() => {
-    if (storedLocation) {
+    if (storedLocation && isWithinVietnam(storedLocation.latitude, storedLocation.longitude)) {
       void loadAddress(storedLocation.latitude, storedLocation.longitude);
     } else {
       detectLocation();
@@ -472,8 +499,18 @@ function ReportPage() {
 
     try {
       const location = await requestCurrentGpsLocation();
-      await applyLocation(location.latitude, location.longitude);
-      toast.success(t("report.loc.gpsSuccess"));
+      if (!isWithinVietnam(location.latitude, location.longitude)) {
+        const [defaultLat, defaultLng] = DEFAULT_MAP_CENTER;
+        await applyLocation(defaultLat, defaultLng);
+        toast.warning(
+          locale === "vi"
+            ? "Tọa độ định vị GPS không chính xác (nằm ngoài Việt Nam). Đã chuyển về vị trí mặc định tại Đà Nẵng, vui lòng kéo ghim hoặc click trên bản đồ để chỉnh sửa."
+            : "Inaccurate GPS coordinates detected. Reset to default location in Da Nang, please drag the pin or click on the map to adjust."
+        );
+      } else {
+        await applyLocation(location.latitude, location.longitude);
+        toast.success(t("report.loc.gpsSuccess"));
+      }
     } catch (err) {
       const message = getGpsErrorMessage(err, t);
       clearGpsLocation();
@@ -855,6 +892,7 @@ function ReportPage() {
                 longitude={longitude}
                 address={address}
                 locationLoading={locationLoading}
+                onChangeLocation={applyLocation}
               />
             </Suspense>
           </div>

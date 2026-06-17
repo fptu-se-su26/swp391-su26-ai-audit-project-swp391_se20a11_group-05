@@ -244,10 +244,27 @@ export interface FeedbackResponse {
   resultContent?: string | null;
   attachments?: FeedbackAttachmentResponse[];
   mediaUrls?: string[];
+  videoUrl?: string;
   timeline?: FeedbackLogResponse[];
   submittedAt?: string | null;
   receivedAt?: string | null;
   resolvedAt?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+}
+export interface PoliceFeedbackResponse {
+  id: number;
+  trackingCode: string;
+  title: string;
+  description: string;
+  latitude: number | null;
+  longitude: number | null;
+  addressDetails: string | null;
+  status: FeedbackStatus;
+  categoryName: string | null;
+  citizenId: number | null;
+  mediaUrls?: string[];
+  videoUrl?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -495,10 +512,16 @@ export const feedbackApi = {
     return request<FeedbackLookupStatsResponse>(`/api/feedbacks/public/stats?${params}`, { skipAuth: true });
   },
 
+  getPublicFeedbackStatistics: (filters: FeedbackListFilters = {}) =>
+    feedbackApi.getPublicStats(filters),
+
+  getRecentPublicFeedback: (limit = 5, filters: FeedbackListFilters = {}) =>
+    feedbackApi.getPublic(0, limit, filters),
+
   getPublicById: (id: string | number) =>
     request<FeedbackResponse>(`/api/feedbacks/public/${id}`, { skipAuth: true }),
 
-  getStatuses: () => request<FeedbackStatusOption[]>("/api/feedbacks/statuses"),
+  getStatuses: () => request<FeedbackStatusOption[]>("/api/feedbacks/statuses", { skipAuth: true }),
 
   getById: (id: string | number) => request<FeedbackResponse>(`/api/feedback/my-reports/${id}`),
 
@@ -555,6 +578,11 @@ export const notificationApi = {
 };
 
 export const policeApi = {
+  getAssignedFeedbacks: () =>
+    request<PoliceFeedbackResponse[]>("/api/police/feedbacks", {
+      method: "GET",
+    }),
+
   rejectFeedback: (id: number | string, reason: string) =>
     request<FeedbackResponse>(`/api/police/feedbacks/${id}/reject`, {
       method: "PATCH",
@@ -663,4 +691,61 @@ export const wardApi = {
     request<Ward>(
       `/api/wards/locate?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`,
     ),
+};
+
+// ─── Campaign Types ───────────────────────────────────────────
+
+export interface CampaignResponse {
+  id: number;
+  title: string;
+  description: string | null;
+  locationText: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  maxParticipants: number | null;
+  startTime: string | null;
+  endTime: string | null;
+  status: "PENDING" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+  wardId: number | null;
+  wardName: string | null;
+  createdByUserId: number;
+  createdByName: string | null;
+  participantCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CampaignCreateRequest {
+  title: string;
+  description?: string;
+  locationText?: string;
+  latitude?: number;
+  longitude?: number;
+  maxParticipants?: number;
+  startTime?: string;
+  endTime?: string;
+  wardId?: number;
+}
+
+export const campaignApi = {
+  getAll: (page = 0, size = 20, status?: string) => {
+    const params = new URLSearchParams({ page: String(page), size: String(size) });
+    if (status) params.set("status", status);
+    return request<PageResponse<CampaignResponse>>(`/api/campaigns?${params}`);
+  },
+
+  getById: (id: number | string) =>
+    request<CampaignResponse>(`/api/campaigns/${id}`),
+
+  create: (data: CampaignCreateRequest) =>
+    request<CampaignResponse>("/api/campaigns", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  join: (id: number | string) =>
+    request<void>(`/api/campaigns/${id}/join`, { method: "POST" }),
+
+  leave: (id: number | string) =>
+    request<void>(`/api/campaigns/${id}/leave`, { method: "DELETE" }),
 };

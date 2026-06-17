@@ -178,7 +178,7 @@ function ReportDetail() {
           onRetry={() => refetch()}
         />
         <div className="flex justify-center mt-6">
-          <Link to="/my-reports" className="btn-civic btn-civic-ghost">
+          <Link to="/my-reports" search={{ q: "" }} className="btn-civic btn-civic-ghost">
             <ArrowLeft size={18} />
             {locale === "vi" ? "Quay lại danh sách" : "Back to list"}
           </Link>
@@ -272,7 +272,7 @@ function ReportDetail() {
   
   // Highlight steps according to status
   const currentStatusIndex = (() => {
-    switch (report.status) {
+    switch (report.status as any) {
       case "PENDING":
       case "PENDING_RECEIVE":
       case "SUBMITTED":
@@ -394,7 +394,7 @@ function ReportDetail() {
 
   // 6. SLA status details
   const slaPercentage = (() => {
-    switch (report.status) {
+    switch (report.status as any) {
       case "RESOLVED":
       case "CLOSED":
         return 100;
@@ -487,7 +487,7 @@ function ReportDetail() {
       linkedFeedbackId: report?.id,
       linkedFeedbackCode: report?.trackingCode,
       linkedFeedbackTitle: report?.title,
-      wardName: report?.wardName,
+      wardName: report?.wardName ?? undefined,
     }).then(() => {
       setShowCreateCampaignModal(false);
       // linkedCampaign sẽ tự cập nhật qua useEffect + onCampaignsChanged
@@ -586,14 +586,14 @@ function ReportDetail() {
                 {locale === "vi" ? "Phản ánh chưa được tiếp nhận" : "Report not accepted"}
               </p>
               <p className="text-sm text-red-600 leading-relaxed">
-                {report.resolutionNote ||
+                {(report as any).resolutionNote ||
                   (locale === "vi"
                     ? "Phản ánh của bạn chưa đáp ứng yêu cầu xét duyệt. Vui lòng xem lý do bên dưới và gửi lại."
                     : "Your report did not meet the review requirements. Please check the reason below and resubmit.")}
               </p>
               <Link
                 to="/report"
-                state={{ initialTitle: report.title, initialDescription: report.content || report.description, initialCategoryCode: report.categoryCode || report.category }}
+                state={{ initialTitle: report.title, initialDescription: (report as any).content || report.description, initialCategoryCode: report.categoryCode || report.category } as any}
                 className="inline-flex items-center gap-2 mt-3 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-4 py-2 transition-colors"
               >
                 ↩ {locale === "vi" ? "Gửi lại phản ánh" : "Resubmit report"}
@@ -601,7 +601,6 @@ function ReportDetail() {
             </div>
           </div>
         )}
-        </div>
 
         {/* 3. Report Overview Card */}
         <div className="bg-white rounded-[20px] border border-[#E2E8F0] p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)] mb-8">
@@ -915,7 +914,7 @@ function ReportDetail() {
             </div>
 
             {/* 13. Citizen Rating Section */}
-            {(report.status === "RESOLVED" || report.status === "CLOSED" || id === "12345" || String(id).includes("12345")) && (
+            {(report.status === "RESOLVED" || (report.status as string) === "CLOSED" || id === "12345" || String(id).includes("12345")) && (
               <div className="bg-white rounded-[20px] border border-[#E2E8F0] p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
                 <h3 className="text-base font-extrabold text-[#0B2545] border-b border-slate-50 pb-3 mb-4">
                   {isVi ? "Đánh giá kết quả xử lý" : "Citizen Evaluation"}
@@ -1466,7 +1465,7 @@ function ReportDetail() {
                 </label>
                 <select
                   value={campaignForm.category}
-                  onChange={(e) => setCampaignForm((f) => ({ ...f, category: e.target.value }))}
+                  onChange={(e) => setCampaignForm((f) => ({ ...f, category: e.target.value as CampaignCategory }))}
                   className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:border-[#0B4FC4] focus:ring-2 focus:ring-blue-50 bg-slate-50/40 transition cursor-pointer"
                 >
                   <option value="environment">{isVi ? "Môi trường" : "Environment"}</option>
@@ -1647,7 +1646,7 @@ function buildTimeline(
   );
   const visibleLogs = rejectedIndex >= 0 ? orderedLogs.slice(0, rejectedIndex + 1) : orderedLogs;
 
-  const entries = visibleLogs.map((log) => {
+  const entries: TimelineEntry[] = visibleLogs.map((log) => {
     const status = log.status || log.newStatus || log.oldStatus;
     const rejected = status === "REJECTED";
     return {

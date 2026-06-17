@@ -3,6 +3,8 @@ package com.example.smartcity.modules.feedback.service;
 import com.example.smartcity.modules.feedback.dto.FeedbackRequest;
 import com.example.smartcity.ai_orchestrator.guardrails.ContentGuardrailService;
 import com.example.smartcity.modules.feedback.entity.Category;
+import com.example.smartcity.rag.ingestion.EmbeddingClientFacade;
+import org.springframework.jdbc.core.JdbcTemplate;
 import com.example.smartcity.modules.feedback.entity.Feedback;
 import com.example.smartcity.modules.feedback.entity.FeedbackStatus;
 import com.example.smartcity.modules.feedback.entity.FeedbackLog;
@@ -57,6 +59,8 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
     private final LocationResolutionService locationResolutionService;
     private final CategoryRoutingService categoryRoutingService;
     private final ContentGuardrailService contentGuardrailService;
+    private final JdbcTemplate jdbcTemplate;
+    private final EmbeddingClientFacade embeddingFacade;
 
     // State machine: map of valid transitions
     private static final Map<FeedbackStatus, Set<FeedbackStatus>> VALID_TRANSITIONS = Map.of(
@@ -113,6 +117,11 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             log.warn("[Feedback] Location requires manual review. lat={}, lng={}", request.getLatitude(), request.getLongitude());
         }
 
+        // AI Duplicate Detection: Kiểm tra phản ánh trùng lặp trong cùng Phường
+        if (ward != null && ward.getId() != null) {
+            checkDuplicateFeedback(request.getDescription(), ward.getId());
+        }
+
         LocalDateTime now = LocalDateTime.now();
         Feedback feedback = new Feedback();
         feedback.setTrackingCode("FB-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
@@ -130,6 +139,20 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         categoryRoutingService.applyAssignment(feedback, category, ward, now);
 
         Feedback saved = feedbackRepository.save(feedback);
+
+        // AI Duplicate Detection: Lưu vector mô tả vào Database
+        try {
+            float[] descriptionVector = embeddingFacade.embed(saved.getDescription());
+            String vectorString = java.util.Arrays.toString(descriptionVector);
+            jdbcTemplate.update(
+                "UPDATE feedbacks SET description_vector = ?::vector WHERE id = ?",
+                vectorString, saved.getId()
+            );
+            log.info("[Duplicate Detection] Đã lưu description_vector cho feedbackId={}", saved.getId());
+        } catch (Exception e) {
+            log.error("❌ [Duplicate Detection] Lỗi khi lưu description_vector: {}", e.getMessage());
+        }
+
         FeedbackLog submittedLog = new FeedbackLog(saved, citizen, null, saved.getStatus(), "Citizen submitted feedback");
         submittedLog.setAction("SUBMIT");
         feedbackLogRepository.save(submittedLog);
@@ -140,6 +163,46 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         autoDispatchService.analyzeAndDispatch(saved.getId());
 
         return saved;
+    }
+
+    private void checkDuplicateFeedback(String description, Long wardId) {
+        if (wardId == null || description == null || description.isBlank()) {
+            return;
+        }
+
+        try {
+            float[] descriptionVector = embeddingFacade.embed(description);
+            String vectorString = java.util.Arrays.toString(descriptionVector);
+
+            // Tìm top 1 có cosine distance < 0.08 (tương đồng > 92%) trong cùng Phường
+            String sql = """
+                SELECT tracking_code 
+                FROM feedbacks 
+                WHERE ward_id = ? 
+                  AND description_vector <=> ?::vector < 0.08
+                ORDER BY description_vector <=> ?::vector ASC 
+                LIMIT 1
+            """;
+
+            List<String> results = jdbcTemplate.query(
+                sql,
+                (rs, rowNum) -> rs.getString("tracking_code"),
+                wardId, vectorString, vectorString
+            );
+
+            if (!results.isEmpty()) {
+                String duplicateTrackingCode = results.get(0);
+                log.warn("[DUPLICATE-DETECTION] Phát hiện phản ánh trùng lặp trong cùng Phường. Mã trùng: {}", duplicateTrackingCode);
+                throw new CustomException(
+                    "Phản ánh tương tự đã được gửi bởi người dân khác. Vui lòng theo dõi mã phản ánh " + duplicateTrackingCode + " để cập nhật tiến độ.",
+                    HttpStatus.CONFLICT.value()
+                );
+            }
+        } catch (CustomException ex) {
+            throw ex;
+        } catch (Exception e) {
+            log.error("❌ [Duplicate Detection] Lỗi khi kiểm tra trùng lặp: {}", e.getMessage());
+        }
     }
 
     @Transactional(readOnly = true)

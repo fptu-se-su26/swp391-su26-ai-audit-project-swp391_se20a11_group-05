@@ -198,7 +198,8 @@ export function PoliceDashboard() {
       .filter((fb) => {
         if (filterStatus === "ALL") return true;
         if (filterStatus === "PENDING") return fb.status === "PENDING" || fb.status === "PENDING_RECEIVE" || fb.status === "SUBMITTED" || fb.status === "NEED_LOCATION_REVIEW";
-        if (filterStatus === "IN_PROGRESS") return fb.status === "ASSIGNED" || fb.status === "IN_PROGRESS" || fb.status === "WAITING_INFO";
+        if (filterStatus === "ACCEPTED") return fb.status === "ASSIGNED";
+        if (filterStatus === "IN_PROGRESS") return fb.status === "IN_PROGRESS" || fb.status === "WAITING_INFO";
         if (filterStatus === "RESOLVED") return fb.status === "RESOLVED" || fb.status === "REJECTED";
         if (filterStatus === "OVERDUE") {
            const isNotResolved = fb.status !== "RESOLVED" && fb.status !== "REJECTED";
@@ -214,8 +215,9 @@ export function PoliceDashboard() {
   // Sync stats dynamically from backend reports list
   const totalCount = feedbacks.length;
   const pendingCount = feedbacks.filter((f) => f.status === "PENDING" || f.status === "PENDING_RECEIVE" || f.status === "SUBMITTED" || f.status === "NEED_LOCATION_REVIEW").length;
+  const acceptedCount = feedbacks.filter((f) => f.status === "ASSIGNED").length;
   const inProgressCount = feedbacks.filter(
-    (f) => f.status === "ASSIGNED" || f.status === "IN_PROGRESS" || f.status === "WAITING_INFO"
+    (f) => f.status === "IN_PROGRESS" || f.status === "WAITING_INFO"
   ).length;
   const resolvedCount = feedbacks.filter((f) => f.status === "RESOLVED" || f.status === "REJECTED").length;
   const overdueCount = feedbacks.filter((f) => {
@@ -226,13 +228,15 @@ export function PoliceDashboard() {
   }).length;
 
   // Trend computations
-  const getKpiTrend = (statusType: "total" | "pending" | "inProgress" | "resolved" | "overdue") => {
+  const getKpiTrend = (statusType: "total" | "pending" | "accepted" | "inProgress" | "resolved" | "overdue") => {
     let filterFn = (f: FeedbackResponse) => true;
     if (statusType === "pending") {
       filterFn = (f: FeedbackResponse) => f.status === "PENDING" || f.status === "PENDING_RECEIVE" || f.status === "SUBMITTED" || f.status === "NEED_LOCATION_REVIEW";
+    } else if (statusType === "accepted") {
+      filterFn = (f: FeedbackResponse) => f.status === "ASSIGNED";
     } else if (statusType === "inProgress") {
       filterFn = (f: FeedbackResponse) =>
-        f.status === "ASSIGNED" || f.status === "IN_PROGRESS" || f.status === "WAITING_INFO";
+        f.status === "IN_PROGRESS" || f.status === "WAITING_INFO";
     } else if (statusType === "resolved") {
       filterFn = (f: FeedbackResponse) => f.status === "RESOLVED" || f.status === "REJECTED";
     } else if (statusType === "overdue") {
@@ -298,6 +302,7 @@ export function PoliceDashboard() {
 
   const totalTrend = getKpiTrend("total");
   const pendingTrend = getKpiTrend("pending");
+  const acceptedTrend = getKpiTrend("accepted");
   const inProgressTrend = getKpiTrend("inProgress");
   const resolvedTrend = getKpiTrend("resolved");
   const overdueTrend = getKpiTrend("overdue");
@@ -708,13 +713,19 @@ export function PoliceDashboard() {
           {activeTab === "overview" && (
             <>
               {/* ─── KPI CARDS ROW ─── */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {[
               {
                 title: "Chưa xử lý",
                 val: pendingCount,
                 bg: "bg-[#fd7e14]",
                 trend: pendingTrend,
+              },
+              {
+                title: "Đã tiếp nhận",
+                val: acceptedCount,
+                bg: "bg-[#8b5cf6]",
+                trend: acceptedTrend,
               },
               {
                 title: "Đang xử lý",
@@ -900,6 +911,12 @@ export function PoliceDashboard() {
                                           Chưa xử lý
                                         </span>
                                       );
+                                    case "ASSIGNED":
+                                      return (
+                                        <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-purple-50 text-purple-600 border border-purple-100 uppercase">
+                                          Đã tiếp nhận
+                                        </span>
+                                      );
                                     case "RESOLVED":
                                       return (
                                         <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-green-50 text-green-600 border border-green-100 uppercase">
@@ -1081,6 +1098,7 @@ export function PoliceDashboard() {
                   >
                     <option value="ALL">Tất cả trạng thái</option>
                     <option value="PENDING">Chưa xử lý</option>
+                    <option value="ACCEPTED">Đã tiếp nhận</option>
                     <option value="IN_PROGRESS">Đang xử lý</option>
                     <option value="RESOLVED">Đã xử lý</option>
                     <option value="OVERDUE">Quá hạn</option>
@@ -1145,6 +1163,8 @@ export function PoliceDashboard() {
                                 case "SUBMITTED":
                                 case "NEED_LOCATION_REVIEW":
                                   return <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-orange-50 text-orange-600 border border-orange-100 uppercase">Chưa xử lý</span>;
+                                  case "ASSIGNED":
+                                    return <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-purple-50 text-purple-600 border border-purple-100 uppercase">Đã tiếp nhận</span>;
                                 case "RESOLVED": return <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-green-50 text-green-600 border border-green-100 uppercase">Đã xử lý</span>;
                                 case "REJECTED": return <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-red-50 text-red-600 border border-red-100 uppercase">Từ chối</span>;
                                 default: return <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-blue-50 text-blue-600 border border-blue-100 uppercase">Đang xử lý</span>;

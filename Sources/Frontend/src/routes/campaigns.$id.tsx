@@ -36,6 +36,7 @@ import {
 import type { CampaignParticipantResponse } from "@/lib/api";
 import { Role, useAuth } from "@/lib/auth";
 import type { Campaign } from "@/lib/campaignStore";
+import { buildGoogleMapsEmbedUrl, buildGoogleMapsSearchUrl, resolveCampaignCoordinates } from "@/lib/campaignLocation";
 
 export const Route = createFileRoute("/campaigns/$id")({
   head: () => ({
@@ -337,20 +338,23 @@ function PrivateDetails({ campaign }: { campaign: Campaign }) {
 }
 
 function MapPanel({ campaign }: { campaign: Campaign }) {
+  const coordinates = resolveCampaignCoordinates(campaign);
+  const displayLocation = campaign.locationText || coordinates.label;
+
   return (
     <Panel title="Vị trí hoạt động" icon={MapPin}>
       <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white">
         <iframe
-          title="Bờ biển Xuân Thiều, Liên Chiểu, Đà Nẵng"
-          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3833.8!2d108.1503!3d16.1139!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTbCsDA2JzUwLjEiTiAxMDjCsDA5JzAxLjEiRQ!5e0!3m2!1svi!2svn!4v1234567890"
+          title={displayLocation}
+          src={buildGoogleMapsEmbedUrl(coordinates)}
           className="h-80 w-full border-0"
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"
         />
         <div className="flex flex-col gap-3 border-t border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm font-semibold text-slate-600">{campaign.locationText || "Bờ biển Xuân Thiều, Liên Chiểu, Đà Nẵng"}</p>
+          <p className="text-sm font-semibold text-slate-600">{displayLocation}</p>
           <a
-            href="https://www.google.com/maps/search/?api=1&query=16.1139,108.1503"
+            href={buildGoogleMapsSearchUrl(coordinates)}
             target="_blank"
             rel="noreferrer"
             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-violet-200 px-4 text-sm font-black text-[#7C3AED] transition hover:bg-[#F3F0FF]"
@@ -363,7 +367,6 @@ function MapPanel({ campaign }: { campaign: Campaign }) {
     </Panel>
   );
 }
-
 function DiscussionPanel({ campaign }: { campaign: Campaign }) {
   const comments = useCampaignComments(campaign.id);
   const [commentText, setCommentText] = useState("");

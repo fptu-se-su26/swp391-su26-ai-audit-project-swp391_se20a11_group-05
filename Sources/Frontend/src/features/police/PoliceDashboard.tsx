@@ -200,13 +200,8 @@ export function PoliceDashboard() {
         if (filterStatus === "PENDING") return fb.status === "PENDING" || fb.status === "PENDING_RECEIVE" || fb.status === "SUBMITTED" || fb.status === "NEED_LOCATION_REVIEW";
         if (filterStatus === "ACCEPTED") return fb.status === "ASSIGNED";
         if (filterStatus === "IN_PROGRESS") return fb.status === "IN_PROGRESS" || fb.status === "WAITING_INFO";
-        if (filterStatus === "RESOLVED") return fb.status === "RESOLVED" || fb.status === "REJECTED";
-        if (filterStatus === "OVERDUE") {
-           const isNotResolved = fb.status !== "RESOLVED" && fb.status !== "REJECTED";
-           const diffTime = Math.abs(new Date().getTime() - new Date(fb.createdAt).getTime());
-           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-           return isNotResolved && diffDays > 3;
-        }
+        if (filterStatus === "RESOLVED") return fb.status === "RESOLVED";
+        if (filterStatus === "REJECTED") return fb.status === "REJECTED";
         return true;
       })
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -219,16 +214,11 @@ export function PoliceDashboard() {
   const inProgressCount = feedbacks.filter(
     (f) => f.status === "IN_PROGRESS" || f.status === "WAITING_INFO"
   ).length;
-  const resolvedCount = feedbacks.filter((f) => f.status === "RESOLVED" || f.status === "REJECTED").length;
-  const overdueCount = feedbacks.filter((f) => {
-    const isNotResolved = f.status !== "RESOLVED" && f.status !== "REJECTED";
-    const diffTime = Math.abs(new Date().getTime() - new Date(f.createdAt).getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return isNotResolved && diffDays > 3;
-  }).length;
+  const resolvedCount = feedbacks.filter((f) => f.status === "RESOLVED").length;
+  const rejectedCount = feedbacks.filter((f) => f.status === "REJECTED").length;
 
   // Trend computations
-  const getKpiTrend = (statusType: "total" | "pending" | "accepted" | "inProgress" | "resolved" | "overdue") => {
+  const getKpiTrend = (statusType: "total" | "pending" | "accepted" | "inProgress" | "resolved" | "rejected") => {
     let filterFn = (f: FeedbackResponse) => true;
     if (statusType === "pending") {
       filterFn = (f: FeedbackResponse) => f.status === "PENDING" || f.status === "PENDING_RECEIVE" || f.status === "SUBMITTED" || f.status === "NEED_LOCATION_REVIEW";
@@ -238,14 +228,9 @@ export function PoliceDashboard() {
       filterFn = (f: FeedbackResponse) =>
         f.status === "IN_PROGRESS" || f.status === "WAITING_INFO";
     } else if (statusType === "resolved") {
-      filterFn = (f: FeedbackResponse) => f.status === "RESOLVED" || f.status === "REJECTED";
-    } else if (statusType === "overdue") {
-      filterFn = (f: FeedbackResponse) => {
-        const isNotResolved = f.status !== "RESOLVED" && f.status !== "REJECTED";
-        const diffTime = Math.abs(new Date().getTime() - new Date(f.createdAt).getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        return isNotResolved && diffDays > 3;
-      };
+      filterFn = (f: FeedbackResponse) => f.status === "RESOLVED";
+    } else if (statusType === "rejected") {
+      filterFn = (f: FeedbackResponse) => f.status === "REJECTED";
     }
 
     const now = new Date().getTime();
@@ -305,7 +290,7 @@ export function PoliceDashboard() {
   const acceptedTrend = getKpiTrend("accepted");
   const inProgressTrend = getKpiTrend("inProgress");
   const resolvedTrend = getKpiTrend("resolved");
-  const overdueTrend = getKpiTrend("overdue");
+  const rejectedTrend = getKpiTrend("rejected");
 
   // Category chart stats calculation
   const categoryStats = useMemo(() => {
@@ -740,10 +725,10 @@ export function PoliceDashboard() {
                 trend: resolvedTrend,
               },
               {
-                title: "Quá hạn",
-                val: overdueCount,
+                title: "Từ chối",
+                val: rejectedCount,
                 bg: "bg-[#dc3545]",
-                trend: overdueTrend,
+                trend: rejectedTrend,
               },
             ].map((card, idx) => (
               <div
@@ -1101,7 +1086,7 @@ export function PoliceDashboard() {
                     <option value="ACCEPTED">Đã tiếp nhận</option>
                     <option value="IN_PROGRESS">Đang xử lý</option>
                     <option value="RESOLVED">Đã xử lý</option>
-                    <option value="OVERDUE">Quá hạn</option>
+                    <option value="REJECTED">Từ chối</option>
                   </select>
                 </div>
               </div>

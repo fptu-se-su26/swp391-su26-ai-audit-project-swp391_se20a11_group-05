@@ -123,7 +123,9 @@ export function PoliceDashboard() {
     try {
       await acceptFeedbackMut.mutateAsync(id);
       toast.success("Đã tiếp nhận phản ánh thành công");
-      setSelectedFeedback((prev) => prev ? { ...prev, status: "IN_PROGRESS" } : null);
+      setSelectedFeedback(null);
+      setFilterStatus("IN_PROGRESS");
+      setActiveTab("feedbacks");
       refetch();
     } catch (err: any) {
       toast.error(err.message || "Lỗi khi tiếp nhận phản ánh");
@@ -138,7 +140,9 @@ export function PoliceDashboard() {
     try {
       await rejectFeedbackMut.mutateAsync({ id, reason: rejectReason });
       toast.success("Đã từ chối phản ánh");
-      setSelectedFeedback((prev) => prev ? { ...prev, status: "REJECTED" } : null);
+      setSelectedFeedback(null);
+      setFilterStatus("REJECTED");
+      setActiveTab("feedbacks");
       setShowRejectInput(false);
       setRejectReason("");
       refetch();

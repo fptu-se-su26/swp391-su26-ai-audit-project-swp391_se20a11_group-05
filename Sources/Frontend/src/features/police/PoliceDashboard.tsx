@@ -708,14 +708,8 @@ export function PoliceDashboard() {
           {activeTab === "overview" && (
             <>
               {/* ─── KPI CARDS ROW ─── */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              {
-                title: "Tổng phản ánh",
-                val: totalCount,
-                bg: "bg-[#0b5ed7]",
-                trend: totalTrend,
-              },
               {
                 title: "Chưa xử lý",
                 val: pendingCount,

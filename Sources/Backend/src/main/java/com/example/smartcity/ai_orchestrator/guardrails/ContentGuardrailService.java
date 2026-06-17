@@ -52,6 +52,37 @@ public class ContentGuardrailService {
         Pattern.compile("sql.*inject|drop.*table|select.*from", Pattern.CASE_INSENSITIVE)
     );
 
+    // ─── PII patterns dành riêng cho Feedback của Công dân ────────
+    // Mục đích: phát hiện SĐT Việt Nam và số CCCD bị lộ do người dùng vô tình nhập
+    // Lưu ý: KHÔNG dùng pattern 9 số (CMND cũ) vì gây false-positive cao
+    // với các con số bình thường trong mô tả (mã đường, toạ độ, số nhà...)
+    private static final List<Pattern> PII_PATTERNS = List.of(
+        // SĐT Việt Nam: bắt đầu bằng 0, tổng 10 chữ số liên tiếp
+        Pattern.compile("(?<![\\d])0[0-9]{9}(?![\\d])"),
+        // CCCD mới 2021+: đúng 12 chữ số liên tiếp, không có chữ số nào kèm
+        Pattern.compile("(?<![\\d])[0-9]{12}(?![\\d])")
+    );
+
+    /**
+     * [PII Guard — Tầng 2 Backend] Kiểm tra nội dung feedback có chứa SĐT hoặc CCCD không.
+     * Được gọi trong FeedbackService.createFeedback() trước khi lưu.
+     *
+     * @param title       Tiêu đề phản ánh
+     * @param description Nội dung mô tả
+     * @throws IllegalArgumentException nếu phát hiện thông tin cá nhân
+     */
+    public void validateFeedbackContent(String title, String description) {
+        String combined = (title == null ? "" : title) + " " + (description == null ? "" : description);
+        for (Pattern pii : PII_PATTERNS) {
+            if (pii.matcher(combined).find()) {
+                log.warn("[PII-GUARD] Phát hiện thông tin cá nhân trong feedback. pattern='{}'", pii.pattern());
+                throw new IllegalArgumentException(
+                    "Vui lòng xoá số điện thoại hoặc số CCCD/CMND khỏi nội dung phản ánh để bảo vệ thông tin cá nhân của bạn."
+                );
+            }
+        }
+    }
+
     // ─── Rate limiting per-user ────────────────────────────────────
     private static final int  WARN_THRESHOLD_PER_WINDOW = 3;    // 3 WARN trong 60s → auto-block
     private static final long WARN_WINDOW_SECONDS        = 60L;

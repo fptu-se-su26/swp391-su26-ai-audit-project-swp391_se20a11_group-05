@@ -19,6 +19,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
+import java.util.concurrent.TimeUnit;
 
 import java.io.InputStream;
 import java.net.URL;
@@ -40,6 +44,7 @@ public class AutoDispatchService {
     private final AttachmentRepository attachmentRepository;
     private final UserRepository userRepository;
     private final WebSocketNotificationService notificationService;
+    private final com.example.smartcity.modules.notification.service.NotificationService citizenNotificationService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Data
@@ -87,14 +92,13 @@ public class AutoDispatchService {
         String aiRawResult;
         try {
             // [MULTIMODAL] Gọi API mới hỗ trợ Base64 Images
-            aiRawResult = geminiAdapter.generateMultimodalResponseAsync(systemPrompt, userMessage, base64Images).get();
+            aiRawResult = geminiAdapter.generateMultimodalResponseAsync(systemPrompt, userMessage, base64Images)
+                    .get(30, TimeUnit.SECONDS); // Timeout sau 30s tránh treo thread
         } catch (Exception e) {
-            log.warn("⚠️ [Auto-Dispatch] AI phân tích thất bại (Quá tải/Rate Limit). Lý do: {}", e.getMessage());
+            log.warn("⚠️ [Auto-Dispatch] AI phân tích thất bại (Quá tải/Rate Limit/Timeout). Lý do: {}", e.getMessage());
             
-            // Ghi log báo cho Admin biết AI đã sập, cần duyệt bằng tay
-            FeedbackLog logEntry = new FeedbackLog(feedback, feedback.getCitizen(), feedback.getStatus(), feedback.getStatus(), 
-                "⚠️ [HỆ THỐNG] Hệ thống AI đang quá tải hoặc gặp sự cố. Báo cáo này đã tự động được chuyển sang luồng Duyệt Thủ Công (MANUAL_REVIEW).");
-            feedbackLogRepository.save(logEntry);
+            // Gọi method Transactional để tránh LazyInitializationException
+            handleAiFallback(feedbackId, e.getMessage());
             return;
         }
 
@@ -117,12 +121,22 @@ public class AutoDispatchService {
     }
 
     @Transactional
+    public void handleAiFallback(Long feedbackId, String errorMessage) {
+        Feedback feedback = feedbackRepository.findById(feedbackId).orElse(null);
+        if (feedback == null) return;
+        
+        FeedbackLog logEntry = new FeedbackLog(feedback, feedback.getCitizen(), feedback.getStatus(), feedback.getStatus(), 
+            "⚠️ [HỆ THỐNG] Hệ thống AI đang quá tải hoặc gặp sự cố (" + errorMessage + "). Báo cáo này đã tự động được chuyển sang luồng Duyệt Thủ Công (MANUAL_REVIEW).");
+        feedbackLogRepository.save(logEntry);
+    }
+
+    @Transactional
     public void processAiResult(Long feedbackId, AiAnalysisResult aiResult) {
         Feedback feedback = feedbackRepository.findById(feedbackId).orElse(null);
         if (feedback == null) return;
         
         FeedbackStatus oldStatus = feedback.getStatus();
-        if (oldStatus != FeedbackStatus.PENDING) {
+        if (oldStatus != FeedbackStatus.PENDING && oldStatus != FeedbackStatus.PENDING_RECEIVE && oldStatus != FeedbackStatus.NEED_LOCATION_REVIEW) {
             log.warn("⚠️ [Auto-Dispatch] Feedback {} đã đổi trạng thái ({}). Hủy xử lý.", feedback.getTrackingCode(), oldStatus);
             return;
         }
@@ -132,24 +146,33 @@ public class AutoDispatchService {
 
         // [MODERATION] 1. Kiểm tra ngôn từ độc hại (Toxicity Filter)
         if (aiResult.is_toxic()) {
-            // LỖ HỔNG NGHIỆP VỤ FIX: Nếu ưu tiên là CRITICAL thì bỏ qua Toxicity Filter (Cứu người trước)
+            // Lỗ HỔNG NGHIỆP VỤ FIX: Nếu ưu tiên là CRITICAL thì bỏ qua Toxicity Filter (Cứu người trước)
             if ("CRITICAL".equals(safePriority)) {
                 log.warn("⚠️ [MODERATION] Phát hiện Toxic nhưng Priority=CRITICAL -> Bỏ qua chặn, ưu tiên cứu hộ!");
                 FeedbackLog logEntry = new FeedbackLog(feedback, feedback.getCitizen(), oldStatus, oldStatus, 
                     "🔴 [AI WARNING] Người báo cáo văng tục/xúc phạm nhưng sự cố thuộc loại KHẨN CẤP (CRITICAL). Hệ thống tự động bỏ qua kiểm duyệt để ưu tiên cứu hộ.");
                 feedbackLogRepository.save(logEntry);
             } else {
+                String friendlyMsg = "Phản ánh của bạn chứa ngôn từ chưa phù hợp với tiêu chuẩn cộng đồng. " +
+                    "Vui lòng điều chỉnh nội dung và gửi lại. Chúng tôi luôn sẵn sàng lắng nghe!";
                 feedback.setStatus(FeedbackStatus.REJECTED);
-                feedback.setResolutionNote("Từ chối tự động bởi AI: Vi phạm tiêu chuẩn cộng đồng (ngôn từ xúc phạm/văng tục).");
+                feedback.setResolutionNote(friendlyMsg);
                 feedbackRepository.save(feedback);
 
                 FeedbackLog logEntry = new FeedbackLog(feedback, feedback.getCitizen(), oldStatus, FeedbackStatus.REJECTED, 
                     "[AI MODERATION] Tự động khóa do phát hiện ngôn từ độc hại (Toxic=true).");
                 feedbackLogRepository.save(logEntry);
 
-                notificationService.notifyFeedbackStatusChange(feedbackId, FeedbackStatus.REJECTED.name(),
-                    "🚫 Phản ánh " + feedback.getTrackingCode() + " đã bị từ chối do vi phạm chuẩn mực cộng đồng.");
-                return; // Dừng luôn, không cần xét điểm uy tín nữa
+                final String trackingCode = feedback.getTrackingCode();
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        citizenNotificationService.createFeedbackRejectedNotification(feedbackId, friendlyMsg);
+                        notificationService.notifyFeedbackStatusChange(feedbackId, FeedbackStatus.REJECTED.name(),
+                            "🚫 Phản ánh " + trackingCode + " chưa được tiếp nhận do nội dung chưa phù hợp.");
+                    }
+                });
+                return;
             }
         }
 
@@ -163,16 +186,28 @@ public class AutoDispatchService {
 
         // 3. TRUST SCORE < 40 -> SPAM/REJECT
         if (aiResult.getTrust_score() < 40) {
+            // [SECURITY] Lý do AI chỉ ghi vào FeedbackLog (nội bộ), KHÔNG trả cho citizen
+            // tránh information leakage giúp người dùng xấu probe hệ thống AI
+            String friendlyMsg = "Hình ảnh hoặc nội dung mô tả trong phản ánh chưa đủ rõ ràng để xác minh. " +
+                "Vui lòng bổ sung ảnh/video thực tế, góc chụp rõ và mô tả chi tiết hơn, sau đó gửi lại.";
             feedback.setStatus(FeedbackStatus.REJECTED);
-            feedback.setResolutionNote("Từ chối tự động bởi AI: " + aiResult.getReason());
+            feedback.setResolutionNote(friendlyMsg);
             feedbackRepository.save(feedback);
 
+            // Lý do chi tiết từ AI được lưu nội bộ trong FeedbackLog (admin xem được, citizen không)
             FeedbackLog logEntry = new FeedbackLog(feedback, feedback.getCitizen(), oldStatus, FeedbackStatus.REJECTED, 
                 "[AI AUTO-REJECT] Trust Score: " + aiResult.getTrust_score() + "% - " + aiResult.getReason());
             feedbackLogRepository.save(logEntry);
 
-            notificationService.notifyFeedbackStatusChange(feedbackId, FeedbackStatus.REJECTED.name(),
-                "🚫 Phản ánh " + feedback.getTrackingCode() + " đã bị từ chối do hệ thống AI phát hiện nghi ngờ giả mạo/spam.");
+            final String trackingCode = feedback.getTrackingCode();
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    citizenNotificationService.createFeedbackRejectedNotification(feedbackId, friendlyMsg);
+                    notificationService.notifyFeedbackStatusChange(feedbackId, FeedbackStatus.REJECTED.name(),
+                        "🚫 Phản ánh " + trackingCode + " chưa được tiếp nhận do thiếu bằng chứng xác thực.");
+                }
+            });
             return;
         }
 
@@ -192,35 +227,9 @@ public class AutoDispatchService {
         }
 
         // 5. TRUST SCORE > 70 -> Chấp nhận & Phân loại
-        // Nếu CRITICAL -> Cố gắng Auto dispatch cho TẤT CẢ các Domain
-        if ("CRITICAL".equals(safePriority)) {
-            List<User> policeUnits = userRepository.findAll().stream()
-                .filter(u -> u.getRole() == Role.POLICE && u.isActive())
-                .toList();
-                
-            if (!policeUnits.isEmpty()) {
-                // [LOAD BALANCING FIX] Chọn ngẫu nhiên 1 Police thay vì luôn lấy người đầu tiên
-                User assignedPolice = policeUnits.get(new java.util.Random().nextInt(policeUnits.size()));
-                
-                feedback.setStatus(FeedbackStatus.IN_PROGRESS);
-                feedback.setReceiverType("POLICE"); // Ép chuyển về Police cho mọi ca Critical
-                feedback.setAssignee(assignedPolice);
-                feedbackRepository.save(feedback);
-
-                FeedbackLog logEntry = new FeedbackLog(feedback, feedback.getCitizen(), oldStatus, FeedbackStatus.IN_PROGRESS, 
-                    "🚨 [AI AUTO-DISPATCH] CRITICAL - " + safeDomain + ". Điều phối tới: " + assignedPolice.getFullName());
-                feedbackLogRepository.save(logEntry);
-
-                notificationService.notifyFeedbackStatusChange(feedbackId, FeedbackStatus.IN_PROGRESS.name(),
-                    "🚨 [KHẨN CẤP] Sự cố " + feedback.getTrackingCode() + " đã được AI điều phối đến " + assignedPolice.getFullName());
-                log.info("✅ [Auto-Dispatch] Hoàn tất. Lệnh điều động đã được bắn tới: {}", assignedPolice.getFullName());
-                return;
-            } else {
-                log.warn("⚠️ [Auto-Dispatch] CRITICAL nhưng không tìm thấy POLICE để gán. Chuyển về PENDING.");
-            }
-        }
+        // [FIX LỖI 3] Tuân thủ TM-78: Bỏ hoàn toàn cơ chế auto-dispatch (tự động gán cho Cảnh sát) với CRITICAL.
+        // Tất cả báo cáo kể cả CRITICAL đều phải qua hệ thống Admin Review (Phường/Công an duyệt tay).
         
-        // Priority HIGH, MEDIUM, LOW hoặc CRITICAL nhưng không tìm thấy Police -> giữ nguyên PENDING
         feedbackRepository.save(feedback);
         FeedbackLog logEntry = new FeedbackLog(feedback, feedback.getCitizen(), oldStatus, oldStatus, 
             "🟢 [AI CLASSIFIED] Mức độ: " + safePriority + ", Lĩnh vực: " + safeDomain + ", Uy tín: " + aiResult.getTrust_score() + "%.");

@@ -19,6 +19,7 @@ import com.example.smartcity.modules.notification.service.NotificationService;
 import com.example.smartcity.modules.feedback.service.AutoDispatchService;
 import com.example.smartcity.modules.core.service.LocationResolutionService;
 import com.example.smartcity.ai_orchestrator.guardrails.ContentGuardrailService;
+import com.example.smartcity.common.exception.CustomException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -36,8 +37,6 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-
-import com.example.smartcity.ai_orchestrator.guardrails.ContentGuardrailService;
 
 @ExtendWith(MockitoExtension.class)
 class FeedbackServiceTest {
@@ -156,7 +155,7 @@ class FeedbackServiceTest {
                 .categoryCode("TRAFFIC")
                 .build();
 
-        assertThrows(com.example.smartcity.common.exception.CustomException.class,
+        CustomException ex = assertThrows(CustomException.class,
                 () -> feedbackService.createFeedback(invalid, "citizen1"));
         verifyNoInteractions(locationResolutionService);
     }
@@ -169,7 +168,7 @@ class FeedbackServiceTest {
                 .categoryCode("INVALID").wardId(1L)
                 .build();
 
-        assertThrows(com.example.smartcity.common.exception.CustomException.class,
+        CustomException ex = assertThrows(CustomException.class,
                 () -> feedbackService.createFeedback(invalid, "citizen1"));
     }
 

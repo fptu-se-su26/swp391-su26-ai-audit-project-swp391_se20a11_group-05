@@ -125,5 +125,5 @@ Sinh viên/nhóm cam kết rằng nội dung changelog phản ánh đúng các t
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-| Phạm Bá Trí | 2026-06-17 |
+| Phạm Tuấn Việt | 2026-06-17 |
 

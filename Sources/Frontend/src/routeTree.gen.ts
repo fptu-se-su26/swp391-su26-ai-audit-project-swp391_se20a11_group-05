@@ -30,6 +30,7 @@ import { Route as AuthWardRouteImport } from './routes/_auth.ward'
 import { Route as AuthPoliceRouteImport } from './routes/_auth.police'
 import { Route as AuthCityAdminRouteImport } from './routes/_auth.city-admin'
 import { Route as AuthAssistantRouteImport } from './routes/_auth.assistant'
+import { Route as CampaignsIdGroupChatRouteImport } from './routes/campaigns.$id.group-chat'
 
 const VerifyOtpRoute = VerifyOtpRouteImport.update({
   id: '/verify-otp',
@@ -135,6 +136,11 @@ const AuthAssistantRoute = AuthAssistantRouteImport.update({
   path: '/assistant',
   getParentRoute: () => AuthRoute,
 } as any)
+const CampaignsIdGroupChatRoute = CampaignsIdGroupChatRouteImport.update({
+  id: '/group-chat',
+  path: '/group-chat',
+  getParentRoute: () => CampaignsIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -152,11 +158,12 @@ export interface FileRoutesByFullPath {
   '/city-admin': typeof AuthCityAdminRoute
   '/police': typeof AuthPoliceRoute
   '/ward': typeof AuthWardRoute
-  '/campaigns/$id': typeof CampaignsIdRoute
+  '/campaigns/$id': typeof CampaignsIdRouteWithChildren
   '/campaigns/create': typeof CampaignsCreateRoute
   '/my-reports/$id': typeof MyReportsIdRoute
   '/campaigns/': typeof CampaignsIndexRoute
   '/my-reports/': typeof MyReportsIndexRoute
+  '/campaigns/$id/group-chat': typeof CampaignsIdGroupChatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -174,11 +181,12 @@ export interface FileRoutesByTo {
   '/city-admin': typeof AuthCityAdminRoute
   '/police': typeof AuthPoliceRoute
   '/ward': typeof AuthWardRoute
-  '/campaigns/$id': typeof CampaignsIdRoute
+  '/campaigns/$id': typeof CampaignsIdRouteWithChildren
   '/campaigns/create': typeof CampaignsCreateRoute
   '/my-reports/$id': typeof MyReportsIdRoute
   '/campaigns': typeof CampaignsIndexRoute
   '/my-reports': typeof MyReportsIndexRoute
+  '/campaigns/$id/group-chat': typeof CampaignsIdGroupChatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -198,11 +206,12 @@ export interface FileRoutesById {
   '/_auth/city-admin': typeof AuthCityAdminRoute
   '/_auth/police': typeof AuthPoliceRoute
   '/_auth/ward': typeof AuthWardRoute
-  '/campaigns/$id': typeof CampaignsIdRoute
+  '/campaigns/$id': typeof CampaignsIdRouteWithChildren
   '/campaigns/create': typeof CampaignsCreateRoute
   '/my-reports/$id': typeof MyReportsIdRoute
   '/campaigns/': typeof CampaignsIndexRoute
   '/my-reports/': typeof MyReportsIndexRoute
+  '/campaigns/$id/group-chat': typeof CampaignsIdGroupChatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -227,6 +236,7 @@ export interface FileRouteTypes {
     | '/my-reports/$id'
     | '/campaigns/'
     | '/my-reports/'
+    | '/campaigns/$id/group-chat'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -249,6 +259,7 @@ export interface FileRouteTypes {
     | '/my-reports/$id'
     | '/campaigns'
     | '/my-reports'
+    | '/campaigns/$id/group-chat'
   id:
     | '__root__'
     | '/'
@@ -272,6 +283,7 @@ export interface FileRouteTypes {
     | '/my-reports/$id'
     | '/campaigns/'
     | '/my-reports/'
+    | '/campaigns/$id/group-chat'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -287,7 +299,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TinTucRoute: typeof TinTucRoute
   VerifyOtpRoute: typeof VerifyOtpRoute
-  CampaignsIdRoute: typeof CampaignsIdRoute
+  CampaignsIdRoute: typeof CampaignsIdRouteWithChildren
   CampaignsCreateRoute: typeof CampaignsCreateRoute
   MyReportsIdRoute: typeof MyReportsIdRoute
   CampaignsIndexRoute: typeof CampaignsIndexRoute
@@ -443,6 +455,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthAssistantRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/campaigns/$id/group-chat': {
+      id: '/campaigns/$id/group-chat'
+      path: '/group-chat'
+      fullPath: '/campaigns/$id/group-chat'
+      preLoaderRoute: typeof CampaignsIdGroupChatRouteImport
+      parentRoute: typeof CampaignsIdRoute
+    }
   }
 }
 
@@ -462,6 +481,18 @@ const AuthRouteChildren: AuthRouteChildren = {
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
+interface CampaignsIdRouteChildren {
+  CampaignsIdGroupChatRoute: typeof CampaignsIdGroupChatRoute
+}
+
+const CampaignsIdRouteChildren: CampaignsIdRouteChildren = {
+  CampaignsIdGroupChatRoute: CampaignsIdGroupChatRoute,
+}
+
+const CampaignsIdRouteWithChildren = CampaignsIdRoute._addFileChildren(
+  CampaignsIdRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRouteWithChildren,
@@ -475,7 +506,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TinTucRoute: TinTucRoute,
   VerifyOtpRoute: VerifyOtpRoute,
-  CampaignsIdRoute: CampaignsIdRoute,
+  CampaignsIdRoute: CampaignsIdRouteWithChildren,
   CampaignsCreateRoute: CampaignsCreateRoute,
   MyReportsIdRoute: MyReportsIdRoute,
   CampaignsIndexRoute: CampaignsIndexRoute,

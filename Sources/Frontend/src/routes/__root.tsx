@@ -175,7 +175,8 @@ function RootComponent() {
     pathname === "/authority-login" ||
     pathname === "/register" ||
     pathname.startsWith("/police") ||
-    pathname.startsWith("/ward");
+    pathname.startsWith("/ward") ||
+    pathname.includes("/group-chat");
 
   return (
     <QueryClientProvider client={queryClient}>

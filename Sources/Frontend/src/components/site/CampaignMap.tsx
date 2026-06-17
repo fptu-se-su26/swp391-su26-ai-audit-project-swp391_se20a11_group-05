@@ -1,6 +1,4 @@
-import { useState, useMemo } from "react";
-import L from "leaflet";
-import { Circle, MapContainer, Marker, Polygon, Popup, TileLayer } from "react-leaflet";
+import { useState, useMemo, useEffect } from "react";
 import {
   Layers,
   MapPin,
@@ -250,8 +248,8 @@ const hotspots = [
   { position: [16.0175, 108.2175] as [number, number], radius: 100, title: "Điểm nóng B: Tắc nghẽn mương thoát nước chính" },
 ];
 
-function getCustomIcon(markerType: string, status?: string) {
-  if (typeof window === "undefined") return null;
+function getCustomIcon(L: any, markerType: string, status?: string) {
+  if (typeof window === "undefined" || !L) return null;
 
   let color = "#1E5EFF"; // Default Primary Blue
   let innerIconSvg = "";
@@ -314,6 +312,37 @@ export function CampaignMap({ height = "600px" }: Props) {
   const [showHotspots, setShowHotspots] = useState(true);
   const [showBoundary, setShowBoundary] = useState(true);
 
+  const [modules, setModules] = useState<{
+    MapContainer: any;
+    TileLayer: any;
+    Marker: any;
+    Popup: any;
+    Circle: any;
+    Polygon: any;
+    L: any;
+  } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void Promise.all([
+      import("react-leaflet"),
+      import("leaflet")
+    ]).then(([rl, LMod]) => {
+      if (!cancelled) {
+        setModules({
+          MapContainer: rl.MapContainer,
+          TileLayer: rl.TileLayer,
+          Marker: rl.Marker,
+          Popup: rl.Popup,
+          Circle: rl.Circle,
+          Polygon: rl.Polygon,
+          L: LMod.default || LMod
+        });
+      }
+    });
+    return () => { cancelled = true; };
+  }, []);
+
   const center: [number, number] = [16.015, 108.220];
 
   const allMarkers = useMemo(() => {
@@ -341,6 +370,16 @@ export function CampaignMap({ height = "600px" }: Props) {
   const toggleCategory = (cat: string) => {
     setSelectedCategory((prev) => (prev === cat ? "all" : cat));
   };
+
+  if (!modules) {
+    return (
+      <div className="flex flex-col rounded-[20px] overflow-hidden border border-[#E4EAF2] bg-slate-50 flex items-center justify-center" style={{ height }}>
+        <span className="text-slate-400 text-sm font-semibold">Đang tải bản đồ chiến dịch...</span>
+      </div>
+    );
+  }
+
+  const { MapContainer, TileLayer, Marker, Popup, Circle, Polygon, L } = modules;
 
   return (
     <div className="flex flex-col rounded-[20px] overflow-hidden border border-[#E4EAF2] bg-white shadow-sm">
@@ -514,7 +553,7 @@ export function CampaignMap({ height = "600px" }: Props) {
 
           {/* Render markers */}
           {filteredMarkers.map((m) => {
-            const icon = getCustomIcon(m.type, m.status);
+            const icon = getCustomIcon(L, m.type, m.status);
             return (
               <Marker key={m.id} position={m.position} icon={icon || undefined}>
                 <Popup>

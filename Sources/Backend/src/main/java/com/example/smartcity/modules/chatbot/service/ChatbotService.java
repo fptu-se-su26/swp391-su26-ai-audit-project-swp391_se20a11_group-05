@@ -41,6 +41,7 @@ public class ChatbotService {
     private final UserRepository userRepo;
     private final FeedbackRepository feedbackRepository;
     private final FeedbackService feedbackService;
+    private final com.example.smartcity.ai_orchestrator.router.AiRouterService aiRouterService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final String DANANG_DOC_TYPE = "danang-policy";
@@ -53,7 +54,8 @@ public class ChatbotService {
         // Nhận diện câu hỏi cá nhân hoặc yêu cầu tổng hợp danh sách/phân tích báo cáo
         if (lower.contains("của tôi") || lower.contains("của mình") || lower.contains("tôi đã gửi")
             || lower.contains("danh sách") || lower.contains("liệt kê") || lower.contains("tóm tắt")
-            || lower.contains("xem báo cáo") || lower.contains("vụ việc của") || lower.contains("phản ánh của tôi")) {
+            || lower.contains("xem báo cáo") || lower.contains("vụ việc của") || lower.contains("phản ánh của tôi")
+            || (lower.contains("tôi") && (lower.contains("báo cáo") || lower.contains("phản ánh")) && (lower.contains("mấy") || lower.contains("có") || lower.contains("xem")))) {
             return ChatIntent.REPORT_COPILOT;
         }
 
@@ -111,6 +113,11 @@ public class ChatbotService {
         ChatIntent intent = detectIntent(question, historyContext);
         log.info("🎯 [Intent] Phân tích nhanh intent: {}", intent);
 
+        // Định tuyến AI Provider động bằng AiRouterService
+        AiProviderAdapter bestProvider = aiRouterService.routeToBestProvider(String.valueOf(userId), question);
+        String activeProviderName = bestProvider != null ? bestProvider.getProviderName() : "MOCK";
+        log.info("🔌 [Router] Định tuyến câu hỏi sang Provider: {}", activeProviderName);
+
         Map<String, Object> responseData;
 
         switch (intent) {
@@ -118,16 +125,16 @@ public class ChatbotService {
                 responseData = handleLookupFeedback(question);
                 break;
             case CREATE_FEEDBACK:
-                responseData = handleCreateFeedback(question, user, historyContext);
+                responseData = handleCreateFeedback(bestProvider, question, user, historyContext);
                 break;
             case QA_LEGAL:
                 responseData = handleQALegal(question);
                 break;
             case STATISTICS:
-                responseData = handleStatistics(question, historyContext);
+                responseData = handleStatistics(bestProvider, question, historyContext);
                 break;
             case REPORT_COPILOT:
-                responseData = handleReportCopilot(question, user, historyContext);
+                responseData = handleReportCopilot(bestProvider, question, user, historyContext);
                 break;
             case GENERAL:
             default:
@@ -137,7 +144,7 @@ public class ChatbotService {
 
         long latencyMs = System.currentTimeMillis() - start;
         responseData.put("latencyMs", latencyMs);
-        responseData.put("provider", groqAdapter.isHealthy() ? "GROQ" : "MOCK");
+        responseData.put("provider", activeProviderName);
 
         String feedbackCreated = (String) responseData.get("trackingCode");
 
@@ -149,7 +156,7 @@ public class ChatbotService {
                 .sessionId(sessionId)
                 .feedbackTrackingCode(feedbackCreated != null && !feedbackCreated.isEmpty() ? feedbackCreated : null)
                 .docType(DANANG_DOC_TYPE)
-                .aiProvider(groqAdapter.isHealthy() ? "GROQ" : "MOCK")
+                .aiProvider(activeProviderName)
                 .latencyMs(latencyMs)
                 .build();
 
@@ -189,7 +196,7 @@ public class ChatbotService {
         );
     }
 
-    private Map<String, Object> handleCreateFeedback(String question, User user, List<Map<String, String>> historyContext) {
+    private Map<String, Object> handleCreateFeedback(AiProviderAdapter activeProvider, String question, User user, List<Map<String, String>> historyContext) {
         String systemPrompt = "Bạn là trợ lý ảo hỗ trợ tạo phản ánh sự cố. Hãy phân tích câu hỏi của người dùng và các câu trước đó để lấy 'location' và 'category' và 'description'. " +
         "Chỉ trả về JSON. Các trường: intent (CREATE_FEEDBACK), emotion (NEGATIVE/NEUTRAL), reply (trả lời người dùng), location (nếu có), category (BẮT BUỘC chọn 1 trong 6 mã: TRAFFIC, URBAN_INFRASTRUCTURE, ENVIRONMENT, PUBLIC_SECURITY, CONSTRUCTION, FIRE_SAFETY), description (nếu có), needsMoreInfo (mảng chứa 'LOCATION', 'DESCRIPTION' nếu thiếu).";
 
@@ -201,7 +208,17 @@ public class ChatbotService {
         }
         context.append("user: ").append(question);
 
-        String json = groqAdapter.generateStructuredResponseAsync(systemPrompt, context.toString()).join();
+        String json;
+        if (activeProvider instanceof GroqAdapter) {
+            json = ((GroqAdapter) activeProvider).generateStructuredResponseAsync(systemPrompt, context.toString()).join();
+        } else if (activeProvider instanceof GeminiAdapter) {
+            json = ((GeminiAdapter) activeProvider).generateStructuredResponseAsync(systemPrompt, context.toString()).join();
+        } else if (activeProvider != null) {
+            json = activeProvider.generateResponseAsync(systemPrompt, context.toString()).join();
+        } else {
+            json = "{\"intent\":\"SMALLTALK\",\"reply\":\"Hệ thống bận\"}";
+        }
+
         json = json.replaceAll("(?s)^```json\\s*", "").replaceAll("(?s)\\s*```$", "").trim();
         
         try {
@@ -275,7 +292,7 @@ public class ChatbotService {
         ));
     }
 
-    private Map<String, Object> handleStatistics(String question, List<Map<String, String>> historyContext) {
+    private Map<String, Object> handleStatistics(AiProviderAdapter activeProvider, String question, List<Map<String, String>> historyContext) {
         long total = feedbackRepository.count();
         java.time.LocalDateTime startOfDay = java.time.LocalDate.now().atStartOfDay();
         java.time.LocalDateTime endOfDay = java.time.LocalDate.now().atTime(23, 59, 59);
@@ -320,7 +337,11 @@ public class ChatbotService {
 
         String reply = "Dạ hiện tại em không thể lấy số liệu thống kê. Bạn vui lòng thử lại sau nhé!";
         try {
-            reply = groqAdapter.generateResponseAsync(systemPrompt, context.toString()).join();
+            if (activeProvider != null) {
+                reply = activeProvider.generateResponseAsync(systemPrompt, context.toString()).join();
+            } else {
+                reply = groqAdapter.generateResponseAsync(systemPrompt, context.toString()).join();
+            }
         } catch (Exception e) {
             log.error("Lỗi khi dùng LLM để sinh câu trả lời thống kê", e);
         }
@@ -332,7 +353,7 @@ public class ChatbotService {
         ));
     }
 
-    private Map<String, Object> handleReportCopilot(String question, User user, List<Map<String, String>> historyContext) {
+    private Map<String, Object> handleReportCopilot(AiProviderAdapter activeProvider, String question, User user, List<Map<String, String>> historyContext) {
         log.info("🤖 [AI Copilot] Handling report query for user: {}", user.getUsername());
         
         // 1. Lấy phản ánh của riêng user này trước
@@ -420,7 +441,11 @@ public class ChatbotService {
 
         String reply = "Dạ, em đang gặp chút sự cố kết nối dữ liệu. Xin vui lòng thử lại sau ít phút ạ!";
         try {
-            reply = groqAdapter.generateResponseAsync(systemPrompt, conversationContext.toString()).join();
+            if (activeProvider != null) {
+                reply = activeProvider.generateResponseAsync(systemPrompt, conversationContext.toString()).join();
+            } else {
+                reply = groqAdapter.generateResponseAsync(systemPrompt, conversationContext.toString()).join();
+            }
         } catch (Exception e) {
             log.error("Lỗi khi dùng LLM sinh câu trả lời AI Copilot", e);
         }

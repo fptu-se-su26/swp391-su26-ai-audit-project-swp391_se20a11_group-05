@@ -3,6 +3,8 @@ package com.example.smartcity.modules.police.service;
 import com.example.smartcity.modules.feedback.entity.Feedback;
 import com.example.smartcity.modules.feedback.entity.FeedbackLog;
 import com.example.smartcity.modules.feedback.entity.FeedbackStatus;
+import com.example.smartcity.modules.feedback.entity.Attachment;
+import com.example.smartcity.modules.feedback.repository.AttachmentRepository;
 import com.example.smartcity.modules.feedback.repository.FeedbackLogRepository;
 import com.example.smartcity.modules.feedback.repository.FeedbackRepository;
 import com.example.smartcity.modules.police.dto.PoliceFeedbackResponse;
@@ -30,12 +32,15 @@ public class PoliceFeedbackService {
     private final FeedbackLogRepository feedbackLogRepository;
     private final UserRepository userRepository;
     private final ExternalNotificationService externalNotificationService;
+    private final AttachmentRepository attachmentRepository;
 
     /**
      * Lấy danh sách phản ánh được phân công cho cán bộ công an
      */
     public List<PoliceFeedbackResponse> getAssignedFeedbacks(Long policeUserId) {
-        return feedbackRepository.findByAssignee_Id(policeUserId).stream()
+        // Lấy tất cả phản ánh thuộc quyền quản lý của Công an (POLICE)
+        return feedbackRepository.findByManagedByRole("POLICE", org.springframework.data.domain.PageRequest.of(0, 100))
+                .getContent().stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -225,6 +230,19 @@ public class PoliceFeedbackService {
         if (feedback.getCitizen() != null) {
             res.setCitizenId(feedback.getCitizen().getId());
         }
+        java.util.List<Attachment> attachments = attachmentRepository.findByFeedbackId(feedback.getId());
+        
+        res.setMediaUrls(attachments.stream()
+                .filter(att -> "IMAGE".equals(att.getFileType()))
+                .map(Attachment::getFileUrl)
+                .collect(Collectors.toList()));
+                
+        res.setVideoUrl(attachments.stream()
+                .filter(att -> "VIDEO".equals(att.getFileType()))
+                .map(Attachment::getFileUrl)
+                .findFirst()
+                .orElse(null));
+                
         res.setCreatedAt(feedback.getCreatedAt());
         res.setUpdatedAt(feedback.getUpdatedAt());
         return res;

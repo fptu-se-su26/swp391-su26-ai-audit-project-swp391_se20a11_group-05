@@ -17,6 +17,7 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -275,5 +276,36 @@ public class AutoDispatchService {
         if (d.contains("HA_TANG")) return "HA_TANG";
         if (d.contains("Y_TE")) return "Y_TE";
         return "KHAC";
+    }
+
+    /**
+     * Tự động quét và thử lại việc phân tích AI đối với các phản ánh bị kẹt ở trạng thái PENDING.
+     * Chạy định kỳ mỗi 15 phút.
+     */
+    @Scheduled(cron = "0 */15 * * * *")
+    @Transactional
+    public void retryPendingFeedbacks() {
+        log.info("⏰ [Auto-Dispatch] Bắt đầu quét các phản ánh PENDING để thử lại phân tích AI...");
+        List<Feedback> pendingFeedbacks = feedbackRepository.findByStatus(FeedbackStatus.PENDING);
+        
+        int retryCount = 0;
+        for (Feedback f : pendingFeedbacks) {
+            // Kiểm tra xem đã có log AI phân tích chưa
+            boolean hasAiLog = feedbackLogRepository.findByFeedbackIdOrderByCreatedAtDesc(f.getId())
+                    .stream()
+                    .anyMatch(logEntry -> logEntry.getNote() != null && (
+                            logEntry.getNote().contains("AI CLASSIFIED") || 
+                            logEntry.getNote().contains("[AI AUTO-REJECT]") || 
+                            logEntry.getNote().contains("[AI WARNING]") ||
+                            logEntry.getNote().contains("[AI MODERATION]")
+                    ));
+            
+            if (!hasAiLog) {
+                log.info("🔄 [Auto-Dispatch] Thử lại phân tích AI cho Feedback #{}", f.getTrackingCode());
+                analyzeAndDispatch(f.getId());
+                retryCount++;
+            }
+        }
+        log.info("⏰ [Auto-Dispatch] Hoàn thành quét. Đã kích hoạt lại phân tích cho {} phản ánh.", retryCount);
     }
 }

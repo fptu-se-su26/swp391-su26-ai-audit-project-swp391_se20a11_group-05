@@ -1,10 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
-import { parseBackendRole, Role } from "@/lib/roles";
+import { AUTHORITY_ROLES, parseBackendRole, Role } from "@/lib/roles";
 import { authApi, ApiError } from "@/lib/api";
 import { requestCurrentGpsLocation } from "@/lib/location";
+import {
+  buildLoginLockoutMessage,
+  getLoginLockoutSeconds,
+} from "@/lib/loginLockout";
 import { Loader2, AlertCircle, Eye, EyeOff, AtSign, Lock } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 import { LoginHeroPanel } from "./LoginHeroPanel";
@@ -45,15 +49,51 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lockoutSeconds, setLockoutSeconds] = useState<number | null>(null);
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaCode, setMfaCode] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+
+  const citizenPortalError =
+    locale === "vi"
+      ? "Tai khoan nay khong ton tai."
+      : "This account does not exist.";
+
+  const citizenRedirect =
+    redirect && !["/ward", "/police", "/city-admin", "/assistant"].some((path) => redirect.startsWith(path))
+      ? redirect
+      : "/";
+
+  useEffect(() => {
+    if (lockoutSeconds === null) return;
+    if (lockoutSeconds <= 0) {
+      setLockoutSeconds(null);
+      setError(null);
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setLockoutSeconds((seconds) => (seconds === null ? null : Math.max(0, seconds - 1)));
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [lockoutSeconds]);
+
+  const clearLoginError = () => {
+    setError(null);
+    setLockoutSeconds(null);
+  };
+
+  const visibleError =
+    lockoutSeconds !== null && lockoutSeconds > 0
+      ? buildLoginLockoutMessage(lockoutSeconds)
+      : error;
 
   // ─── Handlers ────────────────────────────────────────────────
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    clearLoginError();
     setLoading(true);
 
     try {
@@ -67,6 +107,12 @@ export function LoginPage() {
 
       if ("token" in data && data.token) {
         const role = parseBackendRole(data.role);
+        if (AUTHORITY_ROLES.has(role)) {
+          setError(citizenPortalError);
+          setLoading(false);
+          return;
+        }
+
         login({
           name: data.username,
           role,
@@ -76,16 +122,16 @@ export function LoginPage() {
         void requestCurrentGpsLocation().catch(() => {
           // Location is optional after login; feedback submission asks again if needed.
         });
-        let target = redirect || "/";
-        if (!redirect) {
-          if (role === Role.POLICE) target = "/police";
-          else if (role === Role.WARD_STAFF) target = "/ward";
-          else if (role === Role.SUPER_ADMIN) target = "/city-admin";
-        }
-        navigate({ to: target });
+        navigate({ to: citizenRedirect });
       }
     } catch (err) {
       if (err instanceof ApiError) {
+        if (err.status === 429) {
+          setLockoutSeconds(getLoginLockoutSeconds(err.message) ?? 60);
+          setError(err.message);
+          return;
+        }
+
         setError(
           err.status === 401
             ? locale === "vi"
@@ -96,11 +142,7 @@ export function LoginPage() {
       } else {
         // Demo fallback when backend is offline
         login({ name: username || "citizen1", role: Role.CITIZEN, org: "", token: "demo-token" });
-        let target = redirect || "/";
-        if (!redirect) {
-          if (Role.CITIZEN) target = "/"; // demo fallback
-        }
-        navigate({ to: target });
+        navigate({ to: citizenRedirect });
       }
     } finally {
       setLoading(false);
@@ -109,27 +151,27 @@ export function LoginPage() {
 
   const handleMfaVerify = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    clearLoginError();
     setLoading(true);
 
     try {
       const data = await authApi.mfaVerify(username, password, mfaCode);
+      const role = parseBackendRole(data.role);
+      if (AUTHORITY_ROLES.has(role)) {
+        setError(citizenPortalError);
+        return;
+      }
+
       login({
         name: data.username,
-        role: parseBackendRole(data.role),
+        role,
         org: "",
         token: data.token,
       });
       void requestCurrentGpsLocation().catch(() => {
         // Location is optional after login; feedback submission asks again if needed.
       });
-      let target = redirect || "/";
-      if (!redirect) {
-        if (data.role === Role.POLICE || data.role.includes("POLICE")) target = "/police";
-        else if (data.role === Role.WARD_STAFF || data.role.includes("WARD")) target = "/ward";
-        else if (data.role === Role.SUPER_ADMIN || data.role.includes("ADMIN")) target = "/city-admin";
-      }
-      navigate({ to: target });
+      navigate({ to: citizenRedirect });
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -179,7 +221,7 @@ export function LoginPage() {
             )}
 
             {/* Access-denied error */}
-            {(authError === "forbidden" || authError === "login_required") && !error && (
+            {(authError === "forbidden" || authError === "login_required") && !visibleError && (
               <div className="mb-5 p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-3 text-amber-800">
                 <AlertCircle size={16} className="shrink-0" />
                 <span className="text-sm">
@@ -195,10 +237,10 @@ export function LoginPage() {
             )}
 
             {/* Generic error */}
-            {error && (
+            {visibleError && (
               <div className="mb-5 p-4 rounded-xl bg-red-50 border border-red-200 flex items-center gap-3 text-red-700">
                 <AlertCircle size={16} className="shrink-0" />
-                <span className="text-sm">{error}</span>
+                <span className="text-sm">{visibleError}</span>
               </div>
             )}
 
@@ -212,7 +254,7 @@ export function LoginPage() {
                 onCancel={() => {
                   setMfaRequired(false);
                   setMfaCode("");
-                  setError(null);
+                  clearLoginError();
                 }}
                 locale={locale}
               />
@@ -229,7 +271,10 @@ export function LoginPage() {
                     id="login-phone"
                     type="text"
                     value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    onChange={(e) => {
+                      setUsername(e.target.value);
+                      clearLoginError();
+                    }}
                     className="w-full min-h-[52px] pl-10 pr-4 rounded-xl border-2 border-slate-200 bg-white text-base focus:border-gov-blue outline-none transition-colors placeholder:text-slate-400"
                     placeholder={locale === "vi" ? "Email hoặc Tên đăng nhập" : "Email or Username"}
                     autoComplete="username"

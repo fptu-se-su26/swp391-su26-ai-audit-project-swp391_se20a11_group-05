@@ -94,14 +94,8 @@ public class SelfRagService {
                 
                 String verdict = groqAdapter.generateResponseAsync("Bạn là chuyên gia phân loại tài liệu. Luôn trả về JSON.", promptBuilder.toString()).get();
                 
-                // Loại bỏ text thừa nếu LLM sinh JSON có kèm markdown (e.g. ```json ... ```)
-                if (verdict.contains("```json")) {
-                    verdict = verdict.substring(verdict.indexOf("```json") + 7, verdict.lastIndexOf("```"));
-                } else if (verdict.contains("```")) {
-                    verdict = verdict.substring(verdict.indexOf("```") + 3, verdict.lastIndexOf("```"));
-                }
-                
-                JsonNode rootNode = mapper.readTree(verdict.trim());
+                String cleanJson = cleanAndExtractJson(verdict);
+                JsonNode rootNode = mapper.readTree(cleanJson.trim());
                 JsonNode scoresArray = rootNode.path("scores");
                 
                 if (scoresArray.isArray() && scoresArray.size() == batch.size()) {
@@ -185,6 +179,41 @@ public class SelfRagService {
         return text.toLowerCase()
             .replaceAll("[^a-zA-Z0-9\\u3040-\\u30FF\\u4E00-\\u9FFF\\u0100-\\u024F ]", "")
             .split("\\s+");
+    }
+
+    private String cleanAndExtractJson(String rawResponse) {
+        if (rawResponse == null) {
+            return "";
+        }
+        String content = rawResponse.trim();
+        int firstBrace = content.indexOf('{');
+        int firstBracket = content.indexOf('[');
+        int startIndex = -1;
+        
+        if (firstBrace != -1 && firstBracket != -1) {
+            startIndex = Math.min(firstBrace, firstBracket);
+        } else if (firstBrace != -1) {
+            startIndex = firstBrace;
+        } else if (firstBracket != -1) {
+            startIndex = firstBracket;
+        }
+        
+        int lastBrace = content.lastIndexOf('}');
+        int lastBracket = content.lastIndexOf(']');
+        int endIndex = -1;
+        
+        if (lastBrace != -1 && lastBracket != -1) {
+            endIndex = Math.max(lastBrace, lastBracket);
+        } else if (lastBrace != -1) {
+            endIndex = lastBrace;
+        } else if (lastBracket != -1) {
+            endIndex = lastBracket;
+        }
+        
+        if (startIndex != -1 && endIndex != -1 && startIndex < endIndex) {
+            return content.substring(startIndex, endIndex + 1);
+        }
+        return content;
     }
 }
 

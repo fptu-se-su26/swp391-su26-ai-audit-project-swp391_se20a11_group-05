@@ -11,6 +11,7 @@ import {
   useRejectFeedback,
 } from "@/hooks";
 import { useAuth } from "@/lib/auth";
+import { getLoginPathForRole } from "@/lib/roles";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   Menu,
@@ -433,12 +434,13 @@ export function PoliceDashboard() {
   };
 
   const handleLogout = async () => {
+    const loginPath = getLoginPathForRole(user?.role);
     try {
       await authApi.logout().catch(() => {});
     } catch {}
     logout();
     queryClient.clear();
-    navigate({ to: "/login" });
+    navigate({ to: loginPath });
   };
 
   const menuItems = [

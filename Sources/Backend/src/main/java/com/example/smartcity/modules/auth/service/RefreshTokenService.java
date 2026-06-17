@@ -77,12 +77,24 @@ public class RefreshTokenService {
 
         log.info("[RefreshToken] Tạo token pair cho user '{}'", user.getUsername());
 
+        String orgName = "";
+        if (user.getWard() != null) {
+            if (user.getRole() == com.example.smartcity.modules.user.entity.Role.POLICE) {
+                orgName = "Công an Phường " + user.getWard().getName();
+            } else if (user.getRole() == com.example.smartcity.modules.user.entity.Role.WARD_STAFF) {
+                orgName = "UBND Phường " + user.getWard().getName();
+            } else {
+                orgName = user.getWard().getName();
+            }
+        }
+
         return TokenPairResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .expiresIn(accessExpirationMs / 1000)
                 .username(user.getUsername())
                 .role("ROLE_" + user.getRole().name())
+                .org(orgName)
                 .build();
     }
 

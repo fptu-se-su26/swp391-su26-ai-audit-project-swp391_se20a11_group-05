@@ -18,13 +18,18 @@ export function useChatbot() {
   
   // Lấy trạng thái âm thanh từ localStorage, mặc định là false (bật tiếng)
   const [isMuted, setIsMutedState] = useState<boolean>(() => {
-    const saved = localStorage.getItem('chatbot_muted');
-    return saved ? JSON.parse(saved) : false;
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem('chatbot_muted');
+      return saved ? JSON.parse(saved) : false;
+    }
+    return false;
   });
 
   const setIsMuted = useCallback((muted: boolean) => {
     setIsMutedState(muted);
-    localStorage.setItem('chatbot_muted', JSON.stringify(muted));
+    if (typeof window !== "undefined") {
+      localStorage.setItem('chatbot_muted', JSON.stringify(muted));
+    }
   }, []);
 
   const botSpeak = useCallback(async (text: string) => {

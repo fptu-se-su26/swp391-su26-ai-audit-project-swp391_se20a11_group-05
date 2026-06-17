@@ -19,6 +19,7 @@ import {
   Search,
   FileText,
   AlertTriangle,
+  AlertCircle,
   Clock,
   CheckCircle2,
   Building2,
@@ -167,7 +168,7 @@ export function WardDashboard() {
   // On-time rate calculation
   const resolvedReports = feedbacks.filter((f) => f.status === "RESOLVED");
   const onTimeResolvedCount = resolvedReports.filter((f) => {
-    const diffTime = Math.abs(new Date(f.updatedAt).getTime() - new Date(f.createdAt).getTime());
+    const diffTime = Math.abs(new Date(f.updatedAt || "").getTime() - new Date(f.createdAt).getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays <= 3;
   }).length;
@@ -411,7 +412,7 @@ export function WardDashboard() {
     ).length;
 
     const resolvedToday = feedbacks.filter(
-      (f) => f.status === "RESOLVED" && new Date(f.updatedAt).getTime() >= startOfDay
+      (f) => f.status === "RESOLVED" && new Date(f.updatedAt || "").getTime() >= startOfDay
     ).length;
 
     const inProgressOverdue = feedbacks.filter((f) => {

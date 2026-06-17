@@ -1,6 +1,4 @@
-import { MapContainer, TileLayer, Marker, Popup, Circle, Polygon } from "react-leaflet";
-import L from "leaflet";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Layers,
   MapPin,

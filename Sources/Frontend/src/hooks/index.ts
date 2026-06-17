@@ -199,6 +199,18 @@ export function useRejectFeedback() {
   });
 }
 
+export function useAcceptFeedback() {
+  const queryClient = useQueryClient();
+  return useMutation<PoliceFeedbackResponse, Error, number | string>({
+    mutationFn: (id) => policeApi.acceptFeedback(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
+      queryClient.invalidateQueries({ queryKey: ["police", "assigned-feedbacks"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+}
+
 export function useRequestMoreInfo() {
   const queryClient = useQueryClient();
   return useMutation<FeedbackResponse, Error, { id: number | string; reason: string }>({

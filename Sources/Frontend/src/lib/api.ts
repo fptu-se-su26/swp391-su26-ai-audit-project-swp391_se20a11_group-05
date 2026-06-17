@@ -244,6 +244,7 @@ export interface FeedbackResponse {
   resultContent?: string | null;
   attachments?: FeedbackAttachmentResponse[];
   mediaUrls?: string[];
+  videoUrl?: string;
   timeline?: FeedbackLogResponse[];
   submittedAt?: string | null;
   receivedAt?: string | null;

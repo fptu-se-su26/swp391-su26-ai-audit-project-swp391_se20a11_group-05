@@ -76,7 +76,13 @@ export function LoginPage() {
         void requestCurrentGpsLocation().catch(() => {
           // Location is optional after login; feedback submission asks again if needed.
         });
-        navigate({ to: redirect || "/" });
+        let target = redirect || "/";
+        if (!redirect) {
+          if (role === Role.POLICE) target = "/police";
+          else if (role === Role.WARD_STAFF) target = "/ward";
+          else if (role === Role.SUPER_ADMIN) target = "/city-admin";
+        }
+        navigate({ to: target });
       }
     } catch (err) {
       if (err instanceof ApiError) {
@@ -90,7 +96,11 @@ export function LoginPage() {
       } else {
         // Demo fallback when backend is offline
         login({ name: username || "citizen1", role: Role.CITIZEN, org: "", token: "demo-token" });
-        navigate({ to: redirect || "/" });
+        let target = redirect || "/";
+        if (!redirect) {
+          if (Role.CITIZEN) target = "/"; // demo fallback
+        }
+        navigate({ to: target });
       }
     } finally {
       setLoading(false);
@@ -113,7 +123,13 @@ export function LoginPage() {
       void requestCurrentGpsLocation().catch(() => {
         // Location is optional after login; feedback submission asks again if needed.
       });
-      navigate({ to: redirect || "/" });
+      let target = redirect || "/";
+      if (!redirect) {
+        if (data.role === Role.POLICE || data.role.includes("POLICE")) target = "/police";
+        else if (data.role === Role.WARD_STAFF || data.role.includes("WARD")) target = "/ward";
+        else if (data.role === Role.SUPER_ADMIN || data.role.includes("ADMIN")) target = "/city-admin";
+      }
+      navigate({ to: target });
     } catch (err) {
       setError(
         err instanceof ApiError

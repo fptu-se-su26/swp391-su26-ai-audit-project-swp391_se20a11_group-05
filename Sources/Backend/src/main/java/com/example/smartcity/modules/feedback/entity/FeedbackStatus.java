@@ -5,6 +5,7 @@ public enum FeedbackStatus {
     PENDING_RECEIVE,
     PENDING,
     NEED_LOCATION_REVIEW,
+    ASSIGNED,
     IN_PROGRESS,
     WAITING_INFO,
     RESOLVED,

@@ -82,13 +82,13 @@ public class PoliceFeedbackService {
 
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setAssignee(policeUser);
-        feedback.setStatus(FeedbackStatus.IN_PROGRESS);
+        feedback.setStatus(FeedbackStatus.ASSIGNED);
         feedback.setUpdatedAt(LocalDateTime.now());
         
         Feedback updated = feedbackRepository.save(feedback);
         
         // Lưu lịch sử
-        saveFeedbackLog(updated, policeUserId, oldStatus, FeedbackStatus.IN_PROGRESS, "Cán bộ công an đã tiếp nhận phản ánh");
+        saveFeedbackLog(updated, policeUserId, oldStatus, FeedbackStatus.ASSIGNED, "Cán bộ công an đã tiếp nhận phản ánh");
         
         // Tự động gửi Email thông báo trạng thái cho người dân (Chạy ngầm Async)
         if (updated.getCitizen() != null && updated.getCitizen().getEmail() != null) {

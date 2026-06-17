@@ -124,7 +124,7 @@ export function PoliceDashboard() {
       await acceptFeedbackMut.mutateAsync(id);
       toast.success("Đã tiếp nhận phản ánh thành công");
       setSelectedFeedback(null);
-      setFilterStatus("IN_PROGRESS");
+      setFilterStatus("ACCEPTED");
       setActiveTab("feedbacks");
       refetch();
     } catch (err: any) {

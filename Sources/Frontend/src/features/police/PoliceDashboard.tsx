@@ -482,6 +482,9 @@ export function PoliceDashboard() {
               <span className="font-extrabold text-base tracking-widest uppercase block text-white mt-0.5">
                 SMARTCITY
               </span>
+              <span className="text-[10px] font-bold text-slate-400 mt-1 block">
+                Dev: DE190357
+              </span>
             </div>
           )}
         </div>

@@ -26,8 +26,8 @@ export const reports: Report[] = [
   {
     id: "DN-2410-0142",
     title: {
-      vi: "Ổ gà lớn gây nguy hiểm giao thông",
-      en: "Large pothole creating traffic hazard",
+      vi: "[DỮ LIỆU MẪU] Ổ gà lớn gây nguy hiểm giao thông",
+      en: "[MOCK DATA] Large pothole creating traffic hazard",
     },
     description: {
       vi: "Gần ngã tư Hùng Vương - Phan Chu Trinh, kích thước khoảng 50cm, rất sâu gây nguy hiểm cho người đi xe máy.",
@@ -60,8 +60,8 @@ export const reports: Report[] = [
   {
     id: "DN-2410-0141",
     title: {
-      vi: "Ô nhiễm rác thải tại kênh thoát nước",
-      en: "Trash pollution in drainage canal",
+      vi: "[DỮ LIỆU MẪU] Ô nhiễm rác thải tại kênh thoát nước",
+      en: "[MOCK DATA] Trash pollution in drainage canal",
     },
     description: {
       vi: "Người dân đổ rác xuống kênh tại phường Hòa Khánh Nam gây mùi hôi nồng nặc.",
@@ -91,7 +91,7 @@ export const reports: Report[] = [
   },
   {
     id: "DN-2410-0140",
-    title: { vi: "Đèn đường hỏng tại Liên Chiểu", en: "Street light failure in Lien Chieu" },
+    title: { vi: "[DỮ LIỆU MẪU] Đèn đường hỏng tại Liên Chiểu", en: "[MOCK DATA] Street light failure in Lien Chieu" },
     description: {
       vi: "Đèn đường khu vực Tôn Đức Thắng không sáng từ tối qua, gây mất an toàn.",
       en: "Street lights on Ton Duc Thang have been out since last night.",
@@ -110,14 +110,12 @@ export const reports: Report[] = [
   },
   {
     id: "DN-2410-0139",
-    title: { vi: "Tai nạn giao thông gần cầu Rồng", en: "Traffic accident near Dragon Bridge" },
+    title: { vi: "[DỮ LIỆU MẪU] Tai nạn giao thông gần cầu Rồng", en: "[MOCK DATA] Traffic accident near Dragon Bridge" },
     description: {
       vi: "Va chạm giữa xe máy và ô tô con, có người bị thương nhẹ, cần lực lượng Công an.",
       en: "Collision between a motorcycle and a car, minor injuries, police assistance required.",
     },
-    images: [
-      "https://images.unsplash.com/photo-1541416410408-01314df08803?auto=format&fit=crop&q=80&w=800",
-    ],
+    image: "https://images.unsplash.com/photo-1541416410408-01314df08803?auto=format&fit=crop&q=80&w=800",
     status: "inProgress",
     category: "traffic",
     district: "Hải Châu",
@@ -143,6 +141,58 @@ export const reports: Report[] = [
       },
     ],
   },
+  {
+    id: "DN-2410-0138",
+    title: { vi: "[DỮ LIỆU MẪU] Đậu đỗ xe sai quy định gây ùn tắc", en: "[MOCK DATA] Illegal parking causing traffic jam" },
+    description: {
+      vi: "Nhiều xe ô tô đậu đỗ ngược chiều trên đường Bạch Đằng cản trở giao thông nghiêm trọng.",
+      en: "Multiple cars parked in reverse direction on Bach Dang st causing severe congestion.",
+    },
+    image: "https://images.unsplash.com/photo-1506526615949-bb11c1d0630b?auto=format&fit=crop&q=80&w=800",
+    status: "pending",
+    category: "traffic",
+    licensePlate: "43A-123.45",
+    district: "Hải Châu",
+    ward: "Hải Châu I",
+    address: { vi: "Đường Bạch Đằng, Hải Châu", en: "Bach Dang St, Hai Chau" },
+    reporter: "Lê Văn E",
+    createdAt: "15 phút trước",
+    timeline: [
+      {
+        status: "pending",
+        label: { vi: "Tiếp nhận hệ thống", en: "Received by system" },
+        at: "15 mins ago",
+      }
+    ],
+  },
+  {
+    id: "DN-2410-0137",
+    title: { vi: "[DỮ LIỆU MẪU] Tụ tập gây rối trật tự công cộng", en: "[MOCK DATA] Public disturbance and gathering" },
+    description: {
+      vi: "Nhóm thanh niên tụ tập đua xe, nẹt bô gây ồn ào khu vực biển Mỹ Khê đêm khuya.",
+      en: "Group of youths gathering, street racing and causing noise at My Khe beach area.",
+    },
+    image: "https://images.unsplash.com/photo-1605338167385-0210e7bbaeb4?auto=format&fit=crop&q=80&w=800",
+    status: "urgent",
+    category: "safety",
+    district: "Sơn Trà",
+    ward: "Phước Mỹ",
+    address: { vi: "Đường Võ Nguyên Giáp, Sơn Trà", en: "Vo Nguyen Giap St, Son Tra" },
+    reporter: "Nguyễn Thị F",
+    createdAt: "30 phút trước",
+    timeline: [
+      {
+        status: "pending",
+        label: { vi: "Tiếp nhận hệ thống", en: "Received by system" },
+        at: "30 mins ago",
+      },
+      {
+        status: "urgent",
+        label: { vi: "Báo động Công an trực ban", en: "Alerted Police duty officer" },
+        at: "25 mins ago",
+      }
+    ],
+  }
 ];
 
 export const kpis = {

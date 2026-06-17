@@ -105,6 +105,7 @@ export function PoliceDashboard() {
   const [userOpen, setUserOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [activeTab, setActiveTab] = useState("overview");
 
   const notifRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
@@ -381,11 +382,11 @@ export function PoliceDashboard() {
   };
 
   const menuItems = [
-    { name: "Tổng quan", path: "/police", icon: Grid, active: true },
-    { name: "Phản ánh", path: "/my-reports", icon: FileText },
-    { name: "Theo dõi xử lý", path: "/my-reports", icon: Activity },
-    { name: "Báo cáo", path: "/police", icon: BarChart3 },
-    { name: "Cấu hình", path: "/profile", icon: Sliders },
+    { name: "Tổng quan", id: "overview", icon: Grid },
+    { name: "Phản ánh", id: "feedbacks", icon: FileText },
+    { name: "Theo dõi xử lý", id: "tracking", icon: Activity },
+    { name: "Báo cáo", id: "reports", icon: BarChart3 },
+    { name: "Cấu hình", id: "settings", icon: Sliders },
   ];
 
   return (
@@ -421,19 +422,20 @@ export function PoliceDashboard() {
         <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
           {menuItems.map((item, idx) => {
             const Icon = item.icon;
+            const isActive = activeTab === item.id;
             return (
-              <Link
+              <button
                 key={idx}
-                to={item.path as any}
-                className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all ${
-                  item.active
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all cursor-pointer ${
+                  isActive
                     ? "bg-[#0F5BD8] text-white shadow-lg"
                     : "text-slate-300 hover:bg-white/5 hover:text-white"
                 }`}
               >
                 <Icon size={18} className="shrink-0" />
                 {!sidebarCollapsed && <span>{item.name}</span>}
-              </Link>
+              </button>
             );
           })}
         </nav>
@@ -634,8 +636,10 @@ export function PoliceDashboard() {
 
         {/* ─── 3. MAIN DASHBOARD CONTENT ─── */}
         <main className="flex-1 p-6 md:p-8 space-y-6 overflow-y-auto">
-          {/* ─── KPI CARDS ROW ─── */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {activeTab === "overview" && (
+            <>
+              {/* ─── KPI CARDS ROW ─── */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {[
               {
                 title: "Tổng phản ánh",
@@ -987,6 +991,86 @@ export function PoliceDashboard() {
               </div>
             </div>
           </div>
+            </>
+          )}
+
+          {activeTab === "feedbacks" && (
+            <div className="bg-white rounded-2xl border border-[#E4EAF2] shadow-sm p-5 flex flex-col min-h-[500px]">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+                <h3 className="font-extrabold text-lg text-[#0B2545]">Tất cả Phản ánh</h3>
+              </div>
+              <div className="overflow-x-auto -mx-5 flex-1">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-[#E4EAF2] bg-slate-50/50">
+                      <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Mã phản ánh</th>
+                      <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Nội dung</th>
+                      <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Địa điểm</th>
+                      <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Thời gian</th>
+                      <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Hạn xử lý</th>
+                      <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Trạng thái</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#E4EAF2]">
+                    {feedbacksLoading ? (
+                      [1, 2, 3, 4, 5].map((i) => (
+                        <tr key={i} className="animate-pulse">
+                          <td className="px-5 py-4"><Skeleton className="h-4 w-12" /></td>
+                          <td className="px-5 py-4"><Skeleton className="h-4 w-40" /></td>
+                          <td className="px-5 py-4"><Skeleton className="h-4 w-32" /></td>
+                          <td className="px-5 py-4"><Skeleton className="h-4 w-24" /></td>
+                          <td className="px-5 py-4"><Skeleton className="h-4 w-20" /></td>
+                          <td className="px-5 py-4"><Skeleton className="h-6 w-16" /></td>
+                        </tr>
+                      ))
+                    ) : feedbacks.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-5 py-8 text-center text-xs text-slate-400">Không có phản ánh nào.</td>
+                      </tr>
+                    ) : (
+                      feedbacks.map((row) => (
+                        <tr
+                          key={row.id}
+                          onClick={() => navigate({ to: "/my-reports/$id", params: { id: String(row.id) } })}
+                          className="hover:bg-slate-50 transition-colors cursor-pointer"
+                        >
+                          <td className="px-5 py-4 text-xs font-bold text-[#0F5BD8]">{row.trackingCode || `PA-${row.id}`}</td>
+                          <td className="px-5 py-4 text-xs text-slate-700 font-semibold max-w-[200px] truncate">{row.title}</td>
+                          <td className="px-5 py-4 text-xs text-slate-500 truncate max-w-[150px]">{row.addressDetails || row.address || "Chưa xác định"}</td>
+                          <td className="px-5 py-4 text-xs text-slate-500">{formatDate(row.createdAt)}</td>
+                          <td className="px-5 py-4 text-xs text-slate-500 font-bold">{getDeadlineDate(row.createdAt)}</td>
+                          <td className="px-5 py-4">
+                            {(() => {
+                              const isNotResolved = row.status !== "RESOLVED" && row.status !== "REJECTED";
+                              const diffTime = Math.abs(new Date().getTime() - new Date(row.createdAt).getTime());
+                              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                              if (isNotResolved && diffDays > 3) {
+                                return <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-red-50 text-red-600 border border-red-100 uppercase">Quá hạn</span>;
+                              }
+                              switch (row.status) {
+                                case "PENDING": return <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-orange-50 text-orange-600 border border-orange-100 uppercase">Chưa xử lý</span>;
+                                case "RESOLVED": return <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-green-50 text-green-600 border border-green-100 uppercase">Đã xử lý</span>;
+                                default: return <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-blue-50 text-blue-600 border border-blue-100 uppercase">Đang xử lý</span>;
+                              }
+                            })()}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {["tracking", "reports", "settings"].includes(activeTab) && (
+            <div className="bg-white rounded-2xl border border-[#E4EAF2] shadow-sm p-6 flex flex-col items-center justify-center min-h-[400px]">
+              <Settings size={48} className="text-slate-300 mb-4" />
+              <h3 className="font-extrabold text-lg text-[#0B2545] mb-2">Tính năng đang phát triển</h3>
+              <p className="text-slate-500 text-sm">Chức năng {menuItems.find(i => i.id === activeTab)?.name} hiện đang được cập nhật. Vui lòng quay lại sau.</p>
+            </div>
+          )}
+
         </main>
       </div>
     </div>

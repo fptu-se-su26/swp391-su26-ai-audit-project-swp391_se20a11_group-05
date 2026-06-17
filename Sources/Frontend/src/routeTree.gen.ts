@@ -22,6 +22,7 @@ import { Route as AuthorityLoginRouteImport } from './routes/authority-login'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MyReportsIndexRouteImport } from './routes/my-reports.index'
+import { Route as CampaignsIndexRouteImport } from './routes/campaigns.index'
 import { Route as MyReportsIdRouteImport } from './routes/my-reports.$id'
 import { Route as CampaignsCreateRouteImport } from './routes/campaigns.create'
 import { Route as CampaignsIdRouteImport } from './routes/campaigns.$id'
@@ -94,6 +95,11 @@ const MyReportsIndexRoute = MyReportsIndexRouteImport.update({
   path: '/my-reports/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CampaignsIndexRoute = CampaignsIndexRouteImport.update({
+  id: '/campaigns/',
+  path: '/campaigns/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MyReportsIdRoute = MyReportsIdRouteImport.update({
   id: '/my-reports/$id',
   path: '/my-reports/$id',
@@ -149,6 +155,7 @@ export interface FileRoutesByFullPath {
   '/campaigns/$id': typeof CampaignsIdRoute
   '/campaigns/create': typeof CampaignsCreateRoute
   '/my-reports/$id': typeof MyReportsIdRoute
+  '/campaigns/': typeof CampaignsIndexRoute
   '/my-reports/': typeof MyReportsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -170,6 +177,7 @@ export interface FileRoutesByTo {
   '/campaigns/$id': typeof CampaignsIdRoute
   '/campaigns/create': typeof CampaignsCreateRoute
   '/my-reports/$id': typeof MyReportsIdRoute
+  '/campaigns': typeof CampaignsIndexRoute
   '/my-reports': typeof MyReportsIndexRoute
 }
 export interface FileRoutesById {
@@ -193,6 +201,7 @@ export interface FileRoutesById {
   '/campaigns/$id': typeof CampaignsIdRoute
   '/campaigns/create': typeof CampaignsCreateRoute
   '/my-reports/$id': typeof MyReportsIdRoute
+  '/campaigns/': typeof CampaignsIndexRoute
   '/my-reports/': typeof MyReportsIndexRoute
 }
 export interface FileRouteTypes {
@@ -216,6 +225,7 @@ export interface FileRouteTypes {
     | '/campaigns/$id'
     | '/campaigns/create'
     | '/my-reports/$id'
+    | '/campaigns/'
     | '/my-reports/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -237,6 +247,7 @@ export interface FileRouteTypes {
     | '/campaigns/$id'
     | '/campaigns/create'
     | '/my-reports/$id'
+    | '/campaigns'
     | '/my-reports'
   id:
     | '__root__'
@@ -259,6 +270,7 @@ export interface FileRouteTypes {
     | '/campaigns/$id'
     | '/campaigns/create'
     | '/my-reports/$id'
+    | '/campaigns/'
     | '/my-reports/'
   fileRoutesById: FileRoutesById
 }
@@ -278,6 +290,7 @@ export interface RootRouteChildren {
   CampaignsIdRoute: typeof CampaignsIdRoute
   CampaignsCreateRoute: typeof CampaignsCreateRoute
   MyReportsIdRoute: typeof MyReportsIdRoute
+  CampaignsIndexRoute: typeof CampaignsIndexRoute
   MyReportsIndexRoute: typeof MyReportsIndexRoute
 }
 
@@ -374,6 +387,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MyReportsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/campaigns/': {
+      id: '/campaigns/'
+      path: '/campaigns'
+      fullPath: '/campaigns/'
+      preLoaderRoute: typeof CampaignsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/my-reports/$id': {
       id: '/my-reports/$id'
       path: '/my-reports/$id'
@@ -458,6 +478,7 @@ const rootRouteChildren: RootRouteChildren = {
   CampaignsIdRoute: CampaignsIdRoute,
   CampaignsCreateRoute: CampaignsCreateRoute,
   MyReportsIdRoute: MyReportsIdRoute,
+  CampaignsIndexRoute: CampaignsIndexRoute,
   MyReportsIndexRoute: MyReportsIndexRoute,
 }
 export const routeTree = rootRouteImport

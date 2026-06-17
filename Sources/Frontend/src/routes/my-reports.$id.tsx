@@ -27,12 +27,18 @@ import {
   Users,
   Check,
   Map,
+  Flag,
+  CalendarDays,
+  X,
 } from "lucide-react";
 import { lazy, Suspense, useState, useMemo, useEffect } from "react";
 import { EmptyState, ErrorState } from "@/components/site/EmptyState";
 import { StatusBadge } from "@/components/site/StatusBadge";
 import { usePublicFeedbackDetail } from "@/lib/hooks";
 import { useI18n } from "@/lib/i18n";
+import { useCreateCampaign } from "@/hooks/useCampaigns";
+import { getCampaignByFeedbackId, onCampaignsChanged } from "@/lib/campaignStore";
+import type { CampaignCategory } from "@/lib/campaignStore";
 import {
   getToken,
   type FeedbackAttachmentResponse,
@@ -61,6 +67,7 @@ export const Route = createFileRoute("/my-reports/$id")({
 function ReportDetail() {
   const { id } = Route.useParams();
   const { locale, t } = useI18n();
+  const isVi = locale === "vi";
   const { data: report, isLoading, isError, error, refetch } = usePublicFeedbackDetail(id);
 
   // Local state for UI interactions
@@ -74,6 +81,70 @@ function ReportDetail() {
   const [showAddInfoModal, setShowAddInfoModal] = useState(false);
   const [additionalInfo, setAdditionalInfo] = useState("");
   const [infoList, setInfoList] = useState<string[]>([]);
+
+  // Campaign creation modal state
+  const [showCreateCampaignModal, setShowCreateCampaignModal] = useState(false);
+  const { submit: submitCampaign, isLoading: campaignSubmitting } = useCreateCampaign();
+  const [campaignForm, setCampaignForm] = useState({
+    title: "",
+    description: "",
+    locationText: "",
+    maxParticipants: "",
+    startTime: "",
+    endTime: "",
+    category: "environment" as CampaignCategory,
+  });
+
+  // Linked campaign — đọc từ store theo feedbackId, tự cập nhật khi store thay đổi
+  const [linkedCampaign, setLinkedCampaign] = useState<null | {
+    id: string;
+    title: string;
+    status: string;
+    participants: number;
+    progress: number;
+  }>(null);
+
+  // Đọc từ store ngay sau khi report load xong
+  useEffect(() => {
+    if (!report?.id) return;
+    const found = getCampaignByFeedbackId(report.id);
+    if (found) {
+      setLinkedCampaign({
+        id: found.id,
+        title: found.name,
+        status: found.status === "pending_review"
+          ? (isVi ? "Chờ duyệt" : "Pending Review")
+          : found.status === "recruiting"
+          ? (isVi ? "Đang tuyển" : "Recruiting")
+          : found.status === "completed"
+          ? (isVi ? "Đã hoàn thành" : "Completed")
+          : (isVi ? "Đang tiến hành" : "In Progress"),
+        participants: found.participants,
+        progress: found.progress,
+      });
+    }
+
+    // Subscribe để cập nhật khi store thay đổi (ngay sau khi tạo campaign)
+    const unsub = onCampaignsChanged(() => {
+      const updated = getCampaignByFeedbackId(report.id);
+      if (updated) {
+        setLinkedCampaign({
+          id: updated.id,
+          title: updated.name,
+          status: updated.status === "pending_review"
+            ? (isVi ? "Chờ duyệt" : "Pending Review")
+            : updated.status === "recruiting"
+            ? (isVi ? "Đang tuyển" : "Recruiting")
+            : updated.status === "completed"
+            ? (isVi ? "Đã hoàn thành" : "Completed")
+            : (isVi ? "Đang tiến hành" : "In Progress"),
+          participants: updated.participants,
+          progress: updated.progress,
+        });
+      }
+    });
+    return unsub;
+  }, [report?.id, isVi]);
 
   // Automatically reset image index when report changes
   useEffect(() => {
@@ -116,7 +187,6 @@ function ReportDetail() {
     );
   }
 
-  const isVi = locale === "vi";
   const attachments = report.attachments ?? [];
   const statusInfo = mapStatus(report.status);
   const mockCode = report.trackingCode || report.code || `#DN-2026-0615-${report.id}`;
@@ -400,6 +470,42 @@ function ReportDetail() {
     toast.success(
       isVi ? "Bổ sung thông tin thành công!" : "Additional information submitted successfully!",
     );
+  };
+
+  const handleCreateCampaignSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!campaignForm.title.trim() || !campaignForm.description.trim()) return;
+
+    submitCampaign({
+      title: campaignForm.title,
+      description: campaignForm.description,
+      category: campaignForm.category,
+      locationText: campaignForm.locationText,
+      maxParticipants: campaignForm.maxParticipants,
+      startTime: campaignForm.startTime,
+      endTime: campaignForm.endTime,
+      linkedFeedbackId: report?.id,
+      linkedFeedbackCode: report?.trackingCode,
+      linkedFeedbackTitle: report?.title,
+      wardName: report?.wardName,
+    }).then(() => {
+      setShowCreateCampaignModal(false);
+      // linkedCampaign sẽ tự cập nhật qua useEffect + onCampaignsChanged
+      setCampaignForm({
+        title: "",
+        description: "",
+        locationText: "",
+        maxParticipants: "",
+        startTime: "",
+        endTime: "",
+        category: "environment",
+      });
+      toast.success(
+        isVi
+          ? "🎉 Chiến dịch đã được tạo! Bạn có thể xem trong trang Chiến dịch."
+          : "🎉 Campaign created! You can view it on the Campaigns page.",
+      );
+    });
   };
 
   const handleRatingSubmit = (e: React.FormEvent) => {
@@ -987,63 +1093,117 @@ function ReportDetail() {
               </div>
             </div>
 
-            {/* 10. Community Campaign Section (MAJOR IMPROVEMENT C: Standing Out Green Campaign Card) */}
-            <div className="bg-gradient-to-br from-emerald-50 to-teal-50/20 rounded-[20px] border border-emerald-100 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow transition-shadow">
-              <div className="flex items-center gap-2 border-b border-emerald-100/50 pb-3 mb-4">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <h3 className="text-sm font-extrabold text-emerald-800">
-                  {isVi ? "Chiến dịch cộng đồng liên quan" : "Community Campaign"}
-                </h3>
-              </div>
-
-              <div className="flex gap-3 items-start mb-4">
-                <img
-                  src="https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=200&q=80"
-                  alt="Campaign banner"
-                  className="w-16 h-16 rounded-xl object-cover border border-emerald-100 shrink-0"
-                />
-                <div>
-                  <h4 className="text-xs font-extrabold text-emerald-900 leading-snug">
-                    {isVi ? "Vì một Hòa Xuân xanh - sạch - đẹp" : "For a Clean & Green Hoa Xuan"}
-                  </h4>
-                  <div className="flex gap-2 items-center mt-1.5">
-                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-200 text-[9px] font-extrabold rounded-full uppercase tracking-wider">
-                      {isVi ? "Đang kêu gọi" : "Active Call"}
-                    </span>
-                    <span className="text-[10px] text-emerald-700/80 font-bold flex items-center gap-1">
-                      <Users size={11} />
-                      42 {isVi ? "tham gia" : "joined"}
-                    </span>
+            {/* 10. Community Campaign Section */}
+            {linkedCampaign ? (
+              /* ── State B: ĐÃ CÓ chiến dịch ── */
+              <div className="bg-gradient-to-br from-emerald-50 to-teal-50/20 rounded-[20px] border border-emerald-100 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow transition-shadow">
+                <div className="flex items-center justify-between border-b border-emerald-100/50 pb-3 mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <h3 className="text-sm font-extrabold text-emerald-800">
+                      {isVi ? "Chiến dịch cộng đồng liên quan" : "Community Campaign"}
+                    </h3>
                   </div>
                 </div>
-              </div>
 
-              {/* Progress bar */}
-              <div className="space-y-1 mb-4">
-                <div className="flex justify-between text-[10px] font-extrabold text-emerald-800">
-                  <span>{isVi ? "Tiến độ đạt" : "Progress reached"}</span>
-                  <span>68%</span>
+                <div className="flex gap-3 items-start mb-4">
+                  <div className="w-14 h-14 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0">
+                    <Flag size={22} className="text-emerald-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="text-xs font-extrabold text-emerald-900 leading-snug truncate">
+                      {linkedCampaign.title}
+                    </h4>
+                    <div className="flex gap-2 items-center mt-1.5 flex-wrap">
+                      <span className="px-2 py-0.5 bg-amber-100 text-amber-700 border border-amber-200 text-[9px] font-extrabold rounded-full uppercase tracking-wider">
+                        {linkedCampaign.status}
+                      </span>
+                      <span className="text-[10px] text-emerald-700/80 font-bold flex items-center gap-1">
+                        <Users size={11} />
+                        {linkedCampaign.participants} {isVi ? "tham gia" : "joined"}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="w-full bg-emerald-100 h-2 rounded-full overflow-hidden">
-                  <div className="bg-[#22C55E] h-full rounded-full" style={{ width: "68%" }} />
-                </div>
-              </div>
 
-              <div className="flex gap-2">
+                {/* Progress bar */}
+                <div className="space-y-1 mb-4">
+                  <div className="flex justify-between text-[10px] font-extrabold text-emerald-800">
+                    <span>{isVi ? "Tiến độ đạt" : "Progress reached"}</span>
+                    <span>{linkedCampaign.progress}%</span>
+                  </div>
+                  <div className="w-full bg-emerald-100 h-2 rounded-full overflow-hidden">
+                    <div
+                      className="bg-[#22C55E] h-full rounded-full transition-all"
+                      style={{ width: `${linkedCampaign.progress}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Link
+                    to={`/campaigns/${linkedCampaign.id}` as any}
+                    className="flex-1 px-3 py-2 bg-[#22C55E] hover:bg-green-600 text-white font-extrabold text-[11px] rounded-lg transition-all shadow-sm cursor-pointer min-h-[36px] flex items-center justify-center gap-1.5"
+                  >
+                    {isVi ? "Xem chiến dịch" : "View Campaign"}
+                  </Link>
+                  <button
+                    onClick={() => setShowCreateCampaignModal(true)}
+                    className="px-3 py-2 border border-emerald-200 bg-white hover:bg-emerald-50 text-emerald-800 font-bold text-[11px] rounded-lg transition-all cursor-pointer min-h-[36px] flex items-center gap-1.5"
+                  >
+                    <Plus size={12} />
+                    {isVi ? "Tạo thêm" : "Add"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* ── State A: CHƯA CÓ chiến dịch ── */
+              <div className="rounded-[20px] border-2 border-dashed border-emerald-200 bg-emerald-50/30 p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:border-emerald-300 hover:bg-emerald-50/50 transition-all">
+                <div className="flex items-center gap-2 mb-4">
+                  <Flag size={16} className="text-emerald-500" />
+                  <h3 className="text-sm font-extrabold text-emerald-800">
+                    {isVi ? "Chiến dịch cộng đồng" : "Community Campaign"}
+                  </h3>
+                </div>
+
+                {/* Empty illustration */}
+                <div className="flex flex-col items-center text-center py-4 px-2 mb-4">
+                  <div className="w-14 h-14 rounded-2xl bg-emerald-100 border border-emerald-200 flex items-center justify-center mb-3">
+                    <Flag size={26} className="text-emerald-400" />
+                  </div>
+                  <p className="text-xs font-extrabold text-emerald-800 mb-1">
+                    {isVi ? "Chưa có chiến dịch nào" : "No campaign yet"}
+                  </p>
+                  <p className="text-[11px] text-slate-500 font-medium leading-relaxed max-w-[200px]">
+                    {isVi
+                      ? "Tạo chiến dịch cộng đồng để huy động tình nguyện viên cùng giải quyết vấn đề này."
+                      : "Create a community campaign to mobilize volunteers to address this issue together."}
+                  </p>
+                </div>
+
+                {/* Benefits row */}
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                  {[
+                    { icon: Users, label: isVi ? "Huy động cộng đồng" : "Mobilize community" },
+                    { icon: Flag, label: isVi ? "Hành động tập thể" : "Collective action" },
+                    { icon: CheckCircle2, label: isVi ? "Giải quyết nhanh hơn" : "Faster resolution" },
+                  ].map(({ icon: Icon, label }) => (
+                    <div key={label} className="flex flex-col items-center gap-1 bg-white border border-emerald-100 rounded-xl p-2 text-center">
+                      <Icon size={14} className="text-emerald-500" />
+                      <span className="text-[9px] font-bold text-slate-600 leading-tight">{label}</span>
+                    </div>
+                  ))}
+                </div>
+
                 <button
-                  onClick={() => toast.success(isVi ? "Cảm ơn bạn đã tham gia chiến dịch!" : "Thank you for joining the campaign!")}
-                  className="flex-1 px-3 py-2 bg-[#22C55E] hover:bg-green-600 text-white font-extrabold text-[11px] rounded-lg transition-all shadow-sm cursor-pointer min-h-[36px]"
+                  onClick={() => setShowCreateCampaignModal(true)}
+                  className="w-full px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[11px] rounded-xl transition-all shadow-sm cursor-pointer min-h-[40px] flex items-center justify-center gap-2"
                 >
-                  {isVi ? "Tham gia chiến dịch" : "Join Campaign"}
-                </button>
-                <button
-                  onClick={() => toast.info(isVi ? "Chức năng tạo chiến dịch sẽ sớm khả dụng!" : "Campaign creation will be available soon!")}
-                  className="px-3 py-2 border border-emerald-200 bg-white hover:bg-emerald-50 text-emerald-800 font-bold text-[11px] rounded-lg transition-all cursor-pointer min-h-[36px]"
-                >
-                  {isVi ? "Tạo mới" : "Create"}
+                  <Flag size={13} />
+                  {isVi ? "Tạo chiến dịch ngay" : "Create Campaign Now"}
                 </button>
               </div>
-            </div>
+            )}
 
             {/* 11. Similar Reports Section */}
             <div className="bg-white rounded-[20px] border border-[#E2E8F0] p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
@@ -1205,6 +1365,203 @@ function ReportDetail() {
                 {isVi ? "Xác nhận hủy" : "Confirm Cancel"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Create Campaign Dialog */}
+      {showCreateCampaignModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-[24px] max-w-xl w-full shadow-2xl border border-slate-100 animate-scale-in flex flex-col max-h-[90vh]">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-slate-100 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center">
+                  <Flag size={20} className="text-emerald-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-[#0B2545]">
+                    {isVi ? "Tạo chiến dịch cộng đồng" : "Create Community Campaign"}
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-semibold mt-0.5">
+                    {isVi
+                      ? "Liên kết chiến dịch với phản ánh này để huy động cộng đồng"
+                      : "Link a campaign to this report to mobilize the community"}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowCreateCampaignModal(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Linked report badge */}
+            <div className="mx-6 mt-4 shrink-0">
+              <div className="flex items-center gap-2.5 bg-blue-50/60 border border-blue-100 rounded-xl px-3.5 py-2.5">
+                <FileText size={14} className="text-[#0B4FC4] shrink-0" />
+                <div className="min-w-0">
+                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block">
+                    {isVi ? "Phản ánh liên kết" : "Linked report"}
+                  </span>
+                  <span className="text-xs font-extrabold text-[#0B4FC4] truncate block">
+                    {mockCode} — {report.title}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Scrollable form body */}
+            <form onSubmit={handleCreateCampaignSubmit} className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
+
+              {/* Title */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
+                  {isVi ? "Tên chiến dịch" : "Campaign title"} <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={campaignForm.title}
+                  onChange={(e) => setCampaignForm((f) => ({ ...f, title: e.target.value }))}
+                  placeholder={isVi ? "Vd: Vì một Hòa Xuân xanh - sạch - đẹp" : "e.g. For a Clean & Green Hoa Xuan"}
+                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:border-[#0B4FC4] focus:ring-2 focus:ring-blue-50 bg-slate-50/40 transition placeholder:text-slate-300"
+                  required
+                />
+              </div>
+
+              {/* Category */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
+                  {isVi ? "Loại chiến dịch" : "Category"} <span className="text-red-400">*</span>
+                </label>
+                <select
+                  value={campaignForm.category}
+                  onChange={(e) => setCampaignForm((f) => ({ ...f, category: e.target.value }))}
+                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:border-[#0B4FC4] focus:ring-2 focus:ring-blue-50 bg-slate-50/40 transition cursor-pointer"
+                >
+                  <option value="environment">{isVi ? "Môi trường" : "Environment"}</option>
+                  <option value="infrastructure">{isVi ? "Hạ tầng đô thị" : "Infrastructure"}</option>
+                  <option value="public_safety">{isVi ? "An toàn cộng đồng" : "Public Safety"}</option>
+                  <option value="construction">{isVi ? "Xây dựng & Quy hoạch" : "Construction & Planning"}</option>
+                  <option value="fire_safety">{isVi ? "Phòng cháy chữa cháy" : "Fire Safety"}</option>
+                </select>
+              </div>
+
+              {/* Description */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
+                  {isVi ? "Mô tả chiến dịch" : "Description"} <span className="text-red-400">*</span>
+                </label>
+                <textarea
+                  value={campaignForm.description}
+                  onChange={(e) => setCampaignForm((f) => ({ ...f, description: e.target.value }))}
+                  placeholder={isVi
+                    ? "Mô tả mục tiêu, hoạt động và lợi ích của chiến dịch..."
+                    : "Describe the goals, activities and benefits of the campaign..."}
+                  className="w-full min-h-[90px] border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:border-[#0B4FC4] focus:ring-2 focus:ring-blue-50 bg-slate-50/40 resize-none transition placeholder:text-slate-300"
+                  required
+                />
+              </div>
+
+              {/* Location */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
+                  {isVi ? "Địa điểm tổ chức" : "Location"}
+                </label>
+                <input
+                  type="text"
+                  value={campaignForm.locationText}
+                  onChange={(e) => setCampaignForm((f) => ({ ...f, locationText: e.target.value }))}
+                  placeholder={
+                    report.addressDetails ||
+                    (isVi ? "Vd: UBND phường Hòa Xuân, Đà Nẵng" : "e.g. Hoa Xuan Ward Office, Da Nang")
+                  }
+                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:border-[#0B4FC4] focus:ring-2 focus:ring-blue-50 bg-slate-50/40 transition placeholder:text-slate-300"
+                />
+              </div>
+
+              {/* Start / End time */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                    <CalendarDays size={11} />
+                    {isVi ? "Ngày bắt đầu" : "Start date"}
+                  </label>
+                  <input
+                    type="date"
+                    value={campaignForm.startTime}
+                    onChange={(e) => setCampaignForm((f) => ({ ...f, startTime: e.target.value }))}
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0B4FC4] focus:ring-2 focus:ring-blue-50 bg-slate-50/40 transition cursor-pointer"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                    <CalendarDays size={11} />
+                    {isVi ? "Ngày kết thúc" : "End date"}
+                  </label>
+                  <input
+                    type="date"
+                    value={campaignForm.endTime}
+                    onChange={(e) => setCampaignForm((f) => ({ ...f, endTime: e.target.value }))}
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0B4FC4] focus:ring-2 focus:ring-blue-50 bg-slate-50/40 transition cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {/* Max participants */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                  <Users size={11} />
+                  {isVi ? "Số người tham gia tối đa" : "Max participants"}
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  value={campaignForm.maxParticipants}
+                  onChange={(e) => setCampaignForm((f) => ({ ...f, maxParticipants: e.target.value }))}
+                  placeholder={isVi ? "Vd: 50" : "e.g. 50"}
+                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:border-[#0B4FC4] focus:ring-2 focus:ring-blue-50 bg-slate-50/40 transition placeholder:text-slate-300"
+                />
+              </div>
+
+              {/* Info note */}
+              <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-100 rounded-xl p-3 text-[11px] text-amber-800 font-semibold leading-relaxed">
+                <AlertTriangle size={14} className="shrink-0 mt-0.5 text-amber-500" />
+                {isVi
+                  ? "Chiến dịch sau khi tạo sẽ được chuyển đến cơ quan chức năng xét duyệt trước khi công bố công khai."
+                  : "Campaigns are submitted for authority review before being publicly published."}
+              </div>
+
+              {/* Action buttons — pinned inside form so they scroll with content */}
+              <div className="flex justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateCampaignModal(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-50 rounded-lg transition cursor-pointer min-h-[38px]"
+                >
+                  {isVi ? "Hủy" : "Cancel"}
+                </button>
+                <button
+                  type="submit"
+                  disabled={campaignSubmitting}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-extrabold text-xs rounded-xl transition shadow-sm cursor-pointer min-h-[38px] flex items-center gap-2"
+                >
+                  {campaignSubmitting ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      {isVi ? "Đang tạo..." : "Creating..."}
+                    </>
+                  ) : (
+                    <>
+                      <Flag size={14} />
+                      {isVi ? "Tạo chiến dịch" : "Create Campaign"}
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

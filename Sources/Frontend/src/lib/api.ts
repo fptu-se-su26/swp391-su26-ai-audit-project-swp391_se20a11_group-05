@@ -605,6 +605,12 @@ export const policeApi = {
     request<PoliceFeedbackResponse>(`/api/police/feedbacks/${id}/accept`, {
       method: "PATCH",
     }),
+
+  updateStatus: (id: number | string, status: string, note?: string) =>
+    request<PoliceFeedbackResponse>(`/api/police/feedbacks/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status, note }),
+    }),
 };
 
 export const categoryApi = {

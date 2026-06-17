@@ -6,8 +6,8 @@ import { toast } from "sonner";
 import { ApiError, authApi } from "@/lib/api";
 
 export const Route = createFileRoute("/verify-otp")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    phone: (search.phone as string) || "",
+  validateSearch: (search: Record<string, unknown>): { phone?: string } => ({
+    phone: search.phone as string | undefined,
   }),
   component: VerifyOtpPage,
 });
@@ -42,7 +42,7 @@ function VerifyOtpPage() {
 
     setIsLoading(true);
     try {
-      await authApi.registerConfirm(phone, otpString);
+      await authApi.registerConfirm(phone!, otpString);
       toast.success(
         locale === "vi" ? "Kich hoat tai khoan thanh cong!" : "Account verified successfully!",
       );
@@ -66,7 +66,7 @@ function VerifyOtpPage() {
     if (countdown > 0) return;
     setCountdown(60);
     try {
-      await authApi.sendSmsOtp(phone);
+      await authApi.sendSmsOtp(phone!);
       toast.success(locale === "vi" ? "Đã gửi lại mã OTP!" : "OTP resent!");
     } catch {
       toast.error(locale === "vi" ? "Loi khi gui lai ma" : "Error resending OTP");

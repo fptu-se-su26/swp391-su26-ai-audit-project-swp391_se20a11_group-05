@@ -448,3 +448,17 @@ Sinh viên/nhóm cam kết rằng nội dung changelog phản ánh đúng các t
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
 |  |  |
+
+## [1.0.8] - 2026-06-17
+### Added
+- Extended generic `FeedbackResponse` with `videoUrl` property to ensure frontend video playback logic is perfectly preserved when fetching from generic endpoints.
+- Re-added the `HeatmapMap` component to the `PoliceDashboard` following a branch merge.
+
+### Changed
+- Pulled latest UI updates from the `Product` branch and performed a clean merge resolution.
+- Replaced `CivicMap` on `PoliceDashboard` with `HeatmapMap` to fulfill the user requirement.
+- Modified `FeedbackController` to map and distinguish `IMAGE` vs `VIDEO` from attachments into `mediaUrls` and `videoUrl`.
+
+### Fixed
+- Fixed Tailwind CSS `z-index` and clipping issues causing the Map Legend and controls to be hidden behind the `react-leaflet` canvas.
+

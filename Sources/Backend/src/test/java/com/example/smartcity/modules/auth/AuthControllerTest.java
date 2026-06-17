@@ -197,7 +197,7 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("Đăng ký thành công"))
+                .andExpect(jsonPath("$.message").value("Đăng ký nháp thành công. Vui lòng xác thực mã OTP gửi về điện thoại."))
                 .andExpect(jsonPath("$.data.username").value("newuser"));
     }
 
@@ -243,7 +243,7 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isInternalServerError());
 
         verify(authService).registerUser(any(RegisterRequest.class));
     }

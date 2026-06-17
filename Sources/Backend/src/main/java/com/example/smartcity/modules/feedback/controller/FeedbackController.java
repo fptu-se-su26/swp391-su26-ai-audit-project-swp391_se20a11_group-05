@@ -297,7 +297,16 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
         response.setCategory(response.getCategoryName());
         response.setAssignedAuthorityName(response.getAssignedUnitName());
         response.setAttachments(attachments);
-        response.setMediaUrls(attachments.stream().map(FeedbackAttachmentResponse::getFileUrl).toList());
+        response.setMediaUrls(attachments.stream()
+                .filter(a -> "IMAGE".equalsIgnoreCase(a.getFileType()))
+                .map(FeedbackAttachmentResponse::getFileUrl)
+                .toList());
+                
+        response.setVideoUrl(attachments.stream()
+                .filter(a -> "VIDEO".equalsIgnoreCase(a.getFileType()))
+                .map(FeedbackAttachmentResponse::getFileUrl)
+                .findFirst()
+                .orElse(null));
         response.setTimeline(timeline);
 
         String latestNote = timeline.stream()

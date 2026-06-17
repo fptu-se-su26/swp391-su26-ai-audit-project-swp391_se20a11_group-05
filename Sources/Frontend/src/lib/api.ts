@@ -244,10 +244,26 @@ export interface FeedbackResponse {
   resultContent?: string | null;
   attachments?: FeedbackAttachmentResponse[];
   mediaUrls?: string[];
+  videoUrl?: string;
   timeline?: FeedbackLogResponse[];
   submittedAt?: string | null;
   receivedAt?: string | null;
   resolvedAt?: string | null;
+  createdAt: string;
+}
+export interface PoliceFeedbackResponse {
+  id: number;
+  trackingCode: string;
+  title: string;
+  description: string;
+  latitude: number | null;
+  longitude: number | null;
+  addressDetails: string | null;
+  status: FeedbackStatus;
+  categoryName: string | null;
+  citizenId: number | null;
+  mediaUrls?: string[];
+  videoUrl?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -561,6 +577,11 @@ export const notificationApi = {
 };
 
 export const policeApi = {
+  getAssignedFeedbacks: () =>
+    request<PoliceFeedbackResponse[]>("/api/police/feedbacks", {
+      method: "GET",
+    }),
+
   rejectFeedback: (id: number | string, reason: string) =>
     request<FeedbackResponse>(`/api/police/feedbacks/${id}/reject`, {
       method: "PATCH",

@@ -75,17 +75,13 @@ public class PoliceFeedbackService {
     @Transactional
     public PoliceFeedbackResponse acceptFeedback(Long feedbackId, Long policeUserId) {
         Feedback feedback = getFeedback(feedbackId);
-        
-        // Kiểm tra quyền (chỉ người được phân công mới được tiếp nhận)
-        if (feedback.getAssignee() == null || !feedback.getAssignee().getId().equals(policeUserId)) {
-            throw new RuntimeException("Bạn không có quyền tiếp nhận phản ánh này");
-        }
 
-        if (feedback.getStatus() != FeedbackStatus.PENDING) {
-            throw new RuntimeException("Chỉ có thể tiếp nhận phản ánh đang ở trạng thái ASSIGNED");
-        }
+        // Nút Tiếp nhận: Cán bộ sẽ nhận việc xử lý phản ánh này
+        User policeUser = userRepository.findById(policeUserId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy user công an"));
 
         FeedbackStatus oldStatus = feedback.getStatus();
+        feedback.setAssignee(policeUser);
         feedback.setStatus(FeedbackStatus.IN_PROGRESS);
         feedback.setUpdatedAt(LocalDateTime.now());
         
@@ -112,10 +108,6 @@ public class PoliceFeedbackService {
     @Transactional
     public PoliceFeedbackResponse updateStatus(Long feedbackId, Long policeUserId, UpdateFeedbackStatusRequest request) {
         Feedback feedback = getFeedback(feedbackId);
-        
-        if (feedback.getAssignee() == null || !feedback.getAssignee().getId().equals(policeUserId)) {
-            throw new RuntimeException("Bạn không có quyền cập nhật phản ánh này");
-        }
 
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setStatus(request.getStatus());
@@ -134,10 +126,6 @@ public class PoliceFeedbackService {
     @Transactional
     public PoliceFeedbackResponse submitResult(Long feedbackId, Long policeUserId, SubmitFeedbackResultRequest request) {
         Feedback feedback = getFeedback(feedbackId);
-        
-        if (feedback.getAssignee() == null || !feedback.getAssignee().getId().equals(policeUserId)) {
-            throw new RuntimeException("Bạn không có quyền xử lý phản ánh này");
-        }
 
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setStatus(FeedbackStatus.RESOLVED);
@@ -158,10 +146,6 @@ public class PoliceFeedbackService {
     @Transactional
     public PoliceFeedbackResponse rejectFeedback(Long feedbackId, Long policeUserId, RejectFeedbackRequest request) {
         Feedback feedback = getFeedback(feedbackId);
-        
-        if (feedback.getAssignee() == null || !feedback.getAssignee().getId().equals(policeUserId)) {
-            throw new RuntimeException("Bạn không có quyền thực hiện trên phản ánh này");
-        }
 
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setStatus(FeedbackStatus.REJECTED);
@@ -180,10 +164,6 @@ public class PoliceFeedbackService {
     @Transactional
     public PoliceFeedbackResponse requestMoreInfo(Long feedbackId, Long policeUserId, RequestMoreInfoRequest request) {
         Feedback feedback = getFeedback(feedbackId);
-        
-        if (feedback.getAssignee() == null || !feedback.getAssignee().getId().equals(policeUserId)) {
-            throw new RuntimeException("Bạn không có quyền thực hiện trên phản ánh này");
-        }
 
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setStatus(FeedbackStatus.WAITING_INFO);

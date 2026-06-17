@@ -12,7 +12,11 @@ public class CampaignResponse {
     private Long id;
     private String title;
     private String description;
+    private String category;
     private String locationText;
+    private String privateLocationText;
+    private String requiredTools;
+    private String organizerContact;
     private Double latitude;
     private Double longitude;
     private Integer maxParticipants;
@@ -27,6 +31,12 @@ public class CampaignResponse {
     private String createdByName;
 
     private long participantCount;
+    private String currentUserJoinStatus;
+    private boolean privateDetailsVisible;
+    private boolean canJoin;
+    private boolean canManage;
+    private boolean canComment;
+    private boolean canFeedback;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

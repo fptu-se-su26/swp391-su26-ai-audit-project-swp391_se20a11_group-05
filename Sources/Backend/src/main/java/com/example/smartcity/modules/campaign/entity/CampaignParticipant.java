@@ -31,7 +31,20 @@ public class CampaignParticipant {
 
     @Column(name = "join_status", nullable = false, length = 20)
     @Builder.Default
-    private String joinStatus = "SURE";
+    private String joinStatus = "PENDING";
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "approved_by")
+    private User approvedBy;
+
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt;
+
+    @Column(name = "rejected_at")
+    private LocalDateTime rejectedAt;
+
+    @Column(name = "rejection_reason", length = 500)
+    private String rejectionReason;
 
     @Column(name = "cancelled_at")
     private LocalDateTime cancelledAt;

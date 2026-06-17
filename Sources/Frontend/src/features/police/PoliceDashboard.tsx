@@ -457,15 +457,14 @@ export function PoliceDashboard() {
           sidebarCollapsed ? "w-[76px]" : "w-[240px]"
         } ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
       >
-        {/* Emblem & Ward Title */}
         <div className="p-5 flex flex-col items-center border-b border-white/10 shrink-0">
-          <img
-            src={policeEmblemImg}
-            alt="Police Emblem"
-            className={`transition-all duration-300 object-contain drop-shadow-md ${
-              sidebarCollapsed ? "w-10 h-10" : "w-16 h-16"
-            }`}
-          />
+          <div className={`flex items-center justify-center transition-all duration-300 ${sidebarCollapsed ? "w-12 h-12" : "w-20 h-20"}`}>
+            <img
+              src={policeEmblemImg}
+              alt="Police Emblem"
+              className="w-full h-full object-contain mix-blend-multiply contrast-125"
+            />
+          </div>
           {!sidebarCollapsed && (
             <div className="mt-3 text-center">
               <span className="font-extrabold text-[13px] tracking-wider uppercase block text-amber-400 leading-snug px-2">

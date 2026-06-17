@@ -141,17 +141,7 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         Feedback saved = feedbackRepository.save(feedback);
 
         // AI Duplicate Detection: Lưu vector mô tả vào Database
-        try {
-            float[] descriptionVector = embeddingFacade.embed(saved.getDescription());
-            String vectorString = java.util.Arrays.toString(descriptionVector);
-            jdbcTemplate.update(
-                "UPDATE feedbacks SET description_vector = ?::vector WHERE id = ?",
-                vectorString, saved.getId()
-            );
-            log.info("[Duplicate Detection] Đã lưu description_vector cho feedbackId={}", saved.getId());
-        } catch (Exception e) {
-            log.error("❌ [Duplicate Detection] Lỗi khi lưu description_vector: {}", e.getMessage());
-        }
+        saveDescriptionVector(saved.getId(), saved.getDescription());
 
         FeedbackLog submittedLog = new FeedbackLog(saved, citizen, null, saved.getStatus(), "Citizen submitted feedback");
         submittedLog.setAction("SUBMIT");
@@ -165,7 +155,21 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         return saved;
     }
 
-    private void checkDuplicateFeedback(String description, Long wardId) {
+    public void saveDescriptionVector(Long feedbackId, String description) {
+        try {
+            float[] descriptionVector = embeddingFacade.embed(description);
+            String vectorString = java.util.Arrays.toString(descriptionVector);
+            jdbcTemplate.update(
+                "UPDATE feedbacks SET description_vector = ?::vector WHERE id = ?",
+                vectorString, feedbackId
+            );
+            log.info("[Duplicate Detection] Đã lưu description_vector cho feedbackId={}", feedbackId);
+        } catch (Exception e) {
+            log.error("❌ [Duplicate Detection] Lỗi khi lưu description_vector: {}", e.getMessage());
+        }
+    }
+
+    public void checkDuplicateFeedback(String description, Long wardId) {
         if (wardId == null || description == null || description.isBlank()) {
             return;
         }
@@ -174,12 +178,31 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             float[] descriptionVector = embeddingFacade.embed(description);
             String vectorString = java.util.Arrays.toString(descriptionVector);
 
-            // Tìm top 1 có cosine distance < 0.08 (tương đồng > 92%) trong cùng Phường
+            // Tìm top 3 có cosine distance gần nhất để debug
+            String sqlLog = """
+                SELECT tracking_code, (description_vector <=> ?::vector) as distance
+                FROM feedbacks 
+                WHERE ward_id = ? 
+                  AND description_vector IS NOT NULL
+                ORDER BY description_vector <=> ?::vector ASC 
+                LIMIT 3
+            """;
+
+            jdbcTemplate.query(
+                sqlLog,
+                (rs, rowNum) -> {
+                    log.info("[DUPLICATE-DEBUG] Mã: {}, Distance: {}", rs.getString("tracking_code"), rs.getDouble("distance"));
+                    return null;
+                },
+                vectorString, wardId, vectorString
+            );
+
+            // Tìm top 1 có cosine distance < 0.20 trong cùng Phường
             String sql = """
                 SELECT tracking_code 
                 FROM feedbacks 
                 WHERE ward_id = ? 
-                  AND description_vector <=> ?::vector < 0.08
+                  AND description_vector <=> ?::vector < 0.20
                 ORDER BY description_vector <=> ?::vector ASC 
                 LIMIT 1
             """;

@@ -26,6 +26,7 @@ import {
   parseBackendRole,
 } from "@/lib/roles";
 import { authApi, ApiError, getToken } from "@/lib/api";
+import { getAdministrativeUnitLabel } from "@/lib/administrativeUnit";
 import {
   buildLoginLockoutMessage,
   getLoginLockoutSeconds,
@@ -166,7 +167,9 @@ function AuthorityLoginPage() {
         login({
           name: data.username,
           role,
-          org: "",
+          org: getAdministrativeUnitLabel(data.wardType, data.wardName),
+          wardName: data.wardName,
+          wardType: data.wardType,
           token: data.token,
         });
 
@@ -214,7 +217,14 @@ function AuthorityLoginPage() {
         return;
       }
 
-      login({ name: data.username, role, org: "", token: data.token });
+      login({
+        name: data.username,
+        role,
+        org: getAdministrativeUnitLabel(data.wardType, data.wardName),
+        wardName: data.wardName,
+        wardType: data.wardType,
+        token: data.token,
+      });
       navigate({ to: getAuthorityRedirect(role, redirect) as any });
     } catch (err) {
       if (err instanceof ApiError) {

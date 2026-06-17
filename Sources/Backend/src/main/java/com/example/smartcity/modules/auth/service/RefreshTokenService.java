@@ -83,6 +83,8 @@ public class RefreshTokenService {
                 .expiresIn(accessExpirationMs / 1000)
                 .username(user.getUsername())
                 .role("ROLE_" + user.getRole().name())
+                .wardName(user.getWard() != null ? user.getWard().getName() : null)
+                .wardType(user.getWard() != null ? user.getWard().getType() : null)
                 .build();
     }
 

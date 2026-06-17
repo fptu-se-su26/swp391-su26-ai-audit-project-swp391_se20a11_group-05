@@ -15,6 +15,8 @@ export interface TokenResponse {
   tokenType: string;
   username: string;
   role: BackendRole;
+  wardName?: string | null;
+  wardType?: string | null;
 }
 
 export interface MfaRequiredResponse {

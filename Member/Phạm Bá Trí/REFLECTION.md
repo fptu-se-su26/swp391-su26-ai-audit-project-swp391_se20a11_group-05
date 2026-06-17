@@ -461,6 +461,16 @@ Khi 2 đầu Frontend và Backend phát triển song song mà thiếu API contra
 
 ---
 
+---
+
+### 9.18. Bài học về Kiểm toán Logic Runtime và UX Resubmit
+
+```text
+- Vấn đề: Hệ thống chạy tốt với các luồng thành công (Happy Path), nhưng khi Gemini API bị sập, quá trình Fallback lại kéo theo sập cả hệ thống vì dính lỗi `LazyInitializationException` kinh điển của Spring Data JPA. Ở phía người dùng, một hành trình báo cáo khó khăn bị từ chối và bắt làm lại từ đầu là thảm họa về UX (User Experience).
+- Giải pháp từ AI: AI hướng dẫn áp dụng `TransactionSynchronizationManager` để ép notification chạy sau khi DB đã commit (chống Race Condition). Đối với UX, thay vì bắt Backend lưu nháp (gây nặng DB), AI chỉ ra phương pháp "Serverless" cực hay: Nhồi thẳng dữ liệu bị từ chối vào React Router State và đẩy sang trang `report.tsx` để tự động điền form (Pre-fill).
+- Kinh nghiệm: Kiến trúc hệ thống không chỉ là chuyện của Backend hay Database. Một Software Architect xuất sắc phải nhìn thấy cả "dòng chảy" của dữ liệu và cảm nhận được "Nỗi đau" của người dùng. Việc biến "Sự từ chối" của AI thành một "Cơ hội sửa sai nhẹ nhàng" thông qua kỹ thuật Pre-fill Form chứng tỏ đẳng cấp thiết kế sản phẩm sâu sắc. Việc làm quen với `@Transactional` và luồng Async cũng giúp bản thân thoát khỏi tư duy lập trình CRUD cơ bản.
+```
+
 ## 17. Cam kết Reflection
 
 Em/nhóm cam kết rằng nội dung reflection này phản ánh trung thực quá trình sử dụng AI và quá trình học tập trong bài tập/project.

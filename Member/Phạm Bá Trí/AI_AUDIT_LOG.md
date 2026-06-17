@@ -224,6 +224,20 @@
 
 ---
 
+---
+
+### Entry #: 017
+**Prompt Type:** LOGIC AUDIT & REFACTORING
+**Stage/Component:** AI Guardrails & Auto Dispatch Layer
+**Problem/Context:** Hệ thống AI Guardrails đã được tích hợp thành công, nhưng cần một cuộc kiểm tra chuyên sâu (Runtime Logic Audit) để vạch trần các lỗi ngầm có thể xảy ra ở môi trường thực tế (Race conditions, LazyInit) và đánh giá trải nghiệm người dùng (UX) khi bị AI từ chối đơn.
+**Prompt to AI:** "Bạn là một Senior Full-Stack Engineer và AI Systems Auditor... đóng vai một request cụ thể và trace nó qua toàn bộ hệ thống từ đầu đến cuối... tìm ra các lỗi logic ẩn mà unit test không phát hiện được."
+**AI Response (Summary):** AI vẽ ra Sơ đồ Luồng Thực Tế (Trace Map) xuất sắc và tóm trọn 2 lỗi Critical: 1) LazyInitializationException khi fallback AI sập do gọi `.getCitizen()` ngoài Transaction. 2) Race Condition khi gọi Notification Async trước khi Commit trạng thái DB. Kèm theo là 1 rủi ro lớn về UX khi bắt người dùng gõ lại form từ đầu.
+**Human Delta & Reflection:**
+- **Critical Thinking:** Nhận thức rõ ràng rằng code Spring Boot dù build thành công nhưng dính "Lazy Fetch" thì vẫn sẽ làm sập tính năng tự động ghi log khi lỗi (Silent failure). Việc Async Notification gọi trượt dữ liệu chưa commit là bài học kiến trúc đắt giá.
+- **Contextualization:** Trong hệ thống Smart City, việc công dân bị bắt gõ lại bản báo cáo dài 500 chữ chỉ vì AI bắt nhầm một từ "Toxic" là trải nghiệm cực kỳ tồi tệ. AI đã gợi ý thiết kế dùng React Router State để tự điền form là giải pháp cứu rỗi UX.
+- **Creative Synthesis:** Đã phối hợp cùng AI vá lỗi Backend bằng `@Transactional` riêng biệt cho method fallback và dùng `TransactionSynchronizationManager` để ép tiến trình chạy sau Commit. Phía Frontend tận dụng triệt để `useLocation().state`.
+- **Decision Ownership:** Chốt nghiệm thu và lưu lại các file Báo cáo Audit, Trace Map vào thư mục đồ án làm minh chứng năng lực gỡ lỗi cấp cao.
+
 ## III. Phát hiện Hallucination (Hallucination Detection)
 
 - **Trường hợp:** Khi yêu cầu AI tìm kiếm và tổng hợp 10 bài báo khoa học trên Springer (Entry 001).

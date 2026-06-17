@@ -1,4 +1,4 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useLocation } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
@@ -187,14 +187,28 @@ function isWithinVietnam(lat: number, lng: number): boolean {
   return lat >= 8.0 && lat <= 24.0 && lng >= 102.0 && lng <= 110.0;
 }
 
+// ─── PII Guard — Tầng 1 Frontend ────────────────────────────────────
+// Phát hiện SĐT Việt Nam (0xxxxxxxxx) và CCCD mới 2021+ (12 số)
+// Tương thích đa trình duyệt (kể cả Safari cũ < 16.4 do không dùng negative lookbehind)
+const PII_PHONE_RE = /(?:^|[^\d])0\d{9}(?=[^\d]|$)/;
+const PII_CCCD_RE  = /(?:^|[^\d])\d{12}(?=[^\d]|$)/;
+
+function detectPii(text: string): boolean {
+  return PII_PHONE_RE.test(text) || PII_CCCD_RE.test(text);
+}
+
 function ReportPage() {
   const { t, locale } = useI18n();
   const { user } = useAuth();
+  const location = useLocation();
+  const state = location.state as { initialTitle?: string; initialDescription?: string; initialCategoryCode?: string } | undefined;
+
   const [submitted, setSubmitted] = useState(false);
   const [trackingCode, setTrackingCode] = useState("");
+  const [piiError, setPiiError] = useState("");
 
   const { data: categories } = useCategories();
-  const [categoryCode, setCategoryCode] = useState<string | undefined>(undefined);
+  const [categoryCode, setCategoryCode] = useState<string | undefined>(state?.initialCategoryCode || undefined);
   const createFeedback = useCreateFeedbackWithMedia();
 
   const storedLocation = getStoredGpsLocation();
@@ -207,8 +221,8 @@ function ReportPage() {
       ? storedLocation.longitude
       : null;
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const [title, setTitle] = useState(state?.initialTitle || "");
+  const [description, setDescription] = useState(state?.initialDescription || "");
   const [latitude, setLatitude] = useState<number | null>(initialLat);
   const [longitude, setLongitude] = useState<number | null>(initialLng);
   const [locationLoading, setLocationLoading] = useState(false);
@@ -540,6 +554,18 @@ function ReportPage() {
       toast.error(t("report.err.gps"));
       return false;
     }
+    // [PII Guard — Tầng 1] Kiểm tra SĐT / CCCD trong tiêu đề và mô tả
+    const hasPii = detectPii(title) || detectPii(description);
+    if (hasPii) {
+      const msg =
+        locale === "vi"
+          ? "Vui lòng xoá số điện thoại hoặc CCCD/CMND khỏi nội dung trước khi gửi để bảo vệ thông tin cá nhân của bạn."
+          : "Please remove phone numbers or ID numbers from your report to protect your personal information.";
+      setPiiError(msg);
+      toast.error(msg);
+      return false;
+    }
+    setPiiError("");
     return true;
   };
 
@@ -742,10 +768,16 @@ function ReportPage() {
               <label className="block text-sm font-bold mb-2">{t("report.form.content")}</label>
               <textarea
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full min-h-[150px] p-4 rounded-lg border-2 border-slate-200 text-base focus:border-gov-blue outline-none bg-white"
+                onChange={(e) => { setDescription(e.target.value); if (piiError) setPiiError(""); }}
+                className={`w-full min-h-[150px] p-4 rounded-lg border-2 text-base focus:border-gov-blue outline-none bg-white transition-colors ${piiError ? "border-red-400" : "border-slate-200"}`}
                 placeholder={t("report.form.contentPlaceholder")}
               />
+              {piiError && (
+                <div className="mt-2 flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 animate-fade-in">
+                  <span className="text-lg leading-none">🔒</span>
+                  <span>{piiError}</span>
+                </div>
+              )}
             </div>
 
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">

@@ -295,14 +295,10 @@ export function PoliceDashboard() {
   const resolvedTrend = getKpiTrend("resolved");
   const rejectedTrend = getKpiTrend("rejected");
 
-  // Category chart stats calculation
   const categoryStats = useMemo(() => {
     const categoriesList = [
       { name: "Giao thông", key: "TRAFFIC", icon: Car, color: "#0b5ed7", bgClass: "bg-[#0b5ed7]" },
-      { name: "Hạ tầng đô thị", key: "URBAN_INFRASTRUCTURE", icon: Building2, color: "#0dcaf0", bgClass: "bg-[#0dcaf0]" },
-      { name: "Môi trường", key: "ENVIRONMENT", icon: Leaf, color: "#198754", bgClass: "bg-[#198754]" },
       { name: "An ninh trật tự", key: "PUBLIC_SECURITY", icon: Shield, color: "#6f42c1", bgClass: "bg-[#6f42c1]" },
-      { name: "Xây dựng", key: "CONSTRUCTION", icon: Construction, color: "#fd7e14", bgClass: "bg-[#fd7e14]" },
       { name: "Phòng cháy chữa cháy", key: "FIRE_SAFETY", icon: Flame, color: "#dc3545", bgClass: "bg-[#dc3545]" },
     ];
 
@@ -1004,21 +1000,21 @@ export function PoliceDashboard() {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2.5 overflow-y-auto mt-2 pr-1 pb-1">
+                        <div className="flex flex-col gap-2.5 overflow-y-auto mt-2 pr-1 pb-1">
                           {categoryStats.map((cat, idx) => {
                             const Icon = cat.icon;
                             return (
-                              <div key={idx} className="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-100 hover:border-slate-300 hover:shadow-sm transition-all group">
-                                <div className="flex items-center gap-2.5 overflow-hidden">
-                                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-white ${cat.bgClass} shadow-sm group-hover:scale-110 transition-transform`}>
-                                    <Icon size={14} />
+                              <div key={idx} className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-100 hover:border-slate-300 hover:shadow-sm transition-all group">
+                                <div className="flex items-center gap-3 overflow-hidden">
+                                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-white ${cat.bgClass} shadow-sm group-hover:scale-110 transition-transform`}>
+                                    <Icon size={16} />
                                   </div>
                                   <div className="flex flex-col min-w-0">
-                                    <span className="text-[10px] font-extrabold text-slate-700 truncate" title={cat.name}>{cat.name}</span>
+                                    <span className="text-xs font-extrabold text-slate-700 truncate" title={cat.name}>{cat.name}</span>
                                     <span className="text-[10px] font-semibold text-slate-400">{cat.percentage}%</span>
                                   </div>
                                 </div>
-                                <span className="text-sm font-black text-[#0B2545] shrink-0 pl-1">{cat.count}</span>
+                                <span className="text-sm font-black text-[#0B2545] shrink-0 pl-2">{cat.count}</span>
                               </div>
                             );
                           })}

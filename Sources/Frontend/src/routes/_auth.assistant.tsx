@@ -12,7 +12,10 @@ import { AssistantPage } from "@/features/assistant/AssistantPage";
 
 export const Route = createFileRoute("/_auth/assistant")({
   beforeLoad: ({ context }) => {
-    const { currentUser } = context as { currentUser: { role: string } };
+    const { currentUser } = context as { currentUser?: { role: string } };
+
+    if (!currentUser) return;
+
     const role = parseBackendRole(currentUser.role);
 
     // Defense-in-depth authorization check: Ensure the user belongs to AUTHORITY_ROLES

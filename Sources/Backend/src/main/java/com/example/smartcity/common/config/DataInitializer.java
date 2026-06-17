@@ -45,6 +45,16 @@ public class DataInitializer implements CommandLineRunner {
         }
         ensureCampaignSchema();
 
+        // [FIX] Bỏ constraint feedbacks_status_check để tránh lỗi khi cập nhật status ASSIGNED
+        try {
+            jdbcTemplate.execute("ALTER TABLE feedbacks DROP CONSTRAINT IF EXISTS feedbacks_status_check");
+            jdbcTemplate.execute("ALTER TABLE feedback_logs DROP CONSTRAINT IF EXISTS feedback_logs_old_status_check");
+            jdbcTemplate.execute("ALTER TABLE feedback_logs DROP CONSTRAINT IF EXISTS feedback_logs_new_status_check");
+            log.info("Successfully dropped check constraint feedbacks_status_check");
+        } catch (Exception e) {
+            log.warn("Could not drop feedbacks_status_check: {}", e.getMessage());
+        }
+
         // Seeding default user accounts if they don't exist
         if (userRepository.findByUsername("citizen1").isEmpty()) {
             User citizen = new User(

@@ -1,6 +1,7 @@
 package com.example.smartcity.ai_orchestrator.guardrails;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.text.Normalizer;
@@ -188,6 +189,29 @@ public class ContentGuardrailService {
     }
 
     // ──────────────────────────────────────────────────────────────
+
+    /**
+     * Dọn dẹp định kỳ userStates mỗi giờ để tránh rò rỉ bộ nhớ (memory leak).
+     * Loại bỏ các UserState đã hết thời gian block và thời gian sliding window.
+     */
+    @Scheduled(cron = "0 0 * * * *")
+    public void cleanupUserStates() {
+        log.info("🧹 [GUARDRAIL] Khởi chạy dọn dẹp định kỳ userStates...");
+        Instant now = Instant.now();
+        Instant windowStart = now.minusSeconds(WARN_WINDOW_SECONDS);
+        
+        int initialSize = userStates.size();
+        userStates.entrySet().removeIf(entry -> {
+            UserState state = entry.getValue();
+            boolean isBlocked = state.blockedUntil != null && now.isBefore(state.blockedUntil);
+            boolean isWindowActive = state.windowStart.isAfter(windowStart);
+            return !isBlocked && !isWindowActive;
+        });
+        
+        int cleanedCount = initialSize - userStates.size();
+        log.info("🧹 [GUARDRAIL] Đã dọn dẹp xong. Loại bỏ {} userStates hết hạn. Số lượng hiện tại: {}", 
+                cleanedCount, userStates.size());
+    }
 
     static class UserState {
         final AtomicInteger warnCount = new AtomicInteger(0);

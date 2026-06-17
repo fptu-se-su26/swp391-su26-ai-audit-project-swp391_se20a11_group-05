@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_auth/city-admin")({
 
     // SECURITY check: Ensure that only SUPER_ADMIN is permitted to access the IOC dashboard.
     if (currentUser.role !== Role.SUPER_ADMIN) {
-      throw redirect({ to: "/login", search: { redirect: undefined, error: "forbidden" } });
+      throw redirect({ to: "/authority-login", search: { redirect: undefined, error: "forbidden" } });
     }
   },
   head: () => ({

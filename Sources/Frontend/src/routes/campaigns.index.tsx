@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { lazy, Suspense, useState, useMemo } from "react";
+import { useCampaignList } from "@/hooks/useCampaigns";
+import type { Campaign } from "@/lib/campaignStore";
 import { useI18n } from "@/lib/i18n";
 import {
   Search,
@@ -57,193 +59,7 @@ export const Route = createFileRoute("/campaigns/")({
 });
 
 // ─── Data ────────────────────────────────────────────────────────────────────
-
-const CAMPAIGNS = [
-  {
-    id: "green-hoa-xuan",
-    name: "Chiến dịch Xanh Hòa Xuân",
-    nameEn: "Green Hoa Xuan Campaign",
-    category: "environment",
-    categoryEn: "Environment",
-    status: "inProgress",
-    ward: "Hòa Xuân",
-    createdBy: "Đoàn TN & UBND Phường",
-    createdByEn: "Youth Union & Ward Authority",
-    participants: 42,
-    target: 50,
-    progress: 68,
-    reports: 18,
-    daysLeft: 12,
-    impactScore: 8.5,
-    affectedCitizens: 1245,
-    cover:
-      "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=600&q=80",
-    desc: "Dọn dẹp các điểm xả rác tự phát, cải tạo mương thoát nước và tôn tạo không gian xanh.",
-    descEn: "Cleanup illegal dumping sites, restore drainage canals, and improve green spaces.",
-    featured: true,
-  },
-  {
-    id: "beach-cleanup-my-khe",
-    name: "Làm sạch bãi biển Mỹ Khê",
-    nameEn: "Beach Cleanup My Khe",
-    category: "environment",
-    categoryEn: "Environment",
-    status: "recruiting",
-    ward: "Mỹ An",
-    createdBy: "Hội Liên hiệp Thanh niên",
-    createdByEn: "Youth Federation",
-    participants: 18,
-    target: 80,
-    progress: 22,
-    reports: 11,
-    daysLeft: 21,
-    impactScore: 9.1,
-    affectedCitizens: 2800,
-    cover:
-      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=600&q=80",
-    desc: "Vệ sinh đường bờ biển Mỹ Khê, thu gom rác nhựa và nâng cao ý thức bảo vệ biển.",
-    descEn: "Clean My Khe shoreline, collect plastic waste and raise ocean protection awareness.",
-    featured: false,
-  },
-  {
-    id: "drainage-restoration",
-    name: "Cải tạo hệ thống thoát nước Hải Châu",
-    nameEn: "Drainage Restoration Hai Chau",
-    category: "infrastructure",
-    categoryEn: "Infrastructure",
-    status: "inProgress",
-    ward: "Hải Châu 1",
-    createdBy: "UBND Q. Hải Châu",
-    createdByEn: "Hai Chau District Authority",
-    participants: 35,
-    target: 45,
-    progress: 78,
-    reports: 24,
-    daysLeft: 7,
-    impactScore: 7.8,
-    affectedCitizens: 4150,
-    cover:
-      "https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=600&q=80",
-    desc: "Khơi thông, nạo vét cống rãnh tại các điểm ngập lụt nghiêm trọng khu vực nội đô.",
-    descEn: "Dredge and restore blocked drains at severe flood-prone areas in the city centre.",
-    featured: false,
-  },
-  {
-    id: "community-safety",
-    name: "An toàn cộng đồng Thanh Khê",
-    nameEn: "Community Safety Awareness Thanh Khe",
-    category: "public_safety",
-    categoryEn: "Public Safety",
-    status: "recruiting",
-    ward: "Thanh Khê Đông",
-    createdBy: "Công an Phường",
-    createdByEn: "Ward Police",
-    participants: 9,
-    target: 30,
-    progress: 30,
-    reports: 8,
-    daysLeft: 28,
-    impactScore: 6.9,
-    affectedCitizens: 1860,
-    cover:
-      "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=600&q=80",
-    desc: "Tuyên truyền phòng chống tội phạm, lắp camera an ninh và nâng cao ý thức dân cư.",
-    descEn: "Crime prevention outreach, security camera installation and community awareness.",
-    featured: false,
-  },
-  {
-    id: "tree-planting",
-    name: "Chương trình Trồng cây Đà Nẵng Xanh",
-    nameEn: "Da Nang Tree Planting Program",
-    category: "environment",
-    categoryEn: "Environment",
-    status: "completed",
-    ward: "Hòa Khánh Bắc",
-    createdBy: "Sở Tài nguyên Môi trường",
-    createdByEn: "Dept. of Natural Resources",
-    participants: 120,
-    target: 100,
-    progress: 100,
-    reports: 6,
-    daysLeft: 0,
-    impactScore: 9.7,
-    affectedCitizens: 6200,
-    cover:
-      "https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=600&q=80",
-    desc: "Trồng 4,500 cây xanh bóng mát dọc các tuyến đường chính và công viên thành phố.",
-    descEn: "Planted 4,500 shade trees along main roads and city parks.",
-    featured: false,
-  },
-  {
-    id: "illegal-ads-removal",
-    name: "Xoá biển quảng cáo sai phép Ngũ Hành Sơn",
-    nameEn: "Illegal Advertising Removal Ngu Hanh Son",
-    category: "infrastructure",
-    categoryEn: "Infrastructure",
-    status: "inProgress",
-    ward: "Ngũ Hành Sơn",
-    createdBy: "Thanh tra Xây dựng",
-    createdByEn: "Construction Inspectorate",
-    participants: 22,
-    target: 25,
-    progress: 88,
-    reports: 15,
-    daysLeft: 4,
-    impactScore: 7.2,
-    affectedCitizens: 3200,
-    cover:
-      "https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&w=600&q=80",
-    desc: "Tháo dỡ toàn bộ biển quảng cáo không phép gây mất mỹ quan đô thị khu du lịch.",
-    descEn: "Remove all unlicensed banners and billboards degrading the urban and tourism landscape.",
-    featured: false,
-  },
-  {
-    id: "neighborhood-beautification",
-    name: "Làm đẹp Khu phố Liên Chiểu",
-    nameEn: "Neighborhood Beautification Lien Chieu",
-    category: "environment",
-    categoryEn: "Environment",
-    status: "recruiting",
-    ward: "Liên Chiểu",
-    createdBy: "Tổ dân phố số 7",
-    createdByEn: "Neighborhood Team No.7",
-    participants: 5,
-    target: 40,
-    progress: 12,
-    reports: 9,
-    daysLeft: 35,
-    impactScore: 6.5,
-    affectedCitizens: 980,
-    cover:
-      "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=600&q=80",
-    desc: "Sơn tường ngõ hẻm, trồng hoa dọc vỉa hè và lắp đèn chiếu sáng trang trí.",
-    descEn: "Paint alleyway murals, plant flowers along sidewalks, and install decorative lighting.",
-    featured: false,
-  },
-  {
-    id: "public-facility-repair",
-    name: "Sửa chữa cơ sở hạ tầng công cộng Cẩm Lệ",
-    nameEn: "Public Facility Repair Cam Le",
-    category: "infrastructure",
-    categoryEn: "Infrastructure",
-    status: "completed",
-    ward: "Cẩm Lệ",
-    createdBy: "UBND Q. Cẩm Lệ",
-    createdByEn: "Cam Le District Authority",
-    participants: 56,
-    target: 50,
-    progress: 100,
-    reports: 31,
-    daysLeft: 0,
-    impactScore: 8.9,
-    affectedCitizens: 5400,
-    cover:
-      "https://images.unsplash.com/photo-1486325212027-8081e485255e?auto=format&fit=crop&w=600&q=80",
-    desc: "Sửa chữa đèn đường hỏng, nắp cống, vỉa hè sụt lún và biển chỉ đường mờ nhạt.",
-    descEn: "Repaired broken streetlights, manhole covers, sunken pavements and faded road signs.",
-    featured: false,
-  },
-];
+// Dữ liệu được quản lý bởi campaignStore — xem src/lib/campaignStore.ts
 
 const TOP_VOLUNTEER_TEAMS = [
   {
@@ -321,6 +137,8 @@ const SUCCESS_STORIES = [
   },
 ];
 
+// SUCCESS_STORIES sẽ lấy từ CAMPAIGNS completed trong component
+
 // ─── Category helpers ────────────────────────────────────────────────────────
 const CATEGORY_META: Record<string, { icon: React.ElementType; label: string; labelEn: string; color: string; bg: string }> = {
   environment: { icon: Leaf, label: "Môi trường", labelEn: "Environment", color: "text-[#22C55E]", bg: "bg-[#22C55E]/10" },
@@ -331,6 +149,7 @@ const CATEGORY_META: Record<string, { icon: React.ElementType; label: string; la
 };
 
 const STATUS_META: Record<string, { label: string; labelEn: string; color: string; dot: string }> = {
+  pending_review: { label: "Chờ duyệt", labelEn: "Pending Review", color: "text-slate-600 bg-slate-100 border-slate-200", dot: "bg-slate-400" },
   recruiting: { label: "Đang tuyển TNV", labelEn: "Recruiting", color: "text-amber-700 bg-amber-50 border-amber-200", dot: "bg-amber-400 animate-pulse" },
   inProgress: { label: "Đang thực hiện", labelEn: "In Progress", color: "text-[#1E5EFF] bg-[#EFF6FF] border-[#BFDBFE]", dot: "bg-[#1E5EFF] animate-pulse" },
   completed: { label: "Đã hoàn thành", labelEn: "Completed", color: "text-[#22C55E] bg-[#F0FDF4] border-[#BBF7D0]", dot: "bg-[#22C55E]" },
@@ -341,6 +160,9 @@ const STATUS_META: Record<string, { label: string; labelEn: string; color: strin
 function CampaignList() {
   const { locale } = useI18n();
   const isVi = locale === "vi";
+
+  // ── Dữ liệu từ shared store ──────────────────────────────────
+  const CAMPAIGNS = useCampaignList();
 
   // Filter state
   const [search, setSearch] = useState("");
@@ -449,7 +271,7 @@ function CampaignList() {
             </span>
           </nav>
           <Link
-            to="/campaigns/green-hoa-xuan"
+            to={"/campaigns/create" as any}
             className="inline-flex items-center gap-2 px-4 py-2 bg-[#1E5EFF] text-white text-xs font-bold rounded-xl hover:bg-blue-700 transition shadow-sm"
           >
             <PlusCircle size={14} />
@@ -1158,7 +980,7 @@ function CampaignList() {
               </h3>
 
               <Link
-                to="/campaigns/green-hoa-xuan"
+                to={"/campaigns/create" as any}
                 className="w-full flex items-center justify-between px-4 py-3 bg-[#1E5EFF] text-white text-xs font-bold rounded-xl hover:bg-blue-700 transition cursor-pointer shadow-sm"
               >
                 <span className="flex items-center gap-2">

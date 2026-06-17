@@ -120,7 +120,7 @@ export function HeatmapMap({ hotspots }: HeatmapMapProps) {
   return (
     <div className="h-[500px] w-full rounded-lg overflow-hidden border border-slate-200 shadow-sm relative z-0 bg-white">
       {/* Nút bật/tắt Layer (như UI Grab) */}
-      <div className="absolute top-4 right-4 z-[400]">
+      <div className="absolute top-4 right-4 z-[1000]">
         <button
           onClick={() => setShowSurge(!showSurge)}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-full font-bold shadow-lg transition-all ${
@@ -134,7 +134,7 @@ export function HeatmapMap({ hotspots }: HeatmapMapProps) {
 
       {/* Chú thích Mức độ (Legend) */}
       {showSurge && (
-        <div className="absolute bottom-6 right-4 z-[400] bg-white/95 backdrop-blur-sm p-3.5 rounded-xl shadow-lg border border-slate-100 text-xs min-w-[140px] animate-in fade-in slide-in-from-bottom-4">
+        <div className="absolute bottom-6 right-4 z-[1000] bg-white/95 backdrop-blur-sm p-3.5 rounded-xl shadow-lg border border-slate-100 text-xs min-w-[140px] animate-in fade-in slide-in-from-bottom-4">
           <p className="font-extrabold mb-2 text-slate-800 uppercase tracking-wide text-[10px]">Lưu lượng phản ánh</p>
           <div className="flex items-center gap-2.5 mb-1.5">
             <div className="w-5 h-5 rounded-md" style={{ background: "#fb923c", opacity: 0.5 }}></div>

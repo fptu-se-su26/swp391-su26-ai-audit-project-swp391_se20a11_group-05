@@ -94,7 +94,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleGenericException(Exception ex) {
         log.error("Unhandled server error", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error(500, "Internal Server Error. Vui lòng thử lại sau."));
+                .body(ApiResponse.error(500, "Internal Server Error: " + getRootMessage(ex)));
     }
 
     private String getRootMessage(Throwable ex) {

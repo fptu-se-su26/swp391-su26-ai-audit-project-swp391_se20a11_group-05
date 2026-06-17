@@ -67,7 +67,7 @@ public class CampaignServiceImpl implements CampaignService {
     @Override
     public CampaignResponse getById(Long id) {
         Campaign campaign = campaignRepository.findById(id)
-                .orElseThrow(() -> new CustomException("Không tìm thấy chiến dịch", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException("Không tìm thấy chiến dịch", HttpStatus.NOT_FOUND.value()));
         return toResponse(campaign);
     }
 
@@ -75,7 +75,7 @@ public class CampaignServiceImpl implements CampaignService {
     @Transactional
     public CampaignResponse create(CampaignRequest request, Long createdByUserId) {
         User creator = userRepository.findById(createdByUserId)
-                .orElseThrow(() -> new CustomException("Người dùng không tồn tại", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException("Người dùng không tồn tại", HttpStatus.NOT_FOUND.value()));
 
         Ward ward = null;
         if (request.getWardId() != null) {
@@ -105,16 +105,16 @@ public class CampaignServiceImpl implements CampaignService {
     @Transactional
     public CampaignResponse join(Long campaignId, Long citizenId) {
         Campaign campaign = campaignRepository.findById(campaignId)
-                .orElseThrow(() -> new CustomException("Không tìm thấy chiến dịch", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException("Không tìm thấy chiến dịch", HttpStatus.NOT_FOUND.value()));
 
         User citizen = userRepository.findById(citizenId)
-                .orElseThrow(() -> new CustomException("Người dùng không tồn tại", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException("Người dùng không tồn tại", HttpStatus.NOT_FOUND.value()));
 
         // Kiểm tra đã tham gia chưa
         boolean alreadyJoined = participantRepository.existsByCampaign_IdAndCitizen_IdAndJoinStatus(
                 campaignId, citizenId, "SURE");
         if (alreadyJoined) {
-            throw new CustomException("Bạn đã tham gia chiến dịch này rồi", HttpStatus.CONFLICT);
+            throw new CustomException("Bạn đã tham gia chiến dịch này rồi", HttpStatus.CONFLICT.value());
         }
 
         // Kiểm tra số lượng tham gia tối đa
@@ -122,7 +122,7 @@ public class CampaignServiceImpl implements CampaignService {
             long currentCount = participantRepository
                     .countByCampaign_IdAndJoinStatus(campaignId, "SURE");
             if (currentCount >= campaign.getMaxParticipants()) {
-                throw new CustomException("Chiến dịch đã đủ số lượng tình nguyện viên", HttpStatus.CONFLICT);
+                throw new CustomException("Chiến dịch đã đủ số lượng tình nguyện viên", HttpStatus.CONFLICT.value());
             }
         }
 

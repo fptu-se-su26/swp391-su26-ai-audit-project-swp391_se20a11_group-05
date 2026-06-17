@@ -862,9 +862,11 @@ export function PoliceDashboard() {
                           priorityReports.map((row) => (
                             <tr
                               key={row.id}
-                              onClick={() =>
-                                navigate({ to: "/my-reports/$id", params: { id: String(row.id) } })
-                              }
+                              onClick={() => {
+                                setSelectedFeedback(row as any);
+                                setShowRejectInput(false);
+                                setRejectReason("");
+                              }}
                               className="hover:bg-slate-50 transition-colors cursor-pointer"
                             >
                               <td className="px-5 py-4 text-xs font-bold text-[#0F5BD8]">

@@ -15,11 +15,21 @@
  */
 
 import { createFileRoute, Link, useNavigate, useSearch, redirect } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
-import { Role, AUTHORITY_ROLES, ROLE_LABEL, parseBackendRole } from "@/lib/roles";
+import {
+  Role,
+  AUTHORITY_ROLES,
+  ROLE_LABEL,
+  getDashboardPathForRole,
+  parseBackendRole,
+} from "@/lib/roles";
 import { authApi, ApiError, getToken } from "@/lib/api";
+import {
+  buildLoginLockoutMessage,
+  getLoginLockoutSeconds,
+} from "@/lib/loginLockout";
 import {
   LogIn,
   Shield,
@@ -40,12 +50,14 @@ type AuthorityLoginSearch = {
   error?: string;
 };
 
-/** Default redirects per authority role after login */
-const ROLE_REDIRECT: Partial<Record<Role, string>> = {
-  [Role.WARD_STAFF]: "/ward",
-  [Role.POLICE]: "/police",
-  [Role.SUPER_ADMIN]: "/city-admin",
-};
+const AUTHORITY_REDIRECT_PREFIXES = ["/ward", "/police", "/city-admin", "/assistant"];
+
+function getAuthorityRedirect(role: Role, requested?: string): string {
+  if (requested && AUTHORITY_REDIRECT_PREFIXES.some((path) => requested.startsWith(path))) {
+    return requested;
+  }
+  return getDashboardPathForRole(role);
+}
 
 export const Route = createFileRoute("/authority-login")({
   validateSearch: (s: Record<string, unknown>): AuthorityLoginSearch => ({
@@ -66,8 +78,7 @@ export const Route = createFileRoute("/authority-login")({
       if (user) {
         const role = parseBackendRole(user.role);
         if (AUTHORITY_ROLES.has(role)) {
-          const defaultRedirect = ROLE_REDIRECT[role] ?? "/city-admin";
-          throw redirect({ to: search.redirect || defaultRedirect });
+          throw redirect({ to: getAuthorityRedirect(role, search.redirect) });
         }
       }
     }
@@ -96,12 +107,42 @@ function AuthorityLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lockoutSeconds, setLockoutSeconds] = useState<number | null>(null);
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaCode, setMfaCode] = useState("");
+  const authorityPortalError =
+    locale === "vi"
+      ? "Tai khoan nay khong ton tai."
+      : "This account does not exist.";
+
+  useEffect(() => {
+    if (lockoutSeconds === null) return;
+    if (lockoutSeconds <= 0) {
+      setLockoutSeconds(null);
+      setError(null);
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setLockoutSeconds((seconds) => (seconds === null ? null : Math.max(0, seconds - 1)));
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [lockoutSeconds]);
+
+  const clearLoginError = () => {
+    setError(null);
+    setLockoutSeconds(null);
+  };
+
+  const visibleError =
+    lockoutSeconds !== null && lockoutSeconds > 0
+      ? buildLoginLockoutMessage(lockoutSeconds)
+      : error;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    clearLoginError();
     setLoading(true);
 
     try {
@@ -117,11 +158,7 @@ function AuthorityLoginPage() {
         const role = parseBackendRole(data.role);
 
         if (!AUTHORITY_ROLES.has(role)) {
-          setError(
-            locale === "vi"
-              ? "Tài khoản này không có quyền truy cập cổng cán bộ."
-              : "This account does not have authority portal access.",
-          );
+          setError(authorityPortalError);
           setLoading(false);
           return;
         }
@@ -133,12 +170,17 @@ function AuthorityLoginPage() {
           token: data.token,
         });
 
-        const defaultRedirect = ROLE_REDIRECT[role] ?? "/city-admin";
-        navigate({ to: (redirect || defaultRedirect) as any });
+        navigate({ to: getAuthorityRedirect(role, redirect) as any });
       }
     } catch (err) {
       // Xử lý lỗi thông thường cho tài khoản thật
       if (err instanceof ApiError) {
+        if (err.status === 429) {
+          setLockoutSeconds(getLoginLockoutSeconds(err.message) ?? 60);
+          setError(err.message);
+          return;
+        }
+
         if (err.status === 401) {
           setError(
             locale === "vi" ? "Sai tài khoản hoặc mật khẩu" : "Invalid username or password",
@@ -160,7 +202,7 @@ function AuthorityLoginPage() {
 
   const handleMfaVerify = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    clearLoginError();
     setLoading(true);
 
     try {
@@ -168,16 +210,12 @@ function AuthorityLoginPage() {
       const role = parseBackendRole(data.role);
 
       if (!AUTHORITY_ROLES.has(role)) {
-        setError(
-          locale === "vi"
-            ? "Tài khoản này không có quyền truy cập cổng cán bộ."
-            : "This account does not have authority portal access.",
-        );
+        setError(authorityPortalError);
         return;
       }
 
       login({ name: data.username, role, org: data.org || "", token: data.token });
-      navigate({ to: (redirect || ROLE_REDIRECT[role] || "/city-admin") as any });
+      navigate({ to: getAuthorityRedirect(role, redirect) as any });
     } catch (err) {
       if (err instanceof ApiError) {
         setError(locale === "vi" ? "Mã xác thực không đúng" : "Invalid MFA code");
@@ -377,10 +415,10 @@ function AuthorityLoginPage() {
             )}
 
             {/* Error */}
-            {error && (
+            {visibleError && (
               <div className="mb-5 p-4 rounded-xl bg-red-50 border border-red-200 flex items-center gap-3 text-red-700">
                 <AlertCircle size={16} className="shrink-0" />
-                <span className="text-sm">{error}</span>
+                <span className="text-sm">{visibleError}</span>
               </div>
             )}
 
@@ -430,6 +468,7 @@ function AuthorityLoginPage() {
                   onClick={() => {
                     setMfaRequired(false);
                     setMfaCode("");
+                    clearLoginError();
                   }}
                   className="btn-civic btn-civic-ghost w-full rounded-xl"
                 >
@@ -449,7 +488,10 @@ function AuthorityLoginPage() {
                     id="authority-username"
                     type="text"
                     value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    onChange={(e) => {
+                      setUsername(e.target.value);
+                      clearLoginError();
+                    }}
                     className="w-full min-h-[52px] pl-10 pr-4 rounded-xl border-2 border-slate-200 bg-white text-base focus:border-gov-blue outline-none transition-colors placeholder:text-slate-400"
                     placeholder={locale === "vi" ? "Tên đăng nhập cán bộ" : "Staff username"}
                     autoComplete="username"

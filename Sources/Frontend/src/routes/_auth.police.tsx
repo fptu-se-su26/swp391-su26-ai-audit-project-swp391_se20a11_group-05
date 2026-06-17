@@ -12,11 +12,10 @@ import { PoliceDashboard } from "@/features/police/PoliceDashboard";
 
 export const Route = createFileRoute("/_auth/police")({
   beforeLoad: ({ context }) => {
-    if (typeof window === "undefined") return;
     const { currentUser } = context as { currentUser: { role: string } };
 
     // SECURITY check: Ensure that only the POLICE role is allowed to access the dashboard.
-    if (currentUser?.role !== Role.POLICE) {
+    if (currentUser.role !== Role.POLICE) {
       throw redirect({ to: "/authority-login", search: { redirect: undefined, error: "forbidden" } });
     }
   },

@@ -100,7 +100,10 @@ export function assertAuth(
   // the specific role required by this route (e.g. POLICE trying /ward).
   if (!opts.allowedRoles.includes(user.role)) {
     // Redirect to generic dashboard — don't expose that route exists
-    throw redirect({ to: "/login", search: { redirect: undefined, error: "forbidden" } });
+    throw redirect({
+      to: opts.loginUrl as any,
+      search: { redirect: undefined, error: "forbidden" } as any,
+    });
   }
 
   // ── 4. All checks passed — return user for route context ─────
@@ -113,7 +116,7 @@ export function assertAuth(
 export function authorityGuard(allowedRoles: RoleType[]) {
   return {
     allowedRoles,
-    loginUrl: "/login" as const,
+    loginUrl: "/authority-login" as const,
     portal: "authority" as const,
   };
 }

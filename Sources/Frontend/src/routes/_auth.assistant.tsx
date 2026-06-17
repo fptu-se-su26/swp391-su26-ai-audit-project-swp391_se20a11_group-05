@@ -12,11 +12,11 @@ import { AssistantPage } from "@/features/assistant/AssistantPage";
 
 export const Route = createFileRoute("/_auth/assistant")({
   beforeLoad: ({ context }) => {
-    if (typeof window === "undefined") return;
     const { currentUser } = context as { currentUser: { role: string } };
+    const role = parseBackendRole(currentUser.role);
 
-    // SECURITY check: Assistant is accessible to all AUTHORITY_ROLES.
-    if (!AUTHORITY_ROLES.has(currentUser?.role as Role)) {
+    // Defense-in-depth authorization check: Ensure the user belongs to AUTHORITY_ROLES
+    if (!AUTHORITY_ROLES.has(role)) {
       throw redirect({ to: "/authority-login", search: { redirect: undefined, error: "forbidden" } });
     }
   },

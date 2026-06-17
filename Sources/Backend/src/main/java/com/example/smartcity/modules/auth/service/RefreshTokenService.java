@@ -79,10 +79,11 @@ public class RefreshTokenService {
 
         String orgName = "";
         if (user.getWard() != null) {
+            String prefixWard = "COMMUNE".equalsIgnoreCase(user.getWard().getType()) ? "Xã " : "Phường ";
             if (user.getRole() == com.example.smartcity.modules.user.entity.Role.POLICE) {
-                orgName = "Công an Phường " + user.getWard().getName();
+                orgName = "Công an " + prefixWard + user.getWard().getName();
             } else if (user.getRole() == com.example.smartcity.modules.user.entity.Role.WARD_STAFF) {
-                orgName = "UBND Phường " + user.getWard().getName();
+                orgName = "UBND " + prefixWard + user.getWard().getName();
             } else {
                 orgName = user.getWard().getName();
             }

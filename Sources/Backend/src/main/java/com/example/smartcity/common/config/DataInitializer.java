@@ -38,6 +38,12 @@ public class DataInitializer implements CommandLineRunner {
 
         ensureLoginLockoutSchema();
         ensureOfficialFeedbackSchema();
+        
+        try {
+            updateWardTypes();
+        } catch (Exception e) {
+            log.warn("Lỗi khi cập nhật type cho phường/xã: {}", e.getMessage());
+        }
 
         if (userRepository.count() == 0) {
             log.info("Database is empty. Seeding default user accounts...");
@@ -122,6 +128,32 @@ public class DataInitializer implements CommandLineRunner {
         } else {
             log.info("No plaintext passwords found. All passwords are secure.");
         }
+    }
+
+    private void updateWardTypes() {
+        log.info("Updating ward types based on the list of Wards (Phường)...");
+        // Update all wards to COMMUNE first (so the rest will be Xã)
+        jdbcTemplate.execute("UPDATE wards SET type = 'COMMUNE'");
+        
+        // List of wards provided by the user
+        String[] wards = {
+            "Hải Châu", "Hòa Cường", "Thanh Khê", "An Khê", "An Hải", "Sơn Trà",
+            "Ngũ Hành Sơn", "Hòa Quý", "Hòa Khánh", "Liên Chiểu", "Hải Vân",
+            "Cẩm Lệ", "Hòa Xuân", "Tam Kỳ", "Quảng Phú", "Hương Trà", "Bàn Thạch",
+            "Điện Bàn", "Điện Bàn Đông", "An Thắng", "Điện Bàn Bắc", "Hội An",
+            "Phường Hải Châu", "Phường Hòa Cường", "Phường Thanh Khê", "Phường An Khê", 
+            "Phường An Hải", "Phường Sơn Trà", "Phường Ngũ Hành Sơn", "Phường Hòa Quý", 
+            "Phường Hòa Khánh", "Phường Liên Chiểu", "Phường Hải Vân", "Phường Cẩm Lệ", 
+            "Phường Hòa Xuân", "Phường Tam Kỳ", "Phường Quảng Phú", "Phường Hương Trà", 
+            "Phường Bàn Thạch", "Phường Điện Bàn", "Phường Điện Bàn Đông", "Phường An Thắng", 
+            "Phường Điện Bàn Bắc", "Phường Hội An"
+        };
+        
+        // Set type to WARD for exactly these names
+        for (String w : wards) {
+            jdbcTemplate.update("UPDATE wards SET type = 'WARD' WHERE name = ?", w);
+        }
+        log.info("Updated ward types successfully.");
     }
 
     private void seedDefaultWards() {

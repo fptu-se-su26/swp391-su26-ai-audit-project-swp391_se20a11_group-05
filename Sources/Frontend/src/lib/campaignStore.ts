@@ -1,10 +1,8 @@
 /**
- * Campaign Store — shared in-memory + localStorage state
+ * Campaign Store - shared in-memory + localStorage state.
  *
- * Cho phép trang chi tiết phản ánh (my-reports.$id) tạo chiến dịch
- * và trang danh sách/chi tiết chiến dịch (campaigns.*) đọc dữ liệu đó ngay lập tức.
- *
- * Cơ chế: localStorage + BroadcastChannel/custom event để sync cross-tab.
+ * Trang my-reports và các route campaigns.* dùng store này làm fallback khi
+ * backend chưa có dữ liệu, đồng thời giữ phản hồi UI nhanh cho dữ liệu local.
  */
 
 export type CampaignCategory =
@@ -42,10 +40,18 @@ export interface Campaign {
   startTime?: string;
   endTime?: string;
   locationText?: string;
+  privateLocationText?: string;
+  requiredTools?: string;
+  organizerContact?: string;
+  currentUserJoinStatus?: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+  privateDetailsVisible?: boolean;
+  canJoin?: boolean;
+  canManage?: boolean;
+  canComment?: boolean;
+  canFeedback?: boolean;
   createdAt: string;
 }
 
-// ─── Cover images by category ─────────────────────────────────
 const COVER_BY_CATEGORY: Record<CampaignCategory, string> = {
   environment:
     "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=600&q=80",
@@ -59,7 +65,8 @@ const COVER_BY_CATEGORY: Record<CampaignCategory, string> = {
     "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=600&q=80",
 };
 
-// ─── Default seed data (same as campaigns.index.tsx CAMPAIGNS) ──
+const SEED_CREATED_AT = "2026-06-17T00:00:00.000Z";
+
 const SEED_CAMPAIGNS: Campaign[] = [
   {
     id: "green-hoa-xuan",
@@ -77,11 +84,11 @@ const SEED_CAMPAIGNS: Campaign[] = [
     daysLeft: 12,
     impactScore: 8.5,
     affectedCitizens: 1245,
-    cover: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=600&q=80",
+    cover: COVER_BY_CATEGORY.environment,
     desc: "Dọn dẹp các điểm xả rác tự phát, cải tạo mương thoát nước và tôn tạo không gian xanh.",
     descEn: "Cleanup illegal dumping sites, restore drainage canals, and improve green spaces.",
     featured: true,
-    createdAt: new Date().toISOString(),
+    createdAt: SEED_CREATED_AT,
   },
   {
     id: "beach-cleanup-my-khe",
@@ -99,11 +106,11 @@ const SEED_CAMPAIGNS: Campaign[] = [
     daysLeft: 21,
     impactScore: 9.1,
     affectedCitizens: 2800,
-    cover: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=600&q=80",
+    cover: COVER_BY_CATEGORY.environment,
     desc: "Vệ sinh đường bờ biển Mỹ Khê, thu gom rác nhựa và nâng cao ý thức bảo vệ biển.",
     descEn: "Clean My Khe shoreline, collect plastic waste and raise ocean protection awareness.",
     featured: false,
-    createdAt: new Date().toISOString(),
+    createdAt: SEED_CREATED_AT,
   },
   {
     id: "drainage-restoration",
@@ -121,11 +128,11 @@ const SEED_CAMPAIGNS: Campaign[] = [
     daysLeft: 7,
     impactScore: 7.8,
     affectedCitizens: 4150,
-    cover: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=600&q=80",
+    cover: COVER_BY_CATEGORY.infrastructure,
     desc: "Khơi thông, nạo vét cống rãnh tại các điểm ngập lụt nghiêm trọng khu vực nội đô.",
     descEn: "Dredge and restore blocked drains at severe flood-prone areas in the city centre.",
     featured: false,
-    createdAt: new Date().toISOString(),
+    createdAt: SEED_CREATED_AT,
   },
   {
     id: "community-safety",
@@ -143,11 +150,11 @@ const SEED_CAMPAIGNS: Campaign[] = [
     daysLeft: 28,
     impactScore: 6.9,
     affectedCitizens: 1860,
-    cover: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=600&q=80",
+    cover: COVER_BY_CATEGORY.public_safety,
     desc: "Tuyên truyền phòng chống tội phạm, lắp camera an ninh và nâng cao ý thức dân cư.",
     descEn: "Crime prevention outreach, security camera installation and community awareness.",
     featured: false,
-    createdAt: new Date().toISOString(),
+    createdAt: SEED_CREATED_AT,
   },
   {
     id: "tree-planting",
@@ -165,15 +172,15 @@ const SEED_CAMPAIGNS: Campaign[] = [
     daysLeft: 0,
     impactScore: 9.7,
     affectedCitizens: 6200,
-    cover: "https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=600&q=80",
+    cover: COVER_BY_CATEGORY.environment,
     desc: "Trồng 4,500 cây xanh bóng mát dọc các tuyến đường chính và công viên thành phố.",
     descEn: "Planted 4,500 shade trees along main roads and city parks.",
     featured: false,
-    createdAt: new Date().toISOString(),
+    createdAt: SEED_CREATED_AT,
   },
   {
     id: "illegal-ads-removal",
-    name: "Xoá biển quảng cáo sai phép Ngũ Hành Sơn",
+    name: "Xóa biển quảng cáo sai phép Ngũ Hành Sơn",
     nameEn: "Illegal Advertising Removal Ngu Hanh Son",
     category: "infrastructure",
     status: "inProgress",
@@ -187,11 +194,11 @@ const SEED_CAMPAIGNS: Campaign[] = [
     daysLeft: 4,
     impactScore: 7.2,
     affectedCitizens: 3200,
-    cover: "https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&w=600&q=80",
+    cover: COVER_BY_CATEGORY.infrastructure,
     desc: "Tháo dỡ toàn bộ biển quảng cáo không phép gây mất mỹ quan đô thị khu du lịch.",
-    descEn: "Remove all unlicensed banners and billboards degrading the urban and tourism landscape.",
+    descEn: "Remove unlicensed banners and billboards degrading the urban and tourism landscape.",
     featured: false,
-    createdAt: new Date().toISOString(),
+    createdAt: SEED_CREATED_AT,
   },
   {
     id: "neighborhood-beautification",
@@ -209,11 +216,11 @@ const SEED_CAMPAIGNS: Campaign[] = [
     daysLeft: 35,
     impactScore: 6.5,
     affectedCitizens: 980,
-    cover: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=600&q=80",
+    cover: COVER_BY_CATEGORY.environment,
     desc: "Sơn tường ngõ hẻm, trồng hoa dọc vỉa hè và lắp đèn chiếu sáng trang trí.",
     descEn: "Paint alleyway murals, plant flowers along sidewalks, and install decorative lighting.",
     featured: false,
-    createdAt: new Date().toISOString(),
+    createdAt: SEED_CREATED_AT,
   },
   {
     id: "public-facility-repair",
@@ -231,19 +238,16 @@ const SEED_CAMPAIGNS: Campaign[] = [
     daysLeft: 0,
     impactScore: 8.9,
     affectedCitizens: 5400,
-    cover: "https://images.unsplash.com/photo-1486325212027-8081e485255e?auto=format&fit=crop&w=600&q=80",
+    cover: COVER_BY_CATEGORY.infrastructure,
     desc: "Sửa chữa đèn đường hỏng, nắp cống, vỉa hè sụt lún và biển chỉ đường mờ nhạt.",
     descEn: "Repaired broken streetlights, manhole covers, sunken pavements and faded road signs.",
     featured: false,
-    createdAt: new Date().toISOString(),
+    createdAt: SEED_CREATED_AT,
   },
 ];
 
-// ─── Storage key ──────────────────────────────────────────────
 const STORAGE_KEY = "dn_campaigns_v1";
 const STORE_EVENT = "dn_campaigns_updated";
-
-// ─── Read / Write helpers ─────────────────────────────────────
 
 function readStorage(): Campaign[] {
   if (typeof window === "undefined") return SEED_CAMPAIGNS;
@@ -251,9 +255,8 @@ function readStorage(): Campaign[] {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return SEED_CAMPAIGNS;
     const parsed = JSON.parse(raw) as Campaign[];
-    // Merge: keep seed campaigns + any user-created ones not in seed
-    const seedIds = new Set(SEED_CAMPAIGNS.map((c) => c.id));
-    const userCreated = parsed.filter((c) => !seedIds.has(c.id));
+    const seedIds = new Set(SEED_CAMPAIGNS.map((campaign) => campaign.id));
+    const userCreated = parsed.filter((campaign) => !seedIds.has(campaign.id));
     return [...SEED_CAMPAIGNS, ...userCreated];
   } catch {
     return SEED_CAMPAIGNS;
@@ -262,32 +265,28 @@ function readStorage(): Campaign[] {
 
 function writeStorage(campaigns: Campaign[]) {
   if (typeof window === "undefined") return;
-  // Only persist user-created (non-seed) campaigns to keep storage small
-  const seedIds = new Set(SEED_CAMPAIGNS.map((c) => c.id));
-  const userCreated = campaigns.filter((c) => !seedIds.has(c.id));
+  const seedIds = new Set(SEED_CAMPAIGNS.map((campaign) => campaign.id));
+  const userCreated = campaigns.filter((campaign) => !seedIds.has(campaign.id));
   localStorage.setItem(STORAGE_KEY, JSON.stringify(userCreated));
-  // Notify other components in the same tab
   window.dispatchEvent(new Event(STORE_EVENT));
 }
 
-// ─── Public API ───────────────────────────────────────────────
-
-/** Get all campaigns (seed + user-created) */
 export function getCampaigns(): Campaign[] {
   return readStorage();
 }
 
-/** Get a single campaign by id */
 export function getCampaignById(id: string): Campaign | undefined {
-  return readStorage().find((c) => c.id === id);
+  return readStorage().find((campaign) => campaign.id === id);
 }
 
-/** Create a new campaign and persist it */
 export function createCampaign(params: {
   title: string;
   description: string;
   category: CampaignCategory;
   locationText?: string;
+  privateLocationText?: string;
+  requiredTools?: string;
+  organizerContact?: string;
   maxParticipants?: string;
   startTime?: string;
   endTime?: string;
@@ -297,9 +296,8 @@ export function createCampaign(params: {
   wardName?: string;
 }): Campaign {
   const id = `user-${Date.now()}`;
-  const target = parseInt(params.maxParticipants || "30", 10) || 30;
+  const target = Number.parseInt(params.maxParticipants || "30", 10) || 30;
 
-  // Estimate daysLeft from endTime
   let daysLeft = 30;
   if (params.endTime) {
     const diff = new Date(params.endTime).getTime() - Date.now();
@@ -313,8 +311,8 @@ export function createCampaign(params: {
     category: params.category,
     status: "pending_review",
     ward: params.wardName || "Đà Nẵng",
-    createdBy: "Người dân",
-    createdByEn: "Citizen",
+    createdBy: "Cán bộ phường",
+    createdByEn: "Ward staff",
     participants: 0,
     target,
     progress: 0,
@@ -332,15 +330,15 @@ export function createCampaign(params: {
     startTime: params.startTime,
     endTime: params.endTime,
     locationText: params.locationText,
+    privateLocationText: params.privateLocationText,
+    requiredTools: params.requiredTools,
+    organizerContact: params.organizerContact,
     createdAt: new Date().toISOString(),
   };
 
-  const current = readStorage();
-  writeStorage([...current, newCampaign]);
+  writeStorage([...readStorage(), newCampaign]);
   return newCampaign;
 }
-
-// ─── Comment Types & Store ────────────────────────────────────
 
 export interface CampaignComment {
   id: string;
@@ -362,60 +360,16 @@ export interface CampaignComment {
 
 const COMMENT_KEY_PREFIX = "dn_comments_";
 
-/** Seed comments per campaign id */
 const SEED_COMMENTS: Record<string, CampaignComment[]> = {
   "green-hoa-xuan": [
     {
       id: "c-ghx-1",
       author: "Nguyễn Văn Hùng",
-      role: "Trưởng nhóm TNV Tổ 1",
+      role: "Trưởng nhóm tình nguyện viên",
       avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80",
       time: "10 phút trước",
-      text: "Bên mình đã dọn xong đoạn kênh hở số 2 rồi nhé mọi người. Lượng rác nhựa ở đây nhiều khủng khiếp!",
+      text: "Bên mình đã dọn xong đoạn kênh hở số 2. Lượng rác nhựa ở đây khá nhiều, cần thêm bao tải lớn.",
       likes: 14,
-      replies: [
-        {
-          id: "c-ghx-1-r1",
-          author: "UBND Phường Hòa Xuân",
-          role: "Ban quản lý",
-          avatar: "https://images.unsplash.com/photo-1542909168-82c3e7fdca5c?auto=format&fit=crop&w=100&q=80",
-          time: "5 phút trước",
-          text: "Cảm ơn nỗ lực tuyệt vời của Tổ 1! Xe chở rác chuyên dụng đang trên đường đến điểm tập kết rác tạm để vận chuyển đi.",
-        },
-      ],
-    },
-    {
-      id: "c-ghx-2",
-      author: "Trần Thị Lan",
-      role: "Người dân Hòa Xuân",
-      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80",
-      time: "1 giờ trước",
-      text: "Rất hoan nghênh chiến dịch này. Khu phố nhà mình sạch sẽ hẳn ra, không còn mùi hôi thối bốc lên từ mương nữa.",
-      likes: 8,
-      replies: [],
-    },
-  ],
-  "beach-cleanup-my-khe": [
-    {
-      id: "c-bc-1",
-      author: "Lê Minh Tuấn",
-      role: "Tình nguyện viên",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80",
-      time: "2 giờ trước",
-      text: "Bãi biển Mỹ Khê đang rất cần chúng ta! Mình đã đăng ký tham gia đợt cuối tuần này rồi.",
-      likes: 22,
-      replies: [],
-    },
-  ],
-  "community-safety": [
-    {
-      id: "c-cs-1",
-      author: "Công an Phường",
-      role: "Ban tổ chức",
-      avatar: "https://images.unsplash.com/photo-1542909168-82c3e7fdca5c?auto=format&fit=crop&w=100&q=80",
-      time: "3 giờ trước",
-      text: "Chiến dịch đang tuyển thêm tình nguyện viên tuần tra ban đêm. Bà con quan tâm liên hệ trực tiếp nhé.",
-      likes: 5,
       replies: [],
     },
   ],
@@ -426,7 +380,9 @@ export function getComments(campaignId: string): CampaignComment[] {
   try {
     const raw = localStorage.getItem(`${COMMENT_KEY_PREFIX}${campaignId}`);
     if (raw) return JSON.parse(raw) as CampaignComment[];
-  } catch {}
+  } catch {
+    return SEED_COMMENTS[campaignId] ?? [];
+  }
   return SEED_COMMENTS[campaignId] ?? [];
 }
 
@@ -436,24 +392,21 @@ export function saveComments(campaignId: string, comments: CampaignComment[]) {
   window.dispatchEvent(new CustomEvent("dn_comments_updated", { detail: { campaignId } }));
 }
 
-/** Subscribe to comment changes for a specific campaign */
 export function onCommentsChanged(campaignId: string, cb: () => void): () => void {
   if (typeof window === "undefined") return () => {};
-  const handler = (e: Event) => {
-    const detail = (e as CustomEvent).detail;
+  const handler = (event: Event) => {
+    const detail = (event as CustomEvent).detail;
     if (!detail || detail.campaignId === campaignId) cb();
   };
   window.addEventListener("dn_comments_updated", handler);
   return () => window.removeEventListener("dn_comments_updated", handler);
 }
 
-/** Get campaign linked to a specific feedback */
 export function getCampaignByFeedbackId(feedbackId: string | number | null | undefined): Campaign | undefined {
   if (!feedbackId) return undefined;
-  return readStorage().find((c) => String(c.linkedFeedbackId) === String(feedbackId));
+  return readStorage().find((campaign) => String(campaign.linkedFeedbackId) === String(feedbackId));
 }
 
-/** Subscribe to store changes (same-tab) */
 export function onCampaignsChanged(cb: () => void): () => void {
   if (typeof window === "undefined") return () => {};
   window.addEventListener(STORE_EVENT, cb);

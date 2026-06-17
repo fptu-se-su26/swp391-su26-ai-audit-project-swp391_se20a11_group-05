@@ -1,5 +1,4 @@
-import React from "react";
-import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
+import React, { useState, useEffect } from "react";
 import "leaflet/dist/leaflet.css";
 
 export interface WardHotspot {
@@ -29,6 +28,38 @@ const getHotspotColor = (unresolved: number) => {
 export function SuperAdminMap({ hotspots, onSelectWard, selectedWard }: Props) {
   // Center coordinates of Da Nang urban area
   const center: [number, number] = [16.0544, 108.2022];
+
+  const [leafletComponents, setLeafletComponents] = useState<{
+    MapContainer: any;
+    TileLayer: any;
+    CircleMarker: any;
+    Popup: any;
+  } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void import("react-leaflet").then((mod) => {
+      if (!cancelled) {
+        setLeafletComponents({
+          MapContainer: mod.MapContainer,
+          TileLayer: mod.TileLayer,
+          CircleMarker: mod.CircleMarker,
+          Popup: mod.Popup,
+        });
+      }
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  if (!leafletComponents) {
+    return (
+      <div className="w-full h-full min-h-[360px] bg-slate-50 flex items-center justify-center rounded-xl border border-slate-100 shadow-sm">
+        <span className="text-slate-400 text-sm">Đang tải bản đồ...</span>
+      </div>
+    );
+  }
+
+  const { MapContainer, TileLayer, CircleMarker, Popup } = leafletComponents;
 
   return (
     <div className="w-full h-full min-h-[360px] relative z-0">

@@ -705,44 +705,7 @@ export function PoliceDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
             {/* Left Column (65%) */}
             <div className="lg:col-span-8 flex flex-col gap-6">
-              {/* Map Card */}
-              <div className="bg-white rounded-2xl border border-[#E4EAF2] shadow-sm overflow-hidden flex flex-col h-[480px]">
-                <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-                  <h3 className="font-extrabold text-base text-[#0B2545] flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#0F5BD8]" />
-                    Bản đồ phản ánh
-                  </h3>
-                </div>
-                <div className="flex-1 bg-slate-50 relative">
-                  <Suspense
-                    fallback={
-                      <div className="w-full h-full flex items-center justify-center text-slate-400">
-                        Đang tải bản đồ...
-                      </div>
-                    }
-                  >
-                    <CivicMap center={mapCenter} zoom={13} markers={mapMarkers} height="100%" />
-                  </Suspense>
-                </div>
-                <div className="p-4 bg-slate-50 border-t border-slate-100 flex flex-wrap gap-4 items-center justify-center shrink-0">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#dc3545]" />
-                    <span className="text-xs font-bold text-slate-600">Quá hạn</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#fd7e14]" />
-                    <span className="text-xs font-bold text-slate-600">Chưa xử lý</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#3b82f6]" />
-                    <span className="text-xs font-bold text-slate-600">Đang xử lý</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#198754]" />
-                    <span className="text-xs font-bold text-slate-600">Đã xử lý</span>
-                  </div>
-                </div>
-              </div>
+
 
               {/* Heatmap Card */}
               <div className="bg-white rounded-2xl border border-[#E4EAF2] shadow-sm overflow-hidden flex flex-col min-h-[480px]">

@@ -741,6 +741,18 @@ export interface CampaignCreateRequest {
   wardId?: number;
 }
 
+export interface CampaignParticipantResponse {
+  id: number;
+  campaignId: number;
+  citizenId: number;
+  citizenName: string;
+  joinStatus: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+  createdAt: string;
+  approvedAt: string | null;
+  rejectedAt: string | null;
+  rejectionReason: string | null;
+}
+
 export const campaignApi = {
   getAll: (page = 0, size = 20, status?: string) => {
     const params = new URLSearchParams({ page: String(page), size: String(size) });
@@ -768,6 +780,20 @@ export const campaignApi = {
 
   leave: (id: number | string) =>
     request<void>(`/api/campaigns/${id}/leave`, { method: "DELETE" }),
+
+  getParticipants: (id: number | string) =>
+    request<CampaignParticipantResponse[]>(`/api/campaigns/${id}/participants`),
+
+  approveParticipant: (id: number | string, participantId: number | string) =>
+    request<CampaignParticipantResponse>(`/api/campaigns/${id}/participants/${participantId}/approve`, {
+      method: "POST",
+    }),
+
+  rejectParticipant: (id: number | string, participantId: number | string, reason?: string) =>
+    request<CampaignParticipantResponse>(`/api/campaigns/${id}/participants/${participantId}/reject`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
 
   getComments: (id: number | string) =>
     request<CampaignCommentResponse[]>(`/api/campaigns/${id}/comments`),

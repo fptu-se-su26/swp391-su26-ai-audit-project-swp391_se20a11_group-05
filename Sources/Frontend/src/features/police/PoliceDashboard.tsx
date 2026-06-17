@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 
 import logoImg from "@/assets/logo.png";
+import policeEmblemImg from "@/assets/police-emblem.png";
 import { toast } from "sonner";
 import { authApi, type NotificationResponse, type FeedbackResponse, type PoliceFeedbackResponse } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
@@ -459,19 +460,16 @@ export function PoliceDashboard() {
         {/* Emblem & Ward Title */}
         <div className="p-5 flex flex-col items-center border-b border-white/10 shrink-0">
           <img
-            src={logoImg}
-            alt="SmartCity Logo"
-            className={`transition-all duration-300 object-contain ${
-              sidebarCollapsed ? "w-8 h-8" : "w-12 h-12"
+            src={policeEmblemImg}
+            alt="Police Emblem"
+            className={`transition-all duration-300 object-contain drop-shadow-md ${
+              sidebarCollapsed ? "w-10 h-10" : "w-16 h-16"
             }`}
           />
           {!sidebarCollapsed && (
             <div className="mt-3 text-center">
-              <span className="font-extrabold text-sm tracking-wider uppercase block text-amber-400">
-                ĐÀ NẴNG
-              </span>
-              <span className="font-extrabold text-base tracking-widest uppercase block text-white mt-0.5">
-                SMARTCITY
+              <span className="font-extrabold text-[13px] tracking-wider uppercase block text-amber-400 leading-snug px-2">
+                {user?.org || "CÔNG AN ĐÀ NẴNG"}
               </span>
             </div>
           )}

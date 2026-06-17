@@ -72,18 +72,23 @@ public class AiRouterService {
         int score = evaluateComplexity(userMessage);
         AiProviderAdapter selected;
 
-        if (score < 4) {
+        // Ưu tiên hàng đầu cho DEEPSEEK nếu đang khỏe mạnh và sẵn sàng hoạt động
+        AiProviderAdapter deepseek = getHealthyProvider("DEEPSEEK");
+        if (deepseek != null) {
+            selected = deepseek;
+            log.info("→ [Router] Định tuyến chính đến DEEPSEEK | Score={}", score);
+        } else if (score < 4) {
             selected = getHealthyProvider("GEMINI");
-            log.info("→ [Router] Score={} → GEMINI (nhanh, đơn giản)", score);
+            log.info("→ [Router] Score={} | DEEPSEEK OFF → GEMINI (nhanh, đơn giản)", score);
         } else if (score > 6) {
             selected = getHealthyProvider("GROQ");
-            log.info("→ [Router] Score={} → GROQ (phức tạp, reasoning)", score);
+            log.info("→ [Router] Score={} | DEEPSEEK OFF → GROQ (phức tạp, reasoning)", score);
         } else {
             selected = providers.stream()
                     .filter(p -> p.isHealthy() && circuitAllows(p.getProviderName()))
                     .findFirst()
                     .orElse(null);
-            log.info("→ [Router] Score={} → Dynamic (provider healthy đầu tiên)", score);
+            log.info("→ [Router] Score={} | DEEPSEEK OFF → Dynamic (healthy đầu tiên)", score);
         }
 
         if (selected == null) {

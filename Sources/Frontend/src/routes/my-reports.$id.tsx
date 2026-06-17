@@ -93,6 +93,33 @@ function ReportDetail() {
           {t("my.title")}
         </Link>
 
+        {/* ── REJECTED Banner ── */}
+        {report.status === "REJECTED" && (
+          <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 p-5 flex flex-col sm:flex-row sm:items-start gap-4 animate-fade-in">
+            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 grid place-items-center">
+              <XCircle size={26} className="text-red-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-red-700 text-base mb-1">
+                {locale === "vi" ? "Phản ánh chưa được tiếp nhận" : "Report not accepted"}
+              </p>
+              <p className="text-sm text-red-600 leading-relaxed">
+                {report.resolutionNote ||
+                  (locale === "vi"
+                    ? "Phản ánh của bạn chưa đáp ứng yêu cầu xét duyệt. Vui lòng xem lý do bên dưới và gửi lại."
+                    : "Your report did not meet the review requirements. Please check the reason below and resubmit.")}
+              </p>
+              <Link
+                to="/report"
+                state={{ initialTitle: report.title, initialDescription: report.content || report.description, initialCategoryCode: report.categoryCode || report.category }}
+                className="inline-flex items-center gap-2 mt-3 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-4 py-2 transition-colors"
+              >
+                ↩ {locale === "vi" ? "Gửi lại phản ánh" : "Resubmit report"}
+              </Link>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
           <StatusBadge status={status} />
           <span className="font-mono text-sm text-ink-soft">

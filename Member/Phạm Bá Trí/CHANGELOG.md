@@ -630,6 +630,42 @@ Antigravity đã nhập vai QA Security để kiểm tra logic, phát hiện 4 l
 
 ---
 
+# [Phase 17] Kiểm toán Logic Runtime & Nâng cấp UX "Gửi lại báo cáo"
+
+## Ngày thực hiện
+
+```text
+17/06/2026
+```
+
+## Đã hoàn thành
+
+- [x] **Audit Logic Runtime**: Đóng vai AI Systems Auditor, trace toàn bộ luồng dữ liệu 6 file từ report.tsx đến ContentGuardrailService và AutoDispatchService. Phát hiện 2 lỗi CRITICAL (LazyInitializationException và Race Condition).
+- [x] **Backend Fixes**: Tách `handleAiFallback` bọc `@Transactional` để tránh crash ngầm khi gọi Gemini thất bại. Thêm `TimeUnit.SECONDS` vào hàm `.get()`. Gói Notification Async vào `TransactionSynchronizationManager` để đảm bảo dữ liệu toàn vẹn sau khi commit.
+- [x] **Frontend UX Fixes**: Nâng cấp chức năng "Gửi lại phản ánh" tại trang `my-reports.$id.tsx` bằng cách truyền toàn bộ `state` cũ qua React Router, giúp trang `report.tsx` tự động điền (pre-fill) lại văn bản, loại bỏ cảm giác nản chí cho người dân khi bị AI từ chối.
+- [x] **Xuất Báo cáo Audit**: Tổng hợp và vẽ Sơ đồ Vòng đời Yêu cầu (Trace Map) vào các file Markdown lưu tại ổ cứng.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi                                         | Người thực hiện | File/Module liên quan         |
+| --: | --------------------------------------------------------- | --------------- | ----------------------------- |
+|   1 | Khắc phục LazyInitializationException & Race Condition    | Phạm Bá Trí     | `AutoDispatchService.java`    |
+|   2 | Tự động điền Form bằng React Router State                 | Phạm Bá Trí     | `my-reports.$id.tsx`, `report.tsx` |
+|   3 | Cập nhật bộ hồ sơ tài liệu Audit, Changelog, Prompts      | Phạm Bá Trí     | `Member/Phạm Bá Trí/*`        |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Mô tả AI đã hỗ trợ phần nào:
+
+```text
+Antigravity thực hiện Audit chuyên sâu thông qua kỹ thuật "Walk the code" từ Frontend xuống Backend. Trực tiếp refactor toàn bộ lỗi Crash Thread và thiết kế lại luồng UX truyền dữ liệu State qua React Router cực kỳ tinh tế.
+```
+
+---
+
 # 5. Cam kết cập nhật Changelog
 
 Sinh viên/nhóm cam kết rằng nội dung changelog phản ánh đúng các thay đổi đã

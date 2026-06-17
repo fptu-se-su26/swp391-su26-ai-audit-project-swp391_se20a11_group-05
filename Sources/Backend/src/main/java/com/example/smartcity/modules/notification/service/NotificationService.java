@@ -14,6 +14,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -92,6 +94,48 @@ public class NotificationService extends BaseServiceImpl<Notification, Long> {
                 savedFeedback.getCitizen().getId(),
                 saved.getId());
         return saved;
+    }
+
+    /**
+     * Tạo thông báo từ chối phản ánh với nội dung thân thiện cho công dân.
+     *
+     * [FIX #1 - Detached Entity] Nhận feedbackId (primitive) thay vì Feedback entity
+     * để tránh LazyInitializationException khi chạy trong thread mới (@Async).
+     * Entity sẽ được reload trong transaction mới (REQUIRES_NEW).
+     *
+     * [FIX #4 - Thread Pool] Dùng "aiTaskExecutor" có giới hạn pool,
+     * không dùng SimpleAsyncTaskExecutor mặc định (tạo thread mới không giới hạn).
+     *
+     * @param feedbackId  ID phản ánh bị từ chối
+     * @param friendlyReason Lý do thân thiện (không phải thông điệp kỹ thuật)
+     */
+    @Async("aiTaskExecutor")
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void createFeedbackRejectedNotification(Long feedbackId, String friendlyReason) {
+        Feedback feedback = feedbackRepository.findById(feedbackId).orElse(null);
+        if (feedback == null || feedback.getCitizen() == null) {
+            log.warn("[Notification] Không tìm thấy feedback hoặc citizen khi gửi thông báo từ chối. feedbackId={}", feedbackId);
+            return;
+        }
+        Notification notification = Notification.builder()
+                .user(feedback.getCitizen())
+                .referenceId(feedback.getId())
+                .title("❌ Phản ánh chưa được tiếp nhận")
+                .content(friendlyReason)
+                .type("FEEDBACK_REJECTED")
+                .isRead(false)
+                .build();
+
+        LocalDateTime now = LocalDateTime.now();
+        notification.setCreatedAt(now);
+        notification.setUpdatedAt(now);
+
+        Notification saved = notificationRepository.save(notification);
+        log.info(
+                "[Notification] Created feedback rejected notification. feedbackId={}, userId={}, reason='{}'",
+                feedback.getId(),
+                feedback.getCitizen().getId(),
+                friendlyReason);
     }
 
     @Transactional

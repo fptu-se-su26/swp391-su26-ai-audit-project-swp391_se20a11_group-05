@@ -137,7 +137,6 @@ export function PoliceDashboard() {
   const { data: feedbacksPage, isLoading: feedbacksLoading, refetch } = usePublicFeedbacks(0, 200, {
     keyword: debouncedSearch,
   });
-  const { data: hotspots } = useHotspots();
   const { data: notifications = [], isLoading: notifLoading } = useNotifications();
   const { data: unreadCountData } = useNotificationUnreadCount(!!user);
   const markRead = useMarkNotificationReadMutation();
@@ -145,6 +144,19 @@ export function PoliceDashboard() {
 
   const unreadCount = unreadCountData ?? notifications.filter((n) => !n.isRead).length;
   const feedbacks = feedbacksPage?.content ?? [];
+
+  // Temporarily generate hotspots locally for testing since the API lacks data
+  const generatedHotspots = useMemo(() => {
+    return feedbacks
+      .filter((fb) => fb.latitude != null && fb.longitude != null)
+      .map((fb) => ({
+        latitude: fb.latitude!,
+        longitude: fb.longitude!,
+        weight: fb.status === "PENDING" ? 3 : fb.status === "IN_PROGRESS" ? 2 : 1,
+        status: fb.status,
+        categoryName: fb.categoryName || fb.category || "Chưa phân loại",
+      }));
+  }, [feedbacks]);
 
   // Filtered and Sorted Feedbacks for the "Phản ánh" tab
   const filteredAndSortedFeedbacks = useMemo(() => {
@@ -748,7 +760,7 @@ export function PoliceDashboard() {
                     }
                   >
                     <div className="h-[400px] w-full bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-                      <HeatmapMap hotspots={hotspots || []} />
+                      <HeatmapMap hotspots={generatedHotspots} />
                     </div>
                   </Suspense>
                 </div>

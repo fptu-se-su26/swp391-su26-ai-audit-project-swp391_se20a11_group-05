@@ -36,6 +36,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import com.example.smartcity.ai_orchestrator.guardrails.ContentGuardrailService;
+
 @ExtendWith(MockitoExtension.class)
 class FeedbackServiceTest {
 
@@ -48,6 +50,7 @@ class FeedbackServiceTest {
     @Mock private NotificationService notificationService;
     @Mock private AutoDispatchService autoDispatchService;
     @Mock private LocationResolutionService locationResolutionService;
+    @Mock private ContentGuardrailService contentGuardrailService;
     private CategoryRoutingService categoryRoutingService;
 
     private FeedbackService feedbackService;
@@ -72,7 +75,8 @@ class FeedbackServiceTest {
                 attachmentRepository,
                 autoDispatchService,
                 locationResolutionService,
-                categoryRoutingService
+                categoryRoutingService,
+                contentGuardrailService
         );
 
         citizen = new User("citizen1", "encoded", "Người Dân", "0905123456",

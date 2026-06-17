@@ -127,19 +127,19 @@ class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("[LOGIN] Sad Path: Tài khoản không tồn tại → Service ném CustomException")
+    @DisplayName("[LOGIN] Sad Path: Tài khoản không tồn tại → Service ném CustomException 401")
     void login_userNotFound_serviceThrowsException() throws Exception {
         LoginRequest req = new LoginRequest();
         req.setUsername("ghost");
         req.setPassword("password123");
 
         when(authService.authenticateUser(any())).thenThrow(
-                new CustomException("Tài khoản không tồn tại", 404));
+                new CustomException("Tên đăng nhập hoặc mật khẩu không chính xác", 401));
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isUnauthorized());
 
         verify(authService).authenticateUser(any(LoginRequest.class));
     }

@@ -699,18 +699,28 @@ export interface CampaignResponse {
   id: number;
   title: string;
   description: string | null;
+  category: string | null;
   locationText: string | null;
+  privateLocationText: string | null;
+  requiredTools: string | null;
+  organizerContact: string | null;
   latitude: number | null;
   longitude: number | null;
   maxParticipants: number | null;
   startTime: string | null;
   endTime: string | null;
-  status: "PENDING" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+  status: "PENDING_APPROVAL" | "RECRUITING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
   wardId: number | null;
   wardName: string | null;
   createdByUserId: number;
   createdByName: string | null;
   participantCount: number;
+  currentUserJoinStatus: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | null;
+  privateDetailsVisible: boolean;
+  canJoin: boolean;
+  canManage: boolean;
+  canComment: boolean;
+  canFeedback: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -718,7 +728,11 @@ export interface CampaignResponse {
 export interface CampaignCreateRequest {
   title: string;
   description?: string;
+  category?: string;
   locationText?: string;
+  privateLocationText: string;
+  requiredTools: string;
+  organizerContact: string;
   latitude?: number;
   longitude?: number;
   maxParticipants?: number;
@@ -737,15 +751,57 @@ export const campaignApi = {
   getById: (id: number | string) =>
     request<CampaignResponse>(`/api/campaigns/${id}`),
 
+  getPrivateDetail: (id: number | string) =>
+    request<CampaignResponse>(`/api/campaigns/${id}/detail`),
+
   create: (data: CampaignCreateRequest) =>
     request<CampaignResponse>("/api/campaigns", {
       method: "POST",
       body: JSON.stringify(data),
     }),
 
+  approve: (id: number | string) =>
+    request<CampaignResponse>(`/api/campaigns/${id}/approve`, { method: "POST" }),
+
   join: (id: number | string) =>
-    request<void>(`/api/campaigns/${id}/join`, { method: "POST" }),
+    request<CampaignResponse>(`/api/campaigns/${id}/join`, { method: "POST" }),
 
   leave: (id: number | string) =>
     request<void>(`/api/campaigns/${id}/leave`, { method: "DELETE" }),
+
+  getComments: (id: number | string) =>
+    request<CampaignCommentResponse[]>(`/api/campaigns/${id}/comments`),
+
+  addComment: (id: number | string, content: string) =>
+    request<CampaignCommentResponse>(`/api/campaigns/${id}/comments`, {
+      method: "POST",
+      body: JSON.stringify({ content }),
+    }),
+
+  getChatMessages: (id: number | string) =>
+    request<CampaignChatMessageResponse[]>(`/api/campaigns/${id}/chat`),
+
+  addChatMessage: (id: number | string, content: string) =>
+    request<CampaignChatMessageResponse>(`/api/campaigns/${id}/chat`, {
+      method: "POST",
+      body: JSON.stringify({ content }),
+    }),
 };
+
+export interface CampaignCommentResponse {
+  id: number;
+  authorId: number;
+  authorName: string;
+  authorRole: BackendRole;
+  content: string;
+  createdAt: string;
+}
+
+export interface CampaignChatMessageResponse {
+  id: number;
+  senderId: number;
+  senderName: string;
+  senderRole: BackendRole;
+  message: string;
+  createdAt: string;
+}

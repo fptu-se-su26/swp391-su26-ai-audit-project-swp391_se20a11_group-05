@@ -4,7 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useFeedbacks, useNotifications, useMarkNotificationReadMutation } from "@/hooks";
 import { useFeedbackNotification } from "@/hooks/use-notification";
 import { useAuth } from "@/lib/auth";
-import { analyticsApi, type KpiData, type WardPerformance, type MonthlyTrend } from "@/lib/api";
+import { getLoginPathForRole } from "@/lib/roles";
+import { analyticsApi, authApi, type KpiData, type WardPerformance, type MonthlyTrend } from "@/lib/api";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   kpis as mockKpis,
@@ -400,6 +401,14 @@ export function CityAdminDashboard() {
     }
   };
 
+  const handleLogout = async () => {
+    const loginPath = getLoginPathForRole(user?.role);
+    await authApi.logout().catch(() => {});
+    logout();
+    setUserOpen(false);
+    await navigate({ to: loginPath });
+  };
+
   const resetAllFilters = () => {
     setSelectedWard(undefined);
     setSelectedCategory(undefined);
@@ -610,10 +619,7 @@ export function CityAdminDashboard() {
                     Cấu hình tài khoản
                   </Link>
                   <button
-                    onClick={() => {
-                      logout();
-                      setUserOpen(false);
-                    }}
+                    onClick={() => void handleLogout()}
                     className="w-full text-left px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50/50 transition flex items-center gap-2 cursor-pointer border-t border-slate-100 mt-1"
                   >
                     <LogOut size={14} />

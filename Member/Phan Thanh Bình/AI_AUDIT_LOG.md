@@ -308,6 +308,111 @@ Quyết định cuối cùng là GPS bắt buộc cho citizen feedback, không d
 Viết tại đây...
 ```
 
+### Lần sử dụng AI số 4
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 17/06/2026 |
+| Công cụ AI | ChatGPT |
+| Mục đích sử dụng | Tìm hiểu và đối chiếu cách thiết kế progressive login lockout, SMS OTP sau nhiều lần đăng nhập sai, và tách luồng đăng nhập citizen/authority |
+| Phần việc liên quan | Backend / Frontend / Security / Testing / Debug |
+| Mức độ sử dụng | Hỏi phân tích / Hỏi giải thích / Hỏi review / Hỏi kiểm chứng |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+Mình đang tự tìm hiểu cách cải thiện bảo mật đăng nhập cho project Spring Boot + React.
+Hiện hệ thống có hai nhóm người dùng: citizen dùng /login, còn cán bộ như ward, police, city admin dùng /authority-login.
+
+Mình muốn hiểu cách thiết kế một cơ chế progressive login lockout hợp lý:
+- sau 5 lần nhập sai thì khóa 1 phút,
+- sau khi mở khóa mà tiếp tục sai 3 lần thì khóa 3 phút,
+- tiếp tục sai 3 lần nữa thì khóa 6 phút,
+- nếu vẫn tiếp tục sai thì yêu cầu xác minh SMS OTP trước khi cho đăng nhập lại.
+
+Bạn hãy giúp mình phân tích hướng thiết kế trước, chỉ ra backend cần lưu thêm trạng thái gì trong bảng users,
+service đăng nhập nên xử lý các bước nào, frontend nên hiển thị countdown ra sao,
+và cần test những case nào để mình tự đối chiếu với code hiện tại.
+
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI gợi ý hướng thiết kế theo các nhóm chính:
+- Backend nên lưu thêm trạng thái login_lock_stage, login_otp_required, last_failed_login_at trên bảng users.
+- AuthService nên tìm user theo username/email/phone, sau đó kiểm tra active status, trạng thái khóa tạm thời, và trạng thái bắt buộc OTP.
+- Khi nhập sai mật khẩu, hệ thống tăng số lần thử sai theo từng stage thay vì khóa cố định một lần.
+- Khi đủ ngưỡng sai, hệ thống chuyển lần lượt qua các mức khóa 1 phút, 3 phút, 6 phút, sau đó yêu cầu SMS OTP.
+- Khi đăng nhập thành công hoặc xác minh OTP thành công, hệ thống cần reset loginAttempts, loginLockStage, lockedUntil, loginOtpRequired.
+- Frontend nên đọc lỗi 429 từ backend, parse thời gian còn lại và hiển thị countdown cho người dùng.
+- Citizen portal và authority portal nên có guard/redirect riêng để tránh cán bộ đăng nhập vào cổng người dân hoặc ngược lại.
+- Cần bổ sung test cho các stage khóa, trạng thái OTP required, reset sau login thành công, và reset sau verify OTP.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+Nhóm đã sử dụng các gợi ý sau:
+- Thêm các trường loginLockStage, loginOtpRequired, lastFailedLoginAt vào User entity.
+- Thêm migration V7__progressive_login_lockout.sql để cập nhật schema users.
+- Chỉnh AuthService để hỗ trợ progressive lockout theo từng stage.
+- Chuyển verify SMS OTP qua AuthService để có thể reset trạng thái login lockout sau khi OTP hợp lệ.
+- Thêm helper frontend loginLockout.ts để parse thời gian khóa và hiển thị countdown.
+- Cập nhật LoginPage và authority-login để xử lý lỗi 429, countdown, và phân biệt citizen/authority role.
+- Cập nhật guard/redirect để authority route chuyển về /authority-login thay vì /login.
+- Bổ sung test cho AuthService và AuthController liên quan đến lockout/OTP.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Nhóm tự điều chỉnh thêm để phù hợp với project:
+- Giữ cơ chế khóa theo từng tài khoản thay vì chỉ dựa trên IP, vì yêu cầu cần kiểm soát chính xác trạng thái đăng nhập của từng user.
+- Tách redirect theo role bằng getDashboardPathForRole và getLoginPathForRole để tránh sai portal.
+- Ẩn thông báo phân quyền quá chi tiết ở màn hình login bằng thông báo chung "Tài khoản này không tồn tại" để giảm lộ thông tin.
+- Bổ sung DataInitializer để đảm bảo schema login lockout tồn tại khi chạy môi trường dev.
+- Cập nhật logout ở Header, WardDashboard, PoliceDashboard, CityAdminDashboard để quay về đúng trang login theo role.
+- Viết test kiểm chứng từng stage: khóa 1 phút, khóa 3 phút, yêu cầu OTP, reset sau login thành công, reset sau verify OTP.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Chưa commit |
+| File liên quan | Sources/Backend/src/main/java/com/example/smartcity/modules/auth/service/AuthService.java; 
+
+Sources/Backend/src/main/java/com/example/smartcity/modules/auth/controller/AuthController.java; 
+
+Sources/Backend/src/main/java/com/example/smartcity/modules/user/entity/User.java; 
+
+Sources/Backend/src/main/java/com/example/smartcity/modules/user/repository/UserRepository.java; 
+
+Sources/Backend/src/main/resources/db/migration/V7__progressive_login_lockout.sql; 
+
+Sources/Frontend/src/lib/loginLockout.ts; Sources/Frontend/src/lib/roles.ts; 
+
+Sources/Frontend/src/lib/guardUtils.ts; Sources/Frontend/src/features/auth/LoginPage.tsx; 
+
+Sources/Frontend/src/routes/authority-login.tsx; Sources/Backend/src/test/java/com/example/smartcity/modules/auth/AuthServiceTest.java;
+
+ Sources/Backend/src/test/java/com/example/smartcity/modules/auth/AuthControllerTest.java |
+| Screenshot |  |
+| Kết quả chạy/test | Cần bổ sung sau khi chạy test/build |
+| Link video demo |  |
+| Ghi chú khác | Tập trung vào bảo mật đăng nhập, chống brute force theo tài khoản, và tránh redirect sai cổng đăng nhập |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Sau lần sử dụng AI số 4, nhóm hiểu rõ hơn rằng bảo mật đăng nhập không chỉ là kiểm tra đúng/sai mật khẩu,
+mà còn phải quản lý trạng thái thất bại, thời gian khóa, cách reset trạng thái và trải nghiệm người dùng trên frontend.
+
+AI giúp nhóm có khung phân tích ban đầu, nhưng nhóm vẫn phải tự đọc code hiện tại, tự quyết định trường dữ liệu cần thêm,
+tự chỉnh redirect theo role và tự viết test để kiểm chứng. Phần quan trọng nhất là không áp dụng máy móc gợi ý của AI,
+mà dùng AI như một công cụ đối chiếu để phát hiện rủi ro và hoàn thiện logic phù hợp với project.
+```
 ---
 
 ## 5. Bảng tổng hợp mức độ sử dụng AI

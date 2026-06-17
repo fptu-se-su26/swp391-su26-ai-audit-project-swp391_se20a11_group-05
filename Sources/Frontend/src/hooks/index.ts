@@ -211,6 +211,18 @@ export function useAcceptFeedback() {
   });
 }
 
+export function useUpdatePoliceFeedbackStatus() {
+  const queryClient = useQueryClient();
+  return useMutation<PoliceFeedbackResponse, Error, { id: number | string; status: string; note?: string }>({
+    mutationFn: ({ id, status, note }) => policeApi.updateStatus(id, status, note),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
+      queryClient.invalidateQueries({ queryKey: ["police", "assigned-feedbacks"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+}
+
 export function useRequestMoreInfo() {
   const queryClient = useQueryClient();
   return useMutation<FeedbackResponse, Error, { id: number | string; reason: string }>({

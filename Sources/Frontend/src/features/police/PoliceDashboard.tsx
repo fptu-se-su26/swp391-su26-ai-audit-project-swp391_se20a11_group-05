@@ -9,6 +9,8 @@ import {
   useHotspots,
   useAcceptFeedback,
   useRejectFeedback,
+  useRequestMoreInfo,
+  useUpdatePoliceFeedbackStatus,
 } from "@/hooks";
 import { useAuth } from "@/lib/auth";
 import { getLoginPathForRole } from "@/lib/roles";
@@ -41,6 +43,9 @@ import {
   CheckCircle,
   Plus,
   Grid,
+  HelpCircle,
+  Send,
+  PlayCircle,
 } from "lucide-react";
 
 import logoImg from "@/assets/logo.png";
@@ -115,9 +120,13 @@ export function PoliceDashboard() {
   const [selectedFeedback, setSelectedFeedback] = useState<PoliceFeedbackResponse | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectInput, setShowRejectInput] = useState(false);
+  const [showRequestInfoInput, setShowRequestInfoInput] = useState(false);
+  const [requestInfoReason, setRequestInfoReason] = useState("");
 
   const acceptFeedbackMut = useAcceptFeedback();
   const rejectFeedbackMut = useRejectFeedback();
+  const requestInfoMut = useRequestMoreInfo();
+  const updateStatusMut = useUpdatePoliceFeedbackStatus();
 
   const handleAccept = async (id: number) => {
     try {
@@ -148,6 +157,34 @@ export function PoliceDashboard() {
       refetch();
     } catch (err: any) {
       toast.error(err.message || "Lỗi khi từ chối phản ánh");
+    }
+  };
+
+  const handleRequestInfo = async (id: number) => {
+    try {
+      await requestInfoMut.mutateAsync({ id, reason: requestInfoReason });
+      toast.success("Đã gửi yêu cầu bổ sung thông tin");
+      setSelectedFeedback(null);
+      setFilterStatus("WAITING_INFO");
+      setActiveTab("feedbacks");
+      setShowRequestInfoInput(false);
+      setRequestInfoReason("");
+      refetch();
+    } catch (err: any) {
+      toast.error(err.message || "Lỗi khi gửi yêu cầu bổ sung");
+    }
+  };
+
+  const handleStartProgress = async (id: number) => {
+    try {
+      await updateStatusMut.mutateAsync({ id, status: "IN_PROGRESS", note: "Bắt đầu xử lý phản ánh" });
+      toast.success("Đã chuyển phản ánh sang trạng thái Đang xử lý");
+      setSelectedFeedback(null);
+      setFilterStatus("IN_PROGRESS");
+      setActiveTab("feedbacks");
+      refetch();
+    } catch (err: any) {
+      toast.error(err.message || "Lỗi khi cập nhật trạng thái");
     }
   };
 
@@ -866,6 +903,8 @@ export function PoliceDashboard() {
                                 setSelectedFeedback(row as any);
                                 setShowRejectInput(false);
                                 setRejectReason("");
+                                setShowRequestInfoInput(false);
+                                setRequestInfoReason("");
                               }}
                               className="hover:bg-slate-50 transition-colors cursor-pointer"
                             >
@@ -1311,6 +1350,53 @@ export function PoliceDashboard() {
                       </button>
                     </div>
                   )
+                ) : selectedFeedback.status === "ASSIGNED" ? (
+                  showRequestInfoInput ? (
+                    <div className="space-y-3 animate-in slide-in-from-top-2">
+                      <label className="text-sm font-bold text-slate-700">Nội dung yêu cầu bổ sung:</label>
+                      <textarea
+                        className="w-full border-2 border-slate-200 rounded-xl p-3 text-sm focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all outline-none"
+                        rows={3}
+                        placeholder="Nhập thông tin cần người dân cung cấp thêm..."
+                        value={requestInfoReason}
+                        onChange={(e) => setRequestInfoReason(e.target.value)}
+                      ></textarea>
+                      <div className="flex gap-3 justify-end">
+                        <button
+                          onClick={() => setShowRequestInfoInput(false)}
+                          className="px-4 py-2 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
+                        >
+                          Hủy
+                        </button>
+                        <button
+                          onClick={() => handleRequestInfo(selectedFeedback.id)}
+                          disabled={requestInfoMut.isPending || !requestInfoReason.trim()}
+                          className="px-6 py-2 text-sm font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors flex items-center gap-2"
+                        >
+                          {requestInfoMut.isPending ? <RefreshCw size={16} className="animate-spin" /> : <Send size={16} />}
+                          Gửi yêu cầu
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex gap-4">
+                      <button
+                        onClick={() => handleStartProgress(selectedFeedback.id)}
+                        disabled={updateStatusMut.isPending}
+                        className="flex-1 bg-[#198754] hover:bg-green-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-green-500/30 transition-all flex justify-center items-center gap-2"
+                      >
+                        {updateStatusMut.isPending ? <RefreshCw size={18} className="animate-spin" /> : <PlayCircle size={18} />}
+                        Đang xử lý
+                      </button>
+                      <button
+                        onClick={() => setShowRequestInfoInput(true)}
+                        className="flex-1 bg-white hover:bg-orange-50 text-orange-500 border-2 border-orange-100 hover:border-orange-200 font-bold py-3 px-4 rounded-xl transition-all flex justify-center items-center gap-2"
+                      >
+                        <HelpCircle size={18} />
+                        Yêu cầu bổ sung
+                      </button>
+                    </div>
+                  )
                 ) : (
                   <div className="bg-slate-50 rounded-xl p-4 flex items-center justify-center gap-3 border border-slate-100">
                     {selectedFeedback.status === "REJECTED" ? (
@@ -1318,10 +1404,15 @@ export function PoliceDashboard() {
                         <X size={20} className="text-red-500" />
                         <span className="font-bold text-slate-500">Phản ánh này đã bị từ chối.</span>
                       </>
+                    ) : selectedFeedback.status === "WAITING_INFO" ? (
+                      <>
+                        <HelpCircle size={20} className="text-orange-500" />
+                        <span className="font-bold text-slate-500">Đang chờ người dân bổ sung thông tin...</span>
+                      </>
                     ) : (
                       <>
                         <CheckCircle size={20} className="text-green-500" />
-                        <span className="font-bold text-slate-500">Phản ánh này đã được tiếp nhận / đang xử lý.</span>
+                        <span className="font-bold text-slate-500">Phản ánh này đang được xử lý hoặc đã xử lý xong.</span>
                       </>
                     )}
                   </div>

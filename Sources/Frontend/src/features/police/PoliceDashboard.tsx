@@ -705,35 +705,44 @@ export function PoliceDashboard() {
                 val: pendingCount,
                 bg: "bg-[#fd7e14]",
                 trend: pendingTrend,
+                filterValue: "PENDING",
               },
               {
                 title: "Đã tiếp nhận",
                 val: acceptedCount,
                 bg: "bg-[#8b5cf6]",
                 trend: acceptedTrend,
+                filterValue: "ACCEPTED",
               },
               {
                 title: "Đang xử lý",
                 val: inProgressCount,
                 bg: "bg-[#3b82f6]",
                 trend: inProgressTrend,
+                filterValue: "IN_PROGRESS",
               },
               {
                 title: "Đã xử lý",
                 val: resolvedCount,
                 bg: "bg-[#198754]",
                 trend: resolvedTrend,
+                filterValue: "RESOLVED",
               },
               {
                 title: "Từ chối",
                 val: rejectedCount,
                 bg: "bg-[#dc3545]",
                 trend: rejectedTrend,
+                filterValue: "REJECTED",
               },
             ].map((card, idx) => (
               <div
                 key={idx}
-                className="bg-white rounded-2xl border border-[#E4EAF2] p-5 shadow-sm flex flex-col justify-between"
+                onClick={() => {
+                  setFilterStatus(card.filterValue);
+                  setActiveTab("feedbacks");
+                }}
+                className="bg-white rounded-2xl border border-[#E4EAF2] p-5 shadow-sm flex flex-col justify-between cursor-pointer hover:border-[#0F5BD8] hover:shadow-md transition-all group"
               >
                 <div className="flex items-center gap-4">
                   <div

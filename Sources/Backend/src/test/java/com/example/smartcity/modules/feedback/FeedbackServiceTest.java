@@ -18,6 +18,7 @@ import com.example.smartcity.modules.notification.WebSocketNotificationService;
 import com.example.smartcity.modules.notification.service.NotificationService;
 import com.example.smartcity.modules.feedback.service.AutoDispatchService;
 import com.example.smartcity.modules.core.service.LocationResolutionService;
+import com.example.smartcity.ai_orchestrator.guardrails.ContentGuardrailService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

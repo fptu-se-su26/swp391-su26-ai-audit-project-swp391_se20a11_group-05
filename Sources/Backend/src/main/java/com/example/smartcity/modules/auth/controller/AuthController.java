@@ -52,7 +52,6 @@ public class AuthController {
             @Valid @RequestBody LoginRequest loginRequest,
             HttpServletRequest httpRequest) {
         // [SECURITY] Rate limit: 5 lần / 15 phút theo IP
-        rateLimiter.checkLoginLimit(getClientIp(httpRequest));
         AuthResponse result = authService.authenticateUser(loginRequest);
         if (result.isMfaRequired()) {
             return ResponseEntity.ok(ApiResponse.success("Yêu cầu xác thực MFA", result));
@@ -111,13 +110,13 @@ public class AuthController {
 
     @PostMapping("/sms/verify")
     public ResponseEntity<ApiResponse<String>> verifySmsOtp(@Valid @RequestBody SmsVerifyRequest request) {
-        smsService.verifyOtp(request.getPhoneNumber(), request.getOtpCode());
+        authService.verifyLoginOtp(request.getPhoneNumber(), request.getOtpCode());
         return ResponseEntity.ok(ApiResponse.success("Xác minh số điện thoại thành công", request.getPhoneNumber()));
     }
 
     @PostMapping("/verify-sms")
     public ResponseEntity<ApiResponse<String>> verifySms(@Valid @RequestBody SmsVerifyRequest request) {
-        smsService.verifyOtp(request.getPhoneNumber(), request.getOtpCode());
+        authService.verifyLoginOtp(request.getPhoneNumber(), request.getOtpCode());
         return ResponseEntity.ok(ApiResponse.success("Xác minh số điện thoại thành công", request.getPhoneNumber()));
     }
 

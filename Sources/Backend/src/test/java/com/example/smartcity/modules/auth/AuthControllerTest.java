@@ -304,7 +304,7 @@ class AuthControllerTest {
         req.setPhoneNumber("+84905123456");
         req.setOtpCode("123456");
 
-        when(smsService.verifyOtp(any(), any())).thenReturn(true);
+        doNothing().when(authService).verifyLoginOtp(any(), any());
 
         // Cả 2 endpoint đều gọi cùng 1 logic → nên gộp lại
         mockMvc.perform(post("/api/auth/sms/verify")
@@ -318,6 +318,6 @@ class AuthControllerTest {
                 .andExpect(status().isOk());
 
         // Service phải được gọi đúng 2 lần (1 cho mỗi endpoint duplicate)
-        verify(smsService, times(2)).verifyOtp("+84905123456", "123456");
+        verify(authService, times(2)).verifyLoginOtp("+84905123456", "123456");
     }
 }

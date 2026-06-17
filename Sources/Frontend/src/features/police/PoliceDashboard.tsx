@@ -6,6 +6,7 @@ import {
   useMarkNotificationReadMutation,
   useMarkAllNotificationsReadMutation,
   useNotificationUnreadCount,
+  useHotspots,
 } from "@/hooks";
 import { useAuth } from "@/lib/auth";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -47,6 +48,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const CivicMap = lazy(() =>
   import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
+);
+
+const HeatmapMap = lazy(() =>
+  import("@/components/site/HeatmapMap").then((m) => ({ default: m.HeatmapMap })),
 );
 
 // Date formatting helper
@@ -130,6 +135,7 @@ export function PoliceDashboard() {
   const { data: feedbacksPage, isLoading: feedbacksLoading, refetch } = useFeedbacks(0, 200, {
     keyword: debouncedSearch,
   });
+  const { data: hotspots } = useHotspots();
   const { data: notifications = [], isLoading: notifLoading } = useNotifications();
   const { data: unreadCountData } = useNotificationUnreadCount(!!user);
   const markRead = useMarkNotificationReadMutation();
@@ -735,6 +741,29 @@ export function PoliceDashboard() {
                     <span className="w-2.5 h-2.5 rounded-full bg-[#198754]" />
                     <span className="text-xs font-bold text-slate-600">Đã xử lý</span>
                   </div>
+                </div>
+              </div>
+
+              {/* Heatmap Card */}
+              <div className="bg-white rounded-2xl border border-[#E4EAF2] shadow-sm overflow-hidden flex flex-col min-h-[480px]">
+                <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+                  <h3 className="font-extrabold text-base text-[#0B2545] flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#dc3545]" />
+                    Bản đồ Điểm nóng vi phạm (Heatmap)
+                  </h3>
+                </div>
+                <div className="flex-1 bg-slate-50 relative p-4">
+                  <Suspense
+                    fallback={
+                      <div className="w-full h-full flex items-center justify-center text-slate-400">
+                        Đang tải bản đồ nhiệt...
+                      </div>
+                    }
+                  >
+                    <div className="h-[400px] w-full bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                      <HeatmapMap hotspots={hotspots || []} />
+                    </div>
+                  </Suspense>
                 </div>
               </div>
 

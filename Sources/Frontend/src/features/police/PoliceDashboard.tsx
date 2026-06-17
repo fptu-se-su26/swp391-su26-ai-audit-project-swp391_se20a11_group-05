@@ -49,6 +49,7 @@ import { toast } from "sonner";
 import { authApi, type NotificationResponse, type FeedbackResponse, type PoliceFeedbackResponse } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
 
 const CivicMap = lazy(() =>
   import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
@@ -297,12 +298,12 @@ export function PoliceDashboard() {
   // Category chart stats calculation
   const categoryStats = useMemo(() => {
     const categoriesList = [
-      { name: "Giao thông", key: "TRAFFIC", icon: Car, color: "bg-[#0b5ed7]" },
-      { name: "Hạ tầng đô thị", key: "URBAN_INFRASTRUCTURE", icon: Building2, color: "bg-[#0dcaf0]" },
-      { name: "Môi trường", key: "ENVIRONMENT", icon: Leaf, color: "bg-[#198754]" },
-      { name: "An ninh trật tự", key: "PUBLIC_SECURITY", icon: Shield, color: "bg-[#6f42c1]" },
-      { name: "Xây dựng", key: "CONSTRUCTION", icon: Construction, color: "bg-[#fd7e14]" },
-      { name: "Phòng cháy chữa cháy", key: "FIRE_SAFETY", icon: Flame, color: "bg-[#dc3545]" },
+      { name: "Giao thông", key: "TRAFFIC", icon: Car, color: "#0b5ed7", bgClass: "bg-[#0b5ed7]" },
+      { name: "Hạ tầng đô thị", key: "URBAN_INFRASTRUCTURE", icon: Building2, color: "#0dcaf0", bgClass: "bg-[#0dcaf0]" },
+      { name: "Môi trường", key: "ENVIRONMENT", icon: Leaf, color: "#198754", bgClass: "bg-[#198754]" },
+      { name: "An ninh trật tự", key: "PUBLIC_SECURITY", icon: Shield, color: "#6f42c1", bgClass: "bg-[#6f42c1]" },
+      { name: "Xây dựng", key: "CONSTRUCTION", icon: Construction, color: "#fd7e14", bgClass: "bg-[#fd7e14]" },
+      { name: "Phòng cháy chữa cháy", key: "FIRE_SAFETY", icon: Flame, color: "#dc3545", bgClass: "bg-[#dc3545]" },
     ];
 
     const counts: Record<string, number> = {
@@ -954,47 +955,75 @@ export function PoliceDashboard() {
                       7 ngày qua
                     </span>
                   </div>
-                  <div className="space-y-4">
+                  <div className="flex-1 flex flex-col min-h-0">
                     {feedbacksLoading ? (
-                      [1, 2, 3, 4, 5, 6].map((i) => (
-                        <div key={i} className="space-y-2">
-                          <div className="flex justify-between">
-                            <Skeleton className="h-3 w-20" />
-                            <Skeleton className="h-3 w-10" />
+                      <div className="space-y-4">
+                        {[1, 2, 3, 4, 5, 6].map((i) => (
+                          <div key={i} className="space-y-2">
+                            <div className="flex justify-between">
+                              <Skeleton className="h-3 w-20" />
+                              <Skeleton className="h-3 w-10" />
+                            </div>
+                            <Skeleton className="h-2 w-full rounded" />
                           </div>
-                          <Skeleton className="h-2 w-full rounded" />
-                        </div>
-                      ))
+                        ))}
+                      </div>
                     ) : feedbacks.length === 0 ? (
                       <div className="py-8 text-center text-xs text-slate-400">
                         Chưa có dữ liệu phân loại.
                       </div>
                     ) : (
-                      categoryStats.map((cat, idx) => {
-                        const Icon = cat.icon;
-                        return (
-                          <div key={idx} className="flex flex-col gap-1.5">
-                            <div className="flex items-center justify-between text-xs">
-                              <div className="flex items-center gap-2 text-slate-600 font-bold">
-                                <Icon size={16} className="text-[#0B2545] shrink-0" />
-                                <span>{cat.name}</span>
-                              </div>
-                              <span className="text-slate-700 font-extrabold">
-                                {cat.count}{" "}
-                                <span className="text-slate-400 font-semibold">
-                                  ({cat.percentage}%)
-                                </span>
-                              </span>
-                            </div>
-                            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                              <div
-                                className={`${cat.color} h-full rounded-full transition-all duration-500`}
-                                style={{ width: `${cat.rawPercentage}%` }}
+                      <div className="flex flex-col h-full gap-2">
+                        <div className="h-[200px] w-full relative shrink-0">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={categoryStats}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={60}
+                                outerRadius={85}
+                                paddingAngle={3}
+                                dataKey="count"
+                                stroke="none"
+                              >
+                                {categoryStats.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                              </Pie>
+                              <RechartsTooltip 
+                                formatter={(value: number, name: string) => [value, name]}
+                                contentStyle={{ borderRadius: '12px', border: '1px solid #E4EAF2', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', fontSize: '12px', fontWeight: 'bold' }}
+                                itemStyle={{ color: '#0B2545' }}
                               />
-                            </div>
+                            </PieChart>
+                          </ResponsiveContainer>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                            <span className="text-4xl font-black text-[#0B2545] leading-none">{feedbacks.length}</span>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Tổng cộng</span>
                           </div>
-                        );
-                      })
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2.5 overflow-y-auto mt-2 pr-1 pb-1">
+                          {categoryStats.map((cat, idx) => {
+                            const Icon = cat.icon;
+                            return (
+                              <div key={idx} className="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-100 hover:border-slate-300 hover:shadow-sm transition-all group">
+                                <div className="flex items-center gap-2.5 overflow-hidden">
+                                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-white ${cat.bgClass} shadow-sm group-hover:scale-110 transition-transform`}>
+                                    <Icon size={14} />
+                                  </div>
+                                  <div className="flex flex-col min-w-0">
+                                    <span className="text-[10px] font-extrabold text-slate-700 truncate" title={cat.name}>{cat.name}</span>
+                                    <span className="text-[10px] font-semibold text-slate-400">{cat.percentage}%</span>
+                                  </div>
+                                </div>
+                                <span className="text-sm font-black text-[#0B2545] shrink-0 pl-1">{cat.count}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>

@@ -197,9 +197,9 @@ export function PoliceDashboard() {
     return [...feedbacks]
       .filter((fb) => {
         if (filterStatus === "ALL") return true;
-        if (filterStatus === "PENDING") return fb.status === "PENDING";
+        if (filterStatus === "PENDING") return fb.status === "PENDING" || fb.status === "PENDING_RECEIVE" || fb.status === "SUBMITTED" || fb.status === "NEED_LOCATION_REVIEW";
         if (filterStatus === "IN_PROGRESS") return fb.status === "ASSIGNED" || fb.status === "IN_PROGRESS" || fb.status === "WAITING_INFO";
-        if (filterStatus === "RESOLVED") return fb.status === "RESOLVED";
+        if (filterStatus === "RESOLVED") return fb.status === "RESOLVED" || fb.status === "REJECTED";
         if (filterStatus === "OVERDUE") {
            const isNotResolved = fb.status !== "RESOLVED" && fb.status !== "REJECTED";
            const diffTime = Math.abs(new Date().getTime() - new Date(fb.createdAt).getTime());
@@ -213,11 +213,11 @@ export function PoliceDashboard() {
 
   // Sync stats dynamically from backend reports list
   const totalCount = feedbacks.length;
-  const pendingCount = feedbacks.filter((f) => f.status === "PENDING").length;
+  const pendingCount = feedbacks.filter((f) => f.status === "PENDING" || f.status === "PENDING_RECEIVE" || f.status === "SUBMITTED" || f.status === "NEED_LOCATION_REVIEW").length;
   const inProgressCount = feedbacks.filter(
     (f) => f.status === "ASSIGNED" || f.status === "IN_PROGRESS" || f.status === "WAITING_INFO"
   ).length;
-  const resolvedCount = feedbacks.filter((f) => f.status === "RESOLVED").length;
+  const resolvedCount = feedbacks.filter((f) => f.status === "RESOLVED" || f.status === "REJECTED").length;
   const overdueCount = feedbacks.filter((f) => {
     const isNotResolved = f.status !== "RESOLVED" && f.status !== "REJECTED";
     const diffTime = Math.abs(new Date().getTime() - new Date(f.createdAt).getTime());
@@ -229,12 +229,12 @@ export function PoliceDashboard() {
   const getKpiTrend = (statusType: "total" | "pending" | "inProgress" | "resolved" | "overdue") => {
     let filterFn = (f: FeedbackResponse) => true;
     if (statusType === "pending") {
-      filterFn = (f: FeedbackResponse) => f.status === "PENDING";
+      filterFn = (f: FeedbackResponse) => f.status === "PENDING" || f.status === "PENDING_RECEIVE" || f.status === "SUBMITTED" || f.status === "NEED_LOCATION_REVIEW";
     } else if (statusType === "inProgress") {
       filterFn = (f: FeedbackResponse) =>
         f.status === "ASSIGNED" || f.status === "IN_PROGRESS" || f.status === "WAITING_INFO";
     } else if (statusType === "resolved") {
-      filterFn = (f: FeedbackResponse) => f.status === "RESOLVED";
+      filterFn = (f: FeedbackResponse) => f.status === "RESOLVED" || f.status === "REJECTED";
     } else if (statusType === "overdue") {
       filterFn = (f: FeedbackResponse) => {
         const isNotResolved = f.status !== "RESOLVED" && f.status !== "REJECTED";
@@ -383,11 +383,12 @@ export function PoliceDashboard() {
       .filter((f) => f.latitude !== null && f.longitude !== null)
       .map((f) => {
         let markerStatus: "pending" | "inProgress" | "resolved" | "urgent" = "pending";
+        const isPending = f.status === "PENDING" || f.status === "PENDING_RECEIVE" || f.status === "SUBMITTED" || f.status === "NEED_LOCATION_REVIEW";
         const isNotResolved = f.status !== "RESOLVED" && f.status !== "REJECTED";
         const diffTime = Math.abs(new Date().getTime() - new Date(f.createdAt).getTime());
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-        if (f.status === "RESOLVED") {
+        if (f.status === "RESOLVED" || f.status === "REJECTED") {
           markerStatus = "resolved";
         } else if (isNotResolved && diffDays > 3) {
           markerStatus = "urgent";
@@ -397,6 +398,8 @@ export function PoliceDashboard() {
           f.status === "WAITING_INFO"
         ) {
           markerStatus = "inProgress";
+        } else if (isPending) {
+          markerStatus = "pending";
         }
 
         return {
@@ -895,6 +898,9 @@ export function PoliceDashboard() {
                                   }
                                   switch (row.status) {
                                     case "PENDING":
+                                    case "PENDING_RECEIVE":
+                                    case "SUBMITTED":
+                                    case "NEED_LOCATION_REVIEW":
                                       return (
                                         <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-orange-50 text-orange-600 border border-orange-100 uppercase">
                                           Chưa xử lý
@@ -904,6 +910,12 @@ export function PoliceDashboard() {
                                       return (
                                         <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-green-50 text-green-600 border border-green-100 uppercase">
                                           Đã xử lý
+                                        </span>
+                                      );
+                                    case "REJECTED":
+                                      return (
+                                        <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-red-50 text-red-600 border border-red-100 uppercase">
+                                          Từ chối
                                         </span>
                                       );
                                     default:
@@ -1134,8 +1146,13 @@ export function PoliceDashboard() {
                                 return <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-red-50 text-red-600 border border-red-100 uppercase">Quá hạn</span>;
                               }
                               switch (row.status) {
-                                case "PENDING": return <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-orange-50 text-orange-600 border border-orange-100 uppercase">Chưa xử lý</span>;
+                                case "PENDING": 
+                                case "PENDING_RECEIVE":
+                                case "SUBMITTED":
+                                case "NEED_LOCATION_REVIEW":
+                                  return <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-orange-50 text-orange-600 border border-orange-100 uppercase">Chưa xử lý</span>;
                                 case "RESOLVED": return <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-green-50 text-green-600 border border-green-100 uppercase">Đã xử lý</span>;
+                                case "REJECTED": return <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-red-50 text-red-600 border border-red-100 uppercase">Từ chối</span>;
                                 default: return <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-blue-50 text-blue-600 border border-blue-100 uppercase">Đang xử lý</span>;
                               }
                             })()}

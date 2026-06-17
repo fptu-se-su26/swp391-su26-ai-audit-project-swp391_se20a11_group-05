@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import L from "leaflet";
 
 interface MapMarker {
   position: [number, number];
@@ -18,9 +17,8 @@ interface Props {
   boundaryRadius?: number;
 }
 
-// Custom Leaflet marker generator
-function getMarkerIcon(status?: string) {
-  if (typeof window === "undefined") return null;
+// Custom Leaflet marker generator passed L dynamically
+function getMarkerIcon(L: any, status?: string) {
   const colorMap: Record<string, string> = {
     pending: "#f97316",    // Orange
     inProgress: "#3b82f6", // Blue
@@ -69,18 +67,22 @@ export function CivicMap({
   boundaryRadius = 500,
 }: Props) {
   // Dynamic import: Leaflet requires `window` at module-load time,
-  // so we lazy-load react-leaflet only on the client.
+  // so we lazy-load react-leaflet and leaflet only on the client.
   const [leafletComponents, setLeafletComponents] = useState<{
     MapContainer: any;
     TileLayer: any;
     Marker: any;
     Popup: any;
     Circle: any;
+    L: any;
   } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    void import("react-leaflet").then((mod) => {
+    void Promise.all([
+      import("react-leaflet"),
+      import("leaflet")
+    ]).then(([mod, LMod]) => {
       if (!cancelled) {
         setLeafletComponents({
           MapContainer: mod.MapContainer,
@@ -88,6 +90,7 @@ export function CivicMap({
           Marker: mod.Marker,
           Popup: mod.Popup,
           Circle: mod.Circle,
+          L: LMod.default || LMod
         });
       }
     });
@@ -105,7 +108,7 @@ export function CivicMap({
     );
   }
 
-  const { MapContainer, TileLayer, Marker, Popup, Circle } = leafletComponents;
+  const { MapContainer, TileLayer, Marker, Popup, Circle, L } = leafletComponents;
 
   return (
     <div
@@ -138,7 +141,7 @@ export function CivicMap({
           />
         )}
         {markers.map((m, i) => {
-          const icon = getMarkerIcon(m.status);
+          const icon = getMarkerIcon(L, m.status);
           return (
             <Marker key={i} position={m.position} icon={icon || undefined}>
               <Popup>

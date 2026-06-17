@@ -40,13 +40,13 @@ import { useCreateCampaign } from "@/hooks/useCampaigns";
 import { getCampaignByFeedbackId, onCampaignsChanged } from "@/lib/campaignStore";
 import type { CampaignCategory } from "@/lib/campaignStore";
 import {
-  getToken,
   type FeedbackAttachmentResponse,
   type FeedbackLogResponse,
   type FeedbackStatus,
 } from "@/lib/api";
 import { mapStatus } from "@/lib/status";
 import { Role } from "@/lib/roles";
+import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 
 // Lazy load CivicMap to prevent SSR issues with Leaflet
@@ -68,7 +68,9 @@ function ReportDetail() {
   const { id } = Route.useParams();
   const { locale, t } = useI18n();
   const isVi = locale === "vi";
+  const { user } = useAuth();
   const { data: report, isLoading, isError, error, refetch } = usePublicFeedbackDetail(id);
+  const canManageCampaignFromReport = user?.role === Role.WARD_STAFF;
 
   // Local state for UI interactions
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -474,6 +476,15 @@ function ReportDetail() {
 
   const handleCreateCampaignSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canManageCampaignFromReport) {
+      toast.error(
+        isVi
+          ? "Chỉ cán bộ phường mới được tạo chiến dịch từ phản ánh."
+          : "Only ward staff can create campaigns from reports.",
+      );
+      setShowCreateCampaignModal(false);
+      return;
+    }
     if (!campaignForm.title.trim() || !campaignForm.description.trim()) return;
 
     submitCampaign({
@@ -1121,8 +1132,8 @@ function ReportDetail() {
             </div>
 
             {/* 10. Community Campaign Section */}
-            {linkedCampaign ? (
-              /* ── State B: ĐÃ CÓ chiến dịch ── */
+            {canManageCampaignFromReport && (linkedCampaign ? (
+              /* State B: Has linked campaign */
               <div className="bg-gradient-to-br from-emerald-50 to-teal-50/20 rounded-[20px] border border-emerald-100 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow transition-shadow">
                 <div className="flex items-center justify-between border-b border-emerald-100/50 pb-3 mb-4">
                   <div className="flex items-center gap-2">
@@ -1153,7 +1164,6 @@ function ReportDetail() {
                   </div>
                 </div>
 
-                {/* Progress bar */}
                 <div className="space-y-1 mb-4">
                   <div className="flex justify-between text-[10px] font-extrabold text-emerald-800">
                     <span>{isVi ? "Tiến độ đạt" : "Progress reached"}</span>
@@ -1184,7 +1194,7 @@ function ReportDetail() {
                 </div>
               </div>
             ) : (
-              /* ── State A: CHƯA CÓ chiến dịch ── */
+              /* State A: No linked campaign */
               <div className="rounded-[20px] border-2 border-dashed border-emerald-200 bg-emerald-50/30 p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:border-emerald-300 hover:bg-emerald-50/50 transition-all">
                 <div className="flex items-center gap-2 mb-4">
                   <Flag size={16} className="text-emerald-500" />
@@ -1193,7 +1203,6 @@ function ReportDetail() {
                   </h3>
                 </div>
 
-                {/* Empty illustration */}
                 <div className="flex flex-col items-center text-center py-4 px-2 mb-4">
                   <div className="w-14 h-14 rounded-2xl bg-emerald-100 border border-emerald-200 flex items-center justify-center mb-3">
                     <Flag size={26} className="text-emerald-400" />
@@ -1208,7 +1217,6 @@ function ReportDetail() {
                   </p>
                 </div>
 
-                {/* Benefits row */}
                 <div className="grid grid-cols-3 gap-2 mb-4">
                   {[
                     { icon: Users, label: isVi ? "Huy động cộng đồng" : "Mobilize community" },
@@ -1230,8 +1238,7 @@ function ReportDetail() {
                   {isVi ? "Tạo chiến dịch ngay" : "Create Campaign Now"}
                 </button>
               </div>
-            )}
-
+            ))}
             {/* 11. Similar Reports Section */}
             <div className="bg-white rounded-[20px] border border-[#E2E8F0] p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
               <h3 className="flex items-center gap-2 text-sm font-extrabold text-[#0B2545] border-b border-slate-50 pb-3 mb-3">
@@ -1397,7 +1404,7 @@ function ReportDetail() {
       )}
 
       {/* 3. Create Campaign Dialog */}
-      {showCreateCampaignModal && (
+      {canManageCampaignFromReport && showCreateCampaignModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white rounded-[24px] max-w-xl w-full shadow-2xl border border-slate-100 animate-scale-in flex flex-col max-h-[90vh]">
             {/* Header */}

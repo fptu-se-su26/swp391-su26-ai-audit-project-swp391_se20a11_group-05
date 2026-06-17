@@ -33,13 +33,15 @@ export const Route = createFileRoute("/_auth")({
    * Once httpOnly cookies are in place, replace with: fetch("/api/auth/me")
    */
   beforeLoad: async () => {
+    if (typeof window === "undefined") return;
+
     // ── Read stored session ──────────────────────────────────
-    const token = typeof window !== "undefined" ? getToken() : null;
-    const raw = typeof window !== "undefined" ? localStorage.getItem("dn_auth_user_v2") : null;
+    const token = getToken();
+    const raw = localStorage.getItem("dn_auth_user_v2");
 
     // ── 1. Not authenticated ─────────────────────────────────
     if (!token || !raw) {
-      throw redirect({ to: "/login", search: { redirect: undefined, error: undefined } });
+      throw redirect({ to: "/authority-login", search: { redirect: undefined, error: undefined } });
     }
 
     let user: { name: string; role: string; org: string } | null = null;
@@ -48,10 +50,10 @@ export const Route = createFileRoute("/_auth")({
     } catch {
       // Corrupt storage → clear and redirect
       localStorage.removeItem("dn_auth_user_v2");
-      throw redirect({ to: "/login", search: { redirect: undefined, error: undefined } });
+      throw redirect({ to: "/authority-login", search: { redirect: undefined, error: undefined } });
     }
 
-    if (!user) throw redirect({ to: "/login", search: { redirect: undefined, error: undefined } });
+    if (!user) throw redirect({ to: "/authority-login", search: { redirect: undefined, error: undefined } });
 
     // Normalize role to our enum
     const role = parseBackendRole(user.role);
@@ -62,7 +64,7 @@ export const Route = createFileRoute("/_auth")({
     if (CITIZEN_ROLES.has(role)) {
       localStorage.removeItem("dn_auth_user_v2");
       localStorage.removeItem("dn_jwt_token");
-      throw redirect({ to: "/login", search: { redirect: undefined, error: "forbidden" } });
+      throw redirect({ to: "/authority-login", search: { redirect: undefined, error: "forbidden" } });
     }
 
     // ── 3. Confirmed authority user — inject into context ────

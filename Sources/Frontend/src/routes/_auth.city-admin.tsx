@@ -12,11 +12,12 @@ import { CityAdminDashboard } from "@/features/city-admin/CityAdminDashboard";
 
 export const Route = createFileRoute("/_auth/city-admin")({
   beforeLoad: ({ context }) => {
+    if (typeof window === "undefined") return;
     const { currentUser } = context as { currentUser: { role: string } };
 
-    // SECURITY check: Ensure that only SUPER_ADMIN is permitted to access the IOC dashboard.
-    if (currentUser.role !== Role.SUPER_ADMIN) {
-      throw redirect({ to: "/login", search: { redirect: undefined, error: "forbidden" } });
+    // SECURITY check: Ensure that only the SUPER_ADMIN role is allowed to access the dashboard.
+    if (currentUser?.role !== Role.SUPER_ADMIN) {
+      throw redirect({ to: "/authority-login", search: { redirect: undefined, error: "forbidden" } });
     }
   },
   head: () => ({

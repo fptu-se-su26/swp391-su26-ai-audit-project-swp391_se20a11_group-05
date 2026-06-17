@@ -1,4 +1,4 @@
-# CLAUDE.md - Thanh Pho Lang Nghe / SmartCity
+# Architure.md - Thanh Pho Lang Nghe / SmartCity
 
 > Doc het file nay truoc khi viet code.
 > File nay la "agent contract" cho repo hien tai, de agent khong tao file rac,
@@ -481,7 +481,7 @@ Sources/Backend/target/
 Bat buoc lam theo thu tu:
 
 ```text
-1. Doc CLAUDE.md.
+1. Doc Architure.md.
 2. Chay rg/rg --files de tim file lien quan.
 3. Xac dinh task thuoc module nao.
 4. Doc controller/service/repository/entity/dto hien co cua module do.

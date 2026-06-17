@@ -157,7 +157,7 @@ export function CityAdminDashboard() {
 
   const { data: notifications = [] } = useNotifications();
   const markRead = useMarkNotificationReadMutation();
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const feedbacks = feedbacksPage?.content ?? [];
   const hasApiData = feedbacks.length > 0;
@@ -378,7 +378,7 @@ export function CityAdminDashboard() {
   }, [priorityReports, selectedWard, selectedCategory, selectedStatus, searchQuery]);
 
   const handleMarkAllRead = async () => {
-    const unreadItems = notifications.filter((n) => !n.read).slice(0, 5);
+    const unreadItems = notifications.filter((n) => !n.isRead).slice(0, 5);
     if (unreadItems.length === 0) return;
     try {
       await Promise.all(unreadItems.map((item) => markRead.mutateAsync(item.id)));
@@ -551,7 +551,7 @@ export function CityAdminDashboard() {
                           key={item.id}
                           onClick={() => handleNotifClick(item.id, item.feedbackId ?? item.referenceId)}
                           className={`w-full text-left p-3 flex flex-col transition-colors hover:bg-slate-50 ${
-                            item.read ? "opacity-75" : "bg-blue-50/40"
+                            item.isRead ? "opacity-75" : "bg-blue-50/40"
                           }`}
                         >
                           <span className="text-xs font-bold text-slate-800 leading-snug">{item.title}</span>

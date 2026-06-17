@@ -250,6 +250,7 @@ export interface FeedbackResponse {
   receivedAt?: string | null;
   resolvedAt?: string | null;
   createdAt: string;
+  updatedAt?: string;
 }
 export interface PoliceFeedbackResponse {
   id: number;

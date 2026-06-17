@@ -40,11 +40,16 @@ const CivicMap = lazy(() =>
 );
 
 export const Route = createFileRoute("/feedback-search")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    category: (search.category as string) || "",
-    q: (search.q as string) || "",
-    status: (search.status as string) || "",
-    range: (search.range as string) || "",
+  validateSearch: (search: Record<string, unknown>): {
+    category?: string;
+    q?: string;
+    status?: string;
+    range?: string;
+  } => ({
+    category: search.category as string | undefined,
+    q: search.q as string | undefined,
+    status: search.status as string | undefined,
+    range: search.range as string | undefined,
   }),
   head: () => ({
     meta: [
@@ -75,7 +80,7 @@ const getFromDateString = (range: string) => {
 
 function FeedbackSearch() {
   const { locale, t } = useI18n();
-  const navigate = useNavigate();
+  const navigate = useNavigate({ from: "/feedback-search" });
   const { category = "", q = "", status = "", range = "" } = Route.useSearch();
   const { isAuthenticated } = useAuth();
 

@@ -163,6 +163,7 @@ function AuthorityLoginPage() {
           return;
         }
 
+        console.log("LOGIN SUCCESS! Response data:", data);
         login({
           name: data.username,
           role,

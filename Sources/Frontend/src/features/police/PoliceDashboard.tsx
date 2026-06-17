@@ -656,7 +656,11 @@ export function PoliceDashboard() {
                     <ChevronDown size={14} className="text-slate-400" />
                   </div>
                   <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block mt-0.5">
-                    {user?.org || "Admin công an phường"}
+                    {user?.org || "Admin công an phường"} 
+                  </span>
+                  {/* DEBUG INFO */}
+                  <span className="text-[10px] text-red-500 font-bold block">
+                    DEBUG org: '{user?.org}'
                   </span>
                 </div>
               </button>

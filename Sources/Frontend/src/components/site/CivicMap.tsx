@@ -20,7 +20,7 @@ interface Props {
 
 // Custom Leaflet marker generator
 function getMarkerIcon(status?: string) {
-  if (typeof window === "undefined") return null;
+  if (typeof window === "undefined" || !L) return null;
   const colorMap: Record<string, string> = {
     pending: "#f97316",    // Orange
     inProgress: "#3b82f6", // Blue

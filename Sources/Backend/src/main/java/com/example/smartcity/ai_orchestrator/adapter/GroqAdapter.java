@@ -102,6 +102,41 @@ public class GroqAdapter implements AiProviderAdapter {
                 .toFuture();
     }
 
+    @io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker(name = "groqLLM", fallbackMethod = "fallbackToGeminiStructured")
+    public CompletableFuture<String> generateStructuredResponseAsync(String systemPrompt, String userMessage) {
+        if (!keyPool.isConfigured()) {
+            return CompletableFuture.completedFuture("{\"intent\":\"SMALLTALK\", \"emotion\":\"NEUTRAL\", \"reply\":\"Groq chưa cấu hình\"}");
+        }
+
+        AtomicReference<String> currentKey = new AtomicReference<>(safeNextKey());
+
+        return buildStructuredMono(systemPrompt, userMessage, currentKey)
+                .retryWhen(Retry.max(MAX_RETRIES)
+                        .filter(e -> e instanceof WebClientResponseException ex
+                                && ex.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS)
+                        .doBeforeRetry(signal -> {
+                            String failedKey = currentKey.get();
+                            boolean isDaily = signal.failure().getMessage() != null && signal.failure().getMessage().contains("daily");
+                            if (isDaily) keyPool.markExhausted(failedKey);
+                            else keyPool.markRateLimited(failedKey);
+                            currentKey.set(safeNextKey());
+                        })
+                )
+                .onErrorMap(WebClientResponseException.class, e ->
+                        e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS
+                                ? new GroqKeyPool.PoolExhaustedException("Rate limit sau " + MAX_RETRIES + " lần retry")
+                                : e
+                )
+                .onErrorResume(GroqKeyPool.PoolExhaustedException.class, Mono::error)
+                .onErrorReturn("{\"intent\":\"SMALLTALK\", \"emotion\":\"NEUTRAL\", \"reply\":\"Groq lỗi không xác định\"}")
+                .toFuture();
+    }
+
+    public CompletableFuture<String> fallbackToGeminiStructured(String systemPrompt, String userMessage, Throwable t) {
+        log.warn("🚨 [CircuitBreaker] Groq API sập. Fallback sang Gemini. Lỗi: {}", t.getMessage());
+        return geminiAdapter.generateStructuredResponseAsync(systemPrompt, userMessage);
+    }
+
     public CompletableFuture<String> fallbackToGemini(String systemPrompt, String userMessage, Throwable t) {
         log.warn("🚨 [CircuitBreaker] Groq API sập hoặc Rate Limit quá nhiều. Tự động Fallback sang Gemini. Lỗi: {}", t.getMessage());
         return geminiAdapter.generateResponseAsync(systemPrompt, userMessage);
@@ -138,6 +173,33 @@ public class GroqAdapter implements AiProviderAdapter {
                     .map(this::parseResponse)
                     .timeout(Duration.ofSeconds(10))
                     .doOnSuccess(r -> log.info("✅ [Groq] OK ({} ký tự)", r.length()));
+        });
+    }
+
+    private Mono<String> buildStructuredMono(String systemPrompt, String userMessage, AtomicReference<String> keyRef) {
+        return Mono.defer(() -> {
+            String apiKey = keyRef.get();
+            if (apiKey == null) return Mono.error(new GroqKeyPool.PoolExhaustedException("Không còn key ACTIVE"));
+
+            Map<String, Object> body = Map.of(
+                "model", model,
+                "messages", List.of(
+                    Map.of("role", "system", "content", systemPrompt),
+                    Map.of("role", "user",   "content", userMessage)
+                ),
+                "temperature", 0.1,
+                "max_tokens",  1024,
+                "response_format", Map.of("type", "json_object")
+            );
+
+            return webClient.post()
+                    .uri("/chat/completions")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
+                    .bodyValue(body)
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .map(this::parseResponse)
+                    .timeout(Duration.ofSeconds(15));
         });
     }
 

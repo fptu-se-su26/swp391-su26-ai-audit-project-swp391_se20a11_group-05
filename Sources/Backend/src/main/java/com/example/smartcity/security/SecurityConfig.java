@@ -50,7 +50,7 @@ public class SecurityConfig {
                         // Public: static assets, auth endpoints
                         .requestMatchers("/", "/favicon.ico", "/**/*.png", "/**/*.gif", "/**/*.svg", "/**/*.jpg", "/**/*.html", "/**/*.css", "/**/*.js").permitAll()
                         .requestMatchers("/api/auth/**").permitAll() // Login/Register/MFA are public
-                        .requestMatchers("/api/rag/chatbot", "/api/rag/stream").permitAll() // Public Chatbot endpoints
+                        .requestMatchers("/api/rag/chatbot", "/api/rag/stream", "/api/chat/stream").permitAll() // Public Chatbot endpoints
                         .requestMatchers("/actuator/health").permitAll() // Health check only
                         .requestMatchers("/api/feedbacks/public/**", "/api/feedbacks/statuses").permitAll() // Public Feedback Lookups & Statuses
                         // Authenticated: all business endpoints

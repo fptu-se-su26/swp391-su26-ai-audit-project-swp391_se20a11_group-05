@@ -89,6 +89,50 @@ public class GeminiAdapter implements AiProviderAdapter {
                 .toFuture();
     }
 
+    @io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker(name = "geminiLLM", fallbackMethod = "fallbackToMockStructured")
+    public CompletableFuture<String> generateStructuredResponseAsync(String systemPrompt, String userMessage) {
+        if (!keyPool.isConfigured()) {
+            return CompletableFuture.completedFuture(buildMockStructuredFallback(userMessage));
+        }
+
+        String apiKey = keyPool.nextKey();
+        if (apiKey == null) {
+            return CompletableFuture.completedFuture(buildMockStructuredFallback(userMessage));
+        }
+
+        log.info("🔵 [Gemini] Gọi API Structured JSON | model={} | key={}...", model, apiKey.substring(0, Math.min(8, apiKey.length())));
+
+        Map<String, Object> body = Map.of(
+            "system_instruction", Map.of("parts", List.of(Map.of("text", systemPrompt))),
+            "contents", List.of(
+                Map.of("role", "user", "parts", List.of(Map.of("text", userMessage)))
+            ),
+            "generationConfig", Map.of(
+                "temperature", 0.1, 
+                "maxOutputTokens", 2048,
+                "responseMimeType", "application/json"
+            )
+        );
+
+        String finalApiKey = apiKey;
+        return webClient.post()
+                .uri("/v1beta/models/" + model + ":generateContent?key=" + apiKey)
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono(Map.class)
+                .map(this::parseGeminiResponse)
+                .timeout(Duration.ofSeconds(15))
+                .doOnSuccess(r -> log.info("✅ [Gemini Structured] OK ({} ký tự)", r.length()))
+                .doOnError(e -> {
+                    log.error("❌ [Gemini Structured] Lỗi: {}", e.getMessage());
+                    if (e.getMessage() != null && e.getMessage().contains("429")) {
+                        keyPool.markRateLimited(finalApiKey);
+                    }
+                })
+                .onErrorReturn(buildMockStructuredFallback(userMessage))
+                .toFuture();
+    }
+
     @io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker(name = "geminiLLM", fallbackMethod = "fallbackToMockMultimodal")
     public CompletableFuture<String> generateMultimodalResponseAsync(String systemPrompt, String userMessage, List<String> base64Images) {
         if (!keyPool.isConfigured()) {
@@ -146,6 +190,11 @@ public class GeminiAdapter implements AiProviderAdapter {
     public CompletableFuture<String> fallbackToMock(String systemPrompt, String userMessage, Throwable t) {
         log.warn("🚨 [CircuitBreaker] Gemini API sập. Kích hoạt Mock Fallback an toàn. Lỗi: {}", t.getMessage());
         return CompletableFuture.completedFuture(buildMockFallback(userMessage));
+    }
+
+    public CompletableFuture<String> fallbackToMockStructured(String systemPrompt, String userMessage, Throwable t) {
+        log.warn("🚨 [CircuitBreaker] Gemini Structured API sập. Kích hoạt Mock Fallback. Lỗi: {}", t.getMessage());
+        return CompletableFuture.completedFuture(buildMockStructuredFallback(userMessage));
     }
 
     private String parseGeminiResponse(Map<?, ?> response) {
@@ -239,6 +288,36 @@ public class GeminiAdapter implements AiProviderAdapter {
     private String buildMockFallback(String userMessage) {
         return "⏳ Tất cả AI provider đang tạm thời quá tải. Vui lòng thử lại sau 1-2 phút. (Câu hỏi: "
                 + userMessage.substring(0, Math.min(60, userMessage.length())) + "...)";
+    }
+
+    private String buildMockStructuredFallback(String userMessage) {
+        String lowerMsg = userMessage.toLowerCase();
+        String intent = "SMALLTALK";
+        String emotion = "NEUTRAL";
+        String reply = "Dạ, hiện tại em đang chạy ở chế độ MOCK (chưa có API Key). Bạn vừa nói: " + userMessage;
+        
+        if (lowerMsg.contains("bão") || lowerMsg.contains("cứu") || lowerMsg.contains("ngập")) {
+            intent = "CREATE_FEEDBACK";
+            emotion = "NEGATIVE";
+            reply = "Trời ơi, em rất chia sẻ với thiệt hại của gia đình mình ạ. Cơn bão vừa qua đúng là căng thẳng quá. Cô/chú bình tĩnh nhé! Em đang ghi nhận sự cố ngập lụt đây ạ.";
+        } else if (lowerMsg.contains("cảm ơn") || lowerMsg.contains("tuyệt vời")) {
+            intent = "SMALLTALK";
+            emotion = "POSITIVE";
+            reply = "Dạ em cảm ơn cô/chú nhiều ạ! Cô/chú cần hỗ trợ gì thêm cứ nhắn em nhé.";
+        } else if (lowerMsg.contains("thủ tục") || lowerMsg.contains("giấy phép") || lowerMsg.contains("luật")) {
+            intent = "QA_LEGAL";
+            emotion = "NEUTRAL";
+            reply = "Dạ, để em tra cứu luật giúp cô/chú ạ...";
+        } else if (lowerMsg.contains("fb-")) {
+            intent = "LOOKUP";
+            emotion = "NEUTRAL";
+            reply = ""; // LOOKUP doesn't strictly need a reply as ChatRouter will query DB
+        }
+        
+        return String.format(
+            "{\"intent\": \"%s\", \"emotion\": \"%s\", \"reply\": \"%s\", \"confidence\": 0.99}",
+            intent, emotion, reply.replace("\"", "\\\"").replace("\n", " ")
+        );
     }
 }
 

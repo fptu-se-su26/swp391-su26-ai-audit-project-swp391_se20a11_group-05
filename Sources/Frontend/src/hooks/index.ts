@@ -25,6 +25,7 @@ import {
   type UserProfile,
   type NotificationResponse,
   type FeedbackLookupStatsResponse,
+  type PoliceFeedbackResponse,
 } from "@/lib/api";
 import {
   submitCitizenFeedbackMedia,
@@ -104,6 +105,22 @@ export function usePublicFeedbackStats(filters: FeedbackListFilters = {}) {
   return useQuery<FeedbackLookupStatsResponse>({
     queryKey: queryKeys.feedbacks.publicStats(filters),
     queryFn: () => feedbackApi.getPublicStats(filters),
+    staleTime: 30_000,
+  });
+}
+
+export function usePublicFeedbackStatistics(filters: FeedbackListFilters = {}) {
+  return useQuery<FeedbackLookupStatsResponse>({
+    queryKey: queryKeys.feedbacks.publicStats(filters),
+    queryFn: () => feedbackApi.getPublicFeedbackStatistics(filters),
+    staleTime: 30_000,
+  });
+}
+
+export function useRecentPublicFeedback(limit = 5, filters: FeedbackListFilters = {}) {
+  return useQuery<PageResponse<FeedbackResponse>>({
+    queryKey: queryKeys.feedbacks.publicList(0, limit, filters),
+    queryFn: () => feedbackApi.getRecentPublicFeedback(limit, filters),
     staleTime: 30_000,
   });
 }
@@ -198,6 +215,14 @@ export function useHotspots() {
     queryKey: ["feedbacks", "hotspots"],
     queryFn: () => policeApi.getHotspots(),
     staleTime: 60_000, // 1 min cache
+  });
+}
+
+export function usePoliceAssignedFeedbacks() {
+  return useQuery<PoliceFeedbackResponse[]>({
+    queryKey: ["police", "assigned-feedbacks"],
+    queryFn: () => policeApi.getAssignedFeedbacks(),
+    staleTime: 10_000,
   });
 }
 
@@ -325,7 +350,12 @@ export function useInfiniteNotifications(size = 5) {
 export function useMarkNotificationReadMutation() {
   const queryClient = useQueryClient();
 
-  return useMutation<NotificationResponse, Error, number | string>({
+  return useMutation<
+    NotificationResponse,
+    Error,
+    number | string,
+    { previousNotifications?: NotificationResponse[]; previousUnreadCount?: number }
+  >({
     mutationFn: (id) => notificationApi.markAsRead(id),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.notifications.all });
@@ -372,7 +402,12 @@ export function useMarkNotificationReadMutation() {
 export function useMarkAllNotificationsReadMutation() {
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, void>({
+  return useMutation<
+    void,
+    Error,
+    void,
+    { previousNotifications?: NotificationResponse[]; previousUnreadCount?: number }
+  >({
     mutationFn: () => notificationApi.markAllAsRead(),
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: queryKeys.notifications.all });
@@ -408,3 +443,4 @@ export function useMarkAllNotificationsReadMutation() {
     },
   });
 }
+

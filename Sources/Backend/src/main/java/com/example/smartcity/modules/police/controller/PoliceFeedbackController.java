@@ -29,7 +29,7 @@ public class PoliceFeedbackController {
      */
     @GetMapping
     public ResponseEntity<ApiResponse<List<PoliceFeedbackResponse>>> getAssignedFeedbacks(
-            @RequestParam(defaultValue = "2") Long policeUserId) { 
+            @RequestParam(defaultValue = "3") Long policeUserId) { 
         List<PoliceFeedbackResponse> feedbacks = feedbackService.getAssignedFeedbacks(policeUserId);
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách phản ánh thành công", feedbacks));
     }
@@ -49,7 +49,7 @@ public class PoliceFeedbackController {
     @PatchMapping("/{id}/accept")
     public ResponseEntity<ApiResponse<PoliceFeedbackResponse>> acceptFeedback(
             @PathVariable Long id,
-            @RequestParam(defaultValue = "2") Long policeUserId) {
+            @RequestParam(defaultValue = "3") Long policeUserId) {
         PoliceFeedbackResponse res = feedbackService.acceptFeedback(id, policeUserId);
         return ResponseEntity.ok(ApiResponse.success("Đã tiếp nhận phản ánh", res));
     }
@@ -60,7 +60,7 @@ public class PoliceFeedbackController {
     @PatchMapping("/{id}/status")
     public ResponseEntity<ApiResponse<PoliceFeedbackResponse>> updateStatus(
             @PathVariable Long id,
-            @RequestParam(defaultValue = "2") Long policeUserId,
+            @RequestParam(defaultValue = "3") Long policeUserId,
             @Valid @RequestBody UpdateFeedbackStatusRequest request) {
         PoliceFeedbackResponse res = feedbackService.updateStatus(id, policeUserId, request);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật trạng thái thành công", res));
@@ -72,7 +72,7 @@ public class PoliceFeedbackController {
     @PostMapping("/{id}/result")
     public ResponseEntity<ApiResponse<PoliceFeedbackResponse>> submitResult(
             @PathVariable Long id,
-            @RequestParam(defaultValue = "2") Long policeUserId,
+            @RequestParam(defaultValue = "3") Long policeUserId,
             @Valid @RequestBody SubmitFeedbackResultRequest request) {
         PoliceFeedbackResponse res = feedbackService.submitResult(id, policeUserId, request);
         return ResponseEntity.ok(ApiResponse.success("Báo cáo kết quả xử lý thành công", res));
@@ -84,7 +84,7 @@ public class PoliceFeedbackController {
     @PatchMapping("/{id}/reject")
     public ResponseEntity<ApiResponse<PoliceFeedbackResponse>> rejectFeedback(
             @PathVariable Long id,
-            @RequestParam(defaultValue = "2") Long policeUserId,
+            @RequestParam(defaultValue = "3") Long policeUserId,
             @Valid @RequestBody RejectFeedbackRequest request) {
         PoliceFeedbackResponse res = feedbackService.rejectFeedback(id, policeUserId, request);
         return ResponseEntity.ok(ApiResponse.success("Đã từ chối/yêu cầu chuyển tiếp phản ánh", res));
@@ -96,7 +96,7 @@ public class PoliceFeedbackController {
     @PatchMapping("/{id}/request-info")
     public ResponseEntity<ApiResponse<PoliceFeedbackResponse>> requestMoreInfo(
             @PathVariable Long id,
-            @RequestParam(defaultValue = "2") Long policeUserId,
+            @RequestParam(defaultValue = "3") Long policeUserId,
             @Valid @RequestBody RequestMoreInfoRequest request) {
         PoliceFeedbackResponse res = feedbackService.requestMoreInfo(id, policeUserId, request);
         return ResponseEntity.ok(ApiResponse.success("Đã yêu cầu người dân bổ sung thông tin", res));

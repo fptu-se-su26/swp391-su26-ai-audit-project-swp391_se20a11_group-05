@@ -81,10 +81,49 @@ Xem chi tiết ảnh giao diện tại docs/listening_city_dashboard.png.
 
 ---
 
+# [Phase 03] Cập nhật Tọa độ Thực tế và Cải tiến Bảo mật (Week 5)
+
+## Ngày thực hiện
+
+```text
+17/06/2026
+```
+
+## Đã hoàn thành
+
+- [x] Cập nhật bộ 29 dữ liệu góp ý thực tế tại Đà Nẵng với tọa độ GPS thực tế.
+- [x] Sửa cấu hình CORS chấp nhận các cổng dev server phụ trợ.
+- [x] Cập nhật DDL auto sang `update` cho môi trường Supabase dev.
+- [x] Dọn dẹp các file migrations trùng lặp và không tương thích.
+- [x] Tạo tài liệu chi tiết Kế hoạch Sửa lỗi `docs/BUG_FIX_PLAN.md`.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Cập nhật 29 tọa độ thực tế không trùng lặp | Phạm Bá Trí | `Sources/Backend/seed_feedbacks_only.sql` | [seed_feedbacks_only.sql](file:///d:/FPT_Uni/Semester%205/5_SWP391/swp391-su26-ai-audit-project-swp391_se20a11_group-05-main/Sources/Backend/seed_feedbacks_only.sql) |
+| 2 | Cấu hình lại các cổng CORS phụ trợ | Phạm Bá Trí | `Sources/Backend/.../security/CorsConfig.java` | [CorsConfig.java](file:///d:/FPT_Uni/Semester%205/5_SWP391/swp391-su26-ai-audit-project-swp391_se20a11_group-05-main/Sources/Backend/src/main/java/com/example/smartcity/security/CorsConfig.java) |
+| 3 | Đồng bộ hóa và làm sạch cấu hình migrations | Phạm Bá Trí | `supabase/migrations/` | Xóa các file schema cũ trùng lặp |
+| 4 | Soạn thảo Kế hoạch Sửa lỗi JUnit và Linter | Phạm Bá Trí | `docs/BUG_FIX_PLAN.md` | [BUG_FIX_PLAN.md](file:///d:/FPT_Uni/Semester%205/5_SWP391/swp391-su26-ai-audit-project-swp391_se20a11_group-05-main/docs/BUG_FIX_PLAN.md) |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Mô tả AI đã hỗ trợ phần nào:
+
+```text
+Antigravity hỗ trợ phân tích dữ liệu tọa độ thực tế Da Nang, kiểm toán logs Maven Test & ESLint, phát hiện và lập tài liệu khắc phục lỗi JUnit/Linter.
+```
+
+---
+
 # 5. Cam kết cập nhật Changelog
 
 Sinh viên/nhóm cam kết rằng nội dung changelog phản ánh đúng các thay đổi đã thực hiện trong quá trình làm bài tập/project.
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-| Phạm Bá Trí | 2026-05-20 |
+| Phạm Bá Trí | 2026-06-17 |
+

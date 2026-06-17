@@ -218,12 +218,14 @@ export function Header() {
   };
 
   // Simplified core navigation items
-  const menuItems = [
+  const menuItems: Array<{ to: string; hash?: string; label: string }> = [
     { to: "/", label: locale === "vi" ? "Trang chủ" : "Home" },
     { to: "/tin-tuc", label: locale === "vi" ? "Tin tức" : "News" },
-    { to: "/my-reports", label: locale === "vi" ? "Tra cứu" : "Search" },
-    { to: "/", hash: "huong-dan", label: locale === "vi" ? "Hướng dẫn" : "Guide" },
-  ] as const;
+    { to: "/feedback-search", label: locale === "vi" ? "Tra cứu" : "Search" },
+    { to: "/campaigns", label: locale === "vi" ? "Chiến dịch" : "Campaigns" },
+    { to: "/", hash: "huong-dan", label: locale === "vi" ? "Hướng dẫn" : "Guides" },
+    { to: "/", hash: "lien-he", label: locale === "vi" ? "Liên hệ" : "Contact" },
+  ];
 
   const staffItemsAll = [
     { to: "/ward", label: t("nav.ward"), roles: [Role.WARD_STAFF, Role.SUPER_ADMIN] as const },
@@ -240,16 +242,22 @@ export function Header() {
     }
     const hash = window.location.hash;
     if (item.label === "Trang chủ" || item.label === "Home") {
-      return path === "/" && hash !== "#huong-dan" && hash !== "#tin-tuc";
+      return path === "/" && hash !== "#huong-dan" && hash !== "#tin-tuc" && hash !== "#lien-he";
     }
     if (item.label === "Tin tức" || item.label === "News") {
       return path === "/tin-tuc";
     }
     if (item.label === "Tra cứu" || item.label === "Search") {
-      return path === "/my-reports";
+      return path === "/feedback-search";
     }
-    if (item.label === "Hướng dẫn" || item.label === "Guide") {
+    if (item.label === "Chiến dịch" || item.label === "Campaigns") {
+      return path.startsWith("/campaigns");
+    }
+    if (item.label === "Hướng dẫn" || item.label === "Guides") {
       return path === "/" && hash === "#huong-dan";
+    }
+    if (item.label === "Liên hệ" || item.label === "Contact") {
+      return path === "/" && hash === "#lien-he";
     }
     return false;
   };
@@ -556,7 +564,7 @@ export function Header() {
                   </Link>
 
                   <Link
-                    to="/my-reports"
+                    to="/feedback-search"
                     onClick={() => setUserOpen(false)}
                     className="w-full text-left px-4 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2.5 font-sans"
                   >
@@ -700,7 +708,7 @@ export function Header() {
                   {t("header.profile")}
                 </Link>
                 <Link
-                  to="/my-reports"
+                  to="/feedback-search"
                   onClick={() => setOpen(false)}
                   className="block min-h-[48px] px-4 py-3 rounded-md font-semibold text-[#123E8A] hover:bg-slate-50 font-sans"
                 >

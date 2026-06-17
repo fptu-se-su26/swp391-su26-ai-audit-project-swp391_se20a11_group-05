@@ -66,7 +66,7 @@ function CreateCampaignPage() {
   };
 
   const durationText = getDurationText();
-  const isDurationError = durationText && durationText.includes("phải diễn ra sau");
+  const isDurationError = !!(durationText && durationText.includes("phải diễn ra sau"));
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();

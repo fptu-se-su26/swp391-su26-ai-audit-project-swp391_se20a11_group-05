@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { lazy, Suspense, useState, useMemo } from "react";
+import { lazy, Suspense, useState, useMemo, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
+import { useCampaignDetail } from "@/hooks/useCampaigns";
+import { getComments, saveComments, onCommentsChanged, type CampaignComment } from "@/lib/campaignStore";
 import {
   Calendar,
   Users,
@@ -63,52 +65,77 @@ export const Route = createFileRoute("/campaigns/$id")({
 });
 
 function CampaignDetail() {
+  const { id } = Route.useParams();
   const { locale } = useI18n();
   const isVi = locale === "vi";
+
+  // ── Dữ liệu từ store (seed + user-created) ──────────────────
+  const campaign = useCampaignDetail(id);
+
+  // Derived display values — fallback về hardcode của "green-hoa-xuan" nếu không tìm thấy
+  const campaignName    = isVi ? (campaign?.name    ?? "Chiến dịch Hành trình Xanh Hòa Xuân") : (campaign?.nameEn  ?? "Green Hoa Xuan Campaign");
+  const campaignDesc    = isVi ? (campaign?.desc    ?? "") : (campaign?.descEn ?? "");
+  const campaignCover   = campaign?.cover   ?? "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=1600&h=600&q=80";
+  const campaignWard    = campaign?.ward    ?? "Hòa Xuân";
+  const campaignTarget  = campaign?.target  ?? 50;
+  const campaignReports = campaign?.reports ?? 18;
+  const campaignImpact  = campaign?.impactScore ?? 8.5;
+  const campaignAffected = campaign?.affectedCitizens ?? 1245;
+  const campaignCreatedBy = isVi ? (campaign?.createdBy ?? "UBND Phường Hòa Xuân") : (campaign?.createdByEn ?? "Ward Authority");
+
+  // Category label dùng cho breadcrumb + hero badge
+  const campaignCategoryLabel = (() => {
+    switch (campaign?.category) {
+      case "infrastructure": return isVi ? "Hạ tầng" : "Infrastructure";
+      case "public_safety":  return isVi ? "An toàn" : "Safety";
+      case "construction":   return isVi ? "Xây dựng" : "Construction";
+      case "fire_safety":    return isVi ? "Phòng cháy" : "Fire Safety";
+      default:               return isVi ? "Môi trường" : "Environment";
+    }
+  })();
+
+  // Duration tính từ startTime → endTime
+  const campaignDuration = (() => {
+    if (campaign?.startTime && campaign?.endTime) {
+      const diff = Math.ceil(
+        (new Date(campaign.endTime).getTime() - new Date(campaign.startTime).getTime()) / 86_400_000
+      );
+      return `${diff} ${isVi ? "ngày" : "Days"}`;
+    }
+    return isVi ? "—" : "—";
+  })();
+
+  // Xác định có phải campaign user-created (ít dữ liệu) hay seed campaign (đầy đủ data)
+  const isUserCreated = campaign?.id?.startsWith("user-") ?? false;
+
+  // Status khởi tạo từ store
+  const initialStatus = (() => {
+    if (!campaign) return "inProgress" as const;
+    if (campaign.status === "completed") return "completed" as const;
+    if (campaign.status === "recruiting") return "recruiting" as const;
+    return "inProgress" as const;
+  })();
 
   // State Management
   const [isJoined, setIsJoined] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
-  const [participantCount, setParticipantCount] = useState(42);
-  const [campaignStatus, setCampaignStatus] = useState<"recruiting" | "inProgress" | "completed">("inProgress");
+  const [participantCount, setParticipantCount] = useState(() => campaign?.participants ?? 42);
+  const [campaignStatus, setCampaignStatus] = useState<"recruiting" | "inProgress" | "completed">(initialStatus);
   const [selectedTaskFilter, setSelectedTaskFilter] = useState<"all" | "todo" | "inProgress" | "completed">("all");
   
   // Before / After Slider Position
   const [sliderPosition, setSliderPosition] = useState(50);
 
-  // Discussion state
-  const [comments, setComments] = useState([
-    {
-      id: "c-1",
-      author: "Nguyễn Văn Hùng",
-      role: "Trưởng nhóm TNV Tổ 1",
-      avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80",
-      time: isVi ? "10 phút trước" : "10 minutes ago",
-      text: isVi ? "Bên mình đã dọn xong đoạn kênh hở số 2 rồi nhé mọi người. Lượng rác nhựa ở đây nhiều khủng khiếp!" : "Our team finished clearing canal section 2. The amount of plastic waste here was enormous!",
-      likes: 14,
-      replies: [
-        {
-          id: "c-1-r-1",
-          author: "UBND Phường Hòa Xuân",
-          role: "Ban quản lý",
-          avatar: "https://images.unsplash.com/photo-1542909168-82c3e7fdca5c?auto=format&fit=crop&w=100&q=80",
-          time: isVi ? "5 phút trước" : "5 minutes ago",
-          text: isVi ? "Cảm ơn nỗ lực tuyệt vời của Tổ 1! Xe chở rác chuyên dụng đang trên đường đến điểm tập kết rác tạm để vận chuyển đi." : "Thank you for the great effort from Team 1! The garbage collection truck is on its way to the collection point.",
-        }
-      ]
-    },
-    {
-      id: "c-2",
-      author: "Trần Thị Lan",
-      role: "Người dân Hòa Xuân",
-      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80",
-      time: isVi ? "1 giờ trước" : "1 hour ago",
-      text: isVi ? "Rất hoan nghênh chiến dịch này. Khu phố nhà mình sạch sẽ hẳn ra, không còn mùi hôi thối bốc lên từ mương nữa." : "Highly appreciate this campaign. Our neighborhood is much cleaner now, no more foul odors coming from the canal.",
-      likes: 8,
-      replies: []
-    }
-  ]);
+  // Discussion state — đọc từ localStorage theo campaign.id
+  const [comments, setComments] = useState<CampaignComment[]>(() => getComments(id));
   const [newCommentText, setNewCommentText] = useState("");
+
+  // Đồng bộ khi store thay đổi (tab khác, trang khác)
+  useEffect(() => {
+    setComments(getComments(id));
+    const unsub = onCommentsChanged(id, () => setComments(getComments(id)));
+    return unsub;
+  }, [id]);
 
   const handleJoinCampaign = () => {
     if (isJoined) {
@@ -139,7 +166,7 @@ function CampaignDetail() {
   const handleAddComment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCommentText.trim()) return;
-    const newComment = {
+    const newComment: CampaignComment = {
       id: `c-${Date.now()}`,
       author: isVi ? "Người dân Đà Nẵng (Bạn)" : "Da Nang Citizen (You)",
       role: isVi ? "Tình nguyện viên" : "Volunteer",
@@ -147,9 +174,11 @@ function CampaignDetail() {
       time: isVi ? "Vừa xong" : "Just now",
       text: newCommentText,
       likes: 0,
-      replies: []
+      replies: [],
     };
-    setComments((prev) => [newComment, ...prev]);
+    const updated = [newComment, ...comments];
+    setComments(updated);
+    saveComments(id, updated);
     setNewCommentText("");
     toast.success(isVi ? "Đã gửi ý kiến đóng góp thành công!" : "Comment submitted successfully!");
   };
@@ -243,15 +272,21 @@ function CampaignDetail() {
     });
   }, [selectedTaskFilter]);
 
-  // SECTION 5: Volunteer Activity Timeline
+  // SECTION 5: Volunteer Activity Timeline — dùng ngày thực từ campaign
+  const campaignStartDate = campaign?.startTime
+    ? new Date(campaign.startTime).toLocaleDateString("vi-VN")
+    : campaign?.createdAt
+    ? new Date(campaign.createdAt).toLocaleDateString("vi-VN")
+    : "12/06/2026";
+
   const timelineActivities = [
-    { date: "12/06/2026", time: "08:00 AM", title: isVi ? "Khởi tạo chiến dịch" : "Campaign Created", team: isVi ? "UBND Phường Hòa Xuân" : "Hoa Xuan Ward Committee", desc: isVi ? "Ban chỉ đạo ban hành quyết định hành động cấp bách cải tạo cảnh quan sau 18 phản ánh ô nhiễm tích tụ." : "Official launch of environmental restoration after 18 reports on illegal dumping.", progress: 100 },
+    { date: campaignStartDate, time: "08:00 AM", title: isVi ? "Khởi tạo chiến dịch" : "Campaign Created", team: campaignCreatedBy, desc: isVi ? `Ban chỉ đạo ban hành quyết định hành động. Chiến dịch "${campaignName}" được khởi động tại ${campaignWard}.` : `Campaign "${campaignName}" officially launched at ${campaignWard}.`, progress: 100 },
     { date: "13/06/2026", time: "09:30 AM", title: isVi ? "Tuyển dụng tình nguyện viên" : "Volunteer Recruitment Started", team: isVi ? "Đoàn Thanh niên Phường" : "Youth Union Committee", desc: isVi ? "Phát động kêu gọi TNV tham gia. Đăng ký trực tuyến nhận áo bảo hộ và trang bị dọn vệ sinh." : "Opened online application for volunteers, distributing safety gear and cleanup kits.", progress: 100 },
     { date: "14/06/2026", time: "07:30 AM", title: isVi ? "Ngày ra quân đầu tiên" : "First Cleanup Day", team: isVi ? "Đội ngũ liên ngành" : "Joint Taskforce Group", desc: isVi ? "Tập kết dụng cụ tại nhà văn hóa, tiến hành bóc dỡ quảng cáo rác, vệ sinh lòng đường và thu gom 1 tấn rác." : "Gathered at Community Center, removed illegal flyer walls, collected 1 ton of garbage.", progress: 100, photos: ["https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=300&q=80"] },
-    { date: "15/06/2026", time: "02:00 PM", title: isVi ? "Cập nhật tiến độ giữa kỳ" : "Midway Progress", team: isVi ? "Ban quản lý chiến dịch" : "Campaign Admin", desc: isVi ? "Dọn dẹp sạch 4 trên 6 tuyến mương thoát nước, rải đá dăm chống xói mòn và gia cố vỉa hè sụt lún." : "Cleared 4 out of 6 drainage canals, spread gravel for stabilization and patched sidewalks.", progress: 68 },
-    { date: "15/06/2026", time: "04:30 PM", title: isVi ? "Phản ánh được giải quyết một phần" : "Issue Partially Resolved", team: isVi ? "Tổ công tác 2" : "Working Team 2", desc: isVi ? "Giải quyết dứt điểm 12 bãi rác tự phát lớn, chuyển rác thải về bãi Khánh Sơn xử lý." : "Cleared 12 major waste piles, transported waste containers to Khanh Son landfill.", progress: 68 },
+    { date: "15/06/2026", time: "02:00 PM", title: isVi ? "Cập nhật tiến độ giữa kỳ" : "Midway Progress", team: isVi ? "Ban quản lý chiến dịch" : "Campaign Admin", desc: isVi ? "Dọn dẹp sạch 4 trên 6 tuyến mương thoát nước, rải đá dăm chống xói mòn và gia cố vỉa hè sụt lún." : "Cleared 4 out of 6 drainage canals, spread gravel for stabilization and patched sidewalks.", progress: campaign?.progress ?? 68 },
+    { date: "15/06/2026", time: "04:30 PM", title: isVi ? "Phản ánh được giải quyết một phần" : "Issue Partially Resolved", team: isVi ? "Tổ công tác 2" : "Working Team 2", desc: isVi ? "Giải quyết dứt điểm 12 bãi rác tự phát lớn, chuyển rác thải về bãi Khánh Sơn xử lý." : "Cleared 12 major waste piles, transported waste containers to Khanh Son landfill.", progress: campaign?.progress ?? 68 },
     { date: "17/06/2026", time: "08:00 AM", title: isVi ? "Giải quyết toàn diện phản ánh" : "Issue Fully Resolved", team: isVi ? "Đội kỹ thuật môi trường" : "Environmental Team", desc: isVi ? "Khai thông 100% cống rãnh nghẹt, lắp đặt camera AI giám sát đổ trộm tự động gửi biên bản phạt nguội." : "Completed drainage clearing, installed AI-cameras targeting illegal dumpers.", progress: 85 },
-    { date: "20/06/2026", time: "05:00 PM", title: isVi ? "Hoàn thành và bàn giao chiến dịch" : "Campaign Completed", team: isVi ? "UBND Phường Hòa Xuân" : "Hoa Xuan Ward Committee", desc: isVi ? "Trồng hoa ven hồ điều hòa, sơn sửa lại các bức tường công cộng bị bôi bẩn, ký cam kết tự quản với người dân." : "Planted flowers near reservoir, repainted walls, signed community maintenance pacts.", progress: 100 },
+    { date: campaign?.endTime ? new Date(campaign.endTime).toLocaleDateString("vi-VN") : "20/06/2026", time: "05:00 PM", title: isVi ? "Hoàn thành và bàn giao chiến dịch" : "Campaign Completed", team: campaignCreatedBy, desc: isVi ? "Trồng hoa ven hồ điều hòa, sơn sửa lại các bức tường công cộng bị bôi bẩn, ký cam kết tự quản với người dân." : "Planted flowers near reservoir, repainted walls, signed community maintenance pacts.", progress: 100 },
   ];
 
   // SECTION 6: Volunteer Team Directory
@@ -264,12 +299,12 @@ function CampaignDetail() {
     { name: "Lâm Minh Quốc", role: isVi ? "Điều phối viên kỹ thuật" : "Technical Coordinator", org: isVi ? "Công ty Môi trường đô thị" : "Urban Eco Co.", status: "online", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&q=80" },
   ];
 
-  // SECTION 7: Upcoming Activities Schedule
+  // SECTION 7: Upcoming Activities Schedule — dùng địa điểm thực từ campaign
   const activitySchedule = [
-    { date: "16/06/2026", time: "07:30 AM", loc: isVi ? "Đường Trần Nam Trung" : "Tran Nam Trung St", name: isVi ? "Ngày ra quân dọn rác đợt 2" : "Cleanup Day Round 2", guests: "45 TNV", status: "upcoming" },
-    { date: "18/06/2026", time: "08:00 AM", loc: isVi ? "Kênh sinh thái Hòa Xuân" : "Hoa Xuan Canal", name: isVi ? "Khơi thông dòng chảy & Vớt bèo" : "Canal Drainage Cleaning", guests: "30 TNV", status: "upcoming" },
-    { date: "20/06/2026", time: "07:30 AM", loc: isVi ? "Hồ điều hòa Hòa Xuân" : "Hoa Xuan Reservoir", name: isVi ? "Trồng hoa anh đào, cây bóng mát" : "Tree Planting Campaign", guests: "60 TNV", status: "upcoming" },
-    { date: "22/06/2026", time: "02:00 PM", loc: isVi ? "Nhà văn hóa Hòa Xuân" : "Community Hall", name: isVi ? "Tập huấn tuyên truyền môi trường" : "Awareness Session", guests: "80 người", status: "draft" },
+    { date: "16/06/2026", time: "07:30 AM", loc: campaign?.locationText ?? (isVi ? "Địa điểm chiến dịch" : "Campaign Location"), name: isVi ? "Ngày ra quân dọn rác đợt 2" : "Cleanup Day Round 2", guests: "45 TNV", status: "upcoming" },
+    { date: "18/06/2026", time: "08:00 AM", loc: isVi ? `Khu vực ${campaignWard}` : `${campaignWard} area`, name: isVi ? "Khơi thông dòng chảy & Vớt bèo" : "Canal Drainage Cleaning", guests: "30 TNV", status: "upcoming" },
+    { date: "20/06/2026", time: "07:30 AM", loc: isVi ? `${campaignWard}` : campaignWard, name: isVi ? "Trồng hoa anh đào, cây bóng mát" : "Tree Planting Campaign", guests: "60 TNV", status: "upcoming" },
+    { date: campaign?.endTime ? new Date(campaign.endTime).toLocaleDateString("vi-VN") : "22/06/2026", time: "02:00 PM", loc: isVi ? `Nhà văn hóa ${campaignWard}` : `${campaignWard} Community Hall`, name: isVi ? "Tập huấn tuyên truyền môi trường" : "Awareness Session", guests: "80 người", status: "draft" },
   ];
 
   // SECTION 8: Resource Inventory
@@ -285,42 +320,27 @@ function CampaignDetail() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-16 font-sans">
-      {/* 1. Top Bar with Demo Toggle */}
-      <div className="bg-slate-900 py-3 text-white">
-        <div className="max-w-[1440px] mx-auto px-4 md:px-8 flex flex-col sm:flex-row items-center justify-between gap-2.5">
+      {/* 1. Top Status Bar — dữ liệu thực từ store */}
+      <div className="bg-slate-900 py-2.5 text-white">
+        <div className="max-w-[1440px] mx-auto px-4 md:px-8 flex items-center justify-between gap-2">
           <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-            <Info size={14} className="text-[#1E5EFF]" />
-            {isVi 
-              ? "Chế độ xem Thử nghiệm: Bạn có thể chuyển đổi trạng thái để xem báo cáo tổng kết chiến dịch."
-              : "Demo Mode: Toggle the status below to preview the Campaign Completion Report."}
+            <Info size={13} className="text-[#1E5EFF]" />
+            {isVi ? "Cổng chiến dịch cộng đồng — Đà Nẵng Kết Nối 2026" : "Community Campaign Portal — Da Nang Connect 2026"}
           </span>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-extrabold text-slate-400 uppercase tracking-widest">{isVi ? "Trạng thái:" : "Status:"}</span>
-            <div className="inline-flex rounded-lg bg-slate-800 p-0.5 border border-slate-700">
-              <button
-                onClick={() => {
-                  setCampaignStatus("inProgress");
-                  setParticipantCount(42);
-                }}
-                className={`px-3 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
-                  campaignStatus === "inProgress" ? "bg-[#1E5EFF] text-white" : "text-slate-400 hover:text-white"
-                }`}
-              >
-                {isVi ? "Đang tiến hành" : "In Progress"}
-              </button>
-              <button
-                onClick={() => {
-                  setCampaignStatus("completed");
-                  setParticipantCount(52);
-                }}
-                className={`px-3 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
-                  campaignStatus === "completed" ? "bg-[#22C55E] text-white" : "text-slate-400 hover:text-white"
-                }`}
-              >
-                {isVi ? "Đã hoàn thành" : "Completed"}
-              </button>
-            </div>
-          </div>
+          <span className={`text-[11px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 ${
+            campaignStatus === "completed"
+              ? "bg-[#22C55E]/20 text-[#22C55E] border border-[#22C55E]/30"
+              : campaignStatus === "recruiting"
+              ? "bg-amber-400/20 text-amber-300 border border-amber-400/30"
+              : "bg-[#1E5EFF]/20 text-[#1E5EFF] border border-[#1E5EFF]/30"
+          }`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${campaignStatus === "completed" ? "bg-[#22C55E]" : "bg-current animate-pulse"}`} />
+            {campaignStatus === "completed"
+              ? (isVi ? "Đã hoàn thành" : "Completed")
+              : campaignStatus === "recruiting"
+              ? (isVi ? "Đang tuyển TNV" : "Recruiting")
+              : (isVi ? "Đang tiến hành" : "In Progress")}
+          </span>
         </div>
       </div>
 
@@ -337,11 +357,11 @@ function CampaignDetail() {
             </span>
             <span className="text-slate-300">/</span>
             <span className="hover:text-[#1E5EFF] transition-colors cursor-pointer truncate max-w-[150px]">
-              {isVi ? "Môi trường" : "Environment"}
+              {campaignCategoryLabel}
             </span>
             <span className="text-slate-300">/</span>
             <span className="text-slate-700 font-extrabold truncate max-w-[200px]">
-              {isVi ? "Chiến dịch Xanh Hòa Xuân" : "Green Hoa Xuan"}
+              {campaignName}
             </span>
           </nav>
 
@@ -375,7 +395,7 @@ function CampaignDetail() {
         <div
           className="relative w-full h-[420px] rounded-[24px] overflow-hidden bg-cover bg-center shadow-lg border border-slate-200 flex flex-col justify-between p-6 md:p-10"
           style={{
-            backgroundImage: `linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.5) 60%, rgba(0, 0, 0, 0.2) 100%), url('https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=1600&h=600&q=80')`,
+            backgroundImage: `linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.5) 60%, rgba(0, 0, 0, 0.2) 100%), url('${campaignCover}')`,
           }}
         >
           {/* Top Badges */}
@@ -385,28 +405,33 @@ function CampaignDetail() {
                 <CheckCircle size={12} className="text-[#22C55E]" />
                 {isVi ? "Đã hoàn thành" : "Completed"}
               </span>
+            ) : campaignStatus === "recruiting" ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-400/25 backdrop-blur-md text-amber-300 border border-amber-400/30 rounded-full text-xs font-extrabold uppercase tracking-wider animate-pulse">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                {isVi ? "Đang tuyển TNV" : "Recruiting"}
+              </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#1E5EFF]/25 backdrop-blur-md text-[#1E5EFF] border border-[#1E5EFF]/30 rounded-full text-xs font-extrabold uppercase tracking-wider animate-pulse">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#1E5EFF]" />
-                {isVi ? "Đang chiêu mộ TNV" : "Recruiting TNV"}
+                {isVi ? "Đang tiến hành" : "In Progress"}
               </span>
             )}
 
             <span className="px-3.5 py-1 bg-white/20 backdrop-blur-md text-white border border-white/20 rounded-full text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5">
               <Shield size={13} />
-              {isVi ? "Môi trường" : "Environment"}
+              {campaignCategoryLabel}
             </span>
           </div>
 
           {/* Main Content */}
           <div className="space-y-4 max-w-[850px] text-white">
             <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-tight drop-shadow-md">
-              {isVi ? "Chiến dịch Hành trình Xanh Hòa Xuân" : "Green Hoa Xuan Campaign"}
+              {campaignName}
             </h1>
             <p className="text-white/85 text-xs md:text-sm leading-relaxed font-semibold drop-shadow-sm">
-              {isVi
-                ? "Chung tay cùng tình nguyện viên cộng đồng và chính quyền địa phương dọn dẹp các không gian công cộng, xóa bỏ các điểm đổ rác thải tự phát, cải thiện chất lượng môi trường sống tại Phường Hòa Xuân."
-                : "Join community volunteers and local authorities to clean public spaces, remove illegal dumping sites, and improve environmental quality in Hoa Xuan Ward."}
+              {campaignDesc || (isVi
+                ? "Chung tay cùng tình nguyện viên cộng đồng và chính quyền địa phương dọn dẹp các không gian công cộng, xóa bỏ các điểm đổ rác thải tự phát, cải thiện chất lượng môi trường sống."
+                : "Join community volunteers and local authorities to clean public spaces, remove illegal dumping sites, and improve environmental quality.")}
             </p>
 
             {/* Statistics Row */}
@@ -417,26 +442,26 @@ function CampaignDetail() {
               </div>
               <div>
                 <span className="block text-[10px] uppercase font-bold text-white/50 tracking-wider">{isVi ? "Chỉ tiêu tuyển" : "Target"}</span>
-                <span className="text-lg md:text-2xl font-black">50</span>
+                <span className="text-lg md:text-2xl font-black">{campaignTarget}</span>
               </div>
               <div>
                 <span className="block text-[10px] uppercase font-bold text-white/50 tracking-wider">{isVi ? "Hoàn thành" : "Completion Rate"}</span>
                 <span className="text-lg md:text-2xl font-black text-[#22C55E]">
-                  {campaignStatus === "completed" ? "100%" : "68%"}
+                  {campaignStatus === "completed" ? "100%" : `${campaign?.progress ?? 68}%`}
                 </span>
               </div>
               <div>
                 <span className="block text-[10px] uppercase font-bold text-white/50 tracking-wider">{isVi ? "Phản ánh liên quan" : "Related Reports"}</span>
-                <span className="text-lg md:text-2xl font-black">18</span>
+                <span className="text-lg md:text-2xl font-black">{campaignReports}</span>
               </div>
               <div>
                 <span className="block text-[10px] uppercase font-bold text-white/50 tracking-wider">{isVi ? "Hộ dân hưởng lợi" : "Affected Citizens"}</span>
-                <span className="text-lg md:text-2xl font-black">1,245</span>
+                <span className="text-lg md:text-2xl font-black">{campaignAffected > 0 ? campaignAffected.toLocaleString("vi-VN") : "—"}</span>
               </div>
               <div>
                 <span className="block text-[10px] uppercase font-bold text-white/50 tracking-wider">{isVi ? "Còn lại" : "Days Left"}</span>
                 <span className={`text-lg md:text-2xl font-black ${campaignStatus === "completed" ? "text-slate-400" : "text-amber-400"}`}>
-                  {campaignStatus === "completed" ? "0" : "12"}
+                  {campaignStatus === "completed" ? "0" : (campaign?.daysLeft ?? 12)}
                 </span>
               </div>
             </div>
@@ -446,12 +471,12 @@ function CampaignDetail() {
               <div className="flex-grow max-w-[450px]">
                 <div className="flex items-center justify-between text-xs font-bold text-white/70 mb-1">
                   <span>{isVi ? "Tiến độ chiến dịch" : "Campaign Progress"}</span>
-                  <span>{campaignStatus === "completed" ? "100%" : "68%"}</span>
+                  <span>{campaignStatus === "completed" ? "100%" : `${campaign?.progress ?? 68}%`}</span>
                 </div>
                 <div className="w-full h-3 bg-white/15 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-[#22C55E] to-emerald-400 rounded-full transition-all duration-1000 relative"
-                    style={{ width: campaignStatus === "completed" ? "100%" : "68%" }}
+                    style={{ width: campaignStatus === "completed" ? "100%" : `${campaign?.progress ?? 68}%` }}
                   >
                     <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,.15)_25%,transparent_25%,transparent_50%,rgba(255,255,255,.15)_50%,rgba(255,255,255,.15)_75%,transparent_75%,transparent)] bg-[length:1rem_1rem] animate-[progress-bar-stripes_1s_linear_infinite]" />
                   </div>
@@ -530,15 +555,15 @@ function CampaignDetail() {
               </div>
               <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col justify-between">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{isVi ? "Thời gian diễn ra" : "Duration"}</span>
-                <span className="text-sm font-black text-slate-800 mt-1.5">{isVi ? "15 ngày" : "15 Days"}</span>
+                <span className="text-sm font-black text-slate-800 mt-1.5">{campaignDuration}</span>
               </div>
               <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col justify-between">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{isVi ? "Tổng tình nguyện viên" : "Volunteers"}</span>
-                <span className="text-sm font-black text-slate-800 mt-1.5">52 TNV</span>
+                <span className="text-sm font-black text-slate-800 mt-1.5">{participantCount} TNV</span>
               </div>
               <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col justify-between">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{isVi ? "Phản ánh đã xử lý" : "Reports Resolved"}</span>
-                <span className="text-sm font-black text-slate-800 mt-1.5">18 / 18</span>
+                <span className="text-sm font-black text-slate-800 mt-1.5">{campaignReports} / {campaignReports}</span>
               </div>
               <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col justify-between">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{isVi ? "Mức độ hài lòng" : "Satisfaction"}</span>
@@ -602,45 +627,69 @@ function CampaignDetail() {
                 </h2>
               </div>
 
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                <InfographicCard
-                  icon={AlertOctagon}
-                  label={isVi ? "Phản ánh kích hoạt" : "Reports Triggered"}
-                  value="18 phản ánh"
-                  desc={isVi ? "Phát sinh từ các kiến nghị khẩn thiết của công dân trên địa bàn." : "Originating from urgent citizen complaints."}
-                />
-                <InfographicCard
-                  icon={Map}
-                  label={isVi ? "Địa bàn ảnh hưởng" : "Affected Area"}
-                  value="Phường Hòa Xuân"
-                  desc={isVi ? "Trọng tâm dọc đường Trần Nam Trung và các tuyến mương sinh thái." : "Centering around Tran Nam Trung and ecological canals."}
-                />
-                <InfographicCard
-                  icon={Users}
-                  label={isVi ? "Người dân bị ảnh hưởng" : "Affected Citizens"}
-                  value="1,245 người"
-                  desc={isVi ? "Các hộ gia đình xung quanh chịu mùi hôi thối và ô nhiễm nguồn nước." : "Surrounding residents suffering from waste odor."}
-                />
-                <InfographicCard
-                  icon={Flame}
-                  label={isVi ? "Mức độ khẩn cấp" : "Issue Severity"}
-                  value={isVi ? "Trung bình" : "Medium"}
-                  desc={isVi ? "Cần xử lý ngay để phòng tránh ô nhiễm lan rộng mùa mưa lũ." : "Must resolve before the rainy season to prevent floods."}
-                  color="text-amber-500"
-                />
-                <InfographicCard
-                  icon={Trash2}
-                  label={isVi ? "Vấn đề cốt lõi" : "Main Issue"}
-                  value={isVi ? "Ùn ứ rác tự phát" : "Waste Accumulation"}
-                  desc={isVi ? "Xà bần xây dựng đổ trộm và rác thải nhựa làm nghẽn dòng mương thoát nước." : "Illegal dumping of debris and plastics blocking drainage."}
-                />
-                <InfographicCard
-                  icon={TrendingUp}
-                  label={isVi ? "Chỉ số tác động" : "Impact Score"}
-                  value="8.5 / 10"
-                  desc={isVi ? "Mức độ ảnh hưởng tích cực đến cuộc sống khu dân cư sau dọn dẹp." : "The positive environmental restore rate after cleaning."}
-                />
-              </div>
+              {isUserCreated ? (
+                /* ── User-created: hiện thông tin cơ bản từ store ── */
+                <div className="space-y-4">
+                  <p className="text-sm text-slate-600 font-medium leading-relaxed">
+                    {campaignDesc || (isVi ? "Chiến dịch cộng đồng này đang được chuẩn bị và sẽ cập nhật thêm thông tin chi tiết sau khi được cơ quan chức năng phê duyệt." : "This community campaign is being prepared. Details will be updated after authority approval.")}
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <InfographicCard icon={MapPin} label={isVi ? "Khu vực" : "Area"} value={campaignWard} desc="" />
+                    <InfographicCard icon={Users} label={isVi ? "Mục tiêu TNV" : "Target Volunteers"} value={`${campaignTarget} người`} desc="" />
+                    <InfographicCard icon={Flag} label={isVi ? "Người tổ chức" : "Organizer"} value={campaignCreatedBy} desc="" />
+                    {campaign?.locationText && (
+                      <InfographicCard icon={MapPin} label={isVi ? "Địa điểm" : "Location"} value={campaign.locationText} desc="" />
+                    )}
+                    {campaign?.startTime && (
+                      <InfographicCard icon={Calendar} label={isVi ? "Ngày bắt đầu" : "Start Date"} value={new Date(campaign.startTime).toLocaleDateString("vi-VN")} desc="" />
+                    )}
+                    {campaign?.endTime && (
+                      <InfographicCard icon={Clock} label={isVi ? "Ngày kết thúc" : "End Date"} value={new Date(campaign.endTime).toLocaleDateString("vi-VN")} desc="" />
+                    )}
+                  </div>
+                </div>
+              ) : (
+                /* ── Seed campaign: hiện đầy đủ infographic cards ── */
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                  <InfographicCard
+                    icon={AlertOctagon}
+                    label={isVi ? "Phản ánh kích hoạt" : "Reports Triggered"}
+                    value={`${campaignReports} phản ánh`}
+                    desc={isVi ? "Phát sinh từ các kiến nghị khẩn thiết của công dân trên địa bàn." : "Originating from urgent citizen complaints."}
+                  />
+                  <InfographicCard
+                    icon={Map}
+                    label={isVi ? "Địa bàn ảnh hưởng" : "Affected Area"}
+                    value={`Phường ${campaignWard}`}
+                    desc={isVi ? "Trọng tâm dọc đường Trần Nam Trung và các tuyến mương sinh thái." : "Centering around Tran Nam Trung and ecological canals."}
+                  />
+                  <InfographicCard
+                    icon={Users}
+                    label={isVi ? "Người dân bị ảnh hưởng" : "Affected Citizens"}
+                    value={`${campaignAffected.toLocaleString("vi-VN")} người`}
+                    desc={isVi ? "Các hộ gia đình xung quanh chịu mùi hôi thối và ô nhiễm nguồn nước." : "Surrounding residents suffering from waste odor."}
+                  />
+                  <InfographicCard
+                    icon={Flame}
+                    label={isVi ? "Mức độ khẩn cấp" : "Issue Severity"}
+                    value={isVi ? "Trung bình" : "Medium"}
+                    desc={isVi ? "Cần xử lý ngay để phòng tránh ô nhiễm lan rộng mùa mưa lũ." : "Must resolve before the rainy season to prevent floods."}
+                    color="text-amber-500"
+                  />
+                  <InfographicCard
+                    icon={Trash2}
+                    label={isVi ? "Vấn đề cốt lõi" : "Main Issue"}
+                    value={isVi ? "Ùn ứ rác tự phát" : "Waste Accumulation"}
+                    desc={isVi ? "Xà bần xây dựng đổ trộm và rác thải nhựa làm nghẽn dòng mương thoát nước." : "Illegal dumping of debris and plastics blocking drainage."}
+                  />
+                  <InfographicCard
+                    icon={TrendingUp}
+                    label={isVi ? "Chỉ số tác động" : "Impact Score"}
+                    value={`${campaignImpact} / 10`}
+                    desc={isVi ? "Mức độ ảnh hưởng tích cực đến cuộc sống khu dân cư sau dọn dẹp." : "The positive environmental restore rate after cleaning."}
+                  />
+                </div>
+              )}
             </section>
 
             {/* SECTION 2: Campaign Map */}
@@ -654,7 +703,7 @@ function CampaignDetail() {
                 </div>
                 <span className="text-xs font-bold text-slate-500 bg-white border border-slate-200 px-3 py-1.5 rounded-full shadow-inner flex items-center gap-1.5 self-start">
                   <MapPin size={12} className="text-[#1E5EFF]" />
-                  {isVi ? "Bản đồ số Hòa Xuân" : "Hoa Xuan Ward Map"}
+                  {isVi ? `Bản đồ số ${campaignWard}` : `${campaignWard} Map`}
                 </span>
               </div>
 
@@ -706,7 +755,7 @@ function CampaignDetail() {
                   </h2>
                 </div>
                 <span className="text-xs font-bold text-slate-500 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-100">
-                  {isVi ? "Tổng số 18 phản ánh" : "18 reports total"}
+                  {isVi ? `Tổng số ${campaignReports} phản ánh` : `${campaignReports} reports total`}
                 </span>
               </div>
 
@@ -743,6 +792,9 @@ function CampaignDetail() {
               </div>
             </section>
 
+            {/* SECTIONS 4–9: Chỉ hiện với seed campaigns (đủ data). User-created campaigns sẽ thấy thông báo "đang cập nhật" */}
+            {!isUserCreated ? (
+              <>
             {/* SECTION 4: Campaign Task Board (Kanban style) */}
             <section className="bg-white rounded-[20px] border border-[#E2E8F0] p-6 shadow-[0_8px_30px_rgba(0,0,0,0.03)]">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 pb-4 mb-6">
@@ -1020,14 +1072,32 @@ function CampaignDetail() {
               </div>
 
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                <ImpactMetricRow label={isVi ? "Phản ánh đã xử lý" : "Reports Resolved"} value="18" sub={isVi ? "Đạt tỷ lệ 100%" : "100% completion"} color="text-[#22C55E]" />
-                <ImpactMetricRow label={isVi ? "Hộ dân được giúp đỡ" : "Citizens Assisted"} value="1,245" sub={isVi ? "Toàn bộ khu vực Hòa Xuân" : "Hoa Xuan neighborhood"} color="text-[#1E5EFF]" />
+                <ImpactMetricRow label={isVi ? "Phản ánh đã xử lý" : "Reports Resolved"} value={String(campaignReports)} sub={isVi ? "Đạt tỷ lệ 100%" : "100% completion"} color="text-[#22C55E]" />
+                <ImpactMetricRow label={isVi ? "Hộ dân được giúp đỡ" : "Citizens Assisted"} value={campaignAffected > 0 ? campaignAffected.toLocaleString("vi-VN") : "—"} sub={isVi ? `Khu vực ${campaignWard}` : `${campaignWard} area`} color="text-[#1E5EFF]" />
                 <ImpactMetricRow label={isVi ? "Lượng rác thu gom" : "Garbage Collected"} value="1.2 Tấn" sub={isVi ? "Rác sinh học và xà bần" : "Plastics and construction debris"} color="text-amber-500" />
                 <ImpactMetricRow label={isVi ? "Cây xanh trồng mới" : "Trees Planted"} value="35 cây" sub={isVi ? "Vỉa hè & quanh hồ điều hòa" : "Sidewalks & Reservoir"} color="text-[#22C55E]" />
                 <ImpactMetricRow label={isVi ? "Không gian công cộng sạch" : "Public Spaces Cleaned"} value="12 điểm" sub={isVi ? "Kênh hở và bãi đất trống" : "Vacant lots & canals"} color="text-[#1E5EFF]" />
                 <ImpactMetricRow label={isVi ? "Điểm số môi trường phường" : "Environmental Score"} value="+28%" sub={isVi ? "Cải thiện so với tháng trước" : "Increase vs last month"} color="text-emerald-600" />
               </div>
             </section>
+            </>) : (
+              /* ── User-created: placeholder cho các section chưa có data ── */
+              <section className="bg-white rounded-[20px] border-2 border-dashed border-slate-200 p-8 shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col items-center text-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center">
+                  <Clock size={26} className="text-[#1E5EFF]" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-[#0B2545] mb-1">
+                    {isVi ? "Chiến dịch đang chờ phê duyệt" : "Campaign Pending Approval"}
+                  </h3>
+                  <p className="text-sm text-slate-500 font-medium leading-relaxed max-w-sm">
+                    {isVi
+                      ? "Nội dung chi tiết như bảng công việc, lịch trình và đội ngũ tình nguyện viên sẽ được cập nhật sau khi cơ quan chức năng phê duyệt chiến dịch."
+                      : "Detailed content like task board, activity schedule and volunteer team will be updated after authority approval."}
+                  </p>
+                </div>
+              </section>
+            )}
           </div>
 
           {/* RIGHT SIDEBAR COLUMN: Demographic & Progress Analytics */}
@@ -1041,15 +1111,35 @@ function CampaignDetail() {
               </h3>
 
               <div className="divide-y divide-slate-100 text-xs font-semibold">
-                <SidebarRow label={isVi ? "Mã chiến dịch" : "Campaign ID"} value="DN-CAMP-2026-35" />
-                <SidebarRow label={isVi ? "Loại chiến dịch" : "Campaign Type"} value={isVi ? "Cải tạo Môi trường đô thị" : "Urban Environment Cleanup"} />
-                <SidebarRow label={isVi ? "Đơn vị khởi xướng" : "Created By"} value={isVi ? "Đoàn thanh niên & UBND phường" : "Youth Union & Ward Authority"} />
-                <SidebarRow label={isVi ? "Cơ quan phụ trách" : "Responsible Unit"} value="UBND Phường Hòa Xuân" />
-                <SidebarRow label={isVi ? "Quản lý chiến dịch" : "Campaign Manager"} value="Lê Tấn Tài (Phó chủ tịch)" />
-                <SidebarRow label={isVi ? "Ngày bắt đầu" : "Start Date"} value="12/06/2026" />
-                <SidebarRow label={isVi ? "Ngày kết thúc" : "End Date"} value="27/06/2026" />
-                <SidebarRow label={isVi ? "Độ ưu tiên" : "Priority"} value={isVi ? "Trung bình" : "Medium"} />
-                <SidebarRow label={isVi ? "Trạng thái hiện tại" : "Current Status"} value={campaignStatus === "completed" ? (isVi ? "Đã hoàn thành" : "Completed") : (isVi ? "Đang tiến hành" : "In Progress")} />
+                <SidebarRow label={isVi ? "Mã chiến dịch" : "Campaign ID"} value={`DN-CAMP-${campaign?.id ?? id}`} />
+                <SidebarRow label={isVi ? "Loại chiến dịch" : "Campaign Type"} value={
+                  campaign?.category === "environment" ? (isVi ? "Môi trường" : "Environment")
+                  : campaign?.category === "infrastructure" ? (isVi ? "Hạ tầng đô thị" : "Infrastructure")
+                  : campaign?.category === "public_safety" ? (isVi ? "An toàn công cộng" : "Public Safety")
+                  : campaign?.category === "construction" ? (isVi ? "Xây dựng" : "Construction")
+                  : campaign?.category === "fire_safety" ? (isVi ? "Phòng cháy" : "Fire Safety")
+                  : (isVi ? "Cộng đồng" : "Community")
+                } />
+                <SidebarRow label={isVi ? "Đơn vị khởi xướng" : "Created By"} value={campaignCreatedBy} />
+                <SidebarRow label={isVi ? "Khu vực phụ trách" : "Area"} value={campaignWard} />
+                {campaign?.locationText && (
+                  <SidebarRow label={isVi ? "Địa điểm" : "Location"} value={campaign.locationText} />
+                )}
+                <SidebarRow label={isVi ? "Ngày bắt đầu" : "Start Date"} value={
+                  campaign?.startTime
+                    ? new Date(campaign.startTime).toLocaleDateString("vi-VN")
+                    : "—"
+                } />
+                <SidebarRow label={isVi ? "Ngày kết thúc" : "End Date"} value={
+                  campaign?.endTime
+                    ? new Date(campaign.endTime).toLocaleDateString("vi-VN")
+                    : "—"
+                } />
+                <SidebarRow label={isVi ? "Trạng thái hiện tại" : "Current Status"} value={
+                  campaignStatus === "completed" ? (isVi ? "Đã hoàn thành" : "Completed")
+                  : campaignStatus === "recruiting" ? (isVi ? "Đang tuyển TNV" : "Recruiting")
+                  : (isVi ? "Đang tiến hành" : "In Progress")
+                } />
               </div>
             </section>
 
@@ -1116,22 +1206,22 @@ function CampaignDetail() {
               <div className="space-y-4">
                 <ProgressBarWidget
                   label={isVi ? "Tổng tiến độ hoàn thành" : "Overall Completion"}
-                  current={campaignStatus === "completed" ? 20 : 14}
+                  current={Math.round((campaign?.progress ?? 68) / 5)}
                   total={20}
-                  percentage={campaignStatus === "completed" ? 100 : 68}
+                  percentage={campaignStatus === "completed" ? 100 : (campaign?.progress ?? 68)}
                   color="#1E5EFF"
                 />
                 <ProgressBarWidget
-                  label={isVi ? "Công việc hoàn thành" : "Tasks Completed"}
-                  current={campaignStatus === "completed" ? 20 : 14}
-                  total={20}
-                  percentage={campaignStatus === "completed" ? 100 : 70}
+                  label={isVi ? "Tình nguyện viên đăng ký" : "Volunteers Registered"}
+                  current={participantCount}
+                  total={campaignTarget}
+                  percentage={Math.min(100, Math.round((participantCount / campaignTarget) * 100))}
                   color="#22C55E"
                 />
                 <ProgressBarWidget
                   label={isVi ? "Phản ánh đã dứt điểm" : "Reports Resolved"}
-                  current={campaignStatus === "completed" ? 18 : 12}
-                  total={18}
+                  current={campaignStatus === "completed" ? campaignReports : Math.round(campaignReports * 0.67)}
+                  total={campaignReports}
                   percentage={campaignStatus === "completed" ? 100 : 67}
                   color="#F59E0B"
                 />
@@ -1153,10 +1243,11 @@ function CampaignDetail() {
               </h3>
 
               <div className="space-y-3">
-                <LeaderRow name="Lê Tấn Tài" role={isVi ? "Trưởng ban điều hành" : "Campaign Leader"} avatar="https://images.unsplash.com/photo-1542909168-82c3e7fdca5c?auto=format&fit=crop&w=100&q=80" />
-                <LeaderRow name="Trần Nguyễn Hạnh" role={isVi ? "Đại diện Phường" : "Ward Representative"} avatar="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=100&q=80" />
-                <LeaderRow name="Nguyễn Hoàng Hải" role={isVi ? "Đại diện Đoàn thanh niên" : "Youth Union Leader"} avatar="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80" />
-                <LeaderRow name="Nguyễn Văn Hùng" role={isVi ? "Điều phối viên TNV" : "Volunteer Coordinator"} avatar="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80" />
+                <LeaderRow name={campaign?.createdBy ?? "Ban tổ chức"} role={isVi ? "Trưởng ban điều hành" : "Campaign Leader"} avatar="https://images.unsplash.com/photo-1542909168-82c3e7fdca5c?auto=format&fit=crop&w=100&q=80" />
+                {campaign?.ward && (
+                  <LeaderRow name={`UBND ${campaign.ward}`} role={isVi ? "Cơ quan phụ trách" : "Responsible Authority"} avatar="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=100&q=80" />
+                )}
+                <LeaderRow name={isVi ? "Tình nguyện viên cộng đồng" : "Community Volunteers"} role={`${participantCount} ${isVi ? "người đăng ký" : "registered"}`} avatar="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80" />
               </div>
             </section>
 
@@ -1236,21 +1327,37 @@ function CampaignDetail() {
 
               <div className="space-y-3.5 text-xs">
                 <div className="relative pl-3 border-l-2 border-[#1E5EFF]">
-                  <div className="font-bold text-slate-800">{isVi ? "Tuyển dụng tình nguyện viên đợt 2" : "Volunteer Registration Open"}</div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">{isVi ? "Bắt đầu tiếp nhận thêm 15 TNV dọn vệ sinh kênh rạch" : "Targeting 15 additional volunteers to join canal cleanup"}</div>
+                  <div className="font-bold text-slate-800">{isVi ? `Chiến dịch "${campaignName}" đang hoạt động` : `Campaign "${campaignName}" is active`}</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">
+                    {isVi
+                      ? `Tại ${campaignWard} — ${participantCount}/${campaignTarget} tình nguyện viên đã đăng ký`
+                      : `At ${campaignWard} — ${participantCount}/${campaignTarget} volunteers registered`}
+                  </div>
                 </div>
+                {campaign?.endTime && (
+                  <div className="relative pl-3 border-l-2 border-amber-400">
+                    <div className="font-bold text-amber-700">{isVi ? "Thời hạn chiến dịch" : "Campaign Deadline"}</div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">
+                      {isVi
+                        ? `Kết thúc ${new Date(campaign.endTime).toLocaleDateString("vi-VN")} — còn ${campaign.daysLeft} ngày`
+                        : `Ends ${new Date(campaign.endTime).toLocaleDateString("en-US")} — ${campaign.daysLeft} days left`}
+                    </div>
+                  </div>
+                )}
                 <div className="relative pl-3 border-l-2 border-slate-200">
-                  <div className="font-bold text-slate-800">{isVi ? "Cập nhật lịch trình dọn dẹp" : "Schedule Updated"}</div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">{isVi ? "Ngày ra quân dọn rác đợt 2 lùi sang 7:30 AM ngày 16/06" : "Cleanup day shifted to 7:30 AM on June 16"}</div>
+                  <div className="font-bold text-slate-800">{isVi ? "Tiến độ tuyển tình nguyện viên" : "Volunteer Recruitment"}</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">
+                    {isVi
+                      ? `Còn ${Math.max(0, campaignTarget - participantCount)} vị trí — Đăng ký ngay để tham gia`
+                      : `${Math.max(0, campaignTarget - participantCount)} spots left — Register to join`}
+                  </div>
                 </div>
-                <div className="relative pl-3 border-l-2 border-[#EF4444]">
-                  <div className="font-bold text-red-600">{isVi ? "Cảnh báo thời tiết nắng nóng" : "Weather Alert"}</div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">{isVi ? "Khuyến cáo TNV mang mũ rộng vành và bổ sung nước điện giải" : "Volunteers are advised to wear hats and stay hydrated"}</div>
-                </div>
-                <div className="relative pl-3 border-l-2 border-slate-200">
-                  <div className="font-bold text-slate-800">{isVi ? "Thêm công việc: Sơn vẽ tranh tường công cộng" : "New Task Added"}</div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">{isVi ? "Cải tạo bức tường bẩn dọc ngõ 15 thành tranh tuyên truyền" : "Repainting defaced walls along Alley 15 with propaganda art"}</div>
-                </div>
+                {campaign?.locationText && (
+                  <div className="relative pl-3 border-l-2 border-emerald-400">
+                    <div className="font-bold text-slate-800">{isVi ? "Địa điểm tập kết" : "Meeting Point"}</div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">{campaign.locationText}</div>
+                  </div>
+                )}
               </div>
             </section>
           </div>
@@ -1299,7 +1406,14 @@ function CampaignDetail() {
 
           {/* Comments Feed List */}
           <div className="space-y-6">
-            {comments.map((comment) => (
+            {comments.length === 0 ? (
+              <div className="flex flex-col items-center py-10 text-center gap-3">
+                <MessageSquare size={32} className="text-slate-200" />
+                <p className="text-sm font-semibold text-slate-400">
+                  {isVi ? "Chưa có ý kiến nào. Hãy là người đầu tiên!" : "No comments yet. Be the first to share!"}
+                </p>
+              </div>
+            ) : comments.map((comment) => (
               <div key={comment.id} className="flex gap-4 items-start border-t border-slate-50 pt-5 first:border-t-0 first:pt-0">
                 <img
                   src={comment.avatar}
@@ -1322,7 +1436,14 @@ function CampaignDetail() {
                   {/* Actions (Like/Reply) */}
                   <div className="flex items-center gap-4 text-xs font-bold text-slate-400">
                     <button
-                      onClick={() => toast.success(isVi ? "Cảm ơn bạn đã thả tim!" : "Heart added!")}
+                      onClick={() => {
+                        const updated = comments.map((c) =>
+                          c.id === comment.id ? { ...c, likes: c.likes + 1 } : c
+                        );
+                        setComments(updated);
+                        saveComments(id, updated);
+                        toast.success(isVi ? "Cảm ơn bạn đã thả tim!" : "Heart added!");
+                      }}
                       className="flex items-center gap-1 hover:text-red-500 transition cursor-pointer"
                     >
                       <Heart size={12} />

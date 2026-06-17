@@ -106,6 +106,7 @@ export function PoliceDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
+  const [filterStatus, setFilterStatus] = useState("ALL");
 
   const notifRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
@@ -144,6 +145,25 @@ export function PoliceDashboard() {
 
   const unreadCount = unreadCountData ?? notifications.filter((n) => !n.isRead).length;
   const feedbacks = feedbacksPage?.content ?? [];
+
+  // Filtered and Sorted Feedbacks for the "Phản ánh" tab
+  const filteredAndSortedFeedbacks = useMemo(() => {
+    return [...feedbacks]
+      .filter((fb) => {
+        if (filterStatus === "ALL") return true;
+        if (filterStatus === "PENDING") return fb.status === "PENDING";
+        if (filterStatus === "IN_PROGRESS") return fb.status === "ASSIGNED" || fb.status === "IN_PROGRESS" || fb.status === "WAITING_INFO";
+        if (filterStatus === "RESOLVED") return fb.status === "RESOLVED";
+        if (filterStatus === "OVERDUE") {
+           const isNotResolved = fb.status !== "RESOLVED" && fb.status !== "REJECTED";
+           const diffTime = Math.abs(new Date().getTime() - new Date(fb.createdAt).getTime());
+           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+           return isNotResolved && diffDays > 3;
+        }
+        return true;
+      })
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [feedbacks, filterStatus]);
 
   // Sync stats dynamically from backend reports list
   const totalCount = feedbacks.length;
@@ -998,6 +1018,20 @@ export function PoliceDashboard() {
             <div className="bg-white rounded-2xl border border-[#E4EAF2] shadow-sm p-5 flex flex-col min-h-[500px]">
               <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
                 <h3 className="font-extrabold text-lg text-[#0B2545]">Tất cả Phản ánh</h3>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-500">Lọc theo:</span>
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="h-8 pl-3 pr-8 text-xs font-bold bg-slate-50 border border-[#E4EAF2] rounded-lg focus:outline-none focus:border-[#0F5BD8] text-[#0B2545]"
+                  >
+                    <option value="ALL">Tất cả trạng thái</option>
+                    <option value="PENDING">Chưa xử lý</option>
+                    <option value="IN_PROGRESS">Đang xử lý</option>
+                    <option value="RESOLVED">Đã xử lý</option>
+                    <option value="OVERDUE">Quá hạn</option>
+                  </select>
+                </div>
               </div>
               <div className="overflow-x-auto -mx-5 flex-1">
                 <table className="w-full text-left border-collapse">
@@ -1023,12 +1057,12 @@ export function PoliceDashboard() {
                           <td className="px-5 py-4"><Skeleton className="h-6 w-16" /></td>
                         </tr>
                       ))
-                    ) : feedbacks.length === 0 ? (
+                    ) : filteredAndSortedFeedbacks.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="px-5 py-8 text-center text-xs text-slate-400">Không có phản ánh nào.</td>
                       </tr>
                     ) : (
-                      feedbacks.map((row) => (
+                      filteredAndSortedFeedbacks.map((row) => (
                         <tr
                           key={row.id}
                           onClick={() => navigate({ to: "/my-reports/$id", params: { id: String(row.id) } })}

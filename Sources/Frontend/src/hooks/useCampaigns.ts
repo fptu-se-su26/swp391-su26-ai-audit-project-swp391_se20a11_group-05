@@ -5,6 +5,7 @@ import {
   getToken,
   type CampaignChatMessageResponse,
   type CampaignCreateRequest,
+  type CampaignParticipantResponse,
   type CampaignResponse,
   type PageResponse,
 } from "@/lib/api";
@@ -88,6 +89,7 @@ function mapResponseToCampaign(response: CampaignResponse): Campaign {
 
 export function useCampaignList(): Campaign[] {
   const [localCampaigns, setLocalCampaigns] = useState<Campaign[]>(() => getCampaigns());
+  const hasToken = Boolean(typeof window !== "undefined" && getToken());
 
   useEffect(() => {
     const unsub = onCampaignsChanged(() => setLocalCampaigns(getCampaigns()));
@@ -95,7 +97,7 @@ export function useCampaignList(): Campaign[] {
   }, []);
 
   const { data: backendPage } = useQuery<PageResponse<CampaignResponse>>({
-    queryKey: ["campaigns", "list"],
+    queryKey: ["campaigns", "list", hasToken],
     queryFn: () => campaignApi.getAll(0, 50),
     staleTime: 30_000,
     retry: false,
@@ -122,7 +124,7 @@ export function useCampaignDetail(id: string): Campaign | undefined {
   }, [id]);
 
   const { data: publicCampaign } = useQuery<CampaignResponse>({
-    queryKey: ["campaigns", id, "public"],
+    queryKey: ["campaigns", id, "public", hasToken],
     queryFn: () => campaignApi.getById(id),
     enabled: isNumericId,
     staleTime: 30_000,
@@ -130,7 +132,7 @@ export function useCampaignDetail(id: string): Campaign | undefined {
   });
 
   const { data: privateCampaign } = useQuery<CampaignResponse>({
-    queryKey: ["campaigns", id, "private"],
+    queryKey: ["campaigns", id, "private", hasToken],
     queryFn: () => campaignApi.getPrivateDetail(id),
     enabled: isNumericId && hasToken,
     staleTime: 30_000,
@@ -227,6 +229,37 @@ export function useApproveCampaign() {
   return useMutation<CampaignResponse, Error, string | number>({
     mutationFn: (id) => campaignApi.approve(id),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+    },
+  });
+}
+
+export function useCampaignParticipants(campaignId: string, enabled = true) {
+  return useQuery<CampaignParticipantResponse[]>({
+    queryKey: ["campaigns", campaignId, "participants"],
+    queryFn: () => campaignApi.getParticipants(campaignId),
+    enabled: enabled && /^\d+$/.test(campaignId) && Boolean(typeof window !== "undefined" && getToken()),
+    retry: false,
+  });
+}
+
+export function useApproveCampaignParticipant(campaignId: string) {
+  const queryClient = useQueryClient();
+  return useMutation<CampaignParticipantResponse, Error, number | string>({
+    mutationFn: (participantId) => campaignApi.approveParticipant(campaignId, participantId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["campaigns", campaignId, "participants"] });
+      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+    },
+  });
+}
+
+export function useRejectCampaignParticipant(campaignId: string) {
+  const queryClient = useQueryClient();
+  return useMutation<CampaignParticipantResponse, Error, { participantId: number | string; reason?: string }>({
+    mutationFn: ({ participantId, reason }) => campaignApi.rejectParticipant(campaignId, participantId, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["campaigns", campaignId, "participants"] });
       queryClient.invalidateQueries({ queryKey: ["campaigns"] });
     },
   });

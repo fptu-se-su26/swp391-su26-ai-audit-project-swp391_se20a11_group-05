@@ -40,10 +40,8 @@ public class DataInitializer implements CommandLineRunner {
         ensureOfficialFeedbackSchema();
         ensureCampaignSchema();
 
-        if (userRepository.count() == 0) {
-            log.info("Database is empty. Seeding default user accounts...");
-
-            // 1. Citizen account
+        // Seeding default user accounts if they don't exist
+        if (userRepository.findByUsername("citizen1").isEmpty()) {
             User citizen = new User(
                     "citizen1",
                     passwordEncoder.encode("123456"),
@@ -54,8 +52,9 @@ public class DataInitializer implements CommandLineRunner {
             );
             userRepository.save(citizen);
             log.info("Seeded citizen account: citizen1 / 123456");
+        }
 
-            // 2. Ward staff account
+        if (userRepository.findByUsername("ward_staff1").isEmpty()) {
             User wardStaff = new User(
                     "ward_staff1",
                     passwordEncoder.encode("123456"),
@@ -66,8 +65,9 @@ public class DataInitializer implements CommandLineRunner {
             );
             userRepository.save(wardStaff);
             log.info("Seeded ward staff account: ward_staff1 / 123456");
+        }
 
-            // 3. Police account
+        if (userRepository.findByUsername("police1").isEmpty()) {
             User police = new User(
                     "police1",
                     passwordEncoder.encode("123456"),
@@ -78,8 +78,9 @@ public class DataInitializer implements CommandLineRunner {
             );
             userRepository.save(police);
             log.info("Seeded police account: police1 / 123456");
+        }
 
-            // 4. Super Admin account
+        if (userRepository.findByUsername("admin").isEmpty()) {
             User admin = new User(
                     "admin",
                     passwordEncoder.encode("admin123"),
@@ -90,10 +91,6 @@ public class DataInitializer implements CommandLineRunner {
             );
             userRepository.save(admin);
             log.info("Seeded admin account: admin / admin123");
-
-            log.info("Default user accounts seeded successfully!");
-        } else {
-            log.info("Database already contains users. Skipping data seeding.");
         }
         seedDefaultWards();
         ensureDefaultWardStaffHasWard();
@@ -301,6 +298,7 @@ public class DataInitializer implements CommandLineRunner {
         executeSchemaSql("ALTER TABLE campaign_participants ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
         executeSchemaSql("ALTER TABLE campaign_participants ALTER COLUMN join_status SET DEFAULT 'PENDING'");
         executeSchemaSql("UPDATE campaign_participants SET join_status = 'PENDING' WHERE join_status IS NULL OR join_status = 'SURE'");
+        executeSchemaSql("ALTER TABLE campaign_participants DROP CONSTRAINT IF EXISTS campaign_participants_join_status_check");
 
         executeSchemaSql("""
                 CREATE TABLE IF NOT EXISTS campaign_chat_messages (

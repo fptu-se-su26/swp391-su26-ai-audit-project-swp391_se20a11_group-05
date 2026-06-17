@@ -25,6 +25,7 @@ import {
   type UserProfile,
   type NotificationResponse,
   type FeedbackLookupStatsResponse,
+  type PoliceFeedbackResponse,
 } from "@/lib/api";
 import {
   submitCitizenFeedbackMedia,
@@ -214,6 +215,14 @@ export function useHotspots() {
     queryKey: ["feedbacks", "hotspots"],
     queryFn: () => policeApi.getHotspots(),
     staleTime: 60_000, // 1 min cache
+  });
+}
+
+export function usePoliceAssignedFeedbacks() {
+  return useQuery<PoliceFeedbackResponse[]>({
+    queryKey: ["police", "assigned-feedbacks"],
+    queryFn: () => policeApi.getAssignedFeedbacks(),
+    staleTime: 10_000,
   });
 }
 
@@ -424,3 +433,4 @@ export function useMarkAllNotificationsReadMutation() {
     },
   });
 }
+

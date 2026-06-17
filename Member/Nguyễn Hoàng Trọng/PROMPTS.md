@@ -460,3 +460,22 @@ Sinh viên/nhóm cam kết rằng:
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
 |  |  |
+
+## AI Prompts Log - Merge Resolution and UI Fixes
+
+**Prompt 1:**
+"pull hết code mới trên git về cho mình với nếu pull thì có mất mấy cái hôm qua mình làm k ta"
+*AI Assistance:* Checked branch history and merge conflict. Added `videoUrl` into the generic `FeedbackResponse` DTO on the backend and frontend to ensure no logic was lost when accepting the Product branch UI. Handled the `git merge origin/Product -X theirs` operation.
+
+**Prompt 2:**
+"bạn ơi mất cái bản đồ nhiệt phản ánh r bạn làm lại cho mình với bạn"
+*AI Assistance:* Identified that the `Product` branch had removed the heatmap module. Restored `useHotspots()` in `hooks/index.ts`, re-added the `HeatmapMap` component, and injected it into the new `PoliceDashboard.tsx` layout.
+
+**Prompt 3:**
+"trong cái công an hén có 2 bản đồ bạn giúp mình bỏ bớt 1 bản đồ phía trên mình k làm mà bạn kìa"
+*AI Assistance:* Edited `PoliceDashboard.tsx` to completely remove the `CivicMap` map card.
+
+**Prompt 4:**
+"lỗi r nè bạn ơi đưa cái bật điểm nóng lên với cái kí hiệu màu lên kìa nó nằm dưới bản đồ mất rồi sửa lại cho mình nha"
+*AI Assistance:* Investigated Tailwind `z-index` and container overflow constraints. Altered Leaflet container height from `h-[500px]` to `h-full` and increased toggle `z-[1000]` to fix element clipping.
+

@@ -43,6 +43,7 @@ public class FeedbackResponse {
     private String resultContent;
     private List<FeedbackAttachmentResponse> attachments;
     private List<String> mediaUrls;
+    private String videoUrl;
     private List<FeedbackLogResponse> timeline;
     private LocalDateTime submittedAt;
     private LocalDateTime receivedAt;

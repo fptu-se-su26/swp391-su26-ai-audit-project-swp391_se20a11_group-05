@@ -364,3 +364,6 @@ Sinh viên/nhóm cam kết rằng:
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
 |  |  |
+
+| 2026-06-17 | Merge Resolution & Hotspots UI | Handled `git merge` strategy to integrate `Product` branch UI without losing functionality. Added `videoUrl` directly into base backend/frontend models to guarantee persistence. Restored the heatmap visualization map to the police dashboard, fixing layout clipping (`overflow-hidden`) and map overlays stacking (`z-[1000]`). | Frontend & Backend |
+

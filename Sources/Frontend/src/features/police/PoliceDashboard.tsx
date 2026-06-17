@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState, useEffect, useRef, useMemo } from "react";
 import { useI18n } from "@/lib/i18n";
 import {
-  usePublicFeedbacks,
+  usePoliceAssignedFeedbacks,
   useNotifications,
   useMarkNotificationReadMutation,
   useMarkAllNotificationsReadMutation,
@@ -44,7 +44,7 @@ import {
 
 import logoImg from "@/assets/logo.png";
 import { toast } from "sonner";
-import { authApi, type NotificationResponse, type FeedbackResponse } from "@/lib/api";
+import { authApi, type NotificationResponse, type FeedbackResponse, type PoliceFeedbackResponse } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -109,7 +109,7 @@ export function PoliceDashboard() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
   const [filterStatus, setFilterStatus] = useState("ALL");
-  const [selectedFeedback, setSelectedFeedback] = useState<FeedbackResponse | null>(null);
+  const [selectedFeedback, setSelectedFeedback] = useState<PoliceFeedbackResponse | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectInput, setShowRejectInput] = useState(false);
 
@@ -170,29 +170,27 @@ export function PoliceDashboard() {
   }, []);
 
   // Fetch real data
-  const { data: feedbacksPage, isLoading: feedbacksLoading, refetch } = usePublicFeedbacks(0, 200, {
-    keyword: debouncedSearch,
-  });
+  const { data: feedbacksData, isLoading: feedbacksLoading, refetch } = usePoliceAssignedFeedbacks();
+  const { data: hotspots } = useHotspots();
   const { data: notifications = [], isLoading: notifLoading } = useNotifications();
   const { data: unreadCountData } = useNotificationUnreadCount(!!user);
   const markRead = useMarkNotificationReadMutation();
   const markAllRead = useMarkAllNotificationsReadMutation();
 
   const unreadCount = unreadCountData ?? notifications.filter((n) => !n.isRead).length;
-  const feedbacks = feedbacksPage?.content ?? [];
-
-  // Temporarily generate hotspots locally for testing since the API lacks data
-  const generatedHotspots = useMemo(() => {
-    return feedbacks
-      .filter((fb) => fb.latitude != null && fb.longitude != null)
-      .map((fb) => ({
-        latitude: fb.latitude!,
-        longitude: fb.longitude!,
-        weight: fb.status === "PENDING" ? 3 : fb.status === "IN_PROGRESS" ? 2 : 1,
-        status: fb.status,
-        categoryName: fb.categoryName || fb.category || "Chưa phân loại",
-      }));
-  }, [feedbacks]);
+  
+  // Filter by keyword locally if needed since the API doesn't accept keyword yet
+  const feedbacks = useMemo(() => {
+    const data = feedbacksData ?? [];
+    if (!debouncedSearch) return data;
+    const lower = debouncedSearch.toLowerCase();
+    return data.filter(
+      (f) =>
+        f.title?.toLowerCase().includes(lower) ||
+        f.description?.toLowerCase().includes(lower) ||
+        f.trackingCode?.toLowerCase().includes(lower)
+    );
+  }, [feedbacksData, debouncedSearch]);
 
   // Filtered and Sorted Feedbacks for the "Phản ánh" tab
   const filteredAndSortedFeedbacks = useMemo(() => {
@@ -325,7 +323,7 @@ export function PoliceDashboard() {
     };
 
     feedbacks.forEach((fb) => {
-      const name = fb.categoryName || fb.category || "";
+      const name = fb.categoryName || "";
       const n = name.toLowerCase();
       if (n.includes("giao thông") || n.includes("traffic") || n.includes("giao thong")) {
         counts["TRAFFIC"]++;
@@ -796,7 +794,7 @@ export function PoliceDashboard() {
                     }
                   >
                     <div className="h-[400px] w-full bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-                      <HeatmapMap hotspots={generatedHotspots} />
+                      <HeatmapMap hotspots={hotspots || []} />
                     </div>
                   </Suspense>
                 </div>
@@ -1188,7 +1186,7 @@ export function PoliceDashboard() {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">Nội dung</h3>
-                  <p className="text-slate-700 text-sm leading-relaxed">{selectedFeedback.description || selectedFeedback.content}</p>
+                  <p className="text-slate-700 text-sm leading-relaxed">{selectedFeedback.description}</p>
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">Địa điểm</h3>

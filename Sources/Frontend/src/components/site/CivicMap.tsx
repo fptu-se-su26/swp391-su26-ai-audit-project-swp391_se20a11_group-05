@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import type { LatLngExpression } from "leaflet";
+import L from "leaflet";
 
 interface MapMarker {
   position: [number, number];

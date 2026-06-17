@@ -139,7 +139,7 @@ function RegisterPage() {
             : "Redirecting to OTP verification...",
       });
       setTimeout(() => {
-        navigate({ to: "/verify-otp" as any, search: { phone: values.phone } });
+        navigate({ to: "/verify-otp", search: { phone: values.phone } });
       }, 1500);
     } catch (err) {
       if (err instanceof ApiError) {

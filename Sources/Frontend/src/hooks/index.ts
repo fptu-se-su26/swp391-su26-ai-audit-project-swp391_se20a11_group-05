@@ -350,7 +350,12 @@ export function useInfiniteNotifications(size = 5) {
 export function useMarkNotificationReadMutation() {
   const queryClient = useQueryClient();
 
-  return useMutation<NotificationResponse, Error, number | string>({
+  return useMutation<
+    NotificationResponse,
+    Error,
+    number | string,
+    { previousNotifications?: NotificationResponse[]; previousUnreadCount?: number }
+  >({
     mutationFn: (id) => notificationApi.markAsRead(id),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.notifications.all });
@@ -397,7 +402,12 @@ export function useMarkNotificationReadMutation() {
 export function useMarkAllNotificationsReadMutation() {
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, void>({
+  return useMutation<
+    void,
+    Error,
+    void,
+    { previousNotifications?: NotificationResponse[]; previousUnreadCount?: number }
+  >({
     mutationFn: () => notificationApi.markAllAsRead(),
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: queryKeys.notifications.all });

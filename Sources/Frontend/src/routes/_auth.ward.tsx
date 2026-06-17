@@ -12,11 +12,12 @@ import { WardDashboard } from "@/features/ward/WardDashboard";
 
 export const Route = createFileRoute("/_auth/ward")({
   beforeLoad: ({ context }) => {
-    const { currentUser } = context as { currentUser: { name: string; role: string; org: string } };
+    if (typeof window === "undefined") return;
+    const { currentUser } = context as { currentUser: { role: string } };
 
-    // SECURITY check: Ensure that only the WARD_STAFF role is permitted to view ward operations.
-    if (currentUser.role !== Role.WARD_STAFF) {
-      throw redirect({ to: "/login", search: { redirect: undefined, error: "forbidden" } });
+    // SECURITY check: Ensure that only the WARD_STAFF role is allowed to access the dashboard.
+    if (currentUser?.role !== Role.WARD_STAFF) {
+      throw redirect({ to: "/authority-login", search: { redirect: undefined, error: "forbidden" } });
     }
   },
   head: () => ({

@@ -491,6 +491,7 @@ export function WardDashboard() {
     { name: "Tổng quan", path: "/ward", icon: Sliders, active: true },
     { name: "Phản ánh", path: "/my-reports", icon: FileText },
     { name: "Theo dõi xử lý", path: "/my-reports", icon: Activity },
+    { name: "Chiến dịch", path: "/campaigns", icon: Calendar },
     { name: "Báo cáo", path: "/ward", icon: BarChart3 },
     { name: "Cấu hình", path: "/profile", icon: Settings },
   ];

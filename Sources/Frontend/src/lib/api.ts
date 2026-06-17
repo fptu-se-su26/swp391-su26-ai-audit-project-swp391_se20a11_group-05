@@ -699,18 +699,28 @@ export interface CampaignResponse {
   id: number;
   title: string;
   description: string | null;
+  category: string | null;
   locationText: string | null;
+  privateLocationText: string | null;
+  requiredTools: string | null;
+  organizerContact: string | null;
   latitude: number | null;
   longitude: number | null;
   maxParticipants: number | null;
   startTime: string | null;
   endTime: string | null;
-  status: "PENDING" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+  status: "PENDING_APPROVAL" | "RECRUITING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
   wardId: number | null;
   wardName: string | null;
   createdByUserId: number;
   createdByName: string | null;
   participantCount: number;
+  currentUserJoinStatus: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | null;
+  privateDetailsVisible: boolean;
+  canJoin: boolean;
+  canManage: boolean;
+  canComment: boolean;
+  canFeedback: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -718,13 +728,29 @@ export interface CampaignResponse {
 export interface CampaignCreateRequest {
   title: string;
   description?: string;
+  category?: string;
   locationText?: string;
+  privateLocationText: string;
+  requiredTools: string;
+  organizerContact: string;
   latitude?: number;
   longitude?: number;
   maxParticipants?: number;
   startTime?: string;
   endTime?: string;
   wardId?: number;
+}
+
+export interface CampaignParticipantResponse {
+  id: number;
+  campaignId: number;
+  citizenId: number;
+  citizenName: string;
+  joinStatus: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+  createdAt: string;
+  approvedAt: string | null;
+  rejectedAt: string | null;
+  rejectionReason: string | null;
 }
 
 export const campaignApi = {
@@ -737,15 +763,71 @@ export const campaignApi = {
   getById: (id: number | string) =>
     request<CampaignResponse>(`/api/campaigns/${id}`),
 
+  getPrivateDetail: (id: number | string) =>
+    request<CampaignResponse>(`/api/campaigns/${id}/detail`),
+
   create: (data: CampaignCreateRequest) =>
     request<CampaignResponse>("/api/campaigns", {
       method: "POST",
       body: JSON.stringify(data),
     }),
 
+  approve: (id: number | string) =>
+    request<CampaignResponse>(`/api/campaigns/${id}/approve`, { method: "POST" }),
+
   join: (id: number | string) =>
-    request<void>(`/api/campaigns/${id}/join`, { method: "POST" }),
+    request<CampaignResponse>(`/api/campaigns/${id}/join`, { method: "POST" }),
 
   leave: (id: number | string) =>
     request<void>(`/api/campaigns/${id}/leave`, { method: "DELETE" }),
+
+  getParticipants: (id: number | string) =>
+    request<CampaignParticipantResponse[]>(`/api/campaigns/${id}/participants`),
+
+  approveParticipant: (id: number | string, participantId: number | string) =>
+    request<CampaignParticipantResponse>(`/api/campaigns/${id}/participants/${participantId}/approve`, {
+      method: "POST",
+    }),
+
+  rejectParticipant: (id: number | string, participantId: number | string, reason?: string) =>
+    request<CampaignParticipantResponse>(`/api/campaigns/${id}/participants/${participantId}/reject`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
+
+  getComments: (id: number | string) =>
+    request<CampaignCommentResponse[]>(`/api/campaigns/${id}/comments`),
+
+  addComment: (id: number | string, content: string) =>
+    request<CampaignCommentResponse>(`/api/campaigns/${id}/comments`, {
+      method: "POST",
+      body: JSON.stringify({ content }),
+    }),
+
+  getChatMessages: (id: number | string) =>
+    request<CampaignChatMessageResponse[]>(`/api/campaigns/${id}/chat`),
+
+  addChatMessage: (id: number | string, content: string) =>
+    request<CampaignChatMessageResponse>(`/api/campaigns/${id}/chat`, {
+      method: "POST",
+      body: JSON.stringify({ content }),
+    }),
 };
+
+export interface CampaignCommentResponse {
+  id: number;
+  authorId: number;
+  authorName: string;
+  authorRole: BackendRole;
+  content: string;
+  createdAt: string;
+}
+
+export interface CampaignChatMessageResponse {
+  id: number;
+  senderId: number;
+  senderName: string;
+  senderRole: BackendRole;
+  message: string;
+  createdAt: string;
+}

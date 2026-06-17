@@ -1,7 +1,7 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { useI18n, type Locale } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
-import { ROLE_LABEL, Role } from "@/lib/roles";
+import { getLoginPathForRole, ROLE_LABEL, Role } from "@/lib/roles";
 import {
   Menu,
   X,
@@ -207,6 +207,7 @@ export function Header() {
   };
 
   const handleLogout = async () => {
+    const loginPath = getLoginPathForRole(user?.role);
     try {
       await authApi.logout().catch(() => {});
     } catch (err) {
@@ -214,7 +215,7 @@ export function Header() {
     }
     logout();
     queryClient.clear();
-    void navigate({ to: "/login" });
+    void navigate({ to: loginPath });
   };
 
   // Simplified core navigation items

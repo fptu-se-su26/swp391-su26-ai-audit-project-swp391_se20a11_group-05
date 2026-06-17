@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_auth/police")({
 
     // SECURITY check: Ensure that only the POLICE role is allowed to access the dashboard.
     if (currentUser.role !== Role.POLICE) {
-      throw redirect({ to: "/login", search: { redirect: undefined, error: "forbidden" } });
+      throw redirect({ to: "/authority-login", search: { redirect: undefined, error: "forbidden" } });
     }
   },
   head: () => ({

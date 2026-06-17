@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_auth/ward")({
 
     // SECURITY check: Ensure that only the WARD_STAFF role is permitted to view ward operations.
     if (currentUser.role !== Role.WARD_STAFF) {
-      throw redirect({ to: "/login", search: { redirect: undefined, error: "forbidden" } });
+      throw redirect({ to: "/authority-login", search: { redirect: undefined, error: "forbidden" } });
     }
   },
   head: () => ({

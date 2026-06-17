@@ -124,4 +124,30 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
 
     @org.springframework.data.jpa.repository.Query("SELECT w.name, COUNT(f.id), SUM(CASE WHEN f.status = 'RESOLVED' THEN 1L ELSE 0L END) FROM Feedback f JOIN f.ward w GROUP BY w.name")
     List<Object[]> getWardPerformanceStats();
+
+    // ─── Aggregate queries cho Analytics (tránh load toàn bộ entity vào memory) ───
+
+    /**
+     * KPI nhanh: đếm theo từng status trong 1 query duy nhất.
+     * Trả về List<Object[]> với [status_string, count]
+     */
+    @org.springframework.data.jpa.repository.Query("SELECT f.status, COUNT(f.id) FROM Feedback f GROUP BY f.status")
+    List<Object[]> countByStatusGrouped();
+
+    /**
+     * Monthly trend dùng DB aggregate — GROUP BY year/month thay vì load entity.
+     * Trả về [year, month, total_count, resolved_count]
+     */
+    @org.springframework.data.jpa.repository.Query("""
+            SELECT FUNCTION('YEAR', f.createdAt), FUNCTION('MONTH', f.createdAt),
+                   COUNT(f.id),
+                   SUM(CASE WHEN f.status = 'RESOLVED' THEN 1L ELSE 0L END)
+            FROM Feedback f
+            WHERE f.createdAt >= :from AND f.createdAt <= :to
+            GROUP BY FUNCTION('YEAR', f.createdAt), FUNCTION('MONTH', f.createdAt)
+            ORDER BY FUNCTION('YEAR', f.createdAt), FUNCTION('MONTH', f.createdAt)
+            """)
+    List<Object[]> getMonthlyTrendStats(
+            @org.springframework.data.repository.query.Param("from") java.time.LocalDateTime from,
+            @org.springframework.data.repository.query.Param("to") java.time.LocalDateTime to);
 }

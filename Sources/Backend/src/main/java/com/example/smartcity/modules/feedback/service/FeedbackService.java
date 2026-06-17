@@ -84,6 +84,11 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         return "Feedback";
     }
 
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<Feedback> findAllPaged(org.springframework.data.domain.Pageable pageable) {
+        return feedbackRepository.findAll(pageable);
+    }
+
     @Transactional
     public Feedback createFeedback(FeedbackRequest request, String username) {
         Category category = resolveOfficialCategory(request.getCategoryCode());

@@ -1,7 +1,25 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { ElementType, FormEvent, ReactNode } from "react";
-import { ArrowLeft, Calendar, ClipboardList, Lock, MapPin, Package, Send, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  CalendarDays,
+  Camera,
+  Check,
+  ClipboardList,
+  Eye,
+  Lightbulb,
+  Lock,
+  MapPin,
+  Package,
+  Rocket,
+  Save,
+  Search,
+  Send,
+  ShieldCheck,
+  Upload,
+  Users,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useCreateCampaign } from "@/hooks/useCampaigns";
 import { Role, useAuth } from "@/lib/auth";
@@ -28,8 +46,16 @@ const categories: { value: CampaignCategory; label: string }[] = [
   { value: "fire_safety", label: "Phòng cháy chữa cháy" },
 ];
 
+const categoryImages: Record<CampaignCategory, string> = {
+  environment: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600&auto=format&fit=crop&q=80",
+  infrastructure: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&auto=format&fit=crop&q=80",
+  public_safety: "https://images.unsplash.com/photo-1593113598332-cd288d649433?w=600&auto=format&fit=crop&q=80",
+  construction: "https://images.unsplash.com/photo-1486325212027-8081e485255e?w=600&auto=format&fit=crop&q=80",
+  fire_safety: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&auto=format&fit=crop&q=80",
+};
+
 const inputClass =
-  "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-[#1E5EFF] focus:ring-2 focus:ring-[#1E5EFF]/15";
+  "w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/15";
 
 function CreateCampaignPage() {
   const navigate = useNavigate();
@@ -43,35 +69,48 @@ function CreateCampaignPage() {
   const [privateLocationText, setPrivateLocationText] = useState("");
   const [requiredTools, setRequiredTools] = useState("");
   const [organizerContact, setOrganizerContact] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [startClock, setStartClock] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [endClock, setEndClock] = useState("");
   const [maxParticipants, setMaxParticipants] = useState("30");
+  const [bannerPreview, setBannerPreview] = useState("");
 
   const canCreate = isAuthenticated && user?.role === Role.WARD_STAFF;
+  const startTime = combineDateTime(startDate, startClock);
+  const endTime = combineDateTime(endDate, endClock);
 
-  const getDurationText = () => {
+  const durationText = useMemo(() => {
     if (!startTime || !endTime) return null;
     const start = new Date(startTime);
     const end = new Date(endTime);
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
     const diffMs = end.getTime() - start.getTime();
     if (diffMs <= 0) return "Thời gian kết thúc phải diễn ra sau thời gian bắt đầu";
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffHours / 24);
     const remainingHours = diffHours % 24;
-    if (diffDays > 0) {
-      return `Thời gian diễn ra: ${diffDays} ngày ${remainingHours > 0 ? `${remainingHours} giờ` : ""}`;
-    }
+    if (diffDays > 0) return `Thời gian diễn ra: ${diffDays} ngày ${remainingHours > 0 ? `${remainingHours} giờ` : ""}`;
     return `Thời gian diễn ra: ${diffHours} giờ`;
-  };
+  }, [startTime, endTime]);
 
-  const durationText = getDurationText();
-  const isDurationError = durationText && durationText.includes("phải diễn ra sau");
+  const isDurationError = !!(durationText && durationText.includes("phải diễn ra sau"));
+  const previewImage = bannerPreview || categoryImages[category];
+
+  const handleBannerUpload = (file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Vui lòng chọn file ảnh hợp lệ.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setBannerPreview(String(reader.result));
+    reader.readAsDataURL(file);
+  };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
 
-    // Field required validations
     if (!title.trim()) {
       toast.error("Vui lòng nhập tên chiến dịch.");
       return;
@@ -96,8 +135,6 @@ function CreateCampaignPage() {
       toast.error("Vui lòng nhập thông tin liên hệ ban tổ chức.");
       return;
     }
-
-    // Date validations
     if (!startTime) {
       toast.error("Vui lòng chọn thời gian bắt đầu chiến dịch.");
       return;
@@ -111,7 +148,7 @@ function CreateCampaignPage() {
     const end = new Date(endTime);
     const now = new Date();
 
-    if (start < new Date(now.getTime() - 5 * 60 * 1000)) { // 5 minutes grace period
+    if (start < new Date(now.getTime() - 5 * 60 * 1000)) {
       toast.error("Thời gian bắt đầu không thể ở trong quá khứ.");
       return;
     }
@@ -120,9 +157,8 @@ function CreateCampaignPage() {
       return;
     }
 
-    // Participants validation
-    const maxPartNum = parseInt(maxParticipants, 10);
-    if (isNaN(maxPartNum) || maxPartNum <= 0) {
+    const maxPartNum = Number.parseInt(maxParticipants, 10);
+    if (Number.isNaN(maxPartNum) || maxPartNum <= 0) {
       toast.error("Số lượng tình nguyện viên tối đa phải là số nguyên dương.");
       return;
     }
@@ -138,7 +174,7 @@ function CreateCampaignPage() {
         organizerContact: organizerContact.trim(),
         startTime,
         endTime,
-        maxParticipants: maxParticipants,
+        maxParticipants,
         wardName: user?.org,
       });
 
@@ -151,19 +187,18 @@ function CreateCampaignPage() {
 
   if (!canCreate) {
     return (
-      <main className="min-h-screen bg-[#F8FAFC] px-4 py-12">
-        <section className="mx-auto max-w-2xl rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-red-50 text-red-600">
+      <main className="min-h-screen bg-[#F8F7FF] px-4 py-12">
+        <section className="mx-auto max-w-2xl rounded-2xl border border-violet-100 bg-white p-8 shadow-md">
+          <div className="mb-4 grid h-12 w-12 place-items-center rounded-xl bg-red-50 text-red-600">
             <Lock size={22} />
           </div>
           <h1 className="text-2xl font-black text-slate-900">Quyền truy cập bị giới hạn</h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Chỉ có cán bộ địa phương phụ trách (Ward Staff) được cấp quyền tạo các chiến dịch cộng đồng mới.
-            Người dân có thể đăng ký tham gia các chiến dịch khi đã được phê duyệt chính thức.
+            Chỉ có cán bộ địa phương phụ trách được cấp quyền tạo các chiến dịch cộng đồng mới. Người dân có thể đăng ký tham gia các chiến dịch khi đã được phê duyệt chính thức.
           </p>
           <Link
             to="/campaigns"
-            className="mt-6 inline-flex items-center gap-2 rounded-md bg-[#1E5EFF] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#154ecc]"
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#7C3AED] px-4 py-2 text-sm font-bold text-white transition hover:brightness-110"
           >
             <ArrowLeft size={16} />
             Quay lại danh sách
@@ -174,209 +209,331 @@ function CreateCampaignPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] pb-16">
-      {/* Dynamic Header */}
-      <div className="border-b border-slate-200 bg-white shadow-xs">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
-          <Link to="/campaigns" className="inline-flex items-center gap-2 text-sm font-bold text-slate-600 transition hover:text-slate-900">
-            <ArrowLeft size={16} />
-            Danh sách chiến dịch
-          </Link>
-          <div className="flex items-center gap-2">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-amber-500"></span>
-            <span className="rounded-md border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
-              Chờ phê duyệt
-            </span>
+    <main className="min-h-screen bg-[#F8F7FF] pb-16 text-slate-950">
+      <form onSubmit={handleSubmit} className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 lg:px-8">
+        <header className="mb-8">
+          <div className="mb-3 flex flex-wrap items-center gap-2 text-sm font-bold text-slate-500">
+            <Link to="/campaigns" className="transition hover:text-[#7C3AED]">
+              Chiến dịch
+            </Link>
+            <span>/</span>
+            <span className="text-[#7C3AED]">Tạo chiến dịch mới</span>
           </div>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="mx-auto max-w-5xl px-4 py-8">
-        <div className="mb-8">
-          <p className="text-xs font-black uppercase tracking-wider text-[#1E5EFF]">Phát động phong trào</p>
-          <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-950">Tạo chiến dịch mới</h1>
+          <h1 className="flex items-center gap-3 text-3xl font-black tracking-tight text-slate-950">
+            <Rocket size={30} className="text-[#7C3AED]" />
+            Tạo chiến dịch mới
+          </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            Chiến dịch tạo ra sẽ được chuyển thẳng đến Ủy ban Thành phố phê duyệt trước khi công khai.
-            Các chi tiết nhạy cảm (vị trí tập trung, liên hệ) sẽ được bảo mật.
+            Chiến dịch tạo ra sẽ được chuyển đến Ủy ban Thành phố để phê duyệt trước khi công khai. Các chi tiết nhạy cảm sẽ được bảo mật.
           </p>
-        </div>
+        </header>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-          {/* Main Form Area */}
+        <Stepper />
+
+        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,60fr)_minmax(320px,40fr)]">
           <div className="space-y-6">
-            {/* Section 1: Basic info */}
-            <section className="space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="border-b border-slate-100 pb-3">
-                <h2 className="text-base font-black text-slate-900">1. Thông tin chung chiến dịch</h2>
-                <p className="text-xs text-slate-500">Hiển thị công khai cho mọi người dân tìm kiếm</p>
+            <section className="rounded-2xl border border-violet-100 bg-white p-7 shadow-md">
+              <SectionTitle number="1" title="Thông tin chung" subtitle="Hiển thị công khai cho người dân khi tìm kiếm chiến dịch." />
+
+              <div className="mt-5">
+                <label
+                  className="block cursor-pointer rounded-2xl border-2 border-dashed border-violet-200 bg-[#F8F7FF] p-4 transition hover:border-[#7C3AED]"
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    handleBannerUpload(event.dataTransfer.files[0]);
+                  }}
+                >
+                  <input type="file" accept="image/*" className="sr-only" onChange={(event) => handleBannerUpload(event.target.files?.[0])} />
+                  {bannerPreview ? (
+                    <img src={bannerPreview} alt="Preview banner chiến dịch" className="aspect-video w-full rounded-xl object-cover" />
+                  ) : (
+                    <div className="grid aspect-video place-items-center rounded-xl bg-white text-center">
+                      <div>
+                        <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-[#F3F0FF] text-[#7C3AED]">
+                          <Camera size={22} />
+                        </div>
+                        <p className="mt-3 text-sm font-black text-slate-800">Kéo thả hoặc click để upload ảnh banner</p>
+                        <p className="mt-1 text-xs font-semibold text-slate-500">Khuyến nghị tỉ lệ 16:9, ảnh rõ chủ đề chiến dịch.</p>
+                      </div>
+                    </div>
+                  )}
+                </label>
               </div>
 
-              <Field icon={ClipboardList} label="Tên chiến dịch" required>
-                <input
-                  value={title}
-                  onChange={(event) => setTitle(event.target.value)}
-                  className={inputClass}
-                  placeholder="Ví dụ: Dọn rác bãi biển Mỹ Khê chủ nhật xanh"
-                />
-              </Field>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field icon={Package} label="Lĩnh vực">
-                  <select
-                    value={category}
-                    onChange={(event) => setCategory(event.target.value as CampaignCategory)}
-                    className={inputClass}
-                  >
-                    {categories.map((item) => (
-                      <option key={item.value} value={item.value}>
-                        {item.label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-
-                <Field icon={Users} label="Tình nguyện viên cần tuyển">
+              <div className="mt-6 space-y-5">
+                <Field icon={ClipboardList} label="Tên chiến dịch" required>
                   <input
-                    value={maxParticipants}
-                    onChange={(event) => setMaxParticipants(event.target.value)}
+                    value={title}
+                    onChange={(event) => setTitle(event.target.value)}
                     className={inputClass}
-                    type="number"
-                    min="1"
-                    placeholder="30"
+                    placeholder="Ví dụ: Dọn rác bãi biển Mỹ Khê chủ nhật xanh"
                   />
                 </Field>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Field icon={Package} label="Lĩnh vực">
+                    <select value={category} onChange={(event) => setCategory(event.target.value as CampaignCategory)} className={inputClass}>
+                      {categories.map((item) => (
+                        <option key={item.value} value={item.value}>
+                          {item.label}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+
+                  <Field icon={Users} label="Tình nguyện viên cần tuyển">
+                    <input
+                      value={maxParticipants}
+                      onChange={(event) => setMaxParticipants(event.target.value)}
+                      className={inputClass}
+                      type="number"
+                      min="1"
+                      placeholder="30"
+                    />
+                  </Field>
+                </div>
+
+                <Field icon={ClipboardList} label="Mô tả chi tiết chiến dịch" required>
+                  <textarea
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value.slice(0, 500))}
+                    className={`${inputClass} min-h-32 resize-y py-3`}
+                    placeholder="Mục đích, thông điệp truyền tải, quyền lợi và nội dung hoạt động..."
+                  />
+                  <div className="mt-1 text-right text-xs font-semibold text-slate-400">{description.length}/500 ký tự</div>
+                </Field>
               </div>
-
-              <Field icon={MapPin} label="Khu vực hoạt động công khai" required>
-                <input
-                  value={locationText}
-                  onChange={(event) => setLocationText(event.target.value)}
-                  className={inputClass}
-                  placeholder="Tên Phường hoặc Quận hoạt động (Ví dụ: Phường Hòa Khánh Nam)"
-                />
-              </Field>
-
-              <Field icon={ClipboardList} label="Mô tả chi tiết chiến dịch" required>
-                <textarea
-                  value={description}
-                  onChange={(event) => setDescription(event.target.value)}
-                  className={`${inputClass} min-h-28 resize-y py-3`}
-                  placeholder="Mục đích, thông điệp truyền tải, quyền lợi và nội dung hoạt động..."
-                />
-              </Field>
             </section>
 
-            {/* Section 2: Time */}
-            <section className="space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="border-b border-slate-100 pb-3">
-                <h2 className="text-base font-black text-slate-900">2. Lập lịch & Thời gian diễn ra</h2>
-                <p className="text-xs text-slate-500">Cần thiết lập khoảng thời gian hoạt động thực tế</p>
-              </div>
+            <section className="rounded-2xl border border-violet-100 bg-white p-7 shadow-md">
+              <SectionTitle number="2" title="Lịch & Địa điểm" subtitle="Thời gian, địa chỉ và bản đồ preview vị trí hoạt động." />
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field icon={Calendar} label="Thời gian bắt đầu" required>
-                  <input
-                    type="datetime-local"
-                    value={startTime}
-                    onChange={(event) => setStartTime(event.target.value)}
-                    className={inputClass}
-                  />
+              <div className="mt-5 grid gap-4 md:grid-cols-2">
+                <Field icon={CalendarDays} label="Ngày bắt đầu" required>
+                  <input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} className={inputClass} />
                 </Field>
-                <Field icon={Calendar} label="Thời gian kết thúc" required>
-                  <input
-                    type="datetime-local"
-                    value={endTime}
-                    onChange={(event) => setEndTime(event.target.value)}
-                    className={inputClass}
-                  />
+                <Field icon={CalendarDays} label="Giờ bắt đầu" required>
+                  <input type="time" value={startClock} onChange={(event) => setStartClock(event.target.value)} className={inputClass} />
+                </Field>
+                <Field icon={CalendarDays} label="Ngày kết thúc" required>
+                  <input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} className={inputClass} />
+                </Field>
+                <Field icon={CalendarDays} label="Giờ kết thúc" required>
+                  <input type="time" value={endClock} onChange={(event) => setEndClock(event.target.value)} className={inputClass} />
                 </Field>
               </div>
 
-              {/* Dynamic duration validation block */}
               {durationText && (
-                <div className={`rounded-lg border px-4 py-3 text-xs font-semibold flex items-center gap-2 ${
-                  isDurationError 
-                    ? "border-red-200 bg-red-50 text-red-700" 
-                    : "border-emerald-200 bg-emerald-50 text-emerald-800"
-                }`}>
-                  <Calendar size={14} className={isDurationError ? "text-red-500" : "text-emerald-600"} />
+                <div
+                  className={`mt-4 flex items-center gap-2 rounded-xl border px-4 py-3 text-xs font-bold ${
+                    isDurationError ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-800"
+                  }`}
+                >
+                  <CalendarDays size={15} />
                   <span>{durationText}</span>
                 </div>
               )}
-            </section>
-          </div>
 
-          {/* Sidebar Area */}
-          <div className="space-y-6">
-            {/* Private parameters block */}
-            <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="mb-4 flex items-center gap-2 text-sm font-black text-slate-900 border-b border-slate-100 pb-2">
-                <Lock size={16} className="text-[#1E5EFF]" />
-                Thông tin bảo mật
+              <div className="mt-5">
+                <Field icon={MapPin} label="Địa chỉ cụ thể" required>
+                  <div className="relative">
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      value={locationText}
+                      onChange={(event) => setLocationText(event.target.value)}
+                      className={`${inputClass} pl-9`}
+                      placeholder="Nhập địa chỉ, phường hoặc quận tại Đà Nẵng"
+                    />
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {["Bãi biển Xuân Thiều, Liên Chiểu", "Công viên 29/3, Hải Châu", "Bãi biển Mỹ Khê, Sơn Trà"].map((item) => (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => setLocationText(item)}
+                        className="rounded-full border border-violet-100 bg-[#F8F7FF] px-3 py-1 text-xs font-bold text-[#7C3AED] transition hover:bg-[#F3F0FF]"
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                </Field>
               </div>
-              <p className="mb-4 text-[11px] leading-5 text-slate-500">
-                Thông tin này được ẩn với công chúng, chỉ những tình nguyện viên đã đăng ký và được duyệt mới có thể xem.
-              </p>
 
-              <div className="space-y-4">
-                <Field label="Địa điểm tập trung / Hẹn gặp" required compact>
+              <div className="mt-5 overflow-hidden rounded-2xl border border-violet-100">
+                <iframe
+                  title="Map preview"
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3833.8!2d108.1503!3d16.1139!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTbCsDA2JzUwLjEiTiAxMDjCsDA5JzAxLjEiRQ!5e0!3m2!1svi!2svn!4v1234567890"
+                  className="h-[200px] w-full border-0"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-amber-200 bg-[#FFFBF0] p-7 shadow-md">
+              <SectionTitle number="3" title="Thông tin nội bộ" subtitle="Chỉ tình nguyện viên được duyệt mới thấy thông tin này." icon={Lock} />
+
+              <div className="mt-5 grid gap-5">
+                <Field label="Điểm tập trung / Hẹn gặp" required>
                   <textarea
                     value={privateLocationText}
                     onChange={(event) => setPrivateLocationText(event.target.value)}
-                    className={`${inputClass} min-h-20 resize-y py-2 text-xs`}
+                    className={`${inputClass} min-h-24 resize-y py-3`}
                     placeholder="VD: Cổng trường Tiểu học Trần Cao Vân, số 23 Lê Duẩn"
                   />
                 </Field>
-                <Field label="Công cụ cần mang theo" required compact>
+                <Field label="Công cụ cần mang theo" required>
                   <textarea
                     value={requiredTools}
                     onChange={(event) => setRequiredTools(event.target.value)}
-                    className={`${inputClass} min-h-20 resize-y py-2 text-xs`}
+                    className={`${inputClass} min-h-24 resize-y py-3`}
                     placeholder="VD: Mang theo găng tay cao su, mũ tai bèo, nước cá nhân"
                   />
                 </Field>
-                <Field label="Người phụ trách / SĐT" required compact>
+                <Field label="Người phụ trách / SĐT" required>
                   <input
                     value={organizerContact}
                     onChange={(event) => setOrganizerContact(event.target.value)}
-                    className={`${inputClass} text-xs`}
+                    className={inputClass}
                     placeholder="VD: Anh Hải (0905.xxx.xxx) - Bí thư chi đoàn"
                   />
                 </Field>
               </div>
             </section>
 
-            {/* Campaign lifecycle guidelines */}
-            <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-500 mb-3">Quy trình chiến dịch</h3>
-              <ul className="space-y-3 text-xs text-slate-600">
-                <li className="flex gap-2">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[10px] font-bold text-blue-600">1</span>
-                  <span><strong>Tạo & gửi phê duyệt:</strong> Bạn hoàn thành và gửi biểu mẫu này.</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-600">2</span>
-                  <span><strong>Đánh giá:</strong> Lãnh đạo Thành phố kiểm duyệt sự phù hợp.</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-600">3</span>
-                  <span><strong>Đăng ký:</strong> Chiến dịch mở tuyển và người dân có thể đăng ký.</span>
-                </li>
-              </ul>
-            </section>
-
-            <button
-              type="submit"
-              disabled={isLoading || isDurationError}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#1E5EFF] text-sm font-black text-white shadow-md transition hover:bg-[#154ecc] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <Send size={16} />
-              {isLoading ? "Đang gửi..." : "Gửi phê duyệt"}
-            </button>
+            <footer className="flex flex-col-reverse gap-3 rounded-2xl border border-violet-100 bg-white p-4 shadow-md sm:flex-row sm:items-center sm:justify-end">
+              <button
+                type="button"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 px-5 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+              >
+                <Save size={16} />
+                Lưu nháp
+              </button>
+              <button
+                type="submit"
+                disabled={isLoading || isDurationError}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#7C3AED] px-5 text-sm font-black text-white shadow-md transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Send size={16} />
+                {isLoading ? "Đang gửi..." : "Gửi phê duyệt"}
+              </button>
+            </footer>
+            <p className="text-right text-xs font-semibold text-slate-500">Chiến dịch sẽ được chuyển đến Ủy ban Thành phố để phê duyệt.</p>
           </div>
+
+          <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+            <HelperCard title="Quy trình" icon={ShieldCheck}>
+              <div className="space-y-3">
+                <ProcessStep color="bg-[#7C3AED]" label="Tạo & gửi" text="Hoàn thành biểu mẫu và gửi phê duyệt." />
+                <ProcessStep color="bg-[#3B82F6]" label="Lãnh đạo duyệt" text="Ủy ban Thành phố đánh giá mức phù hợp." />
+                <ProcessStep color="bg-[#10B981]" label="Mở đăng ký" text="Chiến dịch được công khai cho người dân." />
+              </div>
+            </HelperCard>
+
+            <HelperCard title="Mẹo tạo chiến dịch hiệu quả" icon={Lightbulb}>
+              <ul className="space-y-3 text-sm font-semibold leading-6 text-slate-600">
+                <li>Đặt tên rõ mục tiêu và địa điểm.</li>
+                <li>Mô tả đầy đủ quyền lợi của tình nguyện viên.</li>
+                <li>Đặt số lượng người tham gia thực tế.</li>
+                <li>Ghi rõ dụng cụ, thời gian và người phụ trách.</li>
+              </ul>
+            </HelperCard>
+
+            <HelperCard title="Xem trước" icon={Eye}>
+              <div className="overflow-hidden rounded-xl border border-violet-100 bg-white shadow-sm">
+                <div className="relative aspect-video bg-slate-100">
+                  <img src={previewImage} alt="Preview campaign" className="h-full w-full object-cover" />
+                  <span className="absolute left-3 top-3 rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">Chờ duyệt</span>
+                </div>
+                <div className="p-4">
+                  <p className="line-clamp-2 text-base font-black text-slate-950">{title.trim() || "Tên chiến dịch sẽ hiển thị tại đây"}</p>
+                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600">
+                    {description.trim() || "Mô tả ngắn của chiến dịch sẽ được cập nhật realtime khi bạn nhập nội dung."}
+                  </p>
+                  <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-slate-500">
+                    <MapPin size={14} />
+                    {locationText.trim() || "Địa điểm hoạt động"}
+                  </div>
+                  <div className="mt-4 h-1.5 rounded-full bg-slate-100">
+                    <div className="h-full w-0 rounded-full bg-[#10B981]" />
+                  </div>
+                </div>
+              </div>
+            </HelperCard>
+          </aside>
         </div>
       </form>
     </main>
+  );
+}
+
+function Stepper() {
+  const steps = [
+    { label: "Thông tin chung", state: "active" },
+    { label: "Lịch & Địa điểm", state: "upcoming" },
+    { label: "Thông tin nội bộ", state: "upcoming" },
+  ];
+
+  return (
+    <div className="rounded-2xl border border-violet-100 bg-white p-4 shadow-md">
+      <div className="grid gap-3 md:grid-cols-3">
+        {steps.map((step, index) => (
+          <div key={step.label} className="flex items-center gap-3">
+            <div
+              className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-black ${
+                step.state === "active" ? "bg-[#7C3AED] text-white" : "border border-slate-200 bg-white text-slate-400"
+              }`}
+            >
+              {step.state === "completed" ? <Check size={16} /> : index + 1}
+            </div>
+            <div>
+              <p className="text-sm font-black text-slate-900">{step.label}</p>
+              <p className="text-xs font-semibold text-slate-400">{step.state === "active" ? "Đang nhập" : "Sắp tới"}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SectionTitle({ number, title, subtitle, icon: Icon }: { number: string; title: string; subtitle: string; icon?: ElementType }) {
+  return (
+    <div className="flex items-start gap-3 border-b border-slate-100 pb-4">
+      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#F3F0FF] text-sm font-black text-[#7C3AED]">
+        {Icon ? <Icon size={17} /> : number}
+      </div>
+      <div>
+        <h2 className="text-lg font-black text-slate-900">{title}</h2>
+        <p className="mt-1 text-sm font-semibold text-slate-500">{subtitle}</p>
+      </div>
+    </div>
+  );
+}
+
+function HelperCard({ title, icon: Icon, children }: { title: string; icon: ElementType; children: ReactNode }) {
+  return (
+    <section className="rounded-2xl border border-violet-100 bg-white p-6 shadow-lg">
+      <h3 className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-wider text-slate-500">
+        <Icon size={17} className="text-[#7C3AED]" />
+        {title}
+      </h3>
+      {children}
+    </section>
+  );
+}
+
+function ProcessStep({ color, label, text }: { color: string; label: string; text: string }) {
+  return (
+    <div className="flex gap-3">
+      <span className={`mt-1 h-3 w-3 shrink-0 rounded-full ${color}`} />
+      <div>
+        <p className="text-sm font-black text-slate-900">{label}</p>
+        <p className="text-sm leading-6 text-slate-600">{text}</p>
+      </div>
+    </div>
   );
 }
 
@@ -384,19 +541,17 @@ function Field({
   icon: Icon,
   label,
   required,
-  compact,
   children,
 }: {
   icon?: ElementType;
   label: string;
   required?: boolean;
-  compact?: boolean;
   children: ReactNode;
 }) {
   return (
     <label className="block">
-      <span className={`mb-2 flex items-center gap-2 font-bold text-slate-800 ${compact ? "text-xs" : "text-sm"}`}>
-        {Icon && <Icon size={15} className="text-slate-400" />}
+      <span className="mb-2 flex items-center gap-2 text-sm font-black text-slate-800">
+        {Icon && <Icon size={15} className="text-[#7C3AED]" />}
         {label}
         {required && <span className="text-red-500">*</span>}
       </span>
@@ -405,3 +560,7 @@ function Field({
   );
 }
 
+function combineDateTime(date: string, time: string) {
+  if (!date || !time) return "";
+  return `${date}T${time}`;
+}

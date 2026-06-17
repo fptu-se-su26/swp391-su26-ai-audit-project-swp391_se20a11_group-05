@@ -462,7 +462,7 @@ export function PoliceDashboard() {
             <img
               src={policeEmblemImg}
               alt="Police Emblem"
-              className="w-full h-full object-contain mix-blend-multiply contrast-125"
+              className="w-full h-full object-contain drop-shadow-md"
             />
           </div>
           {!sidebarCollapsed && (

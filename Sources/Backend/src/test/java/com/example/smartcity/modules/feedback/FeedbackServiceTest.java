@@ -231,6 +231,36 @@ class FeedbackServiceTest {
         assertTrue(result.isEmpty());
     }
 
+    @Test
+    @DisplayName("Should not throw exception when checkDuplicateFeedback finds no duplicate")
+    void checkDuplicateFeedback_noDuplicate() {
+        float[] vector = new float[]{0.1f, 0.2f};
+        when(embeddingFacade.embed("Description")).thenReturn(vector);
+        when(jdbcTemplate.query(any(String.class), any(org.springframework.jdbc.core.RowMapper.class), any(Object[].class)))
+                .thenReturn(List.of());
+
+        assertDoesNotThrow(() -> feedbackService.checkDuplicateFeedback("Description", 1L, 108.2022, 16.0544));
+    }
+
+    @Test
+    @DisplayName("Should throw CustomException when checkDuplicateFeedback finds duplicate")
+    void checkDuplicateFeedback_duplicateFound() {
+        float[] vector = new float[]{0.1f, 0.2f};
+        when(embeddingFacade.embed("Description")).thenReturn(vector);
+        when(jdbcTemplate.query(any(String.class), any(org.springframework.jdbc.core.RowMapper.class), any(Object[].class)))
+                .thenReturn(List.of()) // first call (sqlLog)
+                .thenReturn(List.of("FB-OLD123")); // second call (sql)
+
+        com.example.smartcity.common.exception.CustomException exception = assertThrows(
+                com.example.smartcity.common.exception.CustomException.class,
+                () -> feedbackService.checkDuplicateFeedback("Description", 1L, 108.2022, 16.0544)
+        );
+
+        assertEquals(409, exception.getStatus());
+        assertTrue(exception.getMessage().contains("FB-OLD123"));
+    }
+
+
     private Feedback createSampleFeedback() {
         Feedback f = new Feedback();
         f.setId(1L);

@@ -119,7 +119,7 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
 
         // AI Duplicate Detection: Kiểm tra phản ánh trùng lặp trong cùng Phường
         if (ward != null && ward.getId() != null) {
-            checkDuplicateFeedback(request.getDescription(), ward.getId());
+            checkDuplicateFeedback(request.getDescription(), ward.getId(), request.getLongitude(), request.getLatitude());
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -169,8 +169,8 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         }
     }
 
-    public void checkDuplicateFeedback(String description, Long wardId) {
-        if (wardId == null || description == null || description.isBlank()) {
+    public void checkDuplicateFeedback(String description, Long wardId, Double longitude, Double latitude) {
+        if (wardId == null || description == null || description.isBlank() || longitude == null || latitude == null) {
             return;
         }
 
@@ -178,12 +178,14 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             float[] descriptionVector = embeddingFacade.embed(description);
             String vectorString = java.util.Arrays.toString(descriptionVector);
 
-            // Tìm top 3 có cosine distance gần nhất để debug
+            // Tìm top 3 có cosine distance gần nhất và nằm trong phạm vi tọa độ để debug
             String sqlLog = """
                 SELECT tracking_code, (description_vector <=> ?::vector) as distance
                 FROM feedbacks 
                 WHERE ward_id = ? 
                   AND description_vector IS NOT NULL
+                  AND ABS(latitude - ?) < 0.0009
+                  AND ABS(longitude - ?) < 0.0009
                 ORDER BY description_vector <=> ?::vector ASC 
                 LIMIT 3
             """;
@@ -194,15 +196,22 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
                     log.info("[DUPLICATE-DEBUG] Mã: {}, Distance: {}", rs.getString("tracking_code"), rs.getDouble("distance"));
                     return null;
                 },
-                vectorString, wardId, vectorString
+                vectorString, wardId, latitude, longitude, vectorString
             );
 
-            // Tìm top 1 có cosine distance < 0.20 trong cùng Phường
+            // Tìm top 1 có cosine distance < 0.20 trong cùng Phường, trùng tọa độ và còn trong cooldown
             String sql = """
                 SELECT tracking_code 
                 FROM feedbacks 
                 WHERE ward_id = ? 
                   AND description_vector <=> ?::vector < 0.20
+                  AND ABS(latitude - ?) < 0.0009
+                  AND ABS(longitude - ?) < 0.0009
+                  AND (
+                      status IN ('PENDING', 'IN_PROGRESS', 'SUBMITTED', 'NEED_LOCATION_REVIEW', 'PENDING_RECEIVE', 'WAITING_INFO')
+                      OR
+                      (status = 'RESOLVED' AND resolved_at >= NOW() - INTERVAL '7 days')
+                  )
                 ORDER BY description_vector <=> ?::vector ASC 
                 LIMIT 1
             """;
@@ -210,7 +219,7 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             List<String> results = jdbcTemplate.query(
                 sql,
                 (rs, rowNum) -> rs.getString("tracking_code"),
-                wardId, vectorString, vectorString
+                wardId, vectorString, latitude, longitude, vectorString
             );
 
             if (!results.isEmpty()) {

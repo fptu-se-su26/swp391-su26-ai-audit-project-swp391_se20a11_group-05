@@ -51,6 +51,8 @@ class FeedbackServiceTest {
     @Mock private AutoDispatchService autoDispatchService;
     @Mock private LocationResolutionService locationResolutionService;
     @Mock private ContentGuardrailService contentGuardrailService;
+    @Mock private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+    @Mock private com.example.smartcity.rag.ingestion.EmbeddingClientFacade embeddingFacade;
     private CategoryRoutingService categoryRoutingService;
 
     private FeedbackService feedbackService;
@@ -76,7 +78,9 @@ class FeedbackServiceTest {
                 autoDispatchService,
                 locationResolutionService,
                 categoryRoutingService,
-                contentGuardrailService
+                contentGuardrailService,
+                jdbcTemplate,
+                embeddingFacade
         );
 
         citizen = new User("citizen1", "encoded", "Người Dân", "0905123456",

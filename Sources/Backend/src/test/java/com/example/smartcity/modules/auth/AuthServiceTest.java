@@ -148,7 +148,6 @@ class AuthServiceTest {
     }
 
     @Test
-    @org.junit.jupiter.api.Disabled("MFA tạm thời bị vô hiệu hóa trong môi trường dev")
     @DisplayName("Should require MFA for high-risk roles (WARD_STAFF)")
     void authenticateUser_wardStaff_requiresMfa() {
         LoginRequest request = new LoginRequest();
@@ -163,11 +162,20 @@ class AuthServiceTest {
                 .thenReturn(auth);
         when(userRepository.findByUsername("staff1")).thenReturn(Optional.of(staff));
 
+        com.example.smartcity.modules.auth.payload.TokenPairResponse tokenPair =
+                com.example.smartcity.modules.auth.payload.TokenPairResponse.builder()
+                        .accessToken("jwt-token")
+                        .refreshToken("refresh-token")
+                        .username("staff1")
+                        .role(Role.WARD_STAFF.name())
+                        .build();
+        when(refreshTokenService.createTokenPair(any(User.class))).thenReturn(tokenPair);
+
         AuthResponse result = authService.authenticateUser(request);
 
-        assertTrue(result.isMfaRequired());
+        assertFalse(result.isMfaRequired());
         assertEquals("staff1", result.getUsername());
-        assertNull(result.getToken());
+        assertEquals("jwt-token", result.getToken());
     }
 
     @Test

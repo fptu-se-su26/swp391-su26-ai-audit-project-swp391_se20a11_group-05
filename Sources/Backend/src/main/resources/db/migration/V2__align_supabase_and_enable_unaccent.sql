@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS unaccent;
+
 -- Align existing Supabase tables with the current JPA entities.
 -- All operations are idempotent so this can run against an already-created schema.
 

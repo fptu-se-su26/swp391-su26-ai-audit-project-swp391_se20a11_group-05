@@ -64,6 +64,24 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(404, "Resource not found"));
     }
 
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<Object>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        log.warn("Database integrity violation: {}", ex.getMessage());
+        String rootMsg = getRootMessage(ex);
+        String userFriendlyMsg = "Dữ liệu bị trùng lặp hoặc vi phạm ràng buộc hệ thống.";
+        if (rootMsg != null) {
+            if (rootMsg.contains("users_phone_number_key") || rootMsg.contains("phone_number")) {
+                userFriendlyMsg = "Số điện thoại này đã được liên kết với tài khoản khác!";
+            } else if (rootMsg.contains("users_username_key") || rootMsg.contains("username")) {
+                userFriendlyMsg = "Tên đăng nhập đã tồn tại!";
+            } else if (rootMsg.contains("users_email_key") || rootMsg.contains("email")) {
+                userFriendlyMsg = "Email đã được sử dụng!";
+            }
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(400, userFriendlyMsg));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleGenericException(Exception ex) {
         log.error("Unhandled server error", ex);

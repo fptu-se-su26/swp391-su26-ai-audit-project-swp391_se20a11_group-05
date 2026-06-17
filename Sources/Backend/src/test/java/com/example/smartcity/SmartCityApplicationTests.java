@@ -15,6 +15,7 @@ class SmartCityApplicationTests {
     void contextLoads() {
     }
 
+
     @Configuration
     static class TestConfig {
         @Bean

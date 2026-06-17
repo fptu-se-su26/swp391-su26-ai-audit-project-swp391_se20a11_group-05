@@ -47,13 +47,18 @@ public class AuthService {
     private final MfaSessionService mfaSessionService;
     private final RefreshTokenService refreshTokenService;
 
-    private static final int MAX_LOGIN_ATTEMPTS = 5;
-    private static final int LOCKOUT_MINUTES = 15;
+    private static final int INITIAL_LOCK_ATTEMPTS = 5;
+    private static final int PROGRESSIVE_LOCK_ATTEMPTS = 3;
+    private static final int STAGE_DEFAULT = 0;
+    private static final int STAGE_ONE_MINUTE = 1;
+    private static final int STAGE_THREE_MINUTES = 2;
+    private static final int STAGE_SIX_MINUTES = 3;
+    private static final int STAGE_SMS_OTP_REQUIRED = 4;
 
-    @Transactional
+    @Transactional(noRollbackFor = CustomException.class)
     public AuthResponse authenticateUser(LoginRequest loginRequest) {
-        User user = userRepository.findByUsername(loginRequest.getUsername())
-                .orElseThrow(() -> new CustomException("Tài khoản không tồn tại", 404));
+        User user = findUserForLogin(loginRequest.getUsername())
+                .orElseThrow(() -> new CustomException("Tên đăng nhập hoặc mật khẩu không chính xác", 401));
 
         // Kiểm tra tài khoản bị khóa vĩnh viễn (admin khóa)
         if (!user.isActive()) {
@@ -63,24 +68,17 @@ public class AuthService {
             throw new CustomException("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.", 403);
         }
 
-        // Kiểm tra tài khoản đang bị khóa tạm thời do nhập sai quá nhiều lần
-        if (user.isTemporarilyLocked()) {
-            throw new CustomException(
-                "Tài khoản tạm thời bị khóa do nhập sai mật khẩu quá " + MAX_LOGIN_ATTEMPTS + " lần. "
-                + "Vui lòng thử lại sau " + LOCKOUT_MINUTES + " phút.", 429);
-        }
+        rejectIfLoginLocked(user);
 
         try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            loginRequest.getUsername(),
+                            user.getUsername(),
                             loginRequest.getPassword()
                     )
             );
 
-            // Đăng nhập thành công → reset số lần thử sai
-            user.setLoginAttempts(0);
-            user.setLockedUntil(null);
+            resetLoginLockout(user);
             userRepository.save(user);
 
             // Disable MFA cho môi trường dev hiện tại để chấm bài dễ hơn
@@ -113,22 +111,111 @@ public class AuthService {
                     .build();
 
         } catch (org.springframework.security.core.AuthenticationException ex) {
-            // Mật khẩu sai → tăng số lần thử
-            int attempts = user.getLoginAttempts() + 1;
-            user.setLoginAttempts(attempts);
-
-            if (attempts >= MAX_LOGIN_ATTEMPTS) {
-                user.setLockedUntil(LocalDateTime.now().plusMinutes(LOCKOUT_MINUTES));
-                userRepository.save(user);
-                throw new CustomException(
-                    "Bạn đã nhập sai mật khẩu quá " + MAX_LOGIN_ATTEMPTS + " lần. "
-                    + "Tài khoản tạm khóa " + LOCKOUT_MINUTES + " phút.", 429);
-            }
-
-            userRepository.save(user);
-            int remaining = MAX_LOGIN_ATTEMPTS - attempts;
-            throw new CustomException("Mật khẩu không đúng. Bạn còn " + remaining + " lần thử.", 401);
+            handleFailedPasswordLogin(user);
+            return null;
         }
+    }
+
+    private Optional<User> findUserForLogin(String submittedIdentifier) {
+        String identifier = normalizeAccountIdentifier(submittedIdentifier);
+        if (identifier.isBlank()) {
+            return Optional.empty();
+        }
+
+        Optional<User> byUsername = userRepository.findByUsernameIgnoreCase(identifier);
+        if (byUsername.isPresent()) {
+            return byUsername;
+        }
+
+        Optional<User> byEmail = userRepository.findByEmailIgnoreCase(identifier);
+        if (byEmail.isPresent()) {
+            return byEmail;
+        }
+
+        return userRepository.findByPhoneNumber(identifier);
+    }
+
+    private String normalizeAccountIdentifier(String identifier) {
+        return identifier == null ? "" : identifier.trim().toLowerCase();
+    }
+
+    private void rejectIfLoginLocked(User user) {
+        LocalDateTime now = LocalDateTime.now();
+
+        if (user.getLockedUntil() != null && now.isBefore(user.getLockedUntil())) {
+            long seconds = Math.max(1, java.time.Duration.between(now, user.getLockedUntil()).getSeconds());
+            throw new CustomException(formatLockMessage(seconds), 429);
+        }
+
+        if (user.getLockedUntil() != null) {
+            user.setLockedUntil(null);
+            userRepository.save(user);
+        }
+
+        if (user.isLoginOtpRequired()) {
+            throw new CustomException("This account requires SMS OTP verification before login.", 423);
+        }
+    }
+
+    private void handleFailedPasswordLogin(User user) {
+        int attempts = user.getLoginAttempts() + 1;
+        user.setLoginAttempts(attempts);
+        user.setLastFailedLoginAt(LocalDateTime.now());
+
+        int threshold = user.getLoginLockStage() == STAGE_DEFAULT
+                ? INITIAL_LOCK_ATTEMPTS
+                : PROGRESSIVE_LOCK_ATTEMPTS;
+
+        if (attempts < threshold) {
+            userRepository.save(user);
+            throw new CustomException("Incorrect username or password.", 401);
+        }
+
+        advanceLoginLockout(user);
+    }
+
+    private void advanceLoginLockout(User user) {
+        int nextStage = Math.min(user.getLoginLockStage() + 1, STAGE_SMS_OTP_REQUIRED);
+        user.setLoginAttempts(0);
+        user.setLoginLockStage(nextStage);
+
+        if (nextStage == STAGE_ONE_MINUTE || nextStage == STAGE_THREE_MINUTES || nextStage == STAGE_SIX_MINUTES) {
+            int lockMinutes = lockMinutesForStage(nextStage);
+            user.setLockedUntil(LocalDateTime.now().plusMinutes(lockMinutes));
+            userRepository.save(user);
+            throw new CustomException("Too many failed login attempts. Please try again in " + lockMinutes + " minute(s).", 429);
+        }
+
+        user.setLockedUntil(null);
+        user.setLoginOtpRequired(true);
+        userRepository.save(user);
+        if (user.getPhoneNumber() != null && !user.getPhoneNumber().isBlank()) {
+            smsService.generateAndSendOtp(user.getPhoneNumber());
+        }
+        throw new CustomException("This account requires SMS OTP verification before login.", 423);
+    }
+
+    private int lockMinutesForStage(int stage) {
+        if (stage == STAGE_ONE_MINUTE) {
+            return 1;
+        }
+        if (stage == STAGE_THREE_MINUTES) {
+            return 3;
+        }
+        return 6;
+    }
+
+    private String formatLockMessage(long remainingSeconds) {
+        long minutes = Math.max(1, (long) Math.ceil(remainingSeconds / 60.0));
+        return "Too many failed login attempts. Please try again in " + minutes + " minute(s).";
+    }
+
+    private void resetLoginLockout(User user) {
+        user.setLoginAttempts(0);
+        user.setLoginLockStage(STAGE_DEFAULT);
+        user.setLockedUntil(null);
+        user.setLoginOtpRequired(false);
+        user.setLastFailedLoginAt(null);
     }
 
     @Transactional
@@ -211,20 +298,14 @@ public class AuthService {
 
         User user = userOpt.get();
 
-        // [SECURITY] Chặn tài khoản chưa kích hoạt hoặc bị khóa không được bypass qua Firebase
         if (!user.isActive()) {
             if ("INACTIVE".equals(user.getStatus())) {
-                throw new CustomException("Tài khoản chưa được kích hoạt. Vui lòng xác thực mã OTP.", 403);
+                throw new CustomException("Account is not activated. Please verify the SMS OTP first.", 403);
             }
-            throw new CustomException("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.", 403);
+            throw new CustomException("Your account has been locked. Please contact an administrator.", 403);
         }
 
-        // [SECURITY] Chặn tài khoản bị khóa tạm thời do nhập sai quá nhiều lần
-        if (user.isTemporarilyLocked()) {
-            throw new CustomException(
-                "Tài khoản tạm thời bị khóa do nhập sai mật khẩu quá " + MAX_LOGIN_ATTEMPTS + " lần. "
-                + "Vui lòng thử lại sau " + LOCKOUT_MINUTES + " phút.", 429);
-        }
+        rejectIfLoginLocked(user);
 
         return refreshTokenService.createTokenPair(user);
     }
@@ -299,6 +380,18 @@ public class AuthService {
         user.setStatus("ACTIVE");
         user.setPhoneVerified(true);
         userRepository.save(user);
+    }
+
+    @Transactional
+    public void verifyLoginOtp(String phoneNumber, String otpCode) {
+        smsService.verifyOtp(phoneNumber, otpCode);
+
+        userRepository.findByPhoneNumber(phoneNumber).ifPresent(user -> {
+            if (user.isLoginOtpRequired()) {
+                resetLoginLockout(user);
+                userRepository.save(user);
+            }
+        });
     }
 
     public void logout(String tokenHeader) {

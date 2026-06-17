@@ -36,6 +36,7 @@ public class DataInitializer implements CommandLineRunner {
             log.warn("Could not ALTER sms_verifications.otp_code (may already be correct type): {}", e.getMessage());
         }
 
+        ensureLoginLockoutSchema();
         ensureOfficialFeedbackSchema();
 
         if (userRepository.count() == 0) {
@@ -95,6 +96,32 @@ public class DataInitializer implements CommandLineRunner {
         }
         seedDefaultWards();
         seedDefaultCategories();
+
+        try {
+            migratePlaintextPasswords();
+        } catch (Exception e) {
+            log.warn("Lỗi khi tự động băm mật khẩu: {}", e.getMessage());
+        }
+    }
+
+    private void migratePlaintextPasswords() {
+        log.info("Checking for plaintext passwords in the database...");
+        java.util.List<User> users = userRepository.findAll();
+        int migratedCount = 0;
+        for (User user : users) {
+            String password = user.getPassword();
+            if (password != null && !password.startsWith("$2a$") && !password.startsWith("$2b$") && !password.startsWith("$2y$")) {
+                log.info("Plaintext password detected for user '{}'. Hashing it with BCrypt...", user.getUsername());
+                user.setPassword(passwordEncoder.encode(password));
+                userRepository.save(user);
+                migratedCount++;
+            }
+        }
+        if (migratedCount > 0) {
+            log.info("Successfully migrated {} plaintext passwords to BCrypt.", migratedCount);
+        } else {
+            log.info("No plaintext passwords found. All passwords are secure.");
+        }
     }
 
     private void seedDefaultWards() {
@@ -180,6 +207,12 @@ public class DataInitializer implements CommandLineRunner {
         executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ALTER COLUMN ward_id DROP NOT NULL");
         executeSchemaSql("ALTER TABLE IF EXISTS feedbacks DROP CONSTRAINT IF EXISTS feedbacks_status_check");
         executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD CONSTRAINT feedbacks_status_check CHECK (status IN ('SUBMITTED', 'PENDING_RECEIVE', 'PENDING', 'NEED_LOCATION_REVIEW', 'IN_PROGRESS', 'WAITING_INFO', 'RESOLVED', 'REJECTED'))");
+    }
+
+    private void ensureLoginLockoutSchema() {
+        executeSchemaSql("ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS login_lock_stage INTEGER NOT NULL DEFAULT 0");
+        executeSchemaSql("ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS login_otp_required BOOLEAN NOT NULL DEFAULT FALSE");
+        executeSchemaSql("ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS last_failed_login_at TIMESTAMP");
     }
 
     private void executeSchemaSql(String sql) {

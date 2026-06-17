@@ -32,6 +32,21 @@ export const AUTHORITY_ROLES = new Set<Role>([Role.WARD_STAFF, Role.POLICE, Role
  */
 export const CITIZEN_ROLES = new Set<Role>([Role.CITIZEN]);
 
+export const ROLE_DASHBOARD_REDIRECT: Record<Role, string> = {
+  [Role.CITIZEN]: "/",
+  [Role.WARD_STAFF]: "/ward",
+  [Role.POLICE]: "/police",
+  [Role.SUPER_ADMIN]: "/city-admin",
+};
+
+export function getDashboardPathForRole(role: Role): string {
+  return ROLE_DASHBOARD_REDIRECT[role];
+}
+
+export function getLoginPathForRole(role?: Role | null): "/login" | "/authority-login" {
+  return role && AUTHORITY_ROLES.has(role) ? "/authority-login" : "/login";
+}
+
 // ─── Backend → Frontend Mapping ──────────────────────────────
 
 /**

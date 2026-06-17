@@ -127,19 +127,19 @@ class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("[LOGIN] Sad Path: Tài khoản không tồn tại → Service ném CustomException")
+    @DisplayName("[LOGIN] Sad Path: Tài khoản không tồn tại → Service ném CustomException 401")
     void login_userNotFound_serviceThrowsException() throws Exception {
         LoginRequest req = new LoginRequest();
         req.setUsername("ghost");
         req.setPassword("password123");
 
         when(authService.authenticateUser(any())).thenThrow(
-                new CustomException("Tài khoản không tồn tại", 404));
+                new CustomException("Tên đăng nhập hoặc mật khẩu không chính xác", 401));
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isUnauthorized());
 
         verify(authService).authenticateUser(any(LoginRequest.class));
     }
@@ -243,7 +243,7 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isInternalServerError());
+                .andExpect(status().isBadRequest());
 
         verify(authService).registerUser(any(RegisterRequest.class));
     }
@@ -304,7 +304,7 @@ class AuthControllerTest {
         req.setPhoneNumber("+84905123456");
         req.setOtpCode("123456");
 
-        when(smsService.verifyOtp(any(), any())).thenReturn(true);
+        doNothing().when(authService).verifyLoginOtp(any(), any());
 
         // Cả 2 endpoint đều gọi cùng 1 logic → nên gộp lại
         mockMvc.perform(post("/api/auth/sms/verify")
@@ -318,6 +318,6 @@ class AuthControllerTest {
                 .andExpect(status().isOk());
 
         // Service phải được gọi đúng 2 lần (1 cho mỗi endpoint duplicate)
-        verify(smsService, times(2)).verifyOtp("+84905123456", "123456");
+        verify(authService, times(2)).verifyLoginOtp("+84905123456", "123456");
     }
 }

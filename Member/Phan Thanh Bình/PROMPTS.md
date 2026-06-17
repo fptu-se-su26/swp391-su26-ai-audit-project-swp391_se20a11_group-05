@@ -344,6 +344,107 @@ Các điểm đã kiểm tra/chỉnh sửa:
 Viết tại đây...
 ```
 
+### Prompt số 4
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 17/06/2026 |
+| Công cụ AI | ChatGPT |
+| Mục đích | Tìm hiểu và kiểm chứng thiết kế progressive login lockout + SMS OTP + phân luồng login theo role |
+| Phần việc liên quan | Backend / Frontend / Security / Testing / Debug |
+| Mức độ sử dụng | Hỏi phân tích / Hỏi giải thích / Hỏi review / Hỏi kiểm chứng |
+
+#### 5.1. Prompt nguyên văn
+
+```text
+Mình đang tự tìm hiểu cách cải thiện bảo mật đăng nhập cho project Spring Boot + React.
+Hiện hệ thống có hai nhóm người dùng: citizen dùng /login, còn cán bộ như ward, police, city admin dùng /authority-login.
+
+Mình muốn hiểu cách thiết kế một cơ chế progressive login lockout hợp lý:
+- sau 5 lần nhập sai thì khóa 1 phút,
+- sau khi mở khóa mà tiếp tục sai 3 lần thì khóa 3 phút,
+- tiếp tục sai 3 lần nữa thì khóa 6 phút,
+- nếu vẫn tiếp tục sai thì yêu cầu xác minh SMS OTP trước khi cho đăng nhập lại.
+
+Bạn hãy giúp mình phân tích hướng thiết kế trước, chỉ ra backend cần lưu thêm trạng thái gì trong bảng users,
+service đăng nhập nên xử lý các bước nào, frontend nên hiển thị countdown ra sao,
+và cần test những case nào để mình tự đối chiếu với code hiện tại.
+
+```
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Project đang có luồng đăng nhập cho người dân và cán bộ nhưng cần tăng bảo mật khi người dùng nhập sai mật khẩu nhiều lần.
+Ngoài ra, frontend có hai cổng đăng nhập riêng nên cần tránh trường hợp citizen vào authority dashboard hoặc cán bộ bị redirect về sai trang.
+Nhóm cần một hướng thiết kế đủ rõ để tự triển khai, tự chỉnh code và tự viết test kiểm chứng.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI đề xuất:
+- Dùng progressive lockout theo stage thay vì chỉ khóa cố định một lần.
+- Lưu login_lock_stage, login_otp_required, last_failed_login_at trong bảng users.
+- Tách logic kiểm tra lockedUntil, OTP required và reset lockout thành các hàm riêng trong AuthService.
+- Khi đến stage cuối, gửi SMS OTP và chặn password login cho đến khi OTP được xác minh.
+- Frontend xử lý lỗi 429 bằng countdown, đồng thời clear lỗi khi người dùng sửa input.
+- Role guard cần đưa authority user về /authority-login và citizen user về /login.
+- Test cần kiểm tra cả success path và failure path.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Đã áp dụng vào code:
+- Backend AuthService có progressive lockout theo stage.
+- User entity và migration database có thêm trường phục vụ lockout.
+- AuthController gọi authService.verifyLoginOtp để reset trạng thái OTP required.
+- Frontend có helper loginLockout.ts để format countdown.
+- LoginPage và authority-login xử lý lỗi lockout và phân quyền theo portal.
+- roles.ts và guardUtils.ts hỗ trợ redirect đúng dashboard/login theo role.
+- AuthServiceTest và AuthControllerTest được bổ sung để kiểm chứng logic.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Nhóm không áp dụng nguyên xi mà tự chỉnh:
+- Giữ thông báo lỗi đăng nhập ở mức chung để hạn chế lộ thông tin tài khoản.
+- Bổ sung redirect helper theo role để tránh lặp logic ở nhiều component.
+- Đảm bảo logout cũng quay về đúng cổng đăng nhập.
+- Dùng test để kiểm tra từng stage thay vì chỉ kiểm tra thủ công.
+- Bổ sung DataInitializer để môi trường dev không lỗi khi thiếu cột database.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [x] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Chưa commit |
+| File liên quan | AuthService.java; AuthController.java; User.java; UserRepository.java; V7__progressive_login_lockout.sql; loginLockout.ts; roles.ts; guardUtils.ts; LoginPage.tsx; authority-login.tsx; AuthServiceTest.java; AuthControllerTest.java |
+| Screenshot |  |
+| Kết quả chạy/test | Cần bổ sung sau khi chạy test/build |
+| Link tài liệu/báo cáo |  |
+| Ghi chú khác | Prompt dùng theo hướng tự tìm hiểu, yêu cầu AI phân tích và chỉ rủi ro để nhóm tự triển khai |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Prompt lần này tốt hơn các prompt yêu cầu AI làm trực tiếp vì nó yêu cầu AI giải thích hướng thiết kế, dữ liệu cần lưu,
+case cần test và rủi ro cần chú ý. Nhờ đó nhóm hiểu rõ hơn vì sao cần từng thay đổi, thay vì chỉ copy code.
+```
 ---
 
 ## 6. Prompt quan trọng nhất

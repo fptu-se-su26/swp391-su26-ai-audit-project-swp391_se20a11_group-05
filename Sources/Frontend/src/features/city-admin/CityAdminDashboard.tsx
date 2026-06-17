@@ -1,3 +1,4 @@
+import { clientOnly } from "@/components/ClientOnly";
 import { lazy, Suspense, useState, useEffect, useRef, useMemo } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useQuery } from "@tanstack/react-query";
@@ -43,7 +44,7 @@ import {
 } from "lucide-react";
 
 // Lazy-load Leaflet map component to prevent SSR issues (window is not defined)
-const SuperAdminMap = lazy(() =>
+const SuperAdminMap = clientOnly(() =>
   import("./SuperAdminMap").then((m) => ({ default: m.SuperAdminMap })),
 );
 
@@ -1019,3 +1020,4 @@ export function CityAdminDashboard() {
     </div>
   );
 }
+

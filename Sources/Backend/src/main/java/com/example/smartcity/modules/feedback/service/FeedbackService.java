@@ -224,7 +224,7 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
 
             if (!results.isEmpty()) {
                 String duplicateTrackingCode = results.get(0);
-                log.warn("[DUPLICATE-DETECTION] Phát hiện phản ánh trùng lặp trong cùng Phường. Mã trùng: {}", duplicateTrackingCode);
+                log.warn("[DUPLICATE-DETECTION] Phát hiện phản ánh trùng lặp. Mã trùng: {}", duplicateTrackingCode);
                 throw new CustomException(
                     "Phản ánh tương tự đã được gửi bởi người dân khác. Vui lòng theo dõi mã phản ánh " + duplicateTrackingCode + " để cập nhật tiến độ.",
                     HttpStatus.CONFLICT.value()
@@ -248,7 +248,10 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             if (user.getWard() == null) return Page.empty();
             return feedbackRepository.findByWardId(user.getWard().getId(), pageable);
         } else if (user.getRole() == Role.POLICE) {
-            return feedbackRepository.findByManagedByRole(CategoryRoutingService.ROLE_POLICE, pageable);
+            if (user.getWard() == null) {
+                return Page.empty(pageable);
+            }
+            return feedbackRepository.findByManagedByRoleAndWardId(CategoryRoutingService.ROLE_POLICE, user.getWard().getId(), pageable);
         } else {
             return feedbackRepository.findByCitizenId(user.getId(), pageable);
         }
@@ -542,8 +545,8 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
                 .orElseThrow(() -> new ResourceNotFoundException("User: " + username));
         return switch (user.getRole()) {
             case SUPER_ADMIN -> true;
-            case WARD_STAFF -> user.getWard() != null && feedback.getWard() != null && user.getWard().getId().equals(feedback.getWard().getId());
-            case POLICE -> CategoryRoutingService.ROLE_POLICE.equals(feedback.getManagedByRole());
+            case WARD_STAFF -> CategoryRoutingService.ROLE_WARD_STAFF.equals(feedback.getManagedByRole()) && user.getWard() != null && feedback.getWard() != null && user.getWard().getId().equals(feedback.getWard().getId());
+            case POLICE -> CategoryRoutingService.ROLE_POLICE.equals(feedback.getManagedByRole()) && user.getWard() != null && feedback.getWard() != null && user.getWard().getId().equals(feedback.getWard().getId());
             case CITIZEN -> feedback.getCitizen().getId().equals(user.getId());
         };
     }
@@ -557,6 +560,9 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             throw new CustomException("Công dân không có quyền thay đổi trạng thái phản ánh", HttpStatus.FORBIDDEN.value());
         }
         if (actionBy.getRole() == Role.WARD_STAFF) {
+            if (!CategoryRoutingService.ROLE_WARD_STAFF.equals(feedback.getManagedByRole())) {
+                throw new CustomException("Ward Staff can only process ward-managed feedback", HttpStatus.FORBIDDEN.value());
+            }
             if (actionBy.getWard() == null || feedback.getWard() == null || !actionBy.getWard().getId().equals(feedback.getWard().getId())) {
                 throw new CustomException("Cán bộ phường chỉ có quyền xử lý phản ánh thuộc phường quản lý", HttpStatus.FORBIDDEN.value());
             }
@@ -564,6 +570,9 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         if (actionBy.getRole() == Role.POLICE) {
             if (!CategoryRoutingService.ROLE_POLICE.equals(feedback.getManagedByRole())) {
                 throw new CustomException("Police can only process police-managed feedback", HttpStatus.FORBIDDEN.value());
+            }
+            if (actionBy.getWard() == null || feedback.getWard() == null || !actionBy.getWard().getId().equals(feedback.getWard().getId())) {
+                throw new CustomException("Công an phường chỉ có quyền xử lý phản ánh thuộc phường quản lý", HttpStatus.FORBIDDEN.value());
             }
         }
     }

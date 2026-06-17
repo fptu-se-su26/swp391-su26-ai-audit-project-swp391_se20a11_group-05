@@ -29,7 +29,7 @@ public class GeminiAdapter implements AiProviderAdapter {
 
     private static final String GEMINI_BASE_URL = "https://generativelanguage.googleapis.com";
 
-    @Value("${gemini.model:gemini-1.5-flash}")
+    @Value("${gemini.model:gemini-2.0-flash}")
     private String model;
 
     private final GeminiKeyPool keyPool;

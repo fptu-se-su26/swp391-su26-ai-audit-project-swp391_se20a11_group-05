@@ -19,6 +19,8 @@ import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.user.entity.Role;
 import com.example.smartcity.modules.user.repository.UserRepository;
 import com.example.smartcity.common.exception.CustomException;
+import com.example.smartcity.ai_orchestrator.guardrails.ContentGuardrailService;
+import com.example.smartcity.modules.feedback.service.AutoDispatchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -55,6 +57,9 @@ public class CitizenFeedbackMediaService {
     private final LocationResolutionService locationResolutionService;
     private final NotificationService notificationService;
     private final CategoryRoutingService categoryRoutingService;
+    private final FeedbackService feedbackService;
+    private final ContentGuardrailService contentGuardrailService;
+    private final AutoDispatchService autoDispatchService;
 
     @Transactional
     public CitizenFeedbackMediaResponse submit(CitizenFeedbackMediaRequest request, List<MultipartFile> files, String username) {
@@ -68,6 +73,10 @@ public class CitizenFeedbackMediaService {
 
         List<MultipartFile> safeFiles = files == null ? List.of() : files;
         validateMediaFiles(safeFiles, request.getVideoDurationsSeconds());
+
+        // Content Guardrail: kiểm tra PII (SĐT, CCCD) và nội dung vi phạm
+        contentGuardrailService.validateFeedbackContent(request.getTitle(), request.getDescription());
+
         if (request.getLatitude() == null || request.getLongitude() == null) {
             throw new IllegalArgumentException("Latitude and longitude are required");
         }
@@ -94,12 +103,24 @@ public class CitizenFeedbackMediaService {
         feedback.setUpdatedAt(now);
         categoryRoutingService.applyAssignment(feedback, category, ward, now);
 
+        // AI Duplicate Detection: kiểm tra trùng lặp ngữ nghĩa trước khi lưu
+        if (ward != null && ward.getId() != null) {
+            feedbackService.checkDuplicateFeedback(request.getDescription(), ward.getId());
+        }
+
         Feedback savedFeedback = feedbackRepository.save(feedback);
+
+        // AI Duplicate Detection: lưu vector mô tả để phát hiện trùng lặp sau này
+        feedbackService.saveDescriptionVector(savedFeedback.getId(), savedFeedback.getDescription());
+
         FeedbackLog submittedLog = new FeedbackLog(savedFeedback, citizen, null, savedFeedback.getStatus(), "Citizen submitted feedback");
         submittedLog.setAction("SUBMIT");
         feedbackLogRepository.save(submittedLog);
         notificationService.createFeedbackSubmittedNotification(savedFeedback);
         List<Attachment> savedAttachments = saveAttachments(savedFeedback, citizen, safeFiles);
+
+        // AI Auto-Dispatch: chấm điểm trust_score ngay sau khi upload ảnh xong
+        autoDispatchService.analyzeAndDispatch(savedFeedback.getId());
 
         return toResponse(savedFeedback, savedAttachments);
     }

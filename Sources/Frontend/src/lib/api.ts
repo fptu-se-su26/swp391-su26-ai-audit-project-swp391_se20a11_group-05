@@ -692,3 +692,59 @@ export const wardApi = {
     ),
 };
 
+// ─── Campaign Types ───────────────────────────────────────────
+
+export interface CampaignResponse {
+  id: number;
+  title: string;
+  description: string | null;
+  locationText: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  maxParticipants: number | null;
+  startTime: string | null;
+  endTime: string | null;
+  status: "PENDING" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+  wardId: number | null;
+  wardName: string | null;
+  createdByUserId: number;
+  createdByName: string | null;
+  participantCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CampaignCreateRequest {
+  title: string;
+  description?: string;
+  locationText?: string;
+  latitude?: number;
+  longitude?: number;
+  maxParticipants?: number;
+  startTime?: string;
+  endTime?: string;
+  wardId?: number;
+}
+
+export const campaignApi = {
+  getAll: (page = 0, size = 20, status?: string) => {
+    const params = new URLSearchParams({ page: String(page), size: String(size) });
+    if (status) params.set("status", status);
+    return request<PageResponse<CampaignResponse>>(`/api/campaigns?${params}`);
+  },
+
+  getById: (id: number | string) =>
+    request<CampaignResponse>(`/api/campaigns/${id}`),
+
+  create: (data: CampaignCreateRequest) =>
+    request<CampaignResponse>("/api/campaigns", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  join: (id: number | string) =>
+    request<void>(`/api/campaigns/${id}/join`, { method: "POST" }),
+
+  leave: (id: number | string) =>
+    request<void>(`/api/campaigns/${id}/leave`, { method: "DELETE" }),
+};

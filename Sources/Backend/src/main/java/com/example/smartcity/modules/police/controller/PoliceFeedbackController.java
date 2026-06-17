@@ -10,8 +10,10 @@ import com.example.smartcity.modules.police.dto.UpdateFeedbackStatusRequest;
 import com.example.smartcity.modules.police.service.PoliceFeedbackService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -28,9 +30,8 @@ public class PoliceFeedbackController {
      * GET /api/police/feedbacks - Xem danh sách phản ánh được phân công
      */
     @GetMapping
-    public ResponseEntity<ApiResponse<List<PoliceFeedbackResponse>>> getAssignedFeedbacks(
-            @RequestParam(defaultValue = "3") Long policeUserId) { 
-        List<PoliceFeedbackResponse> feedbacks = feedbackService.getAssignedFeedbacks(policeUserId);
+    public ResponseEntity<ApiResponse<List<PoliceFeedbackResponse>>> getAssignedFeedbacks(Authentication authentication) { 
+        List<PoliceFeedbackResponse> feedbacks = feedbackService.getAssignedFeedbacks(authentication.getName());
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách phản ánh thành công", feedbacks));
     }
 
@@ -49,8 +50,8 @@ public class PoliceFeedbackController {
     @PatchMapping("/{id}/accept")
     public ResponseEntity<ApiResponse<PoliceFeedbackResponse>> acceptFeedback(
             @PathVariable Long id,
-            @RequestParam(defaultValue = "3") Long policeUserId) {
-        PoliceFeedbackResponse res = feedbackService.acceptFeedback(id, policeUserId);
+            Authentication authentication) {
+        PoliceFeedbackResponse res = feedbackService.acceptFeedback(id, authentication.getName());
         return ResponseEntity.ok(ApiResponse.success("Đã tiếp nhận phản ánh", res));
     }
 
@@ -60,9 +61,9 @@ public class PoliceFeedbackController {
     @PatchMapping("/{id}/status")
     public ResponseEntity<ApiResponse<PoliceFeedbackResponse>> updateStatus(
             @PathVariable Long id,
-            @RequestParam(defaultValue = "3") Long policeUserId,
+            Authentication authentication,
             @Valid @RequestBody UpdateFeedbackStatusRequest request) {
-        PoliceFeedbackResponse res = feedbackService.updateStatus(id, policeUserId, request);
+        PoliceFeedbackResponse res = feedbackService.updateStatus(id, authentication.getName(), request);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật trạng thái thành công", res));
     }
 
@@ -72,9 +73,9 @@ public class PoliceFeedbackController {
     @PostMapping("/{id}/result")
     public ResponseEntity<ApiResponse<PoliceFeedbackResponse>> submitResult(
             @PathVariable Long id,
-            @RequestParam(defaultValue = "3") Long policeUserId,
+            Authentication authentication,
             @Valid @RequestBody SubmitFeedbackResultRequest request) {
-        PoliceFeedbackResponse res = feedbackService.submitResult(id, policeUserId, request);
+        PoliceFeedbackResponse res = feedbackService.submitResult(id, authentication.getName(), request);
         return ResponseEntity.ok(ApiResponse.success("Báo cáo kết quả xử lý thành công", res));
     }
 
@@ -84,9 +85,9 @@ public class PoliceFeedbackController {
     @PatchMapping("/{id}/reject")
     public ResponseEntity<ApiResponse<PoliceFeedbackResponse>> rejectFeedback(
             @PathVariable Long id,
-            @RequestParam(defaultValue = "3") Long policeUserId,
+            Authentication authentication,
             @Valid @RequestBody RejectFeedbackRequest request) {
-        PoliceFeedbackResponse res = feedbackService.rejectFeedback(id, policeUserId, request);
+        PoliceFeedbackResponse res = feedbackService.rejectFeedback(id, authentication.getName(), request);
         return ResponseEntity.ok(ApiResponse.success("Đã từ chối/yêu cầu chuyển tiếp phản ánh", res));
     }
 
@@ -96,9 +97,9 @@ public class PoliceFeedbackController {
     @PatchMapping("/{id}/request-info")
     public ResponseEntity<ApiResponse<PoliceFeedbackResponse>> requestMoreInfo(
             @PathVariable Long id,
-            @RequestParam(defaultValue = "3") Long policeUserId,
+            Authentication authentication,
             @Valid @RequestBody RequestMoreInfoRequest request) {
-        PoliceFeedbackResponse res = feedbackService.requestMoreInfo(id, policeUserId, request);
+        PoliceFeedbackResponse res = feedbackService.requestMoreInfo(id, authentication.getName(), request);
         return ResponseEntity.ok(ApiResponse.success("Đã yêu cầu người dân bổ sung thông tin", res));
     }
 }

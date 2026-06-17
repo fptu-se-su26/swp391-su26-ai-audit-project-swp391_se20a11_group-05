@@ -148,8 +148,9 @@ export interface ChatbotResponse {
 export interface KpiData {
   total: number;
   resolved: number;
+  unresolved: number;
+  inProgress: number;
   pending: number;
-  satisfactionRate: string;
 }
 
 export interface WardPerformance {

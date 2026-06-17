@@ -491,11 +491,7 @@ export function CityAdminDashboard() {
           <h2 className="text-xl font-bold text-slate-800 mb-2">Không thể tải dữ liệu</h2>
           <p className="text-slate-600 mb-4">Vui lòng thử lại sau</p>
           <button
-            onClick={() => {
-              // Refresh data instead of reloading page
-              queryClient.invalidateQueries();
-              toast.success("Đã làm mới dữ liệu");
-            }}
+            onClick={() => window.location.reload()}
             className="px-4 py-2 bg-[#0B4FC4] text-white rounded-lg hover:bg-blue-700 transition"
           >
             Thử lại
@@ -769,7 +765,7 @@ export function CityAdminDashboard() {
                     MỚI
                   </span>
                 </>
-              )} */}
+              )} */
             </h2>
           </div>
 

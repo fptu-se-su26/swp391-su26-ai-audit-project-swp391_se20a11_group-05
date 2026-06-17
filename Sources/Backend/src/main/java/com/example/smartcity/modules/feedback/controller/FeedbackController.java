@@ -102,6 +102,14 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
         return ResponseEntity.ok(toDetailResponse(feedback));
     }
 
+    @GetMapping("/admin/all")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<PagedResponse<FeedbackResponse>> getAllFeedbacksForAdmin(
+            @PageableDefault(size = 500, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<Feedback> entities = feedbackService.findAllPaged(pageable);
+        return ResponseEntity.ok(toPagedResponse(entities));
+    }
+
     @GetMapping("/my-reports/{feedbackId}")
     @PreAuthorize("hasRole('CITIZEN')")
     public ResponseEntity<FeedbackResponse> getMyReportById(

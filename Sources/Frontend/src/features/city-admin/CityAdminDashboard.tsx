@@ -1,6 +1,6 @@
-﻿import { lazy, Suspense, useState, useEffect, useRef, useMemo } from "react";
+import { lazy, Suspense, useState, useEffect, useRef, useMemo } from "react";
 import { useI18n } from "@/lib/i18n";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNotifications, useMarkNotificationReadMutation } from "@/hooks";
 import { useFeedbackNotification } from "@/hooks/use-notification";
 import { useAuth } from "@/lib/auth";
@@ -118,6 +118,7 @@ function getOverdueTime(createdAt: string): string {
 export function CityAdminDashboard() {
   const { locale } = useI18n();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   useFeedbackNotification(); // Real-time WebSockets update listener
   const { user, logout } = useAuth();
 
@@ -507,7 +508,7 @@ export function CityAdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F7FAFF] to-[#EDF4FF] flex text-[#1D2939] font-sans antialiased overflow-x-hidden">
-      <style jsx>{`
+      <style>{`
         @keyframes fade-in {
           from { opacity: 0; transform: translateY(-10px); }
           to { opacity: 1; transform: translateY(0); }
@@ -620,7 +621,7 @@ export function CityAdminDashboard() {
                   
                   {item.badge && !sidebarCollapsed && (
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-black relative z-10 ${
-                      item.badge === "NEW" 
+                      String(item.badge) === "NEW" 
                         ? "bg-gradient-to-r from-emerald-400 to-emerald-600 text-white shadow-sm" 
                         : isActive 
                           ? "bg-red-100 text-red-600" 
@@ -632,7 +633,7 @@ export function CityAdminDashboard() {
                   
                   {item.badge && sidebarCollapsed && (
                     <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${
-                      item.badge === "NEW" ? "bg-emerald-500" : "bg-red-500"
+                      String(item.badge) === "NEW" ? "bg-emerald-500" : "bg-red-500"
                     } shadow-sm`}></div>
                   )}
                 </button>

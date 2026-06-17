@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState, useEffect, useRef, useMemo } from "react";
 import { useI18n } from "@/lib/i18n";
 import {
-  useFeedbacks,
+  usePublicFeedbacks,
   useNotifications,
   useMarkNotificationReadMutation,
   useMarkAllNotificationsReadMutation,
@@ -134,7 +134,7 @@ export function PoliceDashboard() {
   }, []);
 
   // Fetch real data
-  const { data: feedbacksPage, isLoading: feedbacksLoading, refetch } = useFeedbacks(0, 200, {
+  const { data: feedbacksPage, isLoading: feedbacksLoading, refetch } = usePublicFeedbacks(0, 200, {
     keyword: debouncedSearch,
   });
   const { data: hotspots } = useHotspots();

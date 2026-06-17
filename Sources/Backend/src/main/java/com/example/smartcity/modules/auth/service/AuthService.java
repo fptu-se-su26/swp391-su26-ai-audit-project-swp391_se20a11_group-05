@@ -53,7 +53,7 @@ public class AuthService {
     @Transactional
     public AuthResponse authenticateUser(LoginRequest loginRequest) {
         User user = userRepository.findByUsername(loginRequest.getUsername())
-                .orElseThrow(() -> new CustomException("Tài khoản không tồn tại", 404));
+                .orElseThrow(() -> new CustomException("Tên đăng nhập hoặc mật khẩu không chính xác", 401));
 
         // Kiểm tra tài khoản bị khóa vĩnh viễn (admin khóa)
         if (!user.isActive()) {

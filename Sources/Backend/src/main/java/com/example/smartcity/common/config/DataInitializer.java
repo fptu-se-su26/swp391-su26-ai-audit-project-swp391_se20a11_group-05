@@ -95,6 +95,32 @@ public class DataInitializer implements CommandLineRunner {
         }
         seedDefaultWards();
         seedDefaultCategories();
+
+        try {
+            migratePlaintextPasswords();
+        } catch (Exception e) {
+            log.warn("Lỗi khi tự động băm mật khẩu: {}", e.getMessage());
+        }
+    }
+
+    private void migratePlaintextPasswords() {
+        log.info("Checking for plaintext passwords in the database...");
+        java.util.List<User> users = userRepository.findAll();
+        int migratedCount = 0;
+        for (User user : users) {
+            String password = user.getPassword();
+            if (password != null && !password.startsWith("$2a$") && !password.startsWith("$2b$") && !password.startsWith("$2y$")) {
+                log.info("Plaintext password detected for user '{}'. Hashing it with BCrypt...", user.getUsername());
+                user.setPassword(passwordEncoder.encode(password));
+                userRepository.save(user);
+                migratedCount++;
+            }
+        }
+        if (migratedCount > 0) {
+            log.info("Successfully migrated {} plaintext passwords to BCrypt.", migratedCount);
+        } else {
+            log.info("No plaintext passwords found. All passwords are secure.");
+        }
     }
 
     private void seedDefaultWards() {

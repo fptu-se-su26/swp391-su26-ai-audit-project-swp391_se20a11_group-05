@@ -18,6 +18,7 @@ import com.example.smartcity.modules.notification.WebSocketNotificationService;
 import com.example.smartcity.modules.notification.service.NotificationService;
 import com.example.smartcity.modules.feedback.service.AutoDispatchService;
 import com.example.smartcity.modules.core.service.LocationResolutionService;
+import com.example.smartcity.ai_orchestrator.guardrails.ContentGuardrailService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -48,6 +49,7 @@ class FeedbackServiceTest {
     @Mock private NotificationService notificationService;
     @Mock private AutoDispatchService autoDispatchService;
     @Mock private LocationResolutionService locationResolutionService;
+    @Mock private ContentGuardrailService contentGuardrailService;
     private CategoryRoutingService categoryRoutingService;
 
     private FeedbackService feedbackService;
@@ -72,7 +74,8 @@ class FeedbackServiceTest {
                 attachmentRepository,
                 autoDispatchService,
                 locationResolutionService,
-                categoryRoutingService
+                categoryRoutingService,
+                contentGuardrailService
         );
 
         citizen = new User("citizen1", "encoded", "Người Dân", "0905123456",

@@ -129,7 +129,7 @@ function AuthorityLoginPage() {
         login({
           name: data.username,
           role,
-          org: "",
+          org: data.org || "",
           token: data.token,
         });
 
@@ -176,7 +176,7 @@ function AuthorityLoginPage() {
         return;
       }
 
-      login({ name: data.username, role, org: "", token: data.token });
+      login({ name: data.username, role, org: data.org || "", token: data.token });
       navigate({ to: (redirect || ROLE_REDIRECT[role] || "/city-admin") as any });
     } catch (err) {
       if (err instanceof ApiError) {

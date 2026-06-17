@@ -172,6 +172,7 @@ export interface TokenResponse {
   tokenType: string;
   username: string;
   role: BackendRole;
+  org?: string;
 }
 
 export interface MfaRequiredResponse {

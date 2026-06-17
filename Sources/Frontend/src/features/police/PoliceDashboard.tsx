@@ -1261,7 +1261,7 @@ export function PoliceDashboard() {
 
               {/* ACTION AREA */}
               <div className="mt-8 pt-6 border-t border-slate-100">
-                {selectedFeedback.status === "PENDING" ? (
+                {["PENDING", "PENDING_RECEIVE", "SUBMITTED", "NEED_LOCATION_REVIEW"].includes(selectedFeedback.status) ? (
                   showRejectInput ? (
                     <div className="space-y-3 animate-in slide-in-from-top-2">
                       <label className="text-sm font-bold text-slate-700">Lý do từ chối:</label>

@@ -599,6 +599,11 @@ export const policeApi = {
     request<any[]>("/api/police/feedbacks/hotspots", {
       method: "GET",
     }),
+
+  acceptFeedback: (id: number | string) =>
+    request<PoliceFeedbackResponse>(`/api/police/feedbacks/${id}/accept`, {
+      method: "PATCH",
+    }),
 };
 
 export const categoryApi = {

@@ -7,6 +7,8 @@ import {
   useMarkAllNotificationsReadMutation,
   useNotificationUnreadCount,
   useHotspots,
+  useAcceptFeedback,
+  useRejectFeedback,
 } from "@/hooks";
 import { useAuth } from "@/lib/auth";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -107,6 +109,40 @@ export function PoliceDashboard() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
   const [filterStatus, setFilterStatus] = useState("ALL");
+  const [selectedFeedback, setSelectedFeedback] = useState<FeedbackResponse | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [showRejectInput, setShowRejectInput] = useState(false);
+
+  const acceptFeedbackMut = useAcceptFeedback();
+  const rejectFeedbackMut = useRejectFeedback();
+
+  const handleAccept = async (id: number) => {
+    try {
+      await acceptFeedbackMut.mutateAsync(id);
+      toast.success("Đã tiếp nhận phản ánh thành công");
+      setSelectedFeedback((prev) => prev ? { ...prev, status: "IN_PROGRESS" } : null);
+      refetch();
+    } catch (err: any) {
+      toast.error(err.message || "Lỗi khi tiếp nhận phản ánh");
+    }
+  };
+
+  const handleReject = async (id: number) => {
+    if (!rejectReason.trim()) {
+      toast.error("Vui lòng nhập lý do từ chối");
+      return;
+    }
+    try {
+      await rejectFeedbackMut.mutateAsync({ id, reason: rejectReason });
+      toast.success("Đã từ chối phản ánh");
+      setSelectedFeedback((prev) => prev ? { ...prev, status: "REJECTED" } : null);
+      setShowRejectInput(false);
+      setRejectReason("");
+      refetch();
+    } catch (err: any) {
+      toast.error(err.message || "Lỗi khi từ chối phản ánh");
+    }
+  };
 
   const notifRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
@@ -1077,7 +1113,11 @@ export function PoliceDashboard() {
                       filteredAndSortedFeedbacks.map((row) => (
                         <tr
                           key={row.id}
-                          onClick={() => navigate({ to: "/my-reports/$id", params: { id: String(row.id) } })}
+                          onClick={() => {
+                            setSelectedFeedback(row);
+                            setShowRejectInput(false);
+                            setRejectReason("");
+                          }}
                           className="hover:bg-slate-50 transition-colors cursor-pointer"
                         >
                           <td className="px-5 py-4 text-xs font-bold text-[#0F5BD8]">{row.trackingCode || `PA-${row.id}`}</td>
@@ -1119,6 +1159,126 @@ export function PoliceDashboard() {
 
         </main>
       </div>
+
+      {/* ─── MODAL DUYỆT PHẢN ÁNH ─── */}
+      {selectedFeedback && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            <button
+              onClick={() => setSelectedFeedback(null)}
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors"
+            >
+              <X size={20} />
+            </button>
+            <div className="p-6 md:p-8">
+              <h2 className="text-xl font-extrabold text-[#0B2545] mb-2">Chi tiết phản ánh</h2>
+              <div className="flex items-center gap-3 text-xs font-semibold text-slate-500 mb-6">
+                <span className="bg-blue-50 text-[#0F5BD8] px-2 py-1 rounded border border-blue-100">
+                  {selectedFeedback.trackingCode || `PA-${selectedFeedback.id}`}
+                </span>
+                <span>{formatDate(selectedFeedback.createdAt)}</span>
+              </div>
+
+              <div className="space-y-5">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">Tiêu đề</h3>
+                  <p className="text-[#0B2545] font-semibold">{selectedFeedback.title}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">Nội dung</h3>
+                  <p className="text-slate-700 text-sm leading-relaxed">{selectedFeedback.description || selectedFeedback.content}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">Địa điểm</h3>
+                  <p className="text-[#0B2545] text-sm flex items-center gap-2">
+                    <AlertTriangle size={14} className="text-orange-500" />
+                    {selectedFeedback.addressDetails || selectedFeedback.address || "Chưa xác định"}
+                  </p>
+                </div>
+                
+                {selectedFeedback.mediaUrls && selectedFeedback.mediaUrls.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Hình ảnh đính kèm</h3>
+                    <div className="grid grid-cols-3 gap-2">
+                      {selectedFeedback.mediaUrls.map((url, i) => (
+                        <div key={i} className="aspect-square rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
+                          <img src={url} alt="Đính kèm" className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ACTION AREA */}
+              <div className="mt-8 pt-6 border-t border-slate-100">
+                {selectedFeedback.status === "PENDING" ? (
+                  showRejectInput ? (
+                    <div className="space-y-3 animate-in slide-in-from-top-2">
+                      <label className="text-sm font-bold text-slate-700">Lý do từ chối:</label>
+                      <textarea
+                        value={rejectReason}
+                        onChange={(e) => setRejectReason(e.target.value)}
+                        placeholder="Nhập lý do từ chối phản ánh này..."
+                        className="w-full h-24 p-3 text-sm rounded-xl border border-slate-300 focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none resize-none"
+                      ></textarea>
+                      <div className="flex gap-3 justify-end">
+                        <button
+                          onClick={() => setShowRejectInput(false)}
+                          className="px-4 py-2 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
+                        >
+                          Hủy
+                        </button>
+                        <button
+                          onClick={() => handleReject(selectedFeedback.id)}
+                          disabled={rejectFeedbackMut.isPending}
+                          className="px-6 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-2"
+                        >
+                          {rejectFeedbackMut.isPending && <RefreshCw size={14} className="animate-spin" />}
+                          Xác nhận từ chối
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex gap-4">
+                      <button
+                        onClick={() => handleAccept(selectedFeedback.id)}
+                        disabled={acceptFeedbackMut.isPending}
+                        className="flex-1 bg-[#0F5BD8] hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-blue-500/30 transition-all flex justify-center items-center gap-2"
+                      >
+                        {acceptFeedbackMut.isPending ? <RefreshCw size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
+                        Tiếp nhận xử lý ngay
+                      </button>
+                      <button
+                        onClick={() => setShowRejectInput(true)}
+                        className="flex-1 bg-white hover:bg-red-50 text-red-600 border-2 border-red-100 hover:border-red-200 font-bold py-3 px-4 rounded-xl transition-all flex justify-center items-center gap-2"
+                      >
+                        <X size={18} />
+                        Từ chối
+                      </button>
+                    </div>
+                  )
+                ) : (
+                  <div className="bg-slate-50 rounded-xl p-4 flex items-center justify-center gap-3 border border-slate-100">
+                    {selectedFeedback.status === "REJECTED" ? (
+                      <>
+                        <X size={20} className="text-red-500" />
+                        <span className="font-bold text-slate-500">Phản ánh này đã bị từ chối.</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle size={20} className="text-green-500" />
+                        <span className="font-bold text-slate-500">Phản ánh này đã được tiếp nhận / đang xử lý.</span>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

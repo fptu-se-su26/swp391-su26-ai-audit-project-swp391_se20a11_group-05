@@ -511,10 +511,16 @@ export const feedbackApi = {
     return request<FeedbackLookupStatsResponse>(`/api/feedbacks/public/stats?${params}`, { skipAuth: true });
   },
 
+  getPublicFeedbackStatistics: (filters: FeedbackListFilters = {}) =>
+    feedbackApi.getPublicStats(filters),
+
+  getRecentPublicFeedback: (limit = 5, filters: FeedbackListFilters = {}) =>
+    feedbackApi.getPublic(0, limit, filters),
+
   getPublicById: (id: string | number) =>
     request<FeedbackResponse>(`/api/feedbacks/public/${id}`, { skipAuth: true }),
 
-  getStatuses: () => request<FeedbackStatusOption[]>("/api/feedbacks/statuses"),
+  getStatuses: () => request<FeedbackStatusOption[]>("/api/feedbacks/statuses", { skipAuth: true }),
 
   getById: (id: string | number) => request<FeedbackResponse>(`/api/feedback/my-reports/${id}`),
 

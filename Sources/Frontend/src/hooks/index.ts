@@ -109,6 +109,22 @@ export function usePublicFeedbackStats(filters: FeedbackListFilters = {}) {
   });
 }
 
+export function usePublicFeedbackStatistics(filters: FeedbackListFilters = {}) {
+  return useQuery<FeedbackLookupStatsResponse>({
+    queryKey: queryKeys.feedbacks.publicStats(filters),
+    queryFn: () => feedbackApi.getPublicFeedbackStatistics(filters),
+    staleTime: 30_000,
+  });
+}
+
+export function useRecentPublicFeedback(limit = 5, filters: FeedbackListFilters = {}) {
+  return useQuery<PageResponse<FeedbackResponse>>({
+    queryKey: queryKeys.feedbacks.publicList(0, limit, filters),
+    queryFn: () => feedbackApi.getRecentPublicFeedback(limit, filters),
+    staleTime: 30_000,
+  });
+}
+
 export function usePublicFeedbackDetail(id: string | number) {
   return useQuery<FeedbackResponse>({
     queryKey: queryKeys.feedbacks.publicDetail(id),

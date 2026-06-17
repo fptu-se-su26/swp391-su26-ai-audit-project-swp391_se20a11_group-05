@@ -1,6 +1,7 @@
 package com.example.smartcity.modules.feedback.service;
 
 import com.example.smartcity.modules.feedback.dto.FeedbackRequest;
+import com.example.smartcity.ai_orchestrator.guardrails.ContentGuardrailService;
 import com.example.smartcity.modules.feedback.entity.Category;
 import com.example.smartcity.modules.feedback.entity.Feedback;
 import com.example.smartcity.modules.feedback.entity.FeedbackStatus;
@@ -55,6 +56,7 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
     private final AutoDispatchService autoDispatchService;
     private final LocationResolutionService locationResolutionService;
     private final CategoryRoutingService categoryRoutingService;
+    private final ContentGuardrailService contentGuardrailService;
 
     // State machine: map of valid transitions
     private static final Map<FeedbackStatus, Set<FeedbackStatus>> VALID_TRANSITIONS = Map.of(
@@ -92,6 +94,16 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         // GPS là bắt buộc để tránh phản ánh không có vị trí xử lý.
         if (request.getLatitude() == null || request.getLongitude() == null) {
             throw new CustomException("Vui long cho phep GPS truoc khi gui phan anh", HttpStatus.BAD_REQUEST.value());
+        }
+
+        // [PII Guard — Tầng 2] Kiểm tra nội dung có chứa SĐT / CCCD không
+        try {
+            contentGuardrailService.validateFeedbackContent(
+                request.getTitle(), 
+                request.getDescription() + " " + (request.getAddressDetails() != null ? request.getAddressDetails() : "")
+            );
+        } catch (IllegalArgumentException ex) {
+            throw new CustomException(ex.getMessage(), HttpStatus.BAD_REQUEST.value());
         }
 
         Ward ward = null;

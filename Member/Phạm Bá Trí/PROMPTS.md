@@ -1166,6 +1166,72 @@ Việc nói rõ "thầy chê" và "muốn điểm cao" kích thích AI tư duy r
 
 ---
 
+---
+
+### Prompt số 12
+
+| Nội dung            | Thông tin                                                      |
+| ------------------- | -------------------------------------------------------------- |
+| Ngày sử dụng        | 17/06/2026                                                     |
+| Công cụ AI          | Antigravity                                                    |
+| Mục đích            | Kiểm toán Runtime Logic và Khắc phục rủi ro UX Resubmit        |
+| Phần việc liên quan | Security & UX Audit / Spring Boot Backend / React Frontend     |
+| Mức độ sử dụng      | Yêu cầu rà soát "vạch lá tìm sâu", trace luồng và sinh code vá lỗi |
+
+#### 5.1. Prompt nguyên văn
+
+```text
+Đây là prompt chuyên sâu để kiểm tra thực tế cách hoạt động và tìm lỗi logic của hệ thống AI Guardrails & Auto Dispatch này. NHIỆM VỤ: KIỂM TRA LOGIC THỰC TẾ HỆ THỐNG AI GUARDRAILS & AUTO DISPATCH. Bạn là một Senior Full-Stack Engineer và AI Systems Auditor chuyên trace luồng dữ liệu end-to-end... Không phân tích code theo từng file riêng lẻ. Thay vào đó, hãy đóng vai một request cụ thể và trace nó qua toàn bộ hệ thống...
+```
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Khi hệ thống AI đã khá hoàn thiện về thuật toán, các lỗi sẽ không nằm ở Syntax nữa mà nằm ở Business Logic và Runtime Concurrency (Đồng bộ luồng). Cần bắt AI đóng vai Auditor và "Walk the code" để tìm lỗi ngầm ở Spring Boot (Transaction) và đánh giá lại hành trình người dùng (User Journey).
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI cung cấp 1 báo cáo Audit xuất sắc, tìm ra 2 lỗi CRITICAL (LazyInitializationException do gọi fetch ngoài transaction, Race condition của Async Notification) và rủi ro Drop-off Rate ở giao diện "Gửi lại báo cáo".
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Đã áp dụng toàn bộ code sửa lỗi: tách `@Transactional` cho fallback, dùng `TransactionSynchronizationManager`, và truyền `state` qua React Router để Pre-fill lại form.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Trực tiếp đánh giá bản kế hoạch (Implementation Plan) do AI vạch ra, nghiệm thu và yêu cầu AI viết 4 file tài liệu riêng lẻ vào ổ cứng để nộp làm bằng chứng.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [ ] Cần hỏi lại AI nhiều lần
+- [ ] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung                                                                  |
+| --------------- | ------------------------------------------------------------------------- |
+| File liên quan  | `AutoDispatchService.java`, `report.tsx`, `my-reports.$id.tsx`            |
+| Ghi chú khác    | Prompt ở định dạng cấu trúc cực tốt, ép AI phải phân tích theo "Happy Path" và "Edge Cases" |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Việc thiết kế prompt chuyên biệt cho Audit Runtime giúp AI hoạt động như một cỗ máy test tự động bằng mắt (Static Analysis), phát hiện được các lỗi mà Unit Test thông thường cũng khó cover hết.
+```
+
 ## 11. Cam kết sử dụng prompt minh bạch
 
 Sinh viên/nhóm cam kết rằng:

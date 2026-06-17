@@ -1,3 +1,4 @@
+import { clientOnly } from "@/components/ClientOnly";
 import { lazy, Suspense, useState, useEffect, useRef, useMemo } from "react";
 import { useI18n } from "@/lib/i18n";
 import {
@@ -47,11 +48,11 @@ import { authApi, type NotificationResponse, type FeedbackResponse } from "@/lib
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const CivicMap = lazy(() =>
+const CivicMap = clientOnly(() =>
   import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
 );
 
-const HeatmapMap = lazy(() =>
+const HeatmapMap = clientOnly(() =>
   import("@/components/site/HeatmapMap").then((m) => ({ default: m.HeatmapMap })),
 );
 
@@ -994,3 +995,4 @@ export function PoliceDashboard() {
     </div>
   );
 }
+

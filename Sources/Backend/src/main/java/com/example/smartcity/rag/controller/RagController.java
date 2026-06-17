@@ -186,7 +186,7 @@ public class RagController {
             @RequestParam(defaultValue = "1") Long userId) {
 
         log.info("[API] GET /api/rag/chatbot - userId={} | q='{}'", userId, q);
-        Map<String, Object> result = chatbotService.ask(userId, q);
+        Map<String, Object> result = chatbotService.ask(userId, null, q, null);
         return ResponseEntity.ok(result);
     }
 

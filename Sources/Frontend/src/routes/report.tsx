@@ -1,3 +1,4 @@
+import { clientOnly } from "@/components/ClientOnly";
 import { createFileRoute, Link, redirect, useLocation } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { useI18n } from "@/lib/i18n";
@@ -55,7 +56,7 @@ export const Route = createFileRoute("/report")({
   component: ReportPage,
 });
 
-const ReportMap = lazy(() =>
+const ReportMap = clientOnly(() =>
   import("@/components/site/ReportMap").then((m) => ({ default: m.ReportMap })),
 );
 
@@ -901,3 +902,4 @@ function ReportPage() {
     </div>
   );
 }
+

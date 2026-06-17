@@ -121,4 +121,71 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
 
     @org.springframework.data.jpa.repository.Query("SELECT w.name, COUNT(f.id), SUM(CASE WHEN f.status = 'RESOLVED' THEN 1L ELSE 0L END) FROM Feedback f JOIN f.ward w GROUP BY w.name")
     List<Object[]> getWardPerformanceStats();
+
+    @org.springframework.data.jpa.repository.Query("""
+            SELECT f.status, COUNT(f.id)
+            FROM Feedback f
+            WHERE f.createdAt >= :fromDate
+              AND f.createdAt < :toDate
+              AND (:wardId IS NULL OR f.ward.id = :wardId)
+              AND f.categoryCode IN ('URBAN_INFRASTRUCTURE', 'ENVIRONMENT', 'CONSTRUCTION')
+            GROUP BY f.status
+            """)
+    List<Object[]> countWardStaffFeedbackByStatusAndDateRange(
+            @Param("fromDate") java.time.LocalDateTime fromDate,
+            @Param("toDate") java.time.LocalDateTime toDate,
+            @Param("wardId") Long wardId);
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"category", "ward", "citizen"})
+    @org.springframework.data.jpa.repository.Query("""
+            SELECT f
+            FROM Feedback f
+            LEFT JOIN f.ward w
+            WHERE f.ward.id = :wardId
+              AND f.categoryCode IN ('URBAN_INFRASTRUCTURE', 'ENVIRONMENT', 'CONSTRUCTION')
+              AND (:status IS NULL OR f.status = :status)
+              AND f.createdAt >= :fromDate
+              AND f.createdAt <= :toDate
+              AND (
+                :keyword IS NULL OR :keyword = '' OR
+                LOWER(function('unaccent', COALESCE(f.trackingCode, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(f.title, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(f.description, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(f.addressDetails, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(w.name, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%')))
+              )
+            """)
+    Page<Feedback> searchWardFeedbacks(
+            @Param("wardId") Long wardId,
+            @Param("keyword") String keyword,
+            @Param("status") FeedbackStatus status,
+            @Param("fromDate") java.time.LocalDateTime fromDate,
+            @Param("toDate") java.time.LocalDateTime toDate,
+            Pageable pageable);
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"category", "ward", "citizen"})
+    @org.springframework.data.jpa.repository.Query("""
+            SELECT f
+            FROM Feedback f
+            LEFT JOIN f.ward w
+            WHERE f.managedByRole = :managedByRole
+              AND (:status IS NULL OR f.status = :status)
+              AND f.createdAt >= :fromDate
+              AND f.createdAt <= :toDate
+              AND (
+                :keyword IS NULL OR :keyword = '' OR
+                LOWER(function('unaccent', COALESCE(f.trackingCode, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(f.title, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(f.description, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(f.addressDetails, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(w.name, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%')))
+              )
+            """)
+    Page<Feedback> searchPoliceFeedbacks(
+            @Param("managedByRole") String managedByRole,
+            @Param("keyword") String keyword,
+            @Param("status") FeedbackStatus status,
+            @Param("fromDate") java.time.LocalDateTime fromDate,
+            @Param("toDate") java.time.LocalDateTime toDate,
+            Pageable pageable);
 }

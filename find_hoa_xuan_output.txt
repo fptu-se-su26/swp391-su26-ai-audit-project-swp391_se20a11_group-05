@@ -1,0 +1,4 @@
+Found 3 feedbacks matching Hòa Xuân:
+ID: 110, Code: DN-102091, Title: Xe ô tô đậu đỗ tại 131 Nguyễn Hồng Ánh cản trở giao thông, Address: 131 Nguyễn Hồng Ánh, WardID: 6, WardName: Cẩm Lệ
+ID: 95, Code: DN-102198, Title: Tập kết vật liệu xây dựng gây ô nhiễm tại 2 Diên Hồng, Address: 2 Diên Hồng, WardID: 6, WardName: Cẩm Lệ
+ID: 98, Code: DN-102263, Title: Kiểm tra việc cắm mốc và xây dựng tại thôn Phong Nam, Address: Thôn Phong Nam 2, Hòa Xuân, WardID: 6, WardName: Cẩm Lệ

@@ -19,28 +19,36 @@ import {
   LogOut,
   User,
   ChevronDown,
-  ChevronLeft,
   Search,
   FileText,
+  AlertTriangle,
   AlertCircle,
   Clock,
   CheckCircle2,
+  Building2,
+  Leaf,
   Shield,
+  Construction,
+  Car,
   RefreshCw,
-  Calendar,
-  Sliders,
-  Hourglass,
-  UserCheck,
+  ChevronLeft,
+  Settings,
   Activity,
   BarChart3,
-  Settings,
+  Sliders,
+  Hourglass,
+  Calendar,
+  Sparkles,
+  Phone,
+  UserCheck,
+  CheckCircle,
 } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { toast } from "sonner";
 import { authApi, type NotificationResponse, type FeedbackResponse } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getAdministrativeUnitLabel, getAdministrativeUnitName } from "@/lib/administrativeUnit";
+import { getAdministrativeUnitLabel, getAdministrativeUnitPrefix } from "@/lib/utils";
 
 const CivicMap = lazy(() =>
   import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
@@ -90,6 +98,7 @@ const getAreaName = (fb: FeedbackResponse) => {
   if (addr.includes("Hoàng Diệu")) return "Tổ dân phố 2 - Hoàng Diệu";
   if (addr.includes("Nguyễn Văn Linh")) return "Tổ dân phố 4 - Nguyễn Văn Linh";
   
+  // Extract street if possible, otherwise default by id
   const streetMatch = addr.match(/(?:Đường|Kiệt|Hẻm)?\s*([A-ZÀ-Ỹ][a-zà-ỹ]*(\s+[A-ZÀ-Ỹ][a-zà-ỹ]*)*)/);
   if (streetMatch && streetMatch[1] && streetMatch[1].length > 4) {
     return `Tổ dân phố ${(fb.id % 15) + 1} - ${streetMatch[1]}`;
@@ -160,6 +169,8 @@ export function WardDashboard() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Fetch real data
+  // Dynamic statistics counts
   // Date Picker & Reload Logic
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const dateInputRef = useRef<HTMLInputElement>(null);
@@ -203,31 +214,9 @@ export function WardDashboard() {
   const markAllRead = useMarkAllNotificationsReadMutation();
 
   const unreadCount = unreadCountData ?? notifications.filter((n) => !n.isRead).length;
-  
-  const rawFeedbacks = feedbacksPage?.content ?? [];
+  const feedbacks = feedbacksPage?.content ?? [];
 
-  // Filter rawFeedbacks by WARD_STAFF role allowed categories
-  const feedbacks = useMemo(() => {
-    return rawFeedbacks.filter((fb) => {
-      const code = (fb.categoryCode || "").toUpperCase();
-      if (code) {
-        return code === "URBAN_INFRASTRUCTURE" || code === "ENVIRONMENT" || code === "CONSTRUCTION";
-      }
-      const name = (fb.categoryName || fb.category || "").toLowerCase();
-      const isTraffic = name.includes("giao thông") || name.includes("traffic") || name.includes("giao thong");
-      const isSecurity = name.includes("an ninh") || name.includes("security") || name.includes("safety") || name.includes("trật tự") || name.includes("pháp") || name.includes("công an");
-      const isFire = name.includes("phòng cháy") || name.includes("chữa cháy") || name.includes("fire");
-      return !isTraffic && !isSecurity && !isFire;
-    });
-  }, [rawFeedbacks]);
-
-  // Administrative Unit details
-  const authorityUnitName = getAdministrativeUnitName(user?.wardName, user?.org) || "Tân Bình";
-  const authorityUnitLabel = getAdministrativeUnitLabel(
-    user?.wardType || user?.org,
-    authorityUnitName,
-  );
-
+  // We no longer rely on the backend stats endpoint to prevent mismatched counts and slow loading.
   const statsLoading = false;
 
   const dateLabel = isTodayDate(selectedDate)
@@ -323,25 +312,33 @@ export function WardDashboard() {
       ENVIRONMENT: 0,
       URBAN_INFRASTRUCTURE: 0,
       CONSTRUCTION: 0,
+      TRAFFIC: 0,
+      PUBLIC_SECURITY: 0,
+      FIRE_SAFETY: 0,
     };
 
     feedbacks.forEach((fb) => {
-      const code = (fb.categoryCode || "").toUpperCase();
-      if (code === "ENVIRONMENT") {
+      const name = fb.categoryName || fb.category || "";
+      const n = name.toLowerCase();
+      if (n.includes("giao thông") || n.includes("traffic") || n.includes("giao thong")) {
+        counts.TRAFFIC++;
+      } else if (n.includes("môi trường") || n.includes("environment") || n.includes("moi truong") || n.includes("rác")) {
         counts.ENVIRONMENT++;
-      } else if (code === "CONSTRUCTION") {
+      } else if (
+        n.includes("an ninh") ||
+        n.includes("security") ||
+        n.includes("safety") ||
+        n.includes("trật tự") ||
+        n.includes("pháp") ||
+        n.includes("công an")
+      ) {
+        counts.PUBLIC_SECURITY++;
+      } else if (n.includes("xây dựng") || n.includes("construction") || n.includes("xay dung")) {
         counts.CONSTRUCTION++;
-      } else if (code === "URBAN_INFRASTRUCTURE") {
-        counts.URBAN_INFRASTRUCTURE++;
+      } else if (n.includes("phòng cháy") || n.includes("chữa cháy") || n.includes("fire")) {
+        counts.FIRE_SAFETY++;
       } else {
-        const name = (fb.categoryName || fb.category || "").toLowerCase();
-        if (name.includes("môi trường") || name.includes("environment") || name.includes("moi truong") || name.includes("rác")) {
-          counts.ENVIRONMENT++;
-        } else if (name.includes("xây dựng") || name.includes("construction") || name.includes("xay dung")) {
-          counts.CONSTRUCTION++;
-        } else {
-          counts.URBAN_INFRASTRUCTURE++;
-        }
+        counts.URBAN_INFRASTRUCTURE++;
       }
     });
 
@@ -349,8 +346,11 @@ export function WardDashboard() {
 
     const displayList = [
       { name: "Vệ sinh môi trường", count: counts.ENVIRONMENT, color: "bg-[#0b5ed7]" },
-      { name: "Hạ tầng đô thị", count: counts.URBAN_INFRASTRUCTURE, color: "bg-[#0b5ed7]" },
-      { name: "Trật tự xây dựng", count: counts.CONSTRUCTION, color: "bg-[#0b5ed7]" },
+      { name: "Hạ tầng giao thông", count: counts.URBAN_INFRASTRUCTURE, color: "bg-[#0b5ed7]" },
+      { name: "Lấn chiếm vỉa hè", count: counts.CONSTRUCTION, color: "bg-[#0b5ed7]" },
+      { name: "Trật tự đô thị", count: counts.PUBLIC_SECURITY, color: "bg-[#0b5ed7]" },
+      { name: "Đèn chiếu sáng", count: counts.TRAFFIC, color: "bg-[#0b5ed7]" },
+      { name: "Khác", count: counts.FIRE_SAFETY, color: "bg-[#0b5ed7]" },
     ];
 
     return displayList.map((item) => ({
@@ -360,9 +360,10 @@ export function WardDashboard() {
     }));
   }, [feedbacks]);
 
-  // Inter-agency coordination counts — police-transferred feedback in selected date (from rawFeedbacks)
+  // Inter-agency coordination counts — police-transferred feedback in selected date
   const coordinationStats = useMemo(() => {
-    const policeCount = rawFeedbacks.filter((fb) => {
+    // Count feedback in PUBLIC_SECURITY-related categories as transferred to police coordination
+    const policeCount = feedbacks.filter((fb) => {
       const n = (fb.categoryName || fb.category || "").toLowerCase();
       return (
         n.includes("an ninh") ||
@@ -373,10 +374,11 @@ export function WardDashboard() {
     }).length;
 
     return { policeCount };
-  }, [rawFeedbacks]);
+  }, [feedbacks]);
 
   // Quick info statistics — all counts use feedbacks already filtered by selectedDate
   const quickInfo = useMemo(() => {
+    // feedbacks are already filtered to selectedDate via useFeedbacks fromDate/toDate
     const newInDate = feedbacks.length;
 
     const resolvedInDate = feedbacks.filter((f) => {
@@ -393,6 +395,7 @@ export function WardDashboard() {
       return isInProgress && diffDays > 3;
     }).length;
 
+    // Only show rating if there is real resolved data
     const hasRating = resolvedInDate > 0;
 
     return {
@@ -422,6 +425,7 @@ export function WardDashboard() {
       .slice(0, 5);
   }, [feedbacks]);
 
+  // Dropdown controls
   const handleMarkAllRead = async () => {
     try {
       await markAllRead.mutateAsync();
@@ -483,10 +487,10 @@ export function WardDashboard() {
           {!sidebarCollapsed && (
             <div className="mt-3 text-center">
               <span className="font-extrabold text-sm tracking-wider uppercase block text-[#e2e8f0]">
-                {getAdministrativeUnitLabel(user?.wardType, user?.wardName).replace(authorityUnitName, "").trim() || "UBND"}
+                {getAdministrativeUnitPrefix(user?.wardType).toUpperCase()}
               </span>
-              <span className="font-extrabold text-base tracking-widest uppercase block text-white mt-0.5 animate-pulse">
-                {authorityUnitName.toUpperCase()}
+              <span className="font-extrabold text-base tracking-widest uppercase block text-white mt-0.5">
+                {user?.wardName?.toUpperCase() || "TÂN BÌNH"}
               </span>
             </div>
           )}
@@ -671,7 +675,7 @@ export function WardDashboard() {
                     <ChevronDown size={14} className="text-slate-400" />
                   </div>
                   <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block mt-0.5">
-                    {authorityUnitLabel}
+                    {getAdministrativeUnitLabel(user?.wardType, user?.wardName)}
                   </span>
                 </div>
               </button>
@@ -683,7 +687,7 @@ export function WardDashboard() {
                       {user?.name || "Nguyễn Văn Nam"}
                     </div>
                     <div className="text-[10px] text-slate-400 font-semibold truncate mt-0.5">
-                      {authorityUnitLabel}
+                      {getAdministrativeUnitLabel(user?.wardType, user?.wardName)}
                     </div>
                   </div>
                   <Link
@@ -712,26 +716,26 @@ export function WardDashboard() {
           {/* Header Action Section */}
           <div className="flex flex-wrap items-center justify-end gap-3 -mt-2">
             <div className="relative">
-              <button
-                onClick={() => dateInputRef.current?.showPicker ? dateInputRef.current.showPicker() : dateInputRef.current?.click()}
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-[#E4EAF2] rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition shadow-sm cursor-pointer"
-              >
-                <Calendar size={14} className="text-slate-400" />
-                <span>{dateLabel}</span>
-                <ChevronDown size={14} className="text-slate-400" />
-              </button>
-              <input
-                type="date"
-                ref={dateInputRef}
-                value={formatDateToISO(selectedDate)}
-                onChange={(e) => {
-                  if (e.target.value) {
-                    const [year, month, day] = e.target.value.split("-").map(Number);
-                    setSelectedDate(new Date(year, month - 1, day));
-                  }
-                }}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer pointer-events-none"
-              />
+            <button
+              onClick={() => dateInputRef.current?.showPicker ? dateInputRef.current.showPicker() : dateInputRef.current?.click()}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-[#E4EAF2] rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition shadow-sm cursor-pointer"
+            >
+              <Calendar size={14} className="text-slate-400" />
+              <span>{dateLabel}</span>
+              <ChevronDown size={14} className="text-slate-400" />
+            </button>
+            <input
+              type="date"
+              ref={dateInputRef}
+              value={formatDateToISO(selectedDate)}
+              onChange={(e) => {
+                if (e.target.value) {
+                  const [year, month, day] = e.target.value.split("-").map(Number);
+                  setSelectedDate(new Date(year, month - 1, day));
+                }
+              }}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer pointer-events-none"
+            />
             </div>
             <button
               onClick={handleReload}
@@ -865,7 +869,7 @@ export function WardDashboard() {
                       zoom={mapZoomState || 13}
                       markers={mapMarkers}
                       height="100%"
-                      wardName={user?.wardName || undefined}
+                      wardName={user?.wardName}
                       showBoundary={false}
                       activeMarkerId={selectedFeedbackId || undefined}
                       layerType={mapLayerType}
@@ -1048,7 +1052,7 @@ export function WardDashboard() {
                 </div>
                 <div className="space-y-4">
                   {feedbacksLoading ? (
-                    [1, 2, 3].map((i) => (
+                    [1, 2, 3, 4, 5, 6].map((i) => (
                       <div key={i} className="space-y-2">
                         <Skeleton className="h-3 w-1/3" />
                         <Skeleton className="h-2 w-full" />
@@ -1061,7 +1065,7 @@ export function WardDashboard() {
                           <span>{cat.name}</span>
                           <span className="text-slate-800 font-extrabold">
                             {cat.count}{" "}
-                            <span className="text-slate-400 font-semibold font-sans">({cat.percentage}%)</span>
+                            <span className="text-slate-400 font-semibold">({cat.percentage}%)</span>
                           </span>
                         </div>
                         <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
@@ -1159,10 +1163,10 @@ export function WardDashboard() {
                               <td className="px-5 py-3.5 text-xs text-slate-600">
                                 {mapCategoryName(row.categoryName)}
                               </td>
-                              <td className="px-5 py-3.5 text-xs text-slate-500 truncate max-w-[120px] font-sans" title={row.addressDetails || row.address || "Tân Bình"}>
+                              <td className="px-5 py-3.5 text-xs text-slate-500 truncate max-w-[120px]" title={row.addressDetails || row.address || "Tân Bình"}>
                                 {row.addressDetails || row.address || "Tân Bình"}
                               </td>
-                              <td className="px-5 py-3.5 text-xs text-slate-500 whitespace-nowrap font-sans">
+                              <td className="px-5 py-3.5 text-xs text-slate-500 whitespace-nowrap">
                                 {formatDate(row.createdAt)}
                               </td>
                               <td className="px-5 py-3.5">
@@ -1209,37 +1213,37 @@ export function WardDashboard() {
 
             {/* Right Panel Stack: Coordination & Quick Info (30%) */}
             <div className="lg:col-span-3 flex flex-col gap-6">
-              {/* Inter-agency Coordination — Police only */}
-              <div className="bg-white rounded-2xl border border-[#E4EAF2] shadow-sm p-5 space-y-4">
-                <div className="flex items-center gap-1 pb-2 border-b border-slate-100">
-                  <h3 className="font-extrabold text-sm text-[#0B2545]">Phối hợp liên ngành</h3>
-                  <span className="text-[10px] text-slate-400 cursor-pointer">ⓘ</span>
-                </div>
-                <div className="border border-slate-100 rounded-xl p-4 bg-slate-50/50">
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className="w-8 h-8 rounded-full bg-[#198754]/10 text-[#198754] flex items-center justify-center shrink-0">
-                      <Shield size={16} />
-                    </span>
-                    <span className="text-xs font-semibold text-slate-600">Chuyển công an</span>
+                {/* Inter-agency Coordination — Police only */}
+                <div className="bg-white rounded-2xl border border-[#E4EAF2] shadow-sm p-5 space-y-4">
+                  <div className="flex items-center gap-1 pb-2 border-b border-slate-100">
+                    <h3 className="font-extrabold text-sm text-[#0B2545]">Phối hợp liên ngành</h3>
+                    <span className="text-[10px] text-slate-400 cursor-pointer">ⓘ</span>
                   </div>
-                  <h4 className="text-3xl font-extrabold text-[#0B2545] leading-none mb-1">
-                    {feedbacksLoading ? (
-                      <Skeleton className="h-8 w-12" />
-                    ) : (
-                      coordinationStats.policeCount
-                    )}
-                  </h4>
-                  <p className="text-[10px] text-slate-400 font-medium mt-2">
-                    Phản ánh trong ngày {formatDateToDisplay(selectedDate)}
-                  </p>
-                  <Link
-                    to="/my-reports"
-                    className="text-[10px] font-extrabold text-[#0F5BD8] hover:underline mt-3 block"
-                  >
-                    Xem chi tiết
-                  </Link>
+                  <div className="border border-slate-100 rounded-xl p-4 bg-slate-50/50">
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="w-8 h-8 rounded-full bg-[#198754]/10 text-[#198754] flex items-center justify-center shrink-0">
+                        <Shield size={16} />
+                      </span>
+                      <span className="text-xs font-semibold text-slate-600">Chuyển công an</span>
+                    </div>
+                    <h4 className="text-3xl font-extrabold text-[#0B2545] leading-none mb-1">
+                      {feedbacksLoading ? (
+                        <Skeleton className="h-8 w-12" />
+                      ) : (
+                        coordinationStats.policeCount
+                      )}
+                    </h4>
+                    <p className="text-[10px] text-slate-400 font-medium mt-2">
+                      Phản ánh trong ngày {formatDateToDisplay(selectedDate)}
+                    </p>
+                    <Link
+                      to="/my-reports"
+                      className="text-[10px] font-extrabold text-[#0F5BD8] hover:underline mt-3 block"
+                    >
+                      Xem chi tiết
+                    </Link>
+                  </div>
                 </div>
-              </div>
 
               {/* Quick Info Panel */}
               <div className="bg-white rounded-2xl border border-[#E4EAF2] shadow-sm p-5 space-y-3">
@@ -1252,21 +1256,21 @@ export function WardDashboard() {
                       <FileText size={14} className="text-slate-400 shrink-0" />
                       {isTodayDate(selectedDate) ? "Phản ánh mới hôm nay" : "Phản ánh mới trong ngày"}
                     </span>
-                    <span className="text-[#0B2545] font-extrabold font-sans">{quickInfo.newInDate}</span>
+                    <span className="text-[#0B2545] font-extrabold">{quickInfo.newInDate}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs font-semibold text-slate-500">
                     <span className="flex items-center gap-2">
                       <CheckCircle2 size={14} className="text-slate-400 shrink-0" />
                       {isTodayDate(selectedDate) ? "Phản ánh đã xử lý hôm nay" : "Phản ánh đã xử lý trong ngày"}
                     </span>
-                    <span className="text-[#0B2545] font-extrabold font-sans">{quickInfo.resolvedInDate}</span>
+                    <span className="text-[#0B2545] font-extrabold">{quickInfo.resolvedInDate}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs font-semibold text-slate-500">
                     <span className="flex items-center gap-2">
                       <Clock size={14} className="text-slate-400 shrink-0" />
                       Đang xử lý quá hạn
                     </span>
-                    <span className="text-[#0B2545] font-extrabold font-sans">
+                    <span className="text-[#0B2545] font-extrabold">
                       {quickInfo.inProgressOverdue}
                     </span>
                   </div>
@@ -1292,7 +1296,7 @@ export function WardDashboard() {
 
           {/* Footer branding */}
           <footer className="pt-4 border-t border-slate-100 text-center text-xs text-slate-400 font-semibold">
-            © 2026 {authorityUnitLabel}. Hệ thống quản lý phản ánh hiện trường
+            © 2026 {getAdministrativeUnitLabel(user?.wardType, user?.wardName)}. Hệ thống quản lý phản ánh hiện trường
           </footer>
         </main>
       </div>

@@ -42,7 +42,13 @@ export const Route = createFileRoute("/_auth")({
       throw redirect({ to: "/authority-login", search: { redirect: undefined, error: undefined } });
     }
 
-    let user: { name: string; role: string; org: string } | null = null;
+    let user: {
+      name: string;
+      role: string;
+      org: string;
+      wardName?: string | null;
+      wardType?: string | null;
+    } | null = null;
     try {
       user = JSON.parse(raw);
     } catch {
@@ -71,6 +77,8 @@ export const Route = createFileRoute("/_auth")({
         name: user.name,
         role,
         org: user.org ?? "",
+        wardName: user.wardName ?? null,
+        wardType: user.wardType ?? null,
       },
     };
   },

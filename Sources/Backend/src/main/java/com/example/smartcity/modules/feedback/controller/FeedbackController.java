@@ -135,7 +135,7 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
         LocalDateTime toDateTime = toDate == null ? null : toDate.atTime(LocalTime.MAX);
         Pageable newestFirstPage = PageRequest.of(
                 pageable.getPageNumber(),
-                3,
+                pageable.getPageSize(),
                 Sort.by(Sort.Direction.DESC, "createdAt"));
 
         Page<Feedback> entities = feedbackService.getMyFeedbacks(
@@ -334,6 +334,8 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
             case WAITING_INFO -> "Waiting for Information";
             case RESOLVED -> "Resolved";
             case REJECTED -> "Rejected";
+            case ASSIGNED -> "Assigned";
+            case PRE_EMPTIVE -> "Pre-emptive";
         };
     }
 }

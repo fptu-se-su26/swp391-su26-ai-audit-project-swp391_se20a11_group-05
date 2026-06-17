@@ -107,6 +107,8 @@ public class AuthService {
                     .expiresIn(tokenPair.getExpiresIn())
                     .username(tokenPair.getUsername())
                     .role(tokenPair.getRole())
+                    .wardName(tokenPair.getWardName())
+                    .wardType(tokenPair.getWardType())
                     .mfaRequired(false)
                     .build();
 

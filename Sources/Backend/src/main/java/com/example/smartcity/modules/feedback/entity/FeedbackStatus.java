@@ -8,5 +8,7 @@ public enum FeedbackStatus {
     IN_PROGRESS,
     WAITING_INFO,
     RESOLVED,
-    REJECTED
+    REJECTED,
+    ASSIGNED,
+    PRE_EMPTIVE
 }

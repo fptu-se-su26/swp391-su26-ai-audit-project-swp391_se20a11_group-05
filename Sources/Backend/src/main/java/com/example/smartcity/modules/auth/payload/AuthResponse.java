@@ -20,6 +20,8 @@ public class AuthResponse {
     
     private String username;
     private String role;
+    private String wardName;
+    private String wardType;
     
     // MFA Flags
     private boolean mfaRequired;

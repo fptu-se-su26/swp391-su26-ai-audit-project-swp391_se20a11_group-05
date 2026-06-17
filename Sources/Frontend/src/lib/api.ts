@@ -172,6 +172,9 @@ export interface TokenResponse {
   tokenType: string;
   username: string;
   role: BackendRole;
+  wardName?: string | null;
+  wardType?: string | null;
+  wardId?: number | null;
 }
 
 export interface MfaRequiredResponse {
@@ -191,6 +194,9 @@ export interface UserProfile {
   role: BackendRole;
   active: boolean;
   mfaEnabled: boolean;
+  wardName?: string | null;
+  wardType?: string | null;
+  wardId?: number | null;
 }
 
 export interface UpdateProfileRequest {
@@ -294,6 +300,7 @@ export interface FeedbackListFilters {
 export interface FeedbackLookupStatsResponse {
   total: number;
   pending: number;
+  inProgress?: number;
   resolved: number;
   rejected: number;
 }
@@ -530,6 +537,9 @@ export const feedbackApi = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+
+  getWardStaffStatistics: (date: string) =>
+    request<FeedbackLookupStatsResponse>(`/api/dashboard/ward-staff/statistics?date=${date}`),
 
   // New: state machine endpoints
   changeStatus: (id: number | string, status: string, note?: string) =>

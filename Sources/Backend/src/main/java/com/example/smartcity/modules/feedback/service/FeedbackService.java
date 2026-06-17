@@ -63,15 +63,17 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
     private final EmbeddingClientFacade embeddingFacade;
 
     // State machine: map of valid transitions
-    private static final Map<FeedbackStatus, Set<FeedbackStatus>> VALID_TRANSITIONS = Map.of(
-        FeedbackStatus.SUBMITTED,      Set.of(FeedbackStatus.PENDING_RECEIVE, FeedbackStatus.IN_PROGRESS, FeedbackStatus.REJECTED),
-        FeedbackStatus.PENDING_RECEIVE,Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.REJECTED),
-        FeedbackStatus.PENDING,        Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.REJECTED),
-        FeedbackStatus.NEED_LOCATION_REVIEW, Set.of(FeedbackStatus.PENDING_RECEIVE, FeedbackStatus.REJECTED),
-        FeedbackStatus.IN_PROGRESS,    Set.of(FeedbackStatus.RESOLVED, FeedbackStatus.WAITING_INFO, FeedbackStatus.REJECTED),
-        FeedbackStatus.WAITING_INFO,   Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.RESOLVED, FeedbackStatus.REJECTED),
-        FeedbackStatus.RESOLVED,       Set.of(),
-        FeedbackStatus.REJECTED,       Set.of()
+    private static final Map<FeedbackStatus, Set<FeedbackStatus>> VALID_TRANSITIONS = Map.ofEntries(
+        Map.entry(FeedbackStatus.SUBMITTED,      Set.of(FeedbackStatus.PENDING_RECEIVE, FeedbackStatus.IN_PROGRESS, FeedbackStatus.REJECTED)),
+        Map.entry(FeedbackStatus.PENDING_RECEIVE,Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.REJECTED)),
+        Map.entry(FeedbackStatus.PENDING,        Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.REJECTED)),
+        Map.entry(FeedbackStatus.NEED_LOCATION_REVIEW, Set.of(FeedbackStatus.PENDING_RECEIVE, FeedbackStatus.REJECTED)),
+        Map.entry(FeedbackStatus.IN_PROGRESS,    Set.of(FeedbackStatus.RESOLVED, FeedbackStatus.WAITING_INFO, FeedbackStatus.REJECTED)),
+        Map.entry(FeedbackStatus.WAITING_INFO,   Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.RESOLVED, FeedbackStatus.REJECTED)),
+        Map.entry(FeedbackStatus.RESOLVED,       Set.of()),
+        Map.entry(FeedbackStatus.REJECTED,       Set.of()),
+        Map.entry(FeedbackStatus.ASSIGNED,       Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.RESOLVED, FeedbackStatus.REJECTED)),
+        Map.entry(FeedbackStatus.PRE_EMPTIVE,    Set.of())
     );
 
     @Override
@@ -256,10 +258,6 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User: " + username));
 
-        if (user.getRole() != Role.CITIZEN) {
-            throw new CustomException("Chi cong dan moi duoc xem danh sach phan anh ca nhan", HttpStatus.FORBIDDEN.value());
-        }
-
         String normalizedKeyword = keyword == null ? null : keyword.trim();
         LocalDateTime effectiveFromDate = fromDate == null
                 ? LocalDate.of(1970, 1, 1).atStartOfDay()
@@ -268,13 +266,44 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
                 ? LocalDate.of(9999, 12, 31).atTime(LocalTime.MAX)
                 : toDate;
 
-        return feedbackRepository.searchMyFeedbacks(
-                user.getId(),
-                normalizedKeyword,
-                status,
-                effectiveFromDate,
-                effectiveToDate,
-                pageable);
+        if (user.getRole() == Role.CITIZEN) {
+            return feedbackRepository.searchMyFeedbacks(
+                    user.getId(),
+                    normalizedKeyword,
+                    status,
+                    effectiveFromDate,
+                    effectiveToDate,
+                    pageable);
+        } else if (user.getRole() == Role.WARD_STAFF) {
+            if (user.getWard() == null) {
+                return Page.empty();
+            }
+            return feedbackRepository.searchWardFeedbacks(
+                    user.getWard().getId(),
+                    normalizedKeyword,
+                    status,
+                    effectiveFromDate,
+                    effectiveToDate,
+                    pageable);
+        } else if (user.getRole() == Role.POLICE) {
+            return feedbackRepository.searchPoliceFeedbacks(
+                    CategoryRoutingService.ROLE_POLICE,
+                    normalizedKeyword,
+                    status,
+                    effectiveFromDate,
+                    effectiveToDate,
+                    pageable);
+        } else if (user.getRole() == Role.SUPER_ADMIN) {
+            return feedbackRepository.searchPublicFeedbacks(
+                    normalizedKeyword,
+                    null,
+                    status,
+                    effectiveFromDate,
+                    effectiveToDate,
+                    pageable);
+        } else {
+            return Page.empty();
+        }
     }
 
     @Transactional(readOnly = true)

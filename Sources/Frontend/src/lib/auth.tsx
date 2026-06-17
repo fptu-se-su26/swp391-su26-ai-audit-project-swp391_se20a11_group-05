@@ -30,6 +30,8 @@ export interface AuthUser {
   name: string;
   role: RoleType;
   org: string;
+  wardName?: string | null;
+  wardType?: string | null;
   token?: string;
 }
 

@@ -41,7 +41,7 @@ import {
   Plus,
   Grid,
 } from "lucide-react";
-import emblemUrl from "@/assets/police-emblem.png";
+
 import logoImg from "@/assets/logo.png";
 import { toast } from "sonner";
 import { authApi, type NotificationResponse, type FeedbackResponse } from "@/lib/api";
@@ -468,19 +468,19 @@ export function PoliceDashboard() {
         {/* Emblem & Ward Title */}
         <div className="p-5 flex flex-col items-center border-b border-white/10 shrink-0">
           <img
-            src={emblemUrl}
-            alt="Huy hiệu Công an nhân dân"
+            src={logoImg}
+            alt="SmartCity Logo"
             className={`transition-all duration-300 object-contain ${
-              sidebarCollapsed ? "w-10 h-10" : "w-16 h-16"
+              sidebarCollapsed ? "w-8 h-8" : "w-12 h-12"
             }`}
           />
           {!sidebarCollapsed && (
             <div className="mt-3 text-center">
               <span className="font-extrabold text-sm tracking-wider uppercase block text-amber-400">
-                CÔNG AN PHƯỜNG
+                ĐÀ NẴNG
               </span>
               <span className="font-extrabold text-base tracking-widest uppercase block text-white mt-0.5">
-                HẢI CHÂU 1
+                SMARTCITY
               </span>
             </div>
           )}

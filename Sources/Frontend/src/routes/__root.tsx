@@ -16,6 +16,7 @@ import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { Toaster } from "@/components/ui/sonner";
 import bgCivic from "@/assets/bg-civic.png";
+import { ChatbotWidget } from "@/components/chat/ChatbotWidget";
 
 function NotFoundComponent() {
   const { locale } = useI18n();
@@ -205,6 +206,7 @@ function RootComponent() {
                   <Outlet />
                 </main>
                 <Footer />
+                <ChatbotWidget />
               </div>
             )}
           </AuthProvider>

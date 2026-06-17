@@ -742,7 +742,7 @@ export function PoliceDashboard() {
                   setFilterStatus(card.filterValue);
                   setActiveTab("feedbacks");
                 }}
-                className="bg-white rounded-2xl border border-[#E4EAF2] p-5 shadow-sm flex flex-col justify-between cursor-pointer hover:border-[#0F5BD8] hover:shadow-md transition-all group"
+                className={`bg-white rounded-2xl border ${filterStatus === card.filterValue ? "border-[#0F5BD8] ring-1 ring-[#0F5BD8] shadow-md" : "border-[#E4EAF2]"} p-5 shadow-sm flex flex-col justify-between cursor-pointer hover:border-[#0F5BD8] hover:shadow-md transition-all group`}
               >
                 <div className="flex items-center gap-4">
                   <div

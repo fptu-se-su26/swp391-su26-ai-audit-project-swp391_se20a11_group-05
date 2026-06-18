@@ -483,6 +483,12 @@ export const feedbackApi = {
     return request<PageResponse<FeedbackResponse>>(`/api/feedbacks/my?${params}`);
   },
 
+  // SUPER_ADMIN: lấy tất cả feedback của thành phố
+  adminGetAll: (page = 0, size = 100) => {
+    const params = new URLSearchParams({ page: String(page), size: String(size) });
+    return request<PageResponse<FeedbackResponse>>(`/api/feedbacks/admin/all?${params}`);
+  },
+
   getPublic: (page = 0, size = 10, filters: FeedbackListFilters = {}) => {
     const params = new URLSearchParams({
       page: String(page),
@@ -554,6 +560,22 @@ export const userApi = {
     request<UserProfile>("/api/users/profile", {
       method: "PUT",
       body: JSON.stringify(data),
+    }),
+
+  // SUPER_ADMIN: lấy tất cả users có phân trang
+  getAll: (page = 0, size = 200) =>
+    request<PageResponse<UserProfile>>(`/api/users/page?page=${page}&size=${size}`),
+
+  // SUPER_ADMIN: đổi role
+  changeRole: (id: number, role: string) =>
+    request<UserProfile>(`/api/users/${id}/role?role=${encodeURIComponent(role)}`, {
+      method: "PATCH",
+    }),
+
+  // SUPER_ADMIN: khóa/mở tài khoản
+  changeStatus: (id: number, active: boolean) =>
+    request<UserProfile>(`/api/users/${id}/status?active=${active}`, {
+      method: "PATCH",
     }),
 };
 
@@ -647,8 +669,9 @@ export const aiApi = {
 export interface KpiData {
   total: number;
   resolved: number;
+  unresolved: number;
+  inProgress: number;
   pending: number;
-  satisfactionRate: string;
 }
 
 export interface WardPerformance {

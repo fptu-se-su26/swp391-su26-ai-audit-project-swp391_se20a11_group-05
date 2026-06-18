@@ -235,6 +235,9 @@ export function Header() {
   ] as const;
   const staffItems = staffItemsAll.filter((i) => hasRole(...i.roles));
 
+  // Nếu là SUPER_ADMIN, không hiện menu public — chỉ hiện nút vào dashboard
+  const isSuperAdmin = user?.role === Role.SUPER_ADMIN;
+
   // Determine active item based on pathname and label
   const isItemActive = (item: (typeof menuItems)[number]) => {
     if (typeof window === "undefined") {
@@ -282,36 +285,50 @@ export function Header() {
         {/* Center: Navigation Links */}
         <nav className="hidden lg:flex items-center gap-1 xl:gap-2 h-full" aria-label="Main">
           <ul className="flex items-center gap-5 xl:gap-7 h-full">
-            {menuItems.map((item, index) => {
-              const active = isItemActive(item);
-              return (
-                <li key={index} className="h-full flex items-center">
-                  <Link
-                    to={item.to}
-                    hash={item.hash}
-                    className={`relative py-2 text-sm font-semibold transition-all font-sans ${
-                      active
-                        ? "text-[#0B4FC4] border-b-2 border-[#0B4FC4] pt-2"
-                        : "text-[#123E8A] hover:text-[#0B4FC4]"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              );
-            })}
-
-            {/* Staff access links if user is authority */}
-            {staffItems.map((item, index) => (
-              <li key={`staff-${index}`} className="h-full flex items-center">
+            {/* Nếu là SUPER_ADMIN: chỉ hiện nút vào dashboard, ẩn toàn bộ menu public */}
+            {isSuperAdmin ? (
+              <li className="h-full flex items-center">
                 <Link
-                  to={item.to}
-                  className="px-2.5 py-1 bg-amber-50 text-amber-700 rounded text-xs font-bold border border-amber-200 hover:bg-amber-100 transition font-sans"
+                  to="/city-admin"
+                  className="px-4 py-2 bg-[#0B4FC4] text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition shadow-sm font-sans flex items-center gap-2"
                 >
-                  {item.label}
+                  Bảng điều hành IOC
                 </Link>
               </li>
-            ))}
+            ) : (
+              <>
+                {menuItems.map((item, index) => {
+                  const active = isItemActive(item);
+                  return (
+                    <li key={index} className="h-full flex items-center">
+                      <Link
+                        to={item.to}
+                        hash={item.hash}
+                        className={`relative py-2 text-sm font-semibold transition-all font-sans ${
+                          active
+                            ? "text-[#0B4FC4] border-b-2 border-[#0B4FC4] pt-2"
+                            : "text-[#123E8A] hover:text-[#0B4FC4]"
+                        }`}
+                      >
+                        {item.label}
+                      </Link>
+                    </li>
+                  );
+                })}
+
+                {/* Staff access links nếu là WARD_STAFF hoặc POLICE */}
+                {staffItems.map((item, index) => (
+                  <li key={`staff-${index}`} className="h-full flex items-center">
+                    <Link
+                      to={item.to}
+                      className="px-2.5 py-1 bg-amber-50 text-amber-700 rounded text-xs font-bold border border-amber-200 hover:bg-amber-100 transition font-sans"
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+              </>
+            )}
           </ul>
         </nav>
 
@@ -631,41 +648,53 @@ export function Header() {
           className="lg:hidden bg-white border-t border-[#E4EAF2] py-4 px-4 space-y-1 animate-fade-in"
           aria-label="Mobile"
         >
-          {menuItems.map((item, index) => {
-            return (
-              <Link
-                key={index}
-                to={item.to}
-                hash={item.hash}
-                onClick={() => setOpen(false)}
-                className={`block min-h-[48px] px-4 py-3 rounded-md font-semibold transition-all font-sans ${
-                  isItemActive(item)
-                    ? "bg-[#F5F9FF] text-[#0B4FC4]"
-                    : "text-[#123E8A] hover:bg-slate-50"
-                }`}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-
-          {staffItems.length > 0 && (
+          {isSuperAdmin ? (
+            <Link
+              to="/city-admin"
+              onClick={() => setOpen(false)}
+              className="block min-h-[48px] px-4 py-3 rounded-md font-bold text-white bg-[#0B4FC4] text-center font-sans"
+            >
+              Bảng điều hành IOC
+            </Link>
+          ) : (
             <>
-              <div className="pt-2 pb-1 px-4 text-[10px] uppercase tracking-widest text-[#667085] font-extrabold font-sans">
-                {t("header.staffArea")}
-              </div>
-              {staffItems.map((item, index) => {
+              {menuItems.map((item, index) => {
                 return (
                   <Link
-                    key={`mobile-staff-${index}`}
+                    key={index}
                     to={item.to}
+                    hash={item.hash}
                     onClick={() => setOpen(false)}
-                    className="block min-h-[48px] px-4 py-3 rounded-md text-amber-700 bg-amber-50 border border-amber-100 font-bold font-sans"
+                    className={`block min-h-[48px] px-4 py-3 rounded-md font-semibold transition-all font-sans ${
+                      isItemActive(item)
+                        ? "bg-[#F5F9FF] text-[#0B4FC4]"
+                        : "text-[#123E8A] hover:bg-slate-50"
+                    }`}
                   >
                     {item.label}
                   </Link>
                 );
               })}
+
+              {staffItems.length > 0 && (
+                <>
+                  <div className="pt-2 pb-1 px-4 text-[10px] uppercase tracking-widest text-[#667085] font-extrabold font-sans">
+                    {t("header.staffArea")}
+                  </div>
+                  {staffItems.map((item, index) => {
+                    return (
+                      <Link
+                        key={`mobile-staff-${index}`}
+                        to={item.to}
+                        onClick={() => setOpen(false)}
+                        className="block min-h-[48px] px-4 py-3 rounded-md text-amber-700 bg-amber-50 border border-amber-100 font-bold font-sans"
+                      >
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </>
+              )}
             </>
           )}
 

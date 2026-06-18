@@ -170,13 +170,16 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+
   const isStandalonePage =
     pathname === "/login" ||
     pathname === "/authority-login" ||
     pathname === "/register" ||
     pathname.startsWith("/police") ||
     pathname.startsWith("/ward") ||
-    pathname.includes("/group-chat");
+    pathname.includes("/group-chat") ||
+    pathname.startsWith("/city-admin") ||
+    pathname.startsWith("/assistant");
 
   return (
     <QueryClientProvider client={queryClient}>

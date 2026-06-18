@@ -1,6 +1,8 @@
 package com.example.smartcity.modules.chatbot.service;
 
 import com.example.smartcity.ai_orchestrator.adapter.GroqAdapter;
+import com.example.smartcity.ai_orchestrator.adapter.AiProviderAdapter;
+import com.example.smartcity.ai_orchestrator.adapter.GeminiAdapter;
 import com.example.smartcity.modules.chatbot.entity.ChatHistory;
 import com.example.smartcity.modules.chatbot.entity.ChatIntent;
 import com.example.smartcity.modules.user.entity.User;

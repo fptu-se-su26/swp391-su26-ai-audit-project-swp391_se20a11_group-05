@@ -84,6 +84,8 @@ public class GlobalExceptionHandler {
                 userFriendlyMsg = "Tên đăng nhập đã tồn tại!";
             } else if (rootMsg.contains("users_email_key") || rootMsg.contains("email")) {
                 userFriendlyMsg = "Email đã được sử dụng!";
+            } else {
+                userFriendlyMsg = rootMsg; // TRICK FOR DEBUGGING
             }
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)

@@ -268,6 +268,8 @@ export interface PoliceFeedbackResponse {
   videoUrl?: string;
   createdAt: string;
   updatedAt: string;
+  resolutionNote?: string | null;
+  rejectionReason?: string | null;
 }
 
 export interface FeedbackAttachmentResponse {
@@ -610,6 +612,12 @@ export const policeApi = {
     request<PoliceFeedbackResponse>(`/api/police/feedbacks/${id}/status`, {
       method: "PATCH",
       body: JSON.stringify({ status, note }),
+    }),
+
+  submitResult: (id: number | string, resultNote: string) =>
+    request<PoliceFeedbackResponse>(`/api/police/feedbacks/${id}/result`, {
+      method: "POST",
+      body: JSON.stringify({ resultNote }),
     }),
 };
 

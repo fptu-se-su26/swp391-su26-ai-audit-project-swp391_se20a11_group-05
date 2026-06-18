@@ -225,6 +225,22 @@ public class PoliceFeedbackService {
                 
         res.setCreatedAt(feedback.getCreatedAt());
         res.setUpdatedAt(feedback.getUpdatedAt());
+        
+        // Extract rejection reason or resolution note from latest logs if needed
+        if (feedback.getStatus() == FeedbackStatus.REJECTED) {
+            feedbackLogRepository.findByFeedbackIdOrderByCreatedAtDesc(feedback.getId())
+                .stream()
+                .filter(log -> log.getNewStatus() == FeedbackStatus.REJECTED)
+                .findFirst()
+                .ifPresent(log -> res.setRejectionReason(log.getNote() != null ? log.getNote().replace("Từ chối/Chuyển tiếp: ", "") : null));
+        } else if (feedback.getStatus() == FeedbackStatus.RESOLVED) {
+            feedbackLogRepository.findByFeedbackIdOrderByCreatedAtDesc(feedback.getId())
+                .stream()
+                .filter(log -> log.getNewStatus() == FeedbackStatus.RESOLVED)
+                .findFirst()
+                .ifPresent(log -> res.setResolutionNote(log.getNote()));
+        }
+        
         return res;
     }
 }

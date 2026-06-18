@@ -13,7 +13,7 @@ import { WardDashboard } from "@/features/ward/WardDashboard";
 export const Route = createFileRoute("/_auth/ward")({
   beforeLoad: ({ context }) => {
     const { currentUser } = context as {
-      currentUser: {
+      currentUser?: {
         name: string;
         role: string;
         org: string;
@@ -21,6 +21,8 @@ export const Route = createFileRoute("/_auth/ward")({
         wardType?: string | null;
       };
     };
+
+    if (!currentUser) return;
 
     // SECURITY check: Ensure that only the WARD_STAFF role is permitted to view ward operations.
     if (currentUser.role !== Role.WARD_STAFF) {

@@ -55,7 +55,6 @@ const AuthContext = createContext<AuthCtx | null>(null);
 const STORAGE_KEY = "dn_auth_user_v2";
 
 // ─── Provider ────────────────────────────────────────────────
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
 
@@ -63,7 +62,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const raw = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
-      if (raw) {
+      const storedToken = typeof window !== "undefined" ? getToken() : null;
+      
+      if (raw && storedToken) {
         const parsed: AuthUser = JSON.parse(raw);
         // SECURITY: Validate that the stored role is a known Role value
         // Unknown/tampered roles are rejected, not trusted
@@ -71,13 +72,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!knownRoles.includes(parsed.role)) {
           console.warn("[auth] Stored user has unknown role — clearing session");
           localStorage.removeItem(STORAGE_KEY);
+          removeToken();
           return;
         }
+        
+        // Set token to ensure API calls work immediately after reload
+        if (parsed.token) {
+          setToken(parsed.token);
+        } else if (storedToken) {
+          // If user doesn't have token but localStorage has it, use that
+          parsed.token = storedToken;
+          setToken(storedToken);
+        }
+        
         setUser(parsed);
+      } else if (raw || storedToken) {
+        // If only one exists, clear both to avoid inconsistent state
+        localStorage.removeItem(STORAGE_KEY);
+        removeToken();
       }
     } catch {
       // Corrupt storage — clear it
       localStorage.removeItem(STORAGE_KEY);
+      removeToken();
     }
 
     // Auto-logout when backend returns 401
@@ -94,7 +111,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(u);
     if (typeof window !== "undefined") {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
-      if (u.token) setToken(u.token);
+      if (u.token) {
+        setToken(u.token);
+      }
     }
   };
 
@@ -108,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasRole = (...roles: RoleType[]) => !!user && roles.includes(user.role);
 
-  const isAuthenticated = !!user && !!getToken();
+  const isAuthenticated = !!user;
 
   return (
     <AuthContext.Provider value={{ user, login, logout, hasRole, isAuthenticated }}>

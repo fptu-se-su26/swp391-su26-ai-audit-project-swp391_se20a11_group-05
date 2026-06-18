@@ -164,10 +164,11 @@ function AuthorityLoginPage() {
           return;
         }
 
+        console.log("LOGIN SUCCESS! Response data:", data);
         login({
           name: data.username,
           role,
-          org: getAdministrativeUnitLabel(data.wardType, data.wardName),
+          org: data.org || getAdministrativeUnitLabel(data.wardType, data.wardName),
           wardName: data.wardName,
           wardType: data.wardType,
           wardId: data.wardId,
@@ -221,7 +222,7 @@ function AuthorityLoginPage() {
       login({
         name: data.username,
         role,
-        org: getAdministrativeUnitLabel(data.wardType, data.wardName),
+        org: data.org || getAdministrativeUnitLabel(data.wardType, data.wardName),
         wardName: data.wardName,
         wardType: data.wardType,
         wardId: data.wardId,

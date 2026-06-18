@@ -175,6 +175,7 @@ export interface TokenResponse {
   wardName?: string | null;
   wardType?: string | null;
   wardId?: number | null;
+  org?: string;
 }
 
 export interface MfaRequiredResponse {
@@ -273,6 +274,8 @@ export interface PoliceFeedbackResponse {
   videoUrl?: string;
   createdAt: string;
   updatedAt: string;
+  resolutionNote?: string | null;
+  rejectionReason?: string | null;
 }
 
 export interface FeedbackAttachmentResponse {
@@ -492,6 +495,12 @@ export const feedbackApi = {
     return request<PageResponse<FeedbackResponse>>(`/api/feedbacks/my?${params}`);
   },
 
+  // SUPER_ADMIN: lấy tất cả feedback của thành phố
+  adminGetAll: (page = 0, size = 100) => {
+    const params = new URLSearchParams({ page: String(page), size: String(size) });
+    return request<PageResponse<FeedbackResponse>>(`/api/feedbacks/admin/all?${params}`);
+  },
+
   getPublic: (page = 0, size = 10, filters: FeedbackListFilters = {}) => {
     const params = new URLSearchParams({
       page: String(page),
@@ -571,6 +580,22 @@ export const userApi = {
       method: "PUT",
       body: JSON.stringify(data),
     }),
+
+  // SUPER_ADMIN: lấy tất cả users có phân trang
+  getAll: (page = 0, size = 200) =>
+    request<PageResponse<UserProfile>>(`/api/users/page?page=${page}&size=${size}`),
+
+  // SUPER_ADMIN: đổi role
+  changeRole: (id: number, role: string) =>
+    request<UserProfile>(`/api/users/${id}/role?role=${encodeURIComponent(role)}`, {
+      method: "PATCH",
+    }),
+
+  // SUPER_ADMIN: khóa/mở tài khoản
+  changeStatus: (id: number, active: boolean) =>
+    request<UserProfile>(`/api/users/${id}/status?active=${active}`, {
+      method: "PATCH",
+    }),
 };
 
 export const notificationApi = {
@@ -614,6 +639,23 @@ export const policeApi = {
   getHotspots: () =>
     request<any[]>("/api/police/feedbacks/hotspots", {
       method: "GET",
+    }),
+
+  acceptFeedback: (id: number | string) =>
+    request<PoliceFeedbackResponse>(`/api/police/feedbacks/${id}/accept`, {
+      method: "PATCH",
+    }),
+
+  updateStatus: (id: number | string, status: string, note?: string) =>
+    request<PoliceFeedbackResponse>(`/api/police/feedbacks/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status, note }),
+    }),
+
+  submitResult: (id: number | string, resultNote: string) =>
+    request<PoliceFeedbackResponse>(`/api/police/feedbacks/${id}/result`, {
+      method: "POST",
+      body: JSON.stringify({ resultNote }),
     }),
 };
 
@@ -663,8 +705,9 @@ export const aiApi = {
 export interface KpiData {
   total: number;
   resolved: number;
+  unresolved: number;
+  inProgress: number;
   pending: number;
-  satisfactionRate: string;
 }
 
 export interface WardPerformance {

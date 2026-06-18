@@ -127,4 +127,23 @@ public class UserController extends BaseGenericController<User, UserDTO, Long> {
         String message = active ? "Mở khóa tài khoản thành công" : "Khóa tài khoản thành công";
         return ResponseEntity.ok(ApiResponse.success(message, userMapper.toDto(updated)));
     }
+
+    // ─── CHANGE ROLE ─────────────────────────────────────────────────────────
+
+    @PatchMapping("/{id}/role")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<UserDTO>> changeRole(
+            @PathVariable Long id,
+            @RequestParam(name = "role") String role) {
+        com.example.smartcity.modules.user.entity.Role newRole;
+        try {
+            newRole = com.example.smartcity.modules.user.entity.Role.valueOf(role.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new CustomException("Vai trò không hợp lệ: " + role, 400);
+        }
+        User user = userService.findById(id);
+        user.setRole(newRole);
+        User updated = userService.save(user);
+        return ResponseEntity.ok(ApiResponse.success("Đổi vai trò thành công", userMapper.toDto(updated)));
+    }
 }

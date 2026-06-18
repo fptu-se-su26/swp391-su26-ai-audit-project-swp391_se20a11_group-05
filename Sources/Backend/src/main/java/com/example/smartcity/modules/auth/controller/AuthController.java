@@ -9,7 +9,9 @@ import com.example.smartcity.modules.auth.payload.TokenPairResponse;
 import com.example.smartcity.modules.auth.payload.request.RefreshTokenRequest;
 import com.example.smartcity.modules.auth.payload.AuthResponse;
 import com.example.smartcity.modules.auth.payload.ForgotPasswordRequest;
+import com.example.smartcity.modules.user.entity.Role;
 import com.example.smartcity.modules.user.entity.User;
+import com.example.smartcity.modules.user.repository.UserRepository;
 import com.example.smartcity.modules.auth.service.SmsService;
 import com.example.smartcity.modules.auth.service.RefreshTokenService;
 import com.example.smartcity.modules.auth.payload.request.SmsSendRequest;
@@ -21,6 +23,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
@@ -37,6 +40,8 @@ public class AuthController {
     private final AuthRateLimiter rateLimiter;
     private final RefreshTokenService refreshTokenService;
     private final UserMapper userMapper;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     /** Lấy IP thực của client, hỗ trợ reverse proxy (X-Forwarded-For) */
     private String getClientIp(HttpServletRequest request) {
@@ -130,5 +135,44 @@ public class AuthController {
     public ResponseEntity<ApiResponse<String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         authService.forgotPassword(request);
         return ResponseEntity.ok(ApiResponse.success("Đặt lại mật khẩu thành công", null));
+    }
+
+    /**
+     * [DEV ONLY] Tạo tài khoản với role bất kỳ, không cần OTP.
+     * Endpoint này chỉ dùng trong môi trường dev/local.
+     * Body: { "username": "...", "password": "...", "fullName": "...", "role": "SUPER_ADMIN|WARD_STAFF|POLICE|CITIZEN" }
+     */
+    @PostMapping("/dev/seed-user")
+    @org.springframework.transaction.annotation.Transactional
+    public ResponseEntity<ApiResponse<Map<String, String>>> devSeedUser(@RequestBody Map<String, String> body) {
+        String username = body.getOrDefault("username", "superadmin");
+        String password = body.getOrDefault("password", "Admin1234");
+        String fullName = body.getOrDefault("fullName", "Super Admin");
+        String roleStr  = body.getOrDefault("role", "SUPER_ADMIN");
+        String phone    = body.getOrDefault("phoneNumber", "0900000000");
+        String email    = body.getOrDefault("email", username + "@dev.local");
+
+        // Hard delete theo username/phone/email kể cả soft-deleted rows (bypass @SQLRestriction)
+        userRepository.hardDeleteByUsername(username);
+        userRepository.hardDeleteByPhoneNumber(phone);
+        userRepository.hardDeleteByEmail(email);
+        userRepository.flush();
+
+        Role role;
+        try {
+            role = Role.valueOf(roleStr.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            role = Role.SUPER_ADMIN;
+        }
+
+        User user = new User(username, passwordEncoder.encode(password), fullName, phone, email, role);
+        user.setStatus("ACTIVE");
+        user.setPhoneVerified(true);
+        userRepository.save(user);
+
+        return ResponseEntity.ok(ApiResponse.success(
+            "[DEV] Tạo tài khoản thành công",
+            Map.of("username", username, "password", password, "role", role.name())
+        ));
     }
 }

@@ -102,6 +102,14 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
         return ResponseEntity.ok(toDetailResponse(feedback));
     }
 
+    @GetMapping("/admin/all")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<PagedResponse<FeedbackResponse>> getAllFeedbacksForAdmin(
+            @PageableDefault(size = 500, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<Feedback> entities = feedbackService.findAllPaged(pageable);
+        return ResponseEntity.ok(toPagedResponse(entities));
+    }
+
     @GetMapping("/my-reports/{feedbackId}")
     @PreAuthorize("hasRole('CITIZEN')")
     public ResponseEntity<FeedbackResponse> getMyReportById(
@@ -349,11 +357,11 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
             case SUBMITTED -> "Submitted";
             case PENDING_RECEIVE -> "Pending Receive";
             case NEED_LOCATION_REVIEW -> "Needs Location Review";
+            case ASSIGNED -> "Assigned";
             case IN_PROGRESS -> "Processing";
             case WAITING_INFO -> "Waiting for Information";
             case RESOLVED -> "Resolved";
             case REJECTED -> "Rejected";
-            case ASSIGNED -> "Assigned";
             case PRE_EMPTIVE -> "Pre-emptive";
         };
     }

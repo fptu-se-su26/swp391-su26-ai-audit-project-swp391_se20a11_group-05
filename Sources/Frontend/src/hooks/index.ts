@@ -207,6 +207,42 @@ export function useRejectFeedback() {
   });
 }
 
+export function useAcceptFeedback() {
+  const queryClient = useQueryClient();
+  return useMutation<PoliceFeedbackResponse, Error, number | string>({
+    mutationFn: (id) => policeApi.acceptFeedback(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
+      queryClient.invalidateQueries({ queryKey: ["police", "assigned-feedbacks"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+}
+
+export function useUpdatePoliceFeedbackStatus() {
+  const queryClient = useQueryClient();
+  return useMutation<PoliceFeedbackResponse, Error, { id: number | string; status: string; note?: string }>({
+    mutationFn: ({ id, status, note }) => policeApi.updateStatus(id, status, note),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
+      queryClient.invalidateQueries({ queryKey: ["police", "assigned-feedbacks"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+}
+
+export function useSubmitPoliceFeedbackResult() {
+  const queryClient = useQueryClient();
+  return useMutation<PoliceFeedbackResponse, Error, { id: number | string; resultNote: string }>({
+    mutationFn: ({ id, resultNote }) => policeApi.submitResult(id, resultNote),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
+      queryClient.invalidateQueries({ queryKey: ["police", "assigned-feedbacks"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+}
+
 export function useRequestMoreInfo() {
   const queryClient = useQueryClient();
   return useMutation<FeedbackResponse, Error, { id: number | string; reason: string }>({

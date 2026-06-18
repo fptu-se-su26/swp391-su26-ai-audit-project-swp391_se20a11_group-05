@@ -12,7 +12,9 @@ import { CityAdminDashboard } from "@/features/city-admin/CityAdminDashboard";
 
 export const Route = createFileRoute("/_auth/city-admin")({
   beforeLoad: ({ context }) => {
-    const { currentUser } = context as { currentUser: { role: string } };
+    const { currentUser } = context as { currentUser?: { role: string } };
+
+    if (!currentUser) return;
 
     // SECURITY check: Ensure that only SUPER_ADMIN is permitted to access the IOC dashboard.
     if (currentUser.role !== Role.SUPER_ADMIN) {

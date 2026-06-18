@@ -10,7 +10,7 @@
  */
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { getToken, setToken, removeToken, setOnUnauthorized } from "./api";
+import { getToken, setToken, removeToken, setOnUnauthorized, userApi } from "./api";
 import {
   Role,
   ROLE_LABEL,
@@ -86,6 +86,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         
         setUser(parsed);
+
+        // Fetch full profile info to get the full name
+        userApi.profile().then((profile) => {
+          if (profile && profile.fullName) {
+            const updated = { ...parsed, name: profile.fullName };
+            setUser(updated);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+          }
+        }).catch(() => {});
       } else if (raw || storedToken) {
         // If only one exists, clear both to avoid inconsistent state
         localStorage.removeItem(STORAGE_KEY);
@@ -115,6 +124,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(u.token);
       }
     }
+    // Fetch profile to get full name
+    userApi.profile().then((profile) => {
+      if (profile && profile.fullName) {
+        const updated = { ...u, name: profile.fullName };
+        setUser(updated);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      }
+    }).catch(() => {});
   };
 
   const logout = () => {

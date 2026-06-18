@@ -88,7 +88,7 @@ function FeedbackSearch() {
   const navigate = useNavigate({ from: "/feedback-search" });
   const { category = "", q = "", status = "", range = "", wardId, categories } = Route.useSearch();
   const { isAuthenticated, user: currentUser } = useAuth();
-  const isWardStaff = currentUser?.role === "WARD_STAFF";
+  const isWardStaff = false; // Disable search restrictions for WARD_STAFF so they can view all reports
   // WARD_STAFF allowed categories constant
   const WARD_STAFF_CATEGORIES = ["URBAN_INFRASTRUCTURE", "ENVIRONMENT", "CONSTRUCTION"];
 

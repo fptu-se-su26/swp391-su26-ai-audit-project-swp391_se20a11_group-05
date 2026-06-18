@@ -300,6 +300,9 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
                     status,
                     effectiveFromDate,
                     effectiveToDate,
+                    null,
+                    null,
+                    false,
                     pageable);
         } else {
             return Page.empty();
@@ -313,6 +316,9 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             FeedbackStatus status,
             LocalDateTime fromDate,
             LocalDateTime toDate,
+            Long wardId,
+            List<String> categories,
+            String username,
             Pageable pageable) {
         String normalizedKeyword = keyword == null ? null : keyword.trim();
         String normalizedCategory = category == null ? null : category.trim();
@@ -323,12 +329,33 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
                 ? LocalDate.of(9999, 12, 31).atTime(LocalTime.MAX)
                 : toDate;
 
+        Long effectiveWardId = wardId;
+        List<String> effectiveCategories = categories;
+
+        if (username != null) {
+            java.util.Optional<User> optionalUser = userRepository.findByUsername(username);
+            if (optionalUser.isPresent()) {
+                User user = optionalUser.get();
+                if (user.getRole() == Role.WARD_STAFF) {
+                    if (user.getWard() != null) {
+                        effectiveWardId = user.getWard().getId();
+                    }
+                    effectiveCategories = List.of("URBAN_INFRASTRUCTURE", "ENVIRONMENT", "CONSTRUCTION");
+                }
+            }
+        }
+
+        boolean hasCategories = (effectiveCategories != null && !effectiveCategories.isEmpty());
+
         return feedbackRepository.searchPublicFeedbacks(
                 normalizedKeyword,
                 normalizedCategory,
                 status,
                 effectiveFromDate,
                 effectiveToDate,
+                effectiveWardId,
+                effectiveCategories,
+                hasCategories,
                 pageable);
     }
 
@@ -338,7 +365,10 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             String category,
             FeedbackStatus status,
             LocalDateTime fromDate,
-            LocalDateTime toDate) {
+            LocalDateTime toDate,
+            Long wardId,
+            List<String> categories,
+            String username) {
         String normalizedKeyword = keyword == null ? null : keyword.trim();
         String normalizedCategory = category == null ? null : category.trim();
         LocalDateTime effectiveFromDate = fromDate == null
@@ -348,12 +378,33 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
                 ? LocalDate.of(9999, 12, 31).atTime(LocalTime.MAX)
                 : toDate;
 
+        Long effectiveWardId = wardId;
+        List<String> effectiveCategories = categories;
+
+        if (username != null) {
+            java.util.Optional<User> optionalUser = userRepository.findByUsername(username);
+            if (optionalUser.isPresent()) {
+                User user = optionalUser.get();
+                if (user.getRole() == Role.WARD_STAFF) {
+                    if (user.getWard() != null) {
+                        effectiveWardId = user.getWard().getId();
+                    }
+                    effectiveCategories = List.of("URBAN_INFRASTRUCTURE", "ENVIRONMENT", "CONSTRUCTION");
+                }
+            }
+        }
+
+        boolean hasCategories = (effectiveCategories != null && !effectiveCategories.isEmpty());
+
         List<Object[]> rawCounts = feedbackRepository.countPublicFeedbacksByStatus(
                 normalizedKeyword,
                 normalizedCategory,
                 status,
                 effectiveFromDate,
-                effectiveToDate);
+                effectiveToDate,
+                effectiveWardId,
+                effectiveCategories,
+                hasCategories);
 
         long total = 0;
         long pending = 0;
@@ -426,6 +477,10 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
 
         User actionBy = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User: " + username));
+
+        if (actionBy.getRole() != Role.WARD_STAFF) {
+            throw new CustomException("Chỉ cán bộ phường mới có quyền cập nhật trạng thái phản ánh", HttpStatus.FORBIDDEN.value());
+        }
 
         // Fix BOLA/IDOR: Validate permission before action
         validateActionPermission(actionBy, feedback);

@@ -48,6 +48,7 @@ export const Route = createFileRoute("/_auth")({
       org: string;
       wardName?: string | null;
       wardType?: string | null;
+      wardId?: number | null;
     } | null = null;
     try {
       user = JSON.parse(raw);
@@ -79,6 +80,7 @@ export const Route = createFileRoute("/_auth")({
         org: user.org ?? "",
         wardName: user.wardName ?? null,
         wardType: user.wardType ?? null,
+        wardId: user.wardId ?? null,
       },
     };
   },

@@ -295,6 +295,8 @@ export interface FeedbackListFilters {
   status?: FeedbackStatus | "";
   fromDate?: string;
   toDate?: string;
+  wardId?: string | number;
+  categories?: string;
 }
 
 export interface FeedbackLookupStatsResponse {
@@ -502,8 +504,10 @@ export const feedbackApi = {
     if (filters.status) params.set("status", filters.status);
     if (filters.fromDate) params.set("fromDate", filters.fromDate);
     if (filters.toDate) params.set("toDate", filters.toDate);
+    if (filters.wardId) params.set("wardId", String(filters.wardId));
+    if (filters.categories) params.set("categories", filters.categories);
 
-    return request<PageResponse<FeedbackResponse>>(`/api/feedbacks/public?${params}`, { skipAuth: true });
+    return request<PageResponse<FeedbackResponse>>(`/api/feedbacks/public?${params}`);
   },
 
   getPublicStats: (filters: FeedbackListFilters = {}) => {
@@ -515,8 +519,10 @@ export const feedbackApi = {
     if (filters.status) params.set("status", filters.status);
     if (filters.fromDate) params.set("fromDate", filters.fromDate);
     if (filters.toDate) params.set("toDate", filters.toDate);
+    if (filters.wardId) params.set("wardId", String(filters.wardId));
+    if (filters.categories) params.set("categories", filters.categories);
 
-    return request<FeedbackLookupStatsResponse>(`/api/feedbacks/public/stats?${params}`, { skipAuth: true });
+    return request<FeedbackLookupStatsResponse>(`/api/feedbacks/public/stats?${params}`);
   },
 
   getPublicFeedbackStatistics: (filters: FeedbackListFilters = {}) =>

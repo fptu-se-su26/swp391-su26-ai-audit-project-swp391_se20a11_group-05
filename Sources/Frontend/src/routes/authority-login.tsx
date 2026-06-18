@@ -170,6 +170,7 @@ function AuthorityLoginPage() {
           org: getAdministrativeUnitLabel(data.wardType, data.wardName),
           wardName: data.wardName,
           wardType: data.wardType,
+          wardId: data.wardId,
           token: data.token,
         });
 
@@ -223,6 +224,7 @@ function AuthorityLoginPage() {
         org: getAdministrativeUnitLabel(data.wardType, data.wardName),
         wardName: data.wardName,
         wardType: data.wardType,
+        wardId: data.wardId,
         token: data.token,
       });
       navigate({ to: getAuthorityRedirect(role, redirect) as any });

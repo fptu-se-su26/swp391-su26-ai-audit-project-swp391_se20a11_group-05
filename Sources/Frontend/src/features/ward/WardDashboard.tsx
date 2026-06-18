@@ -456,10 +456,16 @@ export function WardDashboard() {
 
   const menuItems = [
     { name: "Tổng quan", path: "/ward", icon: Sliders, active: true },
-    { name: "Phản ánh", path: "/my-reports", icon: FileText },
-    { name: "Theo dõi xử lý", path: "/my-reports", icon: Activity },
+    {
+      name: "Phản ánh",
+      path: "/feedback-search",
+      icon: FileText,
+      search: {
+        wardId: user?.wardId || undefined,
+        categories: "URBAN_INFRASTRUCTURE,ENVIRONMENT,CONSTRUCTION",
+      },
+    },
     { name: "Chiến dịch", path: "/campaigns", icon: Calendar },
-    { name: "Báo cáo", path: "/ward", icon: BarChart3 },
     { name: "Cấu hình", path: "/profile", icon: Settings },
   ];
 
@@ -500,6 +506,7 @@ export function WardDashboard() {
               <Link
                 key={idx}
                 to={item.path as any}
+                search={"search" in item ? (item.search as any) : undefined}
                 className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all ${
                   item.active
                     ? "bg-[#0F5BD8] text-white shadow-lg"

@@ -32,6 +32,7 @@ export interface AuthUser {
   org: string;
   wardName?: string | null;
   wardType?: string | null;
+  wardId?: number | null;
   token?: string;
 }
 

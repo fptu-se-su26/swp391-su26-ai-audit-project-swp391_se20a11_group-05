@@ -83,6 +83,7 @@ const LANGUAGE_OPTIONS: Array<{
 export function Header() {
   const { locale, setLocale, t } = useI18n();
   const { user, logout, hasRole } = useAuth();
+  const isWardStaff = user?.role === Role.WARD_STAFF;
   const path = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -225,7 +226,7 @@ export function Header() {
     { to: "/feedback-search", label: locale === "vi" ? "Tra cứu" : "Search" },
     { to: "/campaigns", label: locale === "vi" ? "Chiến dịch" : "Campaigns" },
     { to: "/", hash: "huong-dan", label: locale === "vi" ? "Hướng dẫn" : "Guides" },
-    { to: "/", hash: "lien-he", label: locale === "vi" ? "Liên hệ" : "Contact" },
+    ...(!isWardStaff ? [{ to: "/", hash: "lien-he", label: locale === "vi" ? "Liên hệ" : "Contact" }] : []),
   ];
 
   const staffItemsAll = [
@@ -318,7 +319,8 @@ export function Header() {
         {/* Right: Controls & Account + Mobile Menu Trigger */}
         <div className="flex items-center gap-2 sm:gap-3 md:gap-4 lg:gap-6">
           {/* Language Selector */}
-          <div className="relative hidden md:block" ref={langRef}>
+          {!isWardStaff && (
+            <div className="relative hidden md:block" ref={langRef}>
             <button
               onClick={toggleLang}
               className="group flex min-h-[40px] items-center gap-2 rounded-full border border-transparent px-2.5 text-sm font-semibold text-[#123E8A] transition hover:border-[#E4EAF2] hover:bg-[#F5F9FF] hover:text-[#0B4FC4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B4FC4]/20 cursor-pointer"
@@ -381,6 +383,7 @@ export function Header() {
               </div>
             )}
           </div>
+          )}
 
           {/* Notification bell & dropdown */}
           <div className="relative" ref={notifRef}>
@@ -671,7 +674,8 @@ export function Header() {
 
           {/* Mobile Utility Actions */}
           <div className="pt-3 mt-3 border-t border-[#E4EAF2] flex flex-col gap-3">
-            <div className="flex items-center justify-between px-4">
+            {!isWardStaff && (
+              <div className="flex items-center justify-between px-4">
               <span className="text-sm font-semibold text-[#123E8A] font-sans">
                 {t("header.langLabel")}
               </span>
@@ -698,6 +702,7 @@ export function Header() {
                 })}
               </div>
             </div>
+            )}
 
             {user ? (
               <>

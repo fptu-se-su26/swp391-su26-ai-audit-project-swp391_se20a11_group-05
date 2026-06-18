@@ -75,6 +75,8 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
             WHERE (:status IS NULL OR f.status = :status)
               AND f.createdAt >= :fromDate
               AND f.createdAt <= :toDate
+              AND (:wardId IS NULL OR w.id = :wardId)
+              AND (:hasCategories = false OR c.code IN :categories)
               AND (:category IS NULL OR :category = '' OR LOWER(c.name) LIKE LOWER(CONCAT('%', :category, '%')) OR LOWER(c.code) = LOWER(:category))
               AND (
                 :keyword IS NULL OR :keyword = '' OR
@@ -91,6 +93,9 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
             @Param("status") FeedbackStatus status,
             @Param("fromDate") java.time.LocalDateTime fromDate,
             @Param("toDate") java.time.LocalDateTime toDate,
+            @Param("wardId") Long wardId,
+            @Param("categories") List<String> categories,
+            @Param("hasCategories") boolean hasCategories,
             Pageable pageable);
 
     @org.springframework.data.jpa.repository.Query("""
@@ -101,6 +106,8 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
             WHERE (:status IS NULL OR f.status = :status)
               AND f.createdAt >= :fromDate
               AND f.createdAt <= :toDate
+              AND (:wardId IS NULL OR f.ward.id = :wardId)
+              AND (:hasCategories = false OR c.code IN :categories)
               AND (:category IS NULL OR :category = '' OR LOWER(c.name) LIKE LOWER(CONCAT('%', :category, '%')) OR LOWER(c.code) = LOWER(:category))
               AND (
                 :keyword IS NULL OR :keyword = '' OR
@@ -117,7 +124,10 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
             @Param("category") String category,
             @Param("status") FeedbackStatus status,
             @Param("fromDate") java.time.LocalDateTime fromDate,
-            @Param("toDate") java.time.LocalDateTime toDate);
+            @Param("toDate") java.time.LocalDateTime toDate,
+            @Param("wardId") Long wardId,
+            @Param("categories") List<String> categories,
+            @Param("hasCategories") boolean hasCategories);
 
     @org.springframework.data.jpa.repository.Query("SELECT w.name, COUNT(f.id), SUM(CASE WHEN f.status = 'RESOLVED' THEN 1L ELSE 0L END) FROM Feedback f JOIN f.ward w GROUP BY w.name")
     List<Object[]> getWardPerformanceStats();

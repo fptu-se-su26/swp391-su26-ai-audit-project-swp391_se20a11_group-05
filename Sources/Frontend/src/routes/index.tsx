@@ -747,7 +747,7 @@ function HomePage() {
           </div>
 
           {/* Grouped Bar Chart */}
-          <div className="w-full bg-white border border-[#E4EAF2] rounded-xl p-5 hover:shadow-sm transition">
+          <div className="hidden w-full bg-white border border-[#E4EAF2] rounded-xl p-5 hover:shadow-sm transition">
             <div className="h-[320px] md:h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
@@ -1052,7 +1052,7 @@ function HomePage() {
                           ]
                     }
                     height="100%"
-                    interactive={false}
+                    interactive={true}
                   />
                 </Suspense>
               </div>

@@ -11,6 +11,7 @@ import {
   useRejectFeedback,
   useRequestMoreInfo,
   useUpdatePoliceFeedbackStatus,
+  useSubmitPoliceFeedbackResult,
 } from "@/hooks";
 import { useAuth } from "@/lib/auth";
 import { getLoginPathForRole } from "@/lib/roles";
@@ -54,7 +55,7 @@ import { toast } from "sonner";
 import { authApi, type NotificationResponse, type FeedbackResponse, type PoliceFeedbackResponse } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
 
 const CivicMap = lazy(() =>
   import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
@@ -116,17 +117,40 @@ export function PoliceDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
+  const [trackingViewMode, setTrackingViewMode] = useState<"week" | "month">("week");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [selectedFeedback, setSelectedFeedback] = useState<PoliceFeedbackResponse | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [showRequestInfoInput, setShowRequestInfoInput] = useState(false);
   const [requestInfoReason, setRequestInfoReason] = useState("");
+  const [showSubmitResultInput, setShowSubmitResultInput] = useState(false);
+  const [resultNote, setResultNote] = useState("");
 
   const acceptFeedbackMut = useAcceptFeedback();
   const rejectFeedbackMut = useRejectFeedback();
   const requestInfoMut = useRequestMoreInfo();
   const updateStatusMut = useUpdatePoliceFeedbackStatus();
+  const submitResultMut = useSubmitPoliceFeedbackResult();
+
+  const handleSubmitResult = async (id: number) => {
+    if (!resultNote.trim()) {
+      toast.error("Vui lòng nhập kết quả xử lý");
+      return;
+    }
+    try {
+      await submitResultMut.mutateAsync({ id, resultNote });
+      toast.success("Đã cập nhật kết quả xử lý thành công");
+      setSelectedFeedback(null);
+      setFilterStatus("RESOLVED");
+      setActiveTab("feedbacks");
+      setShowSubmitResultInput(false);
+      setResultNote("");
+      refetch();
+    } catch (err: any) {
+      toast.error(err.message || "Lỗi khi cập nhật kết quả");
+    }
+  };
 
   const handleAccept = async (id: number) => {
     try {
@@ -222,7 +246,7 @@ export function PoliceDashboard() {
   const markAllRead = useMarkAllNotificationsReadMutation();
 
   const unreadCount = unreadCountData ?? notifications.filter((n) => !n.isRead).length;
-  
+
   // Filter by keyword locally if needed since the API doesn't accept keyword yet
   const feedbacks = useMemo(() => {
     const data = feedbacksData ?? [];
@@ -448,6 +472,63 @@ export function PoliceDashboard() {
     return [16.0544, 108.2022]; // Da Nang center
   }, [mapMarkers]);
 
+  const trackingChartData = useMemo(() => {
+    const getWeekNumber = (d: Date) => {
+      d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+      d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+      const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+      return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+    };
+
+    const dataMap: Record<string, { name: string; received: number; resolved: number }> = {};
+
+    feedbacks.forEach((fb) => {
+      const date = new Date(fb.createdAt);
+      let key = "";
+      let name = "";
+      
+      if (trackingViewMode === "week") {
+        const weekNum = getWeekNumber(date);
+        const year = date.getFullYear();
+        key = `${year}-W${weekNum.toString().padStart(2, "0")}`;
+        name = `Tuần ${weekNum}, ${year}`;
+      } else {
+        const month = date.getMonth() + 1;
+        const year = date.getFullYear();
+        key = `${year}-${month.toString().padStart(2, "0")}`;
+        name = `Tháng ${month}/${year}`;
+      }
+
+      if (!dataMap[key]) {
+        dataMap[key] = { name, received: 0, resolved: 0 };
+      }
+      dataMap[key].received += 1;
+      
+      if (fb.status === "RESOLVED") {
+        const resolvedDate = new Date(fb.updatedAt);
+        let rKey = "";
+        let rName = "";
+        
+        if (trackingViewMode === "week") {
+          const w = getWeekNumber(resolvedDate);
+          rKey = `${resolvedDate.getFullYear()}-W${w.toString().padStart(2, "0")}`;
+          rName = `Tuần ${w}, ${resolvedDate.getFullYear()}`;
+        } else {
+          const m = resolvedDate.getMonth() + 1;
+          rKey = `${resolvedDate.getFullYear()}-${m.toString().padStart(2, "0")}`;
+          rName = `Tháng ${m}/${resolvedDate.getFullYear()}`;
+        }
+        
+        if (!dataMap[rKey]) {
+          dataMap[rKey] = { name: rName, received: 0, resolved: 0 };
+        }
+        dataMap[rKey].resolved += 1;
+      }
+    });
+
+    return Object.keys(dataMap).sort().map(k => dataMap[k]).slice(-12); // Show last 12 periods max
+  }, [feedbacks, trackingViewMode]);
+
   // Handlers for notifications
   const handleMarkAllRead = async () => {
     try {
@@ -468,14 +549,14 @@ export function PoliceDashboard() {
       if (feedbackId) {
         navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
       }
-    } catch {}
+    } catch { }
   };
 
   const handleLogout = async () => {
     const loginPath = getLoginPathForRole(user?.role);
     try {
-      await authApi.logout().catch(() => {});
-    } catch {}
+      await authApi.logout().catch(() => { });
+    } catch { }
     logout();
     queryClient.clear();
     navigate({ to: loginPath });
@@ -493,9 +574,8 @@ export function PoliceDashboard() {
     <div className="min-h-screen bg-[#F4F7FA] text-[#1E293B] font-sans antialiased flex">
       {/* ─── 1. FIXED LEFT SIDEBAR ─── */}
       <aside
-        className={`bg-gradient-to-b from-[#0F2042] to-[#0A1630] text-white flex flex-col z-40 transition-all duration-300 fixed inset-y-0 left-0 ${
-          sidebarCollapsed ? "w-[76px]" : "w-[240px]"
-        } ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
+        className={`bg-gradient-to-b from-[#0F2042] to-[#0A1630] text-white flex flex-col z-40 transition-all duration-300 fixed inset-y-0 left-0 ${sidebarCollapsed ? "w-[76px]" : "w-[240px]"
+          } ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
       >
         <div className="p-5 flex flex-col items-center border-b border-white/10 shrink-0">
           <div className={`flex items-center justify-center transition-all duration-300 ${sidebarCollapsed ? "w-12 h-12" : "w-20 h-20"}`}>
@@ -523,11 +603,10 @@ export function PoliceDashboard() {
               <button
                 key={idx}
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all cursor-pointer ${
-                  isActive
+                className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all cursor-pointer ${isActive
                     ? "bg-[#0F5BD8] text-white shadow-lg"
                     : "text-slate-300 hover:bg-white/5 hover:text-white"
-                }`}
+                  }`}
               >
                 <Icon size={18} className="shrink-0" />
                 {!sidebarCollapsed && <span>{item.name}</span>}
@@ -561,9 +640,8 @@ export function PoliceDashboard() {
 
       {/* ─── MAIN WRAPPER ─── */}
       <div
-        className={`flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-300 ${
-          sidebarCollapsed ? "md:pl-[76px]" : "md:pl-[240px]"
-        }`}
+        className={`flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-300 ${sidebarCollapsed ? "md:pl-[76px]" : "md:pl-[240px]"
+          }`}
       >
         {/* ─── 2. TOP WHITE HEADER ─── */}
         <header className="h-[76px] bg-white border-b border-[#E4EAF2] flex items-center justify-between px-6 sticky top-0 z-35 shadow-sm shrink-0">
@@ -644,9 +722,8 @@ export function PoliceDashboard() {
                         <button
                           key={item.id}
                           onClick={() => handleNotifClick(item)}
-                          className={`w-full text-left p-3.5 flex gap-3 transition-colors hover:bg-slate-50 ${
-                            item.isRead ? "opacity-70" : "bg-[#EFF6FF]"
-                          }`}
+                          className={`w-full text-left p-3.5 flex gap-3 transition-colors hover:bg-slate-50 ${item.isRead ? "opacity-70" : "bg-[#EFF6FF]"
+                            }`}
                         >
                           <div className="w-8 h-8 rounded-full bg-[#0F5BD8]/10 text-[#0F5BD8] flex items-center justify-center shrink-0">
                             <Bell size={14} />
@@ -694,7 +771,7 @@ export function PoliceDashboard() {
                     <ChevronDown size={14} className="text-slate-400" />
                   </div>
                   <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block mt-0.5">
-                    {user?.org || "Admin công an phường"} 
+                    {user?.org || "Admin công an phường"}
                   </span>
                 </div>
               </button>
@@ -736,414 +813,471 @@ export function PoliceDashboard() {
             <>
               {/* ─── KPI CARDS ROW ─── */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            {[
-              {
-                title: "Chưa xử lý",
-                val: pendingCount,
-                bg: "bg-[#fd7e14]",
-                trend: pendingTrend,
-                filterValue: "PENDING",
-              },
-              {
-                title: "Đã tiếp nhận",
-                val: acceptedCount,
-                bg: "bg-[#8b5cf6]",
-                trend: acceptedTrend,
-                filterValue: "ACCEPTED",
-              },
-              {
-                title: "Đang xử lý",
-                val: inProgressCount,
-                bg: "bg-[#3b82f6]",
-                trend: inProgressTrend,
-                filterValue: "IN_PROGRESS",
-              },
-              {
-                title: "Đã xử lý",
-                val: resolvedCount,
-                bg: "bg-[#198754]",
-                trend: resolvedTrend,
-                filterValue: "RESOLVED",
-              },
-              {
-                title: "Từ chối",
-                val: rejectedCount,
-                bg: "bg-[#dc3545]",
-                trend: rejectedTrend,
-                filterValue: "REJECTED",
-              },
-            ].map((card, idx) => (
-              <div
-                key={idx}
-                onClick={() => {
-                  setFilterStatus(card.filterValue);
-                  setActiveTab("feedbacks");
-                }}
-                className={`bg-white rounded-2xl border ${filterStatus === card.filterValue ? "border-[#0F5BD8] ring-1 ring-[#0F5BD8] shadow-md" : "border-[#E4EAF2]"} p-5 shadow-sm flex flex-col justify-between cursor-pointer hover:border-[#0F5BD8] hover:shadow-md transition-all group`}
-              >
-                <div className="flex items-center gap-4">
+                {[
+                  {
+                    title: "Chưa xử lý",
+                    val: pendingCount,
+                    bg: "bg-[#fd7e14]",
+                    trend: pendingTrend,
+                    filterValue: "PENDING",
+                  },
+                  {
+                    title: "Đã tiếp nhận",
+                    val: acceptedCount,
+                    bg: "bg-[#8b5cf6]",
+                    trend: acceptedTrend,
+                    filterValue: "ACCEPTED",
+                  },
+                  {
+                    title: "Đang xử lý",
+                    val: inProgressCount,
+                    bg: "bg-[#3b82f6]",
+                    trend: inProgressTrend,
+                    filterValue: "IN_PROGRESS",
+                  },
+                  {
+                    title: "Đã xử lý",
+                    val: resolvedCount,
+                    bg: "bg-[#198754]",
+                    trend: resolvedTrend,
+                    filterValue: "RESOLVED",
+                  },
+                  {
+                    title: "Từ chối",
+                    val: rejectedCount,
+                    bg: "bg-[#dc3545]",
+                    trend: rejectedTrend,
+                    filterValue: "REJECTED",
+                  },
+                ].map((card, idx) => (
                   <div
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center text-white shrink-0 ${card.bg}`}
+                    key={idx}
+                    onClick={() => {
+                      setFilterStatus(card.filterValue);
+                      setActiveTab("feedbacks");
+                    }}
+                    className={`bg-white rounded-2xl border ${filterStatus === card.filterValue ? "border-[#0F5BD8] ring-1 ring-[#0F5BD8] shadow-md" : "border-[#E4EAF2]"} p-5 shadow-sm flex flex-col justify-between cursor-pointer hover:border-[#0F5BD8] hover:shadow-md transition-all group`}
                   >
-                    <FileText size={22} />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-xs font-semibold text-slate-400 block truncate">
-                      {card.title}
-                    </span>
-                    <h3 className="text-2xl font-extrabold text-[#0B2545] mt-0.5 leading-none">
-                      {feedbacksLoading ? (
-                        <Skeleton className="h-6 w-12" />
-                      ) : (
-                        card.val.toLocaleString("vi-VN")
-                      )}
-                    </h3>
-                  </div>
-                </div>
-                <div className="mt-4 pt-3 border-t border-slate-50 flex items-center">
-                  <span className={`text-[11px] font-bold flex items-center gap-0.5 ${card.trend.color}`}>
-                    {card.trend.isUp ? "↑" : "↓"} {card.trend.text}
-                    <span className="text-slate-400 font-semibold ml-1">so với 7 ngày trước</span>
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* ─── GRID CONTENT ─── */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-            {/* Left Column (65%) */}
-            <div className="lg:col-span-8 flex flex-col gap-6">
-
-
-              {/* Heatmap Card */}
-              <div className="bg-white rounded-2xl border border-[#E4EAF2] shadow-sm overflow-hidden flex flex-col min-h-[480px]">
-                <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-                  <h3 className="font-extrabold text-base text-[#0B2545] flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#dc3545]" />
-                    Bản đồ Điểm nóng vi phạm (Heatmap)
-                  </h3>
-                </div>
-                <div className="flex-1 bg-slate-50 relative p-4">
-                  <Suspense
-                    fallback={
-                      <div className="w-full h-full flex items-center justify-center text-slate-400">
-                        Đang tải bản đồ nhiệt...
+                    <div className="flex items-center gap-4">
+                      <div
+                        className={`w-12 h-12 rounded-xl flex items-center justify-center text-white shrink-0 ${card.bg}`}
+                      >
+                        <FileText size={22} />
                       </div>
-                    }
-                  >
-                    <div className="h-[400px] w-full bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-                      <HeatmapMap hotspots={hotspots || []} />
+                      <div className="min-w-0">
+                        <span className="text-xs font-semibold text-slate-400 block truncate">
+                          {card.title}
+                        </span>
+                        <h3 className="text-2xl font-extrabold text-[#0B2545] mt-0.5 leading-none">
+                          {feedbacksLoading ? (
+                            <Skeleton className="h-6 w-12" />
+                          ) : (
+                            card.val.toLocaleString("vi-VN")
+                          )}
+                        </h3>
+                      </div>
                     </div>
-                  </Suspense>
-                </div>
+                    <div className="mt-4 pt-3 border-t border-slate-50 flex items-center">
+                      <span className={`text-[11px] font-bold flex items-center gap-0.5 ${card.trend.color}`}>
+                        {card.trend.isUp ? "↑" : "↓"} {card.trend.text}
+                        <span className="text-slate-400 font-semibold ml-1">so với 7 ngày trước</span>
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
 
-              {/* Priority Reports Table */}
-              <div className="bg-white rounded-2xl border border-[#E4EAF2] shadow-sm p-5 flex flex-col justify-between min-h-[360px]">
-                <div>
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-                    <h3 className="font-extrabold text-base text-[#0B2545]">
-                      Phản ánh ưu tiên cao
-                    </h3>
-                    <Link
-                      to="/my-reports"
-                      className="text-xs font-bold text-[#0F5BD8] hover:underline"
-                    >
-                      Xem tất cả
-                    </Link>
-                  </div>
-                  <div className="overflow-x-auto -mx-5">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="border-b border-[#E4EAF2] bg-slate-50/50">
-                          <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                            Mã phản ánh
-                          </th>
-                          <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                            Nội dung
-                          </th>
-                          <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                            Địa điểm
-                          </th>
-                          <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                            Thời gian
-                          </th>
-                          <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                            Hạn xử lý
-                          </th>
-                          <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                            Trạng thái
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[#E4EAF2]">
-                        {feedbacksLoading ? (
-                          [1, 2, 3].map((i) => (
-                            <tr key={i} className="animate-pulse">
-                              <td className="px-5 py-4"><Skeleton className="h-4 w-12" /></td>
-                              <td className="px-5 py-4"><Skeleton className="h-4 w-40" /></td>
-                              <td className="px-5 py-4"><Skeleton className="h-4 w-32" /></td>
-                              <td className="px-5 py-4"><Skeleton className="h-4 w-24" /></td>
-                              <td className="px-5 py-4"><Skeleton className="h-4 w-20" /></td>
-                              <td className="px-5 py-4"><Skeleton className="h-6 w-16" /></td>
-                            </tr>
-                          ))
-                        ) : priorityReports.length === 0 ? (
-                          <tr>
-                            <td colSpan={6} className="px-5 py-8 text-center text-xs text-slate-400">
-                              Chưa có phản ánh ưu tiên cao.
-                            </td>
-                          </tr>
-                        ) : (
-                          priorityReports.map((row) => (
-                            <tr
-                              key={row.id}
-                              onClick={() => {
-                                setSelectedFeedback(row as any);
-                                setShowRejectInput(false);
-                                setRejectReason("");
-                                setShowRequestInfoInput(false);
-                                setRequestInfoReason("");
-                              }}
-                              className="hover:bg-slate-50 transition-colors cursor-pointer"
-                            >
-                              <td className="px-5 py-4 text-xs font-bold text-[#0F5BD8]">
-                                {row.trackingCode || `PA-${row.id}`}
-                              </td>
-                              <td className="px-5 py-4 text-xs text-slate-700 font-semibold max-w-[200px] truncate">
-                                {row.title}
-                              </td>
-                              <td className="px-5 py-4 text-xs text-slate-500 truncate max-w-[150px]">
-                                {row.addressDetails || row.address || "Chưa xác định"}
-                              </td>
-                              <td className="px-5 py-4 text-xs text-slate-500">
-                                {formatDate(row.createdAt)}
-                              </td>
-                              <td className="px-5 py-4 text-xs text-slate-500 font-bold">
-                                {getDeadlineDate(row.createdAt)}
-                              </td>
-                              <td className="px-5 py-4">
-                                {(() => {
-                                  const isNotResolved =
-                                    row.status !== "RESOLVED" && row.status !== "REJECTED";
-                                  if (isNotResolved && row.diffDays > 3) {
-                                    return (
-                                      <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-red-50 text-red-600 border border-red-100 uppercase">
-                                        Quá hạn
-                                      </span>
-                                    );
-                                  }
-                                  switch (row.status) {
-                                    case "PENDING":
-                                    case "PENDING_RECEIVE":
-                                    case "SUBMITTED":
-                                    case "NEED_LOCATION_REVIEW":
-                                      return (
-                                        <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-orange-50 text-orange-600 border border-orange-100 uppercase">
-                                          Chưa xử lý
-                                        </span>
-                                      );
-                                    case "ASSIGNED":
-                                      return (
-                                        <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-purple-50 text-purple-600 border border-purple-100 uppercase">
-                                          Đã tiếp nhận
-                                        </span>
-                                      );
-                                    case "RESOLVED":
-                                      return (
-                                        <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-green-50 text-green-600 border border-green-100 uppercase">
-                                          Đã xử lý
-                                        </span>
-                                      );
-                                    case "REJECTED":
-                                      return (
-                                        <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-red-50 text-red-600 border border-red-100 uppercase">
-                                          Từ chối
-                                        </span>
-                                      );
-                                    default:
-                                      return (
-                                        <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-blue-50 text-blue-600 border border-blue-100 uppercase">
-                                          Đang xử lý
-                                        </span>
-                                      );
-                                  }
-                                })()}
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
+              {/* ─── GRID CONTENT ─── */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                {/* Left Column (65%) */}
+                <div className="lg:col-span-8 flex flex-col gap-6">
 
-            {/* Right Column (35%) */}
-            <div className="lg:col-span-4 flex flex-col gap-6">
-              {/* Category Classification Card */}
-              <div className="bg-white rounded-2xl border border-[#E4EAF2] shadow-sm p-5 flex flex-col justify-between h-[480px]">
-                <div>
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-                    <h3 className="font-extrabold text-base text-[#0B2545]">
-                      Phân loại phản ánh
-                    </h3>
-                    <span className="text-[11px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded border border-slate-100">
-                      7 ngày qua
-                    </span>
-                  </div>
-                  <div className="flex-1 flex flex-col min-h-0">
-                    {feedbacksLoading ? (
-                      <div className="space-y-4">
-                        {[1, 2, 3, 4, 5, 6].map((i) => (
-                          <div key={i} className="space-y-2">
-                            <div className="flex justify-between">
-                              <Skeleton className="h-3 w-20" />
-                              <Skeleton className="h-3 w-10" />
-                            </div>
-                            <Skeleton className="h-2 w-full rounded" />
+
+                  {/* Heatmap Card */}
+                  <div className="bg-white rounded-2xl border border-[#E4EAF2] shadow-sm overflow-hidden flex flex-col min-h-[480px]">
+                    <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+                      <h3 className="font-extrabold text-base text-[#0B2545] flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#dc3545]" />
+                        Bản đồ Điểm nóng vi phạm (Heatmap)
+                      </h3>
+                    </div>
+                    <div className="flex-1 bg-slate-50 relative p-4">
+                      <Suspense
+                        fallback={
+                          <div className="w-full h-full flex items-center justify-center text-slate-400">
+                            Đang tải bản đồ nhiệt...
                           </div>
-                        ))}
-                      </div>
-                    ) : feedbacks.length === 0 ? (
-                      <div className="py-8 text-center text-xs text-slate-400">
-                        Chưa có dữ liệu phân loại.
-                      </div>
-                    ) : (
-                      <div className="flex flex-col h-full gap-2">
-                        <div className="h-[200px] w-full relative shrink-0">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                              <Pie
-                                data={categoryStats}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={60}
-                                outerRadius={85}
-                                paddingAngle={3}
-                                dataKey="count"
-                                stroke="none"
-                              >
-                                {categoryStats.map((entry, index) => (
-                                  <Cell key={`cell-${index}`} fill={entry.color} />
-                                ))}
-                              </Pie>
-                              <RechartsTooltip 
-                                formatter={(value: number, name: string) => [value, name]}
-                                contentStyle={{ borderRadius: '12px', border: '1px solid #E4EAF2', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', fontSize: '12px', fontWeight: 'bold' }}
-                                itemStyle={{ color: '#0B2545' }}
-                              />
-                            </PieChart>
-                          </ResponsiveContainer>
-                          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                            <span className="text-4xl font-black text-[#0B2545] leading-none">{feedbacks.length}</span>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Tổng cộng</span>
-                          </div>
+                        }
+                      >
+                        <div className="h-[400px] w-full bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                          <HeatmapMap hotspots={hotspots || []} />
                         </div>
+                      </Suspense>
+                    </div>
+                  </div>
 
-                        <div className="flex flex-col gap-2.5 overflow-y-auto mt-2 pr-1 pb-1">
-                          {categoryStats.map((cat, idx) => {
-                            const Icon = cat.icon;
-                            return (
-                              <div key={idx} className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-100 hover:border-slate-300 hover:shadow-sm transition-all group">
-                                <div className="flex items-center gap-3 overflow-hidden">
-                                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-white ${cat.bgClass} shadow-sm group-hover:scale-110 transition-transform`}>
-                                    <Icon size={16} />
-                                  </div>
-                                  <div className="flex flex-col min-w-0">
-                                    <span className="text-xs font-extrabold text-slate-700 truncate" title={cat.name}>{cat.name}</span>
-                                    <span className="text-[10px] font-semibold text-slate-400">{cat.percentage}%</span>
-                                  </div>
+                  {/* Priority Reports Table */}
+                  <div className="bg-white rounded-2xl border border-[#E4EAF2] shadow-sm p-5 flex flex-col justify-between min-h-[360px]">
+                    <div>
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                        <h3 className="font-extrabold text-base text-[#0B2545]">
+                          Phản ánh ưu tiên cao
+                        </h3>
+                        <Link
+                          to="/my-reports"
+                          className="text-xs font-bold text-[#0F5BD8] hover:underline"
+                        >
+                          Xem tất cả
+                        </Link>
+                      </div>
+                      <div className="overflow-x-auto -mx-5">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="border-b border-[#E4EAF2] bg-slate-50/50">
+                              <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                Mã phản ánh
+                              </th>
+                              <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                Nội dung
+                              </th>
+                              <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                Địa điểm
+                              </th>
+                              <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                Thời gian
+                              </th>
+                              <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                Hạn xử lý
+                              </th>
+                              <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                Trạng thái
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#E4EAF2]">
+                            {feedbacksLoading ? (
+                              [1, 2, 3].map((i) => (
+                                <tr key={i} className="animate-pulse">
+                                  <td className="px-5 py-4"><Skeleton className="h-4 w-12" /></td>
+                                  <td className="px-5 py-4"><Skeleton className="h-4 w-40" /></td>
+                                  <td className="px-5 py-4"><Skeleton className="h-4 w-32" /></td>
+                                  <td className="px-5 py-4"><Skeleton className="h-4 w-24" /></td>
+                                  <td className="px-5 py-4"><Skeleton className="h-4 w-20" /></td>
+                                  <td className="px-5 py-4"><Skeleton className="h-6 w-16" /></td>
+                                </tr>
+                              ))
+                            ) : priorityReports.length === 0 ? (
+                              <tr>
+                                <td colSpan={6} className="px-5 py-8 text-center text-xs text-slate-400">
+                                  Chưa có phản ánh ưu tiên cao.
+                                </td>
+                              </tr>
+                            ) : (
+                              priorityReports.map((row) => (
+                                <tr
+                                  key={row.id}
+                                  onClick={() => {
+                                    setSelectedFeedback(row as any);
+                                    setShowRejectInput(false);
+                                    setRejectReason("");
+                                    setShowRequestInfoInput(false);
+                                    setRequestInfoReason("");
+                                  }}
+                                  className="hover:bg-slate-50 transition-colors cursor-pointer"
+                                >
+                                  <td className="px-5 py-4 text-xs font-bold text-[#0F5BD8]">
+                                    {row.trackingCode || `PA-${row.id}`}
+                                  </td>
+                                  <td className="px-5 py-4 text-xs text-slate-700 font-semibold max-w-[200px] truncate">
+                                    {row.title}
+                                  </td>
+                                  <td className="px-5 py-4 text-xs text-slate-500 truncate max-w-[150px]">
+                                    {row.addressDetails || row.address || "Chưa xác định"}
+                                  </td>
+                                  <td className="px-5 py-4 text-xs text-slate-500">
+                                    {formatDate(row.createdAt)}
+                                  </td>
+                                  <td className="px-5 py-4 text-xs text-slate-500 font-bold">
+                                    {getDeadlineDate(row.createdAt)}
+                                  </td>
+                                  <td className="px-5 py-4">
+                                    {(() => {
+                                      const isNotResolved =
+                                        row.status !== "RESOLVED" && row.status !== "REJECTED";
+                                      if (isNotResolved && row.diffDays > 3) {
+                                        return (
+                                          <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-red-50 text-red-600 border border-red-100 uppercase">
+                                            Quá hạn
+                                          </span>
+                                        );
+                                      }
+                                      switch (row.status) {
+                                        case "PENDING":
+                                        case "PENDING_RECEIVE":
+                                        case "SUBMITTED":
+                                        case "NEED_LOCATION_REVIEW":
+                                          return (
+                                            <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-orange-50 text-orange-600 border border-orange-100 uppercase">
+                                              Chưa xử lý
+                                            </span>
+                                          );
+                                        case "ASSIGNED":
+                                          return (
+                                            <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-purple-50 text-purple-600 border border-purple-100 uppercase">
+                                              Đã tiếp nhận
+                                            </span>
+                                          );
+                                        case "RESOLVED":
+                                          return (
+                                            <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-green-50 text-green-600 border border-green-100 uppercase">
+                                              Đã xử lý
+                                            </span>
+                                          );
+                                        case "REJECTED":
+                                          return (
+                                            <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-red-50 text-red-600 border border-red-100 uppercase">
+                                              Từ chối
+                                            </span>
+                                          );
+                                        default:
+                                          return (
+                                            <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-blue-50 text-blue-600 border border-blue-100 uppercase">
+                                              Đang xử lý
+                                            </span>
+                                          );
+                                      }
+                                    })()}
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column (35%) */}
+                <div className="lg:col-span-4 flex flex-col gap-6">
+                  {/* Category Classification Card */}
+                  <div className="bg-white rounded-2xl border border-[#E4EAF2] shadow-sm p-5 flex flex-col justify-between h-[480px]">
+                    <div>
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                        <h3 className="font-extrabold text-base text-[#0B2545]">
+                          Phân loại phản ánh
+                        </h3>
+                        <span className="text-[11px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded border border-slate-100">
+                          7 ngày qua
+                        </span>
+                      </div>
+                      <div className="flex-1 flex flex-col min-h-0">
+                        {feedbacksLoading ? (
+                          <div className="space-y-4">
+                            {[1, 2, 3, 4, 5, 6].map((i) => (
+                              <div key={i} className="space-y-2">
+                                <div className="flex justify-between">
+                                  <Skeleton className="h-3 w-20" />
+                                  <Skeleton className="h-3 w-10" />
                                 </div>
-                                <span className="text-sm font-black text-[#0B2545] shrink-0 pl-2">{cat.count}</span>
+                                <Skeleton className="h-2 w-full rounded" />
+                              </div>
+                            ))}
+                          </div>
+                        ) : feedbacks.length === 0 ? (
+                          <div className="py-8 text-center text-xs text-slate-400">
+                            Chưa có dữ liệu phân loại.
+                          </div>
+                        ) : (
+                          <div className="flex flex-col h-full gap-2">
+                            <div className="h-[200px] w-full relative shrink-0">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                  <Pie
+                                    data={categoryStats}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={60}
+                                    outerRadius={85}
+                                    paddingAngle={3}
+                                    dataKey="count"
+                                    stroke="none"
+                                  >
+                                    {categoryStats.map((entry, index) => (
+                                      <Cell key={`cell-${index}`} fill={entry.color} />
+                                    ))}
+                                  </Pie>
+                                  <RechartsTooltip
+                                    formatter={(value: number, name: string) => [value, name]}
+                                    contentStyle={{ borderRadius: '12px', border: '1px solid #E4EAF2', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', fontSize: '12px', fontWeight: 'bold' }}
+                                    itemStyle={{ color: '#0B2545' }}
+                                  />
+                                </PieChart>
+                              </ResponsiveContainer>
+                              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                <span className="text-4xl font-black text-[#0B2545] leading-none">{feedbacks.length}</span>
+                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Tổng cộng</span>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col gap-2.5 overflow-y-auto mt-2 pr-1 pb-1">
+                              {categoryStats.map((cat, idx) => {
+                                const Icon = cat.icon;
+                                return (
+                                  <div key={idx} className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-100 hover:border-slate-300 hover:shadow-sm transition-all group">
+                                    <div className="flex items-center gap-3 overflow-hidden">
+                                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-white ${cat.bgClass} shadow-sm group-hover:scale-110 transition-transform`}>
+                                        <Icon size={16} />
+                                      </div>
+                                      <div className="flex flex-col min-w-0">
+                                        <span className="text-xs font-extrabold text-slate-700 truncate" title={cat.name}>{cat.name}</span>
+                                        <span className="text-[10px] font-semibold text-slate-400">{cat.percentage}%</span>
+                                      </div>
+                                    </div>
+                                    <span className="text-sm font-black text-[#0B2545] shrink-0 pl-2">{cat.count}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Recent Activity Card */}
+                  <div className="bg-white rounded-2xl border border-[#E4EAF2] shadow-sm p-5 flex flex-col justify-between h-[360px]">
+                    <div>
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                        <h3 className="font-extrabold text-base text-[#0B2545]">
+                          Hoạt động gần đây
+                        </h3>
+                        <Link
+                          to="/notifications"
+                          className="text-xs font-bold text-[#0F5BD8] hover:underline"
+                        >
+                          Xem tất cả
+                        </Link>
+                      </div>
+                      <div className="space-y-4 max-h-[260px] overflow-y-auto pr-1">
+                        {notifLoading ? (
+                          [1, 2, 3].map((i) => (
+                            <div key={i} className="flex gap-3 animate-pulse">
+                              <div className="w-8 h-8 bg-slate-100 rounded-full shrink-0" />
+                              <div className="flex-1 space-y-2">
+                                <div className="h-3 bg-slate-100 rounded w-1/3" />
+                                <div className="h-2.5 bg-slate-100 rounded w-4/5" />
+                              </div>
+                            </div>
+                          ))
+                        ) : notifications.length === 0 ? (
+                          <div className="py-8 text-center text-xs text-slate-400">
+                            Chưa có hoạt động gần đây.
+                          </div>
+                        ) : (
+                          notifications.slice(0, 4).map((activity) => {
+                            let iconBg = "bg-blue-50 text-blue-600 border-blue-100";
+                            let Icon = RefreshCw;
+                            if (activity.type === "FEEDBACK_SUBMITTED") {
+                              iconBg = "bg-purple-50 text-purple-600 border-purple-100";
+                              Icon = Plus;
+                            } else if (
+                              activity.type === "FEEDBACK_COMPLETED" ||
+                              activity.type === "RESOLVED" ||
+                              activity.type === "FEEDBACK_CLOSED"
+                            ) {
+                              iconBg = "bg-green-50 text-green-600 border-green-100";
+                              Icon = CheckCircle2;
+                            } else if (activity.type === "FEEDBACK_ASSIGNED") {
+                              iconBg = "bg-blue-50 text-blue-600 border-blue-100";
+                              Icon = User;
+                            }
+
+                            return (
+                              <div key={activity.id} className="flex gap-3">
+                                <div
+                                  className={`w-8 h-8 rounded-full border flex items-center justify-center shrink-0 ${iconBg}`}
+                                >
+                                  <Icon size={14} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <span className="text-xs font-bold text-slate-800 block truncate">
+                                    {activity.title}
+                                  </span>
+                                  <span className="text-[10px] text-slate-500 mt-0.5 block line-clamp-2 leading-relaxed">
+                                    {activity.content}
+                                  </span>
+                                  <span className="text-[9px] text-slate-400 mt-1 block">
+                                    {formatDate(activity.createdAt)}
+                                  </span>
+                                </div>
                               </div>
                             );
-                          })}
-                        </div>
+                          })
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
               </div>
+            </>
+          )}
 
-              {/* Recent Activity Card */}
-              <div className="bg-white rounded-2xl border border-[#E4EAF2] shadow-sm p-5 flex flex-col justify-between h-[360px]">
-                <div>
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-                    <h3 className="font-extrabold text-base text-[#0B2545]">
-                      Hoạt động gần đây
-                    </h3>
-                    <Link
-                      to="/notifications"
-                      className="text-xs font-bold text-[#0F5BD8] hover:underline"
-                    >
-                      Xem tất cả
-                    </Link>
-                  </div>
-                  <div className="space-y-4 max-h-[260px] overflow-y-auto pr-1">
-                    {notifLoading ? (
-                      [1, 2, 3].map((i) => (
-                        <div key={i} className="flex gap-3 animate-pulse">
-                          <div className="w-8 h-8 bg-slate-100 rounded-full shrink-0" />
-                          <div className="flex-1 space-y-2">
-                            <div className="h-3 bg-slate-100 rounded w-1/3" />
-                            <div className="h-2.5 bg-slate-100 rounded w-4/5" />
-                          </div>
-                        </div>
-                      ))
-                    ) : notifications.length === 0 ? (
-                      <div className="py-8 text-center text-xs text-slate-400">
-                        Chưa có hoạt động gần đây.
-                      </div>
-                    ) : (
-                      notifications.slice(0, 4).map((activity) => {
-                        let iconBg = "bg-blue-50 text-blue-600 border-blue-100";
-                        let Icon = RefreshCw;
-                        if (activity.type === "FEEDBACK_SUBMITTED") {
-                          iconBg = "bg-purple-50 text-purple-600 border-purple-100";
-                          Icon = Plus;
-                        } else if (
-                          activity.type === "FEEDBACK_COMPLETED" ||
-                          activity.type === "RESOLVED" ||
-                          activity.type === "FEEDBACK_CLOSED"
-                        ) {
-                          iconBg = "bg-green-50 text-green-600 border-green-100";
-                          Icon = CheckCircle2;
-                        } else if (activity.type === "FEEDBACK_ASSIGNED") {
-                          iconBg = "bg-blue-50 text-blue-600 border-blue-100";
-                          Icon = User;
-                        }
-
-                        return (
-                          <div key={activity.id} className="flex gap-3">
-                            <div
-                              className={`w-8 h-8 rounded-full border flex items-center justify-center shrink-0 ${iconBg}`}
-                            >
-                              <Icon size={14} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <span className="text-xs font-bold text-slate-800 block truncate">
-                                {activity.title}
-                              </span>
-                              <span className="text-[10px] text-slate-500 mt-0.5 block line-clamp-2 leading-relaxed">
-                                {activity.content}
-                              </span>
-                              <span className="text-[9px] text-slate-400 mt-1 block">
-                                {formatDate(activity.createdAt)}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
+          {activeTab === "tracking" && (
+            <div className="bg-white rounded-2xl border border-[#E4EAF2] shadow-sm p-5 flex flex-col min-h-[500px]">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+                <h3 className="font-extrabold text-lg text-[#0B2545]">Theo dõi tiến độ xử lý</h3>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-500">Hiển thị theo:</span>
+                  <select
+                    value={trackingViewMode}
+                    onChange={(e) => setTrackingViewMode(e.target.value as "week" | "month")}
+                    className="h-8 pl-3 pr-8 text-xs font-bold bg-slate-50 border border-[#E4EAF2] rounded-lg focus:outline-none focus:border-[#0F5BD8] text-[#0B2545]"
+                  >
+                    <option value="week">Theo tuần</option>
+                    <option value="month">Theo tháng</option>
+                  </select>
                 </div>
+              </div>
+              <div className="flex-1 w-full mt-4 min-h-[400px]">
+                {trackingChartData.length === 0 ? (
+                  <div className="w-full h-full flex items-center justify-center text-slate-400 font-medium">
+                    Chưa có dữ liệu xử lý để hiển thị biểu đồ.
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={400}>
+                    <BarChart
+                      data={trackingChartData}
+                      margin={{ top: 20, right: 30, left: 0, bottom: 20 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E4EAF2" />
+                      <XAxis 
+                        dataKey="name" 
+                        tick={{ fill: "#64748B", fontSize: 12, fontWeight: 600 }}
+                        axisLine={false}
+                        tickLine={false}
+                        dy={10}
+                      />
+                      <YAxis 
+                        tick={{ fill: "#64748B", fontSize: 12, fontWeight: 600 }}
+                        axisLine={false}
+                        tickLine={false}
+                        dx={-10}
+                      />
+                      <RechartsTooltip 
+                        contentStyle={{ borderRadius: '12px', border: '1px solid #E4EAF2', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', fontSize: '12px', fontWeight: 'bold', color: '#0B2545' }}
+                        cursor={{ fill: '#F8FAFC' }}
+                      />
+                      <Legend 
+                        wrapperStyle={{ paddingTop: '20px', fontSize: '13px', fontWeight: 'bold', color: '#0B2545' }}
+                      />
+                      <Bar name="Tổng tiếp nhận" dataKey="received" fill="#3b82f6" radius={[6, 6, 0, 0]} maxBarSize={50} />
+                      <Bar name="Đã xử lý xong" dataKey="resolved" fill="#198754" radius={[6, 6, 0, 0]} maxBarSize={50} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
               </div>
             </div>
-          </div>
-            </>
           )}
 
           {activeTab === "feedbacks" && (
@@ -1219,13 +1353,13 @@ export function PoliceDashboard() {
                                 return <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-red-50 text-red-600 border border-red-100 uppercase">Quá hạn</span>;
                               }
                               switch (row.status) {
-                                case "PENDING": 
+                                case "PENDING":
                                 case "PENDING_RECEIVE":
                                 case "SUBMITTED":
                                 case "NEED_LOCATION_REVIEW":
                                   return <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-orange-50 text-orange-600 border border-orange-100 uppercase">Chưa xử lý</span>;
-                                  case "ASSIGNED":
-                                    return <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-purple-50 text-purple-600 border border-purple-100 uppercase">Đã tiếp nhận</span>;
+                                case "ASSIGNED":
+                                  return <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-purple-50 text-purple-600 border border-purple-100 uppercase">Đã tiếp nhận</span>;
                                 case "RESOLVED": return <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-green-50 text-green-600 border border-green-100 uppercase">Đã xử lý</span>;
                                 case "REJECTED": return <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-red-50 text-red-600 border border-red-100 uppercase">Từ chối</span>;
                                 default: return <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-blue-50 text-blue-600 border border-blue-100 uppercase">Đang xử lý</span>;
@@ -1287,7 +1421,7 @@ export function PoliceDashboard() {
                     {selectedFeedback.addressDetails || selectedFeedback.address || "Chưa xác định"}
                   </p>
                 </div>
-                
+
                 {selectedFeedback.mediaUrls && selectedFeedback.mediaUrls.length > 0 && (
                   <div>
                     <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Hình ảnh đính kèm</h3>
@@ -1397,23 +1531,103 @@ export function PoliceDashboard() {
                       </button>
                     </div>
                   )
+                ) : selectedFeedback.status === "IN_PROGRESS" ? (
+                  showSubmitResultInput ? (
+                    <div className="bg-green-50 p-4 rounded-xl border-2 border-green-100 animate-in slide-in-from-top-2">
+                      <h4 className="font-bold text-green-800 mb-2">Kết quả xử lý</h4>
+                      <textarea
+                        value={resultNote}
+                        onChange={(e) => setResultNote(e.target.value)}
+                        placeholder="Nhập nội dung kết quả xử lý..."
+                        className="w-full border-2 border-green-200 p-3 rounded-lg focus:outline-none focus:border-green-400 min-h-[100px] mb-3 bg-white"
+                        autoFocus
+                      />
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => {
+                            setShowSubmitResultInput(false);
+                            setResultNote("");
+                          }}
+                          className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg font-medium transition-colors"
+                        >
+                          Hủy
+                        </button>
+                        <button
+                          onClick={() => handleSubmitResult(selectedFeedback.id)}
+                          disabled={submitResultMut.isPending}
+                          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-bold transition-colors flex items-center gap-2"
+                        >
+                          {submitResultMut.isPending ? <RefreshCw size={16} className="animate-spin" /> : <CheckCircle size={16} />}
+                          Hoàn tất xử lý
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowSubmitResultInput(true)}
+                      className="w-full bg-[#198754] hover:bg-green-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-green-500/30 transition-all flex justify-center items-center gap-2"
+                    >
+                      <CheckCircle size={20} />
+                      Xử lý xong
+                    </button>
+                  )
                 ) : (
-                  <div className="bg-slate-50 rounded-xl p-4 flex items-center justify-center gap-3 border border-slate-100">
+                  <div className="space-y-4">
                     {selectedFeedback.status === "REJECTED" ? (
-                      <>
-                        <X size={20} className="text-red-500" />
-                        <span className="font-bold text-slate-500">Phản ánh này đã bị từ chối.</span>
-                      </>
+                      <div className="bg-red-50 rounded-xl p-4 border border-red-100 flex flex-col items-center text-center gap-3 animate-in slide-in-from-top-2">
+                        <div className="flex items-center gap-2 text-red-600">
+                          <X size={20} />
+                          <span className="font-bold">Phản ánh này đã bị từ chối</span>
+                        </div>
+                        {selectedFeedback.rejectionReason && (
+                          <div className="bg-white p-3 rounded-lg border border-red-200 text-slate-700 w-full text-left italic shadow-sm">
+                            <span className="font-semibold text-red-800">Lý do: </span>
+                            {selectedFeedback.rejectionReason}
+                          </div>
+                        )}
+                        <button
+                          onClick={async () => {
+                            try {
+                              await updateStatusMut.mutateAsync({ id: selectedFeedback.id, status: "ASSIGNED", note: "Hủy từ chối, tiếp tục xử lý" });
+                              toast.success("Đã hủy từ chối thành công");
+                              setSelectedFeedback(null);
+                              setFilterStatus("ACCEPTED");
+                              setActiveTab("feedbacks");
+                              refetch();
+                            } catch (err: any) {
+                              toast.error(err.message || "Lỗi khi hủy từ chối");
+                            }
+                          }}
+                          disabled={updateStatusMut.isPending}
+                          className="mt-2 bg-white hover:bg-red-100 text-red-600 border border-red-200 px-4 py-2 rounded-lg font-bold transition-colors flex items-center gap-2"
+                        >
+                          {updateStatusMut.isPending ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+                          Hủy từ chối (Tiếp tục xử lý)
+                        </button>
+                      </div>
+                    ) : selectedFeedback.status === "RESOLVED" ? (
+                      <div className="bg-green-50 rounded-xl p-4 border border-green-100 flex flex-col items-center text-center gap-3 animate-in slide-in-from-top-2">
+                        <div className="flex items-center gap-2 text-green-600">
+                          <CheckCircle size={20} />
+                          <span className="font-bold">Phản ánh đã được xử lý xong</span>
+                        </div>
+                        {selectedFeedback.resolutionNote && (
+                          <div className="bg-white p-3 rounded-lg border border-green-200 text-slate-700 w-full text-left shadow-sm">
+                            <span className="font-semibold text-green-800">Kết quả: </span>
+                            {selectedFeedback.resolutionNote}
+                          </div>
+                        )}
+                      </div>
                     ) : selectedFeedback.status === "WAITING_INFO" ? (
-                      <>
+                      <div className="bg-slate-50 rounded-xl p-4 flex items-center justify-center gap-3 border border-slate-100">
                         <HelpCircle size={20} className="text-orange-500" />
                         <span className="font-bold text-slate-500">Đang chờ người dân bổ sung thông tin...</span>
-                      </>
+                      </div>
                     ) : (
-                      <>
+                      <div className="bg-slate-50 rounded-xl p-4 flex items-center justify-center gap-3 border border-slate-100">
                         <CheckCircle size={20} className="text-green-500" />
                         <span className="font-bold text-slate-500">Phản ánh này đang được xử lý hoặc đã xử lý xong.</span>
-                      </>
+                      </div>
                     )}
                   </div>
                 )}

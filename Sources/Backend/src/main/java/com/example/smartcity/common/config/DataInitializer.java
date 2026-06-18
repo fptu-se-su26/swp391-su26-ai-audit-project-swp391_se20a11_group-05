@@ -36,6 +36,14 @@ public class DataInitializer implements CommandLineRunner {
             log.warn("Could not ALTER sms_verifications.otp_code (may already be correct type): {}", e.getMessage());
         }
 
+        try {
+            // [FIX] Cleanup duplicate users before doing any findByUsername
+            jdbcTemplate.execute("DELETE FROM users a USING users b WHERE a.id > b.id AND lower(a.username) = lower(b.username)");
+            log.info("Successfully cleaned up duplicate users");
+        } catch (Exception e) {
+            log.warn("Could not cleanup duplicate users: {}", e.getMessage());
+        }
+
         ensureLoginLockoutSchema();
         ensureOfficialFeedbackSchema();
         try {

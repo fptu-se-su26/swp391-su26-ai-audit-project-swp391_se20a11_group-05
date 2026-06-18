@@ -223,6 +223,18 @@ export function useUpdatePoliceFeedbackStatus() {
   });
 }
 
+export function useSubmitPoliceFeedbackResult() {
+  const queryClient = useQueryClient();
+  return useMutation<PoliceFeedbackResponse, Error, { id: number | string; resultNote: string }>({
+    mutationFn: ({ id, resultNote }) => policeApi.submitResult(id, resultNote),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
+      queryClient.invalidateQueries({ queryKey: ["police", "assigned-feedbacks"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+}
+
 export function useRequestMoreInfo() {
   const queryClient = useQueryClient();
   return useMutation<FeedbackResponse, Error, { id: number | string; reason: string }>({

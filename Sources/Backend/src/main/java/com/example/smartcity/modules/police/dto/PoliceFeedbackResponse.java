@@ -21,4 +21,6 @@ public class PoliceFeedbackResponse {
     private String videoUrl;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String resolutionNote;
+    private String rejectionReason;
 }

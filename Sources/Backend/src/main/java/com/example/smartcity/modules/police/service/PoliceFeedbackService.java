@@ -81,7 +81,7 @@ public class PoliceFeedbackService {
             throw new RuntimeException("Bạn không có quyền tiếp nhận phản ánh này");
         }
 
-        if (feedback.getStatus() != FeedbackStatus.PENDING) {
+        if (feedback.getStatus() != FeedbackStatus.ASSIGNED) {
             throw new RuntimeException("Chỉ có thể tiếp nhận phản ánh đang ở trạng thái ASSIGNED");
         }
 

@@ -48,7 +48,7 @@ public class ChatbotService {
 
     private static final String DANANG_DOC_TYPE = "danang-policy";
     private static final String LANGUAGE = "vi";
-    private static final Pattern FB_PATTERN = Pattern.compile("(?i)fb-[a-z0-9]+");
+    private static final Pattern FB_PATTERN = Pattern.compile("(?i)(fb|dn)-[a-z0-9]+");
 
     private ChatIntent detectIntent(String message, List<Map<String, String>> historyContext) {
         String lower = message.toLowerCase();
@@ -63,7 +63,8 @@ public class ChatbotService {
 
         if (FB_PATTERN.matcher(lower).find() 
             || lower.contains("tra cứu") 
-            || lower.contains("kiểm tra mã")) {
+            || lower.contains("kiểm tra mã")
+            || lower.contains("dn-")) {
             return ChatIntent.LOOKUP_FEEDBACK;
         }
         
@@ -171,31 +172,38 @@ public class ChatbotService {
         String trackingCode = matcher.find() ? matcher.group().toUpperCase() : null;
 
         if (trackingCode == null) {
-            return Map.of(
+            return new java.util.HashMap<>(Map.of(
                 "intent", "LOOKUP",
                 "emotion", "NEUTRAL",
                 "reply", "Bạn muốn tra cứu phản ánh nào ạ? Vui lòng cung cấp mã bắt đầu bằng FB-..."
-            );
+            ));
         }
 
         Optional<Feedback> feedbackOpt = feedbackRepository.findByTrackingCode(trackingCode);
         if (feedbackOpt.isEmpty()) {
-            return Map.of(
+            return new java.util.HashMap<>(Map.of(
                 "intent", "LOOKUP",
                 "emotion", "NEGATIVE",
                 "reply", "Dạ em không tìm thấy phản ánh nào có mã " + trackingCode + " trong hệ thống. Bạn kiểm tra lại mã giúp em nhé!"
-            );
+            ));
         }
 
         Feedback fb = feedbackOpt.get();
         String reply = String.format("Phản ánh **%s** của bạn hiện đang ở trạng thái **%s**. Lĩnh vực: %s. Địa điểm: %s. Cảm ơn bạn đã đóng góp ý kiến!", 
                                     fb.getTrackingCode(), fb.getStatus().name(), fb.getCategory().getName(), fb.getAddressDetails());
-        return Map.of(
-            "intent", "LOOKUP",
-            "emotion", "POSITIVE",
-            "reply", reply,
-            "trackingCode", fb.getTrackingCode()
-        );
+        
+        java.util.Map<String, Object> res = new java.util.HashMap<>();
+        res.put("intent", "LOOKUP");
+        res.put("emotion", "POSITIVE");
+        res.put("reply", reply);
+        res.put("trackingCode", fb.getTrackingCode());
+        res.put("feedbackStatus", fb.getStatus().name());
+        res.put("feedbackCategory", fb.getCategory() != null ? fb.getCategory().getName() : "Khác");
+        res.put("feedbackAddress", fb.getAddressDetails() != null ? fb.getAddressDetails() : "Không xác định");
+        res.put("feedbackDescription", fb.getDescription() != null ? fb.getDescription() : "");
+        res.put("feedbackCreatedAt", fb.getCreatedAt() != null ? fb.getCreatedAt().toString() : "");
+        res.put("feedbackUpdatedAt", fb.getUpdatedAt() != null ? fb.getUpdatedAt().toString() : "");
+        return res;
     }
 
     private Map<String, Object> handleCreateFeedback(AiProviderAdapter activeProvider, String question, User user, List<Map<String, String>> historyContext) {
@@ -277,7 +285,7 @@ public class ChatbotService {
             return parsed;
         } catch (Exception e) {
             log.error("Parse JSON CREATE_FEEDBACK failed", e);
-            return Map.of("intent", "CREATE_FEEDBACK", "reply", "Dạ em đã ghi nhận sự cố, bạn có thể cho em thêm thông tin địa chỉ cụ thể không ạ?");
+            return new java.util.HashMap<>(Map.of("intent", "CREATE_FEEDBACK", "reply", "Dạ em đã ghi nhận sự cố, bạn có thể cho em thêm thông tin địa chỉ cụ thể không ạ?"));
         }
     }
 
@@ -460,14 +468,24 @@ public class ChatbotService {
     }
 
     private Map<String, Object> handleGeneral(String question) {
-        RetrievalOptions options = RetrievalOptions.defaults(DANANG_DOC_TYPE, LANGUAGE);
-        RagRequest request = new RagRequest(question, options);
-        RagResponse ragResponse = ragOrchestrator.query(request);
+        String systemPrompt = "Bạn là Bé Rồng, trợ lý ảo thông minh và thân thiện của TP. Đà Nẵng. Hãy trả lời câu hỏi thông thường, chào hỏi hoặc tán gẫu của người dùng một cách vui vẻ, lễ phép, tự nhiên và ngắn gọn (dưới 100 chữ).";
+        
+        String reply = "Dạ Bé Rồng em nghe đây ạ! Em có thể hỗ trợ cô chú tra cứu phản ánh sự cố đô thị, hướng dẫn thủ tục hành chính hoặc tiếp nhận báo cáo nhanh tại Đà Nẵng ạ.";
+        try {
+            AiProviderAdapter activeProvider = aiRouterService.routeToBestProvider("1", question);
+            if (activeProvider != null) {
+                reply = activeProvider.generateResponseAsync(systemPrompt, question).join();
+            } else {
+                reply = groqAdapter.generateResponseAsync(systemPrompt, question).join();
+            }
+        } catch (Exception e) {
+            log.error("Lỗi khi dùng LLM để sinh câu trả lời chat thông thường", e);
+        }
 
         return new java.util.HashMap<>(Map.of(
             "intent", "SMALLTALK",
             "emotion", "POSITIVE",
-            "reply", ragResponse.answer()
+            "reply", reply
         ));
     }
 

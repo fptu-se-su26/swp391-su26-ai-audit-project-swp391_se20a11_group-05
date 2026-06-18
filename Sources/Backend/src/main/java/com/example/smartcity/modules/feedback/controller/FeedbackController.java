@@ -338,10 +338,12 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
             case SUBMITTED -> "Submitted";
             case PENDING_RECEIVE -> "Pending Receive";
             case NEED_LOCATION_REVIEW -> "Needs Location Review";
+            case ASSIGNED -> "Assigned";
             case IN_PROGRESS -> "Processing";
             case WAITING_INFO -> "Waiting for Information";
             case RESOLVED -> "Resolved";
             case REJECTED -> "Rejected";
+            case PRE_EMPTIVE -> "Pre-emptive";
         };
     }
 }

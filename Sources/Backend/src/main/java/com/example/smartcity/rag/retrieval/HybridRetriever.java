@@ -77,9 +77,9 @@ public class HybridRetriever implements DisposableBean {
             executor
         );
 
-        // Chờ cả 2 hoàn thành, giới hạn tối đa 5 giây
+        // Chờ cả 2 hoàn thành, giới hạn tối đa 15 giây
         CompletableFuture.allOf(vectorFuture, bm25Future)
-            .orTimeout(5, java.util.concurrent.TimeUnit.SECONDS)
+            .orTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
             .join();
 
         long latency = System.currentTimeMillis() - start;

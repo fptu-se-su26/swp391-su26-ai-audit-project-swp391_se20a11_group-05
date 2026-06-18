@@ -67,7 +67,7 @@ public class GroqAdapter implements AiProviderAdapter {
     public CompletableFuture<String> generateResponseAsync(String systemPrompt, String userMessage) {
         if (!keyPool.isConfigured()) {
             log.warn("⚠️  [Groq] Pool chưa cấu hình → MOCK.");
-            return CompletableFuture.completedFuture("[MOCK] Groq chưa có API key: " + userMessage);
+            return CompletableFuture.completedFuture(userMessage);
         }
 
         // AtomicRef để track key đang dùng qua các lần retry
@@ -227,7 +227,7 @@ public class GroqAdapter implements AiProviderAdapter {
     @Override
     public reactor.core.publisher.Flux<String> generateStream(String systemPrompt, String userMessage) {
         if (!keyPool.isConfigured()) {
-            return reactor.core.publisher.Flux.just("[MOCK] Groq chưa có API key: " + userMessage);
+            return reactor.core.publisher.Flux.just(userMessage);
         }
 
         String apiKey = safeNextKey();

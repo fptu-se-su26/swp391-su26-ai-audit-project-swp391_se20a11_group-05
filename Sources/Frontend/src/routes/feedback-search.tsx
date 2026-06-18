@@ -962,7 +962,7 @@ function FeedbackSearch() {
                   <div className="bg-white border border-[#E4EAF2] rounded-xl p-3 flex items-center justify-between shadow-sm">
                     <div className="flex flex-col">
                       <span className="text-[10px] font-bold uppercase text-[#667085] tracking-wider">{locale === "vi" ? "Tổng phản ánh" : "Total reports"}</span>
-                      <span className="text-xl font-extrabold text-[#0B4FC4] mt-0.5">{stats.total.toLocaleString()}</span>
+                      <span className="text-xl font-extrabold text-[#0B4FC4] mt-0.5">{stats.total.toLocaleString("vi-VN")}</span>
                     </div>
                     <div className="w-8 h-8 rounded-full bg-blue-50 text-[#0B4FC4] flex items-center justify-center shrink-0">
                       <FileText size={16} />
@@ -972,7 +972,7 @@ function FeedbackSearch() {
                   <div className="bg-white border border-[#E4EAF2] rounded-xl p-3 flex items-center justify-between shadow-sm">
                     <div className="flex flex-col">
                       <span className="text-[10px] font-bold uppercase text-[#667085] tracking-wider">{locale === "vi" ? "Đang xử lý" : "Processing"}</span>
-                      <span className="text-xl font-extrabold text-[#F97316] mt-0.5">{stats.pending.toLocaleString()}</span>
+                      <span className="text-xl font-extrabold text-[#F97316] mt-0.5">{stats.pending.toLocaleString("vi-VN")}</span>
                     </div>
                     <div className="w-8 h-8 rounded-full bg-orange-50 text-[#F97316] flex items-center justify-center shrink-0">
                       <Clock size={16} />
@@ -982,7 +982,7 @@ function FeedbackSearch() {
                   <div className="bg-white border border-[#E4EAF2] rounded-xl p-3 flex items-center justify-between shadow-sm">
                     <div className="flex flex-col">
                       <span className="text-[10px] font-bold uppercase text-[#667085] tracking-wider">{locale === "vi" ? "Đã xử lý" : "Resolved"}</span>
-                      <span className="text-xl font-extrabold text-[#16A34A] mt-0.5">{stats.resolved.toLocaleString()}</span>
+                      <span className="text-xl font-extrabold text-[#16A34A] mt-0.5">{stats.resolved.toLocaleString("vi-VN")}</span>
                     </div>
                     <div className="w-8 h-8 rounded-full bg-green-50 text-[#16A34A] flex items-center justify-center shrink-0">
                       <CheckCircle2 size={16} />
@@ -992,7 +992,7 @@ function FeedbackSearch() {
                   <div className="bg-white border border-[#E4EAF2] rounded-xl p-3 flex items-center justify-between shadow-sm">
                     <div className="flex flex-col">
                       <span className="text-[10px] font-bold uppercase text-[#667085] tracking-wider">{locale === "vi" ? "Từ chối" : "Rejected"}</span>
-                      <span className="text-xl font-extrabold text-[#DC2626] mt-0.5">{stats.rejected.toLocaleString()}</span>
+                      <span className="text-xl font-extrabold text-[#DC2626] mt-0.5">{stats.rejected.toLocaleString("vi-VN")}</span>
                     </div>
                     <div className="w-8 h-8 rounded-full bg-red-50 text-[#DC2626] flex items-center justify-center shrink-0">
                       <AlertTriangle size={16} />

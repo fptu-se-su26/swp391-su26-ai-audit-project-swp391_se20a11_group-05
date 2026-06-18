@@ -63,6 +63,16 @@ public class ChatHistory {
     @Column(name = "latency_ms")
     private long latencyMs;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "intent", length = 30)
+    private ChatIntent intent;
+
+    @Column(name = "session_id", length = 50)
+    private String sessionId;
+
+    @Column(name = "feedback_created")
+    private String feedbackTrackingCode;
+
     /** Thời điểm tạo */
     @Column(name = "created_at", nullable = false)
     @Builder.Default

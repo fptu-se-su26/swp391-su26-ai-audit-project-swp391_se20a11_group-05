@@ -16,6 +16,7 @@ import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { Toaster } from "@/components/ui/sonner";
 import bgCivic from "@/assets/bg-civic.png";
+import { ChatbotWidget } from "@/components/chat/ChatbotWidget";
 
 function NotFoundComponent() {
   const { locale } = useI18n();
@@ -169,13 +170,16 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+
   const isStandalonePage =
     pathname === "/login" ||
     pathname === "/authority-login" ||
     pathname === "/register" ||
     pathname.startsWith("/police") ||
     pathname.startsWith("/ward") ||
-    pathname.includes("/group-chat");
+    pathname.includes("/group-chat") ||
+    pathname.startsWith("/city-admin") ||
+    pathname.startsWith("/assistant");
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -205,6 +209,7 @@ function RootComponent() {
                   <Outlet />
                 </main>
                 <Footer />
+                <ChatbotWidget />
               </div>
             )}
           </AuthProvider>

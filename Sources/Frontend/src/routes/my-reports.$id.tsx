@@ -1,3 +1,4 @@
+import { clientOnly } from "@/components/ClientOnly";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowLeft,
@@ -50,7 +51,7 @@ import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 
 // Lazy load CivicMap to prevent SSR issues with Leaflet
-const CivicMap = lazy(() =>
+const CivicMap = clientOnly(() =>
   import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
 );
 
@@ -1789,3 +1790,4 @@ function isVideoAttachment(attachment: any) {
   const url = attachment.fileUrl?.toLowerCase() || "";
   return type.includes("video") || /\.(mp4|webm|mov|avi|m4v)(\?|$)/.test(url);
 }
+

@@ -77,6 +77,18 @@ public class RefreshTokenService {
 
         log.info("[RefreshToken] Tạo token pair cho user '{}'", user.getUsername());
 
+        String orgName = "";
+        if (user.getWard() != null) {
+            String prefixWard = "COMMUNE".equalsIgnoreCase(user.getWard().getType()) ? "Xã " : "Phường ";
+            if (user.getRole() == com.example.smartcity.modules.user.entity.Role.POLICE) {
+                orgName = "Công an " + prefixWard + user.getWard().getName();
+            } else if (user.getRole() == com.example.smartcity.modules.user.entity.Role.WARD_STAFF) {
+                orgName = "UBND " + prefixWard + user.getWard().getName();
+            } else {
+                orgName = user.getWard().getName();
+            }
+        }
+
         return TokenPairResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
@@ -85,6 +97,7 @@ public class RefreshTokenService {
                 .role("ROLE_" + user.getRole().name())
                 .wardName(user.getWard() != null ? user.getWard().getName() : null)
                 .wardType(user.getWard() != null ? user.getWard().getType() : null)
+                .org(orgName)
                 .build();
     }
 

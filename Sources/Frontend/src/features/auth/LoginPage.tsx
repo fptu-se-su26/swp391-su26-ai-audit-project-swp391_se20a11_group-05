@@ -116,7 +116,7 @@ export function LoginPage() {
         login({
           name: data.username,
           role,
-          org: "",
+          org: data.org || "",
           token: data.token,
         });
         void requestCurrentGpsLocation().catch(() => {
@@ -165,7 +165,7 @@ export function LoginPage() {
       login({
         name: data.username,
         role,
-        org: "",
+        org: data.org || "",
         token: data.token,
       });
       void requestCurrentGpsLocation().catch(() => {

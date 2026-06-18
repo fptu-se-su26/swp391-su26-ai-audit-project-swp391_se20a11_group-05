@@ -44,9 +44,32 @@ public class DataInitializer implements CommandLineRunner {
             log.warn("Could not drop constraint chat_history_intent_check: {}", e.getMessage());
         }
 
+        try {
+            // [FIX] Cleanup duplicate users before doing any findByUsername
+            jdbcTemplate.execute("DELETE FROM users a USING users b WHERE a.id > b.id AND lower(a.username) = lower(b.username)");
+            log.info("Successfully cleaned up duplicate users");
+        } catch (Exception e) {
+            log.warn("Could not cleanup duplicate users: {}", e.getMessage());
+        }
+
         ensureLoginLockoutSchema();
         ensureOfficialFeedbackSchema();
+        try {
+            updateWardTypes();
+        } catch (Exception e) {
+            log.warn("Lỗi khi cập nhật type cho phường/xã: {}", e.getMessage());
+        }
         ensureCampaignSchema();
+
+        // [FIX] Bỏ constraint feedbacks_status_check để tránh lỗi khi cập nhật status ASSIGNED
+        try {
+            jdbcTemplate.execute("ALTER TABLE feedbacks DROP CONSTRAINT IF EXISTS feedbacks_status_check");
+            jdbcTemplate.execute("ALTER TABLE feedback_logs DROP CONSTRAINT IF EXISTS feedback_logs_old_status_check");
+            jdbcTemplate.execute("ALTER TABLE feedback_logs DROP CONSTRAINT IF EXISTS feedback_logs_new_status_check");
+            log.info("Successfully dropped check constraint feedbacks_status_check");
+        } catch (Exception e) {
+            log.warn("Could not drop feedbacks_status_check: {}", e.getMessage());
+        }
 
         // Seeding default user accounts if they don't exist
         if (userRepository.findByUsername("citizen1").isEmpty()) {
@@ -129,6 +152,32 @@ public class DataInitializer implements CommandLineRunner {
         } else {
             log.info("No plaintext passwords found. All passwords are secure.");
         }
+    }
+
+    private void updateWardTypes() {
+        log.info("Updating ward types based on the list of Wards (Phường)...");
+        // Update all wards to COMMUNE first (so the rest will be Xã)
+        jdbcTemplate.execute("UPDATE wards SET type = 'COMMUNE'");
+        
+        // List of wards provided by the user
+        String[] wards = {
+            "Hải Châu", "Hòa Cường", "Thanh Khê", "An Khê", "An Hải", "Sơn Trà",
+            "Ngũ Hành Sơn", "Hòa Quý", "Hòa Khánh", "Liên Chiểu", "Hải Vân",
+            "Cẩm Lệ", "Hòa Xuân", "Tam Kỳ", "Quảng Phú", "Hương Trà", "Bàn Thạch",
+            "Điện Bàn", "Điện Bàn Đông", "An Thắng", "Điện Bàn Bắc", "Hội An",
+            "Phường Hải Châu", "Phường Hòa Cường", "Phường Thanh Khê", "Phường An Khê", 
+            "Phường An Hải", "Phường Sơn Trà", "Phường Ngũ Hành Sơn", "Phường Hòa Quý", 
+            "Phường Hòa Khánh", "Phường Liên Chiểu", "Phường Hải Vân", "Phường Cẩm Lệ", 
+            "Phường Hòa Xuân", "Phường Tam Kỳ", "Phường Quảng Phú", "Phường Hương Trà", 
+            "Phường Bàn Thạch", "Phường Điện Bàn", "Phường Điện Bàn Đông", "Phường An Thắng", 
+            "Phường Điện Bàn Bắc", "Phường Hội An"
+        };
+        
+        // Set type to WARD for exactly these names
+        for (String w : wards) {
+            jdbcTemplate.update("UPDATE wards SET type = 'WARD' WHERE name = ?", w);
+        }
+        log.info("Updated ward types successfully.");
     }
 
     private void seedDefaultWards() {

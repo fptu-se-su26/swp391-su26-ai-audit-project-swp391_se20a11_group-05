@@ -172,6 +172,7 @@ export interface TokenResponse {
   tokenType: string;
   username: string;
   role: BackendRole;
+  org?: string;
 }
 
 export interface MfaRequiredResponse {
@@ -267,6 +268,8 @@ export interface PoliceFeedbackResponse {
   videoUrl?: string;
   createdAt: string;
   updatedAt: string;
+  resolutionNote?: string | null;
+  rejectionReason?: string | null;
 }
 
 export interface FeedbackAttachmentResponse {
@@ -620,6 +623,23 @@ export const policeApi = {
   getHotspots: () =>
     request<any[]>("/api/police/feedbacks/hotspots", {
       method: "GET",
+    }),
+
+  acceptFeedback: (id: number | string) =>
+    request<PoliceFeedbackResponse>(`/api/police/feedbacks/${id}/accept`, {
+      method: "PATCH",
+    }),
+
+  updateStatus: (id: number | string, status: string, note?: string) =>
+    request<PoliceFeedbackResponse>(`/api/police/feedbacks/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status, note }),
+    }),
+
+  submitResult: (id: number | string, resultNote: string) =>
+    request<PoliceFeedbackResponse>(`/api/police/feedbacks/${id}/result`, {
+      method: "POST",
+      body: JSON.stringify({ resultNote }),
     }),
 };
 

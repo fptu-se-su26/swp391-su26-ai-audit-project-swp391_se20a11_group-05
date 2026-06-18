@@ -163,10 +163,11 @@ function AuthorityLoginPage() {
           return;
         }
 
+        console.log("LOGIN SUCCESS! Response data:", data);
         login({
           name: data.username,
           role,
-          org: "",
+          org: data.org || "",
           token: data.token,
         });
 
@@ -214,7 +215,7 @@ function AuthorityLoginPage() {
         return;
       }
 
-      login({ name: data.username, role, org: "", token: data.token });
+      login({ name: data.username, role, org: data.org || "", token: data.token });
       navigate({ to: getAuthorityRedirect(role, redirect) as any });
     } catch (err) {
       if (err instanceof ApiError) {

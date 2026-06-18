@@ -39,7 +39,7 @@ export const Route = createFileRoute("/_auth")({
     // Ensure we're in browser environment
     if (typeof window === "undefined") {
       console.log("[_auth] SSR environment detected");
-      throw redirect({ to: "/authority-login", search: { redirect: undefined, error: undefined } });
+      return;
     }
 
     const token = getToken();

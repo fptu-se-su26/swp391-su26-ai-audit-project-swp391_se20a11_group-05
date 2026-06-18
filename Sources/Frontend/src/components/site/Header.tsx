@@ -220,7 +220,7 @@ export function Header() {
   };
 
   // Simplified core navigation items
-  const menuItems: Array<{ to: string; hash?: string; label: string }> = [
+  const publicMenuItems: Array<{ to: string; hash?: string; label: string }> = [
     { to: "/", label: locale === "vi" ? "Trang chủ" : "Home" },
     { to: "/tin-tuc", label: locale === "vi" ? "Tin tức" : "News" },
     { to: "/feedback-search", label: locale === "vi" ? "Tra cứu" : "Search" },
@@ -228,6 +228,9 @@ export function Header() {
     { to: "/", hash: "huong-dan", label: locale === "vi" ? "Hướng dẫn" : "Guides" },
     ...(!isWardStaff ? [{ to: "/", hash: "lien-he", label: locale === "vi" ? "Liên hệ" : "Contact" }] : []),
   ];
+  const menuItems = isWardStaff
+    ? publicMenuItems.filter((item) => item.to !== "/" || item.hash === "lien-he")
+    : publicMenuItems;
 
   const staffItemsAll = [
     { to: "/ward", label: t("nav.ward"), roles: [Role.WARD_STAFF, Role.SUPER_ADMIN] as const },

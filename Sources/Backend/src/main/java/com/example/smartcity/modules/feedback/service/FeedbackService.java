@@ -84,6 +84,11 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         return "Feedback";
     }
 
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<Feedback> findAllPaged(org.springframework.data.domain.Pageable pageable) {
+        return feedbackRepository.findAll(pageable);
+    }
+
     @Transactional
     public Feedback createFeedback(FeedbackRequest request, String username) {
         Category category = resolveOfficialCategory(request.getCategoryCode());
@@ -119,7 +124,7 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
 
         // AI Duplicate Detection: Kiểm tra phản ánh trùng lặp trong cùng Phường
         if (ward != null && ward.getId() != null) {
-            checkDuplicateFeedback(request.getDescription(), ward.getId());
+            checkDuplicateFeedback(request.getDescription(), ward.getId(), request.getLongitude(), request.getLatitude());
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -169,8 +174,8 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         }
     }
 
-    public void checkDuplicateFeedback(String description, Long wardId) {
-        if (wardId == null || description == null || description.isBlank()) {
+    public void checkDuplicateFeedback(String description, Long wardId, Double longitude, Double latitude) {
+        if (wardId == null || description == null || description.isBlank() || longitude == null || latitude == null) {
             return;
         }
 
@@ -178,12 +183,14 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             float[] descriptionVector = embeddingFacade.embed(description);
             String vectorString = java.util.Arrays.toString(descriptionVector);
 
-            // Tìm top 3 có cosine distance gần nhất để debug
+            // Tìm top 3 có cosine distance gần nhất và nằm trong phạm vi tọa độ để debug
             String sqlLog = """
                 SELECT tracking_code, (description_vector <=> ?::vector) as distance
                 FROM feedbacks 
                 WHERE ward_id = ? 
                   AND description_vector IS NOT NULL
+                  AND ABS(latitude - ?) < 0.0009
+                  AND ABS(longitude - ?) < 0.0009
                 ORDER BY description_vector <=> ?::vector ASC 
                 LIMIT 3
             """;
@@ -194,15 +201,22 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
                     log.info("[DUPLICATE-DEBUG] Mã: {}, Distance: {}", rs.getString("tracking_code"), rs.getDouble("distance"));
                     return null;
                 },
-                vectorString, wardId, vectorString
+                vectorString, wardId, latitude, longitude, vectorString
             );
 
-            // Tìm top 1 có cosine distance < 0.20 trong cùng Phường
+            // Tìm top 1 có cosine distance < 0.20 trong cùng Phường, trùng tọa độ và còn trong cooldown
             String sql = """
                 SELECT tracking_code 
                 FROM feedbacks 
                 WHERE ward_id = ? 
                   AND description_vector <=> ?::vector < 0.20
+                  AND ABS(latitude - ?) < 0.0009
+                  AND ABS(longitude - ?) < 0.0009
+                  AND (
+                      status IN ('PENDING', 'IN_PROGRESS', 'SUBMITTED', 'NEED_LOCATION_REVIEW', 'PENDING_RECEIVE', 'WAITING_INFO')
+                      OR
+                      (status = 'RESOLVED' AND resolved_at >= NOW() - INTERVAL '7 days')
+                  )
                 ORDER BY description_vector <=> ?::vector ASC 
                 LIMIT 1
             """;
@@ -210,12 +224,12 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             List<String> results = jdbcTemplate.query(
                 sql,
                 (rs, rowNum) -> rs.getString("tracking_code"),
-                wardId, vectorString, vectorString
+                wardId, vectorString, latitude, longitude, vectorString
             );
 
             if (!results.isEmpty()) {
                 String duplicateTrackingCode = results.get(0);
-                log.warn("[DUPLICATE-DETECTION] Phát hiện phản ánh trùng lặp trong cùng Phường. Mã trùng: {}", duplicateTrackingCode);
+                log.warn("[DUPLICATE-DETECTION] Phát hiện phản ánh trùng lặp. Mã trùng: {}", duplicateTrackingCode);
                 throw new CustomException(
                     "Phản ánh tương tự đã được gửi bởi người dân khác. Vui lòng theo dõi mã phản ánh " + duplicateTrackingCode + " để cập nhật tiến độ.",
                     HttpStatus.CONFLICT.value()
@@ -239,7 +253,10 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             if (user.getWard() == null) return Page.empty();
             return feedbackRepository.findByWardId(user.getWard().getId(), pageable);
         } else if (user.getRole() == Role.POLICE) {
-            return feedbackRepository.findByManagedByRole(CategoryRoutingService.ROLE_POLICE, pageable);
+            if (user.getWard() == null) {
+                return Page.empty(pageable);
+            }
+            return feedbackRepository.findByManagedByRoleAndWardId(CategoryRoutingService.ROLE_POLICE, user.getWard().getId(), pageable);
         } else {
             return feedbackRepository.findByCitizenId(user.getId(), pageable);
         }
@@ -533,8 +550,8 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
                 .orElseThrow(() -> new ResourceNotFoundException("User: " + username));
         return switch (user.getRole()) {
             case SUPER_ADMIN -> true;
-            case WARD_STAFF -> user.getWard() != null && feedback.getWard() != null && user.getWard().getId().equals(feedback.getWard().getId());
-            case POLICE -> CategoryRoutingService.ROLE_POLICE.equals(feedback.getManagedByRole());
+            case WARD_STAFF -> CategoryRoutingService.ROLE_WARD_STAFF.equals(feedback.getManagedByRole()) && user.getWard() != null && feedback.getWard() != null && user.getWard().getId().equals(feedback.getWard().getId());
+            case POLICE -> CategoryRoutingService.ROLE_POLICE.equals(feedback.getManagedByRole()) && user.getWard() != null && feedback.getWard() != null && user.getWard().getId().equals(feedback.getWard().getId());
             case CITIZEN -> feedback.getCitizen().getId().equals(user.getId());
         };
     }
@@ -548,6 +565,9 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             throw new CustomException("Công dân không có quyền thay đổi trạng thái phản ánh", HttpStatus.FORBIDDEN.value());
         }
         if (actionBy.getRole() == Role.WARD_STAFF) {
+            if (!CategoryRoutingService.ROLE_WARD_STAFF.equals(feedback.getManagedByRole())) {
+                throw new CustomException("Ward Staff can only process ward-managed feedback", HttpStatus.FORBIDDEN.value());
+            }
             if (actionBy.getWard() == null || feedback.getWard() == null || !actionBy.getWard().getId().equals(feedback.getWard().getId())) {
                 throw new CustomException("Cán bộ phường chỉ có quyền xử lý phản ánh thuộc phường quản lý", HttpStatus.FORBIDDEN.value());
             }
@@ -555,6 +575,9 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         if (actionBy.getRole() == Role.POLICE) {
             if (!CategoryRoutingService.ROLE_POLICE.equals(feedback.getManagedByRole())) {
                 throw new CustomException("Police can only process police-managed feedback", HttpStatus.FORBIDDEN.value());
+            }
+            if (actionBy.getWard() == null || feedback.getWard() == null || !actionBy.getWard().getId().equals(feedback.getWard().getId())) {
+                throw new CustomException("Công an phường chỉ có quyền xử lý phản ánh thuộc phường quản lý", HttpStatus.FORBIDDEN.value());
             }
         }
     }

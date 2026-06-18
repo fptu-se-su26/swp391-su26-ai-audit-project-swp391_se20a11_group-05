@@ -1,3 +1,4 @@
+import { clientOnly } from "@/components/ClientOnly";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { useI18n } from "@/lib/i18n";
@@ -35,7 +36,7 @@ import {
 } from "@/lib/api";
 import { OFFICIAL_CATEGORIES } from "@/lib/categoryConfig";
 
-const CivicMap = lazy(() =>
+const CivicMap = clientOnly(() =>
   import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
 );
 
@@ -933,3 +934,4 @@ function getVisiblePageIndexes(currentPage: number, totalPages: number) {
   const start = Math.max(0, Math.min(currentPage - 2, totalPages - 5));
   return Array.from({ length: 5 }, (_, index) => start + index);
 }
+

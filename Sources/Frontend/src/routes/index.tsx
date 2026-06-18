@@ -1,3 +1,4 @@
+import { clientOnly } from "@/components/ClientOnly";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
 import { usePublicFeedbacks, usePublicFeedbackStatistics, useRecentPublicFeedback } from "@/lib/hooks";
@@ -43,7 +44,7 @@ import {
 import { lazy, Suspense, useState, useEffect } from "react";
 import { staticNews, staticFaqs } from "@/lib/static-content";
 
-const CivicMap = lazy(() =>
+const CivicMap = clientOnly(() =>
   import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
 );
 
@@ -1374,3 +1375,4 @@ function HomePage() {
     </div>
   );
 }
+

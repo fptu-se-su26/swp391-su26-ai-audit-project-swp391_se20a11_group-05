@@ -10,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
-import java.security.SecureRandom;
 import jakarta.annotation.PostConstruct;
 import com.twilio.Twilio;
 import com.twilio.rest.api.v2010.account.Message;
@@ -24,6 +23,7 @@ public class SmsService {
     private final SmsVerificationRepository smsVerificationRepository;
     private static final int OTP_VALID_DURATION_MINUTES = 5;
     private static final int MAX_ATTEMPTS = 3;
+    private static final String MOCK_OTP_CODE = "123456";
 
     private final com.example.smartcity.security.secrets.SecurityManager securityManager;
     private final PasswordEncoder passwordEncoder;
@@ -57,8 +57,9 @@ public class SmsService {
             smsVerificationRepository.saveAll(oldTokens);
         }
         
-        // [SECURITY FIX] Dùng SecureRandom để tránh dự đoán mã OTP
-        String otpCode = String.format("%06d", new SecureRandom().nextInt(999999));
+        // [TEMP MOCK] OTP API/SMS provider is not ready for the demo flow yet.
+        // Keep the normal DB/hash/verify path, but make the accepted code deterministic.
+        String otpCode = MOCK_OTP_CODE;
 
         // [UPGRADE] Băm (Hash) mã OTP trước khi lưu vào DB bằng BCrypt (Chống lộ lọt Database)
         saveOtpRecord(phoneNumber, passwordEncoder.encode(otpCode));

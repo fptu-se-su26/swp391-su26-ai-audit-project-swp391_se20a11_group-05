@@ -33,41 +33,63 @@ export const Route = createFileRoute("/_auth")({
    * Once httpOnly cookies are in place, replace with: fetch("/api/auth/me")
    */
   beforeLoad: async () => {
-    if (typeof window === "undefined") return;
-
+    console.log("=== [_auth] Authentication Check Started ===");
+    
     // ── Read stored session ──────────────────────────────────
+    // Ensure we're in browser environment
+    if (typeof window === "undefined") {
+      console.log("[_auth] SSR environment detected");
+      return;
+    }
+
     const token = getToken();
     const raw = localStorage.getItem("dn_auth_user_v2");
+    
+    console.log("[_auth] Token exists:", !!token, token ? `(${token.substring(0, 15)}...)` : "");
+    console.log("[_auth] User data exists:", !!raw);
+    if (raw) {
+      console.log("[_auth] Raw user data:", raw);
+    }
 
     // ── 1. Not authenticated ─────────────────────────────────
     if (!token || !raw) {
+      console.warn("❌ [_auth] Authentication FAILED - Missing credentials");
+      console.log("[_auth] Token present:", !!token);
+      console.log("[_auth] User data present:", !!raw);
       throw redirect({ to: "/authority-login", search: { redirect: undefined, error: undefined } });
     }
 
-    let user: { name: string; role: string; org: string } | null = null;
+    let user: { name: string; role: string; org: string; token?: string } | null = null;
     try {
       user = JSON.parse(raw);
-    } catch {
-      // Corrupt storage → clear and redirect
+      console.log("[_auth] Parsed user:", { name: user?.name, role: user?.role, org: user?.org });
+      
+      if (!user || !user.role) {
+        console.error("❌ [_auth] Invalid user data structure");
+        throw new Error("Invalid user data");
+      }
+    } catch (e) {
+      console.error("❌ [_auth] Failed to parse user data:", e);
       localStorage.removeItem("dn_auth_user_v2");
+      localStorage.removeItem("dn_jwt_token");
       throw redirect({ to: "/authority-login", search: { redirect: undefined, error: undefined } });
     }
 
-    if (!user) throw redirect({ to: "/authority-login", search: { redirect: undefined, error: undefined } });
-
-    // Normalize role to our enum
     const role = parseBackendRole(user.role);
+    console.log("[_auth] Parsed role:", role);
 
     // ── 2. SECURITY: Cross-portal escalation check ───────────
-    // A CITIZEN token must NEVER access authority routes.
-    // Force logout (clear session) then redirect — do NOT just redirect.
     if (CITIZEN_ROLES.has(role)) {
+      console.warn("❌ [_auth] SECURITY: Citizen role detected in authority portal");
       localStorage.removeItem("dn_auth_user_v2");
       localStorage.removeItem("dn_jwt_token");
       throw redirect({ to: "/authority-login", search: { redirect: undefined, error: "forbidden" } });
     }
 
     // ── 3. Confirmed authority user — inject into context ────
+    console.log("✅ [_auth] Authentication SUCCESS -", user.name, "as", role);
+    console.log("=== [_auth] Authentication Check Complete ===\n");
+    
     return {
       currentUser: {
         name: user.name,

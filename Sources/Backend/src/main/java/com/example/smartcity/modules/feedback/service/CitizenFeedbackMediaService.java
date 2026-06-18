@@ -105,7 +105,7 @@ public class CitizenFeedbackMediaService {
 
         // AI Duplicate Detection: kiểm tra trùng lặp ngữ nghĩa trước khi lưu
         if (ward != null && ward.getId() != null) {
-            feedbackService.checkDuplicateFeedback(request.getDescription(), ward.getId());
+            feedbackService.checkDuplicateFeedback(request.getDescription(), ward.getId(), request.getLongitude(), request.getLatitude());
         }
 
         Feedback savedFeedback = feedbackRepository.save(feedback);

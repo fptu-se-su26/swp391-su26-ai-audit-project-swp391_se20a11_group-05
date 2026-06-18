@@ -706,7 +706,7 @@ function HomePage() {
                   {t("home.stats.total")}
                 </span>
                 <div className="text-2xl md:text-3xl font-extrabold text-[#0B4FC4] mt-1 font-sans">
-                  {totalCount.toLocaleString()}
+                  {totalCount.toLocaleString("vi-VN")}
                 </div>
               </div>
             </button>
@@ -721,7 +721,7 @@ function HomePage() {
                   {t("home.stats.inProgress")}
                 </span>
                 <div className="text-2xl md:text-3xl font-extrabold text-[#F97316] mt-1 font-sans">
-                  {pendingCount.toLocaleString()}
+                  {pendingCount.toLocaleString("vi-VN")}
                 </div>
               </div>
             </button>
@@ -741,7 +741,7 @@ function HomePage() {
                   </span>
                 </div>
                 <div className="text-2xl md:text-3xl font-extrabold text-[#16A34A] mt-1 font-sans">
-                  {resolvedCount.toLocaleString()}
+                  {resolvedCount.toLocaleString("vi-VN")}
                 </div>
               </div>
             </button>

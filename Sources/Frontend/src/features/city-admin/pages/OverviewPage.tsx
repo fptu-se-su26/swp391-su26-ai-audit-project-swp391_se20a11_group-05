@@ -167,7 +167,7 @@ export function OverviewPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{kpi.label}</span>
-                <h3 className={`text-2xl font-extrabold mt-0.5 ${kpi.textColor}`}>
+                <h3 className={`text-2xl font-extrabold mt-0.5 font-sans ${kpi.textColor}`}>
                   {kpi.loading ? <Skeleton className="h-8 w-20" /> : kpi.value.toLocaleString("vi-VN")}
                 </h3>
                 {kpi.trend && (

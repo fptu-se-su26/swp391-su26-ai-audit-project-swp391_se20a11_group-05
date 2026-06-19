@@ -1,11 +1,10 @@
 import { clientOnly } from "@/components/ClientOnly";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, useRef, lazy, Suspense } from "react";
+import { useEffect, useMemo, useState, useRef, Suspense } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { usePublicFeedbacks, usePublicFeedbackStats, useFeedbackStatuses } from "@/lib/hooks";
 import { EmptyState, ErrorState } from "@/components/site/EmptyState";
-import { useQuery } from "@tanstack/react-query";
 import {
   Search,
   MapPin,
@@ -29,12 +28,9 @@ import {
 import { mapStatus } from "@/lib/status";
 import { toast } from "sonner";
 import { Role } from "@/lib/roles";
-import {
-  categoryApi,
-  type FeedbackStatus,
-  type CategoryResponse,
-} from "@/lib/api";
+import { type FeedbackStatus } from "@/lib/api";
 import { OFFICIAL_CATEGORIES } from "@/lib/categoryConfig";
+import { WardFeedbackManagementPage } from "@/features/ward/WardFeedbackManagementPage";
 
 const CivicMap = clientOnly(() =>
   import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
@@ -84,13 +80,27 @@ const getFromDateString = (range: string) => {
 };
 
 function FeedbackSearch() {
+  const { isAuthenticated, user } = useAuth();
+  if (isAuthenticated && (user?.role === Role.WARD_STAFF || user?.role === Role.SUPER_ADMIN)) {
+    return <WardFeedbackManagementPage />;
+  }
+  return <PublicFeedbackLookup />;
+}
+
+function PublicFeedbackLookup() {
   const { locale, t } = useI18n();
   const navigate = useNavigate({ from: "/feedback-search" });
   const { category = "", q = "", status = "", range = "", wardId, categories } = Route.useSearch();
   const { isAuthenticated, user: currentUser } = useAuth();
-  const isWardStaff = false; // Disable search restrictions for WARD_STAFF so they can view all reports
+  const isWardStaffUser = currentUser?.role === "WARD_STAFF";
   // WARD_STAFF allowed categories constant
   const WARD_STAFF_CATEGORIES = ["URBAN_INFRASTRUCTURE", "ENVIRONMENT", "CONSTRUCTION"];
+
+  // Detect Case 2: WardStaff clicked "Phản ánh" in Officer Sidebar (search params have wardId or categories)
+  const [enteredFromSidebar] = useState(() => {
+    if (!isWardStaffUser) return false;
+    return !!(wardId || categories);
+  });
 
   // Parse initial selected categories from URL params
   const parseCategories = (raw: string | undefined): string[] => {
@@ -103,14 +113,14 @@ function FeedbackSearch() {
   const [pageSize, setPageSize] = useState(10);
   const [keywordInput, setKeywordInput] = useState(q);
   const [locationInput, setLocationInput] = useState(() => {
-    if (isWardStaff) return currentUser?.wardName || "";
+    if (enteredFromSidebar) return currentUser?.wardName || "";
     return "";
   });
   // Multi-select: selectedCategories replaces single categoryInput
   const [selectedCategories, setSelectedCategories] = useState<string[]>(() => {
     if (categories) return parseCategories(categories);
     if (category) return [category];
-    if (isWardStaff) return WARD_STAFF_CATEGORIES;
+    if (enteredFromSidebar) return WARD_STAFF_CATEGORIES;
     return [];
   });
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
@@ -123,15 +133,19 @@ function FeedbackSearch() {
   const [sortBy, setSortBy] = useState("newest");
 
   // Committed search filters
-  const [filters, setFilters] = useState({
-    keyword: q,
-    location: isWardStaff ? currentUser?.wardName || "" : "",
-    category: "",
-    status: "" as FeedbackStatus | "",
-    fromDate: "",
-    toDate: "",
-    wardId: wardId || (isWardStaff ? currentUser?.wardId || undefined : undefined),
-    categories: categories || (isWardStaff ? WARD_STAFF_CATEGORIES.join(",") : undefined),
+  const [filters, setFilters] = useState(() => {
+    const isMatchingWard = !!(currentUser?.wardName && locationInput.trim().toLowerCase() === currentUser.wardName.trim().toLowerCase());
+    const resolvedWardId = wardId || (enteredFromSidebar ? (isMatchingWard ? currentUser?.wardId || undefined : undefined) : undefined);
+    return {
+      keyword: q,
+      location: locationInput,
+      category: "",
+      status: "" as FeedbackStatus | "",
+      fromDate: "",
+      toDate: "",
+      wardId: resolvedWardId,
+      categories: categories || (enteredFromSidebar ? WARD_STAFF_CATEGORIES.join(",") : undefined),
+    };
   });
 
   const isFiltered = useMemo(() => {
@@ -154,6 +168,9 @@ function FeedbackSearch() {
     document.addEventListener("mousedown", handleOutside);
     return () => document.removeEventListener("mousedown", handleOutside);
   }, []);
+
+  const lastSyncedWardId = useRef<string | number | undefined>(wardId);
+  const lastSyncedCategories = useRef<string | undefined>(categories);
 
   // Sync search URL query parameter
   useEffect(() => {
@@ -180,38 +197,46 @@ function FeedbackSearch() {
       setFromDateInput("");
     }
 
-    // Sync selectedCategories from URL
-    if (categories) {
-      setSelectedCategories(parseCategories(categories));
-    } else if (category) {
-      setSelectedCategories([category]);
-    } else if (isWardStaff) {
-      setSelectedCategories(WARD_STAFF_CATEGORIES);
+    // Sync selectedCategories from URL only when URL changes
+    if (categories !== lastSyncedCategories.current) {
+      lastSyncedCategories.current = categories;
+      if (categories) {
+        setSelectedCategories(parseCategories(categories));
+      } else {
+        setSelectedCategories([]);
+      }
     }
 
-    if (isWardStaff && !locationInput) {
-      setLocationInput(currentUser?.wardName || "");
+    // Sync locationInput/wardId from URL only when URL changes
+    if (wardId !== lastSyncedWardId.current) {
+      lastSyncedWardId.current = wardId;
+      if (wardId && currentUser?.wardId && Number(wardId) === currentUser.wardId) {
+        setLocationInput(currentUser?.wardName || "");
+      } else if (!wardId) {
+        setLocationInput("");
+      }
     }
 
     const derivedCategories = categories ||
       (category ? category : null) ||
-      (isWardStaff ? WARD_STAFF_CATEGORIES.join(",") : undefined);
+      (enteredFromSidebar ? WARD_STAFF_CATEGORIES.join(",") : undefined);
 
     setFilters((prev) => {
-      const defaultLocation = isWardStaff ? (currentUser?.wardName || "") : "";
+      const isMatchingWard = !!(currentUser?.wardName && locationInput.trim().toLowerCase() === currentUser.wardName.trim().toLowerCase());
+      const resolvedWardId = wardId || (enteredFromSidebar ? (isMatchingWard ? currentUser?.wardId || undefined : undefined) : undefined);
       return {
         ...prev,
         keyword: q,
-        location: prev.location || defaultLocation,
+        location: locationInput,
         category: "",
         status: mappedStatus,
         fromDate: calculatedFromDate || (status || range ? "" : prev.fromDate),
-        wardId: wardId || prev.wardId || (isWardStaff ? currentUser?.wardId || undefined : undefined),
+        wardId: resolvedWardId,
         categories: derivedCategories || prev.categories,
       };
     });
     setPage(0);
-  }, [q, category, status, range, wardId, categories, isWardStaff, currentUser?.wardId, currentUser?.wardName]);
+  }, [q, category, status, range, wardId, categories, enteredFromSidebar, currentUser]);
 
   // Construct query filters to send to backend API
   const apiFilters = useMemo(() => {
@@ -228,10 +253,10 @@ function FeedbackSearch() {
       status: filters.status,
       fromDate: filters.fromDate,
       toDate: filters.toDate,
-      wardId: isWardStaff ? (currentUser?.wardId || filters.wardId) : filters.wardId,
+      wardId: filters.wardId,
       categories: resolvedCategories,
     };
-  }, [filters, isWardStaff, currentUser, selectedCategories]);
+  }, [filters, selectedCategories]);
 
   // Main reports list fetch (Public lookup)
   const {
@@ -332,6 +357,9 @@ function FeedbackSearch() {
     // Build categories from multi-select state
     const resolvedCategoriesForSubmit = selectedCategories.length > 0 ? selectedCategories.join(",") : undefined;
 
+    const isMatchingWard = !!(currentUser?.wardName && locationInput.trim().toLowerCase() === currentUser.wardName.trim().toLowerCase());
+    const resolvedWardId = enteredFromSidebar ? (isMatchingWard ? currentUser?.wardId || undefined : undefined) : undefined;
+
     setFilters({
       keyword: keywordInput,
       location: locationInput,
@@ -339,7 +367,7 @@ function FeedbackSearch() {
       status: statusInput,
       fromDate: fromDateInput,
       toDate: toDateInput,
-      wardId: isWardStaff ? (currentUser?.wardId || wardId) : undefined,
+      wardId: resolvedWardId,
       categories: resolvedCategoriesForSubmit,
     });
 
@@ -351,10 +379,8 @@ function FeedbackSearch() {
           category: undefined,
           categories: resolvedCategoriesForSubmit || undefined,
           status: urlStatus || undefined,
+          wardId: resolvedWardId || undefined,
         };
-        if (isWardStaff) {
-          nextSearch.wardId = currentUser?.wardId || prev.wardId || undefined;
-        }
         // If range is set, verify if fromDateInput still matches it.
         if (prev.range) {
           const expectedFromDate = getFromDateString(prev.range);
@@ -373,14 +399,14 @@ function FeedbackSearch() {
     setStatusInput("");
     setFromDateInput("");
     setToDateInput("");
-    setLocationInput("");
 
-    if (isWardStaff) {
+    if (enteredFromSidebar) {
       // Reset to WARD_STAFF scope: current ward + their 3 categories
+      setLocationInput(currentUser?.wardName || "");
       setSelectedCategories(WARD_STAFF_CATEGORIES);
       setFilters({
         keyword: "",
-        location: "",
+        location: currentUser?.wardName || "",
         category: "",
         status: "",
         fromDate: "",
@@ -395,6 +421,7 @@ function FeedbackSearch() {
         }),
       });
     } else {
+      setLocationInput("");
       setSelectedCategories([]);
       setFilters({
         keyword: "",
@@ -543,29 +570,27 @@ function FeedbackSearch() {
                 {/* Dropdown panel */}
                 {categoryDropdownOpen && (
                   <div className="absolute top-[74px] left-0 right-0 bg-white border border-[#E4EAF2] rounded-xl shadow-lg py-2 z-50 min-w-[200px]">
-                    {/* "All" toggle option (for non-ward-staff) */}
-                    {!isWardStaff && (
-                      <button
-                        type="button"
-                        onClick={() => setSelectedCategories([])}
-                        className={`w-full text-left px-4 py-2.5 text-xs flex items-center gap-2.5 transition-colors ${
-                          selectedCategories.length === 0
-                            ? "bg-blue-50 text-[#0B4FC4] font-bold"
-                            : "text-slate-700 hover:bg-slate-50 font-semibold"
-                        }`}
-                      >
-                        <span className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${
-                          selectedCategories.length === 0 ? "border-[#0B4FC4] bg-[#0B4FC4]" : "border-slate-300"
-                        }`}>
-                          {selectedCategories.length === 0 && (
-                            <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                              <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                          )}
-                        </span>
-                        {locale === "vi" ? "Tất cả lĩnh vực" : "All categories"}
-                      </button>
-                    )}
+                    {/* "All" toggle option */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCategories([])}
+                      className={`w-full text-left px-4 py-2.5 text-xs flex items-center gap-2.5 transition-colors ${
+                        selectedCategories.length === 0
+                          ? "bg-blue-50 text-[#0B4FC4] font-bold"
+                          : "text-slate-700 hover:bg-slate-50 font-semibold"
+                      }`}
+                    >
+                      <span className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${
+                        selectedCategories.length === 0 ? "border-[#0B4FC4] bg-[#0B4FC4]" : "border-slate-300"
+                      }`}>
+                        {selectedCategories.length === 0 && (
+                          <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                            <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                      </span>
+                      {locale === "vi" ? "Tất cả lĩnh vực" : "All categories"}
+                    </button>
                     {OFFICIAL_CATEGORIES.map((c) => {
                       const checked = selectedCategories.includes(c.code);
                       return (

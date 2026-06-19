@@ -236,6 +236,7 @@ export interface FeedbackResponse {
   categoryName: string | null;
   category?: string | null;
   managedByRole?: BackendRole | null;
+  priority?: string | null;
   wardId?: number | null;
   wardName: string | null;
   districtName?: string | null;
@@ -245,6 +246,10 @@ export interface FeedbackResponse {
   assignedToRole?: BackendRole | null;
   assignedStaffId?: number | null;
   citizenName: string | null;
+  citizenPhone?: string | null;
+  citizenEmail?: string | null;
+  citizenId?: number | null;
+  assigneeId?: number | null;
   assigneeName: string | null;
   assignedAuthorityName?: string | null;
   rejectionReason?: string | null;
@@ -253,6 +258,7 @@ export interface FeedbackResponse {
   mediaUrls?: string[];
   videoUrl?: string;
   timeline?: FeedbackLogResponse[];
+  logs?: FeedbackLogResponse[];
   submittedAt?: string | null;
   receivedAt?: string | null;
   resolvedAt?: string | null;
@@ -300,6 +306,7 @@ export interface FeedbackListFilters {
   toDate?: string;
   wardId?: string | number;
   categories?: string;
+  priority?: string;
 }
 
 export interface FeedbackLookupStatsResponse {
@@ -488,16 +495,44 @@ export const feedbackApi = {
 
     const keyword = filters.keyword?.trim();
     if (keyword) params.set("keyword", keyword);
+    if (filters.category?.trim()) params.set("category", filters.category.trim());
     if (filters.status) params.set("status", filters.status);
+    if (filters.priority) params.set("priority", filters.priority);
     if (filters.fromDate) params.set("fromDate", filters.fromDate);
     if (filters.toDate) params.set("toDate", filters.toDate);
+    if (filters.wardId) params.set("wardId", String(filters.wardId));
+    if (filters.categories) params.set("categories", filters.categories);
 
     return request<PageResponse<FeedbackResponse>>(`/api/feedbacks/my?${params}`);
   },
 
+  getMyStats: (filters: FeedbackListFilters = {}) => {
+    const params = new URLSearchParams();
+
+    const keyword = filters.keyword?.trim();
+    if (keyword) params.set("keyword", keyword);
+    if (filters.category?.trim()) params.set("category", filters.category.trim());
+    if (filters.status) params.set("status", filters.status);
+    if (filters.priority) params.set("priority", filters.priority);
+    if (filters.fromDate) params.set("fromDate", filters.fromDate);
+    if (filters.toDate) params.set("toDate", filters.toDate);
+    if (filters.wardId) params.set("wardId", String(filters.wardId));
+    if (filters.categories) params.set("categories", filters.categories);
+
+    return request<FeedbackLookupStatsResponse>(`/api/feedbacks/my/stats?${params}`);
+  },
+
   // SUPER_ADMIN: lấy tất cả feedback của thành phố
-  adminGetAll: (page = 0, size = 100) => {
+  adminGetAll: (page = 0, size = 100, filters: FeedbackListFilters = {}) => {
     const params = new URLSearchParams({ page: String(page), size: String(size) });
+    const keyword = filters.keyword?.trim();
+    if (keyword) params.set("keyword", keyword);
+    if (filters.category?.trim()) params.set("category", filters.category.trim());
+    if (filters.status) params.set("status", filters.status);
+    if (filters.priority) params.set("priority", filters.priority);
+    if (filters.fromDate) params.set("fromDate", filters.fromDate);
+    if (filters.toDate) params.set("toDate", filters.toDate);
+    if (filters.wardId) params.set("wardId", String(filters.wardId));
     return request<PageResponse<FeedbackResponse>>(`/api/feedbacks/admin/all?${params}`);
   },
 
@@ -545,7 +580,7 @@ export const feedbackApi = {
 
   getStatuses: () => request<FeedbackStatusOption[]>("/api/feedbacks/statuses", { skipAuth: true }),
 
-  getById: (id: string | number) => request<FeedbackResponse>(`/api/feedback/my-reports/${id}`),
+  getById: (id: string | number) => request<FeedbackResponse>(`/api/feedbacks/${id}`),
 
   create: (data: FeedbackRequest) =>
     request<FeedbackResponse>("/api/feedbacks/submit", {

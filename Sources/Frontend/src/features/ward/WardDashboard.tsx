@@ -43,6 +43,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAdministrativeUnitLabel, getAdministrativeUnitName } from "@/lib/administrativeUnit";
 import { WardFeedbackManagementPage } from "./WardFeedbackManagementPage";
+import { WardCampaignPage } from "./WardCampaignPage";
 
 const CivicMap = clientOnly(() =>
   import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
@@ -1316,6 +1317,8 @@ export function WardDashboard() {
                 © 2026 {authorityUnitLabel}. Hệ thống quản lý phản ánh hiện trường
               </footer>
             </>
+          ) : activeSection === "campaign" ? (
+            <WardCampaignPage />
           ) : (
             <WardSectionPlaceholder section={activeSection} />
           )}

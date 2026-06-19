@@ -123,20 +123,26 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
     public ResponseEntity<PagedResponse<FeedbackResponse>> getAllFeedbacks(
             Authentication authentication,
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String category,
             @RequestParam(required = false) FeedbackStatus status,
+            @RequestParam(required = false) String priority,
             @RequestParam(required = false) LocalDate fromDate,
             @RequestParam(required = false) LocalDate toDate,
+            @RequestParam(required = false) Long wardId,
             @PageableDefault(size = 3, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return getMyFeedbacks(authentication, keyword, status, fromDate, toDate, pageable);
+        return getMyFeedbacks(authentication, keyword, category, status, priority, fromDate, toDate, wardId, pageable);
     }
 
     @GetMapping("/my")
     public ResponseEntity<PagedResponse<FeedbackResponse>> getMyFeedbacks(
             Authentication authentication,
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String category,
             @RequestParam(required = false) FeedbackStatus status,
+            @RequestParam(required = false) String priority,
             @RequestParam(required = false) LocalDate fromDate,
             @RequestParam(required = false) LocalDate toDate,
+            @RequestParam(required = false) Long wardId,
             @PageableDefault(size = 3, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         String username = authentication.getName();
         LocalDateTime fromDateTime = fromDate == null ? null : fromDate.atStartOfDay();
@@ -149,11 +155,38 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
         Page<Feedback> entities = feedbackService.getMyFeedbacks(
                 username,
                 keyword,
+                category,
                 status,
+                priority,
                 fromDateTime,
                 toDateTime,
+                wardId,
                 newestFirstPage);
         return ResponseEntity.ok(toPagedResponse(entities));
+    }
+
+    @GetMapping("/my/stats")
+    public ResponseEntity<FeedbackLookupStatsResponse> getMyFeedbackStats(
+            Authentication authentication,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String priority,
+            @RequestParam(required = false) LocalDate fromDate,
+            @RequestParam(required = false) LocalDate toDate,
+            @RequestParam(required = false) Long wardId) {
+        String username = authentication.getName();
+        LocalDateTime fromDateTime = fromDate == null ? null : fromDate.atStartOfDay();
+        LocalDateTime toDateTime = toDate == null ? null : toDate.atTime(LocalTime.MAX);
+
+        FeedbackLookupStatsResponse stats = feedbackService.getMyFeedbackStats(
+                username,
+                keyword,
+                category,
+                priority,
+                fromDateTime,
+                toDateTime,
+                wardId);
+        return ResponseEntity.ok(stats);
     }
 
     @GetMapping("/public")

@@ -115,7 +115,7 @@ public class AuthService {
 
         } catch (org.springframework.security.core.AuthenticationException ex) {
             handleFailedPasswordLogin(user);
-            return null;
+            throw new CustomException("Tên đăng nhập hoặc mật khẩu không chính xác", 401);
         }
     }
 

@@ -35,7 +35,7 @@ import {
 import { lazy, Suspense, useState, useMemo, useEffect } from "react";
 import { EmptyState, ErrorState } from "@/components/site/EmptyState";
 import { StatusBadge } from "@/components/site/StatusBadge";
-import { usePublicFeedbackDetail } from "@/lib/hooks";
+import { usePublicFeedbackDetail, useFeedbackStatuses, useChangeFeedbackStatus } from "@/lib/hooks";
 import { useI18n } from "@/lib/i18n";
 import { useCreateCampaign } from "@/hooks/useCampaigns";
 import { getCampaignByFeedbackId, onCampaignsChanged } from "@/lib/campaignStore";
@@ -72,6 +72,39 @@ function ReportDetail() {
   const { user } = useAuth();
   const { data: report, isLoading, isError, error, refetch } = usePublicFeedbackDetail(id);
   const canManageCampaignFromReport = user?.role === Role.WARD_STAFF;
+
+  const changeStatusMutation = useChangeFeedbackStatus();
+  const { data: statuses = [] } = useFeedbackStatuses();
+  const [selectedStatus, setSelectedStatus] = useState<FeedbackStatus | "">("");
+
+  useEffect(() => {
+    if (report) {
+      setSelectedStatus(report.status);
+    }
+  }, [report?.status]);
+
+  const handleUpdateStatus = () => {
+    if (!report || !selectedStatus || selectedStatus === report.status) return;
+
+    changeStatusMutation.mutate(
+      {
+        id: report.id,
+        status: selectedStatus,
+        note: isVi ? "Cập nhật trạng thái bởi Cán bộ Phường" : "Status updated by Ward Staff",
+      },
+      {
+        onSuccess: () => {
+          toast.success("Feedback status updated successfully.");
+          refetch();
+        },
+        onError: (err) => {
+          console.error(err);
+          toast.error("Unable to update feedback status.");
+          setSelectedStatus(report.status);
+        },
+      }
+    );
+  };
 
   // Local state for UI interactions
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -641,9 +674,38 @@ function ReportDetail() {
               <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
                 {isVi ? "Trạng thái hiện tại" : "Current Status"}
               </span>
-              <div className="flex items-center gap-2">
-                <StatusBadge status={statusInfo} />
-              </div>
+              {user?.role === Role.WARD_STAFF ? (
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-1">
+                  <select
+                    value={selectedStatus}
+                    onChange={(e) => setSelectedStatus(e.target.value as FeedbackStatus)}
+                    disabled={changeStatusMutation.isPending}
+                    className="min-h-[36px] px-2.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700 outline-none focus:border-[#0B4FC4] cursor-pointer"
+                  >
+                    {statuses.length === 0 ? (
+                      <option value={report.status}>{report.status}</option>
+                    ) : (
+                      statuses.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  <button
+                    onClick={handleUpdateStatus}
+                    disabled={selectedStatus === report.status || changeStatusMutation.isPending}
+                    className="min-h-[36px] px-3 bg-[#0B4FC4] hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    {changeStatusMutation.isPending && <Loader2 className="animate-spin" size={12} />}
+                    {isVi ? "Cập nhật" : "Update"}
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={statusInfo} />
+                </div>
+              )}
             </div>
             {/* Priority */}
             <div className="flex flex-col gap-1.5 md:pl-6 pt-4 md:pt-0">
@@ -1028,11 +1090,6 @@ function ReportDetail() {
                   icon={MapPin}
                   label={isVi ? "Phường/Xã phụ trách" : "Responsible Ward"}
                   value={report.wardName || (isVi ? "Hòa Xuân" : "Hoa Xuan")}
-                />
-                <DetailRow
-                  icon={MapPin}
-                  label={isVi ? "Quận/Huyện" : "District"}
-                  value={report.districtName || (isVi ? "Hải Châu" : "Hai Chau")}
                 />
                 <DetailRow
                   icon={MapPin}

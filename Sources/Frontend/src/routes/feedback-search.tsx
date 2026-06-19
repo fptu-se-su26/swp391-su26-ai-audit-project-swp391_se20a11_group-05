@@ -1,11 +1,10 @@
 import { clientOnly } from "@/components/ClientOnly";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, lazy, Suspense } from "react";
+import { useEffect, useMemo, useState, useRef, Suspense } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { usePublicFeedbacks, usePublicFeedbackStats, useFeedbackStatuses } from "@/lib/hooks";
 import { EmptyState, ErrorState } from "@/components/site/EmptyState";
-import { useQuery } from "@tanstack/react-query";
 import {
   Search,
   MapPin,
@@ -29,12 +28,9 @@ import {
 import { mapStatus } from "@/lib/status";
 import { toast } from "sonner";
 import { Role } from "@/lib/roles";
-import {
-  categoryApi,
-  type FeedbackStatus,
-  type CategoryResponse,
-} from "@/lib/api";
+import { type FeedbackStatus } from "@/lib/api";
 import { OFFICIAL_CATEGORIES } from "@/lib/categoryConfig";
+import { WardFeedbackManagementPage } from "@/features/ward/WardFeedbackManagementPage";
 
 const CivicMap = clientOnly(() =>
   import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
@@ -46,11 +42,15 @@ export const Route = createFileRoute("/feedback-search")({
     q?: string;
     status?: string;
     range?: string;
+    wardId?: string | number;
+    categories?: string;
   } => ({
     category: search.category as string | undefined,
     q: search.q as string | undefined,
     status: search.status as string | undefined,
     range: search.range as string | undefined,
+    wardId: search.wardId ? (typeof search.wardId === 'number' ? search.wardId : Number(search.wardId)) : undefined,
+    categories: search.categories as string | undefined,
   }),
   head: () => ({
     meta: [
@@ -80,17 +80,51 @@ const getFromDateString = (range: string) => {
 };
 
 function FeedbackSearch() {
+  const { isAuthenticated, user } = useAuth();
+  if (isAuthenticated && (user?.role === Role.WARD_STAFF || user?.role === Role.SUPER_ADMIN)) {
+    return <WardFeedbackManagementPage />;
+  }
+  return <PublicFeedbackLookup />;
+}
+
+function PublicFeedbackLookup() {
   const { locale, t } = useI18n();
   const navigate = useNavigate({ from: "/feedback-search" });
-  const { category = "", q = "", status = "", range = "" } = Route.useSearch();
-  const { isAuthenticated } = useAuth();
+  const { category = "", q = "", status = "", range = "", wardId, categories } = Route.useSearch();
+  const { isAuthenticated, user: currentUser } = useAuth();
+  const isWardStaffUser = currentUser?.role === "WARD_STAFF";
+  // WARD_STAFF allowed categories constant
+  const WARD_STAFF_CATEGORIES = ["URBAN_INFRASTRUCTURE", "ENVIRONMENT", "CONSTRUCTION"];
+
+  // Detect Case 2: WardStaff clicked "Phản ánh" in Officer Sidebar (search params have wardId or categories)
+  const [enteredFromSidebar] = useState(() => {
+    if (!isWardStaffUser) return false;
+    return !!(wardId || categories);
+  });
+
+  // Parse initial selected categories from URL params
+  const parseCategories = (raw: string | undefined): string[] => {
+    if (!raw) return [];
+    return raw.split(",").map((s) => s.trim()).filter(Boolean);
+  };
 
   // Search & Filter Panel state variables
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [keywordInput, setKeywordInput] = useState(q);
-  const [locationInput, setLocationInput] = useState("");
-  const [categoryInput, setCategoryInput] = useState(category);
+  const [locationInput, setLocationInput] = useState(() => {
+    if (enteredFromSidebar) return currentUser?.wardName || "";
+    return "";
+  });
+  // Multi-select: selectedCategories replaces single categoryInput
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(() => {
+    if (categories) return parseCategories(categories);
+    if (category) return [category];
+    if (enteredFromSidebar) return WARD_STAFF_CATEGORIES;
+    return [];
+  });
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
   const [statusInput, setStatusInput] = useState<FeedbackStatus | "">("");
   const [fromDateInput, setFromDateInput] = useState("");
   const [toDateInput, setToDateInput] = useState("");
@@ -99,25 +133,44 @@ function FeedbackSearch() {
   const [sortBy, setSortBy] = useState("newest");
 
   // Committed search filters
-  const [filters, setFilters] = useState({
-    keyword: q,
-    location: "",
-    category: category,
-    status: "" as FeedbackStatus | "",
-    fromDate: "",
-    toDate: "",
+  const [filters, setFilters] = useState(() => {
+    const isMatchingWard = !!(currentUser?.wardName && locationInput.trim().toLowerCase() === currentUser.wardName.trim().toLowerCase());
+    const resolvedWardId = wardId || (enteredFromSidebar ? (isMatchingWard ? currentUser?.wardId || undefined : undefined) : undefined);
+    return {
+      keyword: q,
+      location: locationInput,
+      category: "",
+      status: "" as FeedbackStatus | "",
+      fromDate: "",
+      toDate: "",
+      wardId: resolvedWardId,
+      categories: categories || (enteredFromSidebar ? WARD_STAFF_CATEGORIES.join(",") : undefined),
+    };
   });
 
   const isFiltered = useMemo(() => {
     return (
       filters.keyword.trim() !== "" ||
       filters.location.trim() !== "" ||
-      filters.category !== "" ||
       filters.status !== "" ||
       filters.fromDate !== "" ||
       filters.toDate !== ""
     );
   }, [filters]);
+
+  // Close category dropdown on outside click
+  useEffect(() => {
+    const handleOutside = (e: MouseEvent) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(e.target as Node)) {
+        setCategoryDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, []);
+
+  const lastSyncedWardId = useRef<string | number | undefined>(wardId);
+  const lastSyncedCategories = useRef<string | undefined>(categories);
 
   // Sync search URL query parameter
   useEffect(() => {
@@ -136,7 +189,6 @@ function FeedbackSearch() {
     }
 
     setKeywordInput(q);
-    setCategoryInput(category);
     setStatusInput(mappedStatus);
 
     if (calculatedFromDate) {
@@ -145,15 +197,46 @@ function FeedbackSearch() {
       setFromDateInput("");
     }
 
-    setFilters((prev) => ({
-      ...prev,
-      keyword: q,
-      category: category,
-      status: mappedStatus,
-      fromDate: calculatedFromDate || (status || range ? "" : prev.fromDate),
-    }));
+    // Sync selectedCategories from URL only when URL changes
+    if (categories !== lastSyncedCategories.current) {
+      lastSyncedCategories.current = categories;
+      if (categories) {
+        setSelectedCategories(parseCategories(categories));
+      } else {
+        setSelectedCategories([]);
+      }
+    }
+
+    // Sync locationInput/wardId from URL only when URL changes
+    if (wardId !== lastSyncedWardId.current) {
+      lastSyncedWardId.current = wardId;
+      if (wardId && currentUser?.wardId && Number(wardId) === currentUser.wardId) {
+        setLocationInput(currentUser?.wardName || "");
+      } else if (!wardId) {
+        setLocationInput("");
+      }
+    }
+
+    const derivedCategories = categories ||
+      (category ? category : null) ||
+      (enteredFromSidebar ? WARD_STAFF_CATEGORIES.join(",") : undefined);
+
+    setFilters((prev) => {
+      const isMatchingWard = !!(currentUser?.wardName && locationInput.trim().toLowerCase() === currentUser.wardName.trim().toLowerCase());
+      const resolvedWardId = wardId || (enteredFromSidebar ? (isMatchingWard ? currentUser?.wardId || undefined : undefined) : undefined);
+      return {
+        ...prev,
+        keyword: q,
+        location: locationInput,
+        category: "",
+        status: mappedStatus,
+        fromDate: calculatedFromDate || (status || range ? "" : prev.fromDate),
+        wardId: resolvedWardId,
+        categories: derivedCategories || prev.categories,
+      };
+    });
     setPage(0);
-  }, [q, category, status, range]);
+  }, [q, category, status, range, wardId, categories, enteredFromSidebar, currentUser]);
 
   // Construct query filters to send to backend API
   const apiFilters = useMemo(() => {
@@ -162,14 +245,18 @@ function FeedbackSearch() {
     if (filters.location.trim()) parts.push(filters.location.trim());
     const mergedKeyword = parts.join(" ");
 
+    const resolvedCategories = selectedCategories.length > 0 ? selectedCategories.join(",") : undefined;
+
     return {
       keyword: mergedKeyword,
-      category: filters.category,
+      category: "",
       status: filters.status,
       fromDate: filters.fromDate,
       toDate: filters.toDate,
+      wardId: filters.wardId,
+      categories: resolvedCategories,
     };
-  }, [filters]);
+  }, [filters, selectedCategories]);
 
   // Main reports list fetch (Public lookup)
   const {
@@ -244,14 +331,13 @@ function FeedbackSearch() {
       .sort((a, b) => b.count - a.count);
   }, [feedbacks, locale]);
 
-  const handleCategoryChange = (val: string) => {
-    setCategoryInput(val);
-    setFilters((prev) => ({ ...prev, category: val }));
-    navigate({
-      search: (prev) => ({
-        ...prev,
-        category: val || undefined,
-      }),
+  const handleCategoryToggle = (code: string) => {
+    setSelectedCategories((prev) => {
+      if (prev.includes(code)) {
+        return prev.filter((c) => c !== code);
+      } else {
+        return [...prev, code];
+      }
     });
   };
 
@@ -268,13 +354,21 @@ function FeedbackSearch() {
       urlStatus = statusInput;
     }
 
+    // Build categories from multi-select state
+    const resolvedCategoriesForSubmit = selectedCategories.length > 0 ? selectedCategories.join(",") : undefined;
+
+    const isMatchingWard = !!(currentUser?.wardName && locationInput.trim().toLowerCase() === currentUser.wardName.trim().toLowerCase());
+    const resolvedWardId = enteredFromSidebar ? (isMatchingWard ? currentUser?.wardId || undefined : undefined) : undefined;
+
     setFilters({
       keyword: keywordInput,
       location: locationInput,
-      category: categoryInput,
+      category: "",
       status: statusInput,
       fromDate: fromDateInput,
       toDate: toDateInput,
+      wardId: resolvedWardId,
+      categories: resolvedCategoriesForSubmit,
     });
 
     navigate({
@@ -282,11 +376,12 @@ function FeedbackSearch() {
         const nextSearch: Record<string, any> = {
           ...prev,
           q: keywordInput || undefined,
-          category: categoryInput || undefined,
+          category: undefined,
+          categories: resolvedCategoriesForSubmit || undefined,
           status: urlStatus || undefined,
+          wardId: resolvedWardId || undefined,
         };
         // If range is set, verify if fromDateInput still matches it.
-        // If not, clear it because the user manually chose a different range.
         if (prev.range) {
           const expectedFromDate = getFromDateString(prev.range);
           if (expectedFromDate !== fromDateInput) {
@@ -301,22 +396,47 @@ function FeedbackSearch() {
   const handleReset = () => {
     setPage(0);
     setKeywordInput("");
-    setLocationInput("");
-    setCategoryInput("");
     setStatusInput("");
     setFromDateInput("");
     setToDateInput("");
-    setFilters({
-      keyword: "",
-      location: "",
-      category: "",
-      status: "",
-      fromDate: "",
-      toDate: "",
-    });
-    navigate({
-      search: () => ({}),
-    });
+
+    if (enteredFromSidebar) {
+      // Reset to WARD_STAFF scope: current ward + their 3 categories
+      setLocationInput(currentUser?.wardName || "");
+      setSelectedCategories(WARD_STAFF_CATEGORIES);
+      setFilters({
+        keyword: "",
+        location: currentUser?.wardName || "",
+        category: "",
+        status: "",
+        fromDate: "",
+        toDate: "",
+        wardId: currentUser?.wardId || undefined,
+        categories: WARD_STAFF_CATEGORIES.join(","),
+      });
+      navigate({
+        search: () => ({
+          wardId: currentUser?.wardId || undefined,
+          categories: WARD_STAFF_CATEGORIES.join(","),
+        }),
+      });
+    } else {
+      setLocationInput("");
+      setSelectedCategories([]);
+      setFilters({
+        keyword: "",
+        location: "",
+        category: "",
+        status: "",
+        fromDate: "",
+        toDate: "",
+        wardId: undefined,
+        categories: undefined,
+      });
+      navigate({
+        search: () => ({}),
+      });
+    }
   };
 
   const getStatusInfo = (status: string) => {
@@ -425,29 +545,80 @@ function FeedbackSearch() {
                 </div>
               </div>
 
-              {/* Field 2: Lĩnh vực (Updated to use shared OFFICIAL_CATEGORIES config) */}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="filter-category" className="text-xs font-bold text-[#667085] uppercase tracking-wider">
+              {/* Field 2: Lĩnh vực — Multi-select dropdown */}
+              <div className="flex flex-col gap-1.5 relative" ref={categoryDropdownRef}>
+                <label className="text-xs font-bold text-[#667085] uppercase tracking-wider">
                   {locale === "vi" ? "Lĩnh vực" : "Category"}
                 </label>
-                <select
+                {/* Trigger button */}
+                <button
                   id="filter-category"
-                  value={categoryInput}
-                  onChange={(e) => handleCategoryChange(e.target.value)}
-                  className="w-full min-h-[48px] px-3.5 rounded-xl border-2 border-slate-200 bg-white text-sm focus:border-[#0B4FC4] outline-none transition-colors appearance-none cursor-pointer"
-                  style={{
-                    backgroundImage: `url("data:image/svg+xml;utf8,<svg fill='%23667085' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>")`,
-                    backgroundPosition: "right 12px center",
-                    backgroundRepeat: "no-repeat",
-                  }}
+                  type="button"
+                  onClick={() => setCategoryDropdownOpen((o) => !o)}
+                  className="w-full min-h-[48px] px-3.5 rounded-xl border-2 border-slate-200 bg-white text-sm text-left flex items-center justify-between gap-2 hover:border-[#0B4FC4] focus:border-[#0B4FC4] outline-none transition-colors cursor-pointer"
                 >
-                  <option value="">{locale === "vi" ? "Tất cả lĩnh vực" : "All categories"}</option>
-                  {OFFICIAL_CATEGORIES.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {t(c.nameKey as any)}
-                    </option>
-                  ))}
-                </select>
+                  <span className="truncate text-[#475467]">
+                    {selectedCategories.length === 0
+                      ? (locale === "vi" ? "Tất cả lĩnh vực" : "All categories")
+                      : selectedCategories.length === 1
+                        ? t((OFFICIAL_CATEGORIES.find((c) => c.code === selectedCategories[0])?.nameKey ?? "") as any)
+                        : `${selectedCategories.length} ${locale === "vi" ? "lĩnh vực" : "categories"}`}
+                  </span>
+                  <ChevronDown size={14} className="text-slate-400 shrink-0" />
+                </button>
+
+                {/* Dropdown panel */}
+                {categoryDropdownOpen && (
+                  <div className="absolute top-[74px] left-0 right-0 bg-white border border-[#E4EAF2] rounded-xl shadow-lg py-2 z-50 min-w-[200px]">
+                    {/* "All" toggle option */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCategories([])}
+                      className={`w-full text-left px-4 py-2.5 text-xs flex items-center gap-2.5 transition-colors ${
+                        selectedCategories.length === 0
+                          ? "bg-blue-50 text-[#0B4FC4] font-bold"
+                          : "text-slate-700 hover:bg-slate-50 font-semibold"
+                      }`}
+                    >
+                      <span className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${
+                        selectedCategories.length === 0 ? "border-[#0B4FC4] bg-[#0B4FC4]" : "border-slate-300"
+                      }`}>
+                        {selectedCategories.length === 0 && (
+                          <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                            <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                      </span>
+                      {locale === "vi" ? "Tất cả lĩnh vực" : "All categories"}
+                    </button>
+                    {OFFICIAL_CATEGORIES.map((c) => {
+                      const checked = selectedCategories.includes(c.code);
+                      return (
+                        <button
+                          key={c.code}
+                          type="button"
+                          onClick={() => handleCategoryToggle(c.code)}
+                          className={`w-full text-left px-4 py-2.5 text-xs flex items-center gap-2.5 transition-colors ${
+                            checked
+                              ? "bg-blue-50 text-[#0B4FC4] font-bold"
+                              : "text-slate-700 hover:bg-slate-50 font-semibold"
+                          }`}
+                        >
+                          <span className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${
+                            checked ? "border-[#0B4FC4] bg-[#0B4FC4]" : "border-slate-300"
+                          }`}>
+                            {checked && (
+                              <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                                <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            )}
+                          </span>
+                          {t(c.nameKey as any)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Field 3: Địa điểm */}
@@ -816,7 +987,7 @@ function FeedbackSearch() {
                   <div className="bg-white border border-[#E4EAF2] rounded-xl p-3 flex items-center justify-between shadow-sm">
                     <div className="flex flex-col">
                       <span className="text-[10px] font-bold uppercase text-[#667085] tracking-wider">{locale === "vi" ? "Tổng phản ánh" : "Total reports"}</span>
-                      <span className="text-xl font-extrabold text-[#0B4FC4] mt-0.5">{stats.total.toLocaleString()}</span>
+                      <span className="text-xl font-extrabold text-[#0B4FC4] mt-0.5">{stats.total.toLocaleString("vi-VN")}</span>
                     </div>
                     <div className="w-8 h-8 rounded-full bg-blue-50 text-[#0B4FC4] flex items-center justify-center shrink-0">
                       <FileText size={16} />
@@ -826,7 +997,7 @@ function FeedbackSearch() {
                   <div className="bg-white border border-[#E4EAF2] rounded-xl p-3 flex items-center justify-between shadow-sm">
                     <div className="flex flex-col">
                       <span className="text-[10px] font-bold uppercase text-[#667085] tracking-wider">{locale === "vi" ? "Đang xử lý" : "Processing"}</span>
-                      <span className="text-xl font-extrabold text-[#F97316] mt-0.5">{stats.pending.toLocaleString()}</span>
+                      <span className="text-xl font-extrabold text-[#F97316] mt-0.5">{stats.pending.toLocaleString("vi-VN")}</span>
                     </div>
                     <div className="w-8 h-8 rounded-full bg-orange-50 text-[#F97316] flex items-center justify-center shrink-0">
                       <Clock size={16} />
@@ -836,7 +1007,7 @@ function FeedbackSearch() {
                   <div className="bg-white border border-[#E4EAF2] rounded-xl p-3 flex items-center justify-between shadow-sm">
                     <div className="flex flex-col">
                       <span className="text-[10px] font-bold uppercase text-[#667085] tracking-wider">{locale === "vi" ? "Đã xử lý" : "Resolved"}</span>
-                      <span className="text-xl font-extrabold text-[#16A34A] mt-0.5">{stats.resolved.toLocaleString()}</span>
+                      <span className="text-xl font-extrabold text-[#16A34A] mt-0.5">{stats.resolved.toLocaleString("vi-VN")}</span>
                     </div>
                     <div className="w-8 h-8 rounded-full bg-green-50 text-[#16A34A] flex items-center justify-center shrink-0">
                       <CheckCircle2 size={16} />
@@ -846,7 +1017,7 @@ function FeedbackSearch() {
                   <div className="bg-white border border-[#E4EAF2] rounded-xl p-3 flex items-center justify-between shadow-sm">
                     <div className="flex flex-col">
                       <span className="text-[10px] font-bold uppercase text-[#667085] tracking-wider">{locale === "vi" ? "Từ chối" : "Rejected"}</span>
-                      <span className="text-xl font-extrabold text-[#DC2626] mt-0.5">{stats.rejected.toLocaleString()}</span>
+                      <span className="text-xl font-extrabold text-[#DC2626] mt-0.5">{stats.rejected.toLocaleString("vi-VN")}</span>
                     </div>
                     <div className="w-8 h-8 rounded-full bg-red-50 text-[#DC2626] flex items-center justify-center shrink-0">
                       <AlertTriangle size={16} />
@@ -861,9 +1032,7 @@ function FeedbackSearch() {
                 <h3 className="text-[#123E8A] font-bold text-base">
                   {locale === "vi" ? "Phân bố theo khu vực" : "Geographic Distribution"}
                 </h3>
-                <Link to="/" className="text-xs font-semibold text-[#0B4FC4] hover:underline">
-                  {locale === "vi" ? "Xem chi tiết" : "View details"}
-                </Link>
+
               </div>
               <div className="aspect-[4/3] rounded-xl overflow-hidden border border-[#E4EAF2] relative z-0">
                 <Suspense fallback={<div className="w-full h-full bg-slate-100 animate-pulse" />}>
@@ -877,17 +1046,11 @@ function FeedbackSearch() {
                         status: mapStatus(f.status),
                       }))}
                     height="100%"
-                    interactive={false}
+                    interactive={true}
                   />
                 </Suspense>
               </div>
-              <Link
-                to="/"
-                className="w-full min-h-[40px] rounded-lg border border-slate-200 hover:border-[#0B4FC4] bg-white text-xs font-bold text-[#475467] hover:text-[#0B4FC4] transition-colors flex items-center justify-center gap-2 border-2"
-              >
-                {locale === "vi" ? "Xem trên bản đồ lớn" : "View on larger map"}
-                <ExternalLink size={14} />
-              </Link>
+
             </div>
 
             {categoryStats.length > 0 && (

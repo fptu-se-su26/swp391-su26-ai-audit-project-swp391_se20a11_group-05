@@ -443,9 +443,8 @@ export function CivicMap({
                     <a
                       href={`/my-reports/${m.id}`}
                       className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[10px] font-semibold text-center no-underline transition-colors block"
-                      style={{ color: 'white' }}
                     >
-                      Xem chi tiết
+                      Chi tiết phản ánh
                     </a>
                   </div>
                 </div>

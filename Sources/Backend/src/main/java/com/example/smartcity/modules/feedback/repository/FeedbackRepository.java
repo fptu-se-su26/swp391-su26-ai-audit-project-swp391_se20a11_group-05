@@ -48,8 +48,11 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
             SELECT f
             FROM Feedback f
             LEFT JOIN f.ward w
+            LEFT JOIN f.citizen u
             WHERE f.citizen.id = :citizenId
-              AND (:status IS NULL OR f.status = :status)
+              AND (:hasStatuses = false OR f.status IN :statuses)
+              AND (:category IS NULL OR :category = '' OR f.categoryCode = :category)
+              AND (:priority IS NULL OR :priority = '' OR f.priority = :priority)
               AND f.createdAt >= :fromDate
               AND f.createdAt <= :toDate
               AND (
@@ -58,13 +61,18 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
                 LOWER(function('unaccent', COALESCE(f.title, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
                 LOWER(function('unaccent', COALESCE(f.description, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
                 LOWER(function('unaccent', COALESCE(f.addressDetails, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(u.fullName, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(u.username, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
                 LOWER(function('unaccent', COALESCE(w.name, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%')))
               )
             """)
     Page<Feedback> searchMyFeedbacks(
             @Param("citizenId") Long citizenId,
             @Param("keyword") String keyword,
-            @Param("status") FeedbackStatus status,
+            @Param("category") String category,
+            @Param("statuses") List<FeedbackStatus> statuses,
+            @Param("hasStatuses") boolean hasStatuses,
+            @Param("priority") String priority,
             @Param("fromDate") java.time.LocalDateTime fromDate,
             @Param("toDate") java.time.LocalDateTime toDate,
             Pageable pageable);
@@ -75,7 +83,9 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
             FROM Feedback f
             LEFT JOIN f.ward w
             LEFT JOIN f.category c
-            WHERE (:status IS NULL OR f.status = :status)
+            LEFT JOIN f.citizen u
+            WHERE (:hasStatuses = false OR f.status IN :statuses)
+              AND (:priority IS NULL OR :priority = '' OR f.priority = :priority)
               AND f.createdAt >= :fromDate
               AND f.createdAt <= :toDate
               AND (:wardId IS NULL OR w.id = :wardId)
@@ -87,13 +97,17 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
                 LOWER(function('unaccent', COALESCE(f.title, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
                 LOWER(function('unaccent', COALESCE(f.description, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
                 LOWER(function('unaccent', COALESCE(f.addressDetails, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(u.fullName, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(u.username, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
                 LOWER(function('unaccent', COALESCE(w.name, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%')))
               )
             """)
     Page<Feedback> searchPublicFeedbacks(
             @Param("keyword") String keyword,
             @Param("category") String category,
-            @Param("status") FeedbackStatus status,
+            @Param("statuses") List<FeedbackStatus> statuses,
+            @Param("hasStatuses") boolean hasStatuses,
+            @Param("priority") String priority,
             @Param("fromDate") java.time.LocalDateTime fromDate,
             @Param("toDate") java.time.LocalDateTime toDate,
             @Param("wardId") Long wardId,
@@ -106,7 +120,9 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
             FROM Feedback f
             LEFT JOIN f.ward w
             LEFT JOIN f.category c
-            WHERE (:status IS NULL OR f.status = :status)
+            LEFT JOIN f.citizen u
+            WHERE (:hasStatuses = false OR f.status IN :statuses)
+              AND (:priority IS NULL OR :priority = '' OR f.priority = :priority)
               AND f.createdAt >= :fromDate
               AND f.createdAt <= :toDate
               AND (:wardId IS NULL OR f.ward.id = :wardId)
@@ -118,6 +134,8 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
                 LOWER(function('unaccent', COALESCE(f.title, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
                 LOWER(function('unaccent', COALESCE(f.description, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
                 LOWER(function('unaccent', COALESCE(f.addressDetails, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(u.fullName, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(u.username, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
                 LOWER(function('unaccent', COALESCE(w.name, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%')))
               )
             GROUP BY f.status
@@ -125,7 +143,9 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
     List<Object[]> countPublicFeedbacksByStatus(
             @Param("keyword") String keyword,
             @Param("category") String category,
-            @Param("status") FeedbackStatus status,
+            @Param("statuses") List<FeedbackStatus> statuses,
+            @Param("hasStatuses") boolean hasStatuses,
+            @Param("priority") String priority,
             @Param("fromDate") java.time.LocalDateTime fromDate,
             @Param("toDate") java.time.LocalDateTime toDate,
             @Param("wardId") Long wardId,
@@ -154,9 +174,12 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
             SELECT f
             FROM Feedback f
             LEFT JOIN f.ward w
+            LEFT JOIN f.citizen u
             WHERE f.ward.id = :wardId
               AND f.categoryCode IN ('URBAN_INFRASTRUCTURE', 'ENVIRONMENT', 'CONSTRUCTION')
-              AND (:status IS NULL OR f.status = :status)
+              AND (:hasStatuses = false OR f.status IN :statuses)
+              AND (:category IS NULL OR :category = '' OR f.categoryCode = :category)
+              AND (:priority IS NULL OR :priority = '' OR f.priority = :priority)
               AND f.createdAt >= :fromDate
               AND f.createdAt <= :toDate
               AND (
@@ -165,13 +188,18 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
                 LOWER(function('unaccent', COALESCE(f.title, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
                 LOWER(function('unaccent', COALESCE(f.description, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
                 LOWER(function('unaccent', COALESCE(f.addressDetails, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(u.fullName, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(u.username, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
                 LOWER(function('unaccent', COALESCE(w.name, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%')))
               )
             """)
     Page<Feedback> searchWardFeedbacks(
             @Param("wardId") Long wardId,
             @Param("keyword") String keyword,
-            @Param("status") FeedbackStatus status,
+            @Param("category") String category,
+            @Param("statuses") List<FeedbackStatus> statuses,
+            @Param("hasStatuses") boolean hasStatuses,
+            @Param("priority") String priority,
             @Param("fromDate") java.time.LocalDateTime fromDate,
             @Param("toDate") java.time.LocalDateTime toDate,
             Pageable pageable);
@@ -181,8 +209,12 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
             SELECT f
             FROM Feedback f
             LEFT JOIN f.ward w
+            LEFT JOIN f.citizen u
             WHERE f.managedByRole = :managedByRole
-              AND (:status IS NULL OR f.status = :status)
+              AND f.ward.id = :wardId
+              AND (:hasStatuses = false OR f.status IN :statuses)
+              AND (:category IS NULL OR :category = '' OR f.categoryCode = :category)
+              AND (:priority IS NULL OR :priority = '' OR f.priority = :priority)
               AND f.createdAt >= :fromDate
               AND f.createdAt <= :toDate
               AND (
@@ -191,16 +223,115 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
                 LOWER(function('unaccent', COALESCE(f.title, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
                 LOWER(function('unaccent', COALESCE(f.description, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
                 LOWER(function('unaccent', COALESCE(f.addressDetails, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(u.fullName, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(u.username, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
                 LOWER(function('unaccent', COALESCE(w.name, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%')))
               )
             """)
     Page<Feedback> searchPoliceFeedbacks(
             @Param("managedByRole") String managedByRole,
+            @Param("wardId") Long wardId,
             @Param("keyword") String keyword,
-            @Param("status") FeedbackStatus status,
+            @Param("category") String category,
+            @Param("statuses") List<FeedbackStatus> statuses,
+            @Param("hasStatuses") boolean hasStatuses,
+            @Param("priority") String priority,
             @Param("fromDate") java.time.LocalDateTime fromDate,
             @Param("toDate") java.time.LocalDateTime toDate,
             Pageable pageable);
+
+    @org.springframework.data.jpa.repository.Query("""
+            SELECT f.status, COUNT(f.id)
+            FROM Feedback f
+            LEFT JOIN f.ward w
+            LEFT JOIN f.citizen u
+            WHERE f.citizen.id = :citizenId
+              AND (:category IS NULL OR :category = '' OR f.categoryCode = :category)
+              AND (:priority IS NULL OR :priority = '' OR f.priority = :priority)
+              AND f.createdAt >= :fromDate
+              AND f.createdAt <= :toDate
+              AND (
+                :keyword IS NULL OR :keyword = '' OR
+                LOWER(function('unaccent', COALESCE(f.trackingCode, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(f.title, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(f.description, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(f.addressDetails, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(u.fullName, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(u.username, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(w.name, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%')))
+              )
+            GROUP BY f.status
+            """)
+    List<Object[]> countMyFeedbacksByStatus(
+            @Param("citizenId") Long citizenId,
+            @Param("keyword") String keyword,
+            @Param("category") String category,
+            @Param("priority") String priority,
+            @Param("fromDate") java.time.LocalDateTime fromDate,
+            @Param("toDate") java.time.LocalDateTime toDate);
+
+    @org.springframework.data.jpa.repository.Query("""
+            SELECT f.status, COUNT(f.id)
+            FROM Feedback f
+            LEFT JOIN f.ward w
+            LEFT JOIN f.citizen u
+            WHERE f.ward.id = :wardId
+              AND f.categoryCode IN ('URBAN_INFRASTRUCTURE', 'ENVIRONMENT', 'CONSTRUCTION')
+              AND (:category IS NULL OR :category = '' OR f.categoryCode = :category)
+              AND (:priority IS NULL OR :priority = '' OR f.priority = :priority)
+              AND f.createdAt >= :fromDate
+              AND f.createdAt <= :toDate
+              AND (
+                :keyword IS NULL OR :keyword = '' OR
+                LOWER(function('unaccent', COALESCE(f.trackingCode, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(f.title, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(f.description, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(f.addressDetails, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(u.fullName, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(u.username, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(w.name, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%')))
+              )
+            GROUP BY f.status
+            """)
+    List<Object[]> countWardFeedbacksByStatus(
+            @Param("wardId") Long wardId,
+            @Param("keyword") String keyword,
+            @Param("category") String category,
+            @Param("priority") String priority,
+            @Param("fromDate") java.time.LocalDateTime fromDate,
+            @Param("toDate") java.time.LocalDateTime toDate);
+
+    @org.springframework.data.jpa.repository.Query("""
+            SELECT f.status, COUNT(f.id)
+            FROM Feedback f
+            LEFT JOIN f.ward w
+            LEFT JOIN f.citizen u
+            WHERE f.managedByRole = :managedByRole
+              AND f.ward.id = :wardId
+              AND (:category IS NULL OR :category = '' OR f.categoryCode = :category)
+              AND (:priority IS NULL OR :priority = '' OR f.priority = :priority)
+              AND f.createdAt >= :fromDate
+              AND f.createdAt <= :toDate
+              AND (
+                :keyword IS NULL OR :keyword = '' OR
+                LOWER(function('unaccent', COALESCE(f.trackingCode, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(f.title, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(f.description, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(f.addressDetails, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(u.fullName, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(u.username, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%'))) OR
+                LOWER(function('unaccent', COALESCE(w.name, ''))) LIKE LOWER(function('unaccent', CONCAT('%', :keyword, '%')))
+              )
+            GROUP BY f.status
+            """)
+    List<Object[]> countPoliceFeedbacksByStatus(
+            @Param("managedByRole") String managedByRole,
+            @Param("wardId") Long wardId,
+            @Param("keyword") String keyword,
+            @Param("category") String category,
+            @Param("priority") String priority,
+            @Param("fromDate") java.time.LocalDateTime fromDate,
+            @Param("toDate") java.time.LocalDateTime toDate);
     // ─── Aggregate queries cho Analytics (tránh load toàn bộ entity vào memory) ───
 
     /**

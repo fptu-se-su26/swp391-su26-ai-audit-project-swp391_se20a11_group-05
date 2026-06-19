@@ -28,6 +28,7 @@ public class FeedbackResponse {
     private String categoryName;
     private String category;
     private String managedByRole;
+    private String priority;
     private Long wardId;
     private String wardName;
     private String districtName;

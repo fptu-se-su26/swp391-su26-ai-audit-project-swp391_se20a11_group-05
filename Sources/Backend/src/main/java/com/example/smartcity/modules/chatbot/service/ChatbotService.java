@@ -338,7 +338,7 @@ public class ChatbotService {
         // 1. Lấy phản ánh của riêng user này trước
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
         org.springframework.data.domain.Page<Feedback> myFeedbacksPage = feedbackRepository.searchMyFeedbacks(
-            user.getId(), null, null, 
+            user.getId(), null, null, List.of(), false, null,
             java.time.LocalDateTime.now().minusYears(1), java.time.LocalDateTime.now().plusDays(1), 
             pageable
         );
@@ -346,7 +346,7 @@ public class ChatbotService {
 
         // 2. Lấy thêm một số phản ánh công cộng gần đây đề phòng câu hỏi mang tính cộng đồng
         org.springframework.data.domain.Page<Feedback> publicFeedbacksPage = feedbackRepository.searchPublicFeedbacks(
-            null, null, null,
+            null, null, List.of(), false, null,
             java.time.LocalDateTime.now().minusMonths(3), java.time.LocalDateTime.now().plusDays(1),
             null, List.of(), false,
             pageable

@@ -32,6 +32,7 @@ import {
   useCampaignParticipants,
   useJoinCampaign,
   useRejectCampaignParticipant,
+  useCampaignThumbnail,
 } from "@/hooks/useCampaigns";
 import type { CampaignParticipantResponse } from "@/lib/api";
 import { Role, useAuth } from "@/lib/auth";
@@ -59,6 +60,7 @@ function CampaignDetailPage() {
     select: (state) => state.location.pathname.endsWith("/group-chat"),
   });
   const campaign = useCampaignDetail(id);
+  const image = useCampaignThumbnail(campaign);
   const { user, isAuthenticated } = useAuth();
   const joinCampaign = useJoinCampaign();
   const approveCampaign = useApproveCampaign();
@@ -116,7 +118,7 @@ function CampaignDetailPage() {
         <section className="grid gap-6 lg:grid-cols-[minmax(0,65fr)_minmax(320px,35fr)]">
           <article className="space-y-6">
             <div className="relative aspect-[21/9] overflow-hidden rounded-2xl shadow-lg">
-              <img src={campaign.cover || defaultHeroImage} alt={campaign.name} className="h-full w-full object-cover" />
+              <img src={image} alt={campaign.name} className="h-full w-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
               <h1 className="absolute bottom-6 left-6 right-6 text-2xl font-black leading-tight text-white md:text-[28px]">{campaign.name}</h1>
             </div>

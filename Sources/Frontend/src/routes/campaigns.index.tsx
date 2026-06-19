@@ -16,7 +16,7 @@ import {
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useCampaignList, useJoinCampaign } from "@/hooks/useCampaigns";
+import { useCampaignList, useJoinCampaign, useCampaignThumbnail } from "@/hooks/useCampaigns";
 import { Role, useAuth } from "@/lib/auth";
 import type { Campaign, CampaignCategory } from "@/lib/campaignStore";
 
@@ -238,11 +238,10 @@ function CampaignList() {
         </section>
 
         <section className={view === "grid" ? "grid gap-6 lg:grid-cols-2" : "grid gap-5"}>
-          {filtered.map((campaign, index) => (
+          {filtered.map((campaign) => (
             <CampaignCard
               key={campaign.id}
               campaign={campaign}
-              image={campaign.cover || mockImages[index % mockImages.length]}
               compact={view === "list"}
               isJoining={joinCampaign.isPending}
               onJoin={() => handleJoin(campaign)}
@@ -262,17 +261,16 @@ function CampaignList() {
 
 function CampaignCard({
   campaign,
-  image,
   compact,
   isJoining,
   onJoin,
 }: {
   campaign: Campaign;
-  image: string;
   compact: boolean;
   isJoining: boolean;
   onJoin: () => void;
 }) {
+  const image = useCampaignThumbnail(campaign);
   const progressPercent = campaign.target > 0 ? Math.min(100, Math.round((campaign.participants / campaign.target) * 100)) : 0;
   const CategoryIcon = categoryIcon[campaign.category] ?? Leaf;
 

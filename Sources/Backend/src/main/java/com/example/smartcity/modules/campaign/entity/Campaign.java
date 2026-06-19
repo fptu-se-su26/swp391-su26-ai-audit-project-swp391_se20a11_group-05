@@ -62,4 +62,13 @@ public class Campaign extends BaseEntity {
     @Column(nullable = false, length = 30)
     @Builder.Default
     private String status = "PENDING_APPROVAL";
+
+    @Column(name = "linked_feedback_id")
+    private Long linkedFeedbackId;
+
+    @Column(name = "boundary_geojson", columnDefinition = "TEXT")
+    private String boundaryGeojson;
+
+    @Column(name = "cover_image_url", length = 512)
+    private String coverImageUrl;
 }

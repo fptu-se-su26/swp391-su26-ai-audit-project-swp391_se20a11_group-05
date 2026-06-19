@@ -17,6 +17,7 @@ import {
   type Campaign,
   type CampaignCategory,
 } from "@/lib/campaignStore";
+import { useFeedbackDetail } from "./index";
 
 function mapStatus(status: CampaignResponse["status"]): Campaign["status"] {
   const statusMap: Record<CampaignResponse["status"], Campaign["status"]> = {
@@ -67,7 +68,7 @@ function mapResponseToCampaign(response: CampaignResponse): Campaign {
     daysLeft,
     impactScore: 0,
     affectedCitizens: 0,
-    cover: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=600&q=80",
+    cover: response.coverImageUrl || "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=600&q=80",
     desc: response.description ?? "",
     descEn: response.description ?? "",
     featured: false,
@@ -84,6 +85,11 @@ function mapResponseToCampaign(response: CampaignResponse): Campaign {
     canManage: response.canManage,
     canComment: response.canComment,
     canFeedback: response.canFeedback,
+    linkedFeedbackId: response.linkedFeedbackId ?? undefined,
+    boundaryGeojson: response.boundaryGeojson ?? undefined,
+    coverImageUrl: response.coverImageUrl ?? undefined,
+    latitude: response.latitude ?? null,
+    longitude: response.longitude ?? null,
   } as Campaign;
 }
 
@@ -194,6 +200,7 @@ export function useCreateCampaign() {
             maxParticipants: params.maxParticipants ? Number.parseInt(params.maxParticipants, 10) : undefined,
             startTime: params.startTime || undefined,
             endTime: params.endTime || undefined,
+            linkedFeedbackId: params.linkedFeedbackId ? Number(params.linkedFeedbackId) : undefined,
           });
           return mapResponseToCampaign(created);
         }
@@ -343,4 +350,42 @@ export function useCampaignChat(campaignId: string) {
   });
 
   return useMemo(() => ({ ...query, sendMessage }), [query, sendMessage]);
+}
+
+const DEFAULT_PLACEHOLDERS: Record<string, string> = {
+  environment: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600&auto=format&fit=crop&q=80",
+  infrastructure: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&auto=format&fit=crop&q=80",
+  public_safety: "https://images.unsplash.com/photo-1593113598332-cd288d649433?w=600&auto=format&fit=crop&q=80",
+  construction: "https://images.unsplash.com/photo-1486325212027-8081e485255e?w=600&auto=format&fit=crop&q=80",
+  fire_safety: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&auto=format&fit=crop&q=80",
+  default: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=600&q=80"
+};
+
+export function useCampaignThumbnail(campaign?: Campaign): string {
+  const feedbackId = campaign?.linkedFeedbackId;
+  const { data: feedback } = useFeedbackDetail(feedbackId ? String(feedbackId) : "");
+
+  return useMemo(() => {
+    if (!campaign) return DEFAULT_PLACEHOLDERS.default;
+
+    if (campaign.coverImageUrl && campaign.coverImageUrl.trim() !== "") {
+      return campaign.coverImageUrl;
+    }
+    if (campaign.cover && !campaign.cover.includes("photo-1542601906990-b4d3fb778b09")) {
+      return campaign.cover;
+    }
+
+    if (feedback) {
+      if (feedback.attachments && feedback.attachments.length > 0) {
+        const img = feedback.attachments.find((att) => att.fileType?.startsWith("image/"));
+        if (img) return img.fileUrl;
+      }
+      if (feedback.mediaUrls && feedback.mediaUrls.length > 0) {
+        return feedback.mediaUrls[0];
+      }
+    }
+
+    const cat = campaign.category || "environment";
+    return DEFAULT_PLACEHOLDERS[cat] || DEFAULT_PLACEHOLDERS.default;
+  }, [campaign, feedback]);
 }

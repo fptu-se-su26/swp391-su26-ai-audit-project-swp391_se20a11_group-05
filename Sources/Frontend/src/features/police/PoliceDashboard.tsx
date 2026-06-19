@@ -869,7 +869,7 @@ export function PoliceDashboard() {
                         <span className="text-xs font-semibold text-slate-400 block truncate">
                           {card.title}
                         </span>
-                        <h3 className="text-2xl font-extrabold text-[#0B2545] mt-0.5 leading-none">
+                        <h3 className="text-2xl font-extrabold text-[#0B2545] mt-0.5 leading-none font-sans">
                           {feedbacksLoading ? (
                             <Skeleton className="h-6 w-12" />
                           ) : (

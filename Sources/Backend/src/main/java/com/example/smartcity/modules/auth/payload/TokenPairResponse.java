@@ -22,5 +22,7 @@ public class TokenPairResponse {
 
     private String username;
     private String role;
+    private String wardName;
+    private String wardType;
     private String org;
 }

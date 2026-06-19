@@ -706,7 +706,7 @@ function HomePage() {
                   {t("home.stats.total")}
                 </span>
                 <div className="text-2xl md:text-3xl font-extrabold text-[#0B4FC4] mt-1 font-sans">
-                  {totalCount.toLocaleString()}
+                  {totalCount.toLocaleString("vi-VN")}
                 </div>
               </div>
             </button>
@@ -721,7 +721,7 @@ function HomePage() {
                   {t("home.stats.inProgress")}
                 </span>
                 <div className="text-2xl md:text-3xl font-extrabold text-[#F97316] mt-1 font-sans">
-                  {pendingCount.toLocaleString()}
+                  {pendingCount.toLocaleString("vi-VN")}
                 </div>
               </div>
             </button>
@@ -741,14 +741,14 @@ function HomePage() {
                   </span>
                 </div>
                 <div className="text-2xl md:text-3xl font-extrabold text-[#16A34A] mt-1 font-sans">
-                  {resolvedCount.toLocaleString()}
+                  {resolvedCount.toLocaleString("vi-VN")}
                 </div>
               </div>
             </button>
           </div>
 
           {/* Grouped Bar Chart */}
-          <div className="w-full bg-white border border-[#E4EAF2] rounded-xl p-5 hover:shadow-sm transition">
+          <div className="hidden w-full bg-white border border-[#E4EAF2] rounded-xl p-5 hover:shadow-sm transition">
             <div className="h-[320px] md:h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
@@ -1053,7 +1053,7 @@ function HomePage() {
                           ]
                     }
                     height="100%"
-                    interactive={false}
+                    interactive={true}
                   />
                 </Suspense>
               </div>

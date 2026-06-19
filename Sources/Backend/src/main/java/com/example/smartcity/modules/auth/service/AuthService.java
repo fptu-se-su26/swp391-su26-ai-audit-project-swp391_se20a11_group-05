@@ -107,13 +107,15 @@ public class AuthService {
                     .expiresIn(tokenPair.getExpiresIn())
                     .username(tokenPair.getUsername())
                     .role(tokenPair.getRole())
+                    .wardName(tokenPair.getWardName())
+                    .wardType(tokenPair.getWardType())
                     .org(tokenPair.getOrg())
                     .mfaRequired(false)
                     .build();
 
         } catch (org.springframework.security.core.AuthenticationException ex) {
             handleFailedPasswordLogin(user);
-            return null;
+            throw new CustomException("Tên đăng nhập hoặc mật khẩu không chính xác", 401);
         }
     }
 

@@ -121,6 +121,9 @@ public class CampaignServiceImpl implements CampaignService {
                 .startTime(request.getStartTime())
                 .endTime(request.getEndTime())
                 .status(STATUS_PENDING_APPROVAL)
+                .linkedFeedbackId(request.getLinkedFeedbackId())
+                .boundaryGeojson(request.getBoundaryGeojson())
+                .coverImageUrl(request.getCoverImageUrl())
                 .build();
 
         try {
@@ -402,6 +405,9 @@ public class CampaignServiceImpl implements CampaignService {
                 .canFeedback(canFeedback)
                 .createdAt(campaign.getCreatedAt())
                 .updatedAt(campaign.getUpdatedAt())
+                .linkedFeedbackId(campaign.getLinkedFeedbackId())
+                .boundaryGeojson(campaign.getBoundaryGeojson())
+                .coverImageUrl(campaign.getCoverImageUrl())
                 .build();
     }
 

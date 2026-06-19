@@ -43,4 +43,8 @@ public class CampaignRequest {
     private LocalDateTime endTime;
 
     private Long wardId;
+
+    private Long linkedFeedbackId;
+    private String boundaryGeojson;
+    private String coverImageUrl;
 }

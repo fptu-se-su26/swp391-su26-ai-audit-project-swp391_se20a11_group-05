@@ -1,291 +1,74 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   Layers,
   MapPin,
-  Flag,
   Users,
   Compass,
-  AlertOctagon,
-  Eye,
   CheckCircle,
-  HelpCircle,
 } from "lucide-react";
-
-interface MapMarker {
-  id: string;
-  position: [number, number];
-  title: string;
-  category: "environment" | "infrastructure" | "public_safety" | "construction" | "fire_safety";
-  status: "pending" | "inProgress" | "resolved";
-  type: "report" | "checkpoint" | "coordination" | "meeting" | "hotspot";
-  description: string;
-}
+import { WARD_BOUNDARIES } from "@/lib/geojson";
+import type { Campaign } from "@/lib/campaignStore";
 
 interface Props {
   height?: string;
+  campaigns?: Campaign[];
+  activeCampaign?: Campaign;
+  showBoundary?: boolean;
+  onCampaignClick?: (campaign: Campaign) => void;
 }
 
-// Hoa Xuan ward coordinates outline approximation
-const hoaXuanBoundary: [number, number][] = [
-  [16.0280, 108.2140],
-  [16.0250, 108.2290],
-  [16.0150, 108.2320],
-  [16.0020, 108.2240],
-  [16.0050, 108.2100],
-  [16.0180, 108.2070],
-  [16.0280, 108.2140],
-];
+// Helper to resolve coordinates from string or object
+function resolveCampaignLatLng(campaign: Campaign): [number, number] | null {
+  if (campaign.latitude && campaign.longitude) {
+    return [campaign.latitude, campaign.longitude];
+  }
+  // Try fallback positions if any
+  const fallback = (campaign as any).position;
+  if (Array.isArray(fallback) && fallback.length === 2 && typeof fallback[0] === "number") {
+    return fallback as [number, number];
+  }
+  return null;
+}
 
-// Meeting & checkpoint markers
-const staticMarkers: MapMarker[] = [
-  {
-    id: "meet-1",
-    position: [16.0165, 108.2190],
-    title: "Điểm tập kết tình nguyện viên",
-    category: "environment",
-    status: "inProgress",
-    type: "meeting",
-    description: "Nhà văn hóa Hòa Xuân - Điểm tiếp nhận dụng cụ và phân chia tổ công tác.",
-  },
-  {
-    id: "coord-1",
-    position: [16.0135, 108.2215],
-    title: "Chốt điều phối của UBND phường",
-    category: "infrastructure",
-    status: "resolved",
-    type: "coordination",
-    description: "Văn phòng Chỉ huy chiến dịch - Nơi đỗ các xe thu gom rác chuyên dụng.",
-  },
-  {
-    id: "check-1",
-    position: [16.0185, 108.2160],
-    title: "Trạm tiếp tế & Check-point số 1",
-    category: "public_safety",
-    status: "inProgress",
-    type: "checkpoint",
-    description: "Trạm y tế lưu động, phân phát nước uống, găng tay và túi rác dự phòng.",
-  },
-  {
-    id: "check-2",
-    position: [16.0115, 108.2245],
-    title: "Trạm tiếp tế & Check-point số 2",
-    category: "public_safety",
-    status: "inProgress",
-    type: "checkpoint",
-    description: "Điểm tập kết rác tạm thời phía Nam phường, hỗ trợ thu gom rác từ các hộ dân.",
-  },
-];
-
-// 18 Citizen reports scattered in the ward
-const citizenReports: MapMarker[] = [
-  {
-    id: "rep-1",
-    position: [16.0150, 108.2180],
-    title: "Bãi rác thải tự phát dọc đường Trần Nam Trung",
-    category: "environment",
-    status: "inProgress",
-    type: "report",
-    description: "Rác sinh hoạt và xà bần đổ trộm gây ô nhiễm nặng.",
-  },
-  {
-    id: "rep-2",
-    position: [16.0158, 108.2225],
-    title: "Mương thoát nước ùn ứ rác thải nhựa",
-    category: "environment",
-    status: "pending",
-    type: "report",
-    description: "Kênh thoát nước bị tắc nghẽn hoàn toàn do túi nilon và chai nhựa.",
-  },
-  {
-    id: "rep-3",
-    position: [16.0175, 108.2170],
-    title: "Cây xanh đổ gãy chắn lối đi vỉa hè",
-    category: "infrastructure",
-    status: "resolved",
-    type: "report",
-    description: "Nhánh cây phượng lớn gãy đè lên đường dây điện dân sinh.",
-  },
-  {
-    id: "rep-4",
-    position: [16.0120, 108.2210],
-    title: "Vật liệu xây dựng tràn ra lòng đường",
-    category: "construction",
-    status: "inProgress",
-    type: "report",
-    description: "Đất cát từ công trình nhà ở riêng lẻ không che chắn gây bụi.",
-  },
-  {
-    id: "rep-5",
-    position: [16.0190, 108.2240],
-    title: "Điểm có nguy cơ cháy nổ do cỏ khô tích tụ",
-    category: "fire_safety",
-    status: "pending",
-    type: "report",
-    description: "Khu đất trống ngập tràn cỏ khô úa, dễ phát hỏa khi trời nắng nóng.",
-  },
-  {
-    id: "rep-6",
-    position: [16.0130, 108.2145],
-    title: "Nắp cống bị vỡ trên vỉa hè",
-    category: "infrastructure",
-    status: "resolved",
-    type: "report",
-    description: "Hố ga mất nắp nguy hiểm cho người đi bộ lúc chiều tối.",
-  },
-  {
-    id: "rep-7",
-    position: [16.0105, 108.2230],
-    title: "Rác thải hữu cơ bốc mùi quanh hồ điều hòa",
-    category: "environment",
-    status: "inProgress",
-    type: "report",
-    description: "Hồ điều hòa Hòa Xuân có lượng rác lớn ứ đọng góc phía Đông.",
-  },
-  {
-    id: "rep-8",
-    position: [16.0142, 108.2202],
-    title: "Đèn chiếu sáng công cộng bị hỏng",
-    category: "public_safety",
-    status: "resolved",
-    type: "report",
-    description: "Cả tuyến phố tối tăm do 3 bóng cao áp liên tiếp bị cháy hỏng.",
-  },
-  {
-    id: "rep-9",
-    position: [16.0182, 108.2218],
-    title: "Dây cáp viễn thông sà xuống mặt đường",
-    category: "public_safety",
-    status: "pending",
-    type: "report",
-    description: "Bó cáp quang sập xệ đe dọa an toàn giao thông của xe tải lớn.",
-  },
-  {
-    id: "rep-10",
-    position: [16.0160, 108.2130],
-    title: "Phế thải công nghiệp đổ trộm góc đường",
-    category: "environment",
-    status: "inProgress",
-    type: "report",
-    description: "Nhiều lốp xe cũ và vỏ bình sơn chồng đống bên lề đường.",
-  },
-  {
-    id: "rep-11",
-    position: [16.0118, 108.2178],
-    title: "Sụt lún vỉa hè nghiêm trọng",
-    category: "infrastructure",
-    status: "pending",
-    type: "report",
-    description: "Gạch lát vỉa hè sụt tạo hố sâu hơn 30cm do mưa lớn xói mòn.",
-  },
-  {
-    id: "rep-12",
-    position: [16.0202, 108.2195],
-    title: "Xả nước thải sinh hoạt ra kênh hở",
-    category: "environment",
-    status: "inProgress",
-    type: "report",
-    description: "Cơ sở rửa xe xả trực tiếp nước xà phòng ra kênh đất công cộng.",
-  },
-  {
-    id: "rep-13",
-    position: [16.0152, 108.2255],
-    title: "Giàn giáo xây dựng mất an toàn",
-    category: "construction",
-    status: "resolved",
-    type: "report",
-    description: "Công trình thi công cao tầng không có lưới chắn bụi rơi.",
-  },
-  {
-    id: "rep-14",
-    position: [16.0090, 108.2205],
-    title: "Tấm tôn quảng cáo che khuất tầm nhìn góc cua",
-    category: "public_safety",
-    status: "inProgress",
-    type: "report",
-    description: "Biển quảng cáo cỡ lớn đặt sai quy định tại nút giao che khuất tầm quan sát.",
-  },
-  {
-    id: "rep-15",
-    position: [16.0125, 108.2110],
-    title: "Hóa chất thải đổ trực tiếp góc công viên",
-    category: "environment",
-    status: "pending",
-    type: "report",
-    description: "Có mùi dầu hỏa nồng nặc và vệt dầu đen tràn trên thảm cỏ.",
-  },
-  {
-    id: "rep-16",
-    position: [16.0170, 108.2270],
-    title: "Nối điện câu móc trái phép ngoài trời",
-    category: "fire_safety",
-    status: "pending",
-    type: "report",
-    description: "Tuyến đường dây tạm dẫn từ trạm hạ thế chằng chịt không có ống bọc cách điện.",
-  },
-  {
-    id: "rep-17",
-    position: [16.0145, 108.2240],
-    title: "Bia mộ, rác tâm linh vứt bỏ bừa bãi",
-    category: "environment",
-    status: "resolved",
-    type: "report",
-    description: "Vụn bát hương và đồ cúng cũ đổ ngay gốc đa cổ thụ đầu làng cũ.",
-  },
-  {
-    id: "rep-18",
-    position: [16.0075, 108.2185],
-    title: "Hố đào không có rào chắn cảnh báo",
-    category: "infrastructure",
-    status: "inProgress",
-    type: "report",
-    description: "Hố lắp đặt ống nước đào dở dang trên hè phố bỏ mặc hơn 3 ngày.",
-  },
-];
-
-// PROBLEM HOTSPOTS
-const hotspots = [
-  { position: [16.0155, 108.2220] as [number, number], radius: 150, title: "Điểm nóng A: Ô nhiễm bãi rác tự phát lớn" },
-  { position: [16.0175, 108.2175] as [number, number], radius: 100, title: "Điểm nóng B: Tắc nghẽn mương thoát nước chính" },
-];
-
-function getCustomIcon(L: any, markerType: string, status?: string) {
+function getCustomIcon(L: any, category: string, status: string, isActive: boolean) {
   if (typeof window === "undefined" || !L) return null;
 
-  let color = "#1E5EFF"; // Default Primary Blue
-  let innerIconSvg = "";
-
-  if (markerType === "meeting") {
-    color = "#8B5CF6"; // Purple for meeting
-    innerIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`;
-  } else if (markerType === "coordination") {
-    color = "#E11D48"; // Crimson Red for coordination
-    innerIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>`;
-  } else if (markerType === "checkpoint") {
-    color = "#F59E0B"; // Amber for check points
-    innerIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/></svg>`;
+  let color = "#1E5EFF"; // Default Blue
+  if (status === "completed") {
+    color = "#22C55E"; // Green
+  } else if (status === "recruiting") {
+    color = "#F59E0B"; // Amber
+  } else if (status === "inProgress") {
+    color = "#1E5EFF"; // Blue
   } else {
-    // report markers
-    const colorMap: Record<string, string> = {
-      pending: "#F59E0B",    // Orange
-      inProgress: "#1E5EFF", // Blue
-      resolved: "#22C55E",   // Green
-    };
-    color = colorMap[status || "pending"] || "#1E5EFF";
-    innerIconSvg = `<circle cx="12" cy="12" r="6" fill="white" />`;
+    color = "#64748B"; // Slate for pending/other
+  }
+
+  const border = isActive ? "3px solid #7C3AED" : "2px solid #ffffff";
+  const size = isActive ? 38 : 32;
+  const shadow = isActive ? "0 4px 14px rgba(124, 58, 237, 0.4)" : "0 4px 10px rgba(0,0,0,0.2)";
+
+  let innerIconSvg = `<circle cx="12" cy="12" r="5" fill="white" />`;
+  if (category === "environment") {
+    innerIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>`;
+  } else if (category === "infrastructure") {
+    innerIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>`;
+  } else if (category === "public_safety") {
+    innerIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`;
   }
 
   return L.divIcon({
     className: "custom-campaign-marker",
     html: `
-      <div style="position: relative; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;">
+      <div style="position: relative; width: ${size}px; height: ${size}px; display: flex; align-items: center; justify-content: center;">
         <div style="
           position: absolute;
-          width: 24px;
-          height: 24px;
+          width: ${size - 10}px;
+          height: ${size - 10}px;
           border-radius: 50% 50% 50% 0;
           background: ${color};
-          border: 2px solid #ffffff;
-          box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+          border: ${border};
+          box-shadow: ${shadow};
           transform: rotate(-45deg);
         "></div>
         <div style="
@@ -299,302 +82,334 @@ function getCustomIcon(L: any, markerType: string, status?: string) {
         </div>
       </div>
     `,
-    iconSize: [34, 34],
-    iconAnchor: [17, 34],
-    popupAnchor: [0, -34],
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size],
+    popupAnchor: [0, -size],
   });
 }
 
-export function CampaignMap({ height = "600px" }: Props) {
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [selectedStatus, setSelectedStatus] = useState<string>("all");
-  const [selectedType, setSelectedType] = useState<string>("all");
-  const [showHotspots, setShowHotspots] = useState(true);
-  const [showBoundary, setShowBoundary] = useState(true);
+function MapController({
+  activeCampaign,
+  campaigns = [],
+  L,
+  useMap,
+}: {
+  activeCampaign?: Campaign;
+  campaigns?: Campaign[];
+  L: any;
+  useMap: () => any;
+}) {
+  const map = useMap();
 
-  const [modules, setModules] = useState<{
+  useEffect(() => {
+    if (activeCampaign) {
+      const pos = resolveCampaignLatLng(activeCampaign);
+      if (!pos) return;
+
+      let boundaryLayer = null;
+      if (activeCampaign.boundaryGeojson) {
+        try {
+          boundaryLayer = JSON.parse(activeCampaign.boundaryGeojson);
+        } catch {}
+      }
+      if (!boundaryLayer && activeCampaign.ward && WARD_BOUNDARIES[activeCampaign.ward]) {
+        boundaryLayer = WARD_BOUNDARIES[activeCampaign.ward];
+      }
+
+      if (boundaryLayer && L) {
+        try {
+          const tempLayer = L.geoJSON(boundaryLayer);
+          const bounds = tempLayer.getBounds();
+          if (bounds.isValid()) {
+            map.fitBounds(bounds, { padding: [50, 50] });
+            return;
+          }
+        } catch (e) {
+          console.error("Error fitting campaign bounds:", e);
+        }
+      }
+
+      map.flyTo(pos, 15, { animate: true });
+    } else if (campaigns.length > 0 && L) {
+      try {
+        const points = campaigns
+          .map(resolveCampaignLatLng)
+          .filter((x): x is [number, number] => x !== null);
+
+        if (points.length > 0) {
+          const bounds = L.latLngBounds(points);
+          if (bounds.isValid()) {
+            map.fitBounds(bounds, { padding: [60, 60] });
+          }
+        }
+      } catch (e) {
+        console.error("Error fitting list bounds:", e);
+      }
+    }
+  }, [activeCampaign, campaigns, map, L]);
+
+  return null;
+}
+
+export function CampaignMap({
+  height = "500px",
+  campaigns = [],
+  activeCampaign,
+  showBoundary = true,
+  onCampaignClick,
+}: Props) {
+  const [leafletComponents, setLeafletComponents] = useState<{
     MapContainer: any;
     TileLayer: any;
     Marker: any;
     Popup: any;
     Circle: any;
-    Polygon: any;
+    GeoJSON: any;
+    useMap: any;
     L: any;
   } | null>(null);
 
+  const [layerType, setLayerType] = useState<"osm" | "satellite">("osm");
+  const [isLayersOpen, setIsLayersOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     let cancelled = false;
-    void Promise.all([
-      import("react-leaflet"),
-      import("leaflet")
-    ]).then(([rl, LMod]) => {
-      if (!cancelled) {
-        setModules({
-          MapContainer: rl.MapContainer,
-          TileLayer: rl.TileLayer,
-          Marker: rl.Marker,
-          Popup: rl.Popup,
-          Circle: rl.Circle,
-          Polygon: rl.Polygon,
-          L: LMod.default || LMod
-        });
-      }
-    });
-    return () => { cancelled = true; };
+    void Promise.all([import("react-leaflet"), import("leaflet")]).then(
+      ([rl, LMod]) => {
+        if (!cancelled) {
+          setLeafletComponents({
+            MapContainer: rl.MapContainer,
+            TileLayer: rl.TileLayer,
+            Marker: rl.Marker,
+            Popup: rl.Popup,
+            Circle: rl.Circle,
+            GeoJSON: rl.GeoJSON,
+            useMap: rl.useMap,
+            L: LMod.default || LMod,
+          });
+        }
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const center: [number, number] = [16.015, 108.220];
-
-  const allMarkers = useMemo(() => {
-    return [...staticMarkers, ...citizenReports];
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsLayersOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
   }, []);
 
-  const filteredMarkers = useMemo(() => {
-    return allMarkers.filter((m) => {
-      // Category filter
-      if (selectedCategory !== "all" && m.category !== selectedCategory) {
-        return false;
-      }
-      // Status filter
-      if (selectedStatus !== "all" && m.status !== selectedStatus) {
-        return false;
-      }
-      // Type filter
-      if (selectedType !== "all" && m.type !== selectedType) {
-        return false;
-      }
-      return true;
-    });
-  }, [allMarkers, selectedCategory, selectedStatus, selectedType]);
-
-  const toggleCategory = (cat: string) => {
-    setSelectedCategory((prev) => (prev === cat ? "all" : cat));
+  const layers = {
+    osm: {
+      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    },
+    satellite: {
+      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      attribution: "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
+    },
   };
 
-  if (!modules) {
+  const defaultCenter: [number, number] = [16.044, 108.22];
+
+  if (!leafletComponents) {
     return (
-      <div className="flex flex-col rounded-[20px] overflow-hidden border border-[#E4EAF2] bg-slate-50 flex items-center justify-center" style={{ height }}>
+      <div
+        className="flex flex-col rounded-2xl overflow-hidden border border-[#E4EAF2] bg-slate-50 items-center justify-center"
+        style={{ height }}
+      >
         <span className="text-slate-400 text-sm font-semibold">Đang tải bản đồ chiến dịch...</span>
       </div>
     );
   }
 
-  const { MapContainer, TileLayer, Marker, Popup, Circle, Polygon, L } = modules;
+  const { MapContainer, TileLayer, Marker, Popup, Circle, GeoJSON, useMap, L } = leafletComponents;
 
   return (
-    <div className="flex flex-col rounded-[20px] overflow-hidden border border-[#E4EAF2] bg-white shadow-sm">
-      {/* Top Filter Bar */}
-      <div className="p-4 border-b border-[#E4EAF2] flex flex-wrap items-center justify-between gap-3 bg-slate-50/50">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mr-2">
-            <Layers size={14} className="text-slate-500" />
-            Lọc phản ánh:
-          </span>
+    <div className="flex flex-col rounded-2xl overflow-hidden border border-[#E4EAF2] bg-white shadow-sm relative">
+      {/* Floating Map Controls */}
+      <div
+        ref={dropdownRef}
+        className="absolute top-3 right-3 flex flex-col items-end gap-2 text-xs"
+        style={{ zIndex: 1000 }}
+      >
+        <div className="relative">
           <button
-            onClick={() => setSelectedCategory("all")}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition ${
-              selectedCategory === "all"
-                ? "bg-[#1E5EFF] text-white border-[#1E5EFF]"
-                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-            }`}
+            type="button"
+            onClick={() => setIsLayersOpen(!isLayersOpen)}
+            className="w-10 h-10 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl shadow-md flex items-center justify-center cursor-pointer transition text-[#0b2545] font-bold"
+            title="Lớp bản đồ"
           >
-            Tất cả
+            <Layers size={18} className="text-slate-600" />
           </button>
-          <button
-            onClick={() => toggleCategory("environment")}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition ${
-              selectedCategory === "environment"
-                ? "bg-[#22C55E] text-white border-[#22C55E]"
-                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-            }`}
-          >
-            Môi trường
-          </button>
-          <button
-            onClick={() => toggleCategory("infrastructure")}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition ${
-              selectedCategory === "infrastructure"
-                ? "bg-slate-800 text-white border-slate-800"
-                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-            }`}
-          >
-            Hạ tầng đô thị
-          </button>
-          <button
-            onClick={() => toggleCategory("public_safety")}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition ${
-              selectedCategory === "public_safety"
-                ? "bg-[#1E5EFF] text-white border-[#1E5EFF]"
-                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-            }`}
-          >
-            An toàn công cộng
-          </button>
-          <button
-            onClick={() => toggleCategory("construction")}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition ${
-              selectedCategory === "construction"
-                ? "bg-amber-600 text-white border-amber-600"
-                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-            }`}
-          >
-            Xây dựng
-          </button>
-          <button
-            onClick={() => toggleCategory("fire_safety")}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition ${
-              selectedCategory === "fire_safety"
-                ? "bg-[#EF4444] text-white border-[#EF4444]"
-                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-            }`}
-          >
-            Phòng cháy
-          </button>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Status filter */}
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-200 bg-white text-slate-700 outline-none"
-          >
-            <option value="all">Mọi trạng thái</option>
-            <option value="pending">Chờ tiếp nhận</option>
-            <option value="inProgress">Đang xử lý</option>
-            <option value="resolved">Đã hoàn thành</option>
-          </select>
-
-          {/* Toggle Map layers */}
-          <button
-            onClick={() => setShowHotspots(!showHotspots)}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition flex items-center gap-1.5 ${
-              showHotspots
-                ? "bg-red-50 text-red-700 border-red-200"
-                : "bg-white text-slate-500 border-slate-200"
-            }`}
-          >
-            <AlertOctagon size={13} />
-            Điểm nóng
-          </button>
-          <button
-            onClick={() => setShowBoundary(!showBoundary)}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition flex items-center gap-1.5 ${
-              showBoundary
-                ? "bg-blue-50 text-[#1E5EFF] border-blue-200"
-                : "bg-white text-slate-500 border-slate-200"
-            }`}
-          >
-            <Compass size={13} />
-            Ranh giới
-          </button>
+          {isLayersOpen && (
+            <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl py-2 z-[1100]">
+              <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Loại bản đồ
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setLayerType("osm");
+                  setIsLayersOpen(false);
+                }}
+                className={`w-full text-left px-4 py-2 text-xs transition flex items-center gap-2 ${
+                  layerType === "osm"
+                    ? "bg-blue-50 text-blue-600 font-extrabold"
+                    : "text-slate-700 hover:bg-slate-50 font-semibold"
+                }`}
+              >
+                🗺️ Bản đồ đường phố
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setLayerType("satellite");
+                  setIsLayersOpen(false);
+                }}
+                className={`w-full text-left px-4 py-2 text-xs transition flex items-center gap-2 ${
+                  layerType === "satellite"
+                    ? "bg-blue-50 text-blue-600 font-extrabold"
+                    : "text-slate-700 hover:bg-slate-50 font-semibold"
+                }`}
+              >
+                🛰️ Bản đồ vệ tinh
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Map Container */}
-      <div style={{ height }} className="relative z-10">
+      <div style={{ height }} className="relative z-10 w-full">
         <MapContainer
-          center={center}
-          zoom={15}
+          center={defaultCenter}
+          zoom={13}
           className="w-full h-full"
           zoomControl={true}
-          dragging={true}
-          scrollWheelZoom={true}
         >
-          <TileLayer
-            attribution="&copy; Google Maps"
-            url="https://mt1.google.com/vt/lyrs=m&hl=vi&gl=VN&x={x}&y={y}&z={z}"
-          />
+          <TileLayer url={layers[layerType].url} attribution={layers[layerType].attribution} />
 
-          {/* Ward Boundary Outline */}
-          {showBoundary && (
-            <Polygon
-              positions={hoaXuanBoundary}
-              pathOptions={{
-                color: "#1E5EFF",
-                weight: 2,
-                fillColor: "#1E5EFF",
-                fillOpacity: 0.03,
-                dashArray: "8, 8",
-              }}
-            />
-          )}
+          <MapController activeCampaign={activeCampaign} campaigns={campaigns} L={L} useMap={useMap} />
 
-          {/* Campaign Circular Boundary (750m) */}
-          {showBoundary && (
-            <Circle
-              center={center}
-              radius={750}
-              pathOptions={{
-                color: "#1E5EFF",
-                weight: 1.5,
-                fillColor: "#1E5EFF",
-                fillOpacity: 0.05,
-                dashArray: "4, 4",
-              }}
-            />
-          )}
+          {/* Render Boundaries / Circles for active campaign */}
+          {showBoundary &&
+            campaigns.map((c) => {
+              const pos = resolveCampaignLatLng(c);
+              if (!pos) return null;
 
-          {/* Problem Hotspots Heatmap representation */}
-          {showHotspots &&
-            hotspots.map((spot, i) => (
-              <Circle
-                key={i}
-                center={spot.position}
-                radius={spot.radius}
-                pathOptions={{
-                  color: "#EF4444",
-                  weight: 1,
-                  fillColor: "#EF4444",
-                  fillOpacity: 0.15,
-                }}
-              />
-            ))}
+              const isCurrent = activeCampaign?.id === c.id;
 
-          {/* Render markers */}
-          {filteredMarkers.map((m) => {
-            const icon = getCustomIcon(L, m.type, m.status);
+              // If active campaign is specified, we render boundary only for the active one to avoid clutter.
+              // If no active campaign, render circles or polygons for all of them.
+              if (activeCampaign && !isCurrent) return null;
+
+              let boundaryData = null;
+              if (c.boundaryGeojson) {
+                try {
+                  boundaryData = JSON.parse(c.boundaryGeojson);
+                } catch {}
+              }
+              if (!boundaryData && c.ward && WARD_BOUNDARIES[c.ward]) {
+                boundaryData = WARD_BOUNDARIES[c.ward];
+              }
+
+              if (boundaryData) {
+                return (
+                  <GeoJSON
+                    key={`boundary-${c.id}`}
+                    data={boundaryData}
+                    pathOptions={{
+                      color: isCurrent ? "#7C3AED" : "#1E5EFF",
+                      weight: isCurrent ? 2.5 : 1.5,
+                      fillColor: isCurrent ? "#7C3AED" : "#1E5EFF",
+                      fillOpacity: isCurrent ? 0.08 : 0.03,
+                      dashArray: isCurrent ? undefined : "5, 5",
+                    }}
+                  />
+                );
+              }
+
+              // Fallback to circle
+              return (
+                <Circle
+                  key={`circle-${c.id}`}
+                  center={pos}
+                  radius={750}
+                  pathOptions={{
+                    color: isCurrent ? "#7C3AED" : "#1E5EFF",
+                    weight: isCurrent ? 2 : 1.2,
+                    fillColor: isCurrent ? "#7C3AED" : "#1E5EFF",
+                    fillOpacity: isCurrent ? 0.06 : 0.02,
+                    dashArray: "4, 4",
+                  }}
+                />
+              );
+            })}
+
+          {/* Markers */}
+          {campaigns.map((c) => {
+            const pos = resolveCampaignLatLng(c);
+            if (!pos) return null;
+
+            const isCurrent = activeCampaign?.id === c.id;
+            const icon = getCustomIcon(L, c.category, c.status, isCurrent);
+
             return (
-              <Marker key={m.id} position={m.position} icon={icon || undefined}>
+              <Marker
+                key={c.id}
+                position={pos}
+                icon={icon || undefined}
+                eventHandlers={{
+                  click: () => {
+                    if (onCampaignClick) onCampaignClick(c);
+                  },
+                }}
+              >
                 <Popup>
                   <div className="p-2 max-w-[240px]">
-                    <div className="flex items-center gap-1.5 mb-1.5">
+                    <div className="flex items-center gap-1.5 mb-1">
                       <span
-                        className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider ${
-                          m.type === "meeting"
-                            ? "bg-purple-100 text-purple-700"
-                            : m.type === "coordination"
-                              ? "bg-red-100 text-red-700"
-                              : m.type === "checkpoint"
-                                ? "bg-amber-100 text-amber-700"
-                                : m.status === "resolved"
-                                  ? "bg-green-100 text-green-700"
-                                  : m.status === "inProgress"
-                                    ? "bg-blue-100 text-[#1E5EFF]"
-                                    : "bg-orange-100 text-orange-700"
+                        className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider ${
+                          c.status === "completed"
+                            ? "bg-green-100 text-green-700"
+                            : c.status === "recruiting"
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-blue-100 text-[#1E5EFF]"
                         }`}
                       >
-                        {m.type === "meeting"
-                          ? "Tập kết"
-                          : m.type === "coordination"
-                            ? "Điều phối"
-                            : m.type === "checkpoint"
-                              ? "Trạm tiếp tế"
-                              : m.status === "resolved"
-                                ? "Đã giải quyết"
-                                : m.status === "inProgress"
-                                  ? "Đang xử lý"
-                                  : "Chờ tiếp nhận"}
+                        {c.status === "completed"
+                          ? "Hoàn thành"
+                          : c.status === "recruiting"
+                            ? "Đang tuyển"
+                            : "Đang diễn ra"}
                       </span>
                       <span className="text-[10px] text-slate-400 font-semibold uppercase">
-                        {m.category.replace("_", " ")}
+                        {c.category === "environment"
+                          ? "Môi trường"
+                          : c.category === "infrastructure"
+                            ? "Hạ tầng"
+                            : "An toàn"}
                       </span>
                     </div>
                     <strong className="text-slate-800 text-sm font-extrabold block leading-snug">
-                      {m.title}
+                      {c.name}
                     </strong>
-                    <p className="text-slate-600 text-xs mt-1 leading-relaxed">
-                      {m.description}
+                    <span className="text-[11px] text-slate-400 block mt-0.5">
+                      Phường: {c.ward}
+                    </span>
+                    <p className="text-slate-600 text-xs mt-1 leading-relaxed line-clamp-2">
+                      {c.desc}
                     </p>
                   </div>
                 </Popup>
@@ -608,39 +423,18 @@ export function CampaignMap({ height = "600px" }: Props) {
       <div className="p-4 border-t border-[#E4EAF2] bg-slate-50/50 flex flex-wrap items-center justify-between gap-4 text-xs font-semibold text-slate-600">
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-1.5">
-            <span className="w-3.5 h-3.5 rounded-full bg-[#8B5CF6] border-2 border-white shadow-sm flex items-center justify-center text-[8px] text-white">★</span>
-            <span>Điểm tập kết</span>
+            <span className="w-3 h-3 rounded-full bg-[#F59E0B] border border-white shadow-sm" />
+            <span>Đang tuyển thành viên</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3.5 h-3.5 rounded-full bg-[#E11D48] border-2 border-white shadow-sm" />
-            <span>Điểm chỉ huy (UBND)</span>
+            <span className="w-3 h-3 rounded-full bg-[#1E5EFF] border border-white shadow-sm" />
+            <span>Chiến dịch đang diễn ra</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3.5 h-3.5 rounded-full bg-[#F59E0B] border-2 border-white shadow-sm" />
-            <span>Trạm tiếp tế</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3.5 h-3.5 rounded-full bg-[#22C55E] border-2 border-white shadow-sm" />
-            <span>Phản ánh đã xong</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3.5 h-3.5 rounded-full bg-[#1E5EFF] border-2 border-white shadow-sm" />
-            <span>Phản ánh đang xử lý</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3.5 h-3.5 rounded-full bg-[#F59E0B] border-2 border-white shadow-sm" />
-            <span>Phản ánh chờ xử lý</span>
+            <span className="w-3 h-3 rounded-full bg-[#22C55E] border border-white shadow-sm" />
+            <span>Chiến dịch đã hoàn thành</span>
           </div>
         </div>
-
-        <a
-          href="https://maps.google.com/?q=16.015,108.220"
-          target="_blank"
-          rel="noreferrer"
-          className="text-[#1E5EFF] font-bold hover:underline flex items-center gap-1 shrink-0"
-        >
-          Xem trên Google Maps →
-        </a>
       </div>
     </div>
   );

@@ -817,6 +817,9 @@ export interface CampaignResponse {
   canFeedback: boolean;
   createdAt: string;
   updatedAt: string;
+  linkedFeedbackId?: number | null;
+  boundaryGeojson?: string | null;
+  coverImageUrl?: string | null;
 }
 
 export interface CampaignCreateRequest {
@@ -833,6 +836,9 @@ export interface CampaignCreateRequest {
   startTime?: string;
   endTime?: string;
   wardId?: number;
+  linkedFeedbackId?: number;
+  boundaryGeojson?: string;
+  coverImageUrl?: string;
 }
 
 export interface CampaignParticipantResponse {

@@ -40,4 +40,8 @@ public class CampaignResponse {
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    private Long linkedFeedbackId;
+    private String boundaryGeojson;
+    private String coverImageUrl;
 }

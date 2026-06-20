@@ -10,10 +10,15 @@ import {
   Clock3,
   Target,
   FileText,
+  Pencil,
+  Trash2,
+  Settings,
 } from "lucide-react";
-import { useCampaignList, useCampaignThumbnail } from "@/hooks/useCampaigns";
+import { useCampaignList, useCampaignThumbnail, useDeleteCampaign } from "@/hooks/useCampaigns";
 import { CampaignMap } from "@/components/site/CampaignMap";
 import type { Campaign } from "@/lib/campaignStore";
+import { useAuth } from "@/lib/auth";
+import { toast } from "sonner";
 
 function formatDate(dateStr?: string) {
   if (!dateStr) return "Chưa cập nhật";
@@ -74,8 +79,32 @@ export function WardCampaignPage() {
     return { total, recruiting, inProgress, completed };
   }, [campaigns]);
 
+  const deleteCampaign = useDeleteCampaign();
+
   const handleCreateRedirect = () => {
     navigate({ to: "/campaigns/create" });
+  };
+
+  const handleEdit = (id: string) => {
+    toast.info("Chức năng chỉnh sửa chi tiết chiến dịch đang được phát triển. Vui lòng liên hệ Admin thành phố.");
+  };
+
+  const handleManage = (id: string) => {
+    navigate({ to: "/campaigns/$id", params: { id } });
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm("Bạn có chắc chắn muốn xóa chiến dịch này không? Hành động này không thể hoàn tác.")) {
+      try {
+        await deleteCampaign.mutateAsync(id);
+        toast.success("Đã xóa chiến dịch thành công.");
+        if (activeCampaignId === id) {
+          setActiveCampaignId(null);
+        }
+      } catch (err) {
+        toast.error("Không thể xóa chiến dịch: " + (err instanceof Error ? err.message : "Lỗi hệ thống"));
+      }
+    }
   };
 
   const handleViewDetail = (id: string) => {
@@ -212,9 +241,16 @@ export function WardCampaignPage() {
                     onClick={() => setActiveCampaignId(c.id)}
                   >
                     <td className="px-5 py-4">
-                      <p className="max-w-[280px] truncate text-sm font-extrabold text-[#0B2545]">
-                        {c.name}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="max-w-[280px] truncate text-sm font-extrabold text-[#0B2545]">
+                          {c.name}
+                        </p>
+                        {!c.canManage && (
+                          <span className="inline-flex rounded bg-slate-100 px-2 py-0.5 text-[9px] font-extrabold text-slate-500 uppercase tracking-wide">
+                            Chỉ xem
+                          </span>
+                        )}
+                      </div>
                       <p className="mt-1 max-w-[280px] truncate text-xs font-medium text-slate-400">
                         {c.desc}
                       </p>
@@ -245,13 +281,40 @@ export function WardCampaignPage() {
                     </td>
                     <td className="px-5 py-4 text-sm font-bold text-slate-500">{c.createdBy}</td>
                     <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={() => handleViewDetail(c.id)}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-white transition"
-                        title="Xem chi tiết"
-                      >
-                        <Eye size={15} />
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => handleViewDetail(c.id)}
+                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition"
+                          title="Xem chi tiết"
+                        >
+                          <Eye size={15} />
+                        </button>
+                        {c.canManage && (
+                          <>
+                            <button
+                              onClick={() => handleEdit(c.id)}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition"
+                              title="Chỉnh sửa"
+                            >
+                              <Pencil size={14} />
+                            </button>
+                            <button
+                              onClick={() => handleManage(c.id)}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition"
+                              title="Điều hành"
+                            >
+                              <Settings size={14} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(c.id)}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 text-red-500 hover:bg-red-50 hover:text-red-700 transition"
+                              title="Xóa"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

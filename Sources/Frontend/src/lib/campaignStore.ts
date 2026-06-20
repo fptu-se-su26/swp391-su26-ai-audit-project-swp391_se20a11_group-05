@@ -54,6 +54,7 @@ export interface Campaign {
   coverImageUrl?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  wardId?: number | null;
 }
 
 const COVER_BY_CATEGORY: Record<CampaignCategory, string> = {

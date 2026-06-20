@@ -11,8 +11,10 @@ import {
   useWardStaffStatistics,
 } from "@/hooks";
 import { useAuth } from "@/lib/auth";
-import { getLoginPathForRole } from "@/lib/roles";
+import { getLoginPathForRole, Role } from "@/lib/roles";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { Route } from "@/routes/_auth.ward";
+import { FeedbackDetailPageComponent } from "@/routes/_auth.authority.feedback.$feedbackId";
 import {
   Menu,
   X,
@@ -118,11 +120,8 @@ export function WardDashboard() {
   const [userOpen, setUserOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [activeSection, setActiveSection] = useState<WardSection>(() => {
-    if (typeof window === "undefined") return "overview";
-    const tab = new URLSearchParams(window.location.search).get("tab") as WardSection | null;
-    return tab && ["overview", "feedback", "campaign", "schedule", "config"].includes(tab) ? tab : "overview";
-  });
+  const { tab, detailId } = Route.useSearch();
+  const activeSection = (tab && ["overview", "feedback", "campaign", "schedule", "config"].includes(tab) ? tab : "overview") as WardSection;
 
   // Map persistent states
   const [mapCenterState, setMapCenterState] = useState<[number, number] | undefined>(undefined);
@@ -174,24 +173,27 @@ export function WardDashboard() {
   }, []);
 
   // Date Picker & Reload Logic
-  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
 
-  const formatDateToISO = (date: Date): string => {
+  const formatDateToISO = (date: Date | null): string => {
+    if (!date) return "";
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   };
 
-  const formatDateToDisplay = (date: Date): string => {
+  const formatDateToDisplay = (date: Date | null): string => {
+    if (!date) return "";
     const day = String(date.getDate()).padStart(2, "0");
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const year = date.getFullYear();
     return `${day}/${month}/${year}`;
   };
 
-  const isTodayDate = (date: Date): boolean => {
+  const isTodayDate = (date: Date | null): boolean => {
+    if (!date) return false;
     const today = new Date();
     return (
       date.getDate() === today.getDate() &&
@@ -205,8 +207,8 @@ export function WardDashboard() {
   // Derive fromDate/toDate for API filter from selectedDate (full day range)
   const feedbackDateFilters = useMemo(() => ({
     keyword: debouncedSearch,
-    fromDate: dateStr,
-    toDate: dateStr,
+    fromDate: dateStr || undefined,
+    toDate: dateStr || undefined,
   }), [debouncedSearch, dateStr]);
 
   const { data: feedbacksPage, isLoading: feedbacksLoading, refetch } = useFeedbacks(0, 500, feedbackDateFilters);
@@ -219,9 +221,51 @@ export function WardDashboard() {
 
   const rawFeedbacks = feedbacksPage?.content ?? [];
 
-  // Filter rawFeedbacks by WARD_STAFF role allowed categories
+  // Today's feedback query for "Phản ánh hôm nay" section
+  const todayStr = useMemo(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }, []);
+
+  const todayFeedbackFilters = useMemo(() => ({
+    fromDate: todayStr,
+    toDate: todayStr,
+  }), [todayStr]);
+
+  const { data: todayFeedbacksPage, isLoading: todayFeedbacksLoading, refetch: refetchToday } = useFeedbacks(
+    0,
+    500,
+    todayFeedbackFilters
+  );
+
+  const todayFeedbacks = useMemo(() => {
+    const rawToday = todayFeedbacksPage?.content ?? [];
+    return rawToday.filter((fb) => {
+      // 1. Scoped by wardId
+      if (user?.wardId && fb.wardId && fb.wardId !== user.wardId) return false;
+      
+      // 2. Category check
+      const code = (fb.categoryCode || "").toUpperCase();
+      const isAllowedCategory = code === "URBAN_INFRASTRUCTURE" || code === "ENVIRONMENT" || code === "CONSTRUCTION";
+      if (!isAllowedCategory) return false;
+
+      // 3. Status in "Chờ xử lý" group
+      const grp = getGroupedFeedbackStatus(fb.status);
+      return grp === "PENDING";
+    });
+  }, [todayFeedbacksPage, user]);
+
+  // Filter rawFeedbacks by WARD_STAFF role allowed categories and wardId scope
   const feedbacks = useMemo(() => {
     return rawFeedbacks.filter((fb) => {
+      // Scoped by logged-in officer's wardId
+      if (user?.wardId && fb.wardId && fb.wardId !== user.wardId) {
+        return false;
+      }
+
       const code = (fb.categoryCode || "").toUpperCase();
       if (code) {
         return code === "URBAN_INFRASTRUCTURE" || code === "ENVIRONMENT" || code === "CONSTRUCTION";
@@ -232,7 +276,7 @@ export function WardDashboard() {
       const isFire = name.includes("phòng cháy") || name.includes("chữa cháy") || name.includes("fire");
       return !isTraffic && !isSecurity && !isFire;
     });
-  }, [rawFeedbacks]);
+  }, [rawFeedbacks, user]);
 
   // Administrative Unit details
   const authorityUnitName = getAdministrativeUnitName(user?.wardName, user?.org) || "Tân Bình";
@@ -241,16 +285,19 @@ export function WardDashboard() {
     authorityUnitName,
   );
 
-  const { data: statsData, isLoading: statsLoading, refetch: refetchStats } = useWardStaffStatistics(dateStr);
+  const { data: statsData, isLoading: statsLoading, refetch: refetchStats } = useWardStaffStatistics(dateStr || undefined);
 
-  const dateLabel = isTodayDate(selectedDate)
-    ? `Hôm nay - ${formatDateToDisplay(selectedDate)}`
-    : formatDateToDisplay(selectedDate);
+  const dateLabel = selectedDate
+    ? (isTodayDate(selectedDate)
+        ? `Hôm nay - ${formatDateToDisplay(selectedDate)}`
+        : formatDateToDisplay(selectedDate))
+    : "Tất cả thời gian";
 
-  // Reload reloads current selected date â€” does NOT reset date to today
   const handleReload = () => {
+    setSelectedDate(null);
     refetch();
     refetchStats();
+    refetchToday();
   };
 
   // Dynamic statistics counts mapping API response to the 5 status cards
@@ -446,7 +493,11 @@ export function WardDashboard() {
       }
       const feedbackId = item.feedbackId ?? item.referenceId;
       if (feedbackId) {
-        navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
+        if (user?.role === Role.WARD_STAFF) {
+          navigate({ to: "/ward", search: { tab: "feedback", detailId: String(feedbackId) } });
+        } else {
+          navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
+        }
       }
     } catch { }
   };
@@ -461,17 +512,14 @@ export function WardDashboard() {
     navigate({ to: loginPath });
   };
   const handleSectionChange = (section: WardSection) => {
-    setActiveSection(section);
     setSidebarOpen(false);
-    if (typeof window !== "undefined") {
-      const url = new URL(window.location.href);
-      if (section === "overview") {
-        url.searchParams.delete("tab");
-      } else {
-        url.searchParams.set("tab", section);
-      }
-      window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
-    }
+    navigate({
+      to: "/ward",
+      search: {
+        tab: section === "overview" ? undefined : section,
+        detailId: undefined,
+      },
+    });
   };
 
   const menuItems = [
@@ -729,9 +777,21 @@ export function WardDashboard() {
         </header>
 
         {/* ─── 3. MAIN DASHBOARD CONTENT ─── */}
-        <main className={`flex-1 space-y-6 overflow-y-auto ${activeSection === "feedback" ? "p-5 md:p-6" : "p-6 md:p-8"}`}>
+        <main className={`flex-1 space-y-6 overflow-y-auto ${activeSection === "feedback" && !detailId ? "p-5 md:p-6" : activeSection === "feedback" && detailId ? "p-0" : "p-6 md:p-8"}`}>
           {activeSection === "feedback" ? (
-            <WardFeedbackManagementPage />
+            detailId ? (
+              <FeedbackDetailPageComponent
+                feedbackId={detailId}
+                onBack={() => {
+                  navigate({
+                    to: "/ward",
+                    search: { tab: "feedback" }
+                  });
+                }}
+              />
+            ) : (
+              <WardFeedbackManagementPage />
+            )
           ) : activeSection === "overview" ? (
             <>
               {/* Header Action Section */}
@@ -768,13 +828,19 @@ export function WardDashboard() {
               </div>
 
               {/* ─── KPI CARDS ─── */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 {[
                   {
                     title: "Tổng phản ánh",
                     val: totalCount,
                     bg: "bg-[#0b5ed7]/10 text-[#0b5ed7]",
                     icon: FileText,
+                  },
+                  {
+                    title: "Phản ánh hôm nay",
+                    val: todayFeedbacks.length,
+                    bg: "bg-blue-600/10 text-blue-600",
+                    icon: Clock,
                   },
                   {
                     title: "Chờ xử lý",
@@ -892,6 +958,7 @@ export function WardDashboard() {
                           showBoundary={false}
                           activeMarkerId={selectedFeedbackId || undefined}
                           layerType={mapLayerType}
+                          detailUrlTemplate="/ward?tab=feedback&detailId=:id"
                           onMarkerClick={(id) => {
                             setSelectedFeedbackId(Number(id));
                           }}
@@ -1212,8 +1279,8 @@ export function WardDashboard() {
                                   </td>
                                   <td className="px-5 py-3.5 text-right">
                                     <Link
-                                      to="/my-reports/$id"
-                                      params={{ id: String(row.id) }}
+                                      to="/ward"
+                                      search={{ tab: "feedback", detailId: String(row.id) }}
                                       className="inline-flex items-center justify-center px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-bold rounded-lg transition-colors border border-blue-200/50 cursor-pointer"
                                     >
                                       Xem chi tiết
@@ -1252,7 +1319,7 @@ export function WardDashboard() {
                         )}
                       </h4>
                       <p className="text-[10px] text-slate-400 font-medium mt-2">
-                        Phản ánh trong ngày {formatDateToDisplay(selectedDate)}
+                        {selectedDate ? `Phản ánh trong ngày ${formatDateToDisplay(selectedDate)}` : "Tất cả thời gian"}
                       </p>
                       <Link
                         to="/my-reports"
@@ -1272,14 +1339,18 @@ export function WardDashboard() {
                       <div className="flex items-center justify-between text-xs font-semibold text-slate-500">
                         <span className="flex items-center gap-2">
                           <FileText size={14} className="text-slate-400 shrink-0" />
-                          {isTodayDate(selectedDate) ? "Phản ánh mới hôm nay" : "Phản ánh mới trong ngày"}
+                          {selectedDate
+                            ? (isTodayDate(selectedDate) ? "Phản ánh mới hôm nay" : "Phản ánh mới trong ngày")
+                            : "Tổng số phản ánh mới"}
                         </span>
                         <span className="text-[#0B2545] font-extrabold font-sans">{quickInfo.newInDate}</span>
                       </div>
                       <div className="flex items-center justify-between text-xs font-semibold text-slate-500">
                         <span className="flex items-center gap-2">
                           <CheckCircle2 size={14} className="text-slate-400 shrink-0" />
-                          {isTodayDate(selectedDate) ? "Phản ánh đã xử lý hôm nay" : "Phản ánh đã xử lý trong ngày"}
+                          {selectedDate
+                            ? (isTodayDate(selectedDate) ? "Phản ánh đã xử lý hôm nay" : "Phản ánh đã xử lý trong ngày")
+                            : "Tổng phản ánh đã xử lý"}
                         </span>
                         <span className="text-[#0B2545] font-extrabold font-sans">{quickInfo.resolvedInDate}</span>
                       </div>
@@ -1309,6 +1380,126 @@ export function WardDashboard() {
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {/* ─── TODAY'S PENDING FEEDBACKS SECTION ─── */}
+              <div className="bg-white rounded-2xl border border-[#E4EAF2] shadow-sm p-5 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-2">
+                  <h3 className="font-extrabold text-base text-[#0B2545] flex items-center gap-2">
+                    Phản ánh hôm nay (Chờ xử lý)
+                    <span className="bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full text-xs font-bold font-sans">
+                      {todayFeedbacks.length}
+                    </span>
+                  </h3>
+                </div>
+                <div className="overflow-x-auto -mx-5">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-[#E4EAF2] bg-slate-50/50">
+                        <th className="px-5 py-2.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          Mã phản ánh
+                        </th>
+                        <th className="px-5 py-2.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          Nội dung
+                        </th>
+                        <th className="px-5 py-2.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          Lĩnh vực
+                        </th>
+                        <th className="px-5 py-2.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          Địa chỉ
+                        </th>
+                        <th className="px-5 py-2.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          Thời gian tạo
+                        </th>
+                        <th className="px-5 py-2.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          Trạng thái
+                        </th>
+                        <th className="px-5 py-2.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">
+                          Hành động
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#E4EAF2]">
+                      {todayFeedbacksLoading ? (
+                        [1, 2].map((i) => (
+                          <tr key={i} className="animate-pulse">
+                            <td className="px-5 py-3"><Skeleton className="h-3.5 w-16" /></td>
+                            <td className="px-5 py-3"><Skeleton className="h-3.5 w-36" /></td>
+                            <td className="px-5 py-3"><Skeleton className="h-3.5 w-24" /></td>
+                            <td className="px-5 py-3"><Skeleton className="h-3.5 w-24" /></td>
+                            <td className="px-5 py-3"><Skeleton className="h-3.5 w-16" /></td>
+                            <td className="px-5 py-3"><Skeleton className="h-5 w-12" /></td>
+                            <td className="px-5 py-3 text-right"><Skeleton className="h-6 w-16 inline-block" /></td>
+                          </tr>
+                        ))
+                      ) : todayFeedbacks.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="px-5 py-8 text-center text-xs text-slate-400">
+                            Hôm nay chưa có phản ánh mới chờ xử lý.
+                          </td>
+                        </tr>
+                      ) : (
+                        todayFeedbacks.map((row) => {
+                          const grp = getGroupedFeedbackStatus(row.status);
+                          return (
+                            <tr
+                              key={row.id}
+                              className="hover:bg-slate-50 transition-colors"
+                            >
+                              <td className="px-5 py-3.5 text-xs font-bold text-slate-800">
+                                {row.trackingCode}
+                              </td>
+                              <td className="px-5 py-3.5 text-xs text-slate-700 font-semibold max-w-[180px] truncate" title={row.title}>
+                                {row.title}
+                              </td>
+                              <td className="px-5 py-3.5 text-xs text-slate-600">
+                                {mapCategoryName(row.categoryName)}
+                              </td>
+                              <td className="px-5 py-3.5 text-xs text-slate-500 truncate max-w-[180px] font-sans" title={row.addressDetails || row.address || "Tân Bình"}>
+                                {row.addressDetails || row.address || "Tân Bình"}
+                              </td>
+                              <td className="px-5 py-3.5 text-xs text-slate-500 whitespace-nowrap font-sans">
+                                {formatDate(row.createdAt)}
+                              </td>
+                              <td className="px-5 py-3.5">
+                                {grp === "PENDING" ? (
+                                  <span className="px-2 py-0.5 text-[9px] font-extrabold rounded bg-blue-50 text-blue-700 border border-blue-100 whitespace-nowrap">
+                                    Chờ xử lý
+                                  </span>
+                                ) : grp === "IN_PROGRESS" ? (
+                                  <span className="px-2 py-0.5 text-[9px] font-extrabold rounded bg-yellow-50 text-yellow-700 border border-yellow-100 whitespace-nowrap">
+                                    Đang xử lý
+                                  </span>
+                                ) : grp === "RESOLVED" ? (
+                                  <span className="px-2 py-0.5 text-[9px] font-extrabold rounded bg-green-50 text-green-700 border border-green-100 whitespace-nowrap">
+                                    Đã xử lý
+                                  </span>
+                                ) : grp === "REJECTED" ? (
+                                  <span className="px-2 py-0.5 text-[9px] font-extrabold rounded bg-red-50 text-red-600 border border-red-100 whitespace-nowrap">
+                                    Đã từ chối
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 text-[9px] font-extrabold rounded bg-slate-50 text-slate-600 border border-slate-100 whitespace-nowrap">
+                                    Không xác định
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-5 py-3.5 text-right">
+                                <Link
+                                  to="/ward"
+                                  search={{ tab: "feedback", detailId: String(row.id) }}
+                                  className="inline-flex items-center justify-center px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-bold rounded-lg transition-colors border border-blue-200/50 cursor-pointer"
+                                >
+                                  Xem chi tiết
+                                </Link>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
 

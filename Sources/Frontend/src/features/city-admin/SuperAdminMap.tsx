@@ -67,7 +67,8 @@ export function SuperAdminMap({ hotspots, onSelectWard, selectedWard }: Props) {
         center={center}
         zoom={12}
         className="w-full h-full"
-        zoomControl={true}
+        zoomControl={false}
+        attributionControl={false}
         scrollWheelZoom={true}
       >
         <TileLayer

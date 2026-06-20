@@ -17,6 +17,8 @@ import { toast } from "sonner";
 import { getToken, type NotificationResponse } from "@/lib/api";
 import { useInfiniteNotifications, useMarkNotificationReadMutation } from "@/lib/hooks";
 import { useI18n } from "@/lib/i18n";
+import { useAuth, Role } from "@/lib/auth";
+
 
 export const Route = createFileRoute("/notifications")({
   beforeLoad: () => {
@@ -32,6 +34,7 @@ const PAGE_SIZE = 5;
 
 function NotificationsPage() {
   const { locale } = useI18n();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const [openingId, setOpeningId] = useState<number | null>(null);
@@ -87,7 +90,11 @@ function NotificationsPage() {
         return;
       }
 
-      await navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
+      if (user?.role === Role.WARD_STAFF) {
+        await navigate({ to: "/ward", search: { tab: "feedback", detailId: String(feedbackId) } });
+      } else {
+        await navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Update failed");
     } finally {

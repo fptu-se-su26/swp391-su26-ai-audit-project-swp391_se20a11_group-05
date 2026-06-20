@@ -87,10 +87,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         setUser(parsed);
 
-        // Fetch full profile info to get the full name
+        // Fetch full profile info to get the full name and wardId
         userApi.profile().then((profile) => {
-          if (profile && profile.fullName) {
-            const updated = { ...parsed, name: profile.fullName };
+          if (profile) {
+            const updated = {
+              ...parsed,
+              name: profile.fullName || parsed.name,
+              wardId: profile.wardId !== undefined ? profile.wardId : parsed.wardId,
+            };
             setUser(updated);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
           }
@@ -124,10 +128,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(u.token);
       }
     }
-    // Fetch profile to get full name
+    // Fetch profile to get full name and wardId
     userApi.profile().then((profile) => {
-      if (profile && profile.fullName) {
-        const updated = { ...u, name: profile.fullName };
+      if (profile) {
+        const updated = {
+          ...u,
+          name: profile.fullName || u.name,
+          wardId: profile.wardId !== undefined ? profile.wardId : u.wardId,
+        };
         setUser(updated);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       }

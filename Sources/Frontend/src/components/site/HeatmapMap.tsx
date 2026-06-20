@@ -151,7 +151,7 @@ export function HeatmapMap({ hotspots }: HeatmapMapProps) {
         </div>
       )}
 
-      <MapContainer center={center} zoom={13} style={{ height: "100%", width: "100%" }} zoomControl={false}>
+      <MapContainer center={center} zoom={13} style={{ height: "100%", width: "100%" }} zoomControl={false} attributionControl={false}>
         {/* Lớp nền Bản đồ sáng màu (tương tự Grab) để làm nổi bật ô màu */}
         <TileLayer
           url="https://mt1.google.com/vt/lyrs=m&hl=vi&gl=VN&x={x}&y={y}&z={z}"

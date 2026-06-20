@@ -175,7 +175,8 @@ export function ReportMap({
         className="w-full h-full"
         scrollWheelZoom={true}
         dragging={true}
-        zoomControl={true}
+        zoomControl={false}
+        attributionControl={false}
       >
         <MapViewUpdaterInner center={mapCenter} hasLocation={hasLocation} useMap={useMap} />
         <MapEventsHandler useMapEvents={useMapEvents} onChangeLocation={onChangeLocation} />

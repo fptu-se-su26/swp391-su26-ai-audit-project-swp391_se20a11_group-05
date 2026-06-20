@@ -11,6 +11,13 @@ import { Role } from "@/lib/roles";
 import { WardDashboard } from "@/features/ward/WardDashboard";
 
 export const Route = createFileRoute("/_auth/ward")({
+  validateSearch: (search: Record<string, unknown>): {
+    tab?: string;
+    detailId?: string;
+  } => ({
+    tab: search.tab as string | undefined,
+    detailId: search.detailId as string | undefined,
+  }),
   beforeLoad: ({ context }) => {
     const { currentUser } = context as {
       currentUser?: {

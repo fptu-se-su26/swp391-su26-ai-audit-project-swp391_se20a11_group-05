@@ -30,7 +30,9 @@ interface Props {
   layerType?: "osm" | "satellite";
   onLayerTypeChange?: (layer: "osm" | "satellite") => void;
   onShowBoundaryChange?: (show: boolean) => void;
+  detailUrlTemplate?: string;
 }
+
 
 // Custom Leaflet circular marker generator passed L dynamically
 function getMarkerIcon(L: any, status: string | undefined, zoom: number) {
@@ -150,6 +152,7 @@ export function CivicMap({
   layerType: propLayerType,
   onLayerTypeChange,
   onShowBoundaryChange,
+  detailUrlTemplate,
 }: Props) {
   // Dynamic import: Leaflet requires `window` at module-load time,
   // so we lazy-load react-leaflet and leaflet only on the client.
@@ -329,7 +332,7 @@ export function CivicMap({
         center={center}
         zoom={zoom}
         className="w-full h-full"
-        zoomControl={interactive}
+        zoomControl={false}
         dragging={interactive}
         scrollWheelZoom={interactive}
         attributionControl={false}
@@ -441,7 +444,7 @@ export function CivicMap({
                   </div>
                   <div className="mt-2.5 pt-1.5 border-t border-slate-100 flex justify-end">
                     <a
-                      href={`/my-reports/${m.id}`}
+                      href={detailUrlTemplate ? detailUrlTemplate.replace(":id", String(m.id)) : `/my-reports/${m.id}`}
                       className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[10px] font-semibold text-center no-underline transition-colors block"
                       style={{ color: 'white' }}
                     >

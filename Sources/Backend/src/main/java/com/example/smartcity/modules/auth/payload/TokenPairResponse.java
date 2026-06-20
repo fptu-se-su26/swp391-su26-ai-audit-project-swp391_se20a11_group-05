@@ -25,4 +25,5 @@ public class TokenPairResponse {
     private String wardName;
     private String wardType;
     private String org;
+    private Long wardId;
 }

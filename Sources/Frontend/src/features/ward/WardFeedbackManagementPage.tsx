@@ -6,7 +6,7 @@ import { Role } from "@/lib/roles";
 import { useCategories, useFeedbacks } from "@/lib/hooks";
 import { feedbackApi, wardApi, type FeedbackListFilters, type FeedbackStatus } from "@/lib/api";
 import { OFFICIAL_CATEGORIES } from "@/lib/categoryConfig";
-import { FeedbackDetailModal } from "@/features/city-admin/pages/FeedbackDetailModal";
+import { Link } from "@tanstack/react-router";
 
 const WARD_STAFF_CATEGORY_CODES = ["URBAN_INFRASTRUCTURE", "ENVIRONMENT", "CONSTRUCTION"];
 
@@ -16,10 +16,10 @@ const STATUS_TABS: Array<{
   countKey: "total" | "pending" | "inProgress" | "resolved" | "rejected";
 }> = [
   { key: "ALL", label: "Tất cả", countKey: "total" },
-  { key: "PENDING", label: "Chờ xử lý", countKey: "pending" },
+  { key: "PENDING", label: "Đang chờ xử lý", countKey: "pending" },
   { key: "IN_PROGRESS", label: "Đang xử lý", countKey: "inProgress" },
   { key: "RESOLVED", label: "Đã xử lý", countKey: "resolved" },
-  { key: "REJECTED", label: "Đã từ chối", countKey: "rejected" },
+  { key: "REJECTED", label: "Từ chối xử lý", countKey: "rejected" },
 ];
 
 const PRIORITY_OPTIONS = [
@@ -43,7 +43,6 @@ export function WardFeedbackManagementPage() {
   const [toDateDraft, setToDateDraft] = useState("");
   const [wardDraft, setWardDraft] = useState<string>(() => isWardStaff && user?.wardId ? String(user.wardId) : "");
   const [activeTab, setActiveTab] = useState<"ALL" | FeedbackStatus>("ALL");
-  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [filters, setFilters] = useState<FeedbackListFilters>(() => ({
     wardId: isWardStaff ? user?.wardId || undefined : undefined,
     categories: isWardStaff ? WARD_STAFF_CATEGORY_CODES.join(",") : undefined,
@@ -166,10 +165,12 @@ export function WardFeedbackManagementPage() {
           <FilterField label="Trạng thái">
             <Select value={statusDraft} onChange={(event) => setStatusDraft(event.target.value as FeedbackStatus | "")}>
               <option value="">Tất cả</option>
-              <option value="PENDING">Chờ xử lý</option>
+              <option value="PENDING_RECEIVE">Chờ tiếp nhận</option>
+              <option value="PENDING">Đang chờ xử lý</option>
               <option value="IN_PROGRESS">Đang xử lý</option>
+              <option value="WAITING_INFO">Yêu cầu bổ sung thông tin</option>
               <option value="RESOLVED">Đã xử lý</option>
-              <option value="REJECTED">Đã từ chối</option>
+              <option value="REJECTED">Từ chối xử lý</option>
             </Select>
           </FilterField>
           <FilterField label="Lĩnh vực">
@@ -270,9 +271,13 @@ export function WardFeedbackManagementPage() {
                     <td className="px-3 py-3"><StatusBadge status={feedback.status} /></td>
                     <td className="px-3 py-3">{formatDateTime(feedback.submittedAt || feedback.createdAt)}</td>
                     <td className="px-3 py-3">
-                      <button type="button" onClick={() => setSelectedId(feedback.id)} className="rounded-md border border-[#CBD7E6] px-3 py-2 text-xs font-bold text-[#0B5CE7] hover:bg-blue-50">
-                        Xem
-                      </button>
+                      <Link
+                        to="/ward"
+                        search={{ tab: "feedback", detailId: String(feedback.id) }}
+                        className="inline-flex rounded-md border border-[#CBD7E6] px-3 py-2 text-xs font-bold text-[#0B5CE7] hover:bg-blue-50 cursor-pointer"
+                      >
+                        Xem chi tiết
+                      </Link>
                     </td>
                   </tr>
                 ))
@@ -300,7 +305,6 @@ export function WardFeedbackManagementPage() {
           </div>
         </div>
       </div>
-      <FeedbackDetailModal feedbackId={selectedId} onClose={() => setSelectedId(null)} />
     </div>
   );
 }
@@ -357,12 +361,39 @@ function PriorityBadge({ value }: { value?: string | null }) {
 }
 
 function getOfficerStatusInfo(status: string) {
-  if (status === "RESOLVED") return { label: "Đã xử lý", className: "bg-green-50 text-green-700" };
-  if (status === "REJECTED") return { label: "Đã từ chối", className: "bg-red-50 text-red-700" };
-  if (["IN_PROGRESS", "ASSIGNED", "WAITING_INFO", "NEED_LOCATION_REVIEW"].includes(status)) {
-    return { label: "Đang xử lý", className: "bg-blue-50 text-blue-700" };
+  const upper = (status || "").toUpperCase();
+  if (upper === "RESOLVED") {
+    return { label: "Đã xử lý", className: "bg-green-50 text-green-700 border-green-200" };
   }
-  return { label: "Chờ xử lý", className: "bg-orange-50 text-orange-700" };
+  if (upper === "REJECTED") {
+    return { label: "Từ chối xử lý", className: "bg-red-50 text-red-700 border-red-200" };
+  }
+  if (upper === "SUBMITTED") {
+    return { label: "Đã gửi", className: "bg-slate-100 text-slate-700 border-slate-200" };
+  }
+  if (upper === "PENDING_RECEIVE") {
+    return { label: "Chờ tiếp nhận", className: "bg-orange-50 text-orange-700 border-orange-200" };
+  }
+  if (upper === "WAITING_INFO" || upper === "NEED_MORE_INFO") {
+    return { label: "Yêu cầu bổ sung thông tin", className: "bg-amber-50 text-amber-700 border-amber-200" };
+  }
+  if (upper === "TRANSFERRED") {
+    return { label: "Đã chuyển xử lý", className: "bg-purple-50 text-purple-700 border-purple-200" };
+  }
+  if (upper === "PENDING") {
+    return { label: "Đang chờ xử lý", className: "bg-sky-50 text-sky-700 border-sky-200" };
+  }
+  if (upper === "ASSIGNED") {
+    return { label: "Đã phân công", className: "bg-teal-50 text-teal-700 border-teal-200" };
+  }
+  if (upper === "NEED_LOCATION_REVIEW") {
+    return { label: "Cần xác minh vị trí", className: "bg-pink-50 text-pink-700 border-pink-200" };
+  }
+  if (upper === "PRE_EMPTIVE") {
+    return { label: "Xử lý trước", className: "bg-violet-50 text-violet-700 border-violet-200" };
+  }
+  // Default for IN_PROGRESS and fallback
+  return { label: "Đang xử lý", className: "bg-blue-50 text-blue-700 border-blue-200" };
 }
 
 function officialCategoryName(code: string) {

@@ -27,18 +27,14 @@ export function getGroupedFeedbackStatus(status: string | undefined): "PENDING" 
     case "PENDING":
     case "PRE_EMPTIVE":
       return "PENDING";
-    case "NEED_MORE_INFO":
-    case "ACCEPTED":
-    case "IN_PROGRESS":
-    case "TRANSFERRED":
-    case "WAITING_INFO":
+    case "NEED_LOCATION_REVIEW":
     case "ASSIGNED":
+    case "IN_PROGRESS":
+    case "WAITING_INFO":
       return "IN_PROGRESS";
     case "RESOLVED":
-    case "COMPLETED":
       return "RESOLVED";
     case "REJECTED":
-    case "DECLINED":
       return "REJECTED";
     default:
       return "UNKNOWN";

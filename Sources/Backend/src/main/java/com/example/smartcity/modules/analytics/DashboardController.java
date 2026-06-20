@@ -41,9 +41,15 @@ public class DashboardController {
             wardId = user.getWard().getId();
         }
 
-        LocalDate targetDate = date != null ? date : LocalDate.now();
-        LocalDateTime start = targetDate.atStartOfDay();
-        LocalDateTime end = targetDate.plusDays(1).atStartOfDay();
+        LocalDateTime start;
+        LocalDateTime end;
+        if (date != null) {
+            start = date.atStartOfDay();
+            end = date.plusDays(1).atStartOfDay();
+        } else {
+            start = LocalDate.of(1970, 1, 1).atStartOfDay();
+            end = LocalDate.of(9999, 12, 31).atStartOfDay();
+        }
 
         List<Object[]> rawCounts = feedbackRepository.countWardStaffFeedbackByStatusAndDateRange(start, end, wardId);
 
@@ -61,11 +67,11 @@ public class DashboardController {
             String statusName = status.name();
             if (statusName.equals("SUBMITTED") || statusName.equals("PENDING_RECEIVE") || statusName.equals("PENDING") || statusName.equals("PRE_EMPTIVE")) {
                 pending += count;
-            } else if (statusName.equals("IN_PROGRESS") || statusName.equals("WAITING_INFO") || statusName.equals("NEED_MORE_INFO") || statusName.equals("ACCEPTED") || statusName.equals("TRANSFERRED") || statusName.equals("ASSIGNED")) {
+            } else if (statusName.equals("NEED_LOCATION_REVIEW") || statusName.equals("ASSIGNED") || statusName.equals("IN_PROGRESS") || statusName.equals("WAITING_INFO")) {
                 inProgress += count;
-            } else if (statusName.equals("RESOLVED") || statusName.equals("COMPLETED")) {
+            } else if (statusName.equals("RESOLVED")) {
                 resolved += count;
-            } else if (statusName.equals("REJECTED") || statusName.equals("DECLINED")) {
+            } else if (statusName.equals("REJECTED")) {
                 rejected += count;
             }
         }

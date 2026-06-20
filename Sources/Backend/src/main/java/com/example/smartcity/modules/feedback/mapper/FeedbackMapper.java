@@ -23,6 +23,9 @@ public abstract class FeedbackMapper implements BaseMapper<Feedback, FeedbackRes
     @Mapping(target = "category", source = "categoryName")
     @Mapping(target = "wardId", source = "ward.id")
     @Mapping(target = "citizenName", source = "citizen.fullName")
+    @Mapping(target = "citizenPhone", source = "citizen.phoneNumber")
+    @Mapping(target = "citizenEmail", source = "citizen.email")
+    @Mapping(target = "citizenId", source = "citizen.id")
     @Mapping(target = "assigneeName", source = "assignee.fullName")
     @Mapping(target = "attachments", ignore = true)
     public abstract FeedbackResponse toDto(Feedback entity);

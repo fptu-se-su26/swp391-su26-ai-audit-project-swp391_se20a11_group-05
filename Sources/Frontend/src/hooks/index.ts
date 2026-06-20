@@ -117,9 +117,9 @@ export function usePublicFeedbackStatistics(filters: FeedbackListFilters = {}) {
   });
 }
 
-export function useWardStaffStatistics(date: string) {
+export function useWardStaffStatistics(date?: string) {
   return useQuery<FeedbackLookupStatsResponse>({
-    queryKey: ["ward-staff-dashboard-statistics", date],
+    queryKey: ["ward-staff-dashboard-statistics", date || "all"],
     queryFn: () => feedbackApi.getWardStaffStatistics(date),
     staleTime: 30_000,
   });
@@ -175,12 +175,22 @@ export function useChangeFeedbackStatus() {
   return useMutation<
     FeedbackResponse,
     Error,
-    { id: number | string; status: string; note?: string }
+    {
+      id: number | string;
+      status: string;
+      note?: string;
+      requestMessage?: string;
+      responseDeadline?: string;
+      sendNotification?: boolean;
+    }
   >({
-    mutationFn: ({ id, status, note }) => feedbackApi.changeStatus(id, status, note),
+    mutationFn: ({ id, status, note, requestMessage, responseDeadline, sendNotification }) =>
+      feedbackApi.changeStatus(id, status, note, requestMessage, responseDeadline, sendNotification),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["ward-staff-dashboard-statistics"] });
+      queryClient.invalidateQueries({ queryKey: ["feedbacks", "hotspots"] });
     },
   });
 }

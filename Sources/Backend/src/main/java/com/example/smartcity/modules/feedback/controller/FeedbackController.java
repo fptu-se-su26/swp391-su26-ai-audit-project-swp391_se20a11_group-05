@@ -281,7 +281,14 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
             @PathVariable Long id,
             @Valid @RequestBody StatusChangeRequest request,
             Authentication authentication) {
-        Feedback updated = feedbackService.changeStatus(id, request.getStatus(), request.getNote(), authentication.getName());
+        Feedback updated = feedbackService.changeStatus(
+                id,
+                request.getStatus(),
+                request.getNote(),
+                request.getRequestMessage(),
+                request.getResponseDeadline(),
+                Boolean.TRUE.equals(request.getSendNotification()),
+                authentication.getName());
         return ResponseEntity.ok(feedbackMapper.toDto(updated));
     }
 

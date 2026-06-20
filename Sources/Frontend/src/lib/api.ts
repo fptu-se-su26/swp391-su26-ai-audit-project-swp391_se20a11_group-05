@@ -588,14 +588,23 @@ export const feedbackApi = {
       body: JSON.stringify(data),
     }),
 
-  getWardStaffStatistics: (date: string) =>
-    request<FeedbackLookupStatsResponse>(`/api/dashboard/ward-staff/statistics?date=${date}`),
+  getWardStaffStatistics: (date?: string) =>
+    request<FeedbackLookupStatsResponse>(
+      date ? `/api/dashboard/ward-staff/statistics?date=${date}` : "/api/dashboard/ward-staff/statistics"
+    ),
 
   // New: state machine endpoints
-  changeStatus: (id: number | string, status: string, note?: string) =>
+  changeStatus: (
+    id: number | string,
+    status: string,
+    note?: string,
+    requestMessage?: string,
+    responseDeadline?: string,
+    sendNotification?: boolean,
+  ) =>
     request<FeedbackResponse>(`/api/feedbacks/${id}/status`, {
       method: "PATCH",
-      body: JSON.stringify({ status, note }),
+      body: JSON.stringify({ status, note, requestMessage, responseDeadline, sendNotification }),
     }),
 
   assignFeedback: (id: number | string, assigneeId: number) =>
@@ -870,6 +879,17 @@ export const campaignApi = {
     request<CampaignResponse>("/api/campaigns", {
       method: "POST",
       body: JSON.stringify(data),
+    }),
+
+  update: (id: number | string, data: CampaignCreateRequest) =>
+    request<CampaignResponse>(`/api/campaigns/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  delete: (id: number | string) =>
+    request<void>(`/api/campaigns/${id}`, {
+      method: "DELETE",
     }),
 
   approve: (id: number | string) =>

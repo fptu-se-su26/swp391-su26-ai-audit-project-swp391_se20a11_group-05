@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { WARD_BOUNDARIES } from "@/lib/geojson";
 import type { Campaign } from "@/lib/campaignStore";
+import { useAuth } from "@/lib/auth";
 
 interface Props {
   height?: string;
@@ -100,6 +101,7 @@ function MapController({
   useMap: () => any;
 }) {
   const map = useMap();
+  const hasFittedRef = useRef(false);
 
   useEffect(() => {
     if (activeCampaign) {
@@ -110,7 +112,7 @@ function MapController({
       if (activeCampaign.boundaryGeojson) {
         try {
           boundaryLayer = JSON.parse(activeCampaign.boundaryGeojson);
-        } catch {}
+        } catch { }
       }
       if (!boundaryLayer && activeCampaign.ward && WARD_BOUNDARIES[activeCampaign.ward]) {
         boundaryLayer = WARD_BOUNDARIES[activeCampaign.ward];
@@ -130,7 +132,7 @@ function MapController({
       }
 
       map.flyTo(pos, 15, { animate: true });
-    } else if (campaigns.length > 0 && L) {
+    } else if (campaigns.length > 0 && L && !hasFittedRef.current) {
       try {
         const points = campaigns
           .map(resolveCampaignLatLng)
@@ -140,6 +142,7 @@ function MapController({
           const bounds = L.latLngBounds(points);
           if (bounds.isValid()) {
             map.fitBounds(bounds, { padding: [60, 60] });
+            hasFittedRef.current = true;
           }
         }
       } catch (e) {
@@ -172,6 +175,16 @@ export function CampaignMap({
   const [layerType, setLayerType] = useState<"osm" | "satellite">("osm");
   const [isLayersOpen, setIsLayersOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const { user } = useAuth();
+  const [viewMode, setViewMode] = useState<"city" | "managed">("city");
+
+  const filteredCampaigns = useMemo(() => {
+    if (viewMode === "city" || !user?.wardId) {
+      return campaigns;
+    }
+    return campaigns.filter((c) => String(c.wardId) === String(user.wardId));
+  }, [campaigns, viewMode, user]);
 
   useEffect(() => {
     let cancelled = false;
@@ -264,11 +277,10 @@ export function CampaignMap({
                   setLayerType("osm");
                   setIsLayersOpen(false);
                 }}
-                className={`w-full text-left px-4 py-2 text-xs transition flex items-center gap-2 ${
-                  layerType === "osm"
-                    ? "bg-blue-50 text-blue-600 font-extrabold"
-                    : "text-slate-700 hover:bg-slate-50 font-semibold"
-                }`}
+                className={`w-full text-left px-4 py-2 text-xs transition flex items-center gap-2 ${layerType === "osm"
+                  ? "bg-blue-50 text-blue-600 font-extrabold"
+                  : "text-slate-700 hover:bg-slate-50 font-semibold"
+                  }`}
               >
                 🗺️ Bản đồ đường phố
               </button>
@@ -278,11 +290,10 @@ export function CampaignMap({
                   setLayerType("satellite");
                   setIsLayersOpen(false);
                 }}
-                className={`w-full text-left px-4 py-2 text-xs transition flex items-center gap-2 ${
-                  layerType === "satellite"
-                    ? "bg-blue-50 text-blue-600 font-extrabold"
-                    : "text-slate-700 hover:bg-slate-50 font-semibold"
-                }`}
+                className={`w-full text-left px-4 py-2 text-xs transition flex items-center gap-2 ${layerType === "satellite"
+                  ? "bg-blue-50 text-blue-600 font-extrabold"
+                  : "text-slate-700 hover:bg-slate-50 font-semibold"
+                  }`}
               >
                 🛰️ Bản đồ vệ tinh
               </button>
@@ -296,69 +307,42 @@ export function CampaignMap({
           center={defaultCenter}
           zoom={13}
           className="w-full h-full"
-          zoomControl={true}
+          zoomControl={false}
+          attributionControl={false}
         >
           <TileLayer url={layers[layerType].url} attribution={layers[layerType].attribution} />
 
-          <MapController activeCampaign={activeCampaign} campaigns={campaigns} L={L} useMap={useMap} />
+           <MapController activeCampaign={activeCampaign} campaigns={filteredCampaigns} L={L} useMap={useMap} />
 
-          {/* Render Boundaries / Circles for active campaign */}
+          {/* Render 100m radius range circle for active campaign */}
           {showBoundary &&
-            campaigns.map((c) => {
+            filteredCampaigns.map((c) => {
               const pos = resolveCampaignLatLng(c);
               if (!pos) return null;
 
               const isCurrent = activeCampaign?.id === c.id;
 
               // If active campaign is specified, we render boundary only for the active one to avoid clutter.
-              // If no active campaign, render circles or polygons for all of them.
               if (activeCampaign && !isCurrent) return null;
 
-              let boundaryData = null;
-              if (c.boundaryGeojson) {
-                try {
-                  boundaryData = JSON.parse(c.boundaryGeojson);
-                } catch {}
-              }
-              if (!boundaryData && c.ward && WARD_BOUNDARIES[c.ward]) {
-                boundaryData = WARD_BOUNDARIES[c.ward];
-              }
-
-              if (boundaryData) {
-                return (
-                  <GeoJSON
-                    key={`boundary-${c.id}`}
-                    data={boundaryData}
-                    pathOptions={{
-                      color: isCurrent ? "#7C3AED" : "#1E5EFF",
-                      weight: isCurrent ? 2.5 : 1.5,
-                      fillColor: isCurrent ? "#7C3AED" : "#1E5EFF",
-                      fillOpacity: isCurrent ? 0.08 : 0.03,
-                      dashArray: isCurrent ? undefined : "5, 5",
-                    }}
-                  />
-                );
-              }
-
-              // Fallback to circle
+              // Draw a 100m radius circle around the campaign location
               return (
                 <Circle
                   key={`circle-${c.id}`}
                   center={pos}
-                  radius={750}
+                  radius={200}
                   pathOptions={{
                     color: isCurrent ? "#7C3AED" : "#1E5EFF",
-                    weight: isCurrent ? 2 : 1.2,
+                    weight: isCurrent ? 2.5 : 1.5,
                     fillColor: isCurrent ? "#7C3AED" : "#1E5EFF",
-                    fillOpacity: isCurrent ? 0.06 : 0.02,
-                    dashArray: "4, 4",
+                    fillOpacity: isCurrent ? 0.12 : 0.06,
                   }}
                 />
               );
             })}
 
           {/* Markers */}
-          {campaigns.map((c) => {
+          {filteredCampaigns.map((c) => {
             const pos = resolveCampaignLatLng(c);
             if (!pos) return null;
 
@@ -380,13 +364,12 @@ export function CampaignMap({
                   <div className="p-2 max-w-[240px]">
                     <div className="flex items-center gap-1.5 mb-1">
                       <span
-                        className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider ${
-                          c.status === "completed"
-                            ? "bg-green-100 text-green-700"
-                            : c.status === "recruiting"
-                              ? "bg-amber-100 text-amber-700"
-                              : "bg-blue-100 text-[#1E5EFF]"
-                        }`}
+                        className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider ${c.status === "completed"
+                          ? "bg-green-100 text-green-700"
+                          : c.status === "recruiting"
+                            ? "bg-amber-100 text-amber-700"
+                            : "bg-blue-100 text-[#1E5EFF]"
+                          }`}
                       >
                         {c.status === "completed"
                           ? "Hoàn thành"
@@ -420,8 +403,43 @@ export function CampaignMap({
       </div>
 
       {/* Map Legend Footer */}
-      <div className="p-4 border-t border-[#E4EAF2] bg-slate-50/50 flex flex-wrap items-center justify-between gap-4 text-xs font-semibold text-slate-600">
-        <div className="flex flex-wrap items-center gap-4">
+      <div className="p-4 border-t border-[#E4EAF2] bg-slate-50/50 space-y-4">
+        {/* Segmented Control Tab Switcher */}
+        <div className="flex border border-slate-200 rounded-xl p-1 bg-white max-w-md shadow-sm">
+          <button
+            type="button"
+            onClick={() => setViewMode("city")}
+            className={`flex-1 py-2 text-center text-[11px] font-black rounded-lg transition-all ${
+              viewMode === "city"
+                ? "bg-[#0F5BD8] text-white shadow-sm"
+                : "text-slate-600 hover:text-slate-800 hover:bg-slate-50"
+            }`}
+          >
+            Chiến dịch của thành phố
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("managed")}
+            className={`flex-1 py-2 text-center text-[11px] font-black rounded-lg transition-all ${
+              viewMode === "managed"
+                ? "bg-[#0F5BD8] text-white shadow-sm"
+                : "text-slate-600 hover:text-slate-800 hover:bg-slate-50"
+            }`}
+          >
+            Chiến dịch đang quản lý
+          </button>
+        </div>
+
+        {/* Empty State Warning */}
+        {viewMode === "managed" && filteredCampaigns.length === 0 && (
+          <div className="p-4 bg-amber-50/70 border border-amber-200/60 rounded-xl text-xs font-bold text-amber-800 flex items-center gap-2">
+            <span>⚠️</span>
+            <span>Bạn hiện chưa quản lý chiến dịch nào thuộc phường/xã của mình.</span>
+          </div>
+        )}
+
+        {/* Legend */}
+        <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-600">
           <div className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-full bg-[#F59E0B] border border-white shadow-sm" />
             <span>Đang tuyển thành viên</span>

@@ -90,6 +90,7 @@ function mapResponseToCampaign(response: CampaignResponse): Campaign {
     coverImageUrl: response.coverImageUrl ?? undefined,
     latitude: response.latitude ?? null,
     longitude: response.longitude ?? null,
+    wardId: response.wardId,
   } as Campaign;
 }
 
@@ -235,6 +236,16 @@ export function useApproveCampaign() {
   const queryClient = useQueryClient();
   return useMutation<CampaignResponse, Error, string | number>({
     mutationFn: (id) => campaignApi.approve(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+    },
+  });
+}
+
+export function useDeleteCampaign() {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, string | number>({
+    mutationFn: (id) => campaignApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["campaigns"] });
     },

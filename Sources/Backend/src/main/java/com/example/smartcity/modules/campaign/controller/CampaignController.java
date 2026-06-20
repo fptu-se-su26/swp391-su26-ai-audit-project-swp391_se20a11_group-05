@@ -23,6 +23,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -172,6 +173,24 @@ public class CampaignController {
                 request,
                 principal != null ? principal.getName() : null);
         messagingTemplate.convertAndSend("/topic/campaigns/" + campaignId + "/chat", response);
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('WARD_STAFF')")
+    public ResponseEntity<CampaignResponse> update(
+            @PathVariable Long id,
+            @Valid @RequestBody CampaignRequest request,
+            Authentication authentication) {
+        return ResponseEntity.ok(campaignService.update(id, request, authentication.getName()));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('WARD_STAFF')")
+    public ResponseEntity<Void> delete(
+            @PathVariable Long id,
+            Authentication authentication) {
+        campaignService.delete(id, authentication.getName());
+        return ResponseEntity.noContent().build();
     }
 
     private String username(Authentication authentication) {

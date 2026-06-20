@@ -69,7 +69,7 @@ public class CampaignServiceImpl implements CampaignService {
         Page<Campaign> campaigns;
         if (currentUser == null) {
             campaigns = campaignRepository.findPublicVisibleCampaigns(normalizedStatus, pageable);
-        } else if (currentUser.getRole() == Role.SUPER_ADMIN) {
+        } else if (currentUser.getRole() == Role.SUPER_ADMIN || currentUser.getRole() == Role.WARD_STAFF) {
             campaigns = campaignRepository.findByOptionalStatus(normalizedStatus, pageable);
         } else {
             campaigns = campaignRepository.findVisibleCampaignsForUser(normalizedStatus, currentUser.getId(), pageable);
@@ -356,6 +356,40 @@ public class CampaignServiceImpl implements CampaignService {
                 .orElse(false);
     }
 
+    @Override
+    @Transactional
+    public CampaignResponse update(Long id, CampaignRequest request, String username) {
+        User user = requireUser(username);
+        Campaign campaign = getCampaign(id);
+        assertCanManage(campaign, user);
+
+        campaign.setTitle(request.getTitle());
+        campaign.setDescription(request.getDescription());
+        campaign.setCategory(blankToNull(request.getCategory()));
+        campaign.setLocationText(request.getLocationText());
+        campaign.setPrivateLocationText(request.getPrivateLocationText());
+        campaign.setRequiredTools(request.getRequiredTools());
+        campaign.setOrganizerContact(request.getOrganizerContact());
+        campaign.setLatitude(request.getLatitude());
+        campaign.setLongitude(request.getLongitude());
+        campaign.setMaxParticipants(request.getMaxParticipants());
+        campaign.setStartTime(request.getStartTime());
+        campaign.setEndTime(request.getEndTime());
+        campaign.setBoundaryGeojson(request.getBoundaryGeojson());
+        campaign.setCoverImageUrl(request.getCoverImageUrl());
+
+        return toResponse(campaignRepository.save(campaign), user);
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long id, String username) {
+        User user = requireUser(username);
+        Campaign campaign = getCampaign(id);
+        assertCanManage(campaign, user);
+        campaignRepository.delete(campaign);
+    }
+
     private CampaignResponse toResponse(Campaign campaign, User currentUser) {
         long participantCount = participantRepository.countByCampaign_IdAndJoinStatus(campaign.getId(), JOIN_APPROVED);
         Optional<CampaignParticipant> currentParticipant = currentUser == null
@@ -485,14 +519,6 @@ public class CampaignServiceImpl implements CampaignService {
     }
 
     private Ward resolveWard(CampaignRequest request, User creator) {
-        if (request.getWardId() != null) {
-            Ward ward = wardRepository.findById(request.getWardId())
-                    .orElseThrow(() -> new CustomException("Ward not found", HttpStatus.NOT_FOUND.value()));
-            if (creator.getWard() != null && !creator.getWard().getId().equals(ward.getId())) {
-                throw new CustomException("Ward staff can only create campaigns for their ward", HttpStatus.FORBIDDEN.value());
-            }
-            return ward;
-        }
         if (creator.getWard() == null) {
             throw new CustomException("Ward staff account is not assigned to a ward", HttpStatus.CONFLICT.value());
         }
@@ -501,7 +527,7 @@ public class CampaignServiceImpl implements CampaignService {
 
     private void assertCanViewCampaign(Campaign campaign, User user) {
         if (STATUS_PENDING_APPROVAL.equals(campaign.getStatus())
-                && (user == null || (!canManage(campaign, user) && user.getRole() != Role.SUPER_ADMIN))) {
+                && (user == null || (!canManage(campaign, user) && user.getRole() != Role.SUPER_ADMIN && user.getRole() != Role.WARD_STAFF))) {
             throw new CustomException("Campaign not found", HttpStatus.NOT_FOUND.value());
         }
     }
@@ -527,7 +553,10 @@ public class CampaignServiceImpl implements CampaignService {
     private boolean canManage(Campaign campaign, User user) {
         return user != null
                 && (user.getRole() == Role.SUPER_ADMIN
-                || (user.getRole() == Role.WARD_STAFF && campaign.getCreatedByUser().getId().equals(user.getId())));
+                || (user.getRole() == Role.WARD_STAFF
+                    && campaign.getWard() != null
+                    && user.getWard() != null
+                    && campaign.getWard().getId().equals(user.getWard().getId())));
     }
 
     private boolean canViewPrivateDetails(Campaign campaign, User user) {

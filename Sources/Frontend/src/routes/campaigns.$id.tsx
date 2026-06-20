@@ -65,6 +65,8 @@ function CampaignDetailPage() {
   const joinCampaign = useJoinCampaign();
   const approveCampaign = useApproveCampaign();
 
+  const isUnauthorizedOfficer = user?.role === "WARD_STAFF" && campaign && !campaign.canManage;
+
   if (isGroupChatRoute) {
     return <Outlet />;
   }
@@ -112,7 +114,14 @@ function CampaignDetailPage() {
             <ArrowLeft size={16} />
             Chiến dịch
           </Link>
-          <StatusBadge status={campaign.status} />
+          <div className="flex items-center gap-2">
+            {user?.role === "WARD_STAFF" && !campaign.canManage && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-black text-slate-500 shadow-sm uppercase tracking-wide">
+                Chỉ xem
+              </span>
+            )}
+            <StatusBadge status={campaign.status} />
+          </div>
         </div>
 
         <section className="grid gap-6 lg:grid-cols-[minmax(0,65fr)_minmax(320px,35fr)]">
@@ -200,10 +209,10 @@ function CampaignDetailPage() {
 
             <section className="rounded-2xl border border-violet-100 bg-white p-6 shadow-lg">
               <h2 className="mb-4 text-sm font-black uppercase tracking-wider text-slate-500">Hành động</h2>
-              {campaign.status === "recruiting" && (
+              {campaign.status === "recruiting" && user?.role !== "WARD_STAFF" && (
                 <button
                   onClick={handleJoin}
-                  disabled={joinCampaign.isPending || !campaign.canJoin}
+                  disabled={joinCampaign.isPending || !campaign.canJoin || isUnauthorizedOfficer}
                   className="h-12 w-full rounded-xl bg-[#7C3AED] text-sm font-black text-white shadow-md transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {campaign.currentUserJoinStatus === "PENDING" ? "Đang chờ duyệt" : "Đăng ký tham gia"}
@@ -370,6 +379,8 @@ function MapPanel({ campaign }: { campaign: Campaign }) {
   );
 }
 function DiscussionPanel({ campaign }: { campaign: Campaign }) {
+  const { user } = useAuth();
+  const isUnauthorizedOfficer = user?.role === "WARD_STAFF" && !campaign.canManage;
   const comments = useCampaignComments(campaign.id);
   const [commentText, setCommentText] = useState("");
   const fallbackComments = [
@@ -407,7 +418,7 @@ function DiscussionPanel({ campaign }: { campaign: Campaign }) {
           </div>
         ))}
       </div>
-      {campaign.canComment && (
+      {campaign.canComment && !isUnauthorizedOfficer && (
         <Composer
           value={commentText}
           onChange={setCommentText}
@@ -421,6 +432,12 @@ function DiscussionPanel({ campaign }: { campaign: Campaign }) {
 }
 
 function GroupChatNavigationCard({ campaign, approvedStatus }: { campaign: Campaign; approvedStatus: boolean }) {
+  const { user } = useAuth();
+  const isUnauthorizedOfficer = user?.role === "WARD_STAFF" && !campaign.canManage;
+  if (isUnauthorizedOfficer || !campaign.privateDetailsVisible) {
+    return null;
+  }
+
   const chat = useCampaignChat(campaign.id);
   const memberCount = Math.max(1, campaign.participants || 0);
   const latest = chat.data?.at(-1);

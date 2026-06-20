@@ -30,6 +30,9 @@ public class Notification extends BaseEntity {
     @Column(name = "reference_id")
     private Long referenceId;
 
+    @Column(name = "feedback_id")
+    private Long feedbackId;
+
     @Column(name = "is_read", nullable = false)
     private boolean isRead = false;
 }

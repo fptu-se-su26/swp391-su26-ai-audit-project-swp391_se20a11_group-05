@@ -87,6 +87,17 @@ export interface FeedbackResponse {
   assigneeName: string | null;
   createdAt: string;
   updatedAt: string;
+  attachments?: FeedbackAttachmentResponse[];
+}
+
+export interface FeedbackAttachmentResponse {
+  id: number;
+  fileUrl: string;
+  fileType: string;
+  fileName: string | null;
+  fileSize: number | null;
+  uploadedAt: string;
+  attachmentPurpose?: string;
 }
 
 export interface FeedbackRequest {

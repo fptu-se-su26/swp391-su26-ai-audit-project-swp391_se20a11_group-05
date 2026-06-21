@@ -346,6 +346,7 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
                 .fileName(attachment.getFileName())
                 .fileSize(attachment.getFileSize())
                 .uploadedAt(attachment.getUploadedAt())
+                .attachmentPurpose(attachment.getAttachmentPurpose())
                 .build();
     }
 
@@ -365,11 +366,13 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
         response.setAssignedAuthorityName(response.getAssignedUnitName());
         response.setAttachments(attachments);
         response.setMediaUrls(attachments.stream()
+                .filter(a -> !"RESOLUTION_EVIDENCE".equals(a.getAttachmentPurpose()))
                 .filter(a -> "IMAGE".equalsIgnoreCase(a.getFileType()))
                 .map(FeedbackAttachmentResponse::getFileUrl)
                 .toList());
                 
         response.setVideoUrl(attachments.stream()
+                .filter(a -> !"RESOLUTION_EVIDENCE".equals(a.getAttachmentPurpose()))
                 .filter(a -> "VIDEO".equalsIgnoreCase(a.getFileType()))
                 .map(FeedbackAttachmentResponse::getFileUrl)
                 .findFirst()

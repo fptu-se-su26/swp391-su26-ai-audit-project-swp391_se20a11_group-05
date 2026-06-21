@@ -90,6 +90,7 @@ function mapResponseToCampaign(response: CampaignResponse): Campaign {
     linkedFeedbackId: response.linkedFeedbackId ?? undefined,
     boundaryGeojson: response.boundaryGeojson ?? undefined,
     coverImageUrl: response.coverImageUrl ?? undefined,
+    imageUrls: response.imageUrls ?? undefined,
     latitude: response.latitude ?? null,
     longitude: response.longitude ?? null,
     wardId: response.wardId,
@@ -187,12 +188,15 @@ export function useCreateCampaign() {
       wardName?: string;
       latitude?: number;
       longitude?: number;
+      boundaryGeojson?: string;
+      coverImageUrl?: string;
+      imageUrls?: string[];
     }): Promise<Campaign> => {
       setIsLoading(true);
 
       const fallbackLocation =
         params.privateLocationText || params.locationText || "Sẽ cập nhật sau";
-      const fallbackTools = params.requiredTools || "Găng tay, bao rác, dụng cụ vệ sinh cơ bản";
+      const fallbackTools = params.requiredTools || "";
       const fallbackContact = params.organizerContact || "UBND phường phụ trách";
 
       try {
@@ -213,6 +217,9 @@ export function useCreateCampaign() {
             linkedFeedbackId: params.linkedFeedbackId ? Number(params.linkedFeedbackId) : undefined,
             latitude: params.latitude,
             longitude: params.longitude,
+            boundaryGeojson: params.boundaryGeojson,
+            coverImageUrl: params.coverImageUrl,
+            imageUrls: params.imageUrls,
           });
           return mapResponseToCampaign(created);
         }
@@ -427,6 +434,9 @@ export function useCampaignThumbnail(campaign?: Campaign): string {
   return useMemo(() => {
     if (!campaign) return DEFAULT_PLACEHOLDERS.default;
 
+    if (campaign.imageUrls && campaign.imageUrls.length > 0 && campaign.imageUrls[0]?.trim() !== "") {
+      return campaign.imageUrls[0];
+    }
     if (campaign.coverImageUrl && campaign.coverImageUrl.trim() !== "") {
       return campaign.coverImageUrl;
     }

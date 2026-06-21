@@ -124,6 +124,7 @@ public class CampaignServiceImpl implements CampaignService {
                 .linkedFeedbackId(request.getLinkedFeedbackId())
                 .boundaryGeojson(request.getBoundaryGeojson())
                 .coverImageUrl(request.getCoverImageUrl())
+                .imageUrls(joinImageUrls(request.getImageUrls()))
                 .build();
 
         try {
@@ -414,6 +415,7 @@ public class CampaignServiceImpl implements CampaignService {
         campaign.setEndTime(request.getEndTime());
         campaign.setBoundaryGeojson(request.getBoundaryGeojson());
         campaign.setCoverImageUrl(request.getCoverImageUrl());
+        campaign.setImageUrls(joinImageUrls(request.getImageUrls()));
 
         return toResponse(campaignRepository.save(campaign), user);
     }
@@ -479,6 +481,7 @@ public class CampaignServiceImpl implements CampaignService {
                 .linkedFeedbackId(campaign.getLinkedFeedbackId())
                 .boundaryGeojson(campaign.getBoundaryGeojson())
                 .coverImageUrl(campaign.getCoverImageUrl())
+                .imageUrls(parseImageUrls(campaign.getImageUrls()))
                 .build();
     }
 
@@ -618,5 +621,19 @@ public class CampaignServiceImpl implements CampaignService {
 
     private String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private List<String> parseImageUrls(String imageUrls) {
+        if (imageUrls == null || imageUrls.isBlank()) {
+            return List.of();
+        }
+        return List.of(imageUrls.split(","));
+    }
+
+    private String joinImageUrls(List<String> urls) {
+        if (urls == null || urls.isEmpty()) {
+            return null;
+        }
+        return String.join(",", urls.stream().filter(url -> url != null && !url.isBlank()).toList());
     }
 }

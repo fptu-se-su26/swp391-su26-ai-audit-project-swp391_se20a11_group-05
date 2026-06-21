@@ -52,6 +52,7 @@ export interface Campaign {
   createdAt: string;
   boundaryGeojson?: string | null;
   coverImageUrl?: string | null;
+  imageUrls?: string[];
   latitude?: number | null;
   longitude?: number | null;
   wardId?: number | null;

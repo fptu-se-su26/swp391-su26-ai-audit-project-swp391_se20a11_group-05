@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { Route } from "@/routes/_auth.ward";
+import { CampaignCreateContent } from "./CampaignCreateContent";
 import {
   CalendarDays,
   Flag,
@@ -64,6 +66,7 @@ function getStatusInfo(status?: string) {
 export function WardCampaignPage() {
   const campaigns = useCampaignList();
   const navigate = useNavigate();
+  const { tab } = Route.useSearch();
   const [activeCampaignId, setActiveCampaignId] = useState<string | null>(null);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
 
@@ -84,7 +87,10 @@ export function WardCampaignPage() {
   const deleteCampaign = useDeleteCampaign();
 
   const handleCreateRedirect = () => {
-    navigate({ to: "/campaigns/create" });
+    navigate({
+      to: "/ward",
+      search: { tab: "campaign/create" },
+    });
   };
 
   const handleEdit = (id: string) => {
@@ -120,6 +126,26 @@ export function WardCampaignPage() {
   const handleViewDetail = (id: string) => {
     setSelectedCampaignId(id);
   };
+
+  if (tab === "campaign/create") {
+    return (
+      <CampaignCreateContent
+        onBack={() => {
+          navigate({
+            to: "/ward",
+            search: { tab: "campaign" },
+          });
+        }}
+        onSuccess={(campaignId) => {
+          setSelectedCampaignId(campaignId);
+          navigate({
+            to: "/ward",
+            search: { tab: "campaign" },
+          });
+        }}
+      />
+    );
+  }
 
   if (selectedCampaignId) {
     return (

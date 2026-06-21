@@ -326,7 +326,27 @@ export function CampaignMap({
               // If active campaign is specified, we render boundary only for the active one to avoid clutter.
               if (activeCampaign && !isCurrent) return null;
 
-              // Draw a 100m radius circle around the campaign location
+              // Draw a custom boundary from GeoJSON if available, else fall back to a 200m radius circle
+              if (c.boundaryGeojson) {
+                try {
+                  const geoJsonData = JSON.parse(c.boundaryGeojson);
+                  return (
+                    <GeoJSON
+                      key={`boundary-${c.id}`}
+                      data={geoJsonData}
+                      style={{
+                        color: isCurrent ? "#7C3AED" : "#1E5EFF",
+                        weight: isCurrent ? 2.5 : 1.5,
+                        fillColor: isCurrent ? "#7C3AED" : "#1E5EFF",
+                        fillOpacity: isCurrent ? 0.12 : 0.06,
+                      }}
+                    />
+                  );
+                } catch (e) {
+                  console.error("Failed to parse boundaryGeojson:", e);
+                }
+              }
+
               return (
                 <Circle
                   key={`circle-${c.id}`}

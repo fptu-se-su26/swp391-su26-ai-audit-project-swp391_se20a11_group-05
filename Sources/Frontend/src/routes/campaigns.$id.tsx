@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ElementType, ReactNode } from "react";
 import {
   ArrowLeft,
@@ -81,6 +81,18 @@ export function CampaignDetailPageComponent({
 }) {
   const campaign = useCampaignDetail(campaignId);
   const image = useCampaignThumbnail(campaign);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  useEffect(() => {
+    if (!campaign?.imageUrls || campaign.imageUrls.length <= 1) {
+      return;
+    }
+    const interval = setInterval(() => {
+      setActiveImageIndex((prev) => (prev + 1) % campaign.imageUrls!.length);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [campaign?.imageUrls]);
+
   const { user, isAuthenticated } = useAuth();
   const joinCampaign = useJoinCampaign();
   const approveCampaign = useApproveCampaign();
@@ -171,20 +183,68 @@ export function CampaignDetailPageComponent({
 
         <section className="grid gap-6 lg:grid-cols-[minmax(0,65fr)_minmax(320px,35fr)]">
           <article className="space-y-6">
-            <div className="relative aspect-[21/9] overflow-hidden rounded-2xl shadow-lg">
-              <img src={image} alt={campaign.name} className="h-full w-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-              <h1 className="absolute bottom-6 left-6 right-6 text-2xl font-black leading-tight text-white md:text-[28px]">
-                {campaign.name}
-              </h1>
-            </div>
+            {(() => {
+              const hasMultipleImages = !!(campaign.imageUrls && campaign.imageUrls.length > 1);
+              const galleryImages = campaign.imageUrls && campaign.imageUrls.length > 0 
+                ? campaign.imageUrls 
+                : [image];
+              const displayImage = galleryImages[activeImageIndex] || image;
+              
+              return (
+                <div className="space-y-3">
+                  <div className="relative aspect-[21/9] overflow-hidden rounded-2xl shadow-lg group">
+                    <img 
+                      src={displayImage} 
+                      alt={campaign.name} 
+                      className="h-full w-full object-cover transition-all duration-500 hover:scale-[1.02]" 
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent pointer-events-none" />
+                    <h1 className="absolute bottom-6 left-6 right-6 text-2xl font-black leading-tight text-white md:text-[28px] pointer-events-none">
+                      {campaign.name}
+                    </h1>
+                    
+                    {hasMultipleImages && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setActiveImageIndex((prev) => (prev === 0 ? galleryImages.length - 1 : prev - 1))}
+                          className="absolute left-4 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition hover:bg-black/60 cursor-pointer select-none opacity-0 group-hover:opacity-100 duration-200 text-xl font-bold"
+                        >
+                          &lsaquo;
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActiveImageIndex((prev) => (prev === galleryImages.length - 1 ? 0 : prev + 1))}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition hover:bg-black/60 cursor-pointer select-none opacity-0 group-hover:opacity-100 duration-200 text-xl font-bold"
+                        >
+                          &rsaquo;
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  
+                  {hasMultipleImages && (
+                    <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-thin">
+                      {galleryImages.map((imgUrl, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setActiveImageIndex(idx)}
+                          className={`relative aspect-video w-24 flex-shrink-0 overflow-hidden rounded-lg border-2 shadow-sm transition duration-200 hover:brightness-110 cursor-pointer ${
+                            idx === activeImageIndex ? "border-[#7C3AED] scale-[1.02] shadow-md" : "border-transparent opacity-75 hover:opacity-100"
+                          }`}
+                        >
+                          <img src={imgUrl} alt={`Thumbnail ${idx}`} className="h-full w-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             <section className="rounded-2xl border border-violet-100 bg-white p-7 shadow-md">
-              <p className="text-base leading-8 text-slate-600">
-                {campaign.desc || "Chưa có mô tả công khai."}
-              </p>
-
-              <div className="mt-6 grid gap-3 md:grid-cols-3">
+              <div className="grid gap-3 md:grid-cols-3">
                 <InfoTile
                   icon={MapPin}
                   label="Khu vực"
@@ -219,15 +279,13 @@ export function CampaignDetailPageComponent({
               </div>
             </section>
 
-            <Panel title="Về chiến dịch này" icon={ListIcon}>
-              <p className="text-sm leading-7 text-slate-600">
-                Chiến dịch được phát động nhằm kêu gọi cộng đồng chung tay dọn dẹp bãi biển Xuân
-                Thiều, một trong những bãi biển đẹp của Đà Nẵng. Hoạt động gồm thu gom rác thải
-                nhựa, phân loại rác tại chỗ, trồng cây ven biển và tuyên truyền bảo vệ môi trường.
-                Đây là cơ hội để người dân Đà Nẵng thể hiện tình yêu quê hương và ý thức bảo vệ
-                thiên nhiên.
-              </p>
-            </Panel>
+            {campaign.desc && (
+              <Panel title="Mô tả chi tiết chiến dịch" icon={ListIcon}>
+                <p className="text-sm leading-7 text-slate-600 whitespace-pre-wrap">
+                  {campaign.desc}
+                </p>
+              </Panel>
+            )}
 
             {campaign.privateDetailsVisible ? (
               <PrivateDetails campaign={campaign} />

@@ -36,6 +36,14 @@ public class DataInitializer implements CommandLineRunner {
             log.warn("Could not ALTER sms_verifications.otp_code (may already be correct type): {}", e.getMessage());
         }
 
+        // Drop the chat_history check constraint to allow new enum values like STATISTICS and REPORT_COPILOT
+        try {
+            jdbcTemplate.execute("ALTER TABLE chat_history DROP CONSTRAINT IF EXISTS chat_history_intent_check");
+            log.info("Successfully dropped constraint chat_history_intent_check");
+        } catch (Exception e) {
+            log.warn("Could not drop constraint chat_history_intent_check: {}", e.getMessage());
+        }
+
         try {
             // [FIX] Cleanup duplicate users before doing any findByUsername
             jdbcTemplate.execute("DELETE FROM users a USING users b WHERE a.id > b.id AND lower(a.username) = lower(b.username)");
@@ -257,7 +265,6 @@ public class DataInitializer implements CommandLineRunner {
         executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD COLUMN IF NOT EXISTS category_name VARCHAR(255)");
         executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD COLUMN IF NOT EXISTS managed_by_role VARCHAR(30)");
         executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD COLUMN IF NOT EXISTS ward_name VARCHAR(255)");
-        executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD COLUMN IF NOT EXISTS district_name VARCHAR(255)");
         executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD COLUMN IF NOT EXISTS city_name VARCHAR(255)");
         executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD COLUMN IF NOT EXISTS assigned_unit_id BIGINT");
         executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD COLUMN IF NOT EXISTS assigned_unit_name VARCHAR(255)");

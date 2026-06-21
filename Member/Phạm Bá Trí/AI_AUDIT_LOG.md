@@ -238,6 +238,20 @@
 - **Creative Synthesis:** Đã phối hợp cùng AI vá lỗi Backend bằng `@Transactional` riêng biệt cho method fallback và dùng `TransactionSynchronizationManager` để ép tiến trình chạy sau Commit. Phía Frontend tận dụng triệt để `useLocation().state`.
 - **Decision Ownership:** Chốt nghiệm thu và lưu lại các file Báo cáo Audit, Trace Map vào thư mục đồ án làm minh chứng năng lực gỡ lỗi cấp cao.
 
+---
+
+### Entry #: 018
+**Prompt Type:** REFACTORING & ARCHITECTURE-DESIGN
+**Stage/Component:** Implementation stage (AI Routing & Outbox Pattern)
+**Problem/Context:** Xây dựng luồng tự động điều phối và định tuyến sự cố bằng AI bất đồng bộ. Thiết kế cũ gọi trực tiếp dịch vụ LLM đồng bộ, gây rủi ro nghẽn luồng xử lý của Web server và mất dữ liệu khi hệ thống gặp sự cố mất điện hay sập mạng giữa chừng.
+**Prompt to AI:** "làm đi" (kèm theo yêu cầu di chuyển luồng AI Routing và phân loại sang mô hình Outbox Pattern lưu DB, PostGIS và HNSW Index).
+**AI Response (Summary):** AI đề xuất kiến trúc Outbox Pattern: tạo bảng `ai_tasks` và `ai_analysis_logs`, cập nhật trigger tự động đồng bộ hóa kiểu dữ liệu Geometry của PostGIS. Tái cấu trúc FeedbackService lưu task PENDING vào Outbox trong cùng một database transaction. Triển khai background worker định kỳ trong AutoDispatchService dùng cơ chế khóa dòng FOR UPDATE SKIP LOCKED để xử lý task song song và an toàn, đồng thời đo lường và ghi log độ trễ/token sử dụng của LLM.
+**Human Delta & Reflection:**
+- **Critical Thinking:** Việc di chuyển sang mô hình Outbox hướng cơ sở dữ liệu là giải pháp kiến trúc nâng cao giúp hệ thống có khả năng chịu lỗi tối đa (fault-tolerant) và đảm bảo tính nhất quán cuối cùng (eventual consistency). So với cách gọi API trực tiếp, Outbox Pattern giải phóng tài nguyên của thread xử lý Tomcat ngay lập tức.
+- **Contextualization:** Đặc biệt đối với các feedback có chứa toạ độ địa lý, việc ứng dụng PostGIS `ST_DWithin` thay thế cho so sánh toạ độ hình hộp chữ nhật (bounding box) thô sơ giúp tăng độ chính xác tìm kiếm trùng lặp.
+- **Creative Synthesis:** Sau khi gộp code, tôi đã phát hiện ra xung đột phiên bản di chuyển DB Flyway (cả nhánh local và nhánh `origin/Product` đều tạo migration version `V8`). Tôi đã chủ động đổi tên file migration local thành `V9` để tránh xung đột làm sập ứng dụng khi start.
+- **Decision Ownership:** Quyết định hoàn tất tái cấu trúc, sửa lại toàn bộ mock test cho FeedbackServiceTest và AutoDispatchServiceTest để compile thành công, tiến hành chạy test suite (45/45 pass) và khởi động kiểm thử trực tiếp hệ thống.
+
 ## III. Phát hiện Hallucination (Hallucination Detection)
 
 - **Trường hợp:** Khi yêu cầu AI tìm kiếm và tổng hợp 10 bài báo khoa học trên Springer (Entry 001).
@@ -280,5 +294,5 @@ Sinh viên/nhóm cam kết rằng:
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-| Phạm Bá Trí | 2026-05-21 |
+| Phạm Bá Trí | 2026-06-21 |
 

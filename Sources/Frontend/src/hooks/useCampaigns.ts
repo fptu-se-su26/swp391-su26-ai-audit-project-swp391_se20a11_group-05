@@ -356,7 +356,24 @@ export function useCampaignChat(campaignId: string) {
         const message = JSON.parse(body) as CampaignChatMessageResponse;
         queryClient.setQueryData<CampaignChatMessageResponse[]>(
           ["campaigns", campaignId, "chat"],
-          (current = []) => [...current, message],
+          (current = []) => {
+            const exists = current.some((m) => m.id === message.id);
+            if (exists) {
+              return current.map((m) => {
+                if (m.id === message.id) {
+                  return message;
+                }
+                if (message.pinned && m.id !== message.id) {
+                  return { ...m, pinned: false };
+                }
+                return m;
+              });
+            }
+            if (message.pinned) {
+              return [...current.map(m => ({ ...m, pinned: false })), message];
+            }
+            return [...current, message];
+          },
         );
       } catch {
         queryClient.invalidateQueries({ queryKey: ["campaigns", campaignId, "chat"] });
@@ -379,6 +396,9 @@ export function useCampaignChat(campaignId: string) {
         return Promise.resolve(undefined);
       }
       return campaignApi.addChatMessage(campaignId, content).then(() => undefined);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["campaigns", campaignId, "chat"] });
     },
   });
 
@@ -427,4 +447,24 @@ export function useCampaignThumbnail(campaign?: Campaign): string {
     const cat = campaign.category || "environment";
     return DEFAULT_PLACEHOLDERS[cat] || DEFAULT_PLACEHOLDERS.default;
   }, [campaign, feedback]);
+}
+
+export function usePinChatMessage(campaignId: string) {
+  const queryClient = useQueryClient();
+  return useMutation<CampaignChatMessageResponse, Error, number | string>({
+    mutationFn: (messageId) => campaignApi.pinMessage(campaignId, messageId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["campaigns", campaignId, "chat"] });
+    },
+  });
+}
+
+export function useUnpinChatMessage(campaignId: string) {
+  const queryClient = useQueryClient();
+  return useMutation<CampaignChatMessageResponse, Error, number | string>({
+    mutationFn: (messageId) => campaignApi.unpinMessage(campaignId, messageId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["campaigns", campaignId, "chat"] });
+    },
+  });
 }

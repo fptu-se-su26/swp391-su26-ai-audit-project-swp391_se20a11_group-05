@@ -1,10 +1,10 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState, type ComponentType } from "react";
 
-export function clientOnly<T extends React.ComponentType<any>>(
-  factory: () => Promise<{ default: T }>,
+export function clientOnly<TProps extends object>(
+  factory: () => Promise<{ default: ComponentType<TProps> }>,
 ) {
   const LazyComponent = lazy(factory);
-  return (props: React.ComponentProps<T>) => {
+  return (props: TProps) => {
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
     if (!mounted) return null;

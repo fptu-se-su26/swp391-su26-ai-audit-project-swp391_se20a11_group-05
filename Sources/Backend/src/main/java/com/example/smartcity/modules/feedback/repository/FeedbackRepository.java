@@ -18,6 +18,11 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
     Page<Feedback> findAll(Pageable pageable);
 
     Optional<Feedback> findByTrackingCode(String trackingCode);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("SELECT f FROM Feedback f WHERE f.id = :id")
+    Optional<Feedback> findByIdForUpdate(@Param("id") Long id);
+
     List<Feedback> findByStatus(FeedbackStatus status);
     List<Feedback> findByAssignee_Id(Long assigneeId);
 

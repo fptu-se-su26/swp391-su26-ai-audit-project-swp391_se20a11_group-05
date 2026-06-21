@@ -14,6 +14,7 @@ import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.user.repository.UserRepository;
 import com.example.smartcity.modules.feedback.repository.FeedbackLogRepository;
 import com.example.smartcity.modules.feedback.repository.AttachmentRepository;
+import com.example.smartcity.modules.feedback.repository.AiTaskRepository;
 import com.example.smartcity.modules.notification.WebSocketNotificationService;
 import com.example.smartcity.modules.notification.service.NotificationService;
 import com.example.smartcity.modules.notification.repository.NotificationRepository;
@@ -55,6 +56,7 @@ class FeedbackServiceTest {
     @Mock private ContentGuardrailService contentGuardrailService;
     @Mock private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
     @Mock private com.example.smartcity.rag.ingestion.EmbeddingClientFacade embeddingFacade;
+    @Mock private AiTaskRepository aiTaskRepository;
     private CategoryRoutingService categoryRoutingService;
 
     private FeedbackService feedbackService;
@@ -83,7 +85,8 @@ class FeedbackServiceTest {
                 categoryRoutingService,
                 contentGuardrailService,
                 jdbcTemplate,
-                embeddingFacade
+                embeddingFacade,
+                aiTaskRepository
         );
 
         citizen = new User("citizen1", "encoded", "Người Dân", "0905123456",
@@ -149,9 +152,6 @@ class FeedbackServiceTest {
     @Test
     @DisplayName("Should require GPS coordinates when creating feedback")
     void createFeedback_requiresGps() {
-        when(categoryRepository.findByCodeAndActiveTrue("TRAFFIC")).thenReturn(Optional.of(category));
-        when(userRepository.findByUsername("citizen1")).thenReturn(Optional.of(citizen));
-
         FeedbackRequest invalid = FeedbackRequest.builder()
                 .title("Test")
                 .description("Test desc")
@@ -169,6 +169,8 @@ class FeedbackServiceTest {
         FeedbackRequest invalid = FeedbackRequest.builder()
                 .title("Test").description("Test desc")
                 .categoryCode("INVALID").wardId(1L)
+                .latitude(16.0544)
+                .longitude(108.2022)
                 .build();
 
         CustomException ex = assertThrows(CustomException.class,

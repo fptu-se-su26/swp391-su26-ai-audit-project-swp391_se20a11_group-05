@@ -319,6 +319,94 @@ public class GeminiAdapter implements AiProviderAdapter {
             intent, emotion, reply.replace("\"", "\\\"").replace("\n", " ")
         );
     }
+
+    public static class GeminiResponse {
+        private final String text;
+        private final int inputTokens;
+        private final int outputTokens;
+
+        public GeminiResponse(String text, int inputTokens, int outputTokens) {
+            this.text = text;
+            this.inputTokens = inputTokens;
+            this.outputTokens = outputTokens;
+        }
+
+        public String getText() { return text; }
+        public int getInputTokens() { return inputTokens; }
+        public int getOutputTokens() { return outputTokens; }
+    }
+
+    public CompletableFuture<GeminiResponse> generateMultimodalResponseWithUsageAsync(String systemPrompt, String userMessage, List<String> base64Images) {
+        if (!keyPool.isConfigured()) {
+            return CompletableFuture.completedFuture(new GeminiResponse(buildMockFallback(userMessage), 0, 0));
+        }
+
+        String apiKey = keyPool.nextKey();
+        if (apiKey == null) {
+            return CompletableFuture.completedFuture(new GeminiResponse(buildMockFallback(userMessage), 0, 0));
+        }
+
+        log.info("🔵 [Gemini] Gọi API Multimodal With Usage | model={} | key={}...", model, apiKey.substring(0, Math.min(8, apiKey.length())));
+
+        java.util.List<Object> userParts = new java.util.ArrayList<>();
+        userParts.add(Map.of("text", userMessage));
+
+        if (base64Images != null) {
+            for (String b64 : base64Images) {
+                userParts.add(Map.of("inlineData", Map.of("mimeType", "image/jpeg", "data", b64)));
+            }
+        }
+
+        Map<String, Object> body = Map.of(
+            "system_instruction", Map.of("parts", List.of(Map.of("text", systemPrompt))),
+            "contents", List.of(
+                Map.of("role", "user", "parts", userParts)
+            ),
+            "generationConfig", Map.of("temperature", 0.3, "maxOutputTokens", 1024)
+        );
+
+        String finalApiKey = apiKey;
+        return webClient.post()
+                .uri("/v1beta/models/" + model + ":generateContent?key=" + apiKey)
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono(Map.class)
+                .map(this::parseGeminiResponseWithUsage)
+                .timeout(Duration.ofSeconds(15))
+                .doOnSuccess(r -> log.info("✅ [Gemini Multimodal With Usage] OK ({} chars, in_tokens={}, out_tokens={})", 
+                    r.getText().length(), r.getInputTokens(), r.getOutputTokens()))
+                .doOnError(e -> {
+                    log.error("❌ [Gemini Multimodal With Usage] Lỗi: {}", e.getMessage());
+                    if (e.getMessage() != null && e.getMessage().contains("429")) {
+                        keyPool.markRateLimited(finalApiKey);
+                    }
+                })
+                .onErrorReturn(new GeminiResponse(buildMockFallback(userMessage), 0, 0))
+                .toFuture();
+    }
+
+    private GeminiResponse parseGeminiResponseWithUsage(Map<?, ?> response) {
+        try {
+            List<?> candidates = (List<?>) response.get("candidates");
+            Map<?, ?> content  = (Map<?, ?>) ((Map<?, ?>) candidates.get(0)).get("content");
+            List<?> parts      = (List<?>) content.get("parts");
+            String text = (String) ((Map<?, ?>) parts.get(0)).get("text");
+
+            int inputTokens = 0;
+            int outputTokens = 0;
+            Map<?, ?> usageMetadata = (Map<?, ?>) response.get("usageMetadata");
+            if (usageMetadata != null) {
+                Number promptCount = (Number) usageMetadata.get("promptTokenCount");
+                Number candidateCount = (Number) usageMetadata.get("candidatesTokenCount");
+                if (promptCount != null) inputTokens = promptCount.intValue();
+                if (candidateCount != null) outputTokens = candidateCount.intValue();
+            }
+            return new GeminiResponse(text, inputTokens, outputTokens);
+        } catch (Exception e) {
+            log.warn("⚠️  [Gemini With Usage] Parse lỗi: {}", e.getMessage());
+            return new GeminiResponse("Gemini trả về response không hợp lệ.", 0, 0);
+        }
+    }
 }
 
 

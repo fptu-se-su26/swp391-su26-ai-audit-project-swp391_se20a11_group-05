@@ -1232,6 +1232,75 @@ Trực tiếp đánh giá bản kế hoạch (Implementation Plan) do AI vạch 
 Việc thiết kế prompt chuyên biệt cho Audit Runtime giúp AI hoạt động như một cỗ máy test tự động bằng mắt (Static Analysis), phát hiện được các lỗi mà Unit Test thông thường cũng khó cover hết.
 ```
 
+---
+
+### Prompt số 13
+
+| Nội dung            | Thông tin                                                                                  |
+| ------------------- | ------------------------------------------------------------------------------------------ |
+| Ngày sử dụng        | 21/06/2026                                                                                 |
+| Công cụ AI          | Antigravity                                                                                |
+| Mục đích            | Thiết kế và triển khai mô hình AI Routing hướng cơ sở dữ liệu (Outbox Pattern & PostGIS)   |
+| Phần việc liên quan | Architecture / Database / Coding / Testing                                                 |
+| Mức độ sử dụng      | Hỏi tối ưu kiến trúc và sinh code thực thi Outbox Worker                                   |
+
+#### 5.1. Prompt nguyên văn
+
+```text
+làm đi
+```
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Hệ thống AI cũ phân loại và định tuyến feedback trực tiếp, gây rủi ro nghẽn luồng và mất mát dữ liệu khi gặp sự cố mạng hoặc sập server. Cần chuyển sang mô hình Outbox Pattern để tăng độ tin cậy và tối ưu kiểm toán hoạt động AI.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI đề xuất kiến trúc Outbox Pattern: tạo bảng `ai_tasks` và `ai_analysis_logs`, cập nhật trigger tự động đồng bộ hóa kiểu dữ liệu Geometry của PostGIS. Tái cấu trúc FeedbackService lưu task PENDING vào Outbox trong cùng một database transaction. Triển khai background worker định kỳ trong AutoDispatchService dùng cơ chế khóa dòng FOR UPDATE SKIP LOCKED để xử lý task song song và an toàn, đồng thời đo lường và ghi log độ trễ/token sử dụng của LLM.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Toàn bộ giải pháp di chuyển DB, entity, service và Outbox worker đã được tích hợp và kiểm thử thành công, 45/45 unit tests đều vượt qua và server chạy ổn định trên port 8081.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Tôi yêu cầu AI kiểm tra xung đột với nhánh origin/Product trên Github, phát hiện ra lỗi trùng phiên bản migration Flyway (V8) và thực hiện đổi tên file migration thành V9 để tránh lỗi khởi động. Sửa các test class bị lỗi compile do đổi constructor.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung                                                                  |
+| --------------- | ------------------------------------------------------------------------- |
+| File liên quan  | `V9__advanced_ai_classification_architecture.sql`, `FeedbackService.java` |
+| File liên quan  | `AutoDispatchService.java`, `FeedbackServiceTest.java`                    |
+| Ghi chú khác    | Hệ thống đã kiểm thử tự động thành công (45/45 tests pass)                |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Không có.
+```
+
+---
+
 ## 11. Cam kết sử dụng prompt minh bạch
 
 Sinh viên/nhóm cam kết rằng:
@@ -1244,5 +1313,5 @@ Sinh viên/nhóm cam kết rằng:
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 | ----------------------- | ------------- |
-|                         |               |
+| Phạm Bá Trí             | 2026-06-21    |
 

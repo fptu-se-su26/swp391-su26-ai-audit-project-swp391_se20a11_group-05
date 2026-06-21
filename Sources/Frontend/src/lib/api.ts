@@ -906,6 +906,16 @@ export const campaignApi = {
       method: "POST",
       body: JSON.stringify({ content }),
     }),
+
+  pinMessage: (id: number | string, messageId: number | string) =>
+    request<CampaignChatMessageResponse>(`/api/campaigns/${id}/chat/${messageId}/pin`, {
+      method: "POST",
+    }),
+
+  unpinMessage: (id: number | string, messageId: number | string) =>
+    request<CampaignChatMessageResponse>(`/api/campaigns/${id}/chat/${messageId}/unpin`, {
+      method: "POST",
+    }),
 };
 
 export interface CampaignCommentResponse {
@@ -923,5 +933,6 @@ export interface CampaignChatMessageResponse {
   senderName: string;
   senderRole: BackendRole;
   message: string;
+  pinned: boolean;
   createdAt: string;
 }

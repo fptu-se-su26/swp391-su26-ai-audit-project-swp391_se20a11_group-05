@@ -153,6 +153,28 @@ public class CampaignController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/{id}/chat/{messageId}/pin")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN')")
+    public ResponseEntity<CampaignChatMessageResponse> pinMessage(
+            @PathVariable Long id,
+            @PathVariable Long messageId,
+            Authentication authentication) {
+        CampaignChatMessageResponse response = campaignService.pinMessage(id, messageId, authentication.getName());
+        messagingTemplate.convertAndSend("/topic/campaigns/" + id + "/chat", response);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/chat/{messageId}/unpin")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN')")
+    public ResponseEntity<CampaignChatMessageResponse> unpinMessage(
+            @PathVariable Long id,
+            @PathVariable Long messageId,
+            Authentication authentication) {
+        CampaignChatMessageResponse response = campaignService.unpinMessage(id, messageId, authentication.getName());
+        messagingTemplate.convertAndSend("/topic/campaigns/" + id + "/chat", response);
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/{id}/feedback")
     @PreAuthorize("hasRole('CITIZEN')")
     public ResponseEntity<CampaignFeedbackResponse> addFeedback(

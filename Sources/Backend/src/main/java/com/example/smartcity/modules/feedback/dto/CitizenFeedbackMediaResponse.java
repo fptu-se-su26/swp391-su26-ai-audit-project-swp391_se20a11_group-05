@@ -27,7 +27,6 @@ public class CitizenFeedbackMediaResponse {
     private String managedByRole;
     private Long wardId;
     private String wardName;
-    private String districtName;
     private String cityName;
     private Long assignedUnitId;
     private String assignedUnitName;

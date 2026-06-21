@@ -339,6 +339,100 @@ export function ChatbotWidget() {
                   </div>
                 )}
 
+                {/* Lookup Feedback Generative Card */}
+                {msg.intent?.intent === "LOOKUP" && (msg.intent as any).trackingCode && (
+                  <div className="mt-2 ml-10 w-full max-w-[85%] bg-white rounded-xl border border-slate-100 shadow-md p-4 flex flex-col gap-3 transition-all hover:shadow-lg">
+                    <div className="flex justify-between items-center border-b border-slate-50 pb-2">
+                      <div className="text-xs font-semibold text-gov-blue flex items-center gap-1.5 uppercase tracking-wider">
+                        🔍 Tra cứu Phản ánh
+                      </div>
+                      <span className="font-mono text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                        {(msg.intent as any).trackingCode}
+                      </span>
+                    </div>
+                    
+                    <div className="text-xs space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-500">Lĩnh vực:</span>
+                        <span className="font-semibold text-slate-800">{(msg.intent as any).feedbackCategory || "Chưa xác định"}</span>
+                      </div>
+                      <div className="flex justify-between items-start">
+                        <span className="text-slate-500 flex-shrink-0">Địa điểm:</span>
+                        <span className="font-semibold text-slate-800 text-right">{(msg.intent as any).feedbackAddress || "Không xác định"}</span>
+                      </div>
+                      {((msg.intent as any).feedbackDescription) && (
+                        <div className="flex justify-between items-start border-t border-slate-50 pt-2 mt-1">
+                          <span className="text-slate-500 flex-shrink-0">Mô tả:</span>
+                          <span className="text-slate-600 text-right italic line-clamp-2 max-w-[70%]">{(msg.intent as any).feedbackDescription}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Timeline Tracker */}
+                    <div className="mt-2 border-t border-slate-100 pt-3">
+                      <div className="text-[11px] font-semibold text-slate-400 mb-3 uppercase tracking-wide">Tiến độ xử lý</div>
+                      <div className="flex items-center justify-between relative px-2">
+                        {/* Connecting Line */}
+                        <div className="absolute top-[9px] left-[10%] right-[10%] h-[2px] bg-slate-200 z-0"></div>
+                        <div 
+                          className="absolute top-[9px] left-[10%] h-[2px] bg-emerald-500 z-0 transition-all duration-500"
+                          style={{
+                            width: 
+                              (msg.intent as any).feedbackStatus === "RESOLVED" || (msg.intent as any).feedbackStatus === "REJECTED" ? "80%" : 
+                              (msg.intent as any).feedbackStatus === "ASSIGNED" || (msg.intent as any).feedbackStatus === "IN_PROGRESS" ? "40%" : "0%"
+                          }}
+                        ></div>
+
+                        {/* Step 1: SUBMITTED */}
+                        <div className="flex flex-col items-center z-10 relative">
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                            ["SUBMITTED", "PENDING_RECEIVE", "PENDING", "NEED_LOCATION_REVIEW", "ASSIGNED", "IN_PROGRESS", "RESOLVED", "REJECTED"].includes((msg.intent as any).feedbackStatus)
+                              ? "bg-emerald-500 text-white shadow-sm ring-4 ring-emerald-50"
+                              : "bg-slate-200 text-slate-600"
+                          }`}>
+                            ✓
+                          </div>
+                          <span className="text-[10px] mt-1 font-medium text-slate-600">Đã gửi</span>
+                        </div>
+
+                        {/* Step 2: IN_PROGRESS */}
+                        <div className="flex flex-col items-center z-10 relative">
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                            ["ASSIGNED", "IN_PROGRESS", "RESOLVED", "REJECTED"].includes((msg.intent as any).feedbackStatus)
+                              ? "bg-emerald-500 text-white shadow-sm ring-4 ring-emerald-50"
+                              : (msg.intent as any).feedbackStatus === "WAITING_INFO"
+                                ? "bg-amber-500 text-white shadow-sm ring-4 ring-amber-50"
+                                : "bg-slate-200 text-slate-600"
+                          }`}>
+                            {(msg.intent as any).feedbackStatus === "WAITING_INFO" ? "!" : "2"}
+                          </div>
+                          <span className="text-[10px] mt-1 font-medium text-slate-600">
+                            {(msg.intent as any).feedbackStatus === "WAITING_INFO" ? "Cần bổ sung" : "Đang xử lý"}
+                          </span>
+                        </div>
+
+                        {/* Step 3: RESOLVED / REJECTED */}
+                        <div className="flex flex-col items-center z-10 relative">
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                            (msg.intent as any).feedbackStatus === "RESOLVED"
+                              ? "bg-emerald-500 text-white shadow-sm ring-4 ring-emerald-50"
+                              : (msg.intent as any).feedbackStatus === "REJECTED"
+                                ? "bg-red-500 text-white shadow-sm ring-4 ring-red-50"
+                                : "bg-slate-200 text-slate-600"
+                          }`}>
+                            {(msg.intent as any).feedbackStatus === "REJECTED" ? "✗" : "3"}
+                          </div>
+                          <span className={`text-[10px] mt-1 font-medium ${
+                            (msg.intent as any).feedbackStatus === "REJECTED" ? "text-red-500" : "text-slate-600"
+                          }`}>
+                            {(msg.intent as any).feedbackStatus === "REJECTED" ? "Từ chối" : "Hoàn thành"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Chế độ minh bạch AI */}
                 {showTrace && msg.intent && (
                   <div className="mt-2 ml-10 w-full max-w-[85%]">

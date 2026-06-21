@@ -51,9 +51,6 @@ public class Feedback extends BaseEntity {
     @Column(name = "ward_name", length = 255)
     private String wardName;
 
-    @Column(name = "district_name", length = 255)
-    private String districtName;
-
     @Column(name = "city_name", length = 255)
     private String cityName;
 
@@ -125,8 +122,6 @@ public class Feedback extends BaseEntity {
     public void setManagedByRole(String managedByRole) { this.managedByRole = managedByRole; }
     public String getWardName() { return wardName; }
     public void setWardName(String wardName) { this.wardName = wardName; }
-    public String getDistrictName() { return districtName; }
-    public void setDistrictName(String districtName) { this.districtName = districtName; }
     public String getCityName() { return cityName; }
     public void setCityName(String cityName) { this.cityName = cityName; }
     public Long getAssignedUnitId() { return assignedUnitId; }

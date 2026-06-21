@@ -86,8 +86,11 @@ public class LocationResolutionService {
                 value(address.get("quarter")),
                 value(address.get("neighbourhood")),
                 value(address.get("village")),
-                value(address.get("town"))
-        ).stream().filter(s -> !s.isBlank()).toList();
+                value(address.get("town")),
+                value(address.get("city_district")),
+                value(address.get("county")),
+                value(address.get("district"))
+        ).stream().filter(s -> !s.isBlank()).distinct().toList();
     }
 
     private Optional<Ward> findMatchingWard(String candidate) {

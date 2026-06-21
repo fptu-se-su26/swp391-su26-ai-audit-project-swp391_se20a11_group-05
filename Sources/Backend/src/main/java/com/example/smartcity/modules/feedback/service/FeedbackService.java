@@ -5,6 +5,9 @@ import com.example.smartcity.ai_orchestrator.guardrails.ContentGuardrailService;
 import com.example.smartcity.modules.feedback.entity.Category;
 import com.example.smartcity.rag.ingestion.EmbeddingClientFacade;
 import org.springframework.jdbc.core.JdbcTemplate;
+import com.example.smartcity.modules.feedback.entity.AiTask;
+import com.example.smartcity.modules.feedback.repository.AiTaskRepository;
+import org.springframework.scheduling.annotation.Scheduled;
 import com.example.smartcity.modules.feedback.entity.Feedback;
 import com.example.smartcity.modules.feedback.entity.FeedbackStatus;
 import com.example.smartcity.modules.feedback.entity.FeedbackLog;
@@ -64,6 +67,11 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
     private final ContentGuardrailService contentGuardrailService;
     private final JdbcTemplate jdbcTemplate;
     private final EmbeddingClientFacade embeddingFacade;
+    private final AiTaskRepository aiTaskRepository;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    @org.springframework.context.annotation.Lazy
+    private FeedbackService self;
 
     // State machine: map of valid transitions
     private static final Map<FeedbackStatus, Set<FeedbackStatus>> VALID_TRANSITIONS = Map.ofEntries(
@@ -96,8 +104,39 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
 
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public Feedback createFeedback(FeedbackRequest request, String username) {
+        // 1. GPS là bắt buộc để tránh phản ánh không có vị trí xử lý & tránh lỗi NPE unboxing khi gọi geocoding
+        if (request.getLatitude() == null || request.getLongitude() == null) {
+            throw new CustomException("Vui long cho phep GPS truoc khi gui phan anh", HttpStatus.BAD_REQUEST.value());
+        }
+
+        // 2. Kiểm tra danh mục hợp lệ trước
         Category category = resolveOfficialCategory(request.getCategoryCode());
 
+        // 3. [PII Guard — Tầng 2] Kiểm tra nội dung có chứa SĐT / CCCD không (Thực hiện trước và ngoài Transaction)
+        try {
+            contentGuardrailService.validateFeedbackContent(
+                request.getTitle(), 
+                request.getDescription() + " " + (request.getAddressDetails() != null ? request.getAddressDetails() : "")
+            );
+        } catch (IllegalArgumentException ex) {
+            throw new CustomException(ex.getMessage(), HttpStatus.BAD_REQUEST.value());
+        }
+
+        // Gọi geocoding API ngoài transaction để giải phóng DB connection pool
+        Ward ward = null;
+        try {
+            ward = locationResolutionService.findAuthorityByLocation(request.getLatitude(), request.getLongitude());
+        } catch (CustomException ex) {
+            log.warn("[Feedback] Location requires manual review. lat={}, lng={}", request.getLatitude(), request.getLongitude());
+        }
+
+        // Gọi method transactional qua self-proxy để đảm bảo AOP hoạt động chính xác (fallback this khi self == null trong unit tests)
+        FeedbackService service = (self != null) ? self : this;
+        return service.saveFeedbackTransaction(request, username, ward, category);
+    }
+
+    @Transactional
+    public Feedback saveFeedbackTransaction(FeedbackRequest request, String username, Ward ward, Category category) {
         User citizen = userRepository.findByUsername(username)
                 .orElseThrow(() -> new com.example.smartcity.common.exception.ResourceNotFoundException("User: " + username));
 
@@ -108,23 +147,6 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         // GPS là bắt buộc để tránh phản ánh không có vị trí xử lý.
         if (request.getLatitude() == null || request.getLongitude() == null) {
             throw new CustomException("Vui long cho phep GPS truoc khi gui phan anh", HttpStatus.BAD_REQUEST.value());
-        }
-
-        // [PII Guard — Tầng 2] Kiểm tra nội dung có chứa SĐT / CCCD không
-        try {
-            contentGuardrailService.validateFeedbackContent(
-                request.getTitle(), 
-                request.getDescription() + " " + (request.getAddressDetails() != null ? request.getAddressDetails() : "")
-            );
-        } catch (IllegalArgumentException ex) {
-            throw new CustomException(ex.getMessage(), HttpStatus.BAD_REQUEST.value());
-        }
-
-        Ward ward = null;
-        try {
-            ward = locationResolutionService.findAuthorityByLocation(request.getLatitude(), request.getLongitude());
-        } catch (CustomException ex) {
-            log.warn("[Feedback] Location requires manual review. lat={}, lng={}", request.getLatitude(), request.getLongitude());
         }
 
         // AI Duplicate Detection: Kiểm tra phản ánh trùng lặp trong cùng Phường
@@ -159,8 +181,19 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         log.info("[Feedback] Created feedback. feedbackId={}, currentUserId={}", saved.getId(), citizen.getId());
         notificationService.createFeedbackSubmittedNotification(saved);
 
-        // Kích hoạt AI Auto-Dispatch (Non-blocking)
-        autoDispatchService.analyzeAndDispatch(saved.getId());
+        // Outbox Pattern: Tạo tác vụ PENDING trong ai_tasks
+        try {
+            AiTask aiTask = AiTask.builder()
+                .feedback(saved)
+                .status("PENDING")
+                .taskPriority(mapTaskPriority(saved.getPriority()))
+                .retryCount(0)
+                .build();
+            aiTaskRepository.save(aiTask);
+            log.info("[Outbox] Đã tạo AiTask cho feedbackId={}", saved.getId());
+        } catch (Exception e) {
+            log.error("❌ [Outbox] Lỗi tạo AiTask cho feedbackId={}: {}", saved.getId(), e.getMessage());
+        }
 
         return saved;
     }
@@ -180,7 +213,7 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
     }
 
     public void checkDuplicateFeedback(String description, Long wardId, Double longitude, Double latitude) {
-        if (wardId == null || description == null || description.isBlank() || longitude == null || latitude == null) {
+        if (description == null || description.isBlank() || longitude == null || latitude == null) {
             return;
         }
 
@@ -188,49 +221,54 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             float[] descriptionVector = embeddingFacade.embed(description);
             String vectorString = java.util.Arrays.toString(descriptionVector);
 
-            // Tìm top 3 có cosine distance gần nhất và nằm trong phạm vi tọa độ để debug
-            String sqlLog = """
-                SELECT tracking_code, (description_vector <=> ?::vector) as distance
-                FROM feedbacks 
-                WHERE ward_id = ? 
-                  AND description_vector IS NOT NULL
-                  AND ABS(latitude - ?) < 0.0009
-                  AND ABS(longitude - ?) < 0.0009
-                ORDER BY description_vector <=> ?::vector ASC 
-                LIMIT 3
-            """;
+            // [FIX] Khi wardId == null (phường chưa xác định), vẫn check trùng lặp
+            // bằng cách bỏ điều kiện ward_id — so sánh chỉ theo tọa độ và vector ngữ nghĩa
+            String sql;
+            Object[] params;
+            if (wardId != null) {
+                // Tìm top 1 trong cùng Phường + tọa độ gần + vector gần (cosine < 0.20)
+                sql = """
+                    SELECT tracking_code
+                    FROM feedbacks
+                    WHERE ward_id = ?
+                      AND description_vector <=> ?::vector < 0.20
+                      AND ST_DWithin(location, ST_SetSRID(ST_Point(?, ?), 4326), 0.0009)
+                      AND (
+                          status IN ('PENDING', 'IN_PROGRESS', 'SUBMITTED', 'NEED_LOCATION_REVIEW', 'PENDING_RECEIVE', 'WAITING_INFO')
+                          OR
+                          (status = 'RESOLVED' AND resolved_at >= NOW() - INTERVAL '7 days')
+                      )
+                    ORDER BY description_vector <=> ?::vector ASC
+                    LIMIT 1
+                """;
+                params = new Object[]{ wardId, vectorString, longitude, latitude, vectorString };
 
-            jdbcTemplate.query(
-                sqlLog,
-                (rs, rowNum) -> {
-                    log.info("[DUPLICATE-DEBUG] Mã: {}, Distance: {}", rs.getString("tracking_code"), rs.getDouble("distance"));
-                    return null;
-                },
-                vectorString, wardId, latitude, longitude, vectorString
-            );
+                // Debug log top 3
+                jdbcTemplate.query(
+                    "SELECT tracking_code, (description_vector <=> ?::vector) as distance FROM feedbacks WHERE ward_id = ? AND description_vector IS NOT NULL AND ST_DWithin(location, ST_SetSRID(ST_Point(?, ?), 4326), 0.0009) ORDER BY description_vector <=> ?::vector ASC LIMIT 3",
+                    (rs, rowNum) -> { log.info("[DUPLICATE-DEBUG] Mã: {}, Distance: {}", rs.getString("tracking_code"), rs.getDouble("distance")); return null; },
+                    vectorString, wardId, longitude, latitude, vectorString
+                );
+            } else {
+                // [FIX] wardId null → chỉ dùng tọa độ (bán kính ~100m)
+                log.warn("[Duplicate Detection] wardId null, fallback dùng tọa độ để check trùng lặp.");
+                sql = """
+                    SELECT tracking_code
+                    FROM feedbacks
+                    WHERE description_vector <=> ?::vector < 0.20
+                      AND ST_DWithin(location, ST_SetSRID(ST_Point(?, ?), 4326), 0.0009)
+                      AND (
+                          status IN ('PENDING', 'IN_PROGRESS', 'SUBMITTED', 'NEED_LOCATION_REVIEW', 'PENDING_RECEIVE', 'WAITING_INFO')
+                          OR
+                          (status = 'RESOLVED' AND resolved_at >= NOW() - INTERVAL '7 days')
+                      )
+                    ORDER BY description_vector <=> ?::vector ASC
+                    LIMIT 1
+                """;
+                params = new Object[]{ vectorString, longitude, latitude, vectorString };
+            }
 
-            // Tìm top 1 có cosine distance < 0.20 trong cùng Phường, trùng tọa độ và còn trong cooldown
-            String sql = """
-                SELECT tracking_code 
-                FROM feedbacks 
-                WHERE ward_id = ? 
-                  AND description_vector <=> ?::vector < 0.20
-                  AND ABS(latitude - ?) < 0.0009
-                  AND ABS(longitude - ?) < 0.0009
-                  AND (
-                      status IN ('PENDING', 'IN_PROGRESS', 'SUBMITTED', 'NEED_LOCATION_REVIEW', 'PENDING_RECEIVE', 'WAITING_INFO')
-                      OR
-                      (status = 'RESOLVED' AND resolved_at >= NOW() - INTERVAL '7 days')
-                  )
-                ORDER BY description_vector <=> ?::vector ASC 
-                LIMIT 1
-            """;
-
-            List<String> results = jdbcTemplate.query(
-                sql,
-                (rs, rowNum) -> rs.getString("tracking_code"),
-                wardId, vectorString, latitude, longitude, vectorString
-            );
+            List<String> results = jdbcTemplate.query(sql, (rs, rowNum) -> rs.getString("tracking_code"), params);
 
             if (!results.isEmpty()) {
                 String duplicateTrackingCode = results.get(0);
@@ -246,6 +284,7 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             log.error("❌ [Duplicate Detection] Lỗi khi kiểm tra trùng lặp: {}", e.getMessage());
         }
     }
+
 
     @Transactional(readOnly = true)
     public Page<Feedback> getAllFeedbacks(String username, Pageable pageable) {
@@ -900,6 +939,24 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         }
         return categoryRepository.findByCodeAndActiveTrue(normalizedCode)
                 .orElseThrow(() -> new CustomException("Invalid feedback category.", HttpStatus.BAD_REQUEST.value()));
+    }
+
+    private int mapTaskPriority(String priority) {
+        if (priority == null) return 1;
+        switch (priority.toUpperCase()) {
+            case "CRITICAL": return 3;
+            case "HIGH": return 2;
+            case "MEDIUM": return 1;
+            case "LOW": return 0;
+            default: return 1;
+        }
+    }
+
+    @Scheduled(cron = "0 0 2 * * *")
+    @Transactional
+    public void purgeExpiredDescriptionVectors() {
+        jdbcTemplate.execute("UPDATE feedbacks SET description_vector = NULL WHERE status IN ('RESOLVED', 'REJECTED') AND updated_at < NOW() - INTERVAL '30 days' AND description_vector IS NOT NULL");
+        log.info("[Vector Purge] Đã dọn dẹp các description_vector hết hạn cho feedbacks.");
     }
 
 }

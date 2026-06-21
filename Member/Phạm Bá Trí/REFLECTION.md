@@ -471,6 +471,16 @@ Khi 2 đầu Frontend và Backend phát triển song song mà thiếu API contra
 - Kinh nghiệm: Kiến trúc hệ thống không chỉ là chuyện của Backend hay Database. Một Software Architect xuất sắc phải nhìn thấy cả "dòng chảy" của dữ liệu và cảm nhận được "Nỗi đau" của người dùng. Việc biến "Sự từ chối" của AI thành một "Cơ hội sửa sai nhẹ nhàng" thông qua kỹ thuật Pre-fill Form chứng tỏ đẳng cấp thiết kế sản phẩm sâu sắc. Việc làm quen với `@Transactional` và luồng Async cũng giúp bản thân thoát khỏi tư duy lập trình CRUD cơ bản.
 ```
 
+---
+
+### 9.19. Bài học về Di chuyển sang Kiến trúc AI Routing hướng Cơ sở dữ liệu (Database-centric AI Routing & Outbox Pattern)
+
+```text
+- Vấn đề: Thiết kế cũ gọi trực tiếp dịch vụ AI (Gemini/Groq) đồng bộ trong luồng nghiệp vụ tạo phản ánh. Nếu API bên thứ ba bị chậm hoặc lỗi mạng, thread xử lý của web server sẽ bị nghẽn (blocking), làm sập trải nghiệm người dùng. Hơn nữa, nếu có sự cố mất điện hay crash server giữa chừng, thông tin sự cố sẽ bị mất và không thể tự động xử lý tiếp.
+- Giải pháp từ AI: AI đề xuất áp dụng **Outbox Pattern**. Thay vì gọi LLM ngay lập tức, ta lưu phản ánh vào DB đồng thời chèn một bản ghi `AiTask` trạng thái `PENDING` trong cùng một database transaction. Một background worker sử dụng truy vấn khóa bản ghi `FOR UPDATE SKIP LOCKED` sẽ định kỳ quét và khóa các task này để xử lý bất đồng bộ, cập nhật chi phí (Token) và độ trễ vào `ai_analysis_logs`.
+- Kinh nghiệm: Đây là giải pháp kiến trúc kinh điển của hệ thống hướng dữ liệu (Database-centric) và phân tán. Việc dịch chuyển logic từ backend xử lý trực tiếp sang cơ sở dữ liệu giúp hệ thống có khả năng chịu lỗi cực kỳ cao (fault-tolerant) và đảm bảo tính nhất quán cuối cùng (eventual consistency). Ngoài ra, tối ưu hóa các hàm truy vấn trùng lặp địa lý bằng PostGIS `ST_DWithin` và cơ chế dọn dẹp vector ngữ nghĩa tự động `@Scheduled purge` giúp duy trì cơ sở dữ liệu luôn gọn gàng và có hiệu suất cao trên môi trường Production thực tế.
+```
+
 ## 17. Cam kết Reflection
 
 Em/nhóm cam kết rằng nội dung reflection này phản ánh trung thực quá trình sử dụng AI và quá trình học tập trong bài tập/project.
@@ -484,5 +494,5 @@ Sinh viên/nhóm hiểu rằng:
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-|  |  |
+| Phạm Bá Trí | 2026-06-21 |
 

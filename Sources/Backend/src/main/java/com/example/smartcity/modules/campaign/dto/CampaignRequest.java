@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class CampaignRequest {
@@ -47,4 +48,5 @@ public class CampaignRequest {
     private Long linkedFeedbackId;
     private String boundaryGeojson;
     private String coverImageUrl;
+    private List<String> imageUrls;
 }

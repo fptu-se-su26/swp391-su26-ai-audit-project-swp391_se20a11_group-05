@@ -204,8 +204,30 @@ export function FeedbackDetailPageComponent({
   const [campaignParticipants, setCampaignParticipants] = useState("20");
   const [campaignTools, setCampaignTools] = useState("");
   const [campaignExpectedResult, setCampaignExpectedResult] = useState("");
-  const [campaignStart, setCampaignStart] = useState("");
-  const [campaignEnd, setCampaignEnd] = useState("");
+  const [campaignStartDate, setCampaignStartDate] = useState("");
+  const [campaignStartHour, setCampaignStartHour] = useState("08");
+  const [campaignStartMinute, setCampaignStartMinute] = useState("00");
+  const [campaignEndDate, setCampaignEndDate] = useState("");
+  const [campaignEndHour, setCampaignEndHour] = useState("17");
+  const [campaignEndMinute, setCampaignEndMinute] = useState("00");
+
+  const campaignStart = useMemo(() => {
+    if (!campaignStartDate) return "";
+    return `${campaignStartDate}T${campaignStartHour}:${campaignStartMinute}`;
+  }, [campaignStartDate, campaignStartHour, campaignStartMinute]);
+
+  const campaignEnd = useMemo(() => {
+    if (!campaignEndDate) return "";
+    return `${campaignEndDate}T${campaignEndHour}:${campaignEndMinute}`;
+  }, [campaignEndDate, campaignEndHour, campaignEndMinute]);
+
+  const todayStr = useMemo(() => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  }, []);
 
   // Query all campaigns to find if this feedback is already linked to one
   const { data: campaignsData } = useQuery({
@@ -224,7 +246,7 @@ export function FeedbackDetailPageComponent({
     if (report) {
       setSelectedStatus("");
       setCampaignTitle(`Chiến dịch dọn dẹp: ${report.title}`);
-      setCampaignDesc(`Nhằm khắc phục sự cố: ${report.description}`);
+      setCampaignDesc("");
       setCampaignLocation(report.addressDetails || report.address || "");
       setCampaignOrganizer(
         user?.name ? `${user.name} - UBND ${user.wardName || "phường"}` : "UBND Phường",
@@ -417,9 +439,7 @@ export function FeedbackDetailPageComponent({
         category: campaignCategory as any,
         locationText: campaignLocation.trim(),
         privateLocationText: campaignLocation.trim(),
-        requiredTools:
-          [campaignTools.trim(), campaignExpectedResult.trim()].filter(Boolean).join(" | ") ||
-          undefined,
+        requiredTools: campaignTools.trim() || undefined,
         organizerContact: campaignOrganizer.trim() || undefined,
         maxParticipants: campaignParticipants,
         startTime: new Date(campaignStart).toISOString(),
@@ -1273,28 +1293,91 @@ export function FeedbackDetailPageComponent({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <span className="block text-xs font-bold text-slate-700 uppercase">
                   Thời gian bắt đầu
-                </label>
-                <input
-                  type="datetime-local"
-                  value={campaignStart}
-                  onChange={(e) => setCampaignStart(e.target.value)}
-                  className="w-full h-9 border border-slate-250 rounded-lg px-2 text-xs font-semibold outline-none"
-                />
+                </span>
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    min={todayStr}
+                    value={campaignStartDate}
+                    onChange={(e) => setCampaignStartDate(e.target.value)}
+                    className="flex-[2] h-9 border border-slate-250 rounded-lg px-2 text-xs font-semibold outline-none focus:border-blue-500"
+                  />
+                  <select
+                    value={campaignStartHour}
+                    onChange={(e) => setCampaignStartHour(e.target.value)}
+                    className="flex-1 h-9 border border-slate-250 bg-white rounded-lg px-1.5 text-xs font-semibold outline-none focus:border-blue-500"
+                  >
+                    {Array.from({ length: 24 }).map((_, i) => {
+                      const val = String(i).padStart(2, "0");
+                      return (
+                        <option key={val} value={val}>
+                          {val} giờ
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <select
+                    value={campaignStartMinute}
+                    onChange={(e) => setCampaignStartMinute(e.target.value)}
+                    className="flex-1 h-9 border border-slate-250 bg-white rounded-lg px-1.5 text-xs font-semibold outline-none focus:border-blue-500"
+                  >
+                    {Array.from({ length: 60 }).map((_, i) => {
+                      const val = String(i).padStart(2, "0");
+                      return (
+                        <option key={val} value={val}>
+                          {val} phút
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+
+              <div className="space-y-1.5">
+                <span className="block text-xs font-bold text-slate-700 uppercase">
                   Thời gian kết thúc
-                </label>
-                <input
-                  type="datetime-local"
-                  value={campaignEnd}
-                  onChange={(e) => setCampaignEnd(e.target.value)}
-                  className="w-full h-9 border border-slate-250 rounded-lg px-2 text-xs font-semibold outline-none"
-                />
+                </span>
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    min={campaignStartDate || todayStr}
+                    value={campaignEndDate}
+                    onChange={(e) => setCampaignEndDate(e.target.value)}
+                    className="flex-[2] h-9 border border-slate-250 rounded-lg px-2 text-xs font-semibold outline-none focus:border-blue-500"
+                  />
+                  <select
+                    value={campaignEndHour}
+                    onChange={(e) => setCampaignEndHour(e.target.value)}
+                    className="flex-1 h-9 border border-slate-250 bg-white rounded-lg px-1.5 text-xs font-semibold outline-none focus:border-blue-500"
+                  >
+                    {Array.from({ length: 24 }).map((_, i) => {
+                      const val = String(i).padStart(2, "0");
+                      return (
+                        <option key={val} value={val}>
+                          {val} giờ
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <select
+                    value={campaignEndMinute}
+                    onChange={(e) => setCampaignEndMinute(e.target.value)}
+                    className="flex-1 h-9 border border-slate-250 bg-white rounded-lg px-1.5 text-xs font-semibold outline-none focus:border-blue-500"
+                  >
+                    {Array.from({ length: 60 }).map((_, i) => {
+                      const val = String(i).padStart(2, "0");
+                      return (
+                        <option key={val} value={val}>
+                          {val} phút
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
               </div>
             </div>
 

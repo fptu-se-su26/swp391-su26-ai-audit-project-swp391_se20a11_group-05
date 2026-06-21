@@ -831,6 +831,7 @@ export interface CampaignResponse {
   linkedFeedbackId?: number | null;
   boundaryGeojson?: string | null;
   coverImageUrl?: string | null;
+  imageUrls?: string[] | null;
 }
 
 export interface CampaignCreateRequest {
@@ -850,6 +851,7 @@ export interface CampaignCreateRequest {
   linkedFeedbackId?: number;
   boundaryGeojson?: string;
   coverImageUrl?: string;
+  imageUrls?: string[];
 }
 
 export interface CampaignParticipantResponse {

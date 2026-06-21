@@ -71,4 +71,7 @@ public class Campaign extends BaseEntity {
 
     @Column(name = "cover_image_url", length = 512)
     private String coverImageUrl;
+
+    @Column(name = "image_urls", columnDefinition = "TEXT")
+    private String imageUrls;
 }

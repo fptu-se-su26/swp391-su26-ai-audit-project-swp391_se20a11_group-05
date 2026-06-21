@@ -132,8 +132,8 @@ export function WardDashboard() {
   const [userOpen, setUserOpen] = useState(false);
   const { tab, detailId } = Route.useSearch();
   const activeSection = (
-    tab && ["overview", "feedback", "campaign", "schedule", "config"].includes(tab)
-      ? tab
+    tab && (["overview", "feedback", "campaign", "schedule", "config"].includes(tab) || tab.startsWith("campaign/"))
+      ? (tab.startsWith("campaign/") ? "campaign" : tab)
       : "overview"
   ) as WardSection;
 

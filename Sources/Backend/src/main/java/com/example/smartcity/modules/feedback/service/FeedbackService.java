@@ -99,6 +99,7 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         return feedbackRepository.findAll(pageable);
     }
 
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public Feedback createFeedback(FeedbackRequest request, String username) {
         // 1. GPS là bắt buộc để tránh phản ánh không có vị trí xử lý & tránh lỗi NPE unboxing khi gọi geocoding
         if (request.getLatitude() == null || request.getLongitude() == null) {

@@ -13,5 +13,6 @@ public class CampaignChatMessageResponse {
     private String senderName;
     private String senderRole;
     private String message;
+    private boolean pinned;
     private LocalDateTime createdAt;
 }

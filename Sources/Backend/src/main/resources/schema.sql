@@ -53,3 +53,9 @@ BEGIN
         ALTER TABLE wards ADD CONSTRAINT unique_ward_code UNIQUE (ward_code);
     END IF;
 END $$;
+
+-- 8. Campaign chat messages table - pinned column
+ALTER TABLE campaign_chat_messages ADD COLUMN IF NOT EXISTS pinned BOOLEAN;
+UPDATE campaign_chat_messages SET pinned = FALSE WHERE pinned IS NULL;
+ALTER TABLE campaign_chat_messages ALTER COLUMN pinned SET DEFAULT FALSE;
+ALTER TABLE campaign_chat_messages ALTER COLUMN pinned SET NOT NULL;

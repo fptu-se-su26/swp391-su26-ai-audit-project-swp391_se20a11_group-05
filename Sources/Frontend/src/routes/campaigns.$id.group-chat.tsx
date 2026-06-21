@@ -10,9 +10,13 @@ import {
   Smile,
   Users,
   X,
+  Lock,
+  Pin,
+  PinOff,
 } from "lucide-react";
 import logoImg from "@/assets/logo.png";
-import { useCampaignDetail } from "@/hooks/useCampaigns";
+import { useCampaignDetail, useCampaignChat, usePinChatMessage, useUnpinChatMessage } from "@/hooks/useCampaigns";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/campaigns/$id/group-chat")({
   head: () => ({
@@ -33,6 +37,7 @@ type ChatMessage = {
   role: "host" | "member" | "me";
   text: string;
   time: string;
+  pinned: boolean;
   status?: "sent" | "seen";
 };
 
@@ -92,16 +97,50 @@ const initialMessages: ChatMessage[] = [
 function CampaignGroupChatPage() {
   const { id } = Route.useParams();
   const campaign = useCampaignDetail(id);
+  const { user } = useAuth();
   const [noticeVisible, setNoticeVisible] = useState(true);
   const [infoOpen, setInfoOpen] = useState(false);
   const [draft, setDraft] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
+
+  const { data: chatMessages = [], sendMessage, isLoading: chatLoading } = useCampaignChat(id);
+  const pinMutation = usePinChatMessage(id);
+  const unpinMutation = useUnpinChatMessage(id);
 
   const campaignName = campaign?.name || DEFAULT_CAMPAIGN_NAME;
-  const memberCount = 1;
+  const memberCount = campaign?.participants || 1;
   const target = campaign?.target || 30;
   const onlineCount = members.filter((member) => member.online).length;
   const progressPercent = Math.min(100, Math.round((memberCount / target) * 100));
+
+  const formattedMessages = useMemo(() => {
+    return chatMessages.map((msg) => {
+      const isMe = user && user.name === msg.senderName;
+      const isHost = msg.senderRole === "WARD_STAFF" || msg.senderRole === "SUPER_ADMIN";
+      
+      let timeStr = "";
+      try {
+        const date = new Date(msg.createdAt);
+        const hours = String(date.getHours()).padStart(2, "0");
+        const minutes = String(date.getMinutes()).padStart(2, "0");
+        timeStr = `${hours}:${minutes}`;
+      } catch {
+        timeStr = "12:00";
+      }
+
+      return {
+        id: String(msg.id),
+        sender: msg.senderName,
+        role: isMe ? "me" : (isHost ? "host" : "member"),
+        text: msg.message,
+        time: timeStr,
+        pinned: msg.pinned || false,
+      } as ChatMessage;
+    });
+  }, [chatMessages, user]);
+
+  const pinnedMsg = useMemo(() => {
+    return chatMessages.find((m) => m.pinned);
+  }, [chatMessages]);
 
   const sidebar = useMemo(
     () => (
@@ -116,23 +155,48 @@ function CampaignGroupChatPage() {
     [campaignName, id, memberCount, progressPercent, target],
   );
 
-  const sendMessage = () => {
+  const handleSendMessage = () => {
     const text = draft.trim();
     if (!text) return;
-
-    setMessages((current) => [
-      ...current,
-      {
-        id: `local-${Date.now()}`,
-        sender: "citizen1",
-        role: "me",
-        time: "10:21",
-        text,
-        status: "sent",
-      },
-    ]);
+    sendMessage.mutate(text);
     setDraft("");
   };
+
+  // If campaign details are loaded, check if user is authorized (manager or approved participant)
+  if (campaign && !campaign.privateDetailsVisible) {
+    return (
+      <main className="min-h-screen bg-[#F5F7FA] flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white/80 backdrop-blur-md border border-slate-200 shadow-xl rounded-2xl p-6 text-center">
+          <div className="mx-auto w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4">
+            <Lock size={24} />
+          </div>
+          <h1 className="text-lg font-black text-slate-900 mb-2">Quyền truy cập bị từ chối</h1>
+          <p className="text-sm font-semibold text-slate-500 mb-6 leading-relaxed">
+            Bạn không có quyền truy cập nhóm chat này. Chỉ quản trị viên và thành viên đã được duyệt tham gia mới có quyền truy cập.
+          </p>
+          <Link
+            to="/campaigns/$id"
+            params={{ id }}
+            className="inline-flex h-10 items-center justify-center rounded-lg bg-blue-600 px-4 text-xs font-black text-white shadow-md hover:bg-blue-700 transition"
+          >
+            Quay lại trang chi tiết
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  // Loading state
+  if (!campaign || chatLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#F5F7FA]">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+          <p className="text-sm font-bold text-slate-500">Đang tải...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#F5F7FA] font-sans text-slate-900">
@@ -179,6 +243,28 @@ function CampaignGroupChatPage() {
             </div>
           </header>
 
+          {/* Pinned Message Bar */}
+          {pinnedMsg && (
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-amber-100 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-900 md:px-6 animate-[chatSlideUp_0.2s_ease]">
+              <div className="flex items-center gap-2 min-w-0">
+                <Pin size={15} className="text-amber-500 fill-current shrink-0 rotate-45" />
+                <span className="truncate text-xs sm:text-sm">
+                  <span className="font-black text-amber-800">Tin nhắn đã ghim: </span>
+                  {pinnedMsg.message}
+                </span>
+              </div>
+              {campaign.canManage && (
+                <button
+                  onClick={() => unpinMutation.mutate(pinnedMsg.id)}
+                  disabled={unpinMutation.isPending}
+                  className="text-amber-700 hover:text-amber-900 text-xs font-black shrink-0 underline decoration-dotted cursor-pointer"
+                >
+                  Bỏ ghim
+                </button>
+              )}
+            </div>
+          )}
+
           {noticeVisible && (
             <div className="flex shrink-0 items-center justify-between gap-3 border-b border-blue-100 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800 md:px-6">
               <span className="min-w-0">
@@ -199,11 +285,17 @@ function CampaignGroupChatPage() {
           <div className="flex-1 overflow-y-auto bg-[#F5F7FA] px-4 py-5 md:px-8">
             <div className="mx-auto flex max-w-3xl flex-col gap-4">
               <div className="self-center rounded-full bg-slate-200/70 px-3 py-1 text-xs font-bold text-slate-500">
-                Hôm nay, 10:30
+                Hôm nay
               </div>
 
-              {messages.map((message) => (
-                <ChatBubble key={message.id} message={message} />
+              {formattedMessages.map((message) => (
+                <ChatBubble 
+                  key={message.id} 
+                  message={message} 
+                  canManage={campaign.canManage}
+                  onPin={(msgId) => pinMutation.mutate(msgId)}
+                  onUnpin={(msgId) => unpinMutation.mutate(msgId)}
+                />
               ))}
             </div>
           </div>
@@ -216,14 +308,14 @@ function CampaignGroupChatPage() {
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter") sendMessage();
+                  if (event.key === "Enter") handleSendMessage();
                 }}
                 placeholder="Nhắn tin cho nhóm..."
                 className="h-11 min-w-0 flex-1 rounded-full bg-[#F3F4F6] px-4 text-sm font-semibold text-slate-800 outline-none ring-1 ring-transparent transition placeholder:text-slate-400 focus:bg-white focus:ring-[#3B82F6]/30"
               />
               <button
                 type="button"
-                onClick={sendMessage}
+                onClick={handleSendMessage}
                 disabled={!draft.trim()}
                 className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-[#3B82F6] transition hover:bg-blue-50 disabled:text-slate-300 disabled:hover:bg-transparent"
                 aria-label="Gửi tin nhắn"
@@ -374,11 +466,35 @@ function GroupSidebar({
   );
 }
 
-function ChatBubble({ message }: { message: ChatMessage }) {
+function ChatBubble({ 
+  message, 
+  canManage, 
+  onPin, 
+  onUnpin 
+}: { 
+  message: ChatMessage; 
+  canManage: boolean; 
+  onPin: (id: string) => void; 
+  onUnpin: (id: string) => void; 
+}) {
   if (message.role === "me") {
     return (
-      <div className="flex justify-end" style={{ animation: "chatSlideUp 0.2s ease" }}>
-        <div className="max-w-[78%] rounded-[12px_0_12px_12px] bg-[#3B82F6] px-4 py-2.5 text-white shadow-sm">
+      <div className="flex justify-end items-center gap-2 group" style={{ animation: "chatSlideUp 0.2s ease" }}>
+        {canManage && (
+          <button
+            onClick={() => message.pinned ? onUnpin(message.id) : onPin(message.id)}
+            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-full hover:bg-slate-250/80 bg-slate-100/50 text-slate-400 hover:text-amber-500 transition-all duration-200 shrink-0 shadow-sm border border-slate-200/50 cursor-pointer"
+            title={message.pinned ? "Bỏ ghim tin nhắn" : "Ghim tin nhắn"}
+          >
+            <Pin size={13} className={message.pinned ? "fill-amber-500 text-amber-500" : ""} />
+          </button>
+        )}
+        <div className={`max-w-[78%] rounded-[12px_0_12px_12px] bg-[#3B82F6] px-4 py-2.5 text-white shadow-sm relative ${message.pinned ? "border-t-[3px] border-t-amber-400" : ""}`}>
+          {message.pinned && (
+            <div className="absolute -top-2 -right-1 bg-amber-400 text-white rounded-full p-0.5 shadow-sm" title="Đã ghim">
+              <Pin size={9} className="fill-current" />
+            </div>
+          )}
           <p className="text-sm font-medium leading-6">{message.text}</p>
           <div className="mt-1 flex items-center justify-end gap-1 text-[10px] font-bold text-blue-100">
             <span>{message.time}</span>
@@ -392,17 +508,22 @@ function ChatBubble({ message }: { message: ChatMessage }) {
   const host = message.role === "host";
 
   return (
-    <div className="flex items-start gap-2" style={{ animation: "chatSlideUp 0.2s ease" }}>
+    <div className="flex items-start gap-2 group" style={{ animation: "chatSlideUp 0.2s ease" }}>
       <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-black ${
         host ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
       }`}>
         {host ? "CB" : message.sender.split(" ").at(-1)?.[0] || "A"}
       </span>
       <div
-        className={`max-w-[78%] rounded-[0_12px_12px_12px] bg-white px-4 py-2.5 text-slate-800 shadow-sm ${
+        className={`max-w-[78%] rounded-[0_12px_12px_12px] bg-white px-4 py-2.5 text-slate-800 shadow-sm relative ${
           host ? "border-l-[3px] border-l-[#F59E0B]" : ""
-        }`}
+        } ${message.pinned ? "border-t-[3px] border-t-amber-400" : ""}`}
       >
+        {message.pinned && (
+          <div className="absolute -top-2 -right-1 bg-amber-400 text-white rounded-full p-0.5 shadow-sm" title="Đã ghim">
+            <Pin size={9} className="fill-current" />
+          </div>
+        )}
         <p className={`mb-1 text-xs font-black ${host ? "text-amber-700" : "text-[#2563EB]"}`}>
           {host && <Crown size={13} className="mr-1 inline text-amber-500" />}
           {message.sender}
@@ -410,6 +531,15 @@ function ChatBubble({ message }: { message: ChatMessage }) {
         <p className="text-sm font-medium leading-6">{message.text}</p>
         <p className="mt-1 text-[10px] font-bold text-slate-400">{message.time}</p>
       </div>
+      {canManage && (
+        <button
+          onClick={() => message.pinned ? onUnpin(message.id) : onPin(message.id)}
+          className="opacity-0 group-hover:opacity-100 p-1.5 rounded-full hover:bg-slate-250/80 bg-slate-100/50 text-slate-400 hover:text-amber-500 transition-all duration-200 self-center shrink-0 shadow-sm border border-slate-200/50 cursor-pointer"
+          title={message.pinned ? "Bỏ ghim tin nhắn" : "Ghim tin nhắn"}
+        >
+          <Pin size={13} className={message.pinned ? "fill-amber-500 text-amber-500" : ""} />
+        </button>
+      )}
     </div>
   );
 }

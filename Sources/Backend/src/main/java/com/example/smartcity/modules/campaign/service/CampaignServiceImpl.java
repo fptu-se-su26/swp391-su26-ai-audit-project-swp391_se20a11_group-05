@@ -341,6 +341,43 @@ public class CampaignServiceImpl implements CampaignService {
     }
 
     @Override
+    @Transactional
+    public CampaignChatMessageResponse pinMessage(Long campaignId, Long messageId, String username) {
+        User manager = requireUser(username);
+        Campaign campaign = getCampaign(campaignId);
+        assertCanManage(campaign, manager);
+
+        CampaignChatMessage message = chatMessageRepository.findById(messageId)
+                .orElseThrow(() -> new CustomException("Message not found", HttpStatus.NOT_FOUND.value()));
+        if (!message.getCampaign().getId().equals(campaignId)) {
+            throw new CustomException("Message does not belong to this campaign", HttpStatus.BAD_REQUEST.value());
+        }
+
+        // Unpin all other messages for this campaign (only one pinned message at a time)
+        chatMessageRepository.unpinAllForCampaign(campaignId);
+
+        message.setPinned(true);
+        return toChatResponse(chatMessageRepository.save(message));
+    }
+
+    @Override
+    @Transactional
+    public CampaignChatMessageResponse unpinMessage(Long campaignId, Long messageId, String username) {
+        User manager = requireUser(username);
+        Campaign campaign = getCampaign(campaignId);
+        assertCanManage(campaign, manager);
+
+        CampaignChatMessage message = chatMessageRepository.findById(messageId)
+                .orElseThrow(() -> new CustomException("Message not found", HttpStatus.NOT_FOUND.value()));
+        if (!message.getCampaign().getId().equals(campaignId)) {
+            throw new CustomException("Message does not belong to this campaign", HttpStatus.BAD_REQUEST.value());
+        }
+
+        message.setPinned(false);
+        return toChatResponse(chatMessageRepository.save(message));
+    }
+
+    @Override
     public boolean canAccessRealtimeChannel(Long campaignId, String username) {
         if (username == null || username.isBlank()) {
             return false;
@@ -437,6 +474,7 @@ public class CampaignServiceImpl implements CampaignService {
                 .senderName(message.getSender().getFullName())
                 .senderRole(message.getSender().getRole().name())
                 .message(message.getMessage())
+                .pinned(message.isPinned())
                 .createdAt(message.getCreatedAt())
                 .build();
     }

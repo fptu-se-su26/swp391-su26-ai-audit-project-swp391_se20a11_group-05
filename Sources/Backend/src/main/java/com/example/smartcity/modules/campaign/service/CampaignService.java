@@ -44,6 +44,10 @@ public interface CampaignService {
 
     CampaignChatMessageResponse addChatMessage(Long campaignId, CampaignMessageRequest request, String username);
 
+    CampaignChatMessageResponse pinMessage(Long campaignId, Long messageId, String username);
+
+    CampaignChatMessageResponse unpinMessage(Long campaignId, Long messageId, String username);
+
     CampaignFeedbackResponse addFeedback(Long campaignId, CampaignFeedbackRequest request, String username);
 
     boolean canAccessRealtimeChannel(Long campaignId, String username);

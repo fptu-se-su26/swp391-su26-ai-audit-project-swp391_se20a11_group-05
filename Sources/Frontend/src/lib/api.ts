@@ -291,6 +291,7 @@ export interface FeedbackAttachmentResponse {
   fileName: string | null;
   fileSize: number | null;
   uploadedAt: string;
+  attachmentPurpose?: string;
 }
 
 export interface FeedbackStatusOption {
@@ -590,7 +591,9 @@ export const feedbackApi = {
 
   getWardStaffStatistics: (date?: string) =>
     request<FeedbackLookupStatsResponse>(
-      date ? `/api/dashboard/ward-staff/statistics?date=${date}` : "/api/dashboard/ward-staff/statistics"
+      date
+        ? `/api/dashboard/ward-staff/statistics?date=${date}`
+        : "/api/dashboard/ward-staff/statistics",
     ),
 
   // New: state machine endpoints
@@ -658,8 +661,7 @@ export const notificationApi = {
       method: "PUT",
     }),
 
-  getUnreadCount: () =>
-    request<number>("/api/notifications/unread-count"),
+  getUnreadCount: () => request<number>("/api/notifications/unread-count"),
 };
 
 export const policeApi = {
@@ -869,8 +871,7 @@ export const campaignApi = {
     return request<PageResponse<CampaignResponse>>(`/api/campaigns?${params}`);
   },
 
-  getById: (id: number | string) =>
-    request<CampaignResponse>(`/api/campaigns/${id}`),
+  getById: (id: number | string) => request<CampaignResponse>(`/api/campaigns/${id}`),
 
   getPrivateDetail: (id: number | string) =>
     request<CampaignResponse>(`/api/campaigns/${id}/detail`),
@@ -898,22 +899,27 @@ export const campaignApi = {
   join: (id: number | string) =>
     request<CampaignResponse>(`/api/campaigns/${id}/join`, { method: "POST" }),
 
-  leave: (id: number | string) =>
-    request<void>(`/api/campaigns/${id}/leave`, { method: "DELETE" }),
+  leave: (id: number | string) => request<void>(`/api/campaigns/${id}/leave`, { method: "DELETE" }),
 
   getParticipants: (id: number | string) =>
     request<CampaignParticipantResponse[]>(`/api/campaigns/${id}/participants`),
 
   approveParticipant: (id: number | string, participantId: number | string) =>
-    request<CampaignParticipantResponse>(`/api/campaigns/${id}/participants/${participantId}/approve`, {
-      method: "POST",
-    }),
+    request<CampaignParticipantResponse>(
+      `/api/campaigns/${id}/participants/${participantId}/approve`,
+      {
+        method: "POST",
+      },
+    ),
 
   rejectParticipant: (id: number | string, participantId: number | string, reason?: string) =>
-    request<CampaignParticipantResponse>(`/api/campaigns/${id}/participants/${participantId}/reject`, {
-      method: "POST",
-      body: JSON.stringify({ reason }),
-    }),
+    request<CampaignParticipantResponse>(
+      `/api/campaigns/${id}/participants/${participantId}/reject`,
+      {
+        method: "POST",
+        body: JSON.stringify({ reason }),
+      },
+    ),
 
   getComments: (id: number | string) =>
     request<CampaignCommentResponse[]>(`/api/campaigns/${id}/comments`),

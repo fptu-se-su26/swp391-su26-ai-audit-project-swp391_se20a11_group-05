@@ -655,6 +655,15 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         // Fix BOLA/IDOR: Validate permission before action
         validateActionPermission(actionBy, feedback);
 
+        // Kiểm tra bắt buộc có bằng chứng xử lý trước khi hoàn tất (RESOLVED)
+        if (newStatus == FeedbackStatus.RESOLVED) {
+            boolean hasEvidence = attachmentRepository.existsByFeedbackIdAndAttachmentPurpose(feedbackId, "RESOLUTION_EVIDENCE");
+            if (!hasEvidence) {
+                throw new CustomException("Vui lòng đính kèm hình ảnh hoặc video bằng chứng xử lý trước khi hoàn tất.",
+                        HttpStatus.BAD_REQUEST.value());
+            }
+        }
+
         LocalDateTime now = LocalDateTime.now();
         String effectiveNote = resolveStatusNote(newStatus, note, requestMessage, responseDeadline);
 

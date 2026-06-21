@@ -6,8 +6,10 @@ import com.example.smartcity.modules.feedback.repository.AttachmentRepository;
 import com.example.smartcity.modules.feedback.repository.FeedbackRepository;
 import com.example.smartcity.modules.feedback.service.SupabaseStorageService;
 import com.example.smartcity.modules.user.entity.User;
+import com.example.smartcity.modules.user.entity.Role;
 import com.example.smartcity.modules.user.repository.UserRepository;
 import com.example.smartcity.common.exception.ResourceNotFoundException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
@@ -83,6 +85,50 @@ public class FileController {
         attachmentRepository.save(attachment);
 
         log.info("[FileUpload] {} gắn {} vào feedback #{}", authentication.getName(), file.getOriginalFilename(), feedbackId);
+        return ResponseEntity.ok(UploadResponse.success(fileUrl, file));
+    }
+
+    /**
+     * Upload resolution evidence file và gắn vào feedback với role WARD_STAFF duy nhất, kiểm tra đúng wardId.
+     */
+    @PostMapping("/upload/resolution-evidence/{feedbackId}")
+    @PreAuthorize("hasRole('WARD_STAFF')")
+    public ResponseEntity<UploadResponse> uploadResolutionEvidence(
+            @PathVariable Long feedbackId,
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication) {
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body(UploadResponse.error("File không được để trống"));
+        }
+
+        Feedback feedback = feedbackRepository.findById(feedbackId)
+                .orElseThrow(() -> new ResourceNotFoundException("Feedback", feedbackId));
+
+        User user = userRepository.findByUsername(authentication.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("User: " + authentication.getName()));
+
+        // Kiểm tra quyền: phải là WARD_STAFF và đúng wardId của feedback đó
+        if (user.getRole() != Role.WARD_STAFF || user.getWard() == null || feedback.getWard() == null ||
+                !feedback.getWard().getId().equals(user.getWard().getId())) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
+                    .body(UploadResponse.error("Bạn không có quyền upload bằng chứng xử lý cho phản ánh này"));
+        }
+
+        validateImageOrVideo(file);
+        String fileUrl = supabaseStorageService.upload(file, feedbackId);
+
+        Attachment attachment = new Attachment();
+        attachment.setFeedback(feedback);
+        attachment.setFileUrl(fileUrl);
+        attachment.setFileType(toDatabaseFileType(file.getContentType()));
+        attachment.setFileName(file.getOriginalFilename());
+        attachment.setFileSize(file.getSize());
+        attachment.setUploadedBy(user);
+        attachment.setUploadedAt(LocalDateTime.now());
+        attachment.setAttachmentPurpose("RESOLUTION_EVIDENCE");
+        attachmentRepository.save(attachment);
+
+        log.info("[FileUpload] Cán bộ {} gắn bằng chứng xử lý {} vào feedback #{}", authentication.getName(), file.getOriginalFilename(), feedbackId);
         return ResponseEntity.ok(UploadResponse.success(fileUrl, file));
     }
 

@@ -6,7 +6,7 @@ import {
   X, FileText, MapPin, User, Calendar, Tag, Clock,
   CheckCircle, AlertCircle, RefreshCw, Image as ImageIcon,
   ExternalLink, Phone, Mail, Building, Hash, MessageSquare,
-  Flag, ChevronRight, Download, Share2, Edit3, Workflow
+  Flag, ChevronRight, Download, Share2, Edit3, Workflow, UserCheck
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -26,133 +26,9 @@ interface Props {
   onClose: () => void;
 }
 
-// Enhanced mock feedback data for better testing
-const createMockFeedback = (id: number): FeedbackResponse => ({
-  id,
-  trackingCode: `PHAN${String(id).padStart(6, '0')}`,
-  title: id === 1 ? "Đường hư hỏng tại đường Lê Duẩn" : 
-        id === 2 ? "Cây xanh gẫy đổ cản trở giao thông" :
-        id === 3 ? "Đèn giao thông không hoạt động" :
-        id === 4 ? "Vỉa hè bị hư hỏng, có ổ gà" :
-        id === 5 ? "Rác thải không được thu gom đúng giờ" :
-        `Phản ánh #${id}`,
-  description: id === 1 ? "Đường Lê Duẩn đoạn từ số 100 đến 150 có nhiều ổ gà lớn, gây khó khăn cho việc di chuyển của người dân. Mặt đường xuống cấp nghiêm trọng, cần được sửa chữa gấp. Tình trạng này đã tồn tại từ lâu và ngày càng trở nên tệ hơn khi có mưa." :
-                id === 2 ? "Cây me tây cao khoảng 10m bị gẫy đổ ngang đường sau cơn mưa lớn tối qua. Hiện tại giao thông đang bị ùn tắc nghiêm trọng, xe cộ phải đi vòng. Cần có biện pháp xử lý khẩn cấp để đảm bảo an toàn giao thông." :
-                id === 3 ? "Hệ thống đèn giao thông tại ngã tư Lê Duẩn - Trần Phú đã không hoạt động từ 3 ngày nay. Giao thông rất hỗn loạn, dễ xảy ra tai nạn. Người dân rất lo lắng và mong sớm được khắc phục." :
-                id === 4 ? "Vỉa hè trước số 234 đường Hùng Vương bị hư hỏng nặng, nhiều ổ gà sâu. Người đi bộ rất khó khăn, đặc biệt người cao tuổi và trẻ em. Ban đêm còn nguy hiểm hơn vì không có đèn chiếu sáng." :
-                id === 5 ? "Khu vực phố cũ quận Hải Châu, rác thải không được thu gom đúng lịch. Đã 3 ngày rác chồng chất, bốc mùi hôi thối, ảnh hưởng đến môi trường sống của người dân xung quanh." :
-                `Mô tả chi tiết cho phản ánh số ${id}...`,
-  categoryId: id % 5 + 1,
-  categoryName: id === 1 ? "Giao thông" : 
-                id === 2 ? "Cây xanh" :
-                id === 3 ? "Hạ tầng" : 
-                id === 4 ? "Vỉa hè" :
-                id === 5 ? "Vệ sinh môi trường" :
-                "Khác",
-  status: id === 1 ? "IN_PROGRESS" :
-          id === 2 ? "RESOLVED" :
-          id === 3 ? "PENDING" :
-          id === 4 ? "WAITING_INFO" :
-          id === 5 ? "SUBMITTED" :
-          "PENDING",
-  wardId: id % 7 + 1,
-  wardName: id === 1 ? "Hải Châu I" :
-            id === 2 ? "Thanh Khê" :
-            id === 3 ? "Sơn Trà" :
-            id === 4 ? "Hải Châu II" :
-            id === 5 ? "Liên Chiểu" :
-            "Hải Châu I",
-  addressDetails: id === 1 ? "Đường Lê Duẩn, đoạn từ số 100-150, phường Hải Châu I" :
-                  id === 2 ? "Ngã tư Lê Duẩn - Đinh Tiên Hoàng, phường Thanh Khê" :
-                  id === 3 ? "Ngã tư Lê Duẩn - Trần Phú, phường Sơn Trà" :
-                  id === 4 ? "Vỉa hè số 234 đường Hùng Vương, phường Hải Châu II" :
-                  id === 5 ? "Khu phố cũ, đường Tô Hiến Thành, phường Liên Chiểu" :
-                  `Địa chỉ chi tiết cho phản ánh ${id}`,
-  citizenId: 1000 + id,
-  citizenName: id === 1 ? "Trần Văn Nam" :
-               id === 2 ? "Lê Thị Hoa" :
-               id === 3 ? "Phạm Minh Đức" :
-               id === 4 ? "Nguyễn Thị Mai" :
-               id === 5 ? "Võ Văn Tùng" :
-               `Người dân ${id}`,
-  citizenPhone: id === 1 ? "0905123456" :
-                id === 2 ? "0912345678" :
-                id === 3 ? "0987654321" :
-                id === 4 ? "0923456789" :
-                id === 5 ? "0934567890" :
-                `090${id}123456`,
-  citizenEmail: id === 1 ? "namtv@gmail.com" :
-                id === 2 ? "hoalt@yahoo.com" :
-                id === 3 ? "ducpm@outlook.com" :
-                id === 4 ? "maint@gmail.com" :
-                id === 5 ? "tungvv@hotmail.com" :
-                `user${id}@gmail.com`,
-  assigneeId: id <= 3 ? 200 + id : null,
-  assigneeName: id === 1 ? "Nguyễn Văn Tâm - Cán bộ giao thông" :
-                id === 2 ? "Trần Thị Lan - Cán bộ môi trường" :
-                id === 3 ? "Lê Minh Khoa - Kỹ sư hạ tầng" :
-                null,
-  priority: id <= 2 ? "HIGH" : id <= 4 ? "MEDIUM" : "LOW",
-  createdAt: new Date(Date.now() - (id - 1) * 86400000 - Math.random() * 86400000).toISOString(),
-  updatedAt: new Date(Date.now() - Math.random() * 3600000).toISOString(),
-  latitude: 16.047 + (Math.random() - 0.5) * 0.1,
-  longitude: 108.206 + (Math.random() - 0.5) * 0.1,
-  attachments: id <= 3 ? [
-    {
-      id: id * 10 + 1,
-      fileName: `anh_${id}_1.jpg`,
-      fileUrl: `https://picsum.photos/800/600?random=${id * 10 + 1}`,
-      fileType: "image/jpeg",
-      fileSize: 245760 + Math.floor(Math.random() * 500000)
-    },
-    {
-      id: id * 10 + 2, 
-      fileName: `anh_${id}_2.jpg`,
-      fileUrl: `https://picsum.photos/800/600?random=${id * 10 + 2}`,
-      fileType: "image/jpeg",
-      fileSize: 189340 + Math.floor(Math.random() * 300000)
-    }
-  ] : [],
-  logs: [
-    {
-      id: id * 100 + 1,
-      action: "CREATED",
-      actorId: 1000 + id,
-      actorName: id === 1 ? "Trần Văn Nam" : id === 2 ? "Lê Thị Hoa" : `Người dân ${id}`,
-      note: "Tạo phản ánh mới",
-      createdAt: new Date(Date.now() - (id - 1) * 86400000 - Math.random() * 86400000).toISOString()
-    },
-    ...(id <= 3 ? [{
-      id: id * 100 + 2,
-      action: "ASSIGNED", 
-      actorId: 1,
-      actorName: "Hệ thống",
-      note: `Phân công cho ${id === 1 ? "Nguyễn Văn Tâm" : id === 2 ? "Trần Thị Lan" : "Lê Minh Khoa"}`,
-      createdAt: new Date(Date.now() - (id - 1) * 86400000 + 3600000).toISOString()
-    }] : []),
-    ...(id === 1 ? [{
-      id: id * 100 + 3,
-      action: "STATUS_UPDATED",
-      actorId: 201,
-      actorName: "Nguyễn Văn Tâm",
-      note: "Đã tiếp nhận và bắt đầu xử lý. Dự kiến hoàn thành trong 5-7 ngày làm việc.",
-      createdAt: new Date(Date.now() - 86400000 + 7200000).toISOString()
-    }] : []),
-    ...(id === 2 ? [{
-      id: id * 100 + 3,
-      action: "STATUS_UPDATED", 
-      actorId: 202,
-      actorName: "Trần Thị Lan",
-      note: "Đã hoàn thành việc xử lý cây gẫy đổ. Giao thông đã được thông thoáng trở lại.",
-      createdAt: new Date(Date.now() - 3600000).toISOString()
-    }] : [])
-  ]
-});
-
 export function FeedbackDetailModal({ feedbackId, onClose }: Props) {
   const [activeImg, setActiveImg] = useState(0);
 
-  // Try to get data from cache first, then fallback to API or mock data
   const { data: fbFromApi, isLoading: isLoadingApi } = useQuery<FeedbackResponse>({
     queryKey: ["admin", "feedback", "detail", feedbackId],
     queryFn: () => feedbackApi.getById(feedbackId!),
@@ -161,18 +37,12 @@ export function FeedbackDetailModal({ feedbackId, onClose }: Props) {
     retry: false, // Don't retry API calls to avoid delays
   });
 
-  // Use mock data as fallback if API fails or for demo purposes
   const fb = useMemo(() => {
     if (feedbackId === null) return null;
-    
-    // If API returns data, use it
-    if (fbFromApi) return fbFromApi;
-    
-    // Otherwise use mock data for demonstration
-    return createMockFeedback(feedbackId);
+    return fbFromApi ?? null;
   }, [feedbackId, fbFromApi]);
 
-  const isLoading = isLoadingApi && !fb;
+  const isLoading = isLoadingApi;
 
   if (feedbackId === null) return null;
 
@@ -235,17 +105,6 @@ export function FeedbackDetailModal({ feedbackId, onClose }: Props) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {fb && (
-              <a
-                href={`/my-reports/${feedbackId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#0B4FC4] border border-blue-200 bg-blue-50 rounded-lg hover:bg-blue-100 transition"
-              >
-                <ExternalLink size={12} />
-                Mở trang đầy đủ
-              </a>
-            )}
             <button
               onClick={onClose}
               className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center transition cursor-pointer"

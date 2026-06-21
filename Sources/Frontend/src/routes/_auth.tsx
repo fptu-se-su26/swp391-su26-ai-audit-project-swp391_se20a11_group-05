@@ -34,7 +34,7 @@ export const Route = createFileRoute("/_auth")({
    */
   beforeLoad: async () => {
     console.log("=== [_auth] Authentication Check Started ===");
-    
+
     // ── Read stored session ──────────────────────────────────
     // Ensure we're in browser environment
     if (typeof window === "undefined") {
@@ -44,7 +44,7 @@ export const Route = createFileRoute("/_auth")({
 
     const token = getToken();
     const raw = localStorage.getItem("dn_auth_user_v2");
-    
+
     console.log("[_auth] Token exists:", !!token, token ? `(${token.substring(0, 15)}...)` : "");
     console.log("[_auth] User data exists:", !!raw);
     if (raw) {
@@ -59,11 +59,19 @@ export const Route = createFileRoute("/_auth")({
       throw redirect({ to: "/authority-login", search: { redirect: undefined, error: undefined } });
     }
 
-    let user: { name: string; role: string; org: string; token?: string } | null = null;
+    let user: {
+      name: string;
+      role: string;
+      org: string;
+      wardName?: string | null;
+      wardType?: string | null;
+      wardId?: number | null;
+      token?: string;
+    } | null = null;
     try {
       user = JSON.parse(raw);
       console.log("[_auth] Parsed user:", { name: user?.name, role: user?.role, org: user?.org });
-      
+
       if (!user || !user.role) {
         console.error("❌ [_auth] Invalid user data structure");
         throw new Error("Invalid user data");
@@ -89,12 +97,15 @@ export const Route = createFileRoute("/_auth")({
     // ── 3. Confirmed authority user — inject into context ────
     console.log("✅ [_auth] Authentication SUCCESS -", user.name, "as", role);
     console.log("=== [_auth] Authentication Check Complete ===\n");
-    
+
     return {
       currentUser: {
         name: user.name,
         role,
         org: user.org ?? "",
+        wardName: user.wardName ?? null,
+        wardType: user.wardType ?? null,
+        wardId: user.wardId ?? null,
       },
     };
   },

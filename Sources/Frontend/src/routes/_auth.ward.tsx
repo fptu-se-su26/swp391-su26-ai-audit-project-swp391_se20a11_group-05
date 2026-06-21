@@ -12,7 +12,15 @@ import { WardDashboard } from "@/features/ward/WardDashboard";
 
 export const Route = createFileRoute("/_auth/ward")({
   beforeLoad: ({ context }) => {
-    const { currentUser } = context as { currentUser?: { name: string; role: string; org: string } };
+    const { currentUser } = context as {
+      currentUser?: {
+        name: string;
+        role: string;
+        org: string;
+        wardName?: string | null;
+        wardType?: string | null;
+      };
+    };
 
     if (!currentUser) return;
 

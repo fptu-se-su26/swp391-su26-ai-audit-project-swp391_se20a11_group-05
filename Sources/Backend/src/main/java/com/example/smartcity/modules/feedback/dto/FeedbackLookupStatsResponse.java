@@ -14,4 +14,5 @@ public class FeedbackLookupStatsResponse {
     private long pending;
     private long resolved;
     private long rejected;
+    private Long inProgress;
 }

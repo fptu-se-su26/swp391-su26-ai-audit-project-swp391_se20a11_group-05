@@ -63,15 +63,17 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
     private final EmbeddingClientFacade embeddingFacade;
 
     // State machine: map of valid transitions
-    private static final Map<FeedbackStatus, Set<FeedbackStatus>> VALID_TRANSITIONS = Map.of(
-        FeedbackStatus.SUBMITTED,      Set.of(FeedbackStatus.PENDING_RECEIVE, FeedbackStatus.IN_PROGRESS, FeedbackStatus.REJECTED),
-        FeedbackStatus.PENDING_RECEIVE,Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.REJECTED),
-        FeedbackStatus.PENDING,        Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.REJECTED),
-        FeedbackStatus.NEED_LOCATION_REVIEW, Set.of(FeedbackStatus.PENDING_RECEIVE, FeedbackStatus.REJECTED),
-        FeedbackStatus.IN_PROGRESS,    Set.of(FeedbackStatus.RESOLVED, FeedbackStatus.WAITING_INFO, FeedbackStatus.REJECTED),
-        FeedbackStatus.WAITING_INFO,   Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.RESOLVED, FeedbackStatus.REJECTED),
-        FeedbackStatus.RESOLVED,       Set.of(),
-        FeedbackStatus.REJECTED,       Set.of()
+    private static final Map<FeedbackStatus, Set<FeedbackStatus>> VALID_TRANSITIONS = Map.ofEntries(
+        Map.entry(FeedbackStatus.SUBMITTED,      Set.of(FeedbackStatus.PENDING_RECEIVE, FeedbackStatus.IN_PROGRESS, FeedbackStatus.REJECTED)),
+        Map.entry(FeedbackStatus.PENDING_RECEIVE,Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.REJECTED)),
+        Map.entry(FeedbackStatus.PENDING,        Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.REJECTED)),
+        Map.entry(FeedbackStatus.NEED_LOCATION_REVIEW, Set.of(FeedbackStatus.PENDING_RECEIVE, FeedbackStatus.REJECTED)),
+        Map.entry(FeedbackStatus.IN_PROGRESS,    Set.of(FeedbackStatus.RESOLVED, FeedbackStatus.WAITING_INFO, FeedbackStatus.REJECTED)),
+        Map.entry(FeedbackStatus.WAITING_INFO,   Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.RESOLVED, FeedbackStatus.REJECTED)),
+        Map.entry(FeedbackStatus.RESOLVED,       Set.of()),
+        Map.entry(FeedbackStatus.REJECTED,       Set.of()),
+        Map.entry(FeedbackStatus.ASSIGNED,       Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.RESOLVED, FeedbackStatus.REJECTED)),
+        Map.entry(FeedbackStatus.PRE_EMPTIVE,    Set.of())
     );
 
     @Override
@@ -266,18 +268,20 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
     public Page<Feedback> getMyFeedbacks(
             String username,
             String keyword,
+            String category,
             FeedbackStatus status,
+            String priority,
             LocalDateTime fromDate,
             LocalDateTime toDate,
+            Long wardId,
             Pageable pageable) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User: " + username));
 
-        if (user.getRole() != Role.CITIZEN) {
-            throw new CustomException("Chi cong dan moi duoc xem danh sach phan anh ca nhan", HttpStatus.FORBIDDEN.value());
-        }
-
         String normalizedKeyword = keyword == null ? null : keyword.trim();
+        List<FeedbackStatus> statusFilter = resolveStatusFilter(status);
+        boolean hasStatusFilter = !statusFilter.isEmpty();
+        String normalizedPriority = normalizePriorityFilter(priority);
         LocalDateTime effectiveFromDate = fromDate == null
                 ? LocalDate.of(1970, 1, 1).atStartOfDay()
                 : fromDate;
@@ -285,13 +289,168 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
                 ? LocalDate.of(9999, 12, 31).atTime(LocalTime.MAX)
                 : toDate;
 
-        return feedbackRepository.searchMyFeedbacks(
-                user.getId(),
-                normalizedKeyword,
-                status,
-                effectiveFromDate,
-                effectiveToDate,
-                pageable);
+        if (user.getRole() == Role.CITIZEN) {
+            return feedbackRepository.searchMyFeedbacks(
+                    user.getId(),
+                    normalizedKeyword,
+                    category,
+                    statusFilter,
+                    hasStatusFilter,
+                    normalizedPriority,
+                    effectiveFromDate,
+                    effectiveToDate,
+                    pageable);
+        } else if (user.getRole() == Role.WARD_STAFF) {
+            if (user.getWard() == null) {
+                return Page.empty();
+            }
+            return feedbackRepository.searchWardFeedbacks(
+                    user.getWard().getId(),
+                    normalizedKeyword,
+                    category,
+                    statusFilter,
+                    hasStatusFilter,
+                    normalizedPriority,
+                    effectiveFromDate,
+                    effectiveToDate,
+                    pageable);
+        } else if (user.getRole() == Role.POLICE) {
+            if (user.getWard() == null) {
+                return Page.empty();
+            }
+            return feedbackRepository.searchPoliceFeedbacks(
+                    CategoryRoutingService.ROLE_POLICE,
+                    user.getWard().getId(),
+                    normalizedKeyword,
+                    category,
+                    statusFilter,
+                    hasStatusFilter,
+                    normalizedPriority,
+                    effectiveFromDate,
+                    effectiveToDate,
+                    pageable);
+        } else if (user.getRole() == Role.SUPER_ADMIN) {
+            List<String> emptyCategories = null;
+            return feedbackRepository.searchPublicFeedbacks(
+                    normalizedKeyword,
+                    category,
+                    statusFilter,
+                    hasStatusFilter,
+                    normalizedPriority,
+                    effectiveFromDate,
+                    effectiveToDate,
+                    wardId,
+                    emptyCategories,
+                    false,
+                    pageable);
+        } else {
+            return Page.empty();
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public FeedbackLookupStatsResponse getMyFeedbackStats(
+            String username,
+            String keyword,
+            String category,
+            String priority,
+            LocalDateTime fromDate,
+            LocalDateTime toDate,
+            Long wardId) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User: " + username));
+
+        String normalizedKeyword = keyword == null ? null : keyword.trim();
+        String normalizedPriority = normalizePriorityFilter(priority);
+        LocalDateTime effectiveFromDate = fromDate == null
+                ? LocalDate.of(1970, 1, 1).atStartOfDay()
+                : fromDate;
+        LocalDateTime effectiveToDate = toDate == null
+                ? LocalDate.of(9999, 12, 31).atTime(LocalTime.MAX)
+                : toDate;
+
+        List<Object[]> rawCounts;
+        if (user.getRole() == Role.CITIZEN) {
+            rawCounts = feedbackRepository.countMyFeedbacksByStatus(
+                    user.getId(),
+                    normalizedKeyword,
+                    category,
+                    normalizedPriority,
+                    effectiveFromDate,
+                    effectiveToDate);
+        } else if (user.getRole() == Role.WARD_STAFF) {
+            if (user.getWard() == null) {
+                return FeedbackLookupStatsResponse.builder().build();
+            }
+            rawCounts = feedbackRepository.countWardFeedbacksByStatus(
+                    user.getWard().getId(),
+                    normalizedKeyword,
+                    category,
+                    normalizedPriority,
+                    effectiveFromDate,
+                    effectiveToDate);
+        } else if (user.getRole() == Role.POLICE) {
+            if (user.getWard() == null) {
+                return FeedbackLookupStatsResponse.builder().build();
+            }
+            rawCounts = feedbackRepository.countPoliceFeedbacksByStatus(
+                    CategoryRoutingService.ROLE_POLICE,
+                    user.getWard().getId(),
+                    normalizedKeyword,
+                    category,
+                    normalizedPriority,
+                    effectiveFromDate,
+                    effectiveToDate);
+        } else if (user.getRole() == Role.SUPER_ADMIN) {
+            List<String> emptyCategories = null;
+            rawCounts = feedbackRepository.countPublicFeedbacksByStatus(
+                    normalizedKeyword,
+                    category,
+                    List.of(),
+                    false,
+                    normalizedPriority,
+                    effectiveFromDate,
+                    effectiveToDate,
+                    wardId,
+                    emptyCategories,
+                    false);
+        } else {
+            return FeedbackLookupStatsResponse.builder().build();
+        }
+
+        long total = 0;
+        long pending = 0;
+        long inProgress = 0;
+        long resolved = 0;
+        long rejected = 0;
+
+        for (Object[] row : rawCounts) {
+            FeedbackStatus statStatus = (FeedbackStatus) row[0];
+            long count = ((Number) row[1]).longValue();
+            total += count;
+            if (statStatus == FeedbackStatus.SUBMITTED || 
+                statStatus == FeedbackStatus.PENDING_RECEIVE || 
+                statStatus == FeedbackStatus.PENDING) {
+                pending += count;
+            } else if (statStatus == FeedbackStatus.IN_PROGRESS || 
+                       statStatus == FeedbackStatus.ASSIGNED || 
+                       statStatus == FeedbackStatus.WAITING_INFO || 
+                       statStatus == FeedbackStatus.NEED_LOCATION_REVIEW) {
+                inProgress += count;
+            } else if (statStatus == FeedbackStatus.RESOLVED) {
+                resolved += count;
+            } else if (statStatus == FeedbackStatus.REJECTED) {
+                rejected += count;
+            }
+        }
+
+        return FeedbackLookupStatsResponse.builder()
+                .total(total)
+                .pending(pending)
+                .inProgress(inProgress)
+                .resolved(resolved)
+                .rejected(rejected)
+                .build();
     }
 
     @Transactional(readOnly = true)
@@ -301,9 +460,14 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             FeedbackStatus status,
             LocalDateTime fromDate,
             LocalDateTime toDate,
+            Long wardId,
+            List<String> categories,
+            String username,
             Pageable pageable) {
         String normalizedKeyword = keyword == null ? null : keyword.trim();
         String normalizedCategory = category == null ? null : category.trim();
+        List<FeedbackStatus> statusFilter = resolveStatusFilter(status);
+        boolean hasStatusFilter = !statusFilter.isEmpty();
         LocalDateTime effectiveFromDate = fromDate == null
                 ? LocalDate.of(1970, 1, 1).atStartOfDay()
                 : fromDate;
@@ -311,12 +475,22 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
                 ? LocalDate.of(9999, 12, 31).atTime(LocalTime.MAX)
                 : toDate;
 
+        Long effectiveWardId = wardId;
+        List<String> effectiveCategories = categories;
+
+        boolean hasCategories = (effectiveCategories != null && !effectiveCategories.isEmpty());
+
         return feedbackRepository.searchPublicFeedbacks(
                 normalizedKeyword,
                 normalizedCategory,
-                status,
+                statusFilter,
+                hasStatusFilter,
+                null, // priority is null for public listing
                 effectiveFromDate,
                 effectiveToDate,
+                effectiveWardId,
+                effectiveCategories,
+                hasCategories,
                 pageable);
     }
 
@@ -326,9 +500,14 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             String category,
             FeedbackStatus status,
             LocalDateTime fromDate,
-            LocalDateTime toDate) {
+            LocalDateTime toDate,
+            Long wardId,
+            List<String> categories,
+            String username) {
         String normalizedKeyword = keyword == null ? null : keyword.trim();
         String normalizedCategory = category == null ? null : category.trim();
+        List<FeedbackStatus> statusFilter = resolveStatusFilter(status);
+        boolean hasStatusFilter = !statusFilter.isEmpty();
         LocalDateTime effectiveFromDate = fromDate == null
                 ? LocalDate.of(1970, 1, 1).atStartOfDay()
                 : fromDate;
@@ -336,15 +515,26 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
                 ? LocalDate.of(9999, 12, 31).atTime(LocalTime.MAX)
                 : toDate;
 
+        Long effectiveWardId = wardId;
+        List<String> effectiveCategories = categories;
+
+        boolean hasCategories = (effectiveCategories != null && !effectiveCategories.isEmpty());
+
         List<Object[]> rawCounts = feedbackRepository.countPublicFeedbacksByStatus(
                 normalizedKeyword,
                 normalizedCategory,
-                status,
+                statusFilter,
+                hasStatusFilter,
+                null, // priority is null for public stats
                 effectiveFromDate,
-                effectiveToDate);
+                effectiveToDate,
+                effectiveWardId,
+                effectiveCategories,
+                hasCategories);
 
         long total = 0;
         long pending = 0;
+        long inProgress = 0;
         long resolved = 0;
         long rejected = 0;
 
@@ -352,13 +542,18 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             FeedbackStatus statStatus = (FeedbackStatus) row[0];
             long count = ((Number) row[1]).longValue();
             total += count;
-            if (statStatus != FeedbackStatus.RESOLVED && statStatus != FeedbackStatus.REJECTED) {
+            if (statStatus == FeedbackStatus.SUBMITTED || 
+                statStatus == FeedbackStatus.PENDING_RECEIVE || 
+                statStatus == FeedbackStatus.PENDING) {
                 pending += count;
-            }
-            if (statStatus == FeedbackStatus.RESOLVED) {
+            } else if (statStatus == FeedbackStatus.IN_PROGRESS || 
+                       statStatus == FeedbackStatus.ASSIGNED || 
+                       statStatus == FeedbackStatus.WAITING_INFO || 
+                       statStatus == FeedbackStatus.NEED_LOCATION_REVIEW) {
+                inProgress += count;
+            } else if (statStatus == FeedbackStatus.RESOLVED) {
                 resolved += count;
-            }
-            if (statStatus == FeedbackStatus.REJECTED) {
+            } else if (statStatus == FeedbackStatus.REJECTED) {
                 rejected += count;
             }
         }
@@ -366,9 +561,32 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         return FeedbackLookupStatsResponse.builder()
                 .total(total)
                 .pending(pending)
+                .inProgress(inProgress)
                 .resolved(resolved)
                 .rejected(rejected)
                 .build();
+    }
+
+    private List<FeedbackStatus> resolveStatusFilter(FeedbackStatus status) {
+        if (status == null) {
+            return List.of();
+        }
+        return switch (status) {
+            case SUBMITTED, PENDING_RECEIVE, PENDING, PRE_EMPTIVE ->
+                    List.of(FeedbackStatus.SUBMITTED, FeedbackStatus.PENDING_RECEIVE, FeedbackStatus.PENDING, FeedbackStatus.PRE_EMPTIVE);
+            case NEED_LOCATION_REVIEW, ASSIGNED, IN_PROGRESS, WAITING_INFO ->
+                    List.of(FeedbackStatus.NEED_LOCATION_REVIEW, FeedbackStatus.ASSIGNED, FeedbackStatus.IN_PROGRESS, FeedbackStatus.WAITING_INFO);
+            case RESOLVED -> List.of(FeedbackStatus.RESOLVED);
+            case REJECTED -> List.of(FeedbackStatus.REJECTED);
+        };
+    }
+
+    private String normalizePriorityFilter(String priority) {
+        if (priority == null || priority.isBlank()) {
+            return priority;
+        }
+        String normalized = priority.trim().toUpperCase();
+        return "URGENT".equals(normalized) ? "CRITICAL" : normalized;
     }
 
     @Transactional(readOnly = true)
@@ -414,6 +632,10 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
 
         User actionBy = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User: " + username));
+
+        if (actionBy.getRole() != Role.WARD_STAFF) {
+            throw new CustomException("Chỉ cán bộ phường mới có quyền cập nhật trạng thái phản ánh", HttpStatus.FORBIDDEN.value());
+        }
 
         // Fix BOLA/IDOR: Validate permission before action
         validateActionPermission(actionBy, feedback);

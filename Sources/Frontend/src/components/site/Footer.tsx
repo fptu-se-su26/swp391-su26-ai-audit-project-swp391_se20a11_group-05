@@ -80,7 +80,8 @@ export function Footer() {
               <div className="flex items-center gap-2.5">
                 <Phone size={16} className="text-[#F5C542] shrink-0" />
                 <span className="font-sans">
-                  {t("footer.hotlineLabel")} <span className="text-[#F5C542] font-bold font-sans">1022</span>
+                  {t("footer.hotlineLabel")}{" "}
+                  <span className="text-[#F5C542] font-bold font-sans">1022</span>
                 </span>
               </div>
             </div>

@@ -91,7 +91,10 @@ export const Route = createFileRoute("/_auth")({
       console.warn("❌ [_auth] SECURITY: Citizen role detected in authority portal");
       localStorage.removeItem("dn_auth_user_v2");
       localStorage.removeItem("dn_jwt_token");
-      throw redirect({ to: "/authority-login", search: { redirect: undefined, error: "forbidden" } });
+      throw redirect({
+        to: "/authority-login",
+        search: { redirect: undefined, error: "forbidden" },
+      });
     }
 
     // ── 3. Confirmed authority user — inject into context ────

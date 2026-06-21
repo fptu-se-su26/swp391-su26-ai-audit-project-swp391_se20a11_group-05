@@ -217,7 +217,9 @@ export function onCommentsChanged(campaignId: string, cb: () => void): () => voi
   return () => window.removeEventListener("dn_comments_updated", handler);
 }
 
-export function getCampaignByFeedbackId(feedbackId: string | number | null | undefined): Campaign | undefined {
+export function getCampaignByFeedbackId(
+  feedbackId: string | number | null | undefined,
+): Campaign | undefined {
   if (!feedbackId) return undefined;
   return readStorage().find((campaign) => String(campaign.linkedFeedbackId) === String(feedbackId));
 }

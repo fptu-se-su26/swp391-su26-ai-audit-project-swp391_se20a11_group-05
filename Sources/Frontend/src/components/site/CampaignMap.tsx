@@ -1,11 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import {
-  Layers,
-  MapPin,
-  Users,
-  Compass,
-  CheckCircle,
-} from "lucide-react";
+import { Layers, MapPin, Users, Compass, CheckCircle } from "lucide-react";
 import { WARD_BOUNDARIES } from "@/lib/geojson";
 import type { Campaign } from "@/lib/campaignStore";
 import { useAuth } from "@/lib/auth";
@@ -112,7 +106,7 @@ function MapController({
       if (activeCampaign.boundaryGeojson) {
         try {
           boundaryLayer = JSON.parse(activeCampaign.boundaryGeojson);
-        } catch { }
+        } catch {}
       }
       if (!boundaryLayer && activeCampaign.ward && WARD_BOUNDARIES[activeCampaign.ward]) {
         boundaryLayer = WARD_BOUNDARIES[activeCampaign.ward];
@@ -188,22 +182,20 @@ export function CampaignMap({
 
   useEffect(() => {
     let cancelled = false;
-    void Promise.all([import("react-leaflet"), import("leaflet")]).then(
-      ([rl, LMod]) => {
-        if (!cancelled) {
-          setLeafletComponents({
-            MapContainer: rl.MapContainer,
-            TileLayer: rl.TileLayer,
-            Marker: rl.Marker,
-            Popup: rl.Popup,
-            Circle: rl.Circle,
-            GeoJSON: rl.GeoJSON,
-            useMap: rl.useMap,
-            L: LMod.default || LMod,
-          });
-        }
-      },
-    );
+    void Promise.all([import("react-leaflet"), import("leaflet")]).then(([rl, LMod]) => {
+      if (!cancelled) {
+        setLeafletComponents({
+          MapContainer: rl.MapContainer,
+          TileLayer: rl.TileLayer,
+          Marker: rl.Marker,
+          Popup: rl.Popup,
+          Circle: rl.Circle,
+          GeoJSON: rl.GeoJSON,
+          useMap: rl.useMap,
+          L: LMod.default || LMod,
+        });
+      }
+    });
     return () => {
       cancelled = true;
     };
@@ -225,11 +217,13 @@ export function CampaignMap({
   const layers = {
     osm: {
       url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     },
     satellite: {
       url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-      attribution: "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
+      attribution:
+        "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
     },
   };
 
@@ -277,10 +271,11 @@ export function CampaignMap({
                   setLayerType("osm");
                   setIsLayersOpen(false);
                 }}
-                className={`w-full text-left px-4 py-2 text-xs transition flex items-center gap-2 ${layerType === "osm"
-                  ? "bg-blue-50 text-blue-600 font-extrabold"
-                  : "text-slate-700 hover:bg-slate-50 font-semibold"
-                  }`}
+                className={`w-full text-left px-4 py-2 text-xs transition flex items-center gap-2 ${
+                  layerType === "osm"
+                    ? "bg-blue-50 text-blue-600 font-extrabold"
+                    : "text-slate-700 hover:bg-slate-50 font-semibold"
+                }`}
               >
                 🗺️ Bản đồ đường phố
               </button>
@@ -290,10 +285,11 @@ export function CampaignMap({
                   setLayerType("satellite");
                   setIsLayersOpen(false);
                 }}
-                className={`w-full text-left px-4 py-2 text-xs transition flex items-center gap-2 ${layerType === "satellite"
-                  ? "bg-blue-50 text-blue-600 font-extrabold"
-                  : "text-slate-700 hover:bg-slate-50 font-semibold"
-                  }`}
+                className={`w-full text-left px-4 py-2 text-xs transition flex items-center gap-2 ${
+                  layerType === "satellite"
+                    ? "bg-blue-50 text-blue-600 font-extrabold"
+                    : "text-slate-700 hover:bg-slate-50 font-semibold"
+                }`}
               >
                 🛰️ Bản đồ vệ tinh
               </button>
@@ -312,7 +308,12 @@ export function CampaignMap({
         >
           <TileLayer url={layers[layerType].url} attribution={layers[layerType].attribution} />
 
-           <MapController activeCampaign={activeCampaign} campaigns={filteredCampaigns} L={L} useMap={useMap} />
+          <MapController
+            activeCampaign={activeCampaign}
+            campaigns={filteredCampaigns}
+            L={L}
+            useMap={useMap}
+          />
 
           {/* Render 100m radius range circle for active campaign */}
           {showBoundary &&
@@ -364,12 +365,13 @@ export function CampaignMap({
                   <div className="p-2 max-w-[240px]">
                     <div className="flex items-center gap-1.5 mb-1">
                       <span
-                        className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider ${c.status === "completed"
-                          ? "bg-green-100 text-green-700"
-                          : c.status === "recruiting"
-                            ? "bg-amber-100 text-amber-700"
-                            : "bg-blue-100 text-[#1E5EFF]"
-                          }`}
+                        className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider ${
+                          c.status === "completed"
+                            ? "bg-green-100 text-green-700"
+                            : c.status === "recruiting"
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-blue-100 text-[#1E5EFF]"
+                        }`}
                       >
                         {c.status === "completed"
                           ? "Hoàn thành"

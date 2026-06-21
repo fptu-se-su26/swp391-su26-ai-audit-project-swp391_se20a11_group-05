@@ -2,16 +2,16 @@ import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { userApi, type UserProfile } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  Search, 
-  Users, 
-  Shield, 
-  UserCheck, 
-  User, 
-  X, 
-  Lock, 
-  Unlock, 
-  Download, 
+import {
+  Search,
+  Users,
+  Shield,
+  UserCheck,
+  User,
+  X,
+  Lock,
+  Unlock,
+  Download,
   Upload,
   Filter,
   MoreVertical,
@@ -30,7 +30,7 @@ import {
   Key,
   FileText,
   TrendingUp,
-  Clock
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -116,18 +116,19 @@ export function UsersPage() {
     let data = [...allUsers];
     if (search.trim()) {
       const q = search.toLowerCase();
-      data = data.filter(u =>
-        u.username?.toLowerCase().includes(q) ||
-        u.fullName?.toLowerCase().includes(q) ||
-        u.email?.toLowerCase().includes(q) ||
-        u.phoneNumber?.includes(q)
+      data = data.filter(
+        (u) =>
+          u.username?.toLowerCase().includes(q) ||
+          u.fullName?.toLowerCase().includes(q) ||
+          u.email?.toLowerCase().includes(q) ||
+          u.phoneNumber?.includes(q),
       );
     }
-    if (roleFilter) data = data.filter(u => u.role === roleFilter);
-    if (statusFilter === "active") data = data.filter(u => u.isActive);
-    if (statusFilter === "inactive") data = data.filter(u => !u.isActive);
+    if (roleFilter) data = data.filter((u) => u.role === roleFilter);
+    if (statusFilter === "active") data = data.filter((u) => u.isActive);
+    if (statusFilter === "inactive") data = data.filter((u) => !u.isActive);
     if (wardFilter) {
-      data = data.filter(u => u.wardAssignments?.includes(wardFilter));
+      data = data.filter((u) => u.wardAssignments?.includes(wardFilter));
     }
     return data;
   }, [allUsers, search, roleFilter, statusFilter, wardFilter]);
@@ -135,15 +136,18 @@ export function UsersPage() {
   const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
 
-  const roleCounts = useMemo(() => ({
-    total: allUsers.length,
-    active: allUsers.filter(u => u.isActive).length,
-    inactive: allUsers.filter(u => !u.isActive).length,
-    citizen: allUsers.filter(u => u.role === "CITIZEN").length,
-    staff: allUsers.filter(u => u.role === "WARD_STAFF").length,
-    police: allUsers.filter(u => u.role === "POLICE").length,
-    admin: allUsers.filter(u => u.role === "SUPER_ADMIN").length,
-  }), [allUsers]);
+  const roleCounts = useMemo(
+    () => ({
+      total: allUsers.length,
+      active: allUsers.filter((u) => u.isActive).length,
+      inactive: allUsers.filter((u) => !u.isActive).length,
+      citizen: allUsers.filter((u) => u.role === "CITIZEN").length,
+      staff: allUsers.filter((u) => u.role === "WARD_STAFF").length,
+      police: allUsers.filter((u) => u.role === "POLICE").length,
+      admin: allUsers.filter((u) => u.role === "SUPER_ADMIN").length,
+    }),
+    [allUsers],
+  );
 
   const handleSelectUser = (userId: number, checked: boolean) => {
     const newSelected = new Set(selectedUsers);
@@ -158,7 +162,7 @@ export function UsersPage() {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      const allIds = new Set(paginated.map(u => u.id));
+      const allIds = new Set(paginated.map((u) => u.id));
       setSelectedUsers(allIds);
       setShowBulkActions(true);
     } else {
@@ -169,9 +173,9 @@ export function UsersPage() {
 
   const handleBulkAction = async (action: "activate" | "deactivate" | "delete") => {
     if (selectedUsers.size === 0) return;
-    
+
     try {
-      const promises = Array.from(selectedUsers).map(userId => {
+      const promises = Array.from(selectedUsers).map((userId) => {
         switch (action) {
           case "activate":
             return userApi.changeStatus(userId, true);
@@ -183,14 +187,14 @@ export function UsersPage() {
             return Promise.resolve();
         }
       });
-      
+
       await Promise.all(promises);
       await queryClient.invalidateQueries({ queryKey: ["admin", "users", "all"] });
       setSelectedUsers(new Set());
       setShowBulkActions(false);
-      
-      const actionText = action === "activate" ? "kích hoạt" : 
-                       action === "deactivate" ? "vô hiệu hóa" : "xóa";
+
+      const actionText =
+        action === "activate" ? "kích hoạt" : action === "deactivate" ? "vô hiệu hóa" : "xóa";
       toast.success(`Đã ${actionText} ${selectedUsers.size} tài khoản`);
     } catch {
       toast.error("Thao tác thất bại");
@@ -199,9 +203,15 @@ export function UsersPage() {
 
   const exportUsers = () => {
     // Mock export functionality
-    const csv = "username,fullName,email,role,status\n" + 
-                filtered.map(u => `${u.username},${u.fullName},${u.email},${u.role},${u.isActive ? 'Active' : 'Inactive'}`).join("\n");
-    
+    const csv =
+      "username,fullName,email,role,status\n" +
+      filtered
+        .map(
+          (u) =>
+            `${u.username},${u.fullName},${u.email},${u.role},${u.isActive ? "Active" : "Inactive"}`,
+        )
+        .join("\n");
+
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -211,7 +221,7 @@ export function UsersPage() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
+
     toast.success("Đã xuất dữ liệu người dùng");
   };
 
@@ -224,9 +234,11 @@ export function UsersPage() {
             <Users className="text-[#0B4FC4]" size={24} />
             Quản lý tài khoản
           </h2>
-          <p className="text-slate-500 mt-1">Quản lý thông tin tài khoản và vai trò cơ bản của người dùng</p>
+          <p className="text-slate-500 mt-1">
+            Quản lý thông tin tài khoản và vai trò cơ bản của người dùng
+          </p>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <button
             onClick={exportUsers}
@@ -248,44 +260,49 @@ export function UsersPage() {
       {/* Enhanced Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { 
-            label: "Tổng người dùng", 
-            value: roleCounts.total, 
-            icon: Users, 
-            color: "text-[#0B4FC4]", 
+          {
+            label: "Tổng người dùng",
+            value: roleCounts.total,
+            icon: Users,
+            color: "text-[#0B4FC4]",
             bg: "bg-blue-50",
-            trend: "+12%"
+            trend: "+12%",
           },
-          { 
-            label: "Đang hoạt động", 
-            value: roleCounts.active, 
-            icon: Activity, 
-            color: "text-green-600", 
+          {
+            label: "Đang hoạt động",
+            value: roleCounts.active,
+            icon: Activity,
+            color: "text-green-600",
             bg: "bg-green-50",
-            trend: "+5%"
+            trend: "+5%",
           },
-          { 
-            label: "Cán bộ & Công an", 
-            value: roleCounts.staff + roleCounts.police, 
-            icon: Shield, 
-            color: "text-orange-600", 
+          {
+            label: "Cán bộ & Công an",
+            value: roleCounts.staff + roleCounts.police,
+            icon: Shield,
+            color: "text-orange-600",
             bg: "bg-orange-50",
-            trend: "+2"
+            trend: "+2",
           },
-          { 
-            label: "Tài khoản bị khóa", 
-            value: roleCounts.inactive, 
-            icon: Lock, 
-            color: "text-red-600", 
+          {
+            label: "Tài khoản bị khóa",
+            value: roleCounts.inactive,
+            icon: Lock,
+            color: "text-red-600",
             bg: "bg-red-50",
-            trend: "-8%"
+            trend: "-8%",
           },
         ].map((stat, i) => {
           const Icon = stat.icon;
           return (
-            <div key={i} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 hover:shadow-md transition-all group">
+            <div
+              key={i}
+              className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 hover:shadow-md transition-all group"
+            >
               <div className="flex items-start justify-between">
-                <div className={`w-12 h-12 rounded-xl ${stat.bg} ${stat.color} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>
+                <div
+                  className={`w-12 h-12 rounded-xl ${stat.bg} ${stat.color} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}
+                >
                   <Icon size={20} />
                 </div>
                 <div className="text-right">
@@ -316,7 +333,7 @@ export function UsersPage() {
           <Filter className="text-slate-500" size={18} />
           <h3 className="font-bold text-slate-700">Bộ lọc nâng cao</h3>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Search */}
           <div className="relative">
@@ -325,7 +342,10 @@ export function UsersPage() {
               type="text"
               placeholder="Tìm theo tên, email, SĐT..."
               value={search}
-              onChange={e => { setSearch(e.target.value); setPage(0); }}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(0);
+              }}
               className="w-full pl-10 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:border-[#0B4FC4] transition-all"
             />
           </div>
@@ -333,7 +353,10 @@ export function UsersPage() {
           {/* Role Filter */}
           <select
             value={roleFilter}
-            onChange={e => { setRoleFilter(e.target.value); setPage(0); }}
+            onChange={(e) => {
+              setRoleFilter(e.target.value);
+              setPage(0);
+            }}
             className="px-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 cursor-pointer"
           >
             <option value="">Tất cả vai trò</option>
@@ -346,7 +369,10 @@ export function UsersPage() {
           {/* Status Filter */}
           <select
             value={statusFilter}
-            onChange={e => { setStatusFilter(e.target.value); setPage(0); }}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(0);
+            }}
             className="px-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 cursor-pointer"
           >
             <option value="">Tất cả trạng thái</option>
@@ -357,7 +383,10 @@ export function UsersPage() {
           {/* Ward Filter */}
           <select
             value={wardFilter}
-            onChange={e => { setWardFilter(e.target.value); setPage(0); }}
+            onChange={(e) => {
+              setWardFilter(e.target.value);
+              setPage(0);
+            }}
             className="px-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 cursor-pointer"
           >
             <option value="">Tất cả khu vực</option>
@@ -390,9 +419,10 @@ export function UsersPage() {
               </button>
             )}
           </div>
-          
+
           <div className="text-sm text-slate-500 font-medium">
-            <span className="font-bold text-[#0B4FC4]">{filtered.length}</span> / {allUsers.length} tài khoản
+            <span className="font-bold text-[#0B4FC4]">{filtered.length}</span> / {allUsers.length}{" "}
+            tài khoản
           </div>
         </div>
       </div>
@@ -402,11 +432,9 @@ export function UsersPage() {
         <div className="bg-[#0B4FC4] text-white rounded-xl p-4 flex items-center justify-between animate-fade-in">
           <div className="flex items-center gap-3">
             <CheckSquare size={18} />
-            <span className="font-semibold">
-              Đã chọn {selectedUsers.size} người dùng
-            </span>
+            <span className="font-semibold">Đã chọn {selectedUsers.size} người dùng</span>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <button
               onClick={() => handleBulkAction("activate")}
@@ -450,10 +478,11 @@ export function UsersPage() {
                     onClick={(e) => handleSelectAll((e.target as HTMLInputElement).checked)}
                     className="flex items-center gap-2"
                   >
-                    {selectedUsers.size === paginated.length && selectedUsers.size > 0 ? 
-                      <CheckSquare size={16} className="text-[#0B4FC4]" /> : 
+                    {selectedUsers.size === paginated.length && selectedUsers.size > 0 ? (
+                      <CheckSquare size={16} className="text-[#0B4FC4]" />
+                    ) : (
                       <Square size={16} className="text-slate-400" />
-                    }
+                    )}
                     Tất cả
                   </button>
                 </th>
@@ -466,134 +495,142 @@ export function UsersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {isLoading
-                ? Array.from({ length: 6 }).map((_, i) => (
-                    <tr key={i}>
-                      <td colSpan={7} className="px-6 py-4">
-                        <Skeleton className="h-12 w-full rounded" />
-                      </td>
-                    </tr>
-                  ))
-                : paginated.length === 0
-                  ? (
-                    <tr>
-                      <td colSpan={7} className="py-16 text-center">
-                        <div className="flex flex-col items-center gap-3">
-                          <Users className="text-slate-300" size={48} />
-                          <div>
-                            <div className="text-sm font-semibold text-slate-600">Không tìm thấy người dùng</div>
-                            <div className="text-xs text-slate-400 mt-1">Thử điều chỉnh bộ lọc hoặc thêm người dùng mới</div>
-                          </div>
+              {isLoading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i}>
+                    <td colSpan={7} className="px-6 py-4">
+                      <Skeleton className="h-12 w-full rounded" />
+                    </td>
+                  </tr>
+                ))
+              ) : paginated.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-16 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <Users className="text-slate-300" size={48} />
+                      <div>
+                        <div className="text-sm font-semibold text-slate-600">
+                          Không tìm thấy người dùng
                         </div>
-                      </td>
-                    </tr>
-                  )
-                  : paginated.map((user, idx) => (
-                      <tr key={user.id} className="hover:bg-slate-50/60 transition-colors group">
-                        {/* Checkbox */}
-                        <td className="px-6 py-4">
-                          <button
-                            onClick={() => handleSelectUser(user.id, !selectedUsers.has(user.id))}
-                            className="flex items-center gap-2"
-                          >
-                            {selectedUsers.has(user.id) ? 
-                              <CheckSquare size={16} className="text-[#0B4FC4]" /> : 
-                              <Square size={16} className="text-slate-400 hover:text-slate-600" />
-                            }
-                          </button>
-                        </td>
+                        <div className="text-xs text-slate-400 mt-1">
+                          Thử điều chỉnh bộ lọc hoặc thêm người dùng mới
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                paginated.map((user, idx) => (
+                  <tr key={user.id} className="hover:bg-slate-50/60 transition-colors group">
+                    {/* Checkbox */}
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => handleSelectUser(user.id, !selectedUsers.has(user.id))}
+                        className="flex items-center gap-2"
+                      >
+                        {selectedUsers.has(user.id) ? (
+                          <CheckSquare size={16} className="text-[#0B4FC4]" />
+                        ) : (
+                          <Square size={16} className="text-slate-400 hover:text-slate-600" />
+                        )}
+                      </button>
+                    </td>
 
-                        {/* User Info */}
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
-                              {user.fullName?.charAt(0)?.toUpperCase() || user.username.charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                              <div className="font-semibold text-slate-800">{user.fullName || "—"}</div>
-                              <div className="text-xs text-slate-500 font-mono">@{user.username}</div>
-                            </div>
+                    {/* User Info */}
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                          {user.fullName?.charAt(0)?.toUpperCase() ||
+                            user.username.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-slate-800">{user.fullName || "—"}</div>
+                          <div className="text-xs text-slate-500 font-mono">@{user.username}</div>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Contact */}
+                    <td className="px-4 py-4">
+                      <div className="space-y-1">
+                        {user.email && (
+                          <div className="flex items-center gap-1 text-xs text-slate-600">
+                            <Mail size={12} />
+                            {user.email}
                           </div>
-                        </td>
-
-                        {/* Contact */}
-                        <td className="px-4 py-4">
-                          <div className="space-y-1">
-                            {user.email && (
-                              <div className="flex items-center gap-1 text-xs text-slate-600">
-                                <Mail size={12} />
-                                {user.email}
-                              </div>
-                            )}
-                            {user.phoneNumber && (
-                              <div className="flex items-center gap-1 text-xs text-slate-600">
-                                <Phone size={12} />
-                                {user.phoneNumber}
-                              </div>
-                            )}
+                        )}
+                        {user.phoneNumber && (
+                          <div className="flex items-center gap-1 text-xs text-slate-600">
+                            <Phone size={12} />
+                            {user.phoneNumber}
                           </div>
-                        </td>
+                        )}
+                      </div>
+                    </td>
 
-                        {/* Role */}
-                        <td className="px-4 py-4 text-center">
-                          <select
-                            value={user.role}
-                            disabled={changingRole === user.id}
-                            onChange={e => handleChangeRole(user.id, e.target.value)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 transition ${ROLE_COLORS[user.role] || "bg-slate-100 text-slate-600"} ${changingRole === user.id ? "opacity-50 cursor-wait" : ""}`}
-                          >
-                            <option value="CITIZEN">Người dân</option>
-                            <option value="WARD_STAFF">Cán bộ phường</option>
-                            <option value="POLICE">Công an</option>
-                            <option value="SUPER_ADMIN">Lãnh đạo TP</option>
-                          </select>
-                        </td>
+                    {/* Role */}
+                    <td className="px-4 py-4 text-center">
+                      <select
+                        value={user.role}
+                        disabled={changingRole === user.id}
+                        onChange={(e) => handleChangeRole(user.id, e.target.value)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 transition ${ROLE_COLORS[user.role] || "bg-slate-100 text-slate-600"} ${changingRole === user.id ? "opacity-50 cursor-wait" : ""}`}
+                      >
+                        <option value="CITIZEN">Người dân</option>
+                        <option value="WARD_STAFF">Cán bộ phường</option>
+                        <option value="POLICE">Công an</option>
+                        <option value="SUPER_ADMIN">Lãnh đạo TP</option>
+                      </select>
+                    </td>
 
-                        {/* Status */}
-                        <td className="px-4 py-4 text-center">
-                          <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold ${user.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                            <span className={`w-2 h-2 rounded-full ${user.isActive ? "bg-green-500" : "bg-red-500"}`} />
-                            {user.isActive ? "Hoạt động" : "Bị khóa"}
-                          </span>
-                        </td>
+                    {/* Status */}
+                    <td className="px-4 py-4 text-center">
+                      <span
+                        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold ${user.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+                      >
+                        <span
+                          className={`w-2 h-2 rounded-full ${user.isActive ? "bg-green-500" : "bg-red-500"}`}
+                        />
+                        {user.isActive ? "Hoạt động" : "Bị khóa"}
+                      </span>
+                    </td>
 
-                        {/* Last Activity */}
-                        <td className="px-4 py-4 text-center">
-                          <div className="text-xs text-slate-500 flex items-center justify-center gap-1">
-                            <Clock size={12} />
-                            {user.lastLoginAt ? 
-                              new Date(user.lastLoginAt).toLocaleDateString("vi-VN") : 
-                              "Chưa đăng nhập"
-                            }
-                          </div>
-                        </td>
+                    {/* Last Activity */}
+                    <td className="px-4 py-4 text-center">
+                      <div className="text-xs text-slate-500 flex items-center justify-center gap-1">
+                        <Clock size={12} />
+                        {user.lastLoginAt
+                          ? new Date(user.lastLoginAt).toLocaleDateString("vi-VN")
+                          : "Chưa đăng nhập"}
+                      </div>
+                    </td>
 
-                        {/* Actions */}
-                        <td className="px-4 py-4">
-                          <div className="flex items-center justify-center gap-1">
-                            <button
-                              onClick={() => {
-                                setSelectedUser(user);
-                                setShowUserModal(true);
-                              }}
-                              className="p-2 rounded-lg text-slate-400 hover:text-[#0B4FC4] hover:bg-blue-50 transition"
-                              title="Xem chi tiết"
-                            >
-                              <Eye size={14} />
-                            </button>
-                            <button
-                              onClick={() => handleChangeStatus(user.id, !user.isActive)}
-                              disabled={changingStatus === user.id}
-                              className={`p-2 rounded-lg transition disabled:opacity-50 ${user.isActive ? "text-red-400 hover:bg-red-50 hover:text-red-600" : "text-green-500 hover:bg-green-50 hover:text-green-700"}`}
-                              title={user.isActive ? "Khóa tài khoản" : "Mở khóa tài khoản"}
-                            >
-                              {user.isActive ? <Lock size={14} /> : <Unlock size={14} />}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-              }
+                    {/* Actions */}
+                    <td className="px-4 py-4">
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setShowUserModal(true);
+                          }}
+                          className="p-2 rounded-lg text-slate-400 hover:text-[#0B4FC4] hover:bg-blue-50 transition"
+                          title="Xem chi tiết"
+                        >
+                          <Eye size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleChangeStatus(user.id, !user.isActive)}
+                          disabled={changingStatus === user.id}
+                          className={`p-2 rounded-lg transition disabled:opacity-50 ${user.isActive ? "text-red-400 hover:bg-red-50 hover:text-red-600" : "text-green-500 hover:bg-green-50 hover:text-green-700"}`}
+                          title={user.isActive ? "Khóa tài khoản" : "Mở khóa tài khoản"}
+                        >
+                          {user.isActive ? <Lock size={14} /> : <Unlock size={14} />}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -604,10 +641,12 @@ export function UsersPage() {
             <div className="flex items-center justify-between">
               <div className="text-sm text-slate-600">
                 Hiển thị <span className="font-semibold">{page * PAGE_SIZE + 1}</span> đến{" "}
-                <span className="font-semibold">{Math.min((page + 1) * PAGE_SIZE, filtered.length)}</span> của{" "}
-                <span className="font-semibold">{filtered.length}</span> tài khoản
+                <span className="font-semibold">
+                  {Math.min((page + 1) * PAGE_SIZE, filtered.length)}
+                </span>{" "}
+                của <span className="font-semibold">{filtered.length}</span> tài khoản
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setPage(0)}
@@ -618,13 +657,13 @@ export function UsersPage() {
                   ««
                 </button>
                 <button
-                  onClick={() => setPage(p => Math.max(0, p - 1))}
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
                   disabled={page === 0}
                   className="px-3 py-2 text-xs font-semibold text-slate-600 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-white transition"
                 >
                   ← Trước
                 </button>
-                
+
                 <div className="flex items-center gap-1">
                   {Array.from({ length: Math.min(totalPages, 5) }).map((_, i) => {
                     const pageNum = Math.max(0, Math.min(totalPages - 5, page - 2)) + i;
@@ -643,9 +682,9 @@ export function UsersPage() {
                     );
                   })}
                 </div>
-                
+
                 <button
-                  onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                   disabled={page >= totalPages - 1}
                   className="px-3 py-2 text-xs font-semibold text-slate-600 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-white transition"
                 >
@@ -675,7 +714,8 @@ export function UsersPage() {
                 {selectedUser ? (
                   <>
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">
-                      {selectedUser.fullName?.charAt(0)?.toUpperCase() || selectedUser.username.charAt(0).toUpperCase()}
+                      {selectedUser.fullName?.charAt(0)?.toUpperCase() ||
+                        selectedUser.username.charAt(0).toUpperCase()}
                     </div>
                     <div>
                       <h3 className="text-lg font-bold text-slate-800">
@@ -718,17 +758,29 @@ export function UsersPage() {
                     </h4>
                     <div className="space-y-3">
                       <div>
-                        <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Họ và tên</label>
-                        <div className="mt-1 p-3 bg-slate-50 rounded-lg text-sm">{selectedUser.fullName || "—"}</div>
+                        <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                          Họ và tên
+                        </label>
+                        <div className="mt-1 p-3 bg-slate-50 rounded-lg text-sm">
+                          {selectedUser.fullName || "—"}
+                        </div>
                       </div>
                       <div>
-                        <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Tên đăng nhập</label>
-                        <div className="mt-1 p-3 bg-slate-50 rounded-lg text-sm font-mono">{selectedUser.username}</div>
+                        <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                          Tên đăng nhập
+                        </label>
+                        <div className="mt-1 p-3 bg-slate-50 rounded-lg text-sm font-mono">
+                          {selectedUser.username}
+                        </div>
                       </div>
                       <div>
-                        <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Vai trò</label>
+                        <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                          Vai trò
+                        </label>
                         <div className="mt-1">
-                          <span className={`inline-flex px-3 py-1.5 rounded-lg text-sm font-bold ${ROLE_COLORS[selectedUser.role]}`}>
+                          <span
+                            className={`inline-flex px-3 py-1.5 rounded-lg text-sm font-bold ${ROLE_COLORS[selectedUser.role]}`}
+                          >
                             {ROLE_LABELS[selectedUser.role]}
                           </span>
                         </div>
@@ -744,18 +796,32 @@ export function UsersPage() {
                     </h4>
                     <div className="space-y-3">
                       <div>
-                        <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Email</label>
-                        <div className="mt-1 p-3 bg-slate-50 rounded-lg text-sm">{selectedUser.email || "—"}</div>
+                        <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                          Email
+                        </label>
+                        <div className="mt-1 p-3 bg-slate-50 rounded-lg text-sm">
+                          {selectedUser.email || "—"}
+                        </div>
                       </div>
                       <div>
-                        <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Số điện thoại</label>
-                        <div className="mt-1 p-3 bg-slate-50 rounded-lg text-sm">{selectedUser.phoneNumber || "—"}</div>
+                        <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                          Số điện thoại
+                        </label>
+                        <div className="mt-1 p-3 bg-slate-50 rounded-lg text-sm">
+                          {selectedUser.phoneNumber || "—"}
+                        </div>
                       </div>
                       <div>
-                        <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Trạng thái</label>
+                        <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                          Trạng thái
+                        </label>
                         <div className="mt-1">
-                          <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold ${selectedUser.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                            <span className={`w-2 h-2 rounded-full ${selectedUser.isActive ? "bg-green-500" : "bg-red-500"}`} />
+                          <span
+                            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold ${selectedUser.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+                          >
+                            <span
+                              className={`w-2 h-2 rounded-full ${selectedUser.isActive ? "bg-green-500" : "bg-red-500"}`}
+                            />
                             {selectedUser.isActive ? "Đang hoạt động" : "Bị khóa"}
                           </span>
                         </div>
@@ -771,20 +837,32 @@ export function UsersPage() {
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="p-4 bg-slate-50 rounded-xl">
-                        <div className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Ngày tạo</div>
+                        <div className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
+                          Ngày tạo
+                        </div>
                         <div className="text-sm font-medium">
-                          {selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString("vi-VN") : "—"}
+                          {selectedUser.createdAt
+                            ? new Date(selectedUser.createdAt).toLocaleDateString("vi-VN")
+                            : "—"}
                         </div>
                       </div>
                       <div className="p-4 bg-slate-50 rounded-xl">
-                        <div className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Đăng nhập gần nhất</div>
+                        <div className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
+                          Đăng nhập gần nhất
+                        </div>
                         <div className="text-sm font-medium">
-                          {selectedUser.lastLoginAt ? new Date(selectedUser.lastLoginAt).toLocaleDateString("vi-VN") : "Chưa đăng nhập"}
+                          {selectedUser.lastLoginAt
+                            ? new Date(selectedUser.lastLoginAt).toLocaleDateString("vi-VN")
+                            : "Chưa đăng nhập"}
                         </div>
                       </div>
                       <div className="p-4 bg-slate-50 rounded-xl">
-                        <div className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Xác thực 2FA</div>
-                        <div className={`text-sm font-medium ${selectedUser.isMfaEnabled ? "text-green-600" : "text-slate-500"}`}>
+                        <div className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
+                          Xác thực 2FA
+                        </div>
+                        <div
+                          className={`text-sm font-medium ${selectedUser.isMfaEnabled ? "text-green-600" : "text-slate-500"}`}
+                        >
                           {selectedUser.isMfaEnabled ? "✓ Đã bật" : "✗ Chưa bật"}
                         </div>
                       </div>
@@ -799,8 +877,11 @@ export function UsersPage() {
                         Phân công khu vực
                       </h4>
                       <div className="flex flex-wrap gap-2">
-                        {selectedUser.wardAssignments.map(ward => (
-                          <span key={ward} className="px-3 py-1.5 bg-orange-100 text-orange-700 text-sm font-medium rounded-lg">
+                        {selectedUser.wardAssignments.map((ward) => (
+                          <span
+                            key={ward}
+                            className="px-3 py-1.5 bg-orange-100 text-orange-700 text-sm font-medium rounded-lg"
+                          >
                             📍 {ward}
                           </span>
                         ))}
@@ -813,7 +894,9 @@ export function UsersPage() {
                 <form className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Họ và tên *</label>
+                      <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        Họ và tên *
+                      </label>
                       <input
                         type="text"
                         className="mt-2 w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:border-[#0B4FC4]"
@@ -821,7 +904,9 @@ export function UsersPage() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Tên đăng nhập *</label>
+                      <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        Tên đăng nhập *
+                      </label>
                       <input
                         type="text"
                         className="mt-2 w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:border-[#0B4FC4]"
@@ -829,7 +914,9 @@ export function UsersPage() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Email *</label>
+                      <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        Email *
+                      </label>
                       <input
                         type="email"
                         className="mt-2 w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:border-[#0B4FC4]"
@@ -837,7 +924,9 @@ export function UsersPage() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Số điện thoại</label>
+                      <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        Số điện thoại
+                      </label>
                       <input
                         type="tel"
                         className="mt-2 w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:border-[#0B4FC4]"
@@ -845,7 +934,9 @@ export function UsersPage() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Vai trò *</label>
+                      <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        Vai trò *
+                      </label>
                       <select className="mt-2 w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 cursor-pointer">
                         <option value="CITIZEN">👥 Người dân</option>
                         <option value="WARD_STAFF">🏢 Cán bộ phường</option>
@@ -854,7 +945,9 @@ export function UsersPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Mật khẩu tạm thời *</label>
+                      <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        Mật khẩu tạm thời *
+                      </label>
                       <input
                         type="password"
                         className="mt-2 w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:border-[#0B4FC4]"

@@ -36,7 +36,8 @@ export const Route = createFileRoute("/tin-tuc")({
       { title: "Tin tức & Thông báo — Đà Nẵng Kết Nối" },
       {
         name: "description",
-        content: "Cập nhật các thông tin, hoạt động, chính sách và thông báo mới nhất từ chính quyền thành phố Đà Nẵng.",
+        content:
+          "Cập nhật các thông tin, hoạt động, chính sách và thông báo mới nhất từ chính quyền thành phố Đà Nẵng.",
       },
     ],
   }),
@@ -61,7 +62,7 @@ const CATEGORY_ICONS: Record<string, React.ComponentType<any>> = {
   "Hạ tầng - Đô thị": Building2,
   "Kinh tế - Xã hội": TrendingUp,
   "An ninh - Trật tự": Shield,
-  "Khác": HelpCircle,
+  Khác: HelpCircle,
 };
 
 const CATEGORY_COLORS: Record<string, { text: string; bg: string }> = {
@@ -71,7 +72,7 @@ const CATEGORY_COLORS: Record<string, { text: string; bg: string }> = {
   "Hạ tầng - Đô thị": { text: "text-[#15803D]", bg: "bg-[#EAF8EF]" },
   "Kinh tế - Xã hội": { text: "text-[#0891B2]", bg: "bg-[#ECFEFF]" },
   "An ninh - Trật tự": { text: "text-[#1E3A8A]", bg: "bg-[#EBF3FF]" },
-  "Khác": { text: "text-[#4B5563]", bg: "bg-[#F3F4F6]" },
+  Khác: { text: "text-[#4B5563]", bg: "bg-[#F3F4F6]" },
 };
 
 const ITEMS_PER_PAGE = 5;
@@ -133,8 +134,7 @@ function NewsPage() {
         item.summary.toLowerCase().includes(queryKeyword.toLowerCase());
 
       // 2. Category badge check
-      const matchesCategory =
-        queryCategory === "Tất cả" || item.badge === queryCategory;
+      const matchesCategory = queryCategory === "Tất cả" || item.badge === queryCategory;
 
       return matchesKeyword && matchesCategory;
     });
@@ -150,9 +150,7 @@ function NewsPage() {
 
   // Sidebar: Most read articles sorted by views
   const mostReadNews = useMemo(() => {
-    return [...staticNews]
-      .sort((a, b) => b.views - a.views)
-      .slice(0, 5);
+    return [...staticNews].sort((a, b) => b.views - a.views).slice(0, 5);
   }, []);
 
   return (
@@ -170,7 +168,8 @@ function NewsPage() {
               Tin tức
             </h1>
             <p className="text-[#475467] text-sm md:text-base leading-relaxed mb-6 font-medium">
-              Cập nhật các thông tin, hoạt động, chính sách và thông báo mới nhất từ chính quyền thành phố Đà Nẵng.
+              Cập nhật các thông tin, hoạt động, chính sách và thông báo mới nhất từ chính quyền
+              thành phố Đà Nẵng.
             </p>
           </div>
         </div>
@@ -233,9 +232,7 @@ function NewsPage() {
             <div className="flex items-center justify-between border-b border-[#E4EAF2] pb-4 mb-6">
               <div className="flex items-center gap-2">
                 <div className="w-1 h-5 bg-[#0B4FC4] rounded-sm" />
-                <h2 className="text-[#0E3F8F] font-bold text-base md:text-lg">
-                  Tin tức mới nhất
-                </h2>
+                <h2 className="text-[#0E3F8F] font-bold text-base md:text-lg">Tin tức mới nhất</h2>
               </div>
               <span className="text-xs text-[#667085] font-semibold">
                 Tìm thấy {filteredNews.length} tin tức

@@ -24,7 +24,10 @@ import { toast } from "sonner";
 import { useCreateCampaign } from "@/hooks/useCampaigns";
 import { Role, useAuth } from "@/lib/auth";
 import type { CampaignCategory } from "@/lib/campaignStore";
-import { buildGoogleMapsEmbedUrl, resolveCampaignCoordinatesFromText } from "@/lib/campaignLocation";
+import {
+  buildGoogleMapsEmbedUrl,
+  resolveCampaignCoordinatesFromText,
+} from "@/lib/campaignLocation";
 
 export const Route = createFileRoute("/campaigns/create")({
   head: () => ({
@@ -48,11 +51,16 @@ const categories: { value: CampaignCategory; label: string }[] = [
 ];
 
 const categoryImages: Record<CampaignCategory, string> = {
-  environment: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600&auto=format&fit=crop&q=80",
-  infrastructure: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&auto=format&fit=crop&q=80",
-  public_safety: "https://images.unsplash.com/photo-1593113598332-cd288d649433?w=600&auto=format&fit=crop&q=80",
-  construction: "https://images.unsplash.com/photo-1486325212027-8081e485255e?w=600&auto=format&fit=crop&q=80",
-  fire_safety: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&auto=format&fit=crop&q=80",
+  environment:
+    "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600&auto=format&fit=crop&q=80",
+  infrastructure:
+    "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&auto=format&fit=crop&q=80",
+  public_safety:
+    "https://images.unsplash.com/photo-1593113598332-cd288d649433?w=600&auto=format&fit=crop&q=80",
+  construction:
+    "https://images.unsplash.com/photo-1486325212027-8081e485255e?w=600&auto=format&fit=crop&q=80",
+  fire_safety:
+    "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&auto=format&fit=crop&q=80",
 };
 
 const inputClass =
@@ -91,7 +99,8 @@ function CreateCampaignPage() {
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffHours / 24);
     const remainingHours = diffHours % 24;
-    if (diffDays > 0) return `Thời gian diễn ra: ${diffDays} ngày ${remainingHours > 0 ? `${remainingHours} giờ` : ""}`;
+    if (diffDays > 0)
+      return `Thời gian diễn ra: ${diffDays} ngày ${remainingHours > 0 ? `${remainingHours} giờ` : ""}`;
     return `Thời gian diễn ra: ${diffHours} giờ`;
   }, [startTime, endTime]);
 
@@ -183,7 +192,9 @@ function CreateCampaignPage() {
       toast.success("Đã gửi chiến dịch thành công để chờ phê duyệt.");
       navigate({ to: "/campaigns/$id", params: { id: campaign.id } });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể gửi chiến dịch để phê duyệt.");
+      toast.error(
+        error instanceof Error ? error.message : "Không thể gửi chiến dịch để phê duyệt.",
+      );
     }
   };
 
@@ -196,7 +207,8 @@ function CreateCampaignPage() {
           </div>
           <h1 className="text-2xl font-black text-slate-900">Quyền truy cập bị giới hạn</h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Chỉ có cán bộ địa phương phụ trách được cấp quyền tạo các chiến dịch cộng đồng mới. Người dân có thể đăng ký tham gia các chiến dịch khi đã được phê duyệt chính thức.
+            Chỉ có cán bộ địa phương phụ trách được cấp quyền tạo các chiến dịch cộng đồng mới.
+            Người dân có thể đăng ký tham gia các chiến dịch khi đã được phê duyệt chính thức.
           </p>
           <Link
             to="/campaigns"
@@ -226,7 +238,8 @@ function CreateCampaignPage() {
             Tạo chiến dịch mới
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            Chiến dịch tạo ra sẽ được chuyển đến Ủy ban Thành phố để phê duyệt trước khi công khai. Các chi tiết nhạy cảm sẽ được bảo mật.
+            Chiến dịch tạo ra sẽ được chuyển đến Ủy ban Thành phố để phê duyệt trước khi công khai.
+            Các chi tiết nhạy cảm sẽ được bảo mật.
           </p>
         </header>
 
@@ -235,7 +248,11 @@ function CreateCampaignPage() {
         <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,60fr)_minmax(320px,40fr)]">
           <div className="space-y-6">
             <section className="rounded-2xl border border-violet-100 bg-white p-7 shadow-md">
-              <SectionTitle number="1" title="Thông tin chung" subtitle="Hiển thị công khai cho người dân khi tìm kiếm chiến dịch." />
+              <SectionTitle
+                number="1"
+                title="Thông tin chung"
+                subtitle="Hiển thị công khai cho người dân khi tìm kiếm chiến dịch."
+              />
 
               <div className="mt-5">
                 <label
@@ -246,17 +263,30 @@ function CreateCampaignPage() {
                     handleBannerUpload(event.dataTransfer.files[0]);
                   }}
                 >
-                  <input type="file" accept="image/*" className="sr-only" onChange={(event) => handleBannerUpload(event.target.files?.[0])} />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(event) => handleBannerUpload(event.target.files?.[0])}
+                  />
                   {bannerPreview ? (
-                    <img src={bannerPreview} alt="Preview banner chiến dịch" className="aspect-video w-full rounded-xl object-cover" />
+                    <img
+                      src={bannerPreview}
+                      alt="Preview banner chiến dịch"
+                      className="aspect-video w-full rounded-xl object-cover"
+                    />
                   ) : (
                     <div className="grid aspect-video place-items-center rounded-xl bg-white text-center">
                       <div>
                         <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-[#F3F0FF] text-[#7C3AED]">
                           <Camera size={22} />
                         </div>
-                        <p className="mt-3 text-sm font-black text-slate-800">Kéo thả hoặc click để upload ảnh banner</p>
-                        <p className="mt-1 text-xs font-semibold text-slate-500">Khuyến nghị tỉ lệ 16:9, ảnh rõ chủ đề chiến dịch.</p>
+                        <p className="mt-3 text-sm font-black text-slate-800">
+                          Kéo thả hoặc click để upload ảnh banner
+                        </p>
+                        <p className="mt-1 text-xs font-semibold text-slate-500">
+                          Khuyến nghị tỉ lệ 16:9, ảnh rõ chủ đề chiến dịch.
+                        </p>
                       </div>
                     </div>
                   )}
@@ -275,7 +305,11 @@ function CreateCampaignPage() {
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <Field icon={Package} label="Lĩnh vực">
-                    <select value={category} onChange={(event) => setCategory(event.target.value as CampaignCategory)} className={inputClass}>
+                    <select
+                      value={category}
+                      onChange={(event) => setCategory(event.target.value as CampaignCategory)}
+                      className={inputClass}
+                    >
                       {categories.map((item) => (
                         <option key={item.value} value={item.value}>
                           {item.label}
@@ -303,33 +337,61 @@ function CreateCampaignPage() {
                     className={`${inputClass} min-h-32 resize-y py-3`}
                     placeholder="Mục đích, thông điệp truyền tải, quyền lợi và nội dung hoạt động..."
                   />
-                  <div className="mt-1 text-right text-xs font-semibold text-slate-400">{description.length}/500 ký tự</div>
+                  <div className="mt-1 text-right text-xs font-semibold text-slate-400">
+                    {description.length}/500 ký tự
+                  </div>
                 </Field>
               </div>
             </section>
 
             <section className="rounded-2xl border border-violet-100 bg-white p-7 shadow-md">
-              <SectionTitle number="2" title="Lịch & Địa điểm" subtitle="Thời gian, địa chỉ và bản đồ preview vị trí hoạt động." />
+              <SectionTitle
+                number="2"
+                title="Lịch & Địa điểm"
+                subtitle="Thời gian, địa chỉ và bản đồ preview vị trí hoạt động."
+              />
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
                 <Field icon={CalendarDays} label="Ngày bắt đầu" required>
-                  <input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} className={inputClass} />
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(event) => setStartDate(event.target.value)}
+                    className={inputClass}
+                  />
                 </Field>
                 <Field icon={CalendarDays} label="Giờ bắt đầu" required>
-                  <input type="time" value={startClock} onChange={(event) => setStartClock(event.target.value)} className={inputClass} />
+                  <input
+                    type="time"
+                    value={startClock}
+                    onChange={(event) => setStartClock(event.target.value)}
+                    className={inputClass}
+                  />
                 </Field>
                 <Field icon={CalendarDays} label="Ngày kết thúc" required>
-                  <input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} className={inputClass} />
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(event) => setEndDate(event.target.value)}
+                    className={inputClass}
+                  />
                 </Field>
                 <Field icon={CalendarDays} label="Giờ kết thúc" required>
-                  <input type="time" value={endClock} onChange={(event) => setEndClock(event.target.value)} className={inputClass} />
+                  <input
+                    type="time"
+                    value={endClock}
+                    onChange={(event) => setEndClock(event.target.value)}
+                    className={inputClass}
+                  />
                 </Field>
               </div>
 
               {durationText && (
                 <div
                   className={`mt-4 flex items-center gap-2 rounded-xl border px-4 py-3 text-xs font-bold ${
-                    isDurationError ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-800"
+                    isDurationError
+                      ? "border-red-200 bg-red-50 text-red-700"
+                      : "border-emerald-200 bg-emerald-50 text-emerald-800"
                   }`}
                 >
                   <CalendarDays size={15} />
@@ -340,7 +402,10 @@ function CreateCampaignPage() {
               <div className="mt-5">
                 <Field icon={MapPin} label="Địa chỉ cụ thể" required>
                   <div className="relative">
-                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Search
+                      size={16}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
                     <input
                       value={locationText}
                       onChange={(event) => setLocationText(event.target.value)}
@@ -349,7 +414,11 @@ function CreateCampaignPage() {
                     />
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {["Bãi biển Xuân Thiều, Liên Chiểu", "Công viên 29/3, Hải Châu", "Bãi biển Mỹ Khê, Sơn Trà"].map((item) => (
+                    {[
+                      "Bãi biển Xuân Thiều, Liên Chiểu",
+                      "Công viên 29/3, Hải Châu",
+                      "Bãi biển Mỹ Khê, Sơn Trà",
+                    ].map((item) => (
                       <button
                         key={item}
                         type="button"
@@ -375,7 +444,12 @@ function CreateCampaignPage() {
             </section>
 
             <section className="rounded-2xl border border-amber-200 bg-[#FFFBF0] p-7 shadow-md">
-              <SectionTitle number="3" title="Thông tin nội bộ" subtitle="Chỉ tình nguyện viên được duyệt mới thấy thông tin này." icon={Lock} />
+              <SectionTitle
+                number="3"
+                title="Thông tin nội bộ"
+                subtitle="Chỉ tình nguyện viên được duyệt mới thấy thông tin này."
+                icon={Lock}
+              />
 
               <div className="mt-5 grid gap-5">
                 <Field label="Điểm tập trung / Hẹn gặp" required>
@@ -422,15 +496,29 @@ function CreateCampaignPage() {
                 {isLoading ? "Đang gửi..." : "Gửi phê duyệt"}
               </button>
             </footer>
-            <p className="text-right text-xs font-semibold text-slate-500">Chiến dịch sẽ được chuyển đến Ủy ban Thành phố để phê duyệt.</p>
+            <p className="text-right text-xs font-semibold text-slate-500">
+              Chiến dịch sẽ được chuyển đến Ủy ban Thành phố để phê duyệt.
+            </p>
           </div>
 
           <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
             <HelperCard title="Quy trình" icon={ShieldCheck}>
               <div className="space-y-3">
-                <ProcessStep color="bg-[#7C3AED]" label="Tạo & gửi" text="Hoàn thành biểu mẫu và gửi phê duyệt." />
-                <ProcessStep color="bg-[#3B82F6]" label="Lãnh đạo duyệt" text="Ủy ban Thành phố đánh giá mức phù hợp." />
-                <ProcessStep color="bg-[#10B981]" label="Mở đăng ký" text="Chiến dịch được công khai cho người dân." />
+                <ProcessStep
+                  color="bg-[#7C3AED]"
+                  label="Tạo & gửi"
+                  text="Hoàn thành biểu mẫu và gửi phê duyệt."
+                />
+                <ProcessStep
+                  color="bg-[#3B82F6]"
+                  label="Lãnh đạo duyệt"
+                  text="Ủy ban Thành phố đánh giá mức phù hợp."
+                />
+                <ProcessStep
+                  color="bg-[#10B981]"
+                  label="Mở đăng ký"
+                  text="Chiến dịch được công khai cho người dân."
+                />
               </div>
             </HelperCard>
 
@@ -446,13 +534,22 @@ function CreateCampaignPage() {
             <HelperCard title="Xem trước" icon={Eye}>
               <div className="overflow-hidden rounded-xl border border-violet-100 bg-white shadow-sm">
                 <div className="relative aspect-video bg-slate-100">
-                  <img src={previewImage} alt="Preview campaign" className="h-full w-full object-cover" />
-                  <span className="absolute left-3 top-3 rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">Chờ duyệt</span>
+                  <img
+                    src={previewImage}
+                    alt="Preview campaign"
+                    className="h-full w-full object-cover"
+                  />
+                  <span className="absolute left-3 top-3 rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
+                    Chờ duyệt
+                  </span>
                 </div>
                 <div className="p-4">
-                  <p className="line-clamp-2 text-base font-black text-slate-950">{title.trim() || "Tên chiến dịch sẽ hiển thị tại đây"}</p>
+                  <p className="line-clamp-2 text-base font-black text-slate-950">
+                    {title.trim() || "Tên chiến dịch sẽ hiển thị tại đây"}
+                  </p>
                   <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600">
-                    {description.trim() || "Mô tả ngắn của chiến dịch sẽ được cập nhật realtime khi bạn nhập nội dung."}
+                    {description.trim() ||
+                      "Mô tả ngắn của chiến dịch sẽ được cập nhật realtime khi bạn nhập nội dung."}
                   </p>
                   <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-slate-500">
                     <MapPin size={14} />
@@ -485,14 +582,18 @@ function Stepper() {
           <div key={step.label} className="flex items-center gap-3">
             <div
               className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-black ${
-                step.state === "active" ? "bg-[#7C3AED] text-white" : "border border-slate-200 bg-white text-slate-400"
+                step.state === "active"
+                  ? "bg-[#7C3AED] text-white"
+                  : "border border-slate-200 bg-white text-slate-400"
               }`}
             >
               {step.state === "completed" ? <Check size={16} /> : index + 1}
             </div>
             <div>
               <p className="text-sm font-black text-slate-900">{step.label}</p>
-              <p className="text-xs font-semibold text-slate-400">{step.state === "active" ? "Đang nhập" : "Sắp tới"}</p>
+              <p className="text-xs font-semibold text-slate-400">
+                {step.state === "active" ? "Đang nhập" : "Sắp tới"}
+              </p>
             </div>
           </div>
         ))}
@@ -501,7 +602,17 @@ function Stepper() {
   );
 }
 
-function SectionTitle({ number, title, subtitle, icon: Icon }: { number: string; title: string; subtitle: string; icon?: ElementType }) {
+function SectionTitle({
+  number,
+  title,
+  subtitle,
+  icon: Icon,
+}: {
+  number: string;
+  title: string;
+  subtitle: string;
+  icon?: ElementType;
+}) {
   return (
     <div className="flex items-start gap-3 border-b border-slate-100 pb-4">
       <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#F3F0FF] text-sm font-black text-[#7C3AED]">
@@ -515,7 +626,15 @@ function SectionTitle({ number, title, subtitle, icon: Icon }: { number: string;
   );
 }
 
-function HelperCard({ title, icon: Icon, children }: { title: string; icon: ElementType; children: ReactNode }) {
+function HelperCard({
+  title,
+  icon: Icon,
+  children,
+}: {
+  title: string;
+  icon: ElementType;
+  children: ReactNode;
+}) {
   return (
     <section className="rounded-2xl border border-violet-100 bg-white p-6 shadow-lg">
       <h3 className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-wider text-slate-500">

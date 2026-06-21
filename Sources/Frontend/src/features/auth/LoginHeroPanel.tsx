@@ -47,7 +47,17 @@ export function LoginHeroPanel({ locale }: LoginHeroPanelProps) {
             to="/"
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold text-white/70 border border-white/20 hover:text-white hover:border-white/50 hover:bg-white/10 transition-all duration-200"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
               <polyline points="15 18 9 12 15 6" />
             </svg>
             {locale === "vi" ? "Về trang chủ" : "Back to Home"}

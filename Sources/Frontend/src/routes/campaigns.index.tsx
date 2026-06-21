@@ -113,7 +113,13 @@ function CampaignList() {
   };
 
   const stats = [
-    { label: "Tất cả chiến dịch", value: campaigns.length, icon: ListChecks, color: "#7C3AED", border: "border-l-[#7C3AED]" },
+    {
+      label: "Tất cả chiến dịch",
+      value: campaigns.length,
+      icon: ListChecks,
+      color: "#7C3AED",
+      border: "border-l-[#7C3AED]",
+    },
     {
       label: "Đang tuyển quân",
       value: campaigns.filter((c) => c.status === "recruiting").length,
@@ -143,10 +149,15 @@ function CampaignList() {
         <section className="relative mb-8 overflow-hidden rounded-2xl bg-[linear-gradient(135deg,#7C3AED_0%,#4F46E5_100%)] p-8 shadow-lg md:p-12">
           <div className="grid gap-8 md:grid-cols-[1fr_360px] md:items-center">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.22em] text-violet-100">Chiến dịch cộng đồng</p>
-              <h1 className="mt-3 text-4xl font-black tracking-tight text-white">Chiến dịch cộng đồng</h1>
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-violet-100">
+                Chiến dịch cộng đồng
+              </p>
+              <h1 className="mt-3 text-4xl font-black tracking-tight text-white">
+                Chiến dịch cộng đồng
+              </h1>
               <p className="mt-4 max-w-2xl text-base leading-7 text-white/80">
-                Xem các chiến dịch đã được phê duyệt, đăng ký tham gia và theo dõi tiến độ tại địa phương.
+                Xem các chiến dịch đã được phê duyệt, đăng ký tham gia và theo dõi tiến độ tại địa
+                phương.
               </p>
               {canCreate && (
                 <Link
@@ -166,10 +177,15 @@ function CampaignList() {
           {stats.map((stat) => {
             const Icon = stat.icon;
             return (
-              <div key={stat.label} className={`rounded-xl border border-white bg-white p-5 shadow-md border-l-4 ${stat.border}`}>
+              <div
+                key={stat.label}
+                className={`rounded-xl border border-white bg-white p-5 shadow-md border-l-4 ${stat.border}`}
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{stat.label}</p>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      {stat.label}
+                    </p>
                     <p className="mt-2 text-3xl font-black" style={{ color: stat.color }}>
                       {stat.value}
                     </p>
@@ -186,7 +202,10 @@ function CampaignList() {
         <section className="mb-6 rounded-xl border border-violet-100 bg-white p-4 shadow-sm">
           <div className="grid gap-3 lg:grid-cols-[1fr_190px_190px_auto]">
             <label className="relative block">
-              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search
+                size={18}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+              />
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
@@ -271,7 +290,10 @@ function CampaignCard({
   onJoin: () => void;
 }) {
   const image = useCampaignThumbnail(campaign);
-  const progressPercent = campaign.target > 0 ? Math.min(100, Math.round((campaign.participants / campaign.target) * 100)) : 0;
+  const progressPercent =
+    campaign.target > 0
+      ? Math.min(100, Math.round((campaign.participants / campaign.target) * 100))
+      : 0;
   const CategoryIcon = categoryIcon[campaign.category] ?? Leaf;
 
   return (
@@ -280,8 +302,15 @@ function CampaignCard({
         compact ? "grid md:grid-cols-[280px_1fr]" : ""
       }`}
     >
-      <div className={`relative bg-slate-100 ${compact ? "min-h-56 md:min-h-full" : "aspect-video"}`}>
-        <img src={image} alt={campaign.name} className="h-full w-full object-cover" loading="lazy" />
+      <div
+        className={`relative bg-slate-100 ${compact ? "min-h-56 md:min-h-full" : "aspect-video"}`}
+      >
+        <img
+          src={image}
+          alt={campaign.name}
+          className="h-full w-full object-cover"
+          loading="lazy"
+        />
         <div className="absolute left-4 top-4">
           <StatusBadge status={campaign.status} />
         </div>
@@ -299,7 +328,9 @@ function CampaignCard({
         >
           {campaign.name}
         </Link>
-        <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600">{campaign.desc || "Chưa có mô tả công khai."}</p>
+        <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600">
+          {campaign.desc || "Chưa có mô tả công khai."}
+        </p>
 
         <div className="mt-4 flex flex-wrap gap-3 text-xs font-semibold text-slate-500">
           <span className="inline-flex items-center gap-1.5">
@@ -324,7 +355,10 @@ function CampaignCard({
             </span>
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full rounded-full bg-[#10B981] transition-all duration-500" style={{ width: `${progressPercent}%` }} />
+            <div
+              className="h-full rounded-full bg-[#10B981] transition-all duration-500"
+              style={{ width: `${progressPercent}%` }}
+            />
           </div>
         </div>
 
@@ -338,7 +372,11 @@ function CampaignCard({
           <Link
             to="/campaigns/$id"
             params={{ id: campaign.id }}
-            className={campaign.status === "pending_review" ? "col-span-2 inline-flex h-11 items-center justify-center rounded-lg border border-slate-200 text-sm font-black text-slate-700 transition hover:bg-slate-50" : "inline-flex h-11 items-center justify-center rounded-lg border border-slate-200 text-sm font-black text-slate-700 transition hover:bg-slate-50"}
+            className={
+              campaign.status === "pending_review"
+                ? "col-span-2 inline-flex h-11 items-center justify-center rounded-lg border border-slate-200 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+                : "inline-flex h-11 items-center justify-center rounded-lg border border-slate-200 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+            }
           >
             Chi tiết
           </Link>
@@ -360,13 +398,28 @@ function CampaignCard({
 
 function StatusBadge({ status }: { status: Campaign["status"] }) {
   const meta = {
-    pending_review: { label: "Chờ duyệt", className: "border-slate-200 bg-slate-100 text-slate-600" },
-    recruiting: { label: "Đang tuyển", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
-    inProgress: { label: "Đang thực hiện", className: "border-amber-200 bg-amber-50 text-amber-700" },
+    pending_review: {
+      label: "Chờ duyệt",
+      className: "border-slate-200 bg-slate-100 text-slate-600",
+    },
+    recruiting: {
+      label: "Đang tuyển",
+      className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    },
+    inProgress: {
+      label: "Đang thực hiện",
+      className: "border-amber-200 bg-amber-50 text-amber-700",
+    },
     completed: { label: "Hoàn thành", className: "border-violet-200 bg-violet-50 text-[#7C3AED]" },
   }[status];
 
-  return <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black shadow-sm ${meta.className}`}>{meta.label}</span>;
+  return (
+    <span
+      className={`inline-flex rounded-full border px-3 py-1 text-xs font-black shadow-sm ${meta.className}`}
+    >
+      {meta.label}
+    </span>
+  );
 }
 
 function VolunteerIllustration() {
@@ -375,16 +428,45 @@ function VolunteerIllustration() {
       <svg viewBox="0 0 360 260" className="h-64 w-full max-w-sm">
         <rect x="28" y="174" width="300" height="34" rx="17" fill="rgba(255,255,255,0.16)" />
         <circle cx="260" cy="66" r="34" fill="#DDD6FE" opacity="0.95" />
-        <path d="M78 172c26-41 72-58 118-44 33 10 57 2 85-24" fill="none" stroke="#C4B5FD" strokeWidth="12" strokeLinecap="round" />
-        <path d="M110 150l38-54 34 54" fill="none" stroke="#fff" strokeWidth="14" strokeLinecap="round" strokeLinejoin="round" />
+        <path
+          d="M78 172c26-41 72-58 118-44 33 10 57 2 85-24"
+          fill="none"
+          stroke="#C4B5FD"
+          strokeWidth="12"
+          strokeLinecap="round"
+        />
+        <path
+          d="M110 150l38-54 34 54"
+          fill="none"
+          stroke="#fff"
+          strokeWidth="14"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
         <circle cx="148" cy="76" r="19" fill="#FDE68A" />
-        <path d="M196 89c23 13 42 35 51 64" fill="none" stroke="#fff" strokeWidth="13" strokeLinecap="round" />
+        <path
+          d="M196 89c23 13 42 35 51 64"
+          fill="none"
+          stroke="#fff"
+          strokeWidth="13"
+          strokeLinecap="round"
+        />
         <path d="M224 162h54l-11 47h-35z" fill="#A7F3D0" />
         <path d="M228 154h46" stroke="#fff" strokeWidth="10" strokeLinecap="round" />
-        <path d="M109 150l-33 55M183 151l26 55" stroke="#fff" strokeWidth="13" strokeLinecap="round" />
+        <path
+          d="M109 150l-33 55M183 151l26 55"
+          stroke="#fff"
+          strokeWidth="13"
+          strokeLinecap="round"
+        />
         <path d="M96 210h42M190 210h38" stroke="#DDD6FE" strokeWidth="10" strokeLinecap="round" />
         <path d="M267 132c23-24 46-30 68-19-8 28-29 42-63 39" fill="#BBF7D0" />
-        <path d="M273 149c18-8 35-19 51-33" stroke="#10B981" strokeWidth="4" strokeLinecap="round" />
+        <path
+          d="M273 149c18-8 35-19 51-33"
+          stroke="#10B981"
+          strokeWidth="4"
+          strokeLinecap="round"
+        />
       </svg>
     </div>
   );

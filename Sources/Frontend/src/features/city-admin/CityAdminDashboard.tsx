@@ -5,7 +5,14 @@ import { useNotifications, useMarkNotificationReadMutation } from "@/hooks";
 import { useFeedbackNotification } from "@/hooks/use-notification";
 import { useAuth } from "@/lib/auth";
 import { getLoginPathForRole } from "@/lib/roles";
-import { analyticsApi, authApi, feedbackApi, type KpiData, type WardPerformance, type MonthlyTrend } from "@/lib/api";
+import {
+  analyticsApi,
+  authApi,
+  feedbackApi,
+  type KpiData,
+  type WardPerformance,
+  type MonthlyTrend,
+} from "@/lib/api";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   kpis as mockKpis,
@@ -65,10 +72,21 @@ const mapCategoryName = (name: string | null | undefined): string => {
   if (n.includes("giao thông") || n.includes("traffic") || n.includes("giao thong")) {
     return "Giao thông";
   }
-  if (n.includes("môi trường") || n.includes("environment") || n.includes("moi truong") || n.includes("rác")) {
+  if (
+    n.includes("môi trường") ||
+    n.includes("environment") ||
+    n.includes("moi truong") ||
+    n.includes("rác")
+  ) {
     return "Môi trường";
   }
-  if (n.includes("an ninh") || n.includes("security") || n.includes("safety") || n.includes("trật tự") || n.includes("pháp")) {
+  if (
+    n.includes("an ninh") ||
+    n.includes("security") ||
+    n.includes("safety") ||
+    n.includes("trật tự") ||
+    n.includes("pháp")
+  ) {
     return "An ninh trật tự";
   }
   if (n.includes("xây dựng") || n.includes("construction") || n.includes("xay dung")) {
@@ -128,7 +146,9 @@ export function CityAdminDashboard() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"overview" | "feedbacks" | "reports" | "users" | "permissions">("overview");
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "feedbacks" | "reports" | "users" | "permissions"
+  >("overview");
   const [fullscreen, setFullscreen] = useState(false);
 
   // Filter states
@@ -154,13 +174,22 @@ export function CityAdminDashboard() {
   }, []);
 
   // Fetch real backend data — dùng admin endpoint để lấy toàn bộ phản ánh thành phố
-  const { data: feedbacksPage, isLoading: feedbacksLoading, isError: feedbacksError, refetch: refetchFeedbacks } = useQuery({
+  const {
+    data: feedbacksPage,
+    isLoading: feedbacksLoading,
+    isError: feedbacksError,
+    refetch: refetchFeedbacks,
+  } = useQuery({
     queryKey: ["admin", "feedbacks", "all"],
     queryFn: () => feedbackApi.adminGetAll(0, 500),
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });
-  const { data: analyticsKpi, isLoading: kpiLoading, isError: kpiError } = useQuery<KpiData>({
+  const {
+    data: analyticsKpi,
+    isLoading: kpiLoading,
+    isError: kpiError,
+  } = useQuery<KpiData>({
     queryKey: ["analytics", "kpi"],
     queryFn: () => analyticsApi.kpi(),
     staleTime: 60_000,
@@ -188,9 +217,13 @@ export function CityAdminDashboard() {
 
   // Sync / derive stats dynamically from real report list
   const totalReportsCount = hasApiData ? feedbacks.length : (analyticsKpi?.total ?? 0);
-  const unresolvedCount = feedbacks.filter((f) => f.status !== "RESOLVED" && f.status !== "REJECTED").length;
-  const inProgressCount = feedbacks.filter((f) => f.status === "IN_PROGRESS" || f.status === "ASSIGNED" || f.status === "WAITING_INFO").length;
-  
+  const unresolvedCount = feedbacks.filter(
+    (f) => f.status !== "RESOLVED" && f.status !== "REJECTED",
+  ).length;
+  const inProgressCount = feedbacks.filter(
+    (f) => f.status === "IN_PROGRESS" || f.status === "ASSIGNED" || f.status === "WAITING_INFO",
+  ).length;
+
   // Overdue count derivation (created > 3 days ago and not resolved)
   const overdueCount = feedbacks.filter((f) => {
     const isNotResolved = f.status !== "RESOLVED" && f.status !== "REJECTED";
@@ -218,46 +251,54 @@ export function CityAdminDashboard() {
 
   // Navigation config for left blue sidebar
   const navItems = [
-    { 
-      name: "Tổng quan", 
-      tab: "overview" as const, 
-      icon: Home, 
+    {
+      name: "Tổng quan",
+      tab: "overview" as const,
+      icon: Home,
       badge: null,
-      description: "Dashboard tổng quan"
+      description: "Dashboard tổng quan",
     },
-    { 
-      name: "Phản ánh", 
-      tab: "feedbacks" as const, 
-      icon: FileText, 
+    {
+      name: "Phản ánh",
+      tab: "feedbacks" as const,
+      icon: FileText,
       badge: unresolvedCount > 0 ? unresolvedCount : null,
-      description: "Quản lý phản ánh từ dân"
+      description: "Quản lý phản ánh từ dân",
     },
-    { 
-      name: "Báo cáo", 
-      tab: "reports" as const, 
-      icon: BarChart3, 
+    {
+      name: "Báo cáo",
+      tab: "reports" as const,
+      icon: BarChart3,
       badge: null,
-      description: "Thống kê & phân tích"
+      description: "Thống kê & phân tích",
     },
-    { 
-      name: "Tài khoản", 
-      tab: "users" as const, 
-      icon: Users, 
+    {
+      name: "Tài khoản",
+      tab: "users" as const,
+      icon: Users,
       badge: null,
-      description: "Quản lý người dùng"
+      description: "Quản lý người dùng",
     },
     // Tạm ẩn Phân quyền theo yêu cầu
-    // { 
-    //   name: "Phân quyền", 
-    //   tab: "permissions" as const, 
-    //   icon: Shield, 
+    // {
+    //   name: "Phân quyền",
+    //   tab: "permissions" as const,
+    //   icon: Shield,
     //   badge: "NEW",
     //   description: "Cấp quyền & phân công"
     // },
   ];
 
   // Hotspot location database
-  const defaultWards = ["Hải Châu", "Thanh Khê", "Liên Chiểu", "Sơn Trà", "Ngũ Hành Sơn", "Cẩm Lệ", "Hòa Vang"];
+  const defaultWards = [
+    "Hải Châu",
+    "Thanh Khê",
+    "Liên Chiểu",
+    "Sơn Trà",
+    "Ngũ Hành Sơn",
+    "Cẩm Lệ",
+    "Hòa Vang",
+  ];
   const WARD_COORDINATES: Record<string, [number, number]> = {
     "Hải Châu": [16.047, 108.218],
     "Thanh Khê": [16.062, 108.182],
@@ -270,7 +311,16 @@ export function CityAdminDashboard() {
 
   // Group real feedbacks by area
   const areaHotspots = useMemo(() => {
-    const areaMap: Record<string, { name: string; total: number; unresolved: number; overdue: number; categoryCounts: Record<string, number> }> = {};
+    const areaMap: Record<
+      string,
+      {
+        name: string;
+        total: number;
+        unresolved: number;
+        overdue: number;
+        categoryCounts: Record<string, number>;
+      }
+    > = {};
 
     defaultWards.forEach((w) => {
       areaMap[w] = { name: w, total: 0, unresolved: 0, overdue: 0, categoryCounts: {} };
@@ -280,7 +330,10 @@ export function CityAdminDashboard() {
       // Find ward name from database mapping
       let matchedWard = "Khác";
       for (const w of defaultWards) {
-        if (fb.wardName?.toLowerCase().includes(w.toLowerCase()) || fb.addressDetails?.toLowerCase().includes(w.toLowerCase())) {
+        if (
+          fb.wardName?.toLowerCase().includes(w.toLowerCase()) ||
+          fb.addressDetails?.toLowerCase().includes(w.toLowerCase())
+        ) {
           matchedWard = w;
           break;
         }
@@ -298,7 +351,8 @@ export function CityAdminDashboard() {
           areaMap[matchedWard].overdue++;
         }
         const mappedCat = mapCategoryName(fb.categoryName);
-        areaMap[matchedWard].categoryCounts[mappedCat] = (areaMap[matchedWard].categoryCounts[mappedCat] || 0) + 1;
+        areaMap[matchedWard].categoryCounts[mappedCat] =
+          (areaMap[matchedWard].categoryCounts[mappedCat] || 0) + 1;
       }
     });
 
@@ -329,9 +383,7 @@ export function CityAdminDashboard() {
 
   // Sort areas by unresolved count to display in ranking list
   const rankedAreas = useMemo(() => {
-    return [...areaHotspots]
-      .sort((a, b) => b.unresolved - a.unresolved)
-      .slice(0, 5);
+    return [...areaHotspots].sort((a, b) => b.unresolved - a.unresolved).slice(0, 5);
   }, [areaHotspots]);
 
   // Unresolved counts by 6 main categories
@@ -367,46 +419,51 @@ export function CityAdminDashboard() {
 
   // High priority list derivation
   const priorityReports = useMemo(() => {
-    return feedbacks
-      .filter((fb) => fb.status !== "RESOLVED" && fb.status !== "REJECTED")
-      .map((fb) => {
-        const diffTime = Math.abs(new Date().getTime() - new Date(fb.createdAt).getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
-        let priorityStatus = "Đang xử lý";
-        let priorityBadgeColor = "bg-blue-50 text-blue-600 border border-blue-100";
-        
-        if (diffDays > 3) {
-          priorityStatus = "Quá hạn";
-          priorityBadgeColor = "bg-red-50 text-red-600 border border-red-100";
-        } else if (diffDays >= 1) {
-          priorityStatus = "Sắp quá hạn";
-          priorityBadgeColor = "bg-orange-50 text-orange-600 border border-orange-100";
-        }
+    return (
+      feedbacks
+        .filter((fb) => fb.status !== "RESOLVED" && fb.status !== "REJECTED")
+        .map((fb) => {
+          const diffTime = Math.abs(new Date().getTime() - new Date(fb.createdAt).getTime());
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-        // Find area name
-        let matchedWard = "Đà Nẵng";
-        for (const w of defaultWards) {
-          if (fb.wardName?.toLowerCase().includes(w.toLowerCase()) || fb.addressDetails?.toLowerCase().includes(w.toLowerCase())) {
-            matchedWard = w;
-            break;
+          let priorityStatus = "Đang xử lý";
+          let priorityBadgeColor = "bg-blue-50 text-blue-600 border border-blue-100";
+
+          if (diffDays > 3) {
+            priorityStatus = "Quá hạn";
+            priorityBadgeColor = "bg-red-50 text-red-600 border border-red-100";
+          } else if (diffDays >= 1) {
+            priorityStatus = "Sắp quá hạn";
+            priorityBadgeColor = "bg-orange-50 text-orange-600 border border-orange-100";
           }
-        }
 
-        return {
-          id: fb.id,
-          trackingCode: fb.trackingCode || `PA-${fb.id}`,
-          ward: matchedWard,
-          category: mapCategoryName(fb.categoryName),
-          status: priorityStatus,
-          badgeColor: priorityBadgeColor,
-          overdueTime: getOverdueTime(fb.createdAt),
-          createdAt: new Date(fb.createdAt).getTime(),
-          diffDays,
-        };
-      })
-      // Sort: Overdue first, then Sắp quá hạn, then Đang xử lý
-      .sort((a, b) => b.diffDays - a.diffDays);
+          // Find area name
+          let matchedWard = "Đà Nẵng";
+          for (const w of defaultWards) {
+            if (
+              fb.wardName?.toLowerCase().includes(w.toLowerCase()) ||
+              fb.addressDetails?.toLowerCase().includes(w.toLowerCase())
+            ) {
+              matchedWard = w;
+              break;
+            }
+          }
+
+          return {
+            id: fb.id,
+            trackingCode: fb.trackingCode || `PA-${fb.id}`,
+            ward: matchedWard,
+            category: mapCategoryName(fb.categoryName),
+            status: priorityStatus,
+            badgeColor: priorityBadgeColor,
+            overdueTime: getOverdueTime(fb.createdAt),
+            createdAt: new Date(fb.createdAt).getTime(),
+            diffDays,
+          };
+        })
+        // Sort: Overdue first, then Sắp quá hạn, then Đang xử lý
+        .sort((a, b) => b.diffDays - a.diffDays)
+    );
   }, [feedbacks]);
 
   // Filters application
@@ -423,10 +480,11 @@ export function CityAdminDashboard() {
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
-      result = result.filter((r) => 
-        r.trackingCode.toLowerCase().includes(q) ||
-        r.ward.toLowerCase().includes(q) ||
-        r.category.toLowerCase().includes(q)
+      result = result.filter(
+        (r) =>
+          r.trackingCode.toLowerCase().includes(q) ||
+          r.ward.toLowerCase().includes(q) ||
+          r.category.toLowerCase().includes(q),
       );
     }
     return result.slice(0, 5);
@@ -529,14 +587,14 @@ export function CityAdminDashboard() {
       <aside
         className={`fixed inset-y-0 left-0 bg-gradient-to-b from-[#0647A5] to-[#043A8F] text-white flex flex-col z-40 transform transition-all duration-300 ease-in-out shadow-2xl ${
           sidebarCollapsed ? "w-16" : "w-64"
-        } ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0`}
+        } ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
       >
         {/* Branding */}
-        <div className={`p-5 flex items-center border-b border-[#053d8e] shrink-0 transition-all duration-300 ${
-          sidebarCollapsed ? "justify-center" : "gap-3"
-        }`}>
+        <div
+          className={`p-5 flex items-center border-b border-[#053d8e] shrink-0 transition-all duration-300 ${
+            sidebarCollapsed ? "justify-center" : "gap-3"
+          }`}
+        >
           <img
             src={logoImg}
             alt="Đà Nẵng Connect Logo"
@@ -561,8 +619,8 @@ export function CityAdminDashboard() {
                 className="w-8 h-8 flex items-center justify-center text-[#B8D4FF] hover:text-white hover:bg-[#0753BF] rounded-lg transition-all shrink-0"
                 title="Thu gọn"
               >
-                <ChevronRight 
-                  size={14} 
+                <ChevronRight
+                  size={14}
                   className="transform transition-transform duration-300 rotate-180"
                 />
               </button>
@@ -574,8 +632,8 @@ export function CityAdminDashboard() {
               className="absolute top-3 right-3 w-6 h-6 flex items-center justify-center text-[#B8D4FF] hover:text-white hover:bg-[#0753BF] rounded-lg transition-all"
               title="Mở rộng"
             >
-              <ChevronRight 
-                size={12} 
+              <ChevronRight
+                size={12}
                 className="transform transition-transform duration-300 rotate-0"
               />
             </button>
@@ -590,7 +648,10 @@ export function CityAdminDashboard() {
             return (
               <div key={index} className="relative group">
                 <button
-                  onClick={() => { setActiveTab(item.tab); setSidebarOpen(false); }}
+                  onClick={() => {
+                    setActiveTab(item.tab);
+                    setSidebarOpen(false);
+                  }}
                   className={`w-full flex items-center justify-between rounded-xl transition-all relative overflow-hidden ${
                     sidebarCollapsed ? "px-3 py-3.5" : "px-4 py-3.5"
                   } ${
@@ -604,40 +665,48 @@ export function CityAdminDashboard() {
                   {isActive && (
                     <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-purple-50 opacity-80 rounded-xl"></div>
                   )}
-                  
-                  <div className={`flex items-center relative z-10 ${sidebarCollapsed ? "justify-center" : "gap-3"}`}>
+
+                  <div
+                    className={`flex items-center relative z-10 ${sidebarCollapsed ? "justify-center" : "gap-3"}`}
+                  >
                     <Icon size={18} className={`shrink-0 ${isActive ? "text-[#0647A5]" : ""}`} />
                     {!sidebarCollapsed && (
                       <div className="flex flex-col items-start">
                         <span className="text-sm font-semibold">{item.name}</span>
-                        <span className={`text-[10px] font-medium opacity-75 ${
-                          isActive ? "text-slate-600" : "text-[#A6C5F7]"
-                        }`}>
+                        <span
+                          className={`text-[10px] font-medium opacity-75 ${
+                            isActive ? "text-slate-600" : "text-[#A6C5F7]"
+                          }`}
+                        >
                           {item.description}
                         </span>
                       </div>
                     )}
                   </div>
-                  
+
                   {item.badge && !sidebarCollapsed && (
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black relative z-10 ${
-                      String(item.badge) === "NEW" 
-                        ? "bg-gradient-to-r from-emerald-400 to-emerald-600 text-white shadow-sm" 
-                        : isActive 
-                          ? "bg-red-100 text-red-600" 
-                          : "bg-red-500 text-white shadow-sm"
-                    }`}>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-black relative z-10 ${
+                        String(item.badge) === "NEW"
+                          ? "bg-gradient-to-r from-emerald-400 to-emerald-600 text-white shadow-sm"
+                          : isActive
+                            ? "bg-red-100 text-red-600"
+                            : "bg-red-500 text-white shadow-sm"
+                      }`}
+                    >
                       {item.badge}
                     </span>
                   )}
-                  
+
                   {item.badge && sidebarCollapsed && (
-                    <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${
-                      String(item.badge) === "NEW" ? "bg-emerald-500" : "bg-red-500"
-                    } shadow-sm`}></div>
+                    <div
+                      className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${
+                        String(item.badge) === "NEW" ? "bg-emerald-500" : "bg-red-500"
+                      } shadow-sm`}
+                    ></div>
                   )}
                 </button>
-                
+
                 {/* Tooltip for collapsed sidebar */}
                 {sidebarCollapsed && (
                   <div className="absolute left-full ml-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap shadow-lg">
@@ -649,7 +718,7 @@ export function CityAdminDashboard() {
               </div>
             );
           })}
-          
+
           {!sidebarCollapsed && (
             <>
               {/* Elegant Separator */}
@@ -659,7 +728,7 @@ export function CityAdminDashboard() {
                   <div className="w-2 h-2 bg-[#053d8e] rounded-full"></div>
                 </div>
               </div>
-              
+
               {/* Enhanced System Stats */}
               <div className="px-4 py-4 bg-gradient-to-br from-[#053c8c] to-[#042f6b] rounded-xl border border-[#0753BF]/30 shadow-inner">
                 <div className="text-xs font-bold text-white mb-3 flex items-center gap-2">
@@ -668,24 +737,37 @@ export function CityAdminDashboard() {
                 </div>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-[10px] text-[#A6C5F7] font-medium">Phản ánh chưa xử lý</span>
+                    <span className="text-[10px] text-[#A6C5F7] font-medium">
+                      Phản ánh chưa xử lý
+                    </span>
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold text-white">{unresolvedCount}</span>
-                      <div className={`w-2 h-2 rounded-full ${unresolvedCount > 0 ? "bg-orange-400 animate-pulse" : "bg-green-400"}`}></div>
+                      <div
+                        className={`w-2 h-2 rounded-full ${unresolvedCount > 0 ? "bg-orange-400 animate-pulse" : "bg-green-400"}`}
+                      ></div>
                     </div>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] text-[#A6C5F7] font-medium">Báo cáo quá hạn</span>
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold text-red-300">{overdueCount}</span>
-                      <div className={`w-2 h-2 rounded-full ${overdueCount > 0 ? "bg-red-400 animate-pulse" : "bg-green-400"}`}></div>
+                      <div
+                        className={`w-2 h-2 rounded-full ${overdueCount > 0 ? "bg-red-400 animate-pulse" : "bg-green-400"}`}
+                      ></div>
                     </div>
                   </div>
                   <div className="h-px bg-white/10 my-2"></div>
                   <div className="flex justify-between items-center">
-                    <span className="text-[10px] text-emerald-300 font-semibold">Hiệu suất xử lý</span>
+                    <span className="text-[10px] text-emerald-300 font-semibold">
+                      Hiệu suất xử lý
+                    </span>
                     <span className="text-xs font-bold text-emerald-300">
-                      {feedbacks.length > 0 ? Math.round(((feedbacks.length - unresolvedCount) / feedbacks.length) * 100) : 0}%
+                      {feedbacks.length > 0
+                        ? Math.round(
+                            ((feedbacks.length - unresolvedCount) / feedbacks.length) * 100,
+                          )
+                        : 0}
+                      %
                     </span>
                   </div>
                 </div>
@@ -717,10 +799,11 @@ export function CityAdminDashboard() {
       )}
 
       {/* Main Container Wrapper */}
-      <div className={`flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-300 ${
-        sidebarCollapsed ? "md:pl-16" : "md:pl-64"
-      }`}>
-        
+      <div
+        className={`flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-300 ${
+          sidebarCollapsed ? "md:pl-16" : "md:pl-64"
+        }`}
+      >
         {/* 2. TOP MODERN HEADER */}
         <header className="h-16 bg-white/95 backdrop-blur-sm border-b border-[#E4EAF2] flex items-center justify-between px-6 sticky top-0 z-30 shadow-sm shrink-0">
           <div className="flex items-center gap-4">
@@ -788,7 +871,6 @@ export function CityAdminDashboard() {
 
           {/* User profile dropdown and notification controls */}
           <div className="flex items-center gap-3">
-            
             {/* Quick Actions */}
             <div className="hidden lg:flex items-center gap-2">
               <button
@@ -798,7 +880,7 @@ export function CityAdminDashboard() {
               >
                 {fullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
               </button>
-              
+
               <button
                 onClick={() => {
                   // Refresh data instead of reloading page
@@ -817,7 +899,7 @@ export function CityAdminDashboard() {
                 <RefreshCw size={18} />
               </button>
             </div>
-            
+
             {/* Notification Bell */}
             <div className="relative" ref={notifRef}>
               <button
@@ -852,18 +934,26 @@ export function CityAdminDashboard() {
                   </div>
                   <div className="max-h-[240px] overflow-y-auto divide-y divide-slate-100">
                     {notifications.length === 0 ? (
-                      <div className="py-6 text-center text-xs text-slate-400">Không có thông báo mới</div>
+                      <div className="py-6 text-center text-xs text-slate-400">
+                        Không có thông báo mới
+                      </div>
                     ) : (
                       notifications.slice(0, 5).map((item) => (
                         <button
                           key={item.id}
-                          onClick={() => handleNotifClick(item.id, item.feedbackId ?? item.referenceId)}
+                          onClick={() =>
+                            handleNotifClick(item.id, item.feedbackId ?? item.referenceId)
+                          }
                           className={`w-full text-left p-3 flex flex-col transition-colors hover:bg-slate-50 ${
                             item.isRead ? "opacity-75" : "bg-blue-50/40"
                           }`}
                         >
-                          <span className="text-xs font-bold text-slate-800 leading-snug">{item.title}</span>
-                          <span className="text-[10px] text-slate-500 mt-1 leading-snug">{item.content}</span>
+                          <span className="text-xs font-bold text-slate-800 leading-snug">
+                            {item.title}
+                          </span>
+                          <span className="text-[10px] text-slate-500 mt-1 leading-snug">
+                            {item.content}
+                          </span>
                         </button>
                       ))
                     )}
@@ -906,8 +996,12 @@ export function CityAdminDashboard() {
               {userOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white border border-[#E4EAF2] rounded-xl shadow-lg py-1.5 z-50 animate-fade-in">
                   <div className="px-4 py-2 border-b border-slate-100 mb-1">
-                    <div className="text-xs font-bold text-slate-700 truncate">{user?.name || "Super Admin"}</div>
-                    <div className="text-[10px] text-slate-400 font-semibold truncate mt-0.5">super_admin@danang.gov.vn</div>
+                    <div className="text-xs font-bold text-slate-700 truncate">
+                      {user?.name || "Super Admin"}
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-semibold truncate mt-0.5">
+                      super_admin@danang.gov.vn
+                    </div>
                   </div>
                   <Link
                     to="/profile"
@@ -927,13 +1021,14 @@ export function CityAdminDashboard() {
                 </div>
               )}
             </div>
-
           </div>
         </header>
 
         {/* 3. MAIN DASHBOARD CONTENT */}
-        <main className={`flex-1 overflow-y-auto transition-all duration-300 ${fullscreen ? 'p-2' : 'p-6 md:p-8'}`}>
-          <div className={`${fullscreen ? 'max-w-none' : 'max-w-7xl mx-auto'}`}>
+        <main
+          className={`flex-1 overflow-y-auto transition-all duration-300 ${fullscreen ? "p-2" : "p-6 md:p-8"}`}
+        >
+          <div className={`${fullscreen ? "max-w-none" : "max-w-7xl mx-auto"}`}>
             {/* Loading State */}
             {(feedbacksLoading || kpiLoading) && activeTab === "overview" && (
               <div className="space-y-6">
@@ -945,7 +1040,7 @@ export function CityAdminDashboard() {
                 <Skeleton className="h-96 rounded-2xl" />
               </div>
             )}
-            
+
             {/* Content */}
             {!(feedbacksLoading || kpiLoading) && (
               <>

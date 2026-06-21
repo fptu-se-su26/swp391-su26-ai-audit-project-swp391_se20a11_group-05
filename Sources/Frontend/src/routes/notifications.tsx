@@ -19,7 +19,6 @@ import { useInfiniteNotifications, useMarkNotificationReadMutation } from "@/lib
 import { useI18n } from "@/lib/i18n";
 import { useAuth, Role } from "@/lib/auth";
 
-
 export const Route = createFileRoute("/notifications")({
   beforeLoad: () => {
     if (typeof window === "undefined") return;

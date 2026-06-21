@@ -267,7 +267,10 @@ public class DataInitializer implements CommandLineRunner {
         executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD COLUMN IF NOT EXISTS received_at TIMESTAMP");
         executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ALTER COLUMN ward_id DROP NOT NULL");
         executeSchemaSql("ALTER TABLE IF EXISTS feedbacks DROP CONSTRAINT IF EXISTS feedbacks_status_check");
-        executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD CONSTRAINT feedbacks_status_check CHECK (status IN ('SUBMITTED', 'PENDING_RECEIVE', 'PENDING', 'NEED_LOCATION_REVIEW', 'IN_PROGRESS', 'WAITING_INFO', 'RESOLVED', 'REJECTED'))");
+        executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD CONSTRAINT feedbacks_status_check CHECK (status IN ('SUBMITTED', 'PENDING_RECEIVE', 'PENDING', 'NEED_LOCATION_REVIEW', 'ASSIGNED', 'IN_PROGRESS', 'WAITING_INFO', 'RESOLVED', 'REJECTED', 'PRE_EMPTIVE'))");
+
+        executeSchemaSql("ALTER TABLE IF EXISTS attachments ADD COLUMN IF NOT EXISTS attachment_purpose VARCHAR(50) NOT NULL DEFAULT 'SUBMISSION_EVIDENCE'");
+        executeSchemaSql("CREATE INDEX IF NOT EXISTS idx_attachments_feedback_purpose ON attachments(feedback_id, attachment_purpose)");
     }
 
     private void ensureLoginLockoutSchema() {

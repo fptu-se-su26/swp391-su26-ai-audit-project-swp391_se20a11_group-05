@@ -23,7 +23,6 @@ import {
   User,
   ChevronDown,
   ChevronLeft,
-  Search,
   FileText,
   AlertCircle,
   Clock,
@@ -46,6 +45,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getAdministrativeUnitLabel, getAdministrativeUnitName } from "@/lib/administrativeUnit";
 import { WardFeedbackManagementPage } from "./WardFeedbackManagementPage";
 import { WardCampaignPage } from "./WardCampaignPage";
+import { WardProfileConfigPage } from "./WardProfileConfigPage";
 
 const CivicMap = clientOnly(() =>
   import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
@@ -123,15 +123,13 @@ export function WardDashboard() {
   const { locale } = useI18n();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, logout } = useAuth();
+  const { user, logout, login } = useAuth();
 
   // State controls for sidebar and dropdowns
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
   const { tab, detailId } = Route.useSearch();
   const activeSection = (
     tab && ["overview", "feedback", "campaign", "schedule", "config"].includes(tab)
@@ -167,14 +165,6 @@ export function WardDashboard() {
 
   const notifRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
-
-  // Debounce search query
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearch(searchQuery);
-    }, 300);
-    return () => clearTimeout(handler);
-  }, [searchQuery]);
 
   // Click outside listener for dropdowns
   useEffect(() => {
@@ -225,11 +215,10 @@ export function WardDashboard() {
   // Derive fromDate/toDate for API filter from selectedDate (full day range)
   const feedbackDateFilters = useMemo(
     () => ({
-      keyword: debouncedSearch,
       fromDate: dateStr || undefined,
       toDate: dateStr || undefined,
     }),
-    [debouncedSearch, dateStr],
+    [dateStr],
   );
 
   const {
@@ -576,7 +565,6 @@ export function WardDashboard() {
     { name: "Tổng quan", section: "overview" as const, icon: Sliders },
     { name: "Phản ánh", section: "feedback" as const, icon: FileText },
     { name: "Chiến dịch", section: "campaign" as const, icon: Activity },
-    { name: "Lịch tiếp công dân", section: "schedule" as const, icon: Calendar },
     { name: "Cấu hình", section: "config" as const, icon: Settings },
   ];
 
@@ -681,20 +669,6 @@ export function WardDashboard() {
               {activeSectionTitle}
             </h2>
           </div>
-
-          {/* Search bar */}
-          {activeSection !== "feedback" && (
-            <div className="hidden md:flex items-center relative w-96">
-              <input
-                type="text"
-                placeholder="Tìm kiếm phản ánh, địa điểm, người dân..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-10 pl-4 pr-10 rounded-xl border border-[#E4EAF2] text-sm focus:border-[#0F5BD8] focus:ring-1 focus:ring-[#0F5BD8] outline-none bg-slate-50/50"
-              />
-              <Search size={16} className="absolute right-3.5 text-slate-400 pointer-events-none" />
-            </div>
-          )}
 
           {/* Controls: Bell & Profile */}
           <div className="flex items-center gap-4">
@@ -1650,6 +1624,20 @@ export function WardDashboard() {
             </>
           ) : activeSection === "campaign" ? (
             <WardCampaignPage />
+          ) : activeSection === "config" ? (
+            <WardProfileConfigPage
+              user={user}
+              authorityUnitName={authorityUnitName}
+              authorityUnitLabel={authorityUnitLabel}
+              onProfileUpdated={(profile) => {
+                if (!user) return;
+                login({
+                  ...user,
+                  name: profile.fullName || user.name,
+                  wardId: profile.wardId !== undefined ? profile.wardId : user.wardId,
+                });
+              }}
+            />
           ) : (
             <WardSectionPlaceholder section={activeSection} />
           )}

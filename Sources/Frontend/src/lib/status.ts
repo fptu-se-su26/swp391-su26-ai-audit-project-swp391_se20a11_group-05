@@ -18,7 +18,9 @@ export function mapStatus(backendStatus: string): ReportStatus {
 }
 
 /** Group status string into one of the four main dashboard status categories */
-export function getGroupedFeedbackStatus(status: string | undefined): "PENDING" | "IN_PROGRESS" | "RESOLVED" | "REJECTED" | "UNKNOWN" {
+export function getGroupedFeedbackStatus(
+  status: string | undefined,
+): "PENDING" | "IN_PROGRESS" | "RESOLVED" | "REJECTED" | "UNKNOWN" {
   if (!status) return "UNKNOWN";
   const upperStatus = status.toUpperCase();
   switch (upperStatus) {
@@ -40,4 +42,3 @@ export function getGroupedFeedbackStatus(status: string | undefined): "PENDING" 
       return "UNKNOWN";
   }
 }
-

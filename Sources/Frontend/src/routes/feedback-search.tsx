@@ -37,7 +37,9 @@ const CivicMap = clientOnly(() =>
 );
 
 export const Route = createFileRoute("/feedback-search")({
-  validateSearch: (search: Record<string, unknown>): {
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): {
     category?: string;
     q?: string;
     status?: string;
@@ -49,13 +51,20 @@ export const Route = createFileRoute("/feedback-search")({
     q: search.q as string | undefined,
     status: search.status as string | undefined,
     range: search.range as string | undefined,
-    wardId: search.wardId ? (typeof search.wardId === 'number' ? search.wardId : Number(search.wardId)) : undefined,
+    wardId: search.wardId
+      ? typeof search.wardId === "number"
+        ? search.wardId
+        : Number(search.wardId)
+      : undefined,
     categories: search.categories as string | undefined,
   }),
   head: () => ({
     meta: [
       { title: "Tra cứu phản ánh — Đà Nẵng Kết Nối" },
-      { name: "description", content: "Tìm kiếm và theo dõi tình trạng xử lý các phản ánh hiện trường." },
+      {
+        name: "description",
+        content: "Tìm kiếm và theo dõi tình trạng xử lý các phản ánh hiện trường.",
+      },
     ],
   }),
   component: FeedbackSearch,
@@ -65,17 +74,28 @@ const getFromDateString = (range: string) => {
   const now = new Date();
   let diffDays = 0;
   switch (range) {
-    case "24h": diffDays = 1; break;
-    case "7d": diffDays = 7; break;
-    case "1m": diffDays = 30; break;
-    case "3m": diffDays = 90; break;
-    case "1y": diffDays = 365; break;
-    default: return "";
+    case "24h":
+      diffDays = 1;
+      break;
+    case "7d":
+      diffDays = 7;
+      break;
+    case "1m":
+      diffDays = 30;
+      break;
+    case "3m":
+      diffDays = 90;
+      break;
+    case "1y":
+      diffDays = 365;
+      break;
+    default:
+      return "";
   }
   const fromDate = new Date(now.getTime() - diffDays * 24 * 60 * 60 * 1000);
   const year = fromDate.getFullYear();
-  const month = String(fromDate.getMonth() + 1).padStart(2, '0');
-  const day = String(fromDate.getDate()).padStart(2, '0');
+  const month = String(fromDate.getMonth() + 1).padStart(2, "0");
+  const day = String(fromDate.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 
@@ -105,7 +125,10 @@ function PublicFeedbackLookup() {
   // Parse initial selected categories from URL params
   const parseCategories = (raw: string | undefined): string[] => {
     if (!raw) return [];
-    return raw.split(",").map((s) => s.trim()).filter(Boolean);
+    return raw
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
   };
 
   // Search & Filter Panel state variables
@@ -134,8 +157,17 @@ function PublicFeedbackLookup() {
 
   // Committed search filters
   const [filters, setFilters] = useState(() => {
-    const isMatchingWard = !!(currentUser?.wardName && locationInput.trim().toLowerCase() === currentUser.wardName.trim().toLowerCase());
-    const resolvedWardId = wardId || (enteredFromSidebar ? (isMatchingWard ? currentUser?.wardId || undefined : undefined) : undefined);
+    const isMatchingWard = !!(
+      currentUser?.wardName &&
+      locationInput.trim().toLowerCase() === currentUser.wardName.trim().toLowerCase()
+    );
+    const resolvedWardId =
+      wardId ||
+      (enteredFromSidebar
+        ? isMatchingWard
+          ? currentUser?.wardId || undefined
+          : undefined
+        : undefined);
     return {
       keyword: q,
       location: locationInput,
@@ -217,13 +249,23 @@ function PublicFeedbackLookup() {
       }
     }
 
-    const derivedCategories = categories ||
+    const derivedCategories =
+      categories ||
       (category ? category : null) ||
       (enteredFromSidebar ? WARD_STAFF_CATEGORIES.join(",") : undefined);
 
     setFilters((prev) => {
-      const isMatchingWard = !!(currentUser?.wardName && locationInput.trim().toLowerCase() === currentUser.wardName.trim().toLowerCase());
-      const resolvedWardId = wardId || (enteredFromSidebar ? (isMatchingWard ? currentUser?.wardId || undefined : undefined) : undefined);
+      const isMatchingWard = !!(
+        currentUser?.wardName &&
+        locationInput.trim().toLowerCase() === currentUser.wardName.trim().toLowerCase()
+      );
+      const resolvedWardId =
+        wardId ||
+        (enteredFromSidebar
+          ? isMatchingWard
+            ? currentUser?.wardId || undefined
+            : undefined
+          : undefined);
       return {
         ...prev,
         keyword: q,
@@ -245,7 +287,8 @@ function PublicFeedbackLookup() {
     if (filters.location.trim()) parts.push(filters.location.trim());
     const mergedKeyword = parts.join(" ");
 
-    const resolvedCategories = selectedCategories.length > 0 ? selectedCategories.join(",") : undefined;
+    const resolvedCategories =
+      selectedCategories.length > 0 ? selectedCategories.join(",") : undefined;
 
     return {
       keyword: mergedKeyword,
@@ -276,7 +319,14 @@ function PublicFeedbackLookup() {
   // Reset page number on filter changes
   useEffect(() => {
     setPage(0);
-  }, [filters.keyword, filters.location, filters.category, filters.status, filters.fromDate, filters.toDate]);
+  }, [
+    filters.keyword,
+    filters.location,
+    filters.category,
+    filters.status,
+    filters.fromDate,
+    filters.toDate,
+  ]);
 
   const feedbacks = feedbacksPage?.content ?? [];
   const totalPages = feedbacksPage?.totalPages ?? 0;
@@ -291,7 +341,8 @@ function PublicFeedbackLookup() {
     } else if (sortBy === "updated") {
       list.sort(
         (a, b) =>
-          new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime(),
+          new Date(b.updatedAt || b.createdAt).getTime() -
+          new Date(a.updatedAt || a.createdAt).getTime(),
       );
     } else {
       list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -355,10 +406,18 @@ function PublicFeedbackLookup() {
     }
 
     // Build categories from multi-select state
-    const resolvedCategoriesForSubmit = selectedCategories.length > 0 ? selectedCategories.join(",") : undefined;
+    const resolvedCategoriesForSubmit =
+      selectedCategories.length > 0 ? selectedCategories.join(",") : undefined;
 
-    const isMatchingWard = !!(currentUser?.wardName && locationInput.trim().toLowerCase() === currentUser.wardName.trim().toLowerCase());
-    const resolvedWardId = enteredFromSidebar ? (isMatchingWard ? currentUser?.wardId || undefined : undefined) : undefined;
+    const isMatchingWard = !!(
+      currentUser?.wardName &&
+      locationInput.trim().toLowerCase() === currentUser.wardName.trim().toLowerCase()
+    );
+    const resolvedWardId = enteredFromSidebar
+      ? isMatchingWard
+        ? currentUser?.wardId || undefined
+        : undefined
+      : undefined;
 
     setFilters({
       keyword: keywordInput,
@@ -490,7 +549,8 @@ function PublicFeedbackLookup() {
               Tra cứu phản ánh
             </h1>
             <p className="text-[#475467] text-sm md:text-base leading-relaxed">
-              Tìm kiếm và theo dõi tình trạng xử lý các phản ánh hiện trường của người dân trên địa bàn thành phố Đà Nẵng.
+              Tìm kiếm và theo dõi tình trạng xử lý các phản ánh hiện trường của người dân trên địa
+              bàn thành phố Đà Nẵng.
             </p>
           </div>
 
@@ -529,7 +589,10 @@ function PublicFeedbackLookup() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               {/* Field 1: Từ khóa */}
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="filter-keyword" className="text-xs font-bold text-[#667085] uppercase tracking-wider">
+                <label
+                  htmlFor="filter-keyword"
+                  className="text-xs font-bold text-[#667085] uppercase tracking-wider"
+                >
                   {locale === "vi" ? "Từ khóa" : "Keyword"}
                 </label>
                 <div className="relative">
@@ -538,10 +601,17 @@ function PublicFeedbackLookup() {
                     type="text"
                     value={keywordInput}
                     onChange={(e) => setKeywordInput(e.target.value)}
-                    placeholder={locale === "vi" ? "Nhập mã, tiêu đề, nội dung..." : "Enter code, title, content..."}
+                    placeholder={
+                      locale === "vi"
+                        ? "Nhập mã, tiêu đề, nội dung..."
+                        : "Enter code, title, content..."
+                    }
                     className="w-full min-h-[48px] pl-4 pr-10 rounded-xl border-2 border-slate-200 bg-white text-sm focus:border-[#0B4FC4] outline-none transition-colors"
                   />
-                  <Search size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Search
+                    size={16}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
                 </div>
               </div>
 
@@ -559,9 +629,14 @@ function PublicFeedbackLookup() {
                 >
                   <span className="truncate text-[#475467]">
                     {selectedCategories.length === 0
-                      ? (locale === "vi" ? "Tất cả lĩnh vực" : "All categories")
+                      ? locale === "vi"
+                        ? "Tất cả lĩnh vực"
+                        : "All categories"
                       : selectedCategories.length === 1
-                        ? t((OFFICIAL_CATEGORIES.find((c) => c.code === selectedCategories[0])?.nameKey ?? "") as any)
+                        ? t(
+                            (OFFICIAL_CATEGORIES.find((c) => c.code === selectedCategories[0])
+                              ?.nameKey ?? "") as any,
+                          )
                         : `${selectedCategories.length} ${locale === "vi" ? "lĩnh vực" : "categories"}`}
                   </span>
                   <ChevronDown size={14} className="text-slate-400 shrink-0" />
@@ -580,12 +655,22 @@ function PublicFeedbackLookup() {
                           : "text-slate-700 hover:bg-slate-50 font-semibold"
                       }`}
                     >
-                      <span className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${
-                        selectedCategories.length === 0 ? "border-[#0B4FC4] bg-[#0B4FC4]" : "border-slate-300"
-                      }`}>
+                      <span
+                        className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${
+                          selectedCategories.length === 0
+                            ? "border-[#0B4FC4] bg-[#0B4FC4]"
+                            : "border-slate-300"
+                        }`}
+                      >
                         {selectedCategories.length === 0 && (
                           <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                            <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path
+                              d="M1 4L3.5 6.5L9 1"
+                              stroke="white"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
                           </svg>
                         )}
                       </span>
@@ -604,12 +689,20 @@ function PublicFeedbackLookup() {
                               : "text-slate-700 hover:bg-slate-50 font-semibold"
                           }`}
                         >
-                          <span className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${
-                            checked ? "border-[#0B4FC4] bg-[#0B4FC4]" : "border-slate-300"
-                          }`}>
+                          <span
+                            className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${
+                              checked ? "border-[#0B4FC4] bg-[#0B4FC4]" : "border-slate-300"
+                            }`}
+                          >
                             {checked && (
                               <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                                <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path
+                                  d="M1 4L3.5 6.5L9 1"
+                                  stroke="white"
+                                  strokeWidth="1.5"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
                               </svg>
                             )}
                           </span>
@@ -623,7 +716,10 @@ function PublicFeedbackLookup() {
 
               {/* Field 3: Địa điểm */}
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="filter-location" className="text-xs font-bold text-[#667085] uppercase tracking-wider">
+                <label
+                  htmlFor="filter-location"
+                  className="text-xs font-bold text-[#667085] uppercase tracking-wider"
+                >
                   {locale === "vi" ? "Địa điểm" : "Location"}
                 </label>
                 <div className="relative">
@@ -632,16 +728,26 @@ function PublicFeedbackLookup() {
                     type="text"
                     value={locationInput}
                     onChange={(e) => setLocationInput(e.target.value)}
-                    placeholder={locale === "vi" ? "Nhập địa điểm, phường, quận..." : "Enter location, ward, district..."}
+                    placeholder={
+                      locale === "vi"
+                        ? "Nhập địa điểm, phường, quận..."
+                        : "Enter location, ward, district..."
+                    }
                     className="w-full min-h-[48px] pl-4 pr-10 rounded-xl border-2 border-slate-200 bg-white text-sm focus:border-[#0B4FC4] outline-none transition-colors"
                   />
-                  <MapPin size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <MapPin
+                    size={16}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
                 </div>
               </div>
 
               {/* Field 4: Trạng thái */}
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="filter-status" className="text-xs font-bold text-[#667085] uppercase tracking-wider">
+                <label
+                  htmlFor="filter-status"
+                  className="text-xs font-bold text-[#667085] uppercase tracking-wider"
+                >
                   {locale === "vi" ? "Trạng thái" : "Status"}
                 </label>
                 <select
@@ -678,7 +784,9 @@ function PublicFeedbackLookup() {
                     <Calendar size={16} className="text-slate-400" />
                     {fromDateInput || toDateInput
                       ? `${fromDateInput || "..."} → ${toDateInput || "..."}`
-                      : (locale === "vi" ? "Chọn khoảng thời gian" : "Select date range")}
+                      : locale === "vi"
+                        ? "Chọn khoảng thời gian"
+                        : "Select date range"}
                   </span>
                   <ChevronDown size={14} className="text-slate-400" />
                 </button>
@@ -686,7 +794,9 @@ function PublicFeedbackLookup() {
                 {dateRangeOpen && (
                   <div className="absolute top-[70px] left-0 right-0 lg:left-auto lg:right-0 w-[280px] bg-white border border-[#E4EAF2] rounded-xl shadow-lg p-4 z-50 space-y-3">
                     <div className="space-y-1">
-                      <span className="text-[10px] uppercase font-bold text-[#667085]">{locale === "vi" ? "Từ ngày" : "From date"}</span>
+                      <span className="text-[10px] uppercase font-bold text-[#667085]">
+                        {locale === "vi" ? "Từ ngày" : "From date"}
+                      </span>
                       <input
                         type="date"
                         value={fromDateInput}
@@ -695,7 +805,9 @@ function PublicFeedbackLookup() {
                       />
                     </div>
                     <div className="space-y-1">
-                      <span className="text-[10px] uppercase font-bold text-[#667085]">{locale === "vi" ? "Đến ngày" : "To date"}</span>
+                      <span className="text-[10px] uppercase font-bold text-[#667085]">
+                        {locale === "vi" ? "Đến ngày" : "To date"}
+                      </span>
                       <input
                         type="date"
                         value={toDateInput}
@@ -768,7 +880,9 @@ function PublicFeedbackLookup() {
                 </div>
 
                 <div className="flex items-center gap-2 text-xs font-bold">
-                  <span className="text-[#667085]">{locale === "vi" ? "Sắp xếp theo:" : "Sort by:"}</span>
+                  <span className="text-[#667085]">
+                    {locale === "vi" ? "Sắp xếp theo:" : "Sort by:"}
+                  </span>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
@@ -776,7 +890,9 @@ function PublicFeedbackLookup() {
                   >
                     <option value="newest">{locale === "vi" ? "Mới nhất" : "Newest"}</option>
                     <option value="oldest">{locale === "vi" ? "Cũ nhất" : "Oldest"}</option>
-                    <option value="updated">{locale === "vi" ? "Cập nhật gần nhất" : "Last updated"}</option>
+                    <option value="updated">
+                      {locale === "vi" ? "Cập nhật gần nhất" : "Last updated"}
+                    </option>
                   </select>
                 </div>
               </div>
@@ -800,7 +916,10 @@ function PublicFeedbackLookup() {
               {isLoading && (
                 <div className="space-y-4">
                   {[1, 2, 3].map((s) => (
-                    <div key={s} className="border border-[#E4EAF2] rounded-2xl p-5 flex gap-4 animate-pulse">
+                    <div
+                      key={s}
+                      className="border border-[#E4EAF2] rounded-2xl p-5 flex gap-4 animate-pulse"
+                    >
                       <div className="w-32 aspect-[16/10] bg-slate-100 rounded-xl" />
                       <div className="flex-1 space-y-3">
                         <div className="h-4 bg-slate-100 rounded w-1/4" />
@@ -815,10 +934,21 @@ function PublicFeedbackLookup() {
               {/* Empty state */}
               {!isLoading && !isError && sortedFeedbacks.length === 0 && (
                 <EmptyState
-                  title={locale === "vi" ? "Không tìm thấy phản ánh phù hợp." : "No matching reports found."}
-                  description={locale === "vi" ? "Vui lòng thử thay đổi từ khóa hoặc bộ lọc tìm kiếm." : "Please try modifying your keywords or filters."}
+                  title={
+                    locale === "vi"
+                      ? "Không tìm thấy phản ánh phù hợp."
+                      : "No matching reports found."
+                  }
+                  description={
+                    locale === "vi"
+                      ? "Vui lòng thử thay đổi từ khóa hoặc bộ lọc tìm kiếm."
+                      : "Please try modifying your keywords or filters."
+                  }
                   action={
-                    <button onClick={handleReset} className="px-4 py-2 bg-[#0B4FC4] hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition">
+                    <button
+                      onClick={handleReset}
+                      className="px-4 py-2 bg-[#0B4FC4] hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition"
+                    >
                       {locale === "vi" ? "Xóa bộ lọc" : "Clear filters"}
                     </button>
                   }
@@ -831,7 +961,9 @@ function PublicFeedbackLookup() {
                   {sortedFeedbacks.map((report) => (
                     <article
                       key={report.id}
-                      onClick={() => navigate({ to: "/my-reports/$id", params: { id: String(report.id) } })}
+                      onClick={() =>
+                        navigate({ to: "/my-reports/$id", params: { id: String(report.id) } })
+                      }
                       className="bg-white rounded-xl border border-[#E4EAF2] p-4 flex flex-col md:flex-row gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
                     >
                       {/* Left thumbnail */}
@@ -861,27 +993,41 @@ function PublicFeedbackLookup() {
                           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-y-2 gap-x-4 text-[11px] text-[#667085]">
                             <span className="flex items-center gap-1.5 truncate">
                               <MapPin size={13} className="shrink-0 text-slate-400" />
-                              {report.addressDetails || report.wardName || (locale === "vi" ? "Đà Nẵng" : "Da Nang")}
+                              {report.addressDetails ||
+                                report.wardName ||
+                                (locale === "vi" ? "Đà Nẵng" : "Da Nang")}
                             </span>
                             <span className="flex items-center gap-1.5 truncate">
                               <Grid size={13} className="shrink-0 text-slate-400" />
-                              {report.categoryName || report.category || (locale === "vi" ? "Khác" : "Other")}
+                              {report.categoryName ||
+                                report.category ||
+                                (locale === "vi" ? "Khác" : "Other")}
                             </span>
                             <span className="flex items-center gap-1.5 truncate">
                               <MapPin size={13} className="shrink-0 text-slate-400" />
-                              {report.wardName || (locale === "vi" ? "Cần kiểm tra vị trí" : "Location review needed")}
+                              {report.wardName ||
+                                (locale === "vi"
+                                  ? "Cần kiểm tra vị trí"
+                                  : "Location review needed")}
                             </span>
                             <span className="flex items-center gap-1.5 truncate">
                               <Grid size={13} className="shrink-0 text-slate-400" />
-                              {report.assignedUnitName || (locale === "vi" ? "Chưa phân đơn vị" : "Unassigned unit")}
+                              {report.assignedUnitName ||
+                                (locale === "vi" ? "Chưa phân đơn vị" : "Unassigned unit")}
                             </span>
                             <span className="flex items-center gap-1.5 truncate">
                               <Calendar size={13} className="shrink-0 text-slate-400" />
-                              {new Date(report.createdAt).toLocaleDateString(locale === "vi" ? "vi-VN" : "en-US")} -{" "}
-                              {new Date(report.createdAt).toLocaleTimeString(locale === "vi" ? "vi-VN" : "en-US", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
+                              {new Date(report.createdAt).toLocaleDateString(
+                                locale === "vi" ? "vi-VN" : "en-US",
+                              )}{" "}
+                              -{" "}
+                              {new Date(report.createdAt).toLocaleTimeString(
+                                locale === "vi" ? "vi-VN" : "en-US",
+                                {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                },
+                              )}
                             </span>
                           </div>
                         </div>
@@ -889,11 +1035,16 @@ function PublicFeedbackLookup() {
 
                       {/* Right action status section */}
                       <div className="flex flex-col items-end justify-between shrink-0 self-stretch md:border-l md:border-slate-100 md:pl-5 md:min-w-[120px] md:pt-0 pt-3 border-t md:border-t-0 border-slate-100">
-                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wide leading-none ${getStatusInfo(report.status).badgeClass}`}>
+                        <span
+                          className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wide leading-none ${getStatusInfo(report.status).badgeClass}`}
+                        >
                           {getStatusInfo(report.status).label}
                         </span>
                         <span className="text-[10px] text-[#667085] font-medium mt-auto md:mb-0 mb-1">
-                          {locale === "vi" ? "Cập nhật:" : "Updated:"} {new Date(report.updatedAt || report.createdAt).toLocaleDateString(locale === "vi" ? "vi-VN" : "en-US")}
+                          {locale === "vi" ? "Cập nhật:" : "Updated:"}{" "}
+                          {new Date(report.updatedAt || report.createdAt).toLocaleDateString(
+                            locale === "vi" ? "vi-VN" : "en-US",
+                          )}
                         </span>
                       </div>
                     </article>
@@ -979,15 +1130,22 @@ function PublicFeedbackLookup() {
               {isLoading ? (
                 <div className="grid grid-cols-2 gap-3">
                   {[1, 2, 3, 4].map((s) => (
-                    <div key={s} className="bg-slate-50 border border-slate-100 rounded-xl p-3 h-[72px] animate-pulse" />
+                    <div
+                      key={s}
+                      className="bg-slate-50 border border-slate-100 rounded-xl p-3 h-[72px] animate-pulse"
+                    />
                   ))}
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-white border border-[#E4EAF2] rounded-xl p-3 flex items-center justify-between shadow-sm">
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-bold uppercase text-[#667085] tracking-wider">{locale === "vi" ? "Tổng phản ánh" : "Total reports"}</span>
-                      <span className="text-xl font-extrabold text-[#0B4FC4] mt-0.5">{stats.total.toLocaleString("vi-VN")}</span>
+                      <span className="text-[10px] font-bold uppercase text-[#667085] tracking-wider">
+                        {locale === "vi" ? "Tổng phản ánh" : "Total reports"}
+                      </span>
+                      <span className="text-xl font-extrabold text-[#0B4FC4] mt-0.5">
+                        {stats.total.toLocaleString("vi-VN")}
+                      </span>
                     </div>
                     <div className="w-8 h-8 rounded-full bg-blue-50 text-[#0B4FC4] flex items-center justify-center shrink-0">
                       <FileText size={16} />
@@ -996,8 +1154,12 @@ function PublicFeedbackLookup() {
 
                   <div className="bg-white border border-[#E4EAF2] rounded-xl p-3 flex items-center justify-between shadow-sm">
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-bold uppercase text-[#667085] tracking-wider">{locale === "vi" ? "Đang xử lý" : "Processing"}</span>
-                      <span className="text-xl font-extrabold text-[#F97316] mt-0.5">{stats.pending.toLocaleString("vi-VN")}</span>
+                      <span className="text-[10px] font-bold uppercase text-[#667085] tracking-wider">
+                        {locale === "vi" ? "Đang xử lý" : "Processing"}
+                      </span>
+                      <span className="text-xl font-extrabold text-[#F97316] mt-0.5">
+                        {stats.pending.toLocaleString("vi-VN")}
+                      </span>
                     </div>
                     <div className="w-8 h-8 rounded-full bg-orange-50 text-[#F97316] flex items-center justify-center shrink-0">
                       <Clock size={16} />
@@ -1006,8 +1168,12 @@ function PublicFeedbackLookup() {
 
                   <div className="bg-white border border-[#E4EAF2] rounded-xl p-3 flex items-center justify-between shadow-sm">
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-bold uppercase text-[#667085] tracking-wider">{locale === "vi" ? "Đã xử lý" : "Resolved"}</span>
-                      <span className="text-xl font-extrabold text-[#16A34A] mt-0.5">{stats.resolved.toLocaleString("vi-VN")}</span>
+                      <span className="text-[10px] font-bold uppercase text-[#667085] tracking-wider">
+                        {locale === "vi" ? "Đã xử lý" : "Resolved"}
+                      </span>
+                      <span className="text-xl font-extrabold text-[#16A34A] mt-0.5">
+                        {stats.resolved.toLocaleString("vi-VN")}
+                      </span>
                     </div>
                     <div className="w-8 h-8 rounded-full bg-green-50 text-[#16A34A] flex items-center justify-center shrink-0">
                       <CheckCircle2 size={16} />
@@ -1016,8 +1182,12 @@ function PublicFeedbackLookup() {
 
                   <div className="bg-white border border-[#E4EAF2] rounded-xl p-3 flex items-center justify-between shadow-sm">
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-bold uppercase text-[#667085] tracking-wider">{locale === "vi" ? "Từ chối" : "Rejected"}</span>
-                      <span className="text-xl font-extrabold text-[#DC2626] mt-0.5">{stats.rejected.toLocaleString("vi-VN")}</span>
+                      <span className="text-[10px] font-bold uppercase text-[#667085] tracking-wider">
+                        {locale === "vi" ? "Từ chối" : "Rejected"}
+                      </span>
+                      <span className="text-xl font-extrabold text-[#DC2626] mt-0.5">
+                        {stats.rejected.toLocaleString("vi-VN")}
+                      </span>
                     </div>
                     <div className="w-8 h-8 rounded-full bg-red-50 text-[#DC2626] flex items-center justify-center shrink-0">
                       <AlertTriangle size={16} />
@@ -1032,7 +1202,6 @@ function PublicFeedbackLookup() {
                 <h3 className="text-[#123E8A] font-bold text-base">
                   {locale === "vi" ? "Phân bố theo khu vực" : "Geographic Distribution"}
                 </h3>
-
               </div>
               <div className="aspect-[4/3] rounded-xl overflow-hidden border border-[#E4EAF2] relative z-0">
                 <Suspense fallback={<div className="w-full h-full bg-slate-100 animate-pulse" />}>
@@ -1050,7 +1219,6 @@ function PublicFeedbackLookup() {
                   />
                 </Suspense>
               </div>
-
             </div>
 
             {categoryStats.length > 0 && (
@@ -1074,7 +1242,10 @@ function PublicFeedbackLookup() {
                           <span className="text-[#475467]">{c.percentage}%</span>
                         </div>
                         <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                          <div className={`h-full ${barColor} rounded-full`} style={{ width: `${c.percentage}%` }} />
+                          <div
+                            className={`h-full ${barColor} rounded-full`}
+                            style={{ width: `${c.percentage}%` }}
+                          />
                         </div>
                       </div>
                     );
@@ -1097,4 +1268,3 @@ function getVisiblePageIndexes(currentPage: number, totalPages: number) {
   const start = Math.max(0, Math.min(currentPage - 2, totalPages - 5));
   return Array.from({ length: 5 }, (_, index) => start + index);
 }
-

@@ -3,12 +3,7 @@ import { Video } from "lucide-react";
 import { StatusBadge } from "@/components/site/StatusBadge";
 import { mapStatus } from "@/lib/status";
 import type { FeedbackResponse } from "@/types/api";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface SharedReport {
   id: number | string;
@@ -64,14 +59,17 @@ export function ReportCard({
     ? (report as any).mediaUrls && (report as any).mediaUrls.length > 0
       ? (report as any).mediaUrls[0]
       : null
-    : (report as any).image ? (report as any).image : null;
-  
+    : (report as any).image
+      ? (report as any).image
+      : null;
+
   // Lấy URL video thực tế nếu có, nếu không thì dùng video demo
-  const videoUrl = isApi && (report as any).videoUrl 
-    ? (report as any).videoUrl 
-    : !isApi && (report as any).videoUrl 
-      ? (report as any).videoUrl 
-      : "https://www.w3schools.com/html/mov_bbb.mp4";
+  const videoUrl =
+    isApi && (report as any).videoUrl
+      ? (report as any).videoUrl
+      : !isApi && (report as any).videoUrl
+        ? (report as any).videoUrl
+        : "https://www.w3schools.com/html/mov_bbb.mp4";
 
   return (
     <>
@@ -151,10 +149,10 @@ export function ReportCard({
             </DialogTitle>
           </DialogHeader>
           <div className="w-full bg-black flex items-center justify-center relative group min-h-[300px]">
-            <video 
-              src={videoUrl} 
-              controls 
-              autoPlay 
+            <video
+              src={videoUrl}
+              controls
+              autoPlay
               className="max-w-full max-h-[70vh] object-contain"
             >
               Trình duyệt của bạn không hỗ trợ thẻ video.

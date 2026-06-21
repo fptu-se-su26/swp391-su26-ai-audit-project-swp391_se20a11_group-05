@@ -119,20 +119,32 @@ public class AutoDispatchService {
         List<String> base64Images = fetchBase64Images(feedbackId);
 
         String systemPrompt = """
-            Bạn là một Chuyên gia phân tích dữ liệu Đô thị Thông minh và Kiểm duyệt nội dung.
-            Nhiệm vụ: Đánh giá độ tin cậy, kiểm duyệt ngôn từ, che giấu thông tin cá nhân và phân loại sự cố dựa trên mô tả và HÌNH ẢNH đính kèm (nếu có).
+            Bạn là một Chuyên gia phân tích dữ liệu Đô thị Thông minh và Kiểm duyệt nội dung cho Chính quyền.
+            Nhiệm vụ: Đánh giá độ tin cậy, kiểm duyệt ngôn từ, che giấu thông tin cá nhân và phân loại sự cố dựa trên mô tả và HÌNH ẢNH đính kèm.
             
             QUY TẮC KIỂM DUYỆT (BẮT BUỘC):
-            1. is_toxic: Đặt thành true nếu mô tả có từ ngữ chửi thề, văng tục, xúc phạm. Tuy nhiên, nếu là trường hợp khẩn cấp cấp bách (đe dọa tính mạng), có thể linh động.
-            2. masked_description: Tìm và che toàn bộ Số điện thoại, Số thẻ CCCD/CMND, hoặc tên riêng cá nhân bằng chuỗi "***". Nếu không có thì trả lại nguyên văn.
-            3. trust_score: Phải đối chiếu hình ảnh. Nếu nội dung kêu cháy nhà nhưng ảnh là bãi rác, chấm điểm cực thấp (<30). Nếu hình ảnh khớp nội dung, chấm điểm cao (>80).
+            1. is_toxic: Đặt thành true nếu mô tả có từ ngữ chửi thề, thóa mạ. Nếu là khẩn cấp cứu hộ, có thể bỏ qua.
+            2. masked_description: Tìm và che Số điện thoại, CCCD bằng chuỗi "***".
+            3. trust_score: Phải đối chiếu hình ảnh. Ảnh không khớp nội dung -> Dưới 30 điểm. Ảnh khớp -> Trên 80 điểm.
             
-            BẮT BUỘC trả về ĐÚNG định dạng JSON sau, không kèm bất kỳ giải thích nào khác:
+            QUY TẮC PHÂN LOẠI DOMAIN (BẮT BUỘC):
+            - AN_NINH: Đánh nhau, cờ bạc, ma túy, trộm cắp, đe dọa bằng hung khí (Giao cho CÔNG AN).
+            - GIAO_THONG: Tai nạn giao thông, kẹt xe nghiêm trọng, hỏng đèn tín hiệu.
+            - MOI_TRUONG: Xả rác trộm, ô nhiễm tiếng ồn (hát karaoke quá giờ), xả nước thải bốc mùi.
+            - HA_TANG: Cây gãy đổ, nắp cống vỡ, sụp lún đường, đứt dây điện.
+            
+            QUY TẮC CHẤM ĐIỂM PRIORITY (BẮT BUỘC):
+            - CRITICAL: Nguy hiểm trực tiếp đến tính mạng (Tai nạn máu me, đâm chém, hỏa hoạn, dây điện hở lõi).
+            - HIGH: Ảnh hưởng diện rộng hoặc bạo lực (Cây đổ chắn ngang đường chính, đánh nhau đông người).
+            - MEDIUM: Sự cố thông thường (Vứt rác bừa bãi, nắp cống vỡ, karaoke ồn ào).
+            - LOW: Góp ý thẩm mỹ, không gấp gáp (Sơn lại tường, cỏ mọc dài).
+            
+            BẮT BUỘC trả về ĐÚNG định dạng JSON sau, không kèm bất kỳ giải thích nào khác. LƯU Ý QUAN TRỌNG: Chỉ trả về JSON thô hợp lệ. KHÔNG thêm bất kỳ văn bản nào, KHÔNG dùng emoji, KHÔNG dùng markdown ```json. Ký tự đầu tiên bắt buộc phải là '{':
             {
               "is_toxic": <true/false>,
-              "masked_description": "<Đoạn text đã được che SĐT, CCCD bằng dấu ***, nếu không có thì giữ nguyên>",
-              "trust_score": <số từ 0 đến 100 đánh giá độ tin cậy/nghiêm túc của báo cáo, <40 là spam/ảo, >70 là đáng tin>,
-              "reason": "<Lý do ngắn gọn giải thích tại sao chấm điểm trust_score và phân loại như vậy>",
+              "masked_description": "<Đoạn text đã che PII>",
+              "trust_score": <0-100>,
+              "reason": "<Lý do phân loại domain và priority>",
               "priority": "<CRITICAL | HIGH | MEDIUM | LOW>",
               "domain": "<AN_NINH | GIAO_THONG | MOI_TRUONG | HA_TANG | Y_TE | KHAC>"
             }
@@ -158,12 +170,16 @@ public class AutoDispatchService {
 
         log.info("🤖 [Auto-Dispatch Worker] Raw AI Output: {}", aiRawResult);
 
-        // Clean markdown if present
+        // Clean markdown if present and extract only the JSON object
         String jsonStr = aiRawResult;
-        if (jsonStr.contains("```json")) {
-            jsonStr = jsonStr.substring(jsonStr.indexOf("```json") + 7, jsonStr.lastIndexOf("```"));
-        } else if (jsonStr.contains("```")) {
-            jsonStr = jsonStr.substring(jsonStr.indexOf("```") + 3, jsonStr.lastIndexOf("```"));
+        jsonStr = jsonStr.replace("```json", "");
+        jsonStr = jsonStr.replace("```", "");
+        jsonStr = jsonStr.trim();
+        
+        int startIndex = jsonStr.indexOf("{");
+        int endIndex = jsonStr.lastIndexOf("}");
+        if (startIndex >= 0 && endIndex >= 0 && startIndex <= endIndex) {
+            jsonStr = jsonStr.substring(startIndex, endIndex + 1);
         }
 
         try {
@@ -266,6 +282,7 @@ public class AutoDispatchService {
                     }
                 }
                 
+                feedback.setStatus(FeedbackStatus.ASSIGNED);
                 feedbackRepository.save(feedback);
 
                 if (aiResult.getTrust_score() <= 70) {

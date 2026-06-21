@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   Crown,
@@ -101,6 +101,7 @@ function CampaignGroupChatPage() {
   const [noticeVisible, setNoticeVisible] = useState(true);
   const [infoOpen, setInfoOpen] = useState(false);
   const [draft, setDraft] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: chatMessages = [], sendMessage, isLoading: chatLoading } = useCampaignChat(id);
   const pinMutation = usePinChatMessage(id);
@@ -137,6 +138,10 @@ function CampaignGroupChatPage() {
       } as ChatMessage;
     });
   }, [chatMessages, user]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [formattedMessages]);
 
   const pinnedMsg = useMemo(() => {
     return chatMessages.find((m) => m.pinned);
@@ -297,6 +302,7 @@ function CampaignGroupChatPage() {
                   onUnpin={(msgId) => unpinMutation.mutate(msgId)}
                 />
               ))}
+              <div ref={messagesEndRef} />
             </div>
           </div>
 

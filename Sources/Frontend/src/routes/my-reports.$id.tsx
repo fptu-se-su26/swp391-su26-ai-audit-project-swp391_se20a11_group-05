@@ -102,7 +102,7 @@ function ReportDetail() {
           toast.error("Unable to update feedback status.");
           setSelectedStatus(report.status);
         },
-      }
+      },
     );
   };
 
@@ -148,13 +148,22 @@ function ReportDetail() {
       setLinkedCampaign({
         id: found.id,
         title: found.name,
-        status: found.status === "pending_review"
-          ? (isVi ? "Chờ duyệt" : "Pending Review")
-          : found.status === "recruiting"
-          ? (isVi ? "Đang tuyển" : "Recruiting")
-          : found.status === "completed"
-          ? (isVi ? "Đã hoàn thành" : "Completed")
-          : (isVi ? "Đang tiến hành" : "In Progress"),
+        status:
+          found.status === "pending_review"
+            ? isVi
+              ? "Chờ duyệt"
+              : "Pending Review"
+            : found.status === "recruiting"
+              ? isVi
+                ? "Đang tuyển"
+                : "Recruiting"
+              : found.status === "completed"
+                ? isVi
+                  ? "Đã hoàn thành"
+                  : "Completed"
+                : isVi
+                  ? "Đang tiến hành"
+                  : "In Progress",
         participants: found.participants,
         progress: found.progress,
       });
@@ -167,13 +176,22 @@ function ReportDetail() {
         setLinkedCampaign({
           id: updated.id,
           title: updated.name,
-          status: updated.status === "pending_review"
-            ? (isVi ? "Chờ duyệt" : "Pending Review")
-            : updated.status === "recruiting"
-            ? (isVi ? "Đang tuyển" : "Recruiting")
-            : updated.status === "completed"
-            ? (isVi ? "Đã hoàn thành" : "Completed")
-            : (isVi ? "Đang tiến hành" : "In Progress"),
+          status:
+            updated.status === "pending_review"
+              ? isVi
+                ? "Chờ duyệt"
+                : "Pending Review"
+              : updated.status === "recruiting"
+                ? isVi
+                  ? "Đang tuyển"
+                  : "Recruiting"
+                : updated.status === "completed"
+                  ? isVi
+                    ? "Đã hoàn thành"
+                    : "Completed"
+                  : isVi
+                    ? "Đang tiến hành"
+                    : "In Progress",
           participants: updated.participants,
           progress: updated.progress,
         });
@@ -186,6 +204,55 @@ function ReportDetail() {
   useEffect(() => {
     setActiveImageIndex(0);
   }, [id]);
+
+  const defaultImages = useMemo(() => [
+    {
+      id: "d1",
+      fileUrl:
+        "https://images.unsplash.com/photo-1611284446314-60a58ac0deb9?auto=format&fit=crop&w=1000&q=80",
+      fileType: "image/jpeg",
+      fileName: "sidewalk_trash_1.jpg",
+    },
+    {
+      id: "d2",
+      fileUrl:
+        "https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=1000&q=80",
+      fileType: "image/jpeg",
+      fileName: "sidewalk_trash_2.jpg",
+    },
+    {
+      id: "d3",
+      fileUrl:
+        "https://images.unsplash.com/photo-1605600611284-6f52f6d2780e?auto=format&fit=crop&w=1000&q=80",
+      fileType: "image/jpeg",
+      fileName: "sidewalk_trash_3.jpg",
+    },
+    {
+      id: "d4",
+      fileUrl:
+        "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=1000&q=80",
+      fileType: "image/jpeg",
+      fileName: "sidewalk_trash_4.jpg",
+    },
+    {
+      id: "d5",
+      fileUrl:
+        "https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=1000&q=80",
+      fileType: "image/jpeg",
+      fileName: "sidewalk_trash_5.jpg",
+    },
+  ], []);
+
+  const attachments = report?.attachments ?? [];
+
+  const resolutionAttachments = useMemo(() => {
+    return attachments.filter((a) => a.attachmentPurpose === "RESOLUTION_EVIDENCE");
+  }, [attachments]);
+
+  const galleryItems = useMemo(() => {
+    const originalAttachments = attachments.filter((a) => a.attachmentPurpose !== "RESOLUTION_EVIDENCE");
+    return originalAttachments.length > 0 ? originalAttachments : defaultImages;
+  }, [attachments, defaultImages]);
 
   if (isLoading) {
     return (
@@ -223,7 +290,6 @@ function ReportDetail() {
     );
   }
 
-  const attachments = report.attachments ?? [];
   const statusInfo = mapStatus(report.status);
   const mockCode = report.trackingCode || report.code || `#DN-2026-0615-${report.id}`;
 
@@ -233,42 +299,6 @@ function ReportDetail() {
     { label: isVi ? "Báo cáo của tôi" : "My Reports", path: "/my-reports" },
     { label: isVi ? "Chi tiết phản ánh" : "Report Detail", path: undefined },
   ];
-
-  // 2. High-quality default gallery images matching the screenshot
-  const defaultImages = [
-    {
-      id: "d1",
-      fileUrl: "https://images.unsplash.com/photo-1611284446314-60a58ac0deb9?auto=format&fit=crop&w=1000&q=80",
-      fileType: "image/jpeg",
-      fileName: "sidewalk_trash_1.jpg",
-    },
-    {
-      id: "d2",
-      fileUrl: "https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=1000&q=80",
-      fileType: "image/jpeg",
-      fileName: "sidewalk_trash_2.jpg",
-    },
-    {
-      id: "d3",
-      fileUrl: "https://images.unsplash.com/photo-1605600611284-6f52f6d2780e?auto=format&fit=crop&w=1000&q=80",
-      fileType: "image/jpeg",
-      fileName: "sidewalk_trash_3.jpg",
-    },
-    {
-      id: "d4",
-      fileUrl: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=1000&q=80",
-      fileType: "image/jpeg",
-      fileName: "sidewalk_trash_4.jpg",
-    },
-    {
-      id: "d5",
-      fileUrl: "https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=1000&q=80",
-      fileType: "image/jpeg",
-      fileName: "sidewalk_trash_5.jpg",
-    },
-  ];
-
-  const galleryItems = attachments.length > 0 ? attachments : defaultImages;
 
   // 3. Map details
   const reportLat = report.latitude || 16.0544;
@@ -305,7 +335,7 @@ function ReportDetail() {
 
   // 4. Processing Timeline (preserves dynamic logs and enriches them with photos/details)
   const dynamicTimeline = buildTimeline(report.timeline ?? [], report.status, locale);
-  
+
   // Highlight steps according to status
   const currentStatusIndex = (() => {
     switch (report.status as any) {
@@ -333,28 +363,36 @@ function ReportDetail() {
       title: isVi ? "Đã tiếp nhận" : "Submitted",
       time: "15/06/2026 01:15 PM",
       actor: isVi ? "Hệ thống" : "System",
-      note: isVi ? "Phản ánh của bạn đã được hệ thống tiếp nhận." : "Your report has been received by the system.",
+      note: isVi
+        ? "Phản ánh của bạn đã được hệ thống tiếp nhận."
+        : "Your report has been received by the system.",
       tone: "completed" as const,
     },
     {
       title: isVi ? "Phường Hòa Xuân đã tiếp nhận" : "Authority Received",
       time: "15/06/2026 01:25 PM",
       actor: "Lê Văn C (Văn phòng)",
-      note: isVi ? "Phản ánh đã được chuyển đến UBND phường Hòa Xuân." : "Report has been forwarded to Hoa Xuan Ward People's Committee.",
+      note: isVi
+        ? "Phản ánh đã được chuyển đến UBND phường Hòa Xuân."
+        : "Report has been forwarded to Hoa Xuan Ward People's Committee.",
       tone: "completed" as const,
     },
     {
       title: isVi ? "Đã phân công xử lý" : "Assigned",
       time: "15/06/2026 02:30 PM",
       actor: "Trần Thị B (Phó Chủ tịch)",
-      note: isVi ? "Phản ánh được phân công cho Tổ quản lý đô thị số 3." : "Assigned to Urban Management Team No. 3.",
+      note: isVi
+        ? "Phản ánh được phân công cho Tổ quản lý đô thị số 3."
+        : "Assigned to Urban Management Team No. 3.",
       tone: "completed" as const,
     },
     {
       title: isVi ? "Đang xử lý" : "In Progress",
       time: "17/06/2026 08:45 AM",
       actor: "Nguyễn Văn D (Tổ trưởng)",
-      note: isVi ? "Đơn vị phụ trách đang xử lý hiện trường." : "Responsible unit is processing the site.",
+      note: isVi
+        ? "Đơn vị phụ trách đang xử lý hiện trường."
+        : "Responsible unit is processing the site.",
       tone: currentStatusIndex >= 3 ? ("completed" as const) : ("pending" as const),
       images: [
         "https://images.unsplash.com/photo-1618477388954-7852f32655ec?auto=format&fit=crop&w=400&q=80",
@@ -384,7 +422,9 @@ function ReportDetail() {
       title: isVi ? "Đã đóng" : "Closed",
       time: "19/06/2026 09:30 AM",
       actor: isVi ? "Hệ thống" : "System",
-      note: isVi ? "Cảm ơn bạn đã phản ánh. Báo cáo đã được đóng." : "Thank you for reporting. The report is closed.",
+      note: isVi
+        ? "Cảm ơn bạn đã phản ánh. Báo cáo đã được đóng."
+        : "Thank you for reporting. The report is closed.",
       tone: currentStatusIndex >= 6 ? ("completed" as const) : ("pending" as const),
     },
   ];
@@ -398,17 +438,31 @@ function ReportDetail() {
         const matchingStatic = staticTimelineSteps.find(
           (s) => s.title.toLowerCase() === item.title.toLowerCase(),
         );
+        const isResolvedStep = item.title === "Đã xử lý xong" || item.title === "Resolved" || item.title === "Đã giải quyết" || item.title.toLowerCase().includes("resolve");
+        const stepImages = isResolvedStep && resolutionAttachments.length > 0
+          ? resolutionAttachments.map(a => a.fileUrl)
+          : matchingStatic?.images;
+
         return {
           title: item.title,
           time: item.createdAt ? formatDateTime(item.createdAt, locale) : "N/A",
           actor: item.actorName || item.authorityName || (isVi ? "Cán bộ" : "Officer"),
           note: item.note || "",
           tone: item.tone,
-          images: matchingStatic?.images,
+          images: stepImages,
         };
       });
     }
-    return staticTimelineSteps;
+    return staticTimelineSteps.map(s => {
+      const isResolvedStep = s.title === "Đã xử lý xong" || s.title === "Resolved";
+      if (isResolvedStep && resolutionAttachments.length > 0) {
+        return {
+          ...s,
+          images: resolutionAttachments.map(a => a.fileUrl)
+        };
+      }
+      return s;
+    });
   })();
 
   // 5. Processing History logs (condensed decision list in sidebar)
@@ -417,14 +471,34 @@ function ReportDetail() {
       return report.timeline.map((log) => ({
         time: formatDateTime(log.createdAt, locale),
         text: log.title || (isVi ? "Cập nhật trạng thái" : "Status update"),
-        actor: log.actorName ? `${log.actorName} (${isVi ? "Cán bộ" : "Officer"})` : (isVi ? "Hệ thống" : "System"),
+        actor: log.actorName
+          ? `${log.actorName} (${isVi ? "Cán bộ" : "Officer"})`
+          : isVi
+            ? "Hệ thống"
+            : "System",
       }));
     }
     return [
-      { time: "15/06/2026 01:25 PM", text: isVi ? "Tiếp nhận bởi UBND phường Hòa Xuân" : "Received by Hoa Xuan Ward", actor: "Lê Văn C (Văn phòng)" },
-      { time: "15/06/2026 02:30 PM", text: isVi ? "Phân công cho Tổ quản lý đô thị số 3" : "Assigned to Urban Management Team 3", actor: "Trần Thị B (Phó Chủ tịch)" },
-      { time: "17/06/2026 08:45 AM", text: isVi ? "Cập nhật: Đang xử lý" : "Status: In Progress", actor: "Nguyễn Văn D (Tổ trưởng)" },
-      { time: "19/06/2026 09:20 AM", text: isVi ? "Cập nhật: Đã xử lý xong" : "Status: Resolved", actor: "Nguyễn Văn D (Tổ trưởng)" },
+      {
+        time: "15/06/2026 01:25 PM",
+        text: isVi ? "Tiếp nhận bởi UBND phường Hòa Xuân" : "Received by Hoa Xuan Ward",
+        actor: "Lê Văn C (Văn phòng)",
+      },
+      {
+        time: "15/06/2026 02:30 PM",
+        text: isVi ? "Phân công cho Tổ quản lý đô thị số 3" : "Assigned to Urban Management Team 3",
+        actor: "Trần Thị B (Phó Chủ tịch)",
+      },
+      {
+        time: "17/06/2026 08:45 AM",
+        text: isVi ? "Cập nhật: Đang xử lý" : "Status: In Progress",
+        actor: "Nguyễn Văn D (Tổ trưởng)",
+      },
+      {
+        time: "19/06/2026 09:20 AM",
+        text: isVi ? "Cập nhật: Đã xử lý xong" : "Status: Resolved",
+        actor: "Nguyễn Văn D (Tổ trưởng)",
+      },
     ];
   })();
 
@@ -472,9 +546,7 @@ function ReportDetail() {
     if (typeof window !== "undefined") {
       navigator.clipboard.writeText(window.location.href);
       toast.success(
-        isVi
-          ? "Đã sao chép liên kết phản ánh vào bộ nhớ tạm!"
-          : "Report link copied to clipboard!",
+        isVi ? "Đã sao chép liên kết phản ánh vào bộ nhớ tạm!" : "Report link copied to clipboard!",
       );
     }
   };
@@ -566,7 +638,10 @@ function ReportDetail() {
       {/* breadcrumb bar */}
       <div className="border-b border-[#E2E8F0] bg-white py-4 shadow-sm">
         <div className="max-w-[1440px] mx-auto px-4 md:px-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+          <nav
+            aria-label="Breadcrumb"
+            className="flex items-center gap-2 text-xs font-semibold text-slate-500"
+          >
             {breadcrumbs.map((bc, idx) => (
               <span key={idx} className="flex items-center gap-2">
                 {idx > 0 && <span className="text-slate-300">/</span>}
@@ -575,7 +650,9 @@ function ReportDetail() {
                     {bc.label}
                   </Link>
                 ) : (
-                  <span className="text-slate-700 font-bold truncate max-w-[200px]">{bc.label}</span>
+                  <span className="text-slate-700 font-bold truncate max-w-[200px]">
+                    {bc.label}
+                  </span>
                 )}
               </span>
             ))}
@@ -599,9 +676,7 @@ function ReportDetail() {
               }`}
             >
               <Bell size={14} />
-              {isFollowing
-                ? isVi ? "Đang theo dõi" : "Following"
-                : isVi ? "Theo dõi" : "Follow"}
+              {isFollowing ? (isVi ? "Đang theo dõi" : "Following") : isVi ? "Theo dõi" : "Follow"}
             </button>
           </div>
         </div>
@@ -615,7 +690,9 @@ function ReportDetail() {
               {isVi ? "Chi tiết phản ánh" : "Report Detail"}
             </h1>
             <p className="text-slate-500 text-sm font-semibold mt-1">
-              {isVi ? "Cổng phản ánh chính thức thành phố Đà Nẵng" : "Official reporting portal of Da Nang city"}
+              {isVi
+                ? "Cổng phản ánh chính thức thành phố Đà Nẵng"
+                : "Official reporting portal of Da Nang city"}
             </p>
           </div>
         </div>
@@ -638,7 +715,13 @@ function ReportDetail() {
               </p>
               <Link
                 to="/report"
-                state={{ initialTitle: report.title, initialDescription: (report as any).content || report.description, initialCategoryCode: report.categoryCode || report.category } as any}
+                state={
+                  {
+                    initialTitle: report.title,
+                    initialDescription: (report as any).content || report.description,
+                    initialCategoryCode: report.categoryCode || report.category,
+                  } as any
+                }
                 className="inline-flex items-center gap-2 mt-3 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-4 py-2 transition-colors"
               >
                 ↩ {locale === "vi" ? "Gửi lại phản ánh" : "Resubmit report"}
@@ -656,7 +739,9 @@ function ReportDetail() {
                 {isVi ? "Mã phản ánh" : "Report ID"}
               </span>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-sm font-bold text-slate-800 break-all">{mockCode}</span>
+                <span className="font-mono text-sm font-bold text-slate-800 break-all">
+                  {mockCode}
+                </span>
               </div>
             </div>
             {/* Category */}
@@ -666,7 +751,9 @@ function ReportDetail() {
               </span>
               <span className="text-sm font-extrabold text-slate-800 flex items-center gap-1.5">
                 <Shield size={14} className="text-[#0B4FC4]" />
-                {report.categoryName || report.category || (isVi ? "Môi trường - Rác thải" : "Environment - Waste")}
+                {report.categoryName ||
+                  report.category ||
+                  (isVi ? "Môi trường - Rác thải" : "Environment - Waste")}
               </span>
             </div>
             {/* Current Status */}
@@ -697,7 +784,9 @@ function ReportDetail() {
                     disabled={selectedStatus === report.status || changeStatusMutation.isPending}
                     className="min-h-[36px] px-3 bg-[#0B4FC4] hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    {changeStatusMutation.isPending && <Loader2 className="animate-spin" size={12} />}
+                    {changeStatusMutation.isPending && (
+                      <Loader2 className="animate-spin" size={12} />
+                    )}
                     {isVi ? "Cập nhật" : "Update"}
                   </button>
                 </div>
@@ -766,15 +855,19 @@ function ReportDetail() {
                       <>
                         <button
                           onClick={() =>
-                            setActiveImageIndex((prev) => (prev === 0 ? galleryItems.length - 1 : prev - 1))
+                            setActiveImageIndex((prev) =>
+                              prev === 0 ? galleryItems.length - 1 : prev - 1,
+                            )
                           }
                           className="absolute left-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 hover:bg-black/85 text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 shadow cursor-pointer"
                         >
                           <ChevronLeft size={16} />
                         </button>
-                          <button
+                        <button
                           onClick={() =>
-                            setActiveImageIndex((prev) => (prev === galleryItems.length - 1 ? 0 : prev + 1))
+                            setActiveImageIndex((prev) =>
+                              prev === galleryItems.length - 1 ? 0 : prev + 1,
+                            )
                           }
                           className="absolute right-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 hover:bg-black/85 text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 shadow cursor-pointer"
                         >
@@ -800,7 +893,9 @@ function ReportDetail() {
                           key={item.id || idx}
                           onClick={() => setActiveImageIndex(idx)}
                           className={`relative w-[60px] h-[45px] rounded-md overflow-hidden border-2 transition-all cursor-pointer shrink-0 ${
-                            isActive ? "border-[#0B4FC4] scale-95 shadow-sm" : "border-slate-200 hover:border-slate-300 opacity-70"
+                            isActive
+                              ? "border-[#0B4FC4] scale-95 shadow-sm"
+                              : "border-slate-200 hover:border-slate-300 opacity-70"
                           }`}
                         >
                           {isVideoAttachment(item) ? (
@@ -809,7 +904,11 @@ function ReportDetail() {
                               <div className="absolute inset-0 bg-black/20" />
                             </div>
                           ) : (
-                            <img src={item.fileUrl} className="w-full h-full object-cover" alt="Thumb" />
+                            <img
+                              src={item.fileUrl}
+                              className="w-full h-full object-cover"
+                              alt="Thumb"
+                            />
                           )}
                         </button>
                       );
@@ -880,7 +979,10 @@ function ReportDetail() {
                   </h4>
                   <div className="space-y-2.5">
                     {infoList.map((info, idx) => (
-                      <div key={idx} className="bg-blue-50/40 border border-blue-100 p-3 rounded-lg text-xs md:text-sm text-slate-700 font-medium">
+                      <div
+                        key={idx}
+                        className="bg-blue-50/40 border border-blue-100 p-3 rounded-lg text-xs md:text-sm text-slate-700 font-medium"
+                      >
                         {info}
                       </div>
                     ))}
@@ -899,8 +1001,11 @@ function ReportDetail() {
                 <ul className="space-y-8 relative">
                   {timelineSteps.map((step, index) => {
                     const isCompleted = step.tone === "completed";
-                    const isActive = isCompleted && (index === timelineSteps.length - 1 || timelineSteps[index + 1].tone === "pending");
-                    
+                    const isActive =
+                      isCompleted &&
+                      (index === timelineSteps.length - 1 ||
+                        timelineSteps[index + 1].tone === "pending");
+
                     return (
                       <li key={index} className="relative group">
                         {/* Timeline Bullet Node */}
@@ -988,7 +1093,10 @@ function ReportDetail() {
             </div>
 
             {/* 13. Citizen Rating Section */}
-            {(report.status === "RESOLVED" || (report.status as string) === "CLOSED" || id === "12345" || String(id).includes("12345")) && (
+            {(report.status === "RESOLVED" ||
+              (report.status as string) === "CLOSED" ||
+              id === "12345" ||
+              String(id).includes("12345")) && (
               <div className="bg-white rounded-[20px] border border-[#E2E8F0] p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
                 <h3 className="text-base font-extrabold text-[#0B2545] border-b border-slate-50 pb-3 mb-4">
                   {isVi ? "Đánh giá kết quả xử lý" : "Citizen Evaluation"}
@@ -997,14 +1105,17 @@ function ReportDetail() {
                 {!ratingSubmitted ? (
                   <form onSubmit={handleRatingSubmit} className="space-y-4">
                     <p className="text-xs sm:text-sm font-bold text-slate-500">
-                      {isVi ? "Bạn hài lòng với kết quả xử lý chứ?" : "Are you satisfied with the result?"}
+                      {isVi
+                        ? "Bạn hài lòng với kết quả xử lý chứ?"
+                        : "Are you satisfied with the result?"}
                     </p>
 
                     <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                       {/* Interactive Stars */}
                       <div className="flex items-center gap-1.5">
                         {[1, 2, 3, 4, 5].map((star) => {
-                          const active = hoverRating !== null ? star <= hoverRating : star <= rating;
+                          const active =
+                            hoverRating !== null ? star <= hoverRating : star <= rating;
                           return (
                             <button
                               key={star}
@@ -1017,9 +1128,7 @@ function ReportDetail() {
                               <Star
                                 size={28}
                                 className={
-                                  active
-                                    ? "fill-amber-400 text-amber-400"
-                                    : "text-slate-300"
+                                  active ? "fill-amber-400 text-amber-400" : "text-slate-300"
                                 }
                               />
                             </button>
@@ -1038,12 +1147,19 @@ function ReportDetail() {
                       <textarea
                         value={feedbackText}
                         onChange={(e) => setFeedbackText(e.target.value)}
-                        placeholder={isVi ? "Chia sẻ thêm ý kiến của bạn về quá trình xử lý..." : "Share your feedback about the process..."}
+                        placeholder={
+                          isVi
+                            ? "Chia sẻ thêm ý kiến của bạn về quá trình xử lý..."
+                            : "Share your feedback about the process..."
+                        }
                         className="w-full min-h-[100px] border border-slate-200 rounded-xl p-3.5 text-sm outline-none focus:border-[#0B4FC4] bg-slate-50/50 resize-none font-medium"
                       />
                     </div>
 
-                    <button type="submit" className="btn-civic btn-civic-primary min-h-[42px] px-6 text-xs cursor-pointer">
+                    <button
+                      type="submit"
+                      className="btn-civic btn-civic-primary min-h-[42px] px-6 text-xs cursor-pointer"
+                    >
                       {isVi ? "Gửi đánh giá" : "Submit Rating"}
                     </button>
                   </form>
@@ -1052,7 +1168,9 @@ function ReportDetail() {
                     <CheckCircle2 className="text-[#22C55E] shrink-0" size={20} />
                     <div className="flex-1">
                       <h4 className="text-sm font-extrabold text-[#1B5E20]">
-                        {isVi ? "Cảm ơn bạn! Đánh giá của bạn đã được ghi nhận." : "Thank you! Your feedback has been recorded."}
+                        {isVi
+                          ? "Cảm ơn bạn! Đánh giá của bạn đã được ghi nhận."
+                          : "Thank you! Your feedback has been recorded."}
                       </h4>
                       <p className="text-xs text-[#22C55E] font-medium mt-1 leading-relaxed">
                         {isVi
@@ -1074,7 +1192,7 @@ function ReportDetail() {
                 <FileText size={16} className="text-[#0B4FC4]" />
                 {isVi ? "Thông tin phản ánh" : "Report Information"}
               </h3>
-              
+
               <div className="divide-y divide-slate-100">
                 <DetailRow
                   icon={FileText}
@@ -1099,17 +1217,31 @@ function ReportDetail() {
                 <DetailRow
                   icon={MapPin}
                   label={isVi ? "Địa chỉ" : "Address"}
-                  value={report.address || report.addressDetails || (isVi ? "15 Nguyễn Văn Linh, Hòa Xuân, Đà Nẵng" : "15 Nguyen Van Linh, Hoa Xuan, Da Nang")}
+                  value={
+                    report.address ||
+                    report.addressDetails ||
+                    (isVi
+                      ? "15 Nguyễn Văn Linh, Hòa Xuân, Đà Nẵng"
+                      : "15 Nguyen Van Linh, Hoa Xuan, Da Nang")
+                  }
                 />
                 <DetailRow
                   icon={UserRound}
                   label={isVi ? "Đơn vị phụ trách" : "Responsible Unit"}
-                  value={report.assignedUnitName || (isVi ? "UBND phường Hòa Xuân" : "Hoa Xuan Ward People's Committee")}
+                  value={
+                    report.assignedUnitName ||
+                    (isVi ? "UBND phường Hòa Xuân" : "Hoa Xuan Ward People's Committee")
+                  }
                 />
                 <DetailRow
                   icon={UserRound}
                   label={isVi ? "Cán bộ phụ trách" : "Assigned Officer"}
-                  value={report.assigneeName || (isVi ? "Nguyễn Văn D - Tổ trưởng Tổ quản lý đô thị số 3" : "Nguyen Van D - Head of Urban Management Team 3")}
+                  value={
+                    report.assigneeName ||
+                    (isVi
+                      ? "Nguyễn Văn D - Tổ trưởng Tổ quản lý đô thị số 3"
+                      : "Nguyen Van D - Head of Urban Management Team 3")
+                  }
                 />
               </div>
             </div>
@@ -1125,7 +1257,14 @@ function ReportDetail() {
                 {/* SVG Progress Ring */}
                 <div className="relative flex items-center justify-center w-16 h-16 shrink-0">
                   <svg className="w-16 h-16 transform -rotate-90">
-                    <circle cx="32" cy="32" r="26" stroke="#E2E8F0" strokeWidth="5" fill="transparent" />
+                    <circle
+                      cx="32"
+                      cy="32"
+                      r="26"
+                      stroke="#E2E8F0"
+                      strokeWidth="5"
+                      fill="transparent"
+                    />
                     <circle
                       cx="32"
                       cy="32"
@@ -1154,18 +1293,26 @@ function ReportDetail() {
 
               <div className="space-y-2.5 text-xs">
                 <div className="flex justify-between border-b border-slate-50 pb-2">
-                  <span className="text-slate-400 font-semibold">{isVi ? "Hạn xử lý (SLA)" : "SLA Target"}</span>
+                  <span className="text-slate-400 font-semibold">
+                    {isVi ? "Hạn xử lý (SLA)" : "SLA Target"}
+                  </span>
                   <span className="font-extrabold text-slate-700">21/06/2026</span>
                 </div>
                 <div className="flex justify-between border-b border-slate-50 pb-2">
-                  <span className="text-slate-400 font-semibold">{isVi ? "Còn lại" : "Remaining Time"}</span>
+                  <span className="text-slate-400 font-semibold">
+                    {isVi ? "Còn lại" : "Remaining Time"}
+                  </span>
                   <span className="font-extrabold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">
                     {isVi ? "2 ngày 5 giờ" : "2 days 5 hours"}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400 font-semibold">{isVi ? "Thời gian xử lý dự kiến" : "Expected duration"}</span>
-                  <span className="font-extrabold text-slate-700">{isVi ? "4 ngày" : "4 days"}</span>
+                  <span className="text-slate-400 font-semibold">
+                    {isVi ? "Thời gian xử lý dự kiến" : "Expected duration"}
+                  </span>
+                  <span className="font-extrabold text-slate-700">
+                    {isVi ? "4 ngày" : "4 days"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -1181,122 +1328,135 @@ function ReportDetail() {
                 {historyEvents.map((evt, idx) => (
                   <div key={idx} className="relative">
                     <div className="absolute -left-[20.5px] top-1 w-2.5 h-2.5 rounded-full bg-slate-200 border-2 border-white" />
-                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{evt.time}</div>
+                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                      {evt.time}
+                    </div>
                     <div className="text-xs font-extrabold text-slate-800 mt-0.5">{evt.text}</div>
-                    <div className="text-[10px] text-slate-400 mt-0.5 font-semibold">{evt.actor}</div>
+                    <div className="text-[10px] text-slate-400 mt-0.5 font-semibold">
+                      {evt.actor}
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* 10. Community Campaign Section */}
-            {canManageCampaignFromReport && (linkedCampaign ? (
-              /* State B: Has linked campaign */
-              <div className="bg-gradient-to-br from-emerald-50 to-teal-50/20 rounded-[20px] border border-emerald-100 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow transition-shadow">
-                <div className="flex items-center justify-between border-b border-emerald-100/50 pb-3 mb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            {canManageCampaignFromReport &&
+              (linkedCampaign ? (
+                /* State B: Has linked campaign */
+                <div className="bg-gradient-to-br from-emerald-50 to-teal-50/20 rounded-[20px] border border-emerald-100 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow transition-shadow">
+                  <div className="flex items-center justify-between border-b border-emerald-100/50 pb-3 mb-4">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <h3 className="text-sm font-extrabold text-emerald-800">
+                        {isVi ? "Chiến dịch cộng đồng liên quan" : "Community Campaign"}
+                      </h3>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 items-start mb-4">
+                    <div className="w-14 h-14 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0">
+                      <Flag size={22} className="text-emerald-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-extrabold text-emerald-900 leading-snug truncate">
+                        {linkedCampaign.title}
+                      </h4>
+                      <div className="flex gap-2 items-center mt-1.5 flex-wrap">
+                        <span className="px-2 py-0.5 bg-amber-100 text-amber-700 border border-amber-200 text-[9px] font-extrabold rounded-full uppercase tracking-wider">
+                          {linkedCampaign.status}
+                        </span>
+                        <span className="text-[10px] text-emerald-700/80 font-bold flex items-center gap-1">
+                          <Users size={11} />
+                          {linkedCampaign.participants} {isVi ? "tham gia" : "joined"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1 mb-4">
+                    <div className="flex justify-between text-[10px] font-extrabold text-emerald-800">
+                      <span>{isVi ? "Tiến độ đạt" : "Progress reached"}</span>
+                      <span>{linkedCampaign.progress}%</span>
+                    </div>
+                    <div className="w-full bg-emerald-100 h-2 rounded-full overflow-hidden">
+                      <div
+                        className="bg-[#22C55E] h-full rounded-full transition-all"
+                        style={{ width: `${linkedCampaign.progress}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Link
+                      to={`/campaigns/${linkedCampaign.id}` as any}
+                      className="flex-1 px-3 py-2 bg-[#22C55E] hover:bg-green-600 text-white font-extrabold text-[11px] rounded-lg transition-all shadow-sm cursor-pointer min-h-[36px] flex items-center justify-center gap-1.5"
+                    >
+                      {isVi ? "Xem chiến dịch" : "View Campaign"}
+                    </Link>
+                    <button
+                      onClick={() => setShowCreateCampaignModal(true)}
+                      className="px-3 py-2 border border-emerald-200 bg-white hover:bg-emerald-50 text-emerald-800 font-bold text-[11px] rounded-lg transition-all cursor-pointer min-h-[36px] flex items-center gap-1.5"
+                    >
+                      <Plus size={12} />
+                      {isVi ? "Tạo thêm" : "Add"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* State A: No linked campaign */
+                <div className="rounded-[20px] border-2 border-dashed border-emerald-200 bg-emerald-50/30 p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:border-emerald-300 hover:bg-emerald-50/50 transition-all">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Flag size={16} className="text-emerald-500" />
                     <h3 className="text-sm font-extrabold text-emerald-800">
-                      {isVi ? "Chiến dịch cộng đồng liên quan" : "Community Campaign"}
+                      {isVi ? "Chiến dịch cộng đồng" : "Community Campaign"}
                     </h3>
                   </div>
-                </div>
 
-                <div className="flex gap-3 items-start mb-4">
-                  <div className="w-14 h-14 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0">
-                    <Flag size={22} className="text-emerald-600" />
-                  </div>
-                  <div className="min-w-0">
-                    <h4 className="text-xs font-extrabold text-emerald-900 leading-snug truncate">
-                      {linkedCampaign.title}
-                    </h4>
-                    <div className="flex gap-2 items-center mt-1.5 flex-wrap">
-                      <span className="px-2 py-0.5 bg-amber-100 text-amber-700 border border-amber-200 text-[9px] font-extrabold rounded-full uppercase tracking-wider">
-                        {linkedCampaign.status}
-                      </span>
-                      <span className="text-[10px] text-emerald-700/80 font-bold flex items-center gap-1">
-                        <Users size={11} />
-                        {linkedCampaign.participants} {isVi ? "tham gia" : "joined"}
-                      </span>
+                  <div className="flex flex-col items-center text-center py-4 px-2 mb-4">
+                    <div className="w-14 h-14 rounded-2xl bg-emerald-100 border border-emerald-200 flex items-center justify-center mb-3">
+                      <Flag size={26} className="text-emerald-400" />
                     </div>
+                    <p className="text-xs font-extrabold text-emerald-800 mb-1">
+                      {isVi ? "Chưa có chiến dịch nào" : "No campaign yet"}
+                    </p>
+                    <p className="text-[11px] text-slate-500 font-medium leading-relaxed max-w-[200px]">
+                      {isVi
+                        ? "Tạo chiến dịch cộng đồng để huy động tình nguyện viên cùng giải quyết vấn đề này."
+                        : "Create a community campaign to mobilize volunteers to address this issue together."}
+                    </p>
                   </div>
-                </div>
 
-                <div className="space-y-1 mb-4">
-                  <div className="flex justify-between text-[10px] font-extrabold text-emerald-800">
-                    <span>{isVi ? "Tiến độ đạt" : "Progress reached"}</span>
-                    <span>{linkedCampaign.progress}%</span>
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    {[
+                      { icon: Users, label: isVi ? "Huy động cộng đồng" : "Mobilize community" },
+                      { icon: Flag, label: isVi ? "Hành động tập thể" : "Collective action" },
+                      {
+                        icon: CheckCircle2,
+                        label: isVi ? "Giải quyết nhanh hơn" : "Faster resolution",
+                      },
+                    ].map(({ icon: Icon, label }) => (
+                      <div
+                        key={label}
+                        className="flex flex-col items-center gap-1 bg-white border border-emerald-100 rounded-xl p-2 text-center"
+                      >
+                        <Icon size={14} className="text-emerald-500" />
+                        <span className="text-[9px] font-bold text-slate-600 leading-tight">
+                          {label}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                  <div className="w-full bg-emerald-100 h-2 rounded-full overflow-hidden">
-                    <div
-                      className="bg-[#22C55E] h-full rounded-full transition-all"
-                      style={{ width: `${linkedCampaign.progress}%` }}
-                    />
-                  </div>
-                </div>
 
-                <div className="flex gap-2">
-                  <Link
-                    to={`/campaigns/${linkedCampaign.id}` as any}
-                    className="flex-1 px-3 py-2 bg-[#22C55E] hover:bg-green-600 text-white font-extrabold text-[11px] rounded-lg transition-all shadow-sm cursor-pointer min-h-[36px] flex items-center justify-center gap-1.5"
-                  >
-                    {isVi ? "Xem chiến dịch" : "View Campaign"}
-                  </Link>
                   <button
                     onClick={() => setShowCreateCampaignModal(true)}
-                    className="px-3 py-2 border border-emerald-200 bg-white hover:bg-emerald-50 text-emerald-800 font-bold text-[11px] rounded-lg transition-all cursor-pointer min-h-[36px] flex items-center gap-1.5"
+                    className="w-full px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[11px] rounded-xl transition-all shadow-sm cursor-pointer min-h-[40px] flex items-center justify-center gap-2"
                   >
-                    <Plus size={12} />
-                    {isVi ? "Tạo thêm" : "Add"}
+                    <Flag size={13} />
+                    {isVi ? "Tạo chiến dịch ngay" : "Create Campaign Now"}
                   </button>
                 </div>
-              </div>
-            ) : (
-              /* State A: No linked campaign */
-              <div className="rounded-[20px] border-2 border-dashed border-emerald-200 bg-emerald-50/30 p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:border-emerald-300 hover:bg-emerald-50/50 transition-all">
-                <div className="flex items-center gap-2 mb-4">
-                  <Flag size={16} className="text-emerald-500" />
-                  <h3 className="text-sm font-extrabold text-emerald-800">
-                    {isVi ? "Chiến dịch cộng đồng" : "Community Campaign"}
-                  </h3>
-                </div>
-
-                <div className="flex flex-col items-center text-center py-4 px-2 mb-4">
-                  <div className="w-14 h-14 rounded-2xl bg-emerald-100 border border-emerald-200 flex items-center justify-center mb-3">
-                    <Flag size={26} className="text-emerald-400" />
-                  </div>
-                  <p className="text-xs font-extrabold text-emerald-800 mb-1">
-                    {isVi ? "Chưa có chiến dịch nào" : "No campaign yet"}
-                  </p>
-                  <p className="text-[11px] text-slate-500 font-medium leading-relaxed max-w-[200px]">
-                    {isVi
-                      ? "Tạo chiến dịch cộng đồng để huy động tình nguyện viên cùng giải quyết vấn đề này."
-                      : "Create a community campaign to mobilize volunteers to address this issue together."}
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 mb-4">
-                  {[
-                    { icon: Users, label: isVi ? "Huy động cộng đồng" : "Mobilize community" },
-                    { icon: Flag, label: isVi ? "Hành động tập thể" : "Collective action" },
-                    { icon: CheckCircle2, label: isVi ? "Giải quyết nhanh hơn" : "Faster resolution" },
-                  ].map(({ icon: Icon, label }) => (
-                    <div key={label} className="flex flex-col items-center gap-1 bg-white border border-emerald-100 rounded-xl p-2 text-center">
-                      <Icon size={14} className="text-emerald-500" />
-                      <span className="text-[9px] font-bold text-slate-600 leading-tight">{label}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <button
-                  onClick={() => setShowCreateCampaignModal(true)}
-                  className="w-full px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[11px] rounded-xl transition-all shadow-sm cursor-pointer min-h-[40px] flex items-center justify-center gap-2"
-                >
-                  <Flag size={13} />
-                  {isVi ? "Tạo chiến dịch ngay" : "Create Campaign Now"}
-                </button>
-              </div>
-            ))}
+              ))}
             {/* 11. Similar Reports Section */}
             <div className="bg-white rounded-[20px] border border-[#E2E8F0] p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
               <h3 className="flex items-center gap-2 text-sm font-extrabold text-[#0B2545] border-b border-slate-50 pb-3 mb-3">
@@ -1309,25 +1469,43 @@ function ReportDetail() {
                   {
                     title: isVi ? "Rác thải không được thu gom" : "Trash not collected",
                     dist: "200m",
-                    status: { label: isVi ? "Đang xử lý" : "In Progress", style: "bg-orange-50 text-orange-600 border-orange-100" },
+                    status: {
+                      label: isVi ? "Đang xử lý" : "In Progress",
+                      style: "bg-orange-50 text-orange-600 border-orange-100",
+                    },
                   },
                   {
                     title: isVi ? "Rác thải đổ tràn vỉa hè" : "Trash piled on sidewalk",
                     dist: "350m",
-                    status: { label: isVi ? "Đã xử lý" : "Resolved", style: "bg-green-50 text-green-600 border-green-100" },
+                    status: {
+                      label: isVi ? "Đã xử lý" : "Resolved",
+                      style: "bg-green-50 text-green-600 border-green-100",
+                    },
                   },
                   {
                     title: isVi ? "Mùi hôi từ rác thải" : "Foul smell from trash",
                     dist: "500m",
-                    status: { label: isVi ? "Đang xử lý" : "In Progress", style: "bg-orange-50 text-orange-600 border-orange-100" },
+                    status: {
+                      label: isVi ? "Đang xử lý" : "In Progress",
+                      style: "bg-orange-50 text-orange-600 border-orange-100",
+                    },
                   },
                 ].map((rep, idx) => (
-                  <div key={idx} className="flex justify-between items-center bg-slate-50/30 p-2.5 rounded-xl border border-slate-100/50">
+                  <div
+                    key={idx}
+                    className="flex justify-between items-center bg-slate-50/30 p-2.5 rounded-xl border border-slate-100/50"
+                  >
                     <div className="min-w-0">
-                      <span className="text-xs font-bold text-slate-700 block truncate">{rep.title}</span>
-                      <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">{rep.dist}</span>
+                      <span className="text-xs font-bold text-slate-700 block truncate">
+                        {rep.title}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">
+                        {rep.dist}
+                      </span>
                     </div>
-                    <span className={`px-2 py-0.5 text-[9px] font-extrabold rounded-md border uppercase tracking-wider shrink-0 ${rep.status.style}`}>
+                    <span
+                      className={`px-2 py-0.5 text-[9px] font-extrabold rounded-md border uppercase tracking-wider shrink-0 ${rep.status.style}`}
+                    >
                       {rep.status.label}
                     </span>
                   </div>
@@ -1506,18 +1684,25 @@ function ReportDetail() {
             </div>
 
             {/* Scrollable form body */}
-            <form onSubmit={handleCreateCampaignSubmit} className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
-
+            <form
+              onSubmit={handleCreateCampaignSubmit}
+              className="overflow-y-auto flex-1 px-6 py-4 space-y-4"
+            >
               {/* Title */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
-                  {isVi ? "Tên chiến dịch" : "Campaign title"} <span className="text-red-400">*</span>
+                  {isVi ? "Tên chiến dịch" : "Campaign title"}{" "}
+                  <span className="text-red-400">*</span>
                 </label>
                 <input
                   type="text"
                   value={campaignForm.title}
                   onChange={(e) => setCampaignForm((f) => ({ ...f, title: e.target.value }))}
-                  placeholder={isVi ? "Vd: Vì một Hòa Xuân xanh - sạch - đẹp" : "e.g. For a Clean & Green Hoa Xuan"}
+                  placeholder={
+                    isVi
+                      ? "Vd: Vì một Hòa Xuân xanh - sạch - đẹp"
+                      : "e.g. For a Clean & Green Hoa Xuan"
+                  }
                   className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:border-[#0B4FC4] focus:ring-2 focus:ring-blue-50 bg-slate-50/40 transition placeholder:text-slate-300"
                   required
                 />
@@ -1530,28 +1715,41 @@ function ReportDetail() {
                 </label>
                 <select
                   value={campaignForm.category}
-                  onChange={(e) => setCampaignForm((f) => ({ ...f, category: e.target.value as CampaignCategory }))}
+                  onChange={(e) =>
+                    setCampaignForm((f) => ({ ...f, category: e.target.value as CampaignCategory }))
+                  }
                   className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:border-[#0B4FC4] focus:ring-2 focus:ring-blue-50 bg-slate-50/40 transition cursor-pointer"
                 >
                   <option value="environment">{isVi ? "Môi trường" : "Environment"}</option>
-                  <option value="infrastructure">{isVi ? "Hạ tầng đô thị" : "Infrastructure"}</option>
-                  <option value="public_safety">{isVi ? "An toàn cộng đồng" : "Public Safety"}</option>
-                  <option value="construction">{isVi ? "Xây dựng & Quy hoạch" : "Construction & Planning"}</option>
-                  <option value="fire_safety">{isVi ? "Phòng cháy chữa cháy" : "Fire Safety"}</option>
+                  <option value="infrastructure">
+                    {isVi ? "Hạ tầng đô thị" : "Infrastructure"}
+                  </option>
+                  <option value="public_safety">
+                    {isVi ? "An toàn cộng đồng" : "Public Safety"}
+                  </option>
+                  <option value="construction">
+                    {isVi ? "Xây dựng & Quy hoạch" : "Construction & Planning"}
+                  </option>
+                  <option value="fire_safety">
+                    {isVi ? "Phòng cháy chữa cháy" : "Fire Safety"}
+                  </option>
                 </select>
               </div>
 
               {/* Description */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
-                  {isVi ? "Mô tả chiến dịch" : "Description"} <span className="text-red-400">*</span>
+                  {isVi ? "Mô tả chiến dịch" : "Description"}{" "}
+                  <span className="text-red-400">*</span>
                 </label>
                 <textarea
                   value={campaignForm.description}
                   onChange={(e) => setCampaignForm((f) => ({ ...f, description: e.target.value }))}
-                  placeholder={isVi
-                    ? "Mô tả mục tiêu, hoạt động và lợi ích của chiến dịch..."
-                    : "Describe the goals, activities and benefits of the campaign..."}
+                  placeholder={
+                    isVi
+                      ? "Mô tả mục tiêu, hoạt động và lợi ích của chiến dịch..."
+                      : "Describe the goals, activities and benefits of the campaign..."
+                  }
                   className="w-full min-h-[90px] border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:border-[#0B4FC4] focus:ring-2 focus:ring-blue-50 bg-slate-50/40 resize-none transition placeholder:text-slate-300"
                   required
                 />
@@ -1568,7 +1766,9 @@ function ReportDetail() {
                   onChange={(e) => setCampaignForm((f) => ({ ...f, locationText: e.target.value }))}
                   placeholder={
                     report.addressDetails ||
-                    (isVi ? "Vd: UBND phường Hòa Xuân, Đà Nẵng" : "e.g. Hoa Xuan Ward Office, Da Nang")
+                    (isVi
+                      ? "Vd: UBND phường Hòa Xuân, Đà Nẵng"
+                      : "e.g. Hoa Xuan Ward Office, Da Nang")
                   }
                   className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:border-[#0B4FC4] focus:ring-2 focus:ring-blue-50 bg-slate-50/40 transition placeholder:text-slate-300"
                 />
@@ -1612,7 +1812,9 @@ function ReportDetail() {
                   type="number"
                   min={1}
                   value={campaignForm.maxParticipants}
-                  onChange={(e) => setCampaignForm((f) => ({ ...f, maxParticipants: e.target.value }))}
+                  onChange={(e) =>
+                    setCampaignForm((f) => ({ ...f, maxParticipants: e.target.value }))
+                  }
                   placeholder={isVi ? "Vd: 50" : "e.g. 50"}
                   className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:border-[#0B4FC4] focus:ring-2 focus:ring-blue-50 bg-slate-50/40 transition placeholder:text-slate-300"
                 />
@@ -1676,8 +1878,12 @@ function DetailRow({
     <div className="flex items-start gap-3 py-3 last:pb-0">
       <Icon className="text-[#0B4FC4] mt-0.5 shrink-0" size={16} />
       <div className="min-w-0">
-        <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">{label}</div>
-        <div className="text-sm font-semibold text-slate-700 leading-relaxed mt-0.5">{value || "N/A"}</div>
+        <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
+          {label}
+        </div>
+        <div className="text-sm font-semibold text-slate-700 leading-relaxed mt-0.5">
+          {value || "N/A"}
+        </div>
       </div>
     </div>
   );
@@ -1749,10 +1955,8 @@ function nextPendingTitle(status: FeedbackStatus, entries: TimelineEntry[], loca
   const done = locale === "vi" ? "Đã hoàn thành xử lý" : "Processing completed";
   const wait = locale === "vi" ? "Chờ công dân bổ sung thông tin" : "Awaiting citizen info";
 
-  if (status === "PENDING" && !completedTitles.has(recv))
-    return recv;
-  if (status === "IN_PROGRESS" && !completedTitles.has(done))
-    return done;
+  if (status === "PENDING" && !completedTitles.has(recv)) return recv;
+  if (status === "IN_PROGRESS" && !completedTitles.has(done)) return done;
   if (status === "WAITING_INFO") return wait;
   return null;
 }
@@ -1766,7 +1970,7 @@ function statusTitle(status: string | null | undefined, locale: string) {
     RESOLVED: isVi ? "Đã hoàn thành xử lý" : "Processing completed",
     REJECTED: isVi ? "Phản ánh bị từ chối" : "Report rejected",
   };
-  return status ? labels[status] || status : (isVi ? "Đã cập nhật phản ánh" : "Report updated");
+  return status ? labels[status] || status : isVi ? "Đã cập nhật phản ánh" : "Report updated";
 }
 
 function formatDateTime(value?: string | null, locale = "vi") {
@@ -1790,4 +1994,3 @@ function isVideoAttachment(attachment: any) {
   const url = attachment.fileUrl?.toLowerCase() || "";
   return type.includes("video") || /\.(mp4|webm|mov|avi|m4v)(\?|$)/.test(url);
 }
-

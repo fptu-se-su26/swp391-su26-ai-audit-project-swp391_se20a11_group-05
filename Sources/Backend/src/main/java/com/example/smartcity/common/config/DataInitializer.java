@@ -265,7 +265,6 @@ public class DataInitializer implements CommandLineRunner {
         executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD COLUMN IF NOT EXISTS category_name VARCHAR(255)");
         executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD COLUMN IF NOT EXISTS managed_by_role VARCHAR(30)");
         executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD COLUMN IF NOT EXISTS ward_name VARCHAR(255)");
-        executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD COLUMN IF NOT EXISTS district_name VARCHAR(255)");
         executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD COLUMN IF NOT EXISTS city_name VARCHAR(255)");
         executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD COLUMN IF NOT EXISTS assigned_unit_id BIGINT");
         executeSchemaSql("ALTER TABLE IF EXISTS feedbacks ADD COLUMN IF NOT EXISTS assigned_unit_name VARCHAR(255)");

@@ -666,6 +666,47 @@ Antigravity thực hiện Audit chuyên sâu thông qua kỹ thuật "Walk the c
 
 ---
 
+# [Phase 18] Di chuyển sang Kiến trúc AI Routing hướng Cơ sở dữ liệu (Database-centric AI Routing & Outbox Pattern)
+
+## Ngày thực hiện
+
+```text
+21/06/2026
+```
+
+## Đã hoàn thành
+
+- [x] **Thiết kế Kiến trúc Outbox Pattern**: Chuyển luồng AI Auto-Dispatch và Routing từ đồng bộ (blocking) sang bất đồng bộ thông qua hàng đợi Outbox `ai_tasks` trong cơ sở dữ liệu để chống mất mát dữ liệu.
+- [x] **Tích hợp di chuyển DB Flyway**: Tạo di chuyển cơ sở dữ liệu `V9__advanced_ai_classification_architecture.sql` bổ sung bảng `ai_tasks`, `ai_analysis_logs`, cấu hình spatial GiST index, HNSW vector index và trigger PostgreSQL tự động đồng bộ hóa kiểu dữ liệu Geometry của PostGIS từ toạ độ Lat/Long.
+- [x] **Tối ưu kiểm tra trùng lặp (PostGIS)**: Thay đổi thuật toán tính bounding box sang PostGIS `ST_DWithin`, đồng thời giải quyết trường hợp `wardId` bị null bằng cách tự động fallback về toạ độ địa lý và vector ngữ nghĩa.
+- [x] **Lập trình Outbox Worker**: Phát triển background worker `pollAndProcessTasks()` sử dụng truy vấn khóa dòng `FOR UPDATE SKIP LOCKED` để xử lý các tác vụ AI song song một cách an toàn và tối ưu kiểm toán.
+- [x] **Trích xuất Usage Token**: Cập nhật `GeminiAdapter.java` tự động bóc tách và trả về số lượng token thực tế sử dụng.
+- [x] **Dọn dẹp Vector hết hạn**: Bổ sung tác vụ định kỳ `@Scheduled` dọn dẹp vector ngữ nghĩa của các phản ánh đã đóng/rejected quá 30 ngày để tối ưu tài nguyên lưu trữ.
+- [x] **Fix Mock Tests & Giải quyết xung đột**: Khắc phục các lỗi biên dịch mock test trong `FeedbackServiceTest.java` và `AutoDispatchServiceTest.java`. Giải quyết xung đột phiên bản Flyway V8 với nhánh `origin/Product` bằng cách đổi tên migration của local thành V9.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi                                                      | Người thực hiện | File/Module liên quan                                                                           |
+| --: | ---------------------------------------------------------------------- | --------------- | ----------------------------------------------------------------------------------------------- |
+|   1 | Khởi tạo bảng di chuyển dữ liệu Flyway                                 | Phạm Bá Trí     | `V9__advanced_ai_classification_architecture.sql`                                               |
+|   2 | Định nghĩa các Entity JPA và Repository kiểm toán & hàng đợi           | Phạm Bá Trí     | `AiTask.java`, `AiTaskRepository.java`, `AiAnalysisLog.java`, `AiAnalysisLogRepository.java`    |
+|   3 | Đưa trigger cập nhật toạ độ và truy vấn trùng lặp PostGIS vào Service  | Phạm Bá Trí     | `FeedbackService.java`                                                                          |
+|   4 | Xây dựng Outbox Worker và đo lường token/latency                       | Phạm Bá Trí     | `AutoDispatchService.java`, `GeminiAdapter.java`                                                |
+|   5 | Cập nhật mock test suite để sửa lỗi compile do đổi constructor         | Phạm Bá Trí     | `FeedbackServiceTest.java`, `AutoDispatchServiceTest.java`                                      |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Mô tả AI đã hỗ trợ phần nào:
+
+```text
+Antigravity đóng vai trò Enterprise Solution Architect hỗ trợ thiết kế Outbox Pattern và viết mã SQL tích hợp trigger PostGIS/HNSW Index. AI cũng hỗ trợ sinh code Java tối ưu cho database-centric locking và đồng thời sửa đổi các lớp kiểm thử mock test bị lỗi biên dịch để toàn bộ dự án test và chạy thành công 100%.
+```
+
+---
+
 # 5. Cam kết cập nhật Changelog
 
 Sinh viên/nhóm cam kết rằng nội dung changelog phản ánh đúng các thay đổi đã
@@ -673,4 +714,4 @@ thực hiện trong quá trình làm bài tập/project.
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 | ----------------------- | ------------- |
-| Phạm Bá Trí             | 2026-05-21    |
+| Phạm Bá Trí             | 2026-06-21    |

@@ -27,6 +27,30 @@ const SUGGESTED_QUESTIONS = [
   "Hướng dẫn nộp phạt vi phạm giao thông",
 ];
 
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
+type SpeechRecognitionLike = {
+  lang: string;
+  onstart: (() => void) | null;
+  onend: (() => void) | null;
+  onresult: ((event: SpeechRecognitionResultEventLike) => void) | null;
+  start: () => void;
+};
+
+type SpeechRecognitionResultEventLike = {
+  results: ArrayLike<{
+    [index: number]: {
+      transcript: string;
+    };
+  }>;
+};
+
+type SpeechRecognitionWindow = Window &
+  typeof globalThis & {
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
+  };
+
 export function ChatbotWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -73,8 +97,9 @@ export function ChatbotWidget() {
   };
 
   const handleSpeechToText = () => {
+    const speechWindow = window as SpeechRecognitionWindow;
     const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       alert("Trình duyệt của bạn không hỗ trợ nhận diện giọng nói.");
       return;
@@ -85,7 +110,7 @@ export function ChatbotWidget() {
 
     recognition.onstart = () => setIsListening(true);
     recognition.onend = () => setIsListening(false);
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
       setInputText((prev) => prev + (prev ? " " : "") + transcript);
     };

@@ -94,7 +94,7 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         return feedbackRepository.findAll(pageable);
     }
 
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public Feedback createFeedback(FeedbackRequest request, String username) {
         Category category = resolveOfficialCategory(request.getCategoryCode());
 

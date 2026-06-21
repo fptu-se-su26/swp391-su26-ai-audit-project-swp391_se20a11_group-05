@@ -72,3 +72,9 @@ ALTER TABLE feedbacks ALTER COLUMN ward_id DROP NOT NULL;
 -- 9. Attachment purpose is read by admin/citizen feedback DTO mapping
 ALTER TABLE attachments ADD COLUMN IF NOT EXISTS attachment_purpose VARCHAR(50) NOT NULL DEFAULT 'SUBMISSION_EVIDENCE';
 CREATE INDEX IF NOT EXISTS idx_attachments_feedback_purpose ON attachments(feedback_id, attachment_purpose);
+
+-- 10. Campaign chat messages table - pinned column
+ALTER TABLE campaign_chat_messages ADD COLUMN IF NOT EXISTS pinned BOOLEAN;
+UPDATE campaign_chat_messages SET pinned = FALSE WHERE pinned IS NULL;
+ALTER TABLE campaign_chat_messages ALTER COLUMN pinned SET DEFAULT FALSE;
+ALTER TABLE campaign_chat_messages ALTER COLUMN pinned SET NOT NULL;

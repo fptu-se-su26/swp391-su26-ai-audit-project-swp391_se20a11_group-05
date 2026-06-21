@@ -36,14 +36,18 @@ export function AiTracePanel({ intent, latency }: AiTracePanelProps) {
             </div>
             <div className="flex gap-2">
               <span className="font-medium text-slate-500 min-w-[70px]">Confidence:</span>
-              <span className={`font-semibold ${intent.confidence >= 0.8 ? "text-green-600" : "text-amber-600"}`}>
+              <span
+                className={`font-semibold ${intent.confidence >= 0.8 ? "text-green-600" : "text-amber-600"}`}
+              >
                 {Math.round(intent.confidence * 100)}%
               </span>
             </div>
             {intent.needsMoreInfo.length > 0 && (
               <div className="flex gap-2">
                 <span className="font-medium text-slate-500 min-w-[70px]">Missing:</span>
-                <span className="text-red-500 font-semibold">{intent.needsMoreInfo.join(", ")}</span>
+                <span className="text-red-500 font-semibold">
+                  {intent.needsMoreInfo.join(", ")}
+                </span>
               </div>
             )}
           </>
@@ -58,7 +62,12 @@ export function AiTracePanel({ intent, latency }: AiTracePanelProps) {
             <ul className="list-disc list-inside space-y-1">
               {intent.citations.map((cite, i) => (
                 <li key={i} className="text-slate-600 truncate">
-                  <a href={cite.url} target="_blank" rel="noreferrer" className="hover:underline hover:text-gov-blue">
+                  <a
+                    href={cite.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:underline hover:text-gov-blue"
+                  >
                     {cite.doc} - {cite.article}
                   </a>
                 </li>

@@ -53,10 +53,27 @@ import {
 import logoImg from "@/assets/logo.png";
 import policeEmblemImg from "@/assets/police-emblem.png";
 import { toast } from "sonner";
-import { authApi, type NotificationResponse, type FeedbackResponse, type PoliceFeedbackResponse } from "@/lib/api";
+import {
+  authApi,
+  type NotificationResponse,
+  type FeedbackResponse,
+  type PoliceFeedbackResponse,
+} from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Legend,
+} from "recharts";
 
 const CivicMap = clientOnly(() =>
   import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
@@ -89,10 +106,22 @@ const mapCategoryName = (name: string | null | undefined): string => {
   if (n.includes("giao thông") || n.includes("traffic") || n.includes("giao thong")) {
     return "Giao thông";
   }
-  if (n.includes("môi trường") || n.includes("environment") || n.includes("moi truong") || n.includes("rác")) {
+  if (
+    n.includes("môi trường") ||
+    n.includes("environment") ||
+    n.includes("moi truong") ||
+    n.includes("rác")
+  ) {
     return "Môi trường";
   }
-  if (n.includes("an ninh") || n.includes("security") || n.includes("safety") || n.includes("trật tự") || n.includes("pháp") || n.includes("công an")) {
+  if (
+    n.includes("an ninh") ||
+    n.includes("security") ||
+    n.includes("safety") ||
+    n.includes("trật tự") ||
+    n.includes("pháp") ||
+    n.includes("công an")
+  ) {
     return "An ninh trật tự";
   }
   if (n.includes("xây dựng") || n.includes("construction") || n.includes("xay dung")) {
@@ -202,7 +231,11 @@ export function PoliceDashboard() {
 
   const handleStartProgress = async (id: number) => {
     try {
-      await updateStatusMut.mutateAsync({ id, status: "IN_PROGRESS", note: "Bắt đầu xử lý phản ánh" });
+      await updateStatusMut.mutateAsync({
+        id,
+        status: "IN_PROGRESS",
+        note: "Bắt đầu xử lý phản ánh",
+      });
       toast.success("Đã chuyển phản ánh sang trạng thái Đang xử lý");
       setSelectedFeedback(null);
       setFilterStatus("IN_PROGRESS");
@@ -239,7 +272,11 @@ export function PoliceDashboard() {
   }, []);
 
   // Fetch real data
-  const { data: feedbacksData, isLoading: feedbacksLoading, refetch } = usePoliceAssignedFeedbacks();
+  const {
+    data: feedbacksData,
+    isLoading: feedbacksLoading,
+    refetch,
+  } = usePoliceAssignedFeedbacks();
   const { data: hotspots } = useHotspots();
   const { data: notifications = [], isLoading: notifLoading } = useNotifications();
   const { data: unreadCountData } = useNotificationUnreadCount(!!user);
@@ -257,7 +294,7 @@ export function PoliceDashboard() {
       (f) =>
         f.title?.toLowerCase().includes(lower) ||
         f.description?.toLowerCase().includes(lower) ||
-        f.trackingCode?.toLowerCase().includes(lower)
+        f.trackingCode?.toLowerCase().includes(lower),
     );
   }, [feedbacksData, debouncedSearch]);
 
@@ -266,9 +303,16 @@ export function PoliceDashboard() {
     return [...feedbacks]
       .filter((fb) => {
         if (filterStatus === "ALL") return true;
-        if (filterStatus === "PENDING") return fb.status === "PENDING" || fb.status === "PENDING_RECEIVE" || fb.status === "SUBMITTED" || fb.status === "NEED_LOCATION_REVIEW";
+        if (filterStatus === "PENDING")
+          return (
+            fb.status === "PENDING" ||
+            fb.status === "PENDING_RECEIVE" ||
+            fb.status === "SUBMITTED" ||
+            fb.status === "NEED_LOCATION_REVIEW"
+          );
         if (filterStatus === "ACCEPTED") return fb.status === "ASSIGNED";
-        if (filterStatus === "IN_PROGRESS") return fb.status === "IN_PROGRESS" || fb.status === "WAITING_INFO";
+        if (filterStatus === "IN_PROGRESS")
+          return fb.status === "IN_PROGRESS" || fb.status === "WAITING_INFO";
         if (filterStatus === "RESOLVED") return fb.status === "RESOLVED";
         if (filterStatus === "REJECTED") return fb.status === "REJECTED";
         return true;
@@ -278,24 +322,35 @@ export function PoliceDashboard() {
 
   // Sync stats dynamically from backend reports list
   const totalCount = feedbacks.length;
-  const pendingCount = feedbacks.filter((f) => f.status === "PENDING" || f.status === "PENDING_RECEIVE" || f.status === "SUBMITTED" || f.status === "NEED_LOCATION_REVIEW").length;
+  const pendingCount = feedbacks.filter(
+    (f) =>
+      f.status === "PENDING" ||
+      f.status === "PENDING_RECEIVE" ||
+      f.status === "SUBMITTED" ||
+      f.status === "NEED_LOCATION_REVIEW",
+  ).length;
   const acceptedCount = feedbacks.filter((f) => f.status === "ASSIGNED").length;
   const inProgressCount = feedbacks.filter(
-    (f) => f.status === "IN_PROGRESS" || f.status === "WAITING_INFO"
+    (f) => f.status === "IN_PROGRESS" || f.status === "WAITING_INFO",
   ).length;
   const resolvedCount = feedbacks.filter((f) => f.status === "RESOLVED").length;
   const rejectedCount = feedbacks.filter((f) => f.status === "REJECTED").length;
 
   // Trend computations
-  const getKpiTrend = (statusType: "total" | "pending" | "accepted" | "inProgress" | "resolved" | "rejected") => {
+  const getKpiTrend = (
+    statusType: "total" | "pending" | "accepted" | "inProgress" | "resolved" | "rejected",
+  ) => {
     let filterFn = (f: FeedbackResponse) => true;
     if (statusType === "pending") {
-      filterFn = (f: FeedbackResponse) => f.status === "PENDING" || f.status === "PENDING_RECEIVE" || f.status === "SUBMITTED" || f.status === "NEED_LOCATION_REVIEW";
+      filterFn = (f: FeedbackResponse) =>
+        f.status === "PENDING" ||
+        f.status === "PENDING_RECEIVE" ||
+        f.status === "SUBMITTED" ||
+        f.status === "NEED_LOCATION_REVIEW";
     } else if (statusType === "accepted") {
       filterFn = (f: FeedbackResponse) => f.status === "ASSIGNED";
     } else if (statusType === "inProgress") {
-      filterFn = (f: FeedbackResponse) =>
-        f.status === "IN_PROGRESS" || f.status === "WAITING_INFO";
+      filterFn = (f: FeedbackResponse) => f.status === "IN_PROGRESS" || f.status === "WAITING_INFO";
     } else if (statusType === "resolved") {
       filterFn = (f: FeedbackResponse) => f.status === "RESOLVED";
     } else if (statusType === "rejected") {
@@ -308,13 +363,13 @@ export function PoliceDashboard() {
     const fourteenDaysAgo = now - 14 * MS_PER_DAY;
 
     const currentPeriod = feedbacks.filter(
-      (f) => filterFn(f) && new Date(f.createdAt).getTime() >= sevenDaysAgo
+      (f) => filterFn(f) && new Date(f.createdAt).getTime() >= sevenDaysAgo,
     );
     const previousPeriod = feedbacks.filter(
       (f) =>
         filterFn(f) &&
         new Date(f.createdAt).getTime() >= fourteenDaysAgo &&
-        new Date(f.createdAt).getTime() < sevenDaysAgo
+        new Date(f.createdAt).getTime() < sevenDaysAgo,
     );
 
     const currentC = currentPeriod.length;
@@ -348,7 +403,9 @@ export function PoliceDashboard() {
     }
 
     return {
-      text: `${Math.abs(Number((diff / previousC) * 100)).toFixed(1).replace(".", ",")}%`,
+      text: `${Math.abs(Number((diff / previousC) * 100))
+        .toFixed(1)
+        .replace(".", ",")}%`,
       isUp: diff >= 0,
       color,
     };
@@ -364,8 +421,20 @@ export function PoliceDashboard() {
   const categoryStats = useMemo(() => {
     const categoriesList = [
       { name: "Giao thông", key: "TRAFFIC", icon: Car, color: "#0b5ed7", bgClass: "bg-[#0b5ed7]" },
-      { name: "An ninh trật tự", key: "PUBLIC_SECURITY", icon: Shield, color: "#6f42c1", bgClass: "bg-[#6f42c1]" },
-      { name: "Phòng cháy chữa cháy", key: "FIRE_SAFETY", icon: Flame, color: "#dc3545", bgClass: "bg-[#dc3545]" },
+      {
+        name: "An ninh trật tự",
+        key: "PUBLIC_SECURITY",
+        icon: Shield,
+        color: "#6f42c1",
+        bgClass: "bg-[#6f42c1]",
+      },
+      {
+        name: "Phòng cháy chữa cháy",
+        key: "FIRE_SAFETY",
+        icon: Flame,
+        color: "#dc3545",
+        bgClass: "bg-[#dc3545]",
+      },
     ];
 
     const counts: Record<string, number> = {
@@ -382,7 +451,12 @@ export function PoliceDashboard() {
       const n = name.toLowerCase();
       if (n.includes("giao thông") || n.includes("traffic") || n.includes("giao thong")) {
         counts["TRAFFIC"]++;
-      } else if (n.includes("môi trường") || n.includes("environment") || n.includes("moi truong") || n.includes("rác")) {
+      } else if (
+        n.includes("môi trường") ||
+        n.includes("environment") ||
+        n.includes("moi truong") ||
+        n.includes("rác")
+      ) {
         counts["ENVIRONMENT"]++;
       } else if (
         n.includes("an ninh") ||
@@ -438,7 +512,11 @@ export function PoliceDashboard() {
       .filter((f) => f.latitude !== null && f.longitude !== null)
       .map((f) => {
         let markerStatus: "pending" | "inProgress" | "resolved" | "urgent" = "pending";
-        const isPending = f.status === "PENDING" || f.status === "PENDING_RECEIVE" || f.status === "SUBMITTED" || f.status === "NEED_LOCATION_REVIEW";
+        const isPending =
+          f.status === "PENDING" ||
+          f.status === "PENDING_RECEIVE" ||
+          f.status === "SUBMITTED" ||
+          f.status === "NEED_LOCATION_REVIEW";
         const isNotResolved = f.status !== "RESOLVED" && f.status !== "REJECTED";
         const diffTime = Math.abs(new Date().getTime() - new Date(f.createdAt).getTime());
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -478,7 +556,7 @@ export function PoliceDashboard() {
       d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
       d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
       const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-      return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+      return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
     };
 
     const dataMap: Record<string, { name: string; received: number; resolved: number }> = {};
@@ -487,7 +565,7 @@ export function PoliceDashboard() {
       const date = new Date(fb.createdAt);
       let key = "";
       let name = "";
-      
+
       if (trackingViewMode === "week") {
         const weekNum = getWeekNumber(date);
         const year = date.getFullYear();
@@ -504,12 +582,12 @@ export function PoliceDashboard() {
         dataMap[key] = { name, received: 0, resolved: 0 };
       }
       dataMap[key].received += 1;
-      
+
       if (fb.status === "RESOLVED") {
         const resolvedDate = new Date(fb.updatedAt);
         let rKey = "";
         let rName = "";
-        
+
         if (trackingViewMode === "week") {
           const w = getWeekNumber(resolvedDate);
           rKey = `${resolvedDate.getFullYear()}-W${w.toString().padStart(2, "0")}`;
@@ -519,7 +597,7 @@ export function PoliceDashboard() {
           rKey = `${resolvedDate.getFullYear()}-${m.toString().padStart(2, "0")}`;
           rName = `Tháng ${m}/${resolvedDate.getFullYear()}`;
         }
-        
+
         if (!dataMap[rKey]) {
           dataMap[rKey] = { name: rName, received: 0, resolved: 0 };
         }
@@ -527,7 +605,10 @@ export function PoliceDashboard() {
       }
     });
 
-    return Object.keys(dataMap).sort().map(k => dataMap[k]).slice(-12); // Show last 12 periods max
+    return Object.keys(dataMap)
+      .sort()
+      .map((k) => dataMap[k])
+      .slice(-12); // Show last 12 periods max
   }, [feedbacks, trackingViewMode]);
 
   // Handlers for notifications
@@ -550,14 +631,14 @@ export function PoliceDashboard() {
       if (feedbackId) {
         navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
       }
-    } catch { }
+    } catch {}
   };
 
   const handleLogout = async () => {
     const loginPath = getLoginPathForRole(user?.role);
     try {
-      await authApi.logout().catch(() => { });
-    } catch { }
+      await authApi.logout().catch(() => {});
+    } catch {}
     logout();
     queryClient.clear();
     navigate({ to: loginPath });
@@ -575,11 +656,14 @@ export function PoliceDashboard() {
     <div className="min-h-screen bg-[#F4F7FA] text-[#1E293B] font-sans antialiased flex">
       {/* ─── 1. FIXED LEFT SIDEBAR ─── */}
       <aside
-        className={`bg-gradient-to-b from-[#0F2042] to-[#0A1630] text-white flex flex-col z-40 transition-all duration-300 fixed inset-y-0 left-0 ${sidebarCollapsed ? "w-[76px]" : "w-[240px]"
-          } ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
+        className={`bg-gradient-to-b from-[#0F2042] to-[#0A1630] text-white flex flex-col z-40 transition-all duration-300 fixed inset-y-0 left-0 ${
+          sidebarCollapsed ? "w-[76px]" : "w-[240px]"
+        } ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
       >
         <div className="p-5 flex flex-col items-center border-b border-white/10 shrink-0">
-          <div className={`flex items-center justify-center transition-all duration-300 ${sidebarCollapsed ? "w-12 h-12" : "w-20 h-20"}`}>
+          <div
+            className={`flex items-center justify-center transition-all duration-300 ${sidebarCollapsed ? "w-12 h-12" : "w-20 h-20"}`}
+          >
             <img
               src={policeEmblemImg}
               alt="Police Emblem"
@@ -604,10 +688,11 @@ export function PoliceDashboard() {
               <button
                 key={idx}
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all cursor-pointer ${isActive
+                className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all cursor-pointer ${
+                  isActive
                     ? "bg-[#0F5BD8] text-white shadow-lg"
                     : "text-slate-300 hover:bg-white/5 hover:text-white"
-                  }`}
+                }`}
               >
                 <Icon size={18} className="shrink-0" />
                 {!sidebarCollapsed && <span>{item.name}</span>}
@@ -641,8 +726,9 @@ export function PoliceDashboard() {
 
       {/* ─── MAIN WRAPPER ─── */}
       <div
-        className={`flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-300 ${sidebarCollapsed ? "md:pl-[76px]" : "md:pl-[240px]"
-          }`}
+        className={`flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-300 ${
+          sidebarCollapsed ? "md:pl-[76px]" : "md:pl-[240px]"
+        }`}
       >
         {/* ─── 2. TOP WHITE HEADER ─── */}
         <header className="h-[76px] bg-white border-b border-[#E4EAF2] flex items-center justify-between px-6 sticky top-0 z-35 shadow-sm shrink-0">
@@ -717,14 +803,17 @@ export function PoliceDashboard() {
                         ))}
                       </div>
                     ) : notifications.length === 0 ? (
-                      <div className="py-8 text-center text-xs text-slate-400">Không có thông báo mới</div>
+                      <div className="py-8 text-center text-xs text-slate-400">
+                        Không có thông báo mới
+                      </div>
                     ) : (
                       notifications.slice(0, 5).map((item) => (
                         <button
                           key={item.id}
                           onClick={() => handleNotifClick(item)}
-                          className={`w-full text-left p-3.5 flex gap-3 transition-colors hover:bg-slate-50 ${item.isRead ? "opacity-70" : "bg-[#EFF6FF]"
-                            }`}
+                          className={`w-full text-left p-3.5 flex gap-3 transition-colors hover:bg-slate-50 ${
+                            item.isRead ? "opacity-70" : "bg-[#EFF6FF]"
+                          }`}
                         >
                           <div className="w-8 h-8 rounded-full bg-[#0F5BD8]/10 text-[#0F5BD8] flex items-center justify-center shrink-0">
                             <Bell size={14} />
@@ -879,9 +968,13 @@ export function PoliceDashboard() {
                       </div>
                     </div>
                     <div className="mt-4 pt-3 border-t border-slate-50 flex items-center">
-                      <span className={`text-[11px] font-bold flex items-center gap-0.5 ${card.trend.color}`}>
+                      <span
+                        className={`text-[11px] font-bold flex items-center gap-0.5 ${card.trend.color}`}
+                      >
                         {card.trend.isUp ? "↑" : "↓"} {card.trend.text}
-                        <span className="text-slate-400 font-semibold ml-1">so với 7 ngày trước</span>
+                        <span className="text-slate-400 font-semibold ml-1">
+                          so với 7 ngày trước
+                        </span>
                       </span>
                     </div>
                   </div>
@@ -892,8 +985,6 @@ export function PoliceDashboard() {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
                 {/* Left Column (65%) */}
                 <div className="lg:col-span-8 flex flex-col gap-6">
-
-
                   {/* Heatmap Card */}
                   <div className="bg-white rounded-2xl border border-[#E4EAF2] shadow-sm overflow-hidden flex flex-col min-h-[480px]">
                     <div className="p-4 border-b border-slate-100 flex items-center justify-between">
@@ -959,17 +1050,32 @@ export function PoliceDashboard() {
                             {feedbacksLoading ? (
                               [1, 2, 3].map((i) => (
                                 <tr key={i} className="animate-pulse">
-                                  <td className="px-5 py-4"><Skeleton className="h-4 w-12" /></td>
-                                  <td className="px-5 py-4"><Skeleton className="h-4 w-40" /></td>
-                                  <td className="px-5 py-4"><Skeleton className="h-4 w-32" /></td>
-                                  <td className="px-5 py-4"><Skeleton className="h-4 w-24" /></td>
-                                  <td className="px-5 py-4"><Skeleton className="h-4 w-20" /></td>
-                                  <td className="px-5 py-4"><Skeleton className="h-6 w-16" /></td>
+                                  <td className="px-5 py-4">
+                                    <Skeleton className="h-4 w-12" />
+                                  </td>
+                                  <td className="px-5 py-4">
+                                    <Skeleton className="h-4 w-40" />
+                                  </td>
+                                  <td className="px-5 py-4">
+                                    <Skeleton className="h-4 w-32" />
+                                  </td>
+                                  <td className="px-5 py-4">
+                                    <Skeleton className="h-4 w-24" />
+                                  </td>
+                                  <td className="px-5 py-4">
+                                    <Skeleton className="h-4 w-20" />
+                                  </td>
+                                  <td className="px-5 py-4">
+                                    <Skeleton className="h-6 w-16" />
+                                  </td>
                                 </tr>
                               ))
                             ) : priorityReports.length === 0 ? (
                               <tr>
-                                <td colSpan={6} className="px-5 py-8 text-center text-xs text-slate-400">
+                                <td
+                                  colSpan={6}
+                                  className="px-5 py-8 text-center text-xs text-slate-400"
+                                >
                                   Chưa có phản ánh ưu tiên cao.
                                 </td>
                               </tr>
@@ -1110,14 +1216,24 @@ export function PoliceDashboard() {
                                   </Pie>
                                   <RechartsTooltip
                                     formatter={(value: number, name: string) => [value, name]}
-                                    contentStyle={{ borderRadius: '12px', border: '1px solid #E4EAF2', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', fontSize: '12px', fontWeight: 'bold' }}
-                                    itemStyle={{ color: '#0B2545' }}
+                                    contentStyle={{
+                                      borderRadius: "12px",
+                                      border: "1px solid #E4EAF2",
+                                      boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+                                      fontSize: "12px",
+                                      fontWeight: "bold",
+                                    }}
+                                    itemStyle={{ color: "#0B2545" }}
                                   />
                                 </PieChart>
                               </ResponsiveContainer>
                               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                <span className="text-4xl font-black text-[#0B2545] leading-none">{feedbacks.length}</span>
-                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Tổng cộng</span>
+                                <span className="text-4xl font-black text-[#0B2545] leading-none">
+                                  {feedbacks.length}
+                                </span>
+                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                                  Tổng cộng
+                                </span>
                               </div>
                             </div>
 
@@ -1125,17 +1241,31 @@ export function PoliceDashboard() {
                               {categoryStats.map((cat, idx) => {
                                 const Icon = cat.icon;
                                 return (
-                                  <div key={idx} className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-100 hover:border-slate-300 hover:shadow-sm transition-all group">
+                                  <div
+                                    key={idx}
+                                    className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-100 hover:border-slate-300 hover:shadow-sm transition-all group"
+                                  >
                                     <div className="flex items-center gap-3 overflow-hidden">
-                                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-white ${cat.bgClass} shadow-sm group-hover:scale-110 transition-transform`}>
+                                      <div
+                                        className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-white ${cat.bgClass} shadow-sm group-hover:scale-110 transition-transform`}
+                                      >
                                         <Icon size={16} />
                                       </div>
                                       <div className="flex flex-col min-w-0">
-                                        <span className="text-xs font-extrabold text-slate-700 truncate" title={cat.name}>{cat.name}</span>
-                                        <span className="text-[10px] font-semibold text-slate-400">{cat.percentage}%</span>
+                                        <span
+                                          className="text-xs font-extrabold text-slate-700 truncate"
+                                          title={cat.name}
+                                        >
+                                          {cat.name}
+                                        </span>
+                                        <span className="text-[10px] font-semibold text-slate-400">
+                                          {cat.percentage}%
+                                        </span>
                                       </div>
                                     </div>
-                                    <span className="text-sm font-black text-[#0B2545] shrink-0 pl-2">{cat.count}</span>
+                                    <span className="text-sm font-black text-[#0B2545] shrink-0 pl-2">
+                                      {cat.count}
+                                    </span>
                                   </div>
                                 );
                               })}
@@ -1252,28 +1382,52 @@ export function PoliceDashboard() {
                       margin={{ top: 20, right: 30, left: 0, bottom: 20 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E4EAF2" />
-                      <XAxis 
-                        dataKey="name" 
+                      <XAxis
+                        dataKey="name"
                         tick={{ fill: "#64748B", fontSize: 12, fontWeight: 600 }}
                         axisLine={false}
                         tickLine={false}
                         dy={10}
                       />
-                      <YAxis 
+                      <YAxis
                         tick={{ fill: "#64748B", fontSize: 12, fontWeight: 600 }}
                         axisLine={false}
                         tickLine={false}
                         dx={-10}
                       />
-                      <RechartsTooltip 
-                        contentStyle={{ borderRadius: '12px', border: '1px solid #E4EAF2', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', fontSize: '12px', fontWeight: 'bold', color: '#0B2545' }}
-                        cursor={{ fill: '#F8FAFC' }}
+                      <RechartsTooltip
+                        contentStyle={{
+                          borderRadius: "12px",
+                          border: "1px solid #E4EAF2",
+                          boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+                          fontSize: "12px",
+                          fontWeight: "bold",
+                          color: "#0B2545",
+                        }}
+                        cursor={{ fill: "#F8FAFC" }}
                       />
-                      <Legend 
-                        wrapperStyle={{ paddingTop: '20px', fontSize: '13px', fontWeight: 'bold', color: '#0B2545' }}
+                      <Legend
+                        wrapperStyle={{
+                          paddingTop: "20px",
+                          fontSize: "13px",
+                          fontWeight: "bold",
+                          color: "#0B2545",
+                        }}
                       />
-                      <Bar name="Tổng tiếp nhận" dataKey="received" fill="#3b82f6" radius={[6, 6, 0, 0]} maxBarSize={50} />
-                      <Bar name="Đã xử lý xong" dataKey="resolved" fill="#198754" radius={[6, 6, 0, 0]} maxBarSize={50} />
+                      <Bar
+                        name="Tổng tiếp nhận"
+                        dataKey="received"
+                        fill="#3b82f6"
+                        radius={[6, 6, 0, 0]}
+                        maxBarSize={50}
+                      />
+                      <Bar
+                        name="Đã xử lý xong"
+                        dataKey="resolved"
+                        fill="#198754"
+                        radius={[6, 6, 0, 0]}
+                        maxBarSize={50}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 )}
@@ -1305,29 +1459,55 @@ export function PoliceDashboard() {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-[#E4EAF2] bg-slate-50/50">
-                      <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Mã phản ánh</th>
-                      <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Nội dung</th>
-                      <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Địa điểm</th>
-                      <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Thời gian</th>
-                      <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Hạn xử lý</th>
-                      <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Trạng thái</th>
+                      <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                        Mã phản ánh
+                      </th>
+                      <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                        Nội dung
+                      </th>
+                      <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                        Địa điểm
+                      </th>
+                      <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                        Thời gian
+                      </th>
+                      <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                        Hạn xử lý
+                      </th>
+                      <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                        Trạng thái
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#E4EAF2]">
                     {feedbacksLoading ? (
                       [1, 2, 3, 4, 5].map((i) => (
                         <tr key={i} className="animate-pulse">
-                          <td className="px-5 py-4"><Skeleton className="h-4 w-12" /></td>
-                          <td className="px-5 py-4"><Skeleton className="h-4 w-40" /></td>
-                          <td className="px-5 py-4"><Skeleton className="h-4 w-32" /></td>
-                          <td className="px-5 py-4"><Skeleton className="h-4 w-24" /></td>
-                          <td className="px-5 py-4"><Skeleton className="h-4 w-20" /></td>
-                          <td className="px-5 py-4"><Skeleton className="h-6 w-16" /></td>
+                          <td className="px-5 py-4">
+                            <Skeleton className="h-4 w-12" />
+                          </td>
+                          <td className="px-5 py-4">
+                            <Skeleton className="h-4 w-40" />
+                          </td>
+                          <td className="px-5 py-4">
+                            <Skeleton className="h-4 w-32" />
+                          </td>
+                          <td className="px-5 py-4">
+                            <Skeleton className="h-4 w-24" />
+                          </td>
+                          <td className="px-5 py-4">
+                            <Skeleton className="h-4 w-20" />
+                          </td>
+                          <td className="px-5 py-4">
+                            <Skeleton className="h-6 w-16" />
+                          </td>
                         </tr>
                       ))
                     ) : filteredAndSortedFeedbacks.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-5 py-8 text-center text-xs text-slate-400">Không có phản ánh nào.</td>
+                        <td colSpan={6} className="px-5 py-8 text-center text-xs text-slate-400">
+                          Không có phản ánh nào.
+                        </td>
                       </tr>
                     ) : (
                       filteredAndSortedFeedbacks.map((row) => (
@@ -1340,30 +1520,70 @@ export function PoliceDashboard() {
                           }}
                           className="hover:bg-slate-50 transition-colors cursor-pointer"
                         >
-                          <td className="px-5 py-4 text-xs font-bold text-[#0F5BD8]">{row.trackingCode || `PA-${row.id}`}</td>
-                          <td className="px-5 py-4 text-xs text-slate-700 font-semibold max-w-[200px] truncate">{row.title}</td>
-                          <td className="px-5 py-4 text-xs text-slate-500 truncate max-w-[150px]">{row.addressDetails || row.address || "Chưa xác định"}</td>
-                          <td className="px-5 py-4 text-xs text-slate-500">{formatDate(row.createdAt)}</td>
-                          <td className="px-5 py-4 text-xs text-slate-500 font-bold">{getDeadlineDate(row.createdAt)}</td>
+                          <td className="px-5 py-4 text-xs font-bold text-[#0F5BD8]">
+                            {row.trackingCode || `PA-${row.id}`}
+                          </td>
+                          <td className="px-5 py-4 text-xs text-slate-700 font-semibold max-w-[200px] truncate">
+                            {row.title}
+                          </td>
+                          <td className="px-5 py-4 text-xs text-slate-500 truncate max-w-[150px]">
+                            {row.addressDetails || row.address || "Chưa xác định"}
+                          </td>
+                          <td className="px-5 py-4 text-xs text-slate-500">
+                            {formatDate(row.createdAt)}
+                          </td>
+                          <td className="px-5 py-4 text-xs text-slate-500 font-bold">
+                            {getDeadlineDate(row.createdAt)}
+                          </td>
                           <td className="px-5 py-4">
                             {(() => {
-                              const isNotResolved = row.status !== "RESOLVED" && row.status !== "REJECTED";
-                              const diffTime = Math.abs(new Date().getTime() - new Date(row.createdAt).getTime());
+                              const isNotResolved =
+                                row.status !== "RESOLVED" && row.status !== "REJECTED";
+                              const diffTime = Math.abs(
+                                new Date().getTime() - new Date(row.createdAt).getTime(),
+                              );
                               const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                               if (isNotResolved && diffDays > 3) {
-                                return <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-red-50 text-red-600 border border-red-100 uppercase">Quá hạn</span>;
+                                return (
+                                  <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-red-50 text-red-600 border border-red-100 uppercase">
+                                    Quá hạn
+                                  </span>
+                                );
                               }
                               switch (row.status) {
                                 case "PENDING":
                                 case "PENDING_RECEIVE":
                                 case "SUBMITTED":
                                 case "NEED_LOCATION_REVIEW":
-                                  return <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-orange-50 text-orange-600 border border-orange-100 uppercase">Chưa xử lý</span>;
+                                  return (
+                                    <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-orange-50 text-orange-600 border border-orange-100 uppercase">
+                                      Chưa xử lý
+                                    </span>
+                                  );
                                 case "ASSIGNED":
-                                  return <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-purple-50 text-purple-600 border border-purple-100 uppercase">Đã tiếp nhận</span>;
-                                case "RESOLVED": return <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-green-50 text-green-600 border border-green-100 uppercase">Đã xử lý</span>;
-                                case "REJECTED": return <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-red-50 text-red-600 border border-red-100 uppercase">Từ chối</span>;
-                                default: return <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-blue-50 text-blue-600 border border-blue-100 uppercase">Đang xử lý</span>;
+                                  return (
+                                    <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-purple-50 text-purple-600 border border-purple-100 uppercase">
+                                      Đã tiếp nhận
+                                    </span>
+                                  );
+                                case "RESOLVED":
+                                  return (
+                                    <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-green-50 text-green-600 border border-green-100 uppercase">
+                                      Đã xử lý
+                                    </span>
+                                  );
+                                case "REJECTED":
+                                  return (
+                                    <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-red-50 text-red-600 border border-red-100 uppercase">
+                                      Từ chối
+                                    </span>
+                                  );
+                                default:
+                                  return (
+                                    <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-blue-50 text-blue-600 border border-blue-100 uppercase">
+                                      Đang xử lý
+                                    </span>
+                                  );
                               }
                             })()}
                           </td>
@@ -1379,11 +1599,15 @@ export function PoliceDashboard() {
           {["tracking", "reports", "settings"].includes(activeTab) && (
             <div className="bg-white rounded-2xl border border-[#E4EAF2] shadow-sm p-6 flex flex-col items-center justify-center min-h-[400px]">
               <Settings size={48} className="text-slate-300 mb-4" />
-              <h3 className="font-extrabold text-lg text-[#0B2545] mb-2">Tính năng đang phát triển</h3>
-              <p className="text-slate-500 text-sm">Chức năng {menuItems.find(i => i.id === activeTab)?.name} hiện đang được cập nhật. Vui lòng quay lại sau.</p>
+              <h3 className="font-extrabold text-lg text-[#0B2545] mb-2">
+                Tính năng đang phát triển
+              </h3>
+              <p className="text-slate-500 text-sm">
+                Chức năng {menuItems.find((i) => i.id === activeTab)?.name} hiện đang được cập nhật.
+                Vui lòng quay lại sau.
+              </p>
             </div>
           )}
-
         </main>
       </div>
 
@@ -1408,15 +1632,23 @@ export function PoliceDashboard() {
 
               <div className="space-y-5">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">Tiêu đề</h3>
+                  <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">
+                    Tiêu đề
+                  </h3>
                   <p className="text-[#0B2545] font-semibold">{selectedFeedback.title}</p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">Nội dung</h3>
-                  <p className="text-slate-700 text-sm leading-relaxed">{selectedFeedback.description}</p>
+                  <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">
+                    Nội dung
+                  </h3>
+                  <p className="text-slate-700 text-sm leading-relaxed">
+                    {selectedFeedback.description}
+                  </p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">Địa điểm</h3>
+                  <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">
+                    Địa điểm
+                  </h3>
                   <p className="text-[#0B2545] text-sm flex items-center gap-2">
                     <AlertTriangle size={14} className="text-orange-500" />
                     {selectedFeedback.addressDetails || selectedFeedback.address || "Chưa xác định"}
@@ -1425,10 +1657,15 @@ export function PoliceDashboard() {
 
                 {selectedFeedback.mediaUrls && selectedFeedback.mediaUrls.length > 0 && (
                   <div>
-                    <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Hình ảnh đính kèm</h3>
+                    <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">
+                      Hình ảnh đính kèm
+                    </h3>
                     <div className="grid grid-cols-3 gap-2">
                       {selectedFeedback.mediaUrls.map((url, i) => (
-                        <div key={i} className="aspect-square rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
+                        <div
+                          key={i}
+                          className="aspect-square rounded-lg overflow-hidden border border-slate-200 bg-slate-50"
+                        >
                           <img src={url} alt="Đính kèm" className="w-full h-full object-cover" />
                         </div>
                       ))}
@@ -1439,7 +1676,9 @@ export function PoliceDashboard() {
 
               {/* ACTION AREA */}
               <div className="mt-8 pt-6 border-t border-slate-100">
-                {["PENDING", "PENDING_RECEIVE", "SUBMITTED", "NEED_LOCATION_REVIEW"].includes(selectedFeedback.status) ? (
+                {["PENDING", "PENDING_RECEIVE", "SUBMITTED", "NEED_LOCATION_REVIEW"].includes(
+                  selectedFeedback.status,
+                ) ? (
                   showRejectInput ? (
                     <div className="space-y-3 animate-in slide-in-from-top-2">
                       <label className="text-sm font-bold text-slate-700">Lý do từ chối:</label>
@@ -1461,7 +1700,9 @@ export function PoliceDashboard() {
                           disabled={rejectFeedbackMut.isPending}
                           className="px-6 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-2"
                         >
-                          {rejectFeedbackMut.isPending && <RefreshCw size={14} className="animate-spin" />}
+                          {rejectFeedbackMut.isPending && (
+                            <RefreshCw size={14} className="animate-spin" />
+                          )}
                           Xác nhận từ chối
                         </button>
                       </div>
@@ -1473,7 +1714,11 @@ export function PoliceDashboard() {
                         disabled={acceptFeedbackMut.isPending}
                         className="flex-1 bg-[#0F5BD8] hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-blue-500/30 transition-all flex justify-center items-center gap-2"
                       >
-                        {acceptFeedbackMut.isPending ? <RefreshCw size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
+                        {acceptFeedbackMut.isPending ? (
+                          <RefreshCw size={18} className="animate-spin" />
+                        ) : (
+                          <CheckCircle2 size={18} />
+                        )}
                         Tiếp nhận xử lý ngay
                       </button>
                       <button
@@ -1488,7 +1733,9 @@ export function PoliceDashboard() {
                 ) : selectedFeedback.status === "ASSIGNED" ? (
                   showRequestInfoInput ? (
                     <div className="space-y-3 animate-in slide-in-from-top-2">
-                      <label className="text-sm font-bold text-slate-700">Nội dung yêu cầu bổ sung:</label>
+                      <label className="text-sm font-bold text-slate-700">
+                        Nội dung yêu cầu bổ sung:
+                      </label>
                       <textarea
                         className="w-full border-2 border-slate-200 rounded-xl p-3 text-sm focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all outline-none"
                         rows={3}
@@ -1508,7 +1755,11 @@ export function PoliceDashboard() {
                           disabled={requestInfoMut.isPending || !requestInfoReason.trim()}
                           className="px-6 py-2 text-sm font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors flex items-center gap-2"
                         >
-                          {requestInfoMut.isPending ? <RefreshCw size={16} className="animate-spin" /> : <Send size={16} />}
+                          {requestInfoMut.isPending ? (
+                            <RefreshCw size={16} className="animate-spin" />
+                          ) : (
+                            <Send size={16} />
+                          )}
                           Gửi yêu cầu
                         </button>
                       </div>
@@ -1520,7 +1771,11 @@ export function PoliceDashboard() {
                         disabled={updateStatusMut.isPending}
                         className="flex-1 bg-[#198754] hover:bg-green-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-green-500/30 transition-all flex justify-center items-center gap-2"
                       >
-                        {updateStatusMut.isPending ? <RefreshCw size={18} className="animate-spin" /> : <PlayCircle size={18} />}
+                        {updateStatusMut.isPending ? (
+                          <RefreshCw size={18} className="animate-spin" />
+                        ) : (
+                          <PlayCircle size={18} />
+                        )}
                         Đang xử lý
                       </button>
                       <button
@@ -1558,7 +1813,11 @@ export function PoliceDashboard() {
                           disabled={submitResultMut.isPending}
                           className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-bold transition-colors flex items-center gap-2"
                         >
-                          {submitResultMut.isPending ? <RefreshCw size={16} className="animate-spin" /> : <CheckCircle size={16} />}
+                          {submitResultMut.isPending ? (
+                            <RefreshCw size={16} className="animate-spin" />
+                          ) : (
+                            <CheckCircle size={16} />
+                          )}
                           Hoàn tất xử lý
                         </button>
                       </div>
@@ -1589,7 +1848,11 @@ export function PoliceDashboard() {
                         <button
                           onClick={async () => {
                             try {
-                              await updateStatusMut.mutateAsync({ id: selectedFeedback.id, status: "ASSIGNED", note: "Hủy từ chối, tiếp tục xử lý" });
+                              await updateStatusMut.mutateAsync({
+                                id: selectedFeedback.id,
+                                status: "ASSIGNED",
+                                note: "Hủy từ chối, tiếp tục xử lý",
+                              });
                               toast.success("Đã hủy từ chối thành công");
                               setSelectedFeedback(null);
                               setFilterStatus("ACCEPTED");
@@ -1602,7 +1865,11 @@ export function PoliceDashboard() {
                           disabled={updateStatusMut.isPending}
                           className="mt-2 bg-white hover:bg-red-100 text-red-600 border border-red-200 px-4 py-2 rounded-lg font-bold transition-colors flex items-center gap-2"
                         >
-                          {updateStatusMut.isPending ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+                          {updateStatusMut.isPending ? (
+                            <RefreshCw size={16} className="animate-spin" />
+                          ) : (
+                            <RefreshCw size={16} />
+                          )}
                           Hủy từ chối (Tiếp tục xử lý)
                         </button>
                       </div>
@@ -1622,12 +1889,16 @@ export function PoliceDashboard() {
                     ) : selectedFeedback.status === "WAITING_INFO" ? (
                       <div className="bg-slate-50 rounded-xl p-4 flex items-center justify-center gap-3 border border-slate-100">
                         <HelpCircle size={20} className="text-orange-500" />
-                        <span className="font-bold text-slate-500">Đang chờ người dân bổ sung thông tin...</span>
+                        <span className="font-bold text-slate-500">
+                          Đang chờ người dân bổ sung thông tin...
+                        </span>
                       </div>
                     ) : (
                       <div className="bg-slate-50 rounded-xl p-4 flex items-center justify-center gap-3 border border-slate-100">
                         <CheckCircle size={20} className="text-green-500" />
-                        <span className="font-bold text-slate-500">Phản ánh này đang được xử lý hoặc đã xử lý xong.</span>
+                        <span className="font-bold text-slate-500">
+                          Phản ánh này đang được xử lý hoặc đã xử lý xong.
+                        </span>
                       </div>
                     )}
                   </div>
@@ -1637,8 +1908,6 @@ export function PoliceDashboard() {
           </div>
         </div>
       )}
-
     </div>
   );
 }
-

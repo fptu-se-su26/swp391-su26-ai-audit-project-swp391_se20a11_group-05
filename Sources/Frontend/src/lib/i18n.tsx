@@ -153,30 +153,69 @@ export const dict: Dict = {
   /* ──────────── Homepage — Category ──────────── */
   "home.category.title": { vi: "Phản ánh theo lĩnh vực", en: "Reports by category" },
   "home.category.traffic": { vi: "Giao thông", en: "Traffic" },
-  "home.category.trafficDesc": { vi: "Kẹt xe, đèn tín hiệu hỏng, vi phạm giao thông...", en: "Traffic jams, broken signals, traffic violations..." },
+  "home.category.trafficDesc": {
+    vi: "Kẹt xe, đèn tín hiệu hỏng, vi phạm giao thông...",
+    en: "Traffic jams, broken signals, traffic violations...",
+  },
   "home.category.env": { vi: "Môi trường", en: "Environment" },
-  "home.category.envDesc": { vi: "Rác thải, ô nhiễm tiếng ồn, nước thải...", en: "Waste, noise pollution, wastewater..." },
+  "home.category.envDesc": {
+    vi: "Rác thải, ô nhiễm tiếng ồn, nước thải...",
+    en: "Waste, noise pollution, wastewater...",
+  },
   "home.category.infra": { vi: "Hạ tầng đô thị", en: "Urban infrastructure" },
-  "home.category.infraDesc": { vi: "Đường hỏng, nắp cống mất, đèn đường hỏng...", en: "Broken roads, missing manholes, broken streetlights..." },
+  "home.category.infraDesc": {
+    vi: "Đường hỏng, nắp cống mất, đèn đường hỏng...",
+    en: "Broken roads, missing manholes, broken streetlights...",
+  },
   "home.category.security": { vi: "An ninh trật tự", en: "Public safety" },
-  "home.category.securityDesc": { vi: "Trộm cắp, gây rối trật tự công cộng...", en: "Theft, public disturbance..." },
+  "home.category.securityDesc": {
+    vi: "Trộm cắp, gây rối trật tự công cộng...",
+    en: "Theft, public disturbance...",
+  },
   "home.category.order": { vi: "Trật tự đô thị", en: "Urban order" },
-  "home.category.orderDesc": { vi: "Lấn chiếm lòng đường, vỉa hè...", en: "Encroachment on roads, sidewalks..." },
+  "home.category.orderDesc": {
+    vi: "Lấn chiếm lòng đường, vỉa hè...",
+    en: "Encroachment on roads, sidewalks...",
+  },
   "home.category.other": { vi: "Khác", en: "Other" },
-  "home.category.otherDesc": { vi: "Các vấn đề khác chưa được phân loại...", en: "Other uncategorized issues..." },
+  "home.category.otherDesc": {
+    vi: "Các vấn đề khác chưa được phân loại...",
+    en: "Other uncategorized issues...",
+  },
 
   "category.official.TRAFFIC.name": { vi: "Giao thông", en: "Traffic" },
-  "category.official.TRAFFIC.desc": { vi: "Kẹt xe, tai nạn, đèn tín hiệu hỏng...", en: "Traffic congestion, accidents, damaged traffic signals..." },
-  "category.official.URBAN_INFRASTRUCTURE.name": { vi: "Hạ tầng đô thị", en: "Urban Infrastructure" },
-  "category.official.URBAN_INFRASTRUCTURE.desc": { vi: "Đường hỏng, nắp cống mất, đèn đường hỏng...", en: "Road damage, missing manhole covers, broken street lights..." },
+  "category.official.TRAFFIC.desc": {
+    vi: "Kẹt xe, tai nạn, đèn tín hiệu hỏng...",
+    en: "Traffic congestion, accidents, damaged traffic signals...",
+  },
+  "category.official.URBAN_INFRASTRUCTURE.name": {
+    vi: "Hạ tầng đô thị",
+    en: "Urban Infrastructure",
+  },
+  "category.official.URBAN_INFRASTRUCTURE.desc": {
+    vi: "Đường hỏng, nắp cống mất, đèn đường hỏng...",
+    en: "Road damage, missing manhole covers, broken street lights...",
+  },
   "category.official.ENVIRONMENT.name": { vi: "Môi trường", en: "Environment" },
-  "category.official.ENVIRONMENT.desc": { vi: "Rác thải bừa bãi, ô nhiễm nguồn nước, cây xanh gãy đổ, tiếng ồn...", en: "Illegal dumping, water pollution, overgrown trees, noise disturbance..." },
+  "category.official.ENVIRONMENT.desc": {
+    vi: "Rác thải bừa bãi, ô nhiễm nguồn nước, cây xanh gãy đổ, tiếng ồn...",
+    en: "Illegal dumping, water pollution, overgrown trees, noise disturbance...",
+  },
   "category.official.PUBLIC_SECURITY.name": { vi: "An ninh trật tự", en: "Public Security" },
-  "category.official.PUBLIC_SECURITY.desc": { vi: "Trộm cắp, gây rối trật tự công cộng, đối tượng nghi vấn, cần hỗ trợ khẩn cấp...", en: "Theft, public disturbance, suspicious activities, emergency assistance..." },
+  "category.official.PUBLIC_SECURITY.desc": {
+    vi: "Trộm cắp, gây rối trật tự công cộng, đối tượng nghi vấn, cần hỗ trợ khẩn cấp...",
+    en: "Theft, public disturbance, suspicious activities, emergency assistance...",
+  },
   "category.official.CONSTRUCTION.name": { vi: "Xây dựng", en: "Construction" },
-  "category.official.CONSTRUCTION.desc": { vi: "Xây dựng không phép, công trình mất an toàn, rơi vãi vật liệu xây dựng...", en: "Unauthorized building, unsafe construction sites, building material spills..." },
+  "category.official.CONSTRUCTION.desc": {
+    vi: "Xây dựng không phép, công trình mất an toàn, rơi vãi vật liệu xây dựng...",
+    en: "Unauthorized building, unsafe construction sites, building material spills...",
+  },
   "category.official.FIRE_SAFETY.name": { vi: "Phòng cháy chữa cháy", en: "Fire Safety" },
-  "category.official.FIRE_SAFETY.desc": { vi: "Nguy cơ cháy nổ, lối thoát hiểm bị chặn, thiết bị PCCC hỏng hoặc thiếu...", en: "Fire hazards, blocked escape routes, missing or broken fire equipment..." },
+  "category.official.FIRE_SAFETY.desc": {
+    vi: "Nguy cơ cháy nổ, lối thoát hiểm bị chặn, thiết bị PCCC hỏng hoặc thiếu...",
+    en: "Fire hazards, blocked escape routes, missing or broken fire equipment...",
+  },
 
   /* ──────────── Homepage — Statistics ──────────── */
   "home.stats.title": { vi: "Thống kê toàn thành phố", en: "City-wide statistics" },
@@ -197,7 +236,10 @@ export const dict: Dict = {
 
   /* ──────────── Homepage — Hotline ──────────── */
   "home.hotline.support": { vi: "Tổng đài hỗ trợ", en: "Support hotline" },
-  "home.hotline.desc": { vi: "Mọi thắc mắc cần hỗ trợ, vui lòng gọi", en: "For support, please call" },
+  "home.hotline.desc": {
+    vi: "Mọi thắc mắc cần hỗ trợ, vui lòng gọi",
+    en: "For support, please call",
+  },
   "home.hotline.free": { vi: "Miễn phí", en: "Free" },
   "home.hotline.chat": { vi: "Chat với trợ lý ảo", en: "Chat with AI assistant" },
   "home.hotline.email": { vi: "Gửi email hỗ trợ", en: "Send support email" },
@@ -205,29 +247,56 @@ export const dict: Dict = {
   /* ──────────── Homepage — Process steps ──────────── */
   "home.process.title": { vi: "Quy trình gửi phản ánh", en: "Report submission process" },
   "home.process.step1": { vi: "Chụp ảnh / quay video", en: "Take photo / record video" },
-  "home.process.step1Desc": { vi: "Ghi lại hiện trạng vấn đề cần phản ánh.", en: "Capture the current state of the issue." },
+  "home.process.step1Desc": {
+    vi: "Ghi lại hiện trạng vấn đề cần phản ánh.",
+    en: "Capture the current state of the issue.",
+  },
   "home.process.step2": { vi: "Nhập thông tin", en: "Enter information" },
-  "home.process.step2Desc": { vi: "Cung cấp nội dung, địa điểm và thông tin liên hệ.", en: "Provide content, location and contact info." },
+  "home.process.step2Desc": {
+    vi: "Cung cấp nội dung, địa điểm và thông tin liên hệ.",
+    en: "Provide content, location and contact info.",
+  },
   "home.process.step3": { vi: "Gửi phản ánh", en: "Submit report" },
-  "home.process.step3Desc": { vi: "Hệ thống tiếp nhận và chuyển đến cơ quan xử lý.", en: "System receives and forwards to the relevant agency." },
+  "home.process.step3Desc": {
+    vi: "Hệ thống tiếp nhận và chuyển đến cơ quan xử lý.",
+    en: "System receives and forwards to the relevant agency.",
+  },
   "home.process.step4": { vi: "Theo dõi kết quả", en: "Track results" },
-  "home.process.step4Desc": { vi: "Nhận thông báo và theo dõi tiến độ xử lý phản ánh.", en: "Receive notifications and track processing progress." },
+  "home.process.step4Desc": {
+    vi: "Nhận thông báo và theo dõi tiến độ xử lý phản ánh.",
+    en: "Receive notifications and track processing progress.",
+  },
 
   /* ──────────── Homepage — News & FAQ ──────────── */
   "home.news.title": { vi: "Tin tức & thông báo", en: "News & announcements" },
-  "home.news.empty": { vi: "Chưa có tin tức hoặc thông báo mới.", en: "No news or announcements yet." },
+  "home.news.empty": {
+    vi: "Chưa có tin tức hoặc thông báo mới.",
+    en: "No news or announcements yet.",
+  },
   "home.faq.title": { vi: "Câu hỏi thường gặp", en: "Frequently asked questions" },
   "home.faq.viewAll": { vi: "Xem tất cả câu hỏi", en: "View all questions" },
 
   /* ──────────── Homepage — Trust strip ──────────── */
   "home.trust.security": { vi: "Bảo mật thông tin", en: "Data security" },
-  "home.trust.securityDesc": { vi: "Thông tin của bạn được bảo mật tuyệt đối", en: "Your information is kept absolutely secure" },
+  "home.trust.securityDesc": {
+    vi: "Thông tin của bạn được bảo mật tuyệt đối",
+    en: "Your information is kept absolutely secure",
+  },
   "home.trust.transparent": { vi: "Xử lý minh bạch", en: "Transparent processing" },
-  "home.trust.transparentDesc": { vi: "Quy trình xử lý công khai, minh bạch", en: "Open and transparent processing procedures" },
+  "home.trust.transparentDesc": {
+    vi: "Quy trình xử lý công khai, minh bạch",
+    en: "Open and transparent processing procedures",
+  },
   "home.trust.fast": { vi: "Phản hồi nhanh chóng", en: "Quick response" },
-  "home.trust.fastDesc": { vi: "Cam kết phản hồi trong thời gian sớm nhất", en: "Committed to responding as soon as possible" },
+  "home.trust.fastDesc": {
+    vi: "Cam kết phản hồi trong thời gian sớm nhất",
+    en: "Committed to responding as soon as possible",
+  },
   "home.trust.better": { vi: "Vì một Đà Nẵng tốt đẹp hơn", en: "For a better Da Nang" },
-  "home.trust.betterDesc": { vi: "Chung tay xây dựng thành phố đáng sống", en: "Together building a livable city" },
+  "home.trust.betterDesc": {
+    vi: "Chung tay xây dựng thành phố đáng sống",
+    en: "Together building a livable city",
+  },
 
   /* ──────────── Status labels (shared) ──────────── */
   "status.resolvedLabel": { vi: "Đã xử lý", en: "Resolved" },
@@ -244,7 +313,10 @@ export const dict: Dict = {
 
   /* ──────────── Report form ──────────── */
   "report.form.titleLabel": { vi: "Tiêu đề phản ánh", en: "Report title" },
-  "report.form.titlePlaceholder": { vi: "VD: Ổ gà lớn trên đường Hùng Vương", en: "E.g.: Large pothole on Hung Vuong road" },
+  "report.form.titlePlaceholder": {
+    vi: "VD: Ổ gà lớn trên đường Hùng Vương",
+    en: "E.g.: Large pothole on Hung Vuong road",
+  },
   "report.form.category": { vi: "Loại phản ánh", en: "Report category" },
   "report.form.media": { vi: "Ảnh / Video", en: "Photos / Videos" },
   "report.form.uploadPhoto": { vi: "Upload ảnh", en: "Upload photos" },
@@ -263,15 +335,33 @@ export const dict: Dict = {
   "report.loc.none": { vi: "Chưa có vị trí", en: "No location set" },
   "report.loc.refresh": { vi: "Lấy lại vị trí", en: "Refresh location" },
   "report.loc.mapTitle": { vi: "Bản đồ vị trí", en: "Location map" },
-  "report.loc.mapHint": { vi: "Kiểm tra ghim vị trí hiện tại trước khi gửi.", en: "Check the location pin before submitting." },
+  "report.loc.mapHint": {
+    vi: "Kiểm tra ghim vị trí hiện tại trước khi gửi.",
+    en: "Check the location pin before submitting.",
+  },
   "report.loc.loadingMap": { vi: "Đang tải bản đồ...", en: "Loading map..." },
-  "report.loc.gpsLoading": { vi: "Đang lấy vị trí GPS hiện tại...", en: "Getting current GPS location..." },
-  "report.loc.gpsRequest": { vi: "Đang yêu cầu vị trí GPS hiện tại...", en: "Requesting current GPS location..." },
+  "report.loc.gpsLoading": {
+    vi: "Đang lấy vị trí GPS hiện tại...",
+    en: "Getting current GPS location...",
+  },
+  "report.loc.gpsRequest": {
+    vi: "Đang yêu cầu vị trí GPS hiện tại...",
+    en: "Requesting current GPS location...",
+  },
   "report.loc.addressLoading": { vi: "Đang xác định địa chỉ...", en: "Determining address..." },
-  "report.loc.noAddress": { vi: "Đã lấy được GPS nhưng chưa xác định được địa chỉ.", en: "GPS acquired but address could not be determined." },
-  "report.loc.clickRefresh": { vi: "Bấm Lấy lại vị trí để xác định vị trí của bạn.", en: "Click Refresh location to determine your location." },
+  "report.loc.noAddress": {
+    vi: "Đã lấy được GPS nhưng chưa xác định được địa chỉ.",
+    en: "GPS acquired but address could not be determined.",
+  },
+  "report.loc.clickRefresh": {
+    vi: "Bấm Lấy lại vị trí để xác định vị trí của bạn.",
+    en: "Click Refresh location to determine your location.",
+  },
   "report.loc.expectedWard": { vi: "Phường/Xã xử lý dự kiến:", en: "Expected processing ward:" },
-  "report.loc.gpsSuccess": { vi: "Đã lấy vị trí GPS hiện tại.", en: "Current GPS location acquired." },
+  "report.loc.gpsSuccess": {
+    vi: "Đã lấy vị trí GPS hiện tại.",
+    en: "Current GPS location acquired.",
+  },
 
   /* ──────────── Report success ──────────── */
   "report.success.codeLabel": { vi: "Mã phản ánh / Report ID:", en: "Report ID:" },
@@ -280,27 +370,66 @@ export const dict: Dict = {
   "report.success.toast": { vi: "Gửi phản ánh thành công!", en: "Report submitted successfully!" },
 
   /* ──────────── Report errors ──────────── */
-  "report.err.login": { vi: "Vui lòng đăng nhập để gửi phản ánh.", en: "Please sign in to submit a report." },
-  "report.err.category": { vi: "Vui lòng chọn loại phản ánh.", en: "Please select a report category." },
-  "report.err.photo": { vi: "Vui lòng tải lên ít nhất 1 ảnh.", en: "Please upload at least 1 photo." },
-  "report.err.video": { vi: "Vui lòng tải lên ít nhất 1 video.", en: "Please upload at least 1 video." },
-  "report.err.description": { vi: "Vui lòng nhập nội dung phản ánh.", en: "Please enter report details." },
-  "report.err.gps": { vi: "Chưa có tọa độ GPS. Vui lòng bấm Lấy lại vị trí.", en: "No GPS coordinates. Please click Refresh location." },
-  "report.err.generic": { vi: "Không thể gửi phản ánh. Vui lòng thử lại.", en: "Unable to submit report. Please try again." },
+  "report.err.login": {
+    vi: "Vui lòng đăng nhập để gửi phản ánh.",
+    en: "Please sign in to submit a report.",
+  },
+  "report.err.category": {
+    vi: "Vui lòng chọn loại phản ánh.",
+    en: "Please select a report category.",
+  },
+  "report.err.photo": {
+    vi: "Vui lòng tải lên ít nhất 1 ảnh.",
+    en: "Please upload at least 1 photo.",
+  },
+  "report.err.video": {
+    vi: "Vui lòng tải lên ít nhất 1 video.",
+    en: "Please upload at least 1 video.",
+  },
+  "report.err.description": {
+    vi: "Vui lòng nhập nội dung phản ánh.",
+    en: "Please enter report details.",
+  },
+  "report.err.gps": {
+    vi: "Chưa có tọa độ GPS. Vui lòng bấm Lấy lại vị trí.",
+    en: "No GPS coordinates. Please click Refresh location.",
+  },
+  "report.err.generic": {
+    vi: "Không thể gửi phản ánh. Vui lòng thử lại.",
+    en: "Unable to submit report. Please try again.",
+  },
   "report.err.notImage": { vi: "không phải file ảnh.", en: "is not an image file." },
   "report.err.notVideo": { vi: "không phải file video.", en: "is not a video file." },
   "report.err.maxPhotos": { vi: "Chỉ được upload tối đa 5 ảnh.", en: "Maximum 5 photos allowed." },
   "report.err.removeFile": { vi: "Xóa tệp đã chọn", en: "Remove selected file" },
   "report.err.removeVideo": { vi: "Xóa video đã chọn", en: "Remove selected video" },
   "report.err.fileSizeExceeded": { vi: "vượt quá", en: "exceeds" },
-  "report.err.geocodeFailed": { vi: "Đã lấy được GPS nhưng chưa xác định được địa chỉ.", en: "GPS acquired but address could not be resolved." },
+  "report.err.geocodeFailed": {
+    vi: "Đã lấy được GPS nhưng chưa xác định được địa chỉ.",
+    en: "GPS acquired but address could not be resolved.",
+  },
 
   /* ──────────── Report GPS errors ──────────── */
-  "report.gps.unsupported": { vi: "Trình duyệt của bạn không hỗ trợ GPS.", en: "Your browser does not support GPS." },
-  "report.gps.denied": { vi: "Bạn đã từ chối quyền truy cập vị trí. Vui lòng cấp quyền GPS để gửi phản ánh.", en: "You have denied location access. Please grant GPS permission to submit a report." },
-  "report.gps.unavailable": { vi: "Không thể xác định vị trí hiện tại. Vui lòng kiểm tra GPS hoặc kết nối mạng.", en: "Unable to determine current location. Please check GPS or network connection." },
-  "report.gps.timeout": { vi: "Yêu cầu lấy vị trí đã hết thời gian chờ. Vui lòng thử lại.", en: "Location request timed out. Please try again." },
-  "report.gps.generic": { vi: "Không thể lấy vị trí hiện tại. Vui lòng thử lại.", en: "Unable to get current location. Please try again." },
+  "report.gps.unsupported": {
+    vi: "Trình duyệt của bạn không hỗ trợ GPS.",
+    en: "Your browser does not support GPS.",
+  },
+  "report.gps.denied": {
+    vi: "Bạn đã từ chối quyền truy cập vị trí. Vui lòng cấp quyền GPS để gửi phản ánh.",
+    en: "You have denied location access. Please grant GPS permission to submit a report.",
+  },
+  "report.gps.unavailable": {
+    vi: "Không thể xác định vị trí hiện tại. Vui lòng kiểm tra GPS hoặc kết nối mạng.",
+    en: "Unable to determine current location. Please check GPS or network connection.",
+  },
+  "report.gps.timeout": {
+    vi: "Yêu cầu lấy vị trí đã hết thời gian chờ. Vui lòng thử lại.",
+    en: "Location request timed out. Please try again.",
+  },
+  "report.gps.generic": {
+    vi: "Không thể lấy vị trí hiện tại. Vui lòng thử lại.",
+    en: "Unable to get current location. Please try again.",
+  },
 
   /* ──────────── Footer ──────────── */
   "footer.brand": { vi: "ĐÀ NẴNG KẾT NỐI", en: "DA NANG CONNECT" },
@@ -319,7 +448,10 @@ export const dict: Dict = {
   "footer.contact": { vi: "LIÊN HỆ", en: "CONTACT" },
   "footer.hotlineLabel": { vi: "Đường dây nóng:", en: "Hotline:" },
   "footer.callNow": { vi: "Gọi ngay 1022", en: "Call 1022 now" },
-  "footer.copyright": { vi: "© 2026 UBND Thành phố Đà Nẵng. Bảo lưu mọi quyền.", en: "© 2026 Da Nang City People's Committee. All rights reserved." },
+  "footer.copyright": {
+    vi: "© 2026 UBND Thành phố Đà Nẵng. Bảo lưu mọi quyền.",
+    en: "© 2026 Da Nang City People's Committee. All rights reserved.",
+  },
 };
 
 interface I18nCtx {

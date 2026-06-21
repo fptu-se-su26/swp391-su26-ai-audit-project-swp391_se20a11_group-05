@@ -2,13 +2,17 @@ import { z } from "zod";
 
 // 1. Validate Input từ User (Chống spam, giới hạn độ dài)
 export const ChatInputSchema = z.object({
-  message: z.string().trim().min(1, "Tin nhắn không được để trống").max(1000, "Tin nhắn tối đa 1000 ký tự"),
+  message: z
+    .string()
+    .trim()
+    .min(1, "Tin nhắn không được để trống")
+    .max(1000, "Tin nhắn tối đa 1000 ký tự"),
   history: z
     .array(
       z.object({
         role: z.enum(["user", "assistant"]),
         content: z.string().max(2000),
-      })
+      }),
     )
     .max(20, "Lịch sử cuộc trò chuyện quá dài"), // Giới hạn context window
 });

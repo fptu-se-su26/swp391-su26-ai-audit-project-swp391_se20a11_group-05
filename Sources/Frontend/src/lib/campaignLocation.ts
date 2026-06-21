@@ -68,11 +68,21 @@ const CAMPAIGN_COORDINATES_BY_ID: Record<string, CampaignCoordinates> = {
 const LOCATION_PATTERNS: Array<{ patterns: string[]; coordinates: CampaignCoordinates }> = [
   {
     patterns: ["xuan thieu", "xuan thieu beach"],
-    coordinates: { lat: 16.1139, lng: 108.1503, label: "Bãi biển Xuân Thiều, Liên Chiểu, Đà Nẵng", zoom: 16 },
+    coordinates: {
+      lat: 16.1139,
+      lng: 108.1503,
+      label: "Bãi biển Xuân Thiều, Liên Chiểu, Đà Nẵng",
+      zoom: 16,
+    },
   },
   {
     patterns: ["my khe", "my an"],
-    coordinates: { lat: 16.0541, lng: 108.2477, label: "Bãi biển Mỹ Khê, Sơn Trà, Đà Nẵng", zoom: 16 },
+    coordinates: {
+      lat: 16.0541,
+      lng: 108.2477,
+      label: "Bãi biển Mỹ Khê, Sơn Trà, Đà Nẵng",
+      zoom: 16,
+    },
   },
   {
     patterns: ["29/3", "29-3", "hai chau 1", "hai chau"],
@@ -84,7 +94,12 @@ const LOCATION_PATTERNS: Array<{ patterns: string[]; coordinates: CampaignCoordi
   },
   {
     patterns: ["hoa khanh bac", "hoa khanh"],
-    coordinates: { lat: 16.0742, lng: 108.1495, label: "Hòa Khánh Bắc, Liên Chiểu, Đà Nẵng", zoom: 15 },
+    coordinates: {
+      lat: 16.0742,
+      lng: 108.1495,
+      label: "Hòa Khánh Bắc, Liên Chiểu, Đà Nẵng",
+      zoom: 15,
+    },
   },
   {
     patterns: ["lien chieu"],
@@ -108,16 +123,22 @@ const LOCATION_PATTERNS: Array<{ patterns: string[]; coordinates: CampaignCoordi
   },
 ];
 
-export function resolveCampaignCoordinates(campaign: Pick<Campaign, "id" | "locationText" | "ward" | "name">): CampaignCoordinates {
+export function resolveCampaignCoordinates(
+  campaign: Pick<Campaign, "id" | "locationText" | "ward" | "name">,
+): CampaignCoordinates {
   const seeded = CAMPAIGN_COORDINATES_BY_ID[campaign.id];
   if (seeded) return seeded;
 
-  return resolveCampaignCoordinatesFromText([campaign.locationText, campaign.ward, campaign.name].filter(Boolean).join(" "));
+  return resolveCampaignCoordinatesFromText(
+    [campaign.locationText, campaign.ward, campaign.name].filter(Boolean).join(" "),
+  );
 }
 
 export function resolveCampaignCoordinatesFromText(value: string): CampaignCoordinates {
   const normalized = normalizeLocation(value);
-  const matched = LOCATION_PATTERNS.find(({ patterns }) => patterns.some((pattern) => normalized.includes(pattern)));
+  const matched = LOCATION_PATTERNS.find(({ patterns }) =>
+    patterns.some((pattern) => normalized.includes(pattern)),
+  );
 
   if (matched) return matched.coordinates;
   return {

@@ -236,7 +236,11 @@ function CampaignGroupChatPage() {
       </div>
 
       {infoOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/30 md:hidden" role="dialog" aria-modal="true">
+        <div
+          className="fixed inset-0 z-50 bg-slate-950/30 md:hidden"
+          role="dialog"
+          aria-modal="true"
+        >
           <button
             type="button"
             className="absolute inset-0 h-full w-full"
@@ -347,7 +351,10 @@ function GroupSidebar({
             <span className="text-[10px] font-black text-slate-400">{progressPercent}%</span>
           </div>
           <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full rounded-full bg-[#3B82F6]" style={{ width: `${progressPercent}%` }} />
+            <div
+              className="h-full rounded-full bg-[#3B82F6]"
+              style={{ width: `${progressPercent}%` }}
+            />
           </div>
 
           <div className="space-y-2">
@@ -363,7 +370,9 @@ function GroupSidebar({
                     }`}
                   />
                 </div>
-                <span className="min-w-0 truncate text-sm font-bold text-slate-700">{member.name}</span>
+                <span className="min-w-0 truncate text-sm font-bold text-slate-700">
+                  {member.name}
+                </span>
               </div>
             ))}
           </div>
@@ -393,9 +402,11 @@ function ChatBubble({ message }: { message: ChatMessage }) {
 
   return (
     <div className="flex items-start gap-2" style={{ animation: "chatSlideUp 0.2s ease" }}>
-      <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-black ${
-        host ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
-      }`}>
+      <span
+        className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-black ${
+          host ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
+        }`}
+      >
         {host ? "CB" : message.sender.split(" ").at(-1)?.[0] || "A"}
       </span>
       <div

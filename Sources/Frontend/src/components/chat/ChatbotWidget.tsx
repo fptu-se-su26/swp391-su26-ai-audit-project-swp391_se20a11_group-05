@@ -1,5 +1,19 @@
 import React, { useState, useRef, useEffect } from "react";
-import { MessageSquare, X, Send, Mic, MapPin, Trash2, Maximize2, Minimize2, User, Camera, ArrowRight, Volume2, VolumeX } from "lucide-react";
+import {
+  MessageSquare,
+  X,
+  Send,
+  Mic,
+  MapPin,
+  Trash2,
+  Maximize2,
+  Minimize2,
+  User,
+  Camera,
+  ArrowRight,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 import { useChatbot } from "@/hooks/useChatbot";
 import { AiTracePanel } from "./AiTracePanel";
 import ReactMarkdown from "react-markdown";
@@ -17,10 +31,11 @@ export function ChatbotWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [inputText, setInputText] = useState("");
-  const { messages, isLoading, petState, sendMessage, setMessages, isMuted, setIsMuted } = useChatbot();
+  const { messages, isLoading, petState, sendMessage, setMessages, isMuted, setIsMuted } =
+    useChatbot();
   const [isListening, setIsListening] = useState(false);
   const [showTrace, setShowTrace] = useState(false);
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -58,7 +73,8 @@ export function ChatbotWidget() {
   };
 
   const handleSpeechToText = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       alert("Trình duyệt của bạn không hỗ trợ nhận diện giọng nói.");
       return;
@@ -66,7 +82,7 @@ export function ChatbotWidget() {
 
     const recognition = new SpeechRecognition();
     recognition.lang = "vi-VN";
-    
+
     recognition.onstart = () => setIsListening(true);
     recognition.onend = () => setIsListening(false);
     recognition.onresult = (event: any) => {
@@ -81,7 +97,7 @@ export function ChatbotWidget() {
   let chatBgColor = "bg-white/95";
   let headerBgColor = "bg-gradient-to-r from-gov-blue to-gov-blue-deep";
   let headerShadow = "shadow-lg shadow-gov-blue/20";
-  
+
   if (messages.length > 0) {
     const lastMsg = messages[messages.length - 1];
     if (lastMsg.role === "assistant" && lastMsg.intent?.emotion) {
@@ -109,17 +125,25 @@ export function ChatbotWidget() {
         onClick={() => setIsOpen(!isOpen)}
         className={`fixed bottom-6 right-6 w-14 h-14 text-white rounded-full flex items-center justify-center transition-all duration-300 z-50 hover:scale-110 active:scale-95 ${headerBgColor} ${!isOpen ? "animate-civic-pulse shadow-xl" : "shadow-lg"}`}
       >
-        {isOpen ? <X className="w-6 h-6 transition-transform rotate-90" /> : <MessageSquare className="w-6 h-6" />}
+        {isOpen ? (
+          <X className="w-6 h-6 transition-transform rotate-90" />
+        ) : (
+          <MessageSquare className="w-6 h-6" />
+        )}
       </button>
 
       {/* Dragon Pet */}
       {isOpen && (
-        <div className={`dragon-pet ${petState} flex flex-col items-center pointer-events-none drop-shadow-2xl`}>
+        <div
+          className={`dragon-pet ${petState} flex flex-col items-center pointer-events-none drop-shadow-2xl`}
+        >
           <div className="text-6xl filter drop-shadow-lg">🐉</div>
-          {petState === 'speaking' && (
-            <div className="absolute -top-4 -right-2 text-2xl animate-bounce drop-shadow-md">🎵</div>
+          {petState === "speaking" && (
+            <div className="absolute -top-4 -right-2 text-2xl animate-bounce drop-shadow-md">
+              🎵
+            </div>
           )}
-          {petState === 'typing' && (
+          {petState === "typing" && (
             <div className="absolute -top-4 -right-2 text-xl animate-pulse">💭</div>
           )}
         </div>
@@ -127,18 +151,20 @@ export function ChatbotWidget() {
 
       {/* Cửa sổ Chat */}
       {isOpen && (
-        <div 
+        <div
           className={`fixed right-6 bottom-24 rounded-2xl flex flex-col overflow-hidden z-50 animate-fade-in-up border border-white/20 backdrop-blur-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 ${
             isExpanded ? "w-[600px] h-[80vh]" : "w-[400px] h-[600px]"
           }`}
         >
           {/* Header */}
-          <div className={`${headerBgColor} ${headerShadow} text-white p-4 flex justify-between items-center transition-all duration-500 relative overflow-hidden flex-shrink-0`}>
+          <div
+            className={`${headerBgColor} ${headerShadow} text-white p-4 flex justify-between items-center transition-all duration-500 relative overflow-hidden flex-shrink-0`}
+          >
             {/* Hiệu ứng tia sáng chéo */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-[slideProgress_3s_infinite_linear]" />
-            
+
             <div className="flex items-center gap-3 relative z-10">
-              <div 
+              <div
                 className="relative w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center cursor-pointer select-none border border-white/30 shadow-inner overflow-hidden"
                 onDoubleClick={() => setShowTrace(!showTrace)}
                 title="Nhấp đúp để xem AI Trace"
@@ -155,22 +181,22 @@ export function ChatbotWidget() {
 
             {/* Header Tools */}
             <div className="flex items-center gap-1 relative z-10">
-              <button 
-                onClick={() => setIsMuted(!isMuted)} 
+              <button
+                onClick={() => setIsMuted(!isMuted)}
                 className="p-2 hover:bg-white/20 rounded-full transition-colors"
                 title={isMuted ? "Bật phát âm" : "Tắt phát âm"}
               >
                 {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
               </button>
-              <button 
-                onClick={() => setMessages([])} 
+              <button
+                onClick={() => setMessages([])}
                 className="p-2 hover:bg-white/20 rounded-full transition-colors"
                 title="Xóa lịch sử chat"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
-              <button 
-                onClick={() => setIsExpanded(!isExpanded)} 
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
                 className="p-2 hover:bg-white/20 rounded-full transition-colors"
                 title={isExpanded ? "Thu nhỏ" : "Phóng to"}
               >
@@ -180,21 +206,31 @@ export function ChatbotWidget() {
           </div>
 
           {/* Tin nhắn */}
-          <div className={`flex-1 p-4 overflow-y-auto ${chatBgColor} space-y-6 transition-colors duration-500 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent`}>
+          <div
+            className={`flex-1 p-4 overflow-y-auto ${chatBgColor} space-y-6 transition-colors duration-500 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent`}
+          >
             {messages.length === 0 && (
               <div className="animate-scale-in flex flex-col items-center mt-6">
                 <div className="w-20 h-20 bg-white rounded-full shadow-md flex items-center justify-center mb-4 p-3 relative">
-                   <div className="absolute inset-0 bg-gov-gold/20 rounded-full animate-ping opacity-75"></div>
-                   <img src={logoUrl} alt="Logo" className="w-full h-full object-contain relative z-10" />
+                  <div className="absolute inset-0 bg-gov-gold/20 rounded-full animate-ping opacity-75"></div>
+                  <img
+                    src={logoUrl}
+                    alt="Logo"
+                    className="w-full h-full object-contain relative z-10"
+                  />
                 </div>
                 <div className="text-center text-slate-600 text-sm bg-white/70 px-5 py-3 rounded-2xl backdrop-blur-md border border-white shadow-sm max-w-[85%] leading-relaxed">
-                  Dạ em chào cô chú! Em là <b>Bé Rồng</b>. <br/>Cô chú cần tra cứu thủ tục, pháp luật hay báo cáo sự cố gì hôm nay ạ?
+                  Dạ em chào cô chú! Em là <b>Bé Rồng</b>. <br />
+                  Cô chú cần tra cứu thủ tục, pháp luật hay báo cáo sự cố gì hôm nay ạ?
                 </div>
               </div>
             )}
-            
+
             {messages.map((msg) => (
-              <div key={msg.id} className={`flex flex-col animate-slide-in-right ${msg.role === "user" ? "items-end" : "items-start"}`}>
+              <div
+                key={msg.id}
+                className={`flex flex-col animate-slide-in-right ${msg.role === "user" ? "items-end" : "items-start"}`}
+              >
                 <div className="flex gap-2 max-w-[90%] items-end">
                   {/* Avatar Bot */}
                   {msg.role === "assistant" && (
@@ -208,7 +244,7 @@ export function ChatbotWidget() {
                       className={`p-3.5 rounded-2xl shadow-sm ${
                         msg.role === "user"
                           ? `bg-gradient-to-tr from-gov-blue to-blue-500 text-white rounded-br-sm transition-all duration-300 hover:shadow-md`
-                          : msg.isError 
+                          : msg.isError
                             ? "bg-red-50 text-red-600 border border-red-100 rounded-bl-sm"
                             : "bg-white text-slate-800 border border-slate-100 rounded-bl-sm"
                       }`}
@@ -221,10 +257,15 @@ export function ChatbotWidget() {
                         <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                       )}
                     </div>
-                    
+
                     {/* Timestamp */}
-                    <span className={`text-[10px] text-slate-400 mt-1 px-1 ${msg.role === "user" ? "text-right" : "text-left"}`}>
-                      {new Date(parseInt(msg.id) || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    <span
+                      className={`text-[10px] text-slate-400 mt-1 px-1 ${msg.role === "user" ? "text-right" : "text-left"}`}
+                    >
+                      {new Date(parseInt(msg.id) || Date.now()).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </span>
                   </div>
 
@@ -244,17 +285,19 @@ export function ChatbotWidget() {
                     </div>
                     {msg.intent.category && (
                       <div className="text-sm flex items-center gap-2">
-                        <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium">Lĩnh vực</span>
+                        <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium">
+                          Lĩnh vực
+                        </span>
                         <span className="text-slate-800">{msg.intent.category}</span>
                       </div>
                     )}
                     {msg.intent.location && (
                       <div className="text-sm flex items-start gap-2 bg-amber-50 text-amber-800 p-2 rounded-lg border border-amber-100">
-                        <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" /> 
+                        <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
                         <span className="flex-1">{msg.intent.location}</span>
                       </div>
                     )}
-                    
+
                     {/* Hành động tiếp theo */}
                     <div className="flex flex-wrap gap-2 mt-1">
                       {msg.intent.needsMoreInfo?.includes("LOCATION") && (
@@ -279,7 +322,7 @@ export function ChatbotWidget() {
                 )}
               </div>
             ))}
-            
+
             {isLoading && (
               <div className="flex items-start gap-2 animate-fade-in">
                 <div className="w-8 h-8 rounded-full bg-white shadow-sm border border-slate-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
@@ -287,8 +330,14 @@ export function ChatbotWidget() {
                 </div>
                 <div className="bg-white/90 backdrop-blur-md border border-slate-100 p-3.5 rounded-2xl rounded-bl-sm flex items-center space-x-1.5 shadow-sm">
                   <div className="w-2 h-2 bg-gov-blue/60 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-gov-blue/60 rounded-full animate-bounce" style={{ animationDelay: "0.15s" }}></div>
-                  <div className="w-2 h-2 bg-gov-blue/60 rounded-full animate-bounce" style={{ animationDelay: "0.3s" }}></div>
+                  <div
+                    className="w-2 h-2 bg-gov-blue/60 rounded-full animate-bounce"
+                    style={{ animationDelay: "0.15s" }}
+                  ></div>
+                  <div
+                    className="w-2 h-2 bg-gov-blue/60 rounded-full animate-bounce"
+                    style={{ animationDelay: "0.3s" }}
+                  ></div>
                 </div>
               </div>
             )}
@@ -296,30 +345,39 @@ export function ChatbotWidget() {
           </div>
 
           {/* Quick Actions Carousel (Chỉ hiện khi chưa chat hoặc bot hỏi) */}
-          {(!isLoading && (messages.length === 0 || (messages.length > 0 && messages[messages.length - 1].role === "assistant" && messages[messages.length - 1].intent?.intent === "SMALLTALK"))) && (
-            <div className="px-3 pb-2 pt-1 flex gap-2 overflow-x-auto scrollbar-none snap-x bg-white/50 backdrop-blur-sm border-t border-slate-50">
-              {SUGGESTED_QUESTIONS.map((q, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleSubmit(undefined, q)}
-                  className="snap-start flex-shrink-0 text-xs bg-white text-slate-600 border border-slate-200 px-3 py-2 rounded-xl hover:border-gov-blue hover:text-gov-blue transition-colors flex items-center gap-1 shadow-sm"
-                >
-                  {q}
-                </button>
-              ))}
-            </div>
-          )}
+          {!isLoading &&
+            (messages.length === 0 ||
+              (messages.length > 0 &&
+                messages[messages.length - 1].role === "assistant" &&
+                messages[messages.length - 1].intent?.intent === "SMALLTALK")) && (
+              <div className="px-3 pb-2 pt-1 flex gap-2 overflow-x-auto scrollbar-none snap-x bg-white/50 backdrop-blur-sm border-t border-slate-50">
+                {SUGGESTED_QUESTIONS.map((q, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleSubmit(undefined, q)}
+                    className="snap-start flex-shrink-0 text-xs bg-white text-slate-600 border border-slate-200 px-3 py-2 rounded-xl hover:border-gov-blue hover:text-gov-blue transition-colors flex items-center gap-1 shadow-sm"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            )}
 
           {/* Ô nhập liệu */}
-          <form 
-            onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} 
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSubmit();
+            }}
             className="p-3 bg-white/90 backdrop-blur-xl border-t border-slate-100 flex items-end gap-2 relative z-10"
           >
             <button
               type="button"
               onClick={handleSpeechToText}
               className={`p-2.5 rounded-full transition-all duration-300 flex-shrink-0 mb-1 ${
-                isListening ? "bg-red-50 text-red-500 animate-pulse ring-2 ring-red-200" : "bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-gov-blue"
+                isListening
+                  ? "bg-red-50 text-red-500 animate-pulse ring-2 ring-red-200"
+                  : "bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-gov-blue"
               }`}
               title="Nhập bằng giọng nói"
             >

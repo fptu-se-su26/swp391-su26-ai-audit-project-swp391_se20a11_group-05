@@ -1,7 +1,11 @@
 import { clientOnly } from "@/components/ClientOnly";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
-import { usePublicFeedbacks, usePublicFeedbackStatistics, useRecentPublicFeedback } from "@/lib/hooks";
+import {
+  usePublicFeedbacks,
+  usePublicFeedbackStatistics,
+  useRecentPublicFeedback,
+} from "@/lib/hooks";
 import { OFFICIAL_CATEGORIES } from "@/lib/categoryConfig";
 import { reports as mockReports, kpis } from "@/lib/mock-data";
 import { StatusBadge } from "@/components/site/StatusBadge";
@@ -111,24 +115,46 @@ function HomePage() {
     const now = new Date();
     let diffDays = 0;
     switch (range) {
-      case "24h": diffDays = 1; break;
-      case "7d": diffDays = 7; break;
-      case "1m": diffDays = 30; break;
-      case "3m": diffDays = 90; break;
-      case "1y": diffDays = 365; break;
+      case "24h":
+        diffDays = 1;
+        break;
+      case "7d":
+        diffDays = 7;
+        break;
+      case "1m":
+        diffDays = 30;
+        break;
+      case "3m":
+        diffDays = 90;
+        break;
+      case "1y":
+        diffDays = 365;
+        break;
     }
     const fromDate = new Date(now.getTime() - diffDays * 24 * 60 * 60 * 1000);
     const year = fromDate.getFullYear();
-    const month = String(fromDate.getMonth() + 1).padStart(2, '0');
-    const day = String(fromDate.getDate()).padStart(2, '0');
+    const month = String(fromDate.getMonth() + 1).padStart(2, "0");
+    const day = String(fromDate.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   };
 
-  const { data: feedbacksPage, isLoading: listLoading, refetch: refetchList } = usePublicFeedbacks(0, 100);
-  const { data: statsData, isLoading: statsLoading, refetch: refetchStats } = usePublicFeedbackStatistics({
+  const {
+    data: feedbacksPage,
+    isLoading: listLoading,
+    refetch: refetchList,
+  } = usePublicFeedbacks(0, 100);
+  const {
+    data: statsData,
+    isLoading: statsLoading,
+    refetch: refetchStats,
+  } = usePublicFeedbackStatistics({
     fromDate: getFromDateString(timeRange),
   });
-  const { data: recentPage, isLoading: recentLoading, refetch: refetchRecent } = useRecentPublicFeedback(5);
+  const {
+    data: recentPage,
+    isLoading: recentLoading,
+    refetch: refetchRecent,
+  } = useRecentPublicFeedback(5);
 
   const refetch = () => {
     refetchList();
@@ -136,7 +162,8 @@ function HomePage() {
     refetchRecent();
   };
 
-  const isBackendConnected = feedbacksPage !== undefined || statsData !== undefined || recentPage !== undefined;
+  const isBackendConnected =
+    feedbacksPage !== undefined || statsData !== undefined || recentPage !== undefined;
   const hasApiData = isBackendConnected;
   const isLoading = listLoading || statsLoading || recentLoading;
 
@@ -175,9 +202,10 @@ function HomePage() {
     navigate({ to: "/feedback-search" as any, search: { q: chip } as any });
   };
 
-  const popularChips = locale === "vi"
-    ? ["Giao thông", "Môi trường", "An ninh trật tự", "Hạ tầng", "Trật tự đô thị"]
-    : ["Traffic", "Environment", "Public safety", "Infrastructure", "Urban order"];
+  const popularChips =
+    locale === "vi"
+      ? ["Giao thông", "Môi trường", "An ninh trật tự", "Hạ tầng", "Trật tự đô thị"]
+      : ["Traffic", "Environment", "Public safety", "Infrastructure", "Urban order"];
 
   const handleCategoryClick = (categoryCode: string) => {
     navigate({ to: "/feedback-search" as any, search: { category: categoryCode } as any });
@@ -229,22 +257,28 @@ function HomePage() {
   };
 
   const totalCount = hasApiData
-    ? (statsData ? statsData.total : filteredFeedbacks.length)
+    ? statsData
+      ? statsData.total
+      : filteredFeedbacks.length
     : mockStatsByRange[timeRange].total;
 
   const resolvedCount = hasApiData
-    ? (statsData ? statsData.resolved : filteredFeedbacks.filter((f) => f.status === "RESOLVED").length)
+    ? statsData
+      ? statsData.resolved
+      : filteredFeedbacks.filter((f) => f.status === "RESOLVED").length
     : mockStatsByRange[timeRange].resolved;
 
   const pendingCount = hasApiData
-    ? (statsData ? statsData.pending : filteredFeedbacks.filter(
-        (f) =>
-          f.status === "PENDING" ||
-          f.status === "ASSIGNED" ||
-          f.status === "IN_PROGRESS" ||
-          f.status === "WAITING_INFO" ||
-          f.status === "PRE_EMPTIVE",
-      ).length)
+    ? statsData
+      ? statsData.pending
+      : filteredFeedbacks.filter(
+          (f) =>
+            f.status === "PENDING" ||
+            f.status === "ASSIGNED" ||
+            f.status === "IN_PROGRESS" ||
+            f.status === "WAITING_INFO" ||
+            f.status === "PRE_EMPTIVE",
+        ).length
     : mockStatsByRange[timeRange].pending;
 
   const resolvedPct = totalCount > 0 ? Math.round((resolvedCount / totalCount) * 100) : 0;
@@ -267,7 +301,8 @@ function HomePage() {
         processing = Math.max(0, Math.floor(total * 0.4));
         processed = total - processing;
       } else if (range === "7d") {
-        const isWeekend = b.label === "Sat" || b.label === "Sun" || b.label === "T7" || b.label === "CN";
+        const isWeekend =
+          b.label === "Sat" || b.label === "Sun" || b.label === "T7" || b.label === "CN";
         const base = isWeekend ? 15 : 28;
         const seed = (index * 13) % 8;
         total = base + seed;
@@ -310,8 +345,34 @@ function HomePage() {
       end: Date;
     }[] = [];
 
-    const monthsVi = ["Thg 1", "Thg 2", "Thg 3", "Thg 4", "Thg 5", "Thg 6", "Thg 7", "Thg 8", "Thg 9", "Thg 10", "Thg 11", "Thg 12"];
-    const monthsEn = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const monthsVi = [
+      "Thg 1",
+      "Thg 2",
+      "Thg 3",
+      "Thg 4",
+      "Thg 5",
+      "Thg 6",
+      "Thg 7",
+      "Thg 8",
+      "Thg 9",
+      "Thg 10",
+      "Thg 11",
+      "Thg 12",
+    ];
+    const monthsEn = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
 
     if (timeRange === "24h") {
       for (let i = 23; i >= 0; i--) {
@@ -406,7 +467,7 @@ function HomePage() {
     });
   };
 
-  const getMockReportTime = (r: typeof mockReports[0]) => {
+  const getMockReportTime = (r: (typeof mockReports)[0]) => {
     if (r.createdAt.includes("phút trước") || r.createdAt.includes("mins ago")) {
       return new Date().getTime() - 2 * 60 * 1000;
     }
@@ -428,18 +489,30 @@ function HomePage() {
     .sort((a, b) => getMockReportTime(b) - getMockReportTime(a))
     .slice(0, 5);
 
-  const recentApiFeedbacks = [...(recentPage?.content ?? [])]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const recentApiFeedbacks = [...(recentPage?.content ?? [])].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
 
   const getCategoryPlaceholder = (category: string | null | undefined) => {
     const cat = (category || "").toUpperCase();
     if (cat.includes("TRAFFIC") || cat.includes("GIAO_THONG") || cat.includes("GIAO THÔNG")) {
       return "https://images.unsplash.com/photo-1541416410408-01314df08803?auto=format&fit=crop&w=150&h=150&q=80";
     }
-    if (cat.includes("ENVIRONMENT") || cat.includes("MOI_TRUONG") || cat.includes("MÔI TRƯỜNG") || cat.includes("TRASH") || cat.includes("RÁC")) {
+    if (
+      cat.includes("ENVIRONMENT") ||
+      cat.includes("MOI_TRUONG") ||
+      cat.includes("MÔI TRƯỜNG") ||
+      cat.includes("TRASH") ||
+      cat.includes("RÁC")
+    ) {
       return "https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=150&h=150&q=80";
     }
-    if (cat.includes("URBAN") || cat.includes("HA_TANG") || cat.includes("HẠ TẦNG") || cat.includes("INFRASTRUCTURE")) {
+    if (
+      cat.includes("URBAN") ||
+      cat.includes("HA_TANG") ||
+      cat.includes("HẠ TẦNG") ||
+      cat.includes("INFRASTRUCTURE")
+    ) {
       return "https://images.unsplash.com/photo-1596402184320-417e7178b2cd?auto=format&fit=crop&w=150&h=150&q=80";
     }
     if (cat.includes("SECURITY") || cat.includes("AN_NINH") || cat.includes("AN NINH")) {
@@ -456,11 +529,19 @@ function HomePage() {
 
   const getFeedbackThumbnail = (fb: any) => {
     if (fb.attachments && fb.attachments.length > 0) {
-      const imgAtt = fb.attachments.find((att: any) => att.fileType === "IMAGE" || (att.fileType && att.fileType.toUpperCase().startsWith("IMAGE")));
+      const imgAtt = fb.attachments.find(
+        (att: any) =>
+          att.fileType === "IMAGE" ||
+          (att.fileType && att.fileType.toUpperCase().startsWith("IMAGE")),
+      );
       if (imgAtt && imgAtt.fileUrl) {
         return imgAtt.fileUrl;
       }
-      const videoAtt = fb.attachments.find((att: any) => att.fileType === "VIDEO" || (att.fileType && att.fileType.toUpperCase().startsWith("VIDEO")));
+      const videoAtt = fb.attachments.find(
+        (att: any) =>
+          att.fileType === "VIDEO" ||
+          (att.fileType && att.fileType.toUpperCase().startsWith("VIDEO")),
+      );
       if (videoAtt) {
         return getCategoryPlaceholder(fb.categoryCode || fb.category);
       }
@@ -475,8 +556,16 @@ function HomePage() {
 
   const isOnlyVideoFeedback = (fb: any) => {
     if (fb.attachments && fb.attachments.length > 0) {
-      const hasImage = fb.attachments.some((att: any) => att.fileType === "IMAGE" || (att.fileType && att.fileType.toUpperCase().startsWith("IMAGE")));
-      const hasVideo = fb.attachments.some((att: any) => att.fileType === "VIDEO" || (att.fileType && att.fileType.toUpperCase().startsWith("VIDEO")));
+      const hasImage = fb.attachments.some(
+        (att: any) =>
+          att.fileType === "IMAGE" ||
+          (att.fileType && att.fileType.toUpperCase().startsWith("IMAGE")),
+      );
+      const hasVideo = fb.attachments.some(
+        (att: any) =>
+          att.fileType === "VIDEO" ||
+          (att.fileType && att.fileType.toUpperCase().startsWith("VIDEO")),
+      );
       return hasVideo && !hasImage;
     }
     return false;
@@ -774,7 +863,8 @@ function HomePage() {
                       backgroundColor: "#FFFFFF",
                       border: "1px solid #E2E8F0",
                       borderRadius: "8px",
-                      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                      boxShadow:
+                        "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
                     }}
                     labelStyle={{ fontWeight: 600, color: "#1E293B", marginBottom: "4px" }}
                   />
@@ -784,9 +874,24 @@ function HomePage() {
                     iconType="circle"
                     iconSize={8}
                     formatter={(value) => {
-                      if (value === "total") return <span className="text-sm font-medium text-[#475569]">{t("home.stats.total")}</span>;
-                      if (value === "processing") return <span className="text-sm font-medium text-[#475569]">{t("home.stats.inProgress")}</span>;
-                      if (value === "processed") return <span className="text-sm font-medium text-[#475569]">{t("home.stats.resolved")}</span>;
+                      if (value === "total")
+                        return (
+                          <span className="text-sm font-medium text-[#475569]">
+                            {t("home.stats.total")}
+                          </span>
+                        );
+                      if (value === "processing")
+                        return (
+                          <span className="text-sm font-medium text-[#475569]">
+                            {t("home.stats.inProgress")}
+                          </span>
+                        );
+                      if (value === "processed")
+                        return (
+                          <span className="text-sm font-medium text-[#475569]">
+                            {t("home.stats.resolved")}
+                          </span>
+                        );
                       return value;
                     }}
                   />
@@ -878,7 +983,9 @@ function HomePage() {
                         className="w-full h-full object-cover"
                         onError={(e) => {
                           e.currentTarget.onerror = null;
-                          e.currentTarget.src = getCategoryPlaceholder(fb.categoryCode || fb.category);
+                          e.currentTarget.src = getCategoryPlaceholder(
+                            fb.categoryCode || fb.category,
+                          );
                         }}
                       />
                       {isOnlyVideoFeedback(fb) && (
@@ -1139,7 +1246,9 @@ function HomePage() {
                     2
                   </div>
                 </div>
-                <h3 className="text-sm font-bold text-[#123E8A] mb-1 font-sans">{t("home.process.step2")}</h3>
+                <h3 className="text-sm font-bold text-[#123E8A] mb-1 font-sans">
+                  {t("home.process.step2")}
+                </h3>
                 <p className="text-xs text-[#667085] max-w-[200px] leading-relaxed font-sans">
                   {t("home.process.step2Desc")}
                 </p>
@@ -1155,7 +1264,9 @@ function HomePage() {
                     3
                   </div>
                 </div>
-                <h3 className="text-sm font-bold text-[#123E8A] mb-1 font-sans">{t("home.process.step3")}</h3>
+                <h3 className="text-sm font-bold text-[#123E8A] mb-1 font-sans">
+                  {t("home.process.step3")}
+                </h3>
                 <p className="text-xs text-[#667085] max-w-[200px] leading-relaxed font-sans">
                   {t("home.process.step3Desc")}
                 </p>
@@ -1322,7 +1433,9 @@ function HomePage() {
                 <Lock size={20} />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-[#123E8A] font-sans">{t("home.trust.security")}</h3>
+                <h3 className="text-sm font-bold text-[#123E8A] font-sans">
+                  {t("home.trust.security")}
+                </h3>
                 <p className="text-xs text-[#667085] leading-relaxed font-sans">
                   {t("home.trust.securityDesc")}
                 </p>
@@ -1335,7 +1448,9 @@ function HomePage() {
                 <ShieldCheck size={20} />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-[#123E8A] font-sans">{t("home.trust.transparent")}</h3>
+                <h3 className="text-sm font-bold text-[#123E8A] font-sans">
+                  {t("home.trust.transparent")}
+                </h3>
                 <p className="text-xs text-[#667085] leading-relaxed font-sans">
                   {t("home.trust.transparentDesc")}
                 </p>
@@ -1348,7 +1463,9 @@ function HomePage() {
                 <Clock size={20} />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-[#123E8A] font-sans">{t("home.trust.fast")}</h3>
+                <h3 className="text-sm font-bold text-[#123E8A] font-sans">
+                  {t("home.trust.fast")}
+                </h3>
                 <p className="text-xs text-[#667085] leading-relaxed font-sans">
                   {t("home.trust.fastDesc")}
                 </p>
@@ -1375,4 +1492,3 @@ function HomePage() {
     </div>
   );
 }
-

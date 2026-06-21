@@ -19,6 +19,7 @@ import { CampaignMap } from "@/components/site/CampaignMap";
 import type { Campaign } from "@/lib/campaignStore";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
+import { CampaignDetailPageComponent } from "@/routes/campaigns.$id";
 
 function formatDate(dateStr?: string) {
   if (!dateStr) return "Chưa cập nhật";
@@ -64,6 +65,7 @@ export function WardCampaignPage() {
   const campaigns = useCampaignList();
   const navigate = useNavigate();
   const [activeCampaignId, setActiveCampaignId] = useState<string | null>(null);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
 
   const activeCampaign = useMemo(() => {
     if (!campaigns.length) return null;
@@ -86,15 +88,21 @@ export function WardCampaignPage() {
   };
 
   const handleEdit = (id: string) => {
-    toast.info("Chức năng chỉnh sửa chi tiết chiến dịch đang được phát triển. Vui lòng liên hệ Admin thành phố.");
+    toast.info(
+      "Chức năng chỉnh sửa chi tiết chiến dịch đang được phát triển. Vui lòng liên hệ Admin thành phố.",
+    );
   };
 
   const handleManage = (id: string) => {
-    navigate({ to: "/campaigns/$id", params: { id } });
+    setSelectedCampaignId(id);
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa chiến dịch này không? Hành động này không thể hoàn tác.")) {
+    if (
+      window.confirm(
+        "Bạn có chắc chắn muốn xóa chiến dịch này không? Hành động này không thể hoàn tác.",
+      )
+    ) {
       try {
         await deleteCampaign.mutateAsync(id);
         toast.success("Đã xóa chiến dịch thành công.");
@@ -102,14 +110,25 @@ export function WardCampaignPage() {
           setActiveCampaignId(null);
         }
       } catch (err) {
-        toast.error("Không thể xóa chiến dịch: " + (err instanceof Error ? err.message : "Lỗi hệ thống"));
+        toast.error(
+          "Không thể xóa chiến dịch: " + (err instanceof Error ? err.message : "Lỗi hệ thống"),
+        );
       }
     }
   };
 
   const handleViewDetail = (id: string) => {
-    navigate({ to: "/campaigns/$id", params: { id } });
+    setSelectedCampaignId(id);
   };
+
+  if (selectedCampaignId) {
+    return (
+      <CampaignDetailPageComponent
+        campaignId={selectedCampaignId}
+        onBack={() => setSelectedCampaignId(null)}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -182,7 +201,9 @@ export function WardCampaignPage() {
             <div className="bg-slate-50 border border-dashed border-[#E4EAF2] rounded-2xl p-6 flex flex-col items-center justify-center text-center h-[480px]">
               <Flag size={32} className="text-slate-300 mb-2" />
               <p className="text-slate-400 text-sm font-bold">Chưa có chiến dịch nào được chọn</p>
-              <p className="text-slate-400 text-xs mt-1">Chọn một điểm mốc trên bản đồ để xem chi tiết nhanh.</p>
+              <p className="text-slate-400 text-xs mt-1">
+                Chọn một điểm mốc trên bản đồ để xem chi tiết nhanh.
+              </p>
             </div>
           )}
         </div>
@@ -256,7 +277,9 @@ export function WardCampaignPage() {
                       </p>
                     </td>
                     <td className="px-5 py-4">
-                      <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-extrabold ${catInfo.bg}`}>
+                      <span
+                        className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-extrabold ${catInfo.bg}`}
+                      >
                         {catInfo.label}
                       </span>
                     </td>
@@ -265,7 +288,9 @@ export function WardCampaignPage() {
                       {formatDate(c.startTime)} - {formatDate(c.endTime)}
                     </td>
                     <td className="px-5 py-4">
-                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-extrabold ${statusInfo.bg}`}>
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-extrabold ${statusInfo.bg}`}
+                      >
                         {statusInfo.label}
                       </span>
                     </td>
@@ -274,9 +299,7 @@ export function WardCampaignPage() {
                         <span className="font-sans text-xs font-extrabold text-slate-700">
                           {c.participants}
                         </span>
-                        <span className="text-xs font-semibold text-slate-400">
-                          / {c.target}
-                        </span>
+                        <span className="text-xs font-semibold text-slate-400">/ {c.target}</span>
                       </div>
                     </td>
                     <td className="px-5 py-4 text-sm font-bold text-slate-500">{c.createdBy}</td>
@@ -354,14 +377,22 @@ function KpiCard({
         <p className="font-sans text-3xl font-extrabold text-[#0B2545]">{value}</p>
         <p className="text-xs font-semibold text-slate-400">{note}</p>
       </div>
-      <span className={`flex h-11 w-11 items-center justify-center rounded-xl border ${colors[tone]}`}>
+      <span
+        className={`flex h-11 w-11 items-center justify-center rounded-xl border ${colors[tone]}`}
+      >
         <Icon size={20} />
       </span>
     </section>
   );
 }
 
-function QuickDetailsPanel({ campaign, onViewDetail }: { campaign: Campaign; onViewDetail: () => void }) {
+function QuickDetailsPanel({
+  campaign,
+  onViewDetail,
+}: {
+  campaign: Campaign;
+  onViewDetail: () => void;
+}) {
   const thumbnail = useCampaignThumbnail(campaign);
   const catInfo = getCategoryInfo(campaign.category);
   const statusInfo = getStatusInfo(campaign.status);
@@ -371,24 +402,24 @@ function QuickDetailsPanel({ campaign, onViewDetail }: { campaign: Campaign; onV
       <div className="space-y-4 overflow-hidden">
         <div className="relative h-44 rounded-xl overflow-hidden bg-slate-100 shrink-0">
           <img src={thumbnail} alt={campaign.name} className="w-full h-full object-cover" />
-          <span className={`absolute top-3 left-3 px-2 py-0.5 text-[10px] font-extrabold rounded-full border ${catInfo.bg}`}>
+          <span
+            className={`absolute top-3 left-3 px-2 py-0.5 text-[10px] font-extrabold rounded-full border ${catInfo.bg}`}
+          >
             {catInfo.label}
           </span>
-          <span className={`absolute top-3 right-3 px-2 py-0.5 text-[10px] font-extrabold rounded-full ${statusInfo.bg}`}>
+          <span
+            className={`absolute top-3 right-3 px-2 py-0.5 text-[10px] font-extrabold rounded-full ${statusInfo.bg}`}
+          >
             {statusInfo.label}
           </span>
         </div>
 
         <div className="space-y-2 overflow-y-auto max-h-[190px] pr-1">
-          <h3 className="text-base font-extrabold text-[#0B2545] leading-snug">
-            {campaign.name}
-          </h3>
+          <h3 className="text-base font-extrabold text-[#0B2545] leading-snug">{campaign.name}</h3>
           <p className="text-slate-400 text-[11px] font-bold">
             Phường: {campaign.ward} | Tạo bởi: {campaign.createdBy}
           </p>
-          <p className="text-slate-600 text-xs leading-relaxed">
-            {campaign.desc}
-          </p>
+          <p className="text-slate-600 text-xs leading-relaxed">{campaign.desc}</p>
         </div>
       </div>
 
@@ -396,11 +427,15 @@ function QuickDetailsPanel({ campaign, onViewDetail }: { campaign: Campaign; onV
         <div className="space-y-1.5 text-xs font-bold text-slate-700">
           <div className="flex items-center gap-2">
             <CalendarDays size={14} className="text-slate-400" />
-            <span>Thời gian: {formatDate(campaign.startTime)} - {formatDate(campaign.endTime)}</span>
+            <span>
+              Thời gian: {formatDate(campaign.startTime)} - {formatDate(campaign.endTime)}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <Users size={14} className="text-slate-400" />
-            <span>Thành viên: {campaign.participants}/{campaign.target}</span>
+            <span>
+              Thành viên: {campaign.participants}/{campaign.target}
+            </span>
           </div>
         </div>
 

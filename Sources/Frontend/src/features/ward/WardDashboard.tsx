@@ -71,10 +71,22 @@ const mapCategoryName = (name: string | null | undefined): string => {
   if (n.includes("giao thông") || n.includes("traffic") || n.includes("giao thong")) {
     return "Giao thông";
   }
-  if (n.includes("môi trường") || n.includes("environment") || n.includes("moi truong") || n.includes("rác")) {
+  if (
+    n.includes("môi trường") ||
+    n.includes("environment") ||
+    n.includes("moi truong") ||
+    n.includes("rác")
+  ) {
     return "Môi trường";
   }
-  if (n.includes("an ninh") || n.includes("security") || n.includes("safety") || n.includes("trật tự") || n.includes("pháp") || n.includes("công an")) {
+  if (
+    n.includes("an ninh") ||
+    n.includes("security") ||
+    n.includes("safety") ||
+    n.includes("trật tự") ||
+    n.includes("pháp") ||
+    n.includes("công an")
+  ) {
     return "An ninh trật tự";
   }
   if (n.includes("xây dựng") || n.includes("construction") || n.includes("xay dung")) {
@@ -121,20 +133,26 @@ export function WardDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const { tab, detailId } = Route.useSearch();
-  const activeSection = (tab && ["overview", "feedback", "campaign", "schedule", "config"].includes(tab) ? tab : "overview") as WardSection;
+  const activeSection = (
+    tab && ["overview", "feedback", "campaign", "schedule", "config"].includes(tab)
+      ? tab
+      : "overview"
+  ) as WardSection;
 
   // Map persistent states
   const [mapCenterState, setMapCenterState] = useState<[number, number] | undefined>(undefined);
   const [mapZoomState, setMapZoomState] = useState<number | undefined>(undefined);
   const [mapLayerType, setMapLayerType] = useState<"osm" | "satellite">("osm");
-  const [activeStatusFilter, setActiveStatusFilter] = useState<"ALL" | "PENDING" | "IN_PROGRESS" | "RESOLVED" | "REJECTED">("ALL");
+  const [activeStatusFilter, setActiveStatusFilter] = useState<
+    "ALL" | "PENDING" | "IN_PROGRESS" | "RESOLVED" | "REJECTED"
+  >("ALL");
   const [selectedFeedbackId, setSelectedFeedbackId] = useState<number | null>(null);
 
   const defaultCenter = useMemo<[number, number]>(() => {
     if (user?.wardName && WARD_CENTERS[user.wardName]) {
       return WARD_CENTERS[user.wardName];
     }
-    return [16.044, 108.220];
+    return [16.044, 108.22];
   }, [user]);
 
   // Scroll card into view when selectedFeedbackId changes
@@ -205,13 +223,20 @@ export function WardDashboard() {
   const dateStr = useMemo(() => formatDateToISO(selectedDate), [selectedDate]);
 
   // Derive fromDate/toDate for API filter from selectedDate (full day range)
-  const feedbackDateFilters = useMemo(() => ({
-    keyword: debouncedSearch,
-    fromDate: dateStr || undefined,
-    toDate: dateStr || undefined,
-  }), [debouncedSearch, dateStr]);
+  const feedbackDateFilters = useMemo(
+    () => ({
+      keyword: debouncedSearch,
+      fromDate: dateStr || undefined,
+      toDate: dateStr || undefined,
+    }),
+    [debouncedSearch, dateStr],
+  );
 
-  const { data: feedbacksPage, isLoading: feedbacksLoading, refetch } = useFeedbacks(0, 500, feedbackDateFilters);
+  const {
+    data: feedbacksPage,
+    isLoading: feedbacksLoading,
+    refetch,
+  } = useFeedbacks(0, 500, feedbackDateFilters);
   const { data: notifications = [], isLoading: notifLoading } = useNotifications();
   const { data: unreadCountData } = useNotificationUnreadCount(!!user);
   const markRead = useMarkNotificationReadMutation();
@@ -230,26 +255,30 @@ export function WardDashboard() {
     return `${year}-${month}-${day}`;
   }, []);
 
-  const todayFeedbackFilters = useMemo(() => ({
-    fromDate: todayStr,
-    toDate: todayStr,
-  }), [todayStr]);
-
-  const { data: todayFeedbacksPage, isLoading: todayFeedbacksLoading, refetch: refetchToday } = useFeedbacks(
-    0,
-    500,
-    todayFeedbackFilters
+  const todayFeedbackFilters = useMemo(
+    () => ({
+      fromDate: todayStr,
+      toDate: todayStr,
+    }),
+    [todayStr],
   );
+
+  const {
+    data: todayFeedbacksPage,
+    isLoading: todayFeedbacksLoading,
+    refetch: refetchToday,
+  } = useFeedbacks(0, 500, todayFeedbackFilters);
 
   const todayFeedbacks = useMemo(() => {
     const rawToday = todayFeedbacksPage?.content ?? [];
     return rawToday.filter((fb) => {
       // 1. Scoped by wardId
       if (user?.wardId && fb.wardId && fb.wardId !== user.wardId) return false;
-      
+
       // 2. Category check
       const code = (fb.categoryCode || "").toUpperCase();
-      const isAllowedCategory = code === "URBAN_INFRASTRUCTURE" || code === "ENVIRONMENT" || code === "CONSTRUCTION";
+      const isAllowedCategory =
+        code === "URBAN_INFRASTRUCTURE" || code === "ENVIRONMENT" || code === "CONSTRUCTION";
       if (!isAllowedCategory) return false;
 
       // 3. Status in "Chờ xử lý" group
@@ -271,9 +300,17 @@ export function WardDashboard() {
         return code === "URBAN_INFRASTRUCTURE" || code === "ENVIRONMENT" || code === "CONSTRUCTION";
       }
       const name = (fb.categoryName || fb.category || "").toLowerCase();
-      const isTraffic = name.includes("giao thông") || name.includes("traffic") || name.includes("giao thong");
-      const isSecurity = name.includes("an ninh") || name.includes("security") || name.includes("safety") || name.includes("trật tự") || name.includes("pháp") || name.includes("công an");
-      const isFire = name.includes("phòng cháy") || name.includes("chữa cháy") || name.includes("fire");
+      const isTraffic =
+        name.includes("giao thông") || name.includes("traffic") || name.includes("giao thong");
+      const isSecurity =
+        name.includes("an ninh") ||
+        name.includes("security") ||
+        name.includes("safety") ||
+        name.includes("trật tự") ||
+        name.includes("pháp") ||
+        name.includes("công an");
+      const isFire =
+        name.includes("phòng cháy") || name.includes("chữa cháy") || name.includes("fire");
       return !isTraffic && !isSecurity && !isFire;
     });
   }, [rawFeedbacks, user]);
@@ -285,12 +322,16 @@ export function WardDashboard() {
     authorityUnitName,
   );
 
-  const { data: statsData, isLoading: statsLoading, refetch: refetchStats } = useWardStaffStatistics(dateStr || undefined);
+  const {
+    data: statsData,
+    isLoading: statsLoading,
+    refetch: refetchStats,
+  } = useWardStaffStatistics(dateStr || undefined);
 
   const dateLabel = selectedDate
-    ? (isTodayDate(selectedDate)
-        ? `Hôm nay - ${formatDateToDisplay(selectedDate)}`
-        : formatDateToDisplay(selectedDate))
+    ? isTodayDate(selectedDate)
+      ? `Hôm nay - ${formatDateToDisplay(selectedDate)}`
+      : formatDateToDisplay(selectedDate)
     : "Tất cả thời gian";
 
   const handleReload = () => {
@@ -389,9 +430,18 @@ export function WardDashboard() {
         counts.URBAN_INFRASTRUCTURE++;
       } else {
         const name = (fb.categoryName || fb.category || "").toLowerCase();
-        if (name.includes("môi trường") || name.includes("environment") || name.includes("moi truong") || name.includes("rác")) {
+        if (
+          name.includes("môi trường") ||
+          name.includes("environment") ||
+          name.includes("moi truong") ||
+          name.includes("rác")
+        ) {
           counts.ENVIRONMENT++;
-        } else if (name.includes("xây dựng") || name.includes("construction") || name.includes("xay dung")) {
+        } else if (
+          name.includes("xây dựng") ||
+          name.includes("construction") ||
+          name.includes("xay dung")
+        ) {
           counts.CONSTRUCTION++;
         } else {
           counts.URBAN_INFRASTRUCTURE++;
@@ -499,14 +549,14 @@ export function WardDashboard() {
           navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
         }
       }
-    } catch { }
+    } catch {}
   };
 
   const handleLogout = async () => {
     const loginPath = getLoginPathForRole(user?.role);
     try {
-      await authApi.logout().catch(() => { });
-    } catch { }
+      await authApi.logout().catch(() => {});
+    } catch {}
     logout();
     queryClient.clear();
     navigate({ to: loginPath });
@@ -537,21 +587,25 @@ export function WardDashboard() {
     <div className="min-h-screen bg-[#F4F7FA] text-[#1E293B] font-sans antialiased flex">
       {/* â”€â”€â”€ 1. FIXED LEFT SIDEBAR â”€â”€â”€ */}
       <aside
-        className={`bg-gradient-to-b from-[#0F2042] to-[#0A1630] text-white flex flex-col z-[2010] transition-all duration-300 fixed inset-y-0 left-0 ${sidebarCollapsed ? "w-[76px]" : "w-[240px]"
-          } ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
+        className={`bg-gradient-to-b from-[#0F2042] to-[#0A1630] text-white flex flex-col z-[2010] transition-all duration-300 fixed inset-y-0 left-0 ${
+          sidebarCollapsed ? "w-[76px]" : "w-[240px]"
+        } ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
       >
         {/* Emblem & Ward Title */}
         <div className="p-5 flex flex-col items-center border-b border-white/10 shrink-0">
           <img
             src={logoImg}
             alt="Biểu trưng UBND"
-            className={`transition-all duration-300 object-contain ${sidebarCollapsed ? "w-10 h-10" : "w-14 h-14"
-              }`}
+            className={`transition-all duration-300 object-contain ${
+              sidebarCollapsed ? "w-10 h-10" : "w-14 h-14"
+            }`}
           />
           {!sidebarCollapsed && (
             <div className="mt-3 text-center">
               <span className="font-extrabold text-sm tracking-wider uppercase block text-[#e2e8f0]">
-                {getAdministrativeUnitLabel(user?.wardType, user?.wardName).replace(authorityUnitName, "").trim() || "UBND"}
+                {getAdministrativeUnitLabel(user?.wardType, user?.wardName)
+                  .replace(authorityUnitName, "")
+                  .trim() || "UBND"}
               </span>
               <span className="font-extrabold text-base tracking-widest uppercase block text-white mt-0.5 animate-pulse">
                 {authorityUnitName.toUpperCase()}
@@ -570,10 +624,11 @@ export function WardDashboard() {
                 key={idx}
                 type="button"
                 onClick={() => handleSectionChange(item.section)}
-                className={`w-full text-left flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all ${isActive
-                  ? "bg-[#0F5BD8] text-white shadow-lg"
-                  : "text-slate-300 hover:bg-white/5 hover:text-white"
-                  }`}
+                className={`w-full text-left flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all ${
+                  isActive
+                    ? "bg-[#0F5BD8] text-white shadow-lg"
+                    : "text-slate-300 hover:bg-white/5 hover:text-white"
+                }`}
               >
                 <Icon size={18} className="shrink-0" />
                 {!sidebarCollapsed && <span>{item.name}</span>}
@@ -607,8 +662,9 @@ export function WardDashboard() {
 
       {/* â”€â”€â”€ MAIN WRAPPER â”€â”€â”€ */}
       <div
-        className={`flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-300 ${sidebarCollapsed ? "md:pl-[76px]" : "md:pl-[240px]"
-          }`}
+        className={`flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-300 ${
+          sidebarCollapsed ? "md:pl-[76px]" : "md:pl-[240px]"
+        }`}
       >
         {/* â”€â”€â”€ 2. TOP WHITE HEADER â”€â”€â”€ */}
         <header className="h-[76px] bg-white border-b border-[#E4EAF2] flex items-center justify-between px-6 sticky top-0 z-[2000] shadow-sm shrink-0">
@@ -621,7 +677,9 @@ export function WardDashboard() {
             >
               <Menu size={20} />
             </button>
-            <h2 className="text-xl font-extrabold text-[#0B2545] font-sans">{activeSectionTitle}</h2>
+            <h2 className="text-xl font-extrabold text-[#0B2545] font-sans">
+              {activeSectionTitle}
+            </h2>
           </div>
 
           {/* Search bar */}
@@ -685,14 +743,17 @@ export function WardDashboard() {
                         ))}
                       </div>
                     ) : notifications.length === 0 ? (
-                      <div className="py-8 text-center text-xs text-slate-400">Không có thông báo mới</div>
+                      <div className="py-8 text-center text-xs text-slate-400">
+                        Không có thông báo mới
+                      </div>
                     ) : (
                       notifications.slice(0, 5).map((item) => (
                         <button
                           key={item.id}
                           onClick={() => handleNotifClick(item)}
-                          className={`w-full text-left p-3.5 flex gap-3 transition-colors hover:bg-slate-50 ${item.isRead ? "opacity-70" : "bg-[#EFF6FF]"
-                            }`}
+                          className={`w-full text-left p-3.5 flex gap-3 transition-colors hover:bg-slate-50 ${
+                            item.isRead ? "opacity-70" : "bg-[#EFF6FF]"
+                          }`}
                         >
                           <div className="w-8 h-8 rounded-full bg-[#0F5BD8]/10 text-[#0F5BD8] flex items-center justify-center shrink-0">
                             <Bell size={14} />
@@ -777,7 +838,9 @@ export function WardDashboard() {
         </header>
 
         {/* ─── 3. MAIN DASHBOARD CONTENT ─── */}
-        <main className={`flex-1 space-y-6 overflow-y-auto ${activeSection === "feedback" && !detailId ? "p-5 md:p-6" : activeSection === "feedback" && detailId ? "p-0" : "p-6 md:p-8"}`}>
+        <main
+          className={`flex-1 space-y-6 overflow-y-auto ${activeSection === "feedback" && !detailId ? "p-5 md:p-6" : activeSection === "feedback" && detailId ? "p-0" : "p-6 md:p-8"}`}
+        >
           {activeSection === "feedback" ? (
             detailId ? (
               <FeedbackDetailPageComponent
@@ -785,7 +848,7 @@ export function WardDashboard() {
                 onBack={() => {
                   navigate({
                     to: "/ward",
-                    search: { tab: "feedback" }
+                    search: { tab: "feedback" },
                   });
                 }}
               />
@@ -798,7 +861,11 @@ export function WardDashboard() {
               <div className="flex flex-wrap items-center justify-end gap-3 -mt-2">
                 <div className="relative">
                   <button
-                    onClick={() => dateInputRef.current?.showPicker ? dateInputRef.current.showPicker() : dateInputRef.current?.click()}
+                    onClick={() =>
+                      dateInputRef.current?.showPicker
+                        ? dateInputRef.current.showPicker()
+                        : dateInputRef.current?.click()
+                    }
                     className="flex items-center gap-2 px-4 py-2 bg-white border border-[#E4EAF2] rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition shadow-sm cursor-pointer"
                   >
                     <Calendar size={14} className="text-slate-400" />
@@ -823,7 +890,10 @@ export function WardDashboard() {
                   className="p-2 bg-white border border-[#E4EAF2] rounded-xl hover:bg-slate-50 transition shadow-sm cursor-pointer"
                   aria-label="Tải lại dữ liệu"
                 >
-                  <RefreshCw size={16} className={`text-slate-500 ${feedbacksLoading ? "animate-spin" : ""}`} />
+                  <RefreshCw
+                    size={16}
+                    className={`text-slate-500 ${feedbacksLoading ? "animate-spin" : ""}`}
+                  />
                 </button>
               </div>
 
@@ -909,11 +979,31 @@ export function WardDashboard() {
                   {/* Status Filter Chips */}
                   <div className="px-4 py-2 bg-slate-50 border-b border-slate-100 flex flex-wrap gap-2 shrink-0">
                     {[
-                      { key: "ALL", label: "Tất cả", color: "bg-slate-100 text-slate-800 border-slate-200" },
-                      { key: "PENDING", label: "Chờ xử lý", color: "bg-blue-50 text-blue-700 border-blue-200" },
-                      { key: "IN_PROGRESS", label: "Đang xử lý", color: "bg-yellow-50 text-yellow-700 border-yellow-200" },
-                      { key: "RESOLVED", label: "Đã xử lý", color: "bg-green-50 text-green-700 border-green-200" },
-                      { key: "REJECTED", label: "Đã từ chối", color: "bg-red-50 text-red-700 border-red-200" },
+                      {
+                        key: "ALL",
+                        label: "Tất cả",
+                        color: "bg-slate-100 text-slate-800 border-slate-200",
+                      },
+                      {
+                        key: "PENDING",
+                        label: "Chờ xử lý",
+                        color: "bg-blue-50 text-blue-700 border-blue-200",
+                      },
+                      {
+                        key: "IN_PROGRESS",
+                        label: "Đang xử lý",
+                        color: "bg-yellow-50 text-yellow-700 border-yellow-200",
+                      },
+                      {
+                        key: "RESOLVED",
+                        label: "Đã xử lý",
+                        color: "bg-green-50 text-green-700 border-green-200",
+                      },
+                      {
+                        key: "REJECTED",
+                        label: "Đã từ chối",
+                        color: "bg-red-50 text-red-700 border-red-200",
+                      },
                     ].map((chip) => {
                       const isActive = activeStatusFilter === chip.key;
                       return (
@@ -921,15 +1011,17 @@ export function WardDashboard() {
                           key={chip.key}
                           type="button"
                           onClick={() => setActiveStatusFilter(chip.key as any)}
-                          className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border transition ${isActive
-                            ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                            : `${chip.color} hover:bg-slate-100 cursor-pointer`
-                            }`}
+                          className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border transition ${
+                            isActive
+                              ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                              : `${chip.color} hover:bg-slate-100 cursor-pointer`
+                          }`}
                         >
                           <span>{chip.label}</span>
                           <span
-                            className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${isActive ? "bg-white text-blue-600" : "bg-white/70 text-slate-700"
-                              }`}
+                            className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                              isActive ? "bg-white text-blue-600" : "bg-white/70 text-slate-700"
+                            }`}
                           >
                             {statusCounts[chip.key as keyof typeof statusCounts]}
                           </span>
@@ -1007,10 +1099,11 @@ export function WardDashboard() {
                                     setMapZoomState(16);
                                   }
                                 }}
-                                className={`p-3 rounded-xl border text-left transition cursor-pointer ${isSelected
-                                  ? "bg-blue-50/70 border-blue-400 shadow-sm"
-                                  : "bg-white border-slate-100 hover:border-slate-300"
-                                  }`}
+                                className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+                                  isSelected
+                                    ? "bg-blue-50/70 border-blue-400 shadow-sm"
+                                    : "bg-white border-slate-100 hover:border-slate-300"
+                                }`}
                               >
                                 <div className="flex items-center gap-2 mb-1.5">
                                   <span className={`w-2 h-2 rounded-full ${statusColor}`} />
@@ -1136,32 +1229,32 @@ export function WardDashboard() {
                       </Link>
                     </div>
                     <div className="space-y-4">
-                      {feedbacksLoading ? (
-                        [1, 2, 3].map((i) => (
-                          <div key={i} className="space-y-2">
-                            <Skeleton className="h-3 w-1/3" />
-                            <Skeleton className="h-2 w-full" />
-                          </div>
-                        ))
-                      ) : (
-                        categoryCounts.map((cat, idx) => (
-                          <div key={idx} className="space-y-1">
-                            <div className="flex justify-between text-xs font-bold text-slate-600">
-                              <span>{cat.name}</span>
-                              <span className="text-slate-800 font-extrabold">
-                                {cat.count}{" "}
-                                <span className="text-slate-400 font-semibold font-sans">({cat.percentage}%)</span>
-                              </span>
+                      {feedbacksLoading
+                        ? [1, 2, 3].map((i) => (
+                            <div key={i} className="space-y-2">
+                              <Skeleton className="h-3 w-1/3" />
+                              <Skeleton className="h-2 w-full" />
                             </div>
-                            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                              <div
-                                className="bg-[#0F5BD8] h-full rounded-full transition-all duration-500"
-                                style={{ width: `${cat.rawPercentage}%` }}
-                              />
+                          ))
+                        : categoryCounts.map((cat, idx) => (
+                            <div key={idx} className="space-y-1">
+                              <div className="flex justify-between text-xs font-bold text-slate-600">
+                                <span>{cat.name}</span>
+                                <span className="text-slate-800 font-extrabold">
+                                  {cat.count}{" "}
+                                  <span className="text-slate-400 font-semibold font-sans">
+                                    ({cat.percentage}%)
+                                  </span>
+                                </span>
+                              </div>
+                              <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                <div
+                                  className="bg-[#0F5BD8] h-full rounded-full transition-all duration-500"
+                                  style={{ width: `${cat.rawPercentage}%` }}
+                                />
+                              </div>
                             </div>
-                          </div>
-                        ))
-                      )}
+                          ))}
                     </div>
                   </div>
                   <div className="pt-4 border-t border-slate-50">
@@ -1216,18 +1309,35 @@ export function WardDashboard() {
                           {feedbacksLoading ? (
                             [1, 2, 3].map((i) => (
                               <tr key={i} className="animate-pulse">
-                                <td className="px-5 py-3"><Skeleton className="h-3.5 w-16" /></td>
-                                <td className="px-5 py-3"><Skeleton className="h-3.5 w-36" /></td>
-                                <td className="px-5 py-3"><Skeleton className="h-3.5 w-24" /></td>
-                                <td className="px-5 py-3"><Skeleton className="h-3.5 w-24" /></td>
-                                <td className="px-5 py-3"><Skeleton className="h-3.5 w-16" /></td>
-                                <td className="px-5 py-3"><Skeleton className="h-5 w-12" /></td>
-                                <td className="px-5 py-3 text-right"><Skeleton className="h-6 w-16 inline-block" /></td>
+                                <td className="px-5 py-3">
+                                  <Skeleton className="h-3.5 w-16" />
+                                </td>
+                                <td className="px-5 py-3">
+                                  <Skeleton className="h-3.5 w-36" />
+                                </td>
+                                <td className="px-5 py-3">
+                                  <Skeleton className="h-3.5 w-24" />
+                                </td>
+                                <td className="px-5 py-3">
+                                  <Skeleton className="h-3.5 w-24" />
+                                </td>
+                                <td className="px-5 py-3">
+                                  <Skeleton className="h-3.5 w-16" />
+                                </td>
+                                <td className="px-5 py-3">
+                                  <Skeleton className="h-5 w-12" />
+                                </td>
+                                <td className="px-5 py-3 text-right">
+                                  <Skeleton className="h-6 w-16 inline-block" />
+                                </td>
                               </tr>
                             ))
                           ) : priorityReports.length === 0 ? (
                             <tr>
-                              <td colSpan={7} className="px-5 py-8 text-center text-xs text-slate-400">
+                              <td
+                                colSpan={7}
+                                className="px-5 py-8 text-center text-xs text-slate-400"
+                              >
                                 Chưa có phản ánh ưu tiên cao.
                               </td>
                             </tr>
@@ -1235,20 +1345,23 @@ export function WardDashboard() {
                             priorityReports.map((row) => {
                               const grp = getGroupedFeedbackStatus(row.status);
                               return (
-                                <tr
-                                  key={row.id}
-                                  className="hover:bg-slate-50 transition-colors"
-                                >
+                                <tr key={row.id} className="hover:bg-slate-50 transition-colors">
                                   <td className="px-5 py-3.5 text-xs font-bold text-slate-800">
                                     {row.trackingCode}
                                   </td>
-                                  <td className="px-5 py-3.5 text-xs text-slate-700 font-semibold max-w-[150px] truncate" title={row.title}>
+                                  <td
+                                    className="px-5 py-3.5 text-xs text-slate-700 font-semibold max-w-[150px] truncate"
+                                    title={row.title}
+                                  >
                                     {row.title}
                                   </td>
                                   <td className="px-5 py-3.5 text-xs text-slate-600">
                                     {mapCategoryName(row.categoryName)}
                                   </td>
-                                  <td className="px-5 py-3.5 text-xs text-slate-500 truncate max-w-[120px] font-sans" title={row.addressDetails || row.address || "Tân Bình"}>
+                                  <td
+                                    className="px-5 py-3.5 text-xs text-slate-500 truncate max-w-[120px] font-sans"
+                                    title={row.addressDetails || row.address || "Tân Bình"}
+                                  >
                                     {row.addressDetails || row.address || "Tân Bình"}
                                   </td>
                                   <td className="px-5 py-3.5 text-xs text-slate-500 whitespace-nowrap font-sans">
@@ -1319,7 +1432,9 @@ export function WardDashboard() {
                         )}
                       </h4>
                       <p className="text-[10px] text-slate-400 font-medium mt-2">
-                        {selectedDate ? `Phản ánh trong ngày ${formatDateToDisplay(selectedDate)}` : "Tất cả thời gian"}
+                        {selectedDate
+                          ? `Phản ánh trong ngày ${formatDateToDisplay(selectedDate)}`
+                          : "Tất cả thời gian"}
                       </p>
                       <Link
                         to="/my-reports"
@@ -1340,19 +1455,27 @@ export function WardDashboard() {
                         <span className="flex items-center gap-2">
                           <FileText size={14} className="text-slate-400 shrink-0" />
                           {selectedDate
-                            ? (isTodayDate(selectedDate) ? "Phản ánh mới hôm nay" : "Phản ánh mới trong ngày")
+                            ? isTodayDate(selectedDate)
+                              ? "Phản ánh mới hôm nay"
+                              : "Phản ánh mới trong ngày"
                             : "Tổng số phản ánh mới"}
                         </span>
-                        <span className="text-[#0B2545] font-extrabold font-sans">{quickInfo.newInDate}</span>
+                        <span className="text-[#0B2545] font-extrabold font-sans">
+                          {quickInfo.newInDate}
+                        </span>
                       </div>
                       <div className="flex items-center justify-between text-xs font-semibold text-slate-500">
                         <span className="flex items-center gap-2">
                           <CheckCircle2 size={14} className="text-slate-400 shrink-0" />
                           {selectedDate
-                            ? (isTodayDate(selectedDate) ? "Phản ánh đã xử lý hôm nay" : "Phản ánh đã xử lý trong ngày")
+                            ? isTodayDate(selectedDate)
+                              ? "Phản ánh đã xử lý hôm nay"
+                              : "Phản ánh đã xử lý trong ngày"
                             : "Tổng phản ánh đã xử lý"}
                         </span>
-                        <span className="text-[#0B2545] font-extrabold font-sans">{quickInfo.resolvedInDate}</span>
+                        <span className="text-[#0B2545] font-extrabold font-sans">
+                          {quickInfo.resolvedInDate}
+                        </span>
                       </div>
                       <div className="flex items-center justify-between text-xs font-semibold text-slate-500">
                         <span className="flex items-center gap-2">
@@ -1424,13 +1547,27 @@ export function WardDashboard() {
                       {todayFeedbacksLoading ? (
                         [1, 2].map((i) => (
                           <tr key={i} className="animate-pulse">
-                            <td className="px-5 py-3"><Skeleton className="h-3.5 w-16" /></td>
-                            <td className="px-5 py-3"><Skeleton className="h-3.5 w-36" /></td>
-                            <td className="px-5 py-3"><Skeleton className="h-3.5 w-24" /></td>
-                            <td className="px-5 py-3"><Skeleton className="h-3.5 w-24" /></td>
-                            <td className="px-5 py-3"><Skeleton className="h-3.5 w-16" /></td>
-                            <td className="px-5 py-3"><Skeleton className="h-5 w-12" /></td>
-                            <td className="px-5 py-3 text-right"><Skeleton className="h-6 w-16 inline-block" /></td>
+                            <td className="px-5 py-3">
+                              <Skeleton className="h-3.5 w-16" />
+                            </td>
+                            <td className="px-5 py-3">
+                              <Skeleton className="h-3.5 w-36" />
+                            </td>
+                            <td className="px-5 py-3">
+                              <Skeleton className="h-3.5 w-24" />
+                            </td>
+                            <td className="px-5 py-3">
+                              <Skeleton className="h-3.5 w-24" />
+                            </td>
+                            <td className="px-5 py-3">
+                              <Skeleton className="h-3.5 w-16" />
+                            </td>
+                            <td className="px-5 py-3">
+                              <Skeleton className="h-5 w-12" />
+                            </td>
+                            <td className="px-5 py-3 text-right">
+                              <Skeleton className="h-6 w-16 inline-block" />
+                            </td>
                           </tr>
                         ))
                       ) : todayFeedbacks.length === 0 ? (
@@ -1443,20 +1580,23 @@ export function WardDashboard() {
                         todayFeedbacks.map((row) => {
                           const grp = getGroupedFeedbackStatus(row.status);
                           return (
-                            <tr
-                              key={row.id}
-                              className="hover:bg-slate-50 transition-colors"
-                            >
+                            <tr key={row.id} className="hover:bg-slate-50 transition-colors">
                               <td className="px-5 py-3.5 text-xs font-bold text-slate-800">
                                 {row.trackingCode}
                               </td>
-                              <td className="px-5 py-3.5 text-xs text-slate-700 font-semibold max-w-[180px] truncate" title={row.title}>
+                              <td
+                                className="px-5 py-3.5 text-xs text-slate-700 font-semibold max-w-[180px] truncate"
+                                title={row.title}
+                              >
                                 {row.title}
                               </td>
                               <td className="px-5 py-3.5 text-xs text-slate-600">
                                 {mapCategoryName(row.categoryName)}
                               </td>
-                              <td className="px-5 py-3.5 text-xs text-slate-500 truncate max-w-[180px] font-sans" title={row.addressDetails || row.address || "Tân Bình"}>
+                              <td
+                                className="px-5 py-3.5 text-xs text-slate-500 truncate max-w-[180px] font-sans"
+                                title={row.addressDetails || row.address || "Tân Bình"}
+                              >
                                 {row.addressDetails || row.address || "Tân Bình"}
                               </td>
                               <td className="px-5 py-3.5 text-xs text-slate-500 whitespace-nowrap font-sans">
@@ -1519,19 +1659,29 @@ export function WardDashboard() {
   );
 }
 
-function WardSectionPlaceholder({ section }: { section: Exclude<WardSection, "overview" | "feedback"> }) {
-  const labels: Record<Exclude<WardSection, "overview" | "feedback">, { title: string; description: string }> = {
+function WardSectionPlaceholder({
+  section,
+}: {
+  section: Exclude<WardSection, "overview" | "feedback">;
+}) {
+  const labels: Record<
+    Exclude<WardSection, "overview" | "feedback">,
+    { title: string; description: string }
+  > = {
     campaign: {
       title: "Chi\u1ebfn d\u1ecbch",
-      description: "Khu v\u1ef1c qu\u1ea3n l\u00fd chi\u1ebfn d\u1ecbch s\u1ebd \u0111\u01b0\u1ee3c hi\u1ec3n th\u1ecb trong khung dashboard n\u00e0y.",
+      description:
+        "Khu v\u1ef1c qu\u1ea3n l\u00fd chi\u1ebfn d\u1ecbch s\u1ebd \u0111\u01b0\u1ee3c hi\u1ec3n th\u1ecb trong khung dashboard n\u00e0y.",
     },
     schedule: {
       title: "L\u1ecbch ti\u1ebfp c\u00f4ng d\u00e2n",
-      description: "Khu v\u1ef1c l\u1ecbch ti\u1ebfp c\u00f4ng d\u00e2n s\u1ebd \u0111\u01b0\u1ee3c hi\u1ec3n th\u1ecb trong khung dashboard n\u00e0y.",
+      description:
+        "Khu v\u1ef1c l\u1ecbch ti\u1ebfp c\u00f4ng d\u00e2n s\u1ebd \u0111\u01b0\u1ee3c hi\u1ec3n th\u1ecb trong khung dashboard n\u00e0y.",
     },
     config: {
       title: "C\u1ea5u h\u00ecnh",
-      description: "Khu v\u1ef1c c\u1ea5u h\u00ecnh s\u1ebd \u0111\u01b0\u1ee3c hi\u1ec3n th\u1ecb trong khung dashboard n\u00e0y.",
+      description:
+        "Khu v\u1ef1c c\u1ea5u h\u00ecnh s\u1ebd \u0111\u01b0\u1ee3c hi\u1ec3n th\u1ecb trong khung dashboard n\u00e0y.",
     },
   };
   const copy = labels[section];
@@ -1543,4 +1693,3 @@ function WardSectionPlaceholder({ section }: { section: Exclude<WardSection, "ov
     </div>
   );
 }
-

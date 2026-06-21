@@ -53,3 +53,22 @@ BEGIN
         ALTER TABLE wards ADD CONSTRAINT unique_ward_code UNIQUE (ward_code);
     END IF;
 END $$;
+
+-- 8. Feedback admin/dashboard columns used by the current Feedback entity
+ALTER TABLE feedbacks ADD COLUMN IF NOT EXISTS category_code VARCHAR(80);
+ALTER TABLE feedbacks ADD COLUMN IF NOT EXISTS category_name VARCHAR(255);
+ALTER TABLE feedbacks ADD COLUMN IF NOT EXISTS managed_by_role VARCHAR(30);
+ALTER TABLE feedbacks ADD COLUMN IF NOT EXISTS ward_name VARCHAR(255);
+ALTER TABLE feedbacks ADD COLUMN IF NOT EXISTS district_name VARCHAR(255);
+ALTER TABLE feedbacks ADD COLUMN IF NOT EXISTS city_name VARCHAR(255);
+ALTER TABLE feedbacks ADD COLUMN IF NOT EXISTS assigned_unit_id BIGINT;
+ALTER TABLE feedbacks ADD COLUMN IF NOT EXISTS assigned_unit_name VARCHAR(255);
+ALTER TABLE feedbacks ADD COLUMN IF NOT EXISTS assigned_to_role VARCHAR(30);
+ALTER TABLE feedbacks ADD COLUMN IF NOT EXISTS assigned_staff_id BIGINT;
+ALTER TABLE feedbacks ADD COLUMN IF NOT EXISTS submitted_at TIMESTAMP;
+ALTER TABLE feedbacks ADD COLUMN IF NOT EXISTS received_at TIMESTAMP;
+ALTER TABLE feedbacks ALTER COLUMN ward_id DROP NOT NULL;
+
+-- 9. Attachment purpose is read by admin/citizen feedback DTO mapping
+ALTER TABLE attachments ADD COLUMN IF NOT EXISTS attachment_purpose VARCHAR(50) NOT NULL DEFAULT 'SUBMISSION_EVIDENCE';
+CREATE INDEX IF NOT EXISTS idx_attachments_feedback_purpose ON attachments(feedback_id, attachment_purpose);

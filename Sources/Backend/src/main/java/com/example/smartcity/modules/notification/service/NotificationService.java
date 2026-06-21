@@ -77,6 +77,7 @@ public class NotificationService extends BaseServiceImpl<Notification, Long> {
         Notification notification = Notification.builder()
                 .user(savedFeedback.getCitizen())
                 .referenceId(savedFeedback.getId())
+                .feedbackId(savedFeedback.getId())
                 .title("Gửi phản ánh thành công")
                 .content("Phản ánh của bạn đã được ghi nhận và đang chờ tiếp nhận.")
                 .type("FEEDBACK_SUBMITTED")
@@ -120,6 +121,7 @@ public class NotificationService extends BaseServiceImpl<Notification, Long> {
         Notification notification = Notification.builder()
                 .user(feedback.getCitizen())
                 .referenceId(feedback.getId())
+                .feedbackId(feedback.getId())
                 .title("❌ Phản ánh chưa được tiếp nhận")
                 .content(friendlyReason)
                 .type("FEEDBACK_REJECTED")
@@ -136,6 +138,33 @@ public class NotificationService extends BaseServiceImpl<Notification, Long> {
                 feedback.getId(),
                 feedback.getCitizen().getId(),
                 friendlyReason);
+    }
+
+    @Async("aiTaskExecutor")
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void createFeedbackWaitingInfoNotification(Long feedbackId, String requestMessage) {
+        Feedback feedback = feedbackRepository.findById(feedbackId).orElse(null);
+        if (feedback == null || feedback.getCitizen() == null) {
+            log.warn("[Notification] Feedback or citizen not found when requesting more info. feedbackId={}", feedbackId);
+            return;
+        }
+
+        Notification notification = Notification.builder()
+                .user(feedback.getCitizen())
+                .referenceId(feedback.getId())
+                .feedbackId(feedback.getId())
+                .title("Can bo phuong yeu cau bo sung thong tin")
+                .content(requestMessage == null || requestMessage.isBlank()
+                        ? "Vui long bo sung thong tin cho phan anh " + feedback.getTrackingCode() + "."
+                        : requestMessage)
+                .type("FEEDBACK_WAITING_INFO")
+                .isRead(false)
+                .build();
+
+        LocalDateTime now = LocalDateTime.now();
+        notification.setCreatedAt(now);
+        notification.setUpdatedAt(now);
+        notificationRepository.save(notification);
     }
 
     @Transactional
@@ -169,7 +198,7 @@ public class NotificationService extends BaseServiceImpl<Notification, Long> {
                 .content(notification.getContent())
                 .type(notification.getType())
                 .referenceId(notification.getReferenceId())
-                .feedbackId(notification.getReferenceId())
+                .feedbackId(notification.getFeedbackId() != null ? notification.getFeedbackId() : notification.getReferenceId())
                 .feedbackTrackingCode(feedback == null ? null : feedback.getTrackingCode())
                 .feedbackTitle(feedback == null ? null : feedback.getTitle())
                 .feedbackStatus(feedback == null || feedback.getStatus() == null ? null : feedback.getStatus().name())

@@ -17,6 +17,7 @@ import com.example.smartcity.modules.feedback.repository.AttachmentRepository;
 import com.example.smartcity.modules.feedback.repository.AiTaskRepository;
 import com.example.smartcity.modules.notification.WebSocketNotificationService;
 import com.example.smartcity.modules.notification.service.NotificationService;
+import com.example.smartcity.modules.notification.repository.NotificationRepository;
 import com.example.smartcity.modules.feedback.service.AutoDispatchService;
 import com.example.smartcity.modules.core.service.LocationResolutionService;
 import com.example.smartcity.ai_orchestrator.guardrails.ContentGuardrailService;
@@ -49,6 +50,7 @@ class FeedbackServiceTest {
     @Mock private AttachmentRepository attachmentRepository;
     @Mock private WebSocketNotificationService webSocketNotificationService;
     @Mock private NotificationService notificationService;
+    @Mock private NotificationRepository notificationRepository;
     @Mock private AutoDispatchService autoDispatchService;
     @Mock private LocationResolutionService locationResolutionService;
     @Mock private ContentGuardrailService contentGuardrailService;
@@ -74,6 +76,7 @@ class FeedbackServiceTest {
                 feedbackLogRepository,
                 webSocketNotificationService,
                 notificationService,
+                notificationRepository,
                 categoryRepository,
                 userRepository,
                 attachmentRepository,

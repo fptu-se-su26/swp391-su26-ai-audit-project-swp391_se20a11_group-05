@@ -98,6 +98,7 @@ public class RefreshTokenService {
                 .role("ROLE_" + userRole.name())
                 .wardName(user.getWard() != null ? user.getWard().getName() : null)
                 .wardType(user.getWard() != null ? user.getWard().getType() : null)
+                .wardId(user.getWard() != null ? user.getWard().getId() : null)
                 .org(orgName)
                 .build();
     }

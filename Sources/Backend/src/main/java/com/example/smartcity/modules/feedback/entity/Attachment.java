@@ -35,6 +35,9 @@ public class Attachment {
     @Column(name = "uploaded_at", updatable = false)
     private LocalDateTime uploadedAt = LocalDateTime.now();
 
+    @Column(name = "attachment_purpose", nullable = false, length = 50)
+    private String attachmentPurpose = "SUBMISSION_EVIDENCE";
+
     public Attachment() {}
 
     public Long getId() { return id; }
@@ -53,6 +56,8 @@ public class Attachment {
     public void setUploadedBy(User uploadedBy) { this.uploadedBy = uploadedBy; }
     public LocalDateTime getUploadedAt() { return uploadedAt; }
     public void setUploadedAt(LocalDateTime uploadedAt) { this.uploadedAt = uploadedAt; }
+    public String getAttachmentPurpose() { return attachmentPurpose; }
+    public void setAttachmentPurpose(String attachmentPurpose) { this.attachmentPurpose = attachmentPurpose; }
 }
 
 

@@ -23,7 +23,12 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import logoUrl from "@/assets/logo.png";
-import { useNotifications, useMarkNotificationReadMutation, useMarkAllNotificationsReadMutation, useNotificationUnreadCount } from "@/lib/hooks";
+import {
+  useNotifications,
+  useMarkNotificationReadMutation,
+  useMarkAllNotificationsReadMutation,
+  useNotificationUnreadCount,
+} from "@/lib/hooks";
 import { toast } from "sonner";
 import { authApi, type NotificationResponse } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
@@ -122,7 +127,7 @@ export function Header() {
           title: n.title,
           isRead: n.isRead,
           createdAt: n.createdAt,
-        }))
+        })),
       );
     }
   }, [notifications]);
@@ -226,7 +231,9 @@ export function Header() {
     { to: "/feedback-search", label: locale === "vi" ? "Tra cứu" : "Search" },
     { to: "/campaigns", label: locale === "vi" ? "Chiến dịch" : "Campaigns" },
     { to: "/", hash: "huong-dan", label: locale === "vi" ? "Hướng dẫn" : "Guides" },
-    ...(!isWardStaff ? [{ to: "/", hash: "lien-he", label: locale === "vi" ? "Liên hệ" : "Contact" }] : []),
+    ...(!isWardStaff
+      ? [{ to: "/", hash: "lien-he", label: locale === "vi" ? "Liên hệ" : "Contact" }]
+      : []),
   ];
   const menuItems = isWardStaff
     ? publicMenuItems.filter((item) => item.to !== "/" || item.hash === "lien-he")
@@ -341,68 +348,73 @@ export function Header() {
           {/* Language Selector */}
           {!isWardStaff && (
             <div className="relative hidden md:block" ref={langRef}>
-            <button
-              onClick={toggleLang}
-              className="group flex min-h-[40px] items-center gap-2 rounded-full border border-transparent px-2.5 text-sm font-semibold text-[#123E8A] transition hover:border-[#E4EAF2] hover:bg-[#F5F9FF] hover:text-[#0B4FC4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B4FC4]/20 cursor-pointer"
-              aria-label="Select Language"
-              aria-haspopup="menu"
-              aria-expanded={langOpen}
-            >
-              <span className="grid h-6 w-8 place-items-center rounded-md bg-[#EEF4FF] text-[11px] font-extrabold tracking-wide text-[#0B4FC4] font-sans">
-                {activeLanguage.shortLabel}
-              </span>
-              <span className="hidden xl:inline font-sans">{activeLanguage.nativeLabel}</span>
-              <ChevronDown
-                size={14}
-                className={`text-[#667085] transition-transform group-hover:text-[#0B4FC4] ${
-                  langOpen ? "rotate-180" : ""
-                }`}
-              />
-            </button>
-
-            {langOpen && (
-              <div
-                role="menu"
-                className="absolute right-0 mt-2 w-44 rounded-xl border border-[#E4EAF2] bg-white p-1.5 shadow-[0_16px_40px_rgba(16,24,40,0.12)] z-50 animate-fade-in"
+              <button
+                onClick={toggleLang}
+                className="group flex min-h-[40px] items-center gap-2 rounded-full border border-transparent px-2.5 text-sm font-semibold text-[#123E8A] transition hover:border-[#E4EAF2] hover:bg-[#F5F9FF] hover:text-[#0B4FC4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B4FC4]/20 cursor-pointer"
+                aria-label="Select Language"
+                aria-haspopup="menu"
+                aria-expanded={langOpen}
               >
-                {LANGUAGE_OPTIONS.map((language) => {
-                  const active = language.code === locale;
-                  return (
-                    <button
-                      key={language.code}
-                      type="button"
-                      role="menuitem"
-                      aria-current={active ? "true" : undefined}
-                      onClick={() => {
-                        setLocale(language.code);
-                        setLangOpen(false);
-                      }}
-                      className={`w-full rounded-lg px-2.5 py-2.5 text-left transition flex items-center gap-2.5 font-sans cursor-pointer ${
-                        active ? "bg-[#F5F9FF] text-[#0B4FC4]" : "text-[#123E8A] hover:bg-slate-50"
-                      }`}
-                    >
-                      <span
-                        className={`grid h-7 w-8 place-items-center rounded-md text-[11px] font-extrabold tracking-wide ${
-                          active ? "bg-white text-[#0B4FC4]" : "bg-slate-100 text-[#123E8A]"
+                <span className="grid h-6 w-8 place-items-center rounded-md bg-[#EEF4FF] text-[11px] font-extrabold tracking-wide text-[#0B4FC4] font-sans">
+                  {activeLanguage.shortLabel}
+                </span>
+                <span className="hidden xl:inline font-sans">{activeLanguage.nativeLabel}</span>
+                <ChevronDown
+                  size={14}
+                  className={`text-[#667085] transition-transform group-hover:text-[#0B4FC4] ${
+                    langOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {langOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 mt-2 w-44 rounded-xl border border-[#E4EAF2] bg-white p-1.5 shadow-[0_16px_40px_rgba(16,24,40,0.12)] z-50 animate-fade-in"
+                >
+                  {LANGUAGE_OPTIONS.map((language) => {
+                    const active = language.code === locale;
+                    return (
+                      <button
+                        key={language.code}
+                        type="button"
+                        role="menuitem"
+                        aria-current={active ? "true" : undefined}
+                        onClick={() => {
+                          setLocale(language.code);
+                          setLangOpen(false);
+                        }}
+                        className={`w-full rounded-lg px-2.5 py-2.5 text-left transition flex items-center gap-2.5 font-sans cursor-pointer ${
+                          active
+                            ? "bg-[#F5F9FF] text-[#0B4FC4]"
+                            : "text-[#123E8A] hover:bg-slate-50"
                         }`}
                       >
-                        {language.shortLabel}
-                      </span>
-                      <span className="flex-1 min-w-0">
-                        <span className="block text-sm font-bold leading-5">
-                          {language.nativeLabel}
+                        <span
+                          className={`grid h-7 w-8 place-items-center rounded-md text-[11px] font-extrabold tracking-wide ${
+                            active ? "bg-white text-[#0B4FC4]" : "bg-slate-100 text-[#123E8A]"
+                          }`}
+                        >
+                          {language.shortLabel}
                         </span>
-                        <span className="block text-[10px] font-semibold leading-4 text-[#667085]">
-                          {language.helperLabel}
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-sm font-bold leading-5">
+                            {language.nativeLabel}
+                          </span>
+                          <span className="block text-[10px] font-semibold leading-4 text-[#667085]">
+                            {language.helperLabel}
+                          </span>
                         </span>
-                      </span>
-                      <Check size={14} className={active ? "text-[#0B4FC4]" : "text-transparent"} />
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                        <Check
+                          size={14}
+                          className={active ? "text-[#0B4FC4]" : "text-transparent"}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           )}
 
           {/* Notification bell & dropdown */}
@@ -493,7 +505,9 @@ export function Header() {
                         >
                           <div
                             className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                              item.isRead ? "bg-slate-100 text-slate-500" : "bg-[#0F5BD8] text-white"
+                              item.isRead
+                                ? "bg-slate-100 text-slate-500"
+                                : "bg-[#0F5BD8] text-white"
                             }`}
                           >
                             <NotifIcon size={16} />
@@ -501,9 +515,11 @@ export function Header() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-1 mb-0.5">
                               <div className="flex items-center gap-1.5 min-w-0">
-                                <h4 className={`text-xs text-[#123E8A] truncate font-sans ${
-                                  item.isRead ? "font-semibold" : "font-bold"
-                                }`}>
+                                <h4
+                                  className={`text-xs text-[#123E8A] truncate font-sans ${
+                                    item.isRead ? "font-semibold" : "font-bold"
+                                  }`}
+                                >
                                   {item.title}
                                 </h4>
                                 {!item.isRead && (
@@ -708,32 +724,32 @@ export function Header() {
           <div className="pt-3 mt-3 border-t border-[#E4EAF2] flex flex-col gap-3">
             {!isWardStaff && (
               <div className="flex items-center justify-between px-4">
-              <span className="text-sm font-semibold text-[#123E8A] font-sans">
-                {t("header.langLabel")}
-              </span>
-              <div className="flex gap-2">
-                {LANGUAGE_OPTIONS.map((language) => {
-                  const active = language.code === locale;
-                  return (
-                    <button
-                      key={language.code}
-                      type="button"
-                      onClick={() => {
-                        setLocale(language.code);
-                        setOpen(false);
-                      }}
-                      className={`min-h-9 rounded-lg border px-3 text-xs font-extrabold transition font-sans ${
-                        active
-                          ? "bg-[#0B4FC4] text-white border-[#0B4FC4] shadow-sm"
-                          : "border-[#E4EAF2] text-[#123E8A] hover:bg-[#F5F9FF]"
-                      }`}
-                    >
-                      {language.shortLabel}
-                    </button>
-                  );
-                })}
+                <span className="text-sm font-semibold text-[#123E8A] font-sans">
+                  {t("header.langLabel")}
+                </span>
+                <div className="flex gap-2">
+                  {LANGUAGE_OPTIONS.map((language) => {
+                    const active = language.code === locale;
+                    return (
+                      <button
+                        key={language.code}
+                        type="button"
+                        onClick={() => {
+                          setLocale(language.code);
+                          setOpen(false);
+                        }}
+                        className={`min-h-9 rounded-lg border px-3 text-xs font-extrabold transition font-sans ${
+                          active
+                            ? "bg-[#0B4FC4] text-white border-[#0B4FC4] shadow-sm"
+                            : "border-[#E4EAF2] text-[#123E8A] hover:bg-[#F5F9FF]"
+                        }`}
+                      >
+                        {language.shortLabel}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
             )}
 
             {user ? (
@@ -779,7 +795,9 @@ export function Header() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="font-sans">
-              {locale === "vi" ? "Bạn chắc chắn muốn đăng xuất?" : "Are you sure you want to log out?"}
+              {locale === "vi"
+                ? "Bạn chắc chắn muốn đăng xuất?"
+                : "Are you sure you want to log out?"}
             </AlertDialogTitle>
             <AlertDialogDescription className="font-sans">
               {locale === "vi"

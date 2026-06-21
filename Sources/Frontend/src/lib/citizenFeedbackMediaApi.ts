@@ -21,6 +21,7 @@ export interface FeedbackAttachmentResponse {
   fileName: string | null;
   fileSize: number | null;
   uploadedAt: string;
+  attachmentPurpose?: string;
 }
 
 export interface CitizenFeedbackMediaResponse {
@@ -105,4 +106,41 @@ export async function getVideoDurationSeconds(file: File): Promise<number> {
     };
     video.src = url;
   });
+}
+
+export async function uploadResolutionEvidence(
+  feedbackId: number | string,
+  file: File,
+): Promise<{ fileUrl: string; fileName: string; fileType: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const headers: Record<string, string> = {};
+  const token = getToken();
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE}/api/files/upload/resolution-evidence/${feedbackId}`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const contentType = response.headers.get("content-type");
+    const body = contentType?.includes("application/json")
+      ? await response.json().catch(() => null)
+      : await response.text().catch(() => "");
+    const message =
+      body && typeof body === "object" && "message" in body
+        ? String(body.message)
+        : typeof body === "string" && body
+          ? body
+          : `Upload resolution evidence failed with status ${response.status}`;
+
+    throw new ApiError(response.status, message, body);
+  }
+
+  return response.json();
 }

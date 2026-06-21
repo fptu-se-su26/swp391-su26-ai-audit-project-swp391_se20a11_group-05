@@ -31,6 +31,7 @@ import { Route as AuthPoliceRouteImport } from './routes/_auth.police'
 import { Route as AuthCityAdminRouteImport } from './routes/_auth.city-admin'
 import { Route as AuthAssistantRouteImport } from './routes/_auth.assistant'
 import { Route as CampaignsIdGroupChatRouteImport } from './routes/campaigns.$id.group-chat'
+import { Route as AuthAuthorityFeedbackFeedbackIdRouteImport } from './routes/_auth.authority.feedback.$feedbackId'
 
 const VerifyOtpRoute = VerifyOtpRouteImport.update({
   id: '/verify-otp',
@@ -141,6 +142,12 @@ const CampaignsIdGroupChatRoute = CampaignsIdGroupChatRouteImport.update({
   path: '/group-chat',
   getParentRoute: () => CampaignsIdRoute,
 } as any)
+const AuthAuthorityFeedbackFeedbackIdRoute =
+  AuthAuthorityFeedbackFeedbackIdRouteImport.update({
+    id: '/authority/feedback/$feedbackId',
+    path: '/authority/feedback/$feedbackId',
+    getParentRoute: () => AuthRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -164,6 +171,7 @@ export interface FileRoutesByFullPath {
   '/campaigns/': typeof CampaignsIndexRoute
   '/my-reports/': typeof MyReportsIndexRoute
   '/campaigns/$id/group-chat': typeof CampaignsIdGroupChatRoute
+  '/authority/feedback/$feedbackId': typeof AuthAuthorityFeedbackFeedbackIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -187,6 +195,7 @@ export interface FileRoutesByTo {
   '/campaigns': typeof CampaignsIndexRoute
   '/my-reports': typeof MyReportsIndexRoute
   '/campaigns/$id/group-chat': typeof CampaignsIdGroupChatRoute
+  '/authority/feedback/$feedbackId': typeof AuthAuthorityFeedbackFeedbackIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -212,6 +221,7 @@ export interface FileRoutesById {
   '/campaigns/': typeof CampaignsIndexRoute
   '/my-reports/': typeof MyReportsIndexRoute
   '/campaigns/$id/group-chat': typeof CampaignsIdGroupChatRoute
+  '/_auth/authority/feedback/$feedbackId': typeof AuthAuthorityFeedbackFeedbackIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -237,6 +247,7 @@ export interface FileRouteTypes {
     | '/campaigns/'
     | '/my-reports/'
     | '/campaigns/$id/group-chat'
+    | '/authority/feedback/$feedbackId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -260,6 +271,7 @@ export interface FileRouteTypes {
     | '/campaigns'
     | '/my-reports'
     | '/campaigns/$id/group-chat'
+    | '/authority/feedback/$feedbackId'
   id:
     | '__root__'
     | '/'
@@ -284,6 +296,7 @@ export interface FileRouteTypes {
     | '/campaigns/'
     | '/my-reports/'
     | '/campaigns/$id/group-chat'
+    | '/_auth/authority/feedback/$feedbackId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -462,6 +475,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CampaignsIdGroupChatRouteImport
       parentRoute: typeof CampaignsIdRoute
     }
+    '/_auth/authority/feedback/$feedbackId': {
+      id: '/_auth/authority/feedback/$feedbackId'
+      path: '/authority/feedback/$feedbackId'
+      fullPath: '/authority/feedback/$feedbackId'
+      preLoaderRoute: typeof AuthAuthorityFeedbackFeedbackIdRouteImport
+      parentRoute: typeof AuthRoute
+    }
   }
 }
 
@@ -470,6 +490,7 @@ interface AuthRouteChildren {
   AuthCityAdminRoute: typeof AuthCityAdminRoute
   AuthPoliceRoute: typeof AuthPoliceRoute
   AuthWardRoute: typeof AuthWardRoute
+  AuthAuthorityFeedbackFeedbackIdRoute: typeof AuthAuthorityFeedbackFeedbackIdRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
@@ -477,6 +498,7 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthCityAdminRoute: AuthCityAdminRoute,
   AuthPoliceRoute: AuthPoliceRoute,
   AuthWardRoute: AuthWardRoute,
+  AuthAuthorityFeedbackFeedbackIdRoute: AuthAuthorityFeedbackFeedbackIdRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)

@@ -109,6 +109,7 @@ public class AuthService {
                     .role(tokenPair.getRole())
                     .wardName(tokenPair.getWardName())
                     .wardType(tokenPair.getWardType())
+                    .wardId(tokenPair.getWardId())
                     .org(tokenPair.getOrg())
                     .mfaRequired(false)
                     .build();

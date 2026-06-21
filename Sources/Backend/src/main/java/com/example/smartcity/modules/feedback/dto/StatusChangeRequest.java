@@ -8,6 +8,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -18,4 +20,11 @@ public class StatusChangeRequest {
 
     @Size(max = 1000, message = "Ghi chú tối đa 1000 ký tự")
     private String note;
+
+    @Size(max = 1000)
+    private String requestMessage;
+
+    private LocalDateTime responseDeadline;
+
+    private Boolean sendNotification;
 }

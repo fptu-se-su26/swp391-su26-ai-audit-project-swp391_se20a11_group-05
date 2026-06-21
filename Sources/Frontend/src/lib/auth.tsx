@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const raw = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
       const storedToken = typeof window !== "undefined" ? getToken() : null;
-      
+
       if (raw && storedToken) {
         const parsed: AuthUser = JSON.parse(raw);
         // SECURITY: Validate that the stored role is a known Role value
@@ -75,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           removeToken();
           return;
         }
-        
+
         // Set token to ensure API calls work immediately after reload
         if (parsed.token) {
           setToken(parsed.token);
@@ -84,17 +84,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           parsed.token = storedToken;
           setToken(storedToken);
         }
-        
+
         setUser(parsed);
 
-        // Fetch full profile info to get the full name
-        userApi.profile().then((profile) => {
-          if (profile && profile.fullName) {
-            const updated = { ...parsed, name: profile.fullName };
-            setUser(updated);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-          }
-        }).catch(() => {});
+        // Fetch full profile info to get the full name and wardId
+        userApi
+          .profile()
+          .then((profile) => {
+            if (profile) {
+              const updated = {
+                ...parsed,
+                name: profile.fullName || parsed.name,
+                wardId: profile.wardId !== undefined ? profile.wardId : parsed.wardId,
+              };
+              setUser(updated);
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+            }
+          })
+          .catch(() => {});
       } else if (raw || storedToken) {
         // If only one exists, clear both to avoid inconsistent state
         localStorage.removeItem(STORAGE_KEY);
@@ -124,14 +131,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(u.token);
       }
     }
-    // Fetch profile to get full name
-    userApi.profile().then((profile) => {
-      if (profile && profile.fullName) {
-        const updated = { ...u, name: profile.fullName };
-        setUser(updated);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      }
-    }).catch(() => {});
+    // Fetch profile to get full name and wardId
+    userApi
+      .profile()
+      .then((profile) => {
+        if (profile) {
+          const updated = {
+            ...u,
+            name: profile.fullName || u.name,
+            wardId: profile.wardId !== undefined ? profile.wardId : u.wardId,
+          };
+          setUser(updated);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        }
+      })
+      .catch(() => {});
   };
 
   const logout = () => {

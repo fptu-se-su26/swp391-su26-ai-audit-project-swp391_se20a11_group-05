@@ -51,4 +51,8 @@ public interface CampaignService {
     CampaignFeedbackResponse addFeedback(Long campaignId, CampaignFeedbackRequest request, String username);
 
     boolean canAccessRealtimeChannel(Long campaignId, String username);
+
+    CampaignResponse update(Long id, CampaignRequest request, String username);
+
+    void delete(Long id, String username);
 }

@@ -11,4 +11,5 @@ import java.util.Collection;
 public interface AttachmentRepository extends JpaRepository<Attachment, Long> {
     List<Attachment> findByFeedbackId(Long feedbackId);
     List<Attachment> findByFeedbackIdIn(Collection<Long> feedbackIds);
+    boolean existsByFeedbackIdAndAttachmentPurpose(Long feedbackId, String attachmentPurpose);
 }

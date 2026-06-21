@@ -391,18 +391,35 @@
   }
 
   @keyframes dragon-float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
   }
 
   @keyframes dragon-bounce {
-    0%, 100% { transform: translateY(0) scale(1); }
-    50% { transform: translateY(-5px) scale(1.1); }
+    0%,
+    100% {
+      transform: translateY(0) scale(1);
+    }
+    50% {
+      transform: translateY(-5px) scale(1.1);
+    }
   }
 
   @keyframes dragon-speak {
-    0%, 100% { transform: scale(1) rotate(0deg); }
-    25% { transform: scale(1.05) rotate(-5deg); }
-    75% { transform: scale(1.05) rotate(5deg); }
+    0%,
+    100% {
+      transform: scale(1) rotate(0deg);
+    }
+    25% {
+      transform: scale(1.05) rotate(-5deg);
+    }
+    75% {
+      transform: scale(1.05) rotate(5deg);
+    }
   }
 }

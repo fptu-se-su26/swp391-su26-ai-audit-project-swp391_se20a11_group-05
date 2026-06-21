@@ -17,6 +17,7 @@ import {
   type Campaign,
   type CampaignCategory,
 } from "@/lib/campaignStore";
+import { useFeedbackDetail } from "./index";
 
 function mapStatus(status: CampaignResponse["status"]): Campaign["status"] {
   const statusMap: Record<CampaignResponse["status"], Campaign["status"]> = {
@@ -67,7 +68,9 @@ function mapResponseToCampaign(response: CampaignResponse): Campaign {
     daysLeft,
     impactScore: 0,
     affectedCitizens: 0,
-    cover: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=600&q=80",
+    cover:
+      response.coverImageUrl ||
+      "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=600&q=80",
     desc: response.description ?? "",
     descEn: response.description ?? "",
     featured: false,
@@ -84,6 +87,13 @@ function mapResponseToCampaign(response: CampaignResponse): Campaign {
     canManage: response.canManage,
     canComment: response.canComment,
     canFeedback: response.canFeedback,
+    linkedFeedbackId: response.linkedFeedbackId ?? undefined,
+    boundaryGeojson: response.boundaryGeojson ?? undefined,
+    coverImageUrl: response.coverImageUrl ?? undefined,
+    imageUrls: response.imageUrls ?? undefined,
+    latitude: response.latitude ?? null,
+    longitude: response.longitude ?? null,
+    wardId: response.wardId,
   } as Campaign;
 }
 
@@ -113,7 +123,9 @@ export function useCampaignList(): Campaign[] {
 }
 
 export function useCampaignDetail(id: string): Campaign | undefined {
-  const [localCampaign, setLocalCampaign] = useState<Campaign | undefined>(() => getCampaignById(id));
+  const [localCampaign, setLocalCampaign] = useState<Campaign | undefined>(() =>
+    getCampaignById(id),
+  );
   const isNumericId = /^\d+$/.test(id);
   const hasToken = Boolean(typeof window !== "undefined" && getToken());
 
@@ -174,11 +186,17 @@ export function useCreateCampaign() {
       linkedFeedbackCode?: string | null;
       linkedFeedbackTitle?: string | null;
       wardName?: string;
+      latitude?: number;
+      longitude?: number;
+      boundaryGeojson?: string;
+      coverImageUrl?: string;
+      imageUrls?: string[];
     }): Promise<Campaign> => {
       setIsLoading(true);
 
-      const fallbackLocation = params.privateLocationText || params.locationText || "Sẽ cập nhật sau";
-      const fallbackTools = params.requiredTools || "Găng tay, bao rác, dụng cụ vệ sinh cơ bản";
+      const fallbackLocation =
+        params.privateLocationText || params.locationText || "Sẽ cập nhật sau";
+      const fallbackTools = params.requiredTools || "";
       const fallbackContact = params.organizerContact || "UBND phường phụ trách";
 
       try {
@@ -191,9 +209,17 @@ export function useCreateCampaign() {
             privateLocationText: fallbackLocation,
             requiredTools: fallbackTools,
             organizerContact: fallbackContact,
-            maxParticipants: params.maxParticipants ? Number.parseInt(params.maxParticipants, 10) : undefined,
+            maxParticipants: params.maxParticipants
+              ? Number.parseInt(params.maxParticipants, 10)
+              : undefined,
             startTime: params.startTime || undefined,
             endTime: params.endTime || undefined,
+            linkedFeedbackId: params.linkedFeedbackId ? Number(params.linkedFeedbackId) : undefined,
+            latitude: params.latitude,
+            longitude: params.longitude,
+            boundaryGeojson: params.boundaryGeojson,
+            coverImageUrl: params.coverImageUrl,
+            imageUrls: params.imageUrls,
           });
           return mapResponseToCampaign(created);
         }
@@ -234,11 +260,22 @@ export function useApproveCampaign() {
   });
 }
 
+export function useDeleteCampaign() {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, string | number>({
+    mutationFn: (id) => campaignApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+    },
+  });
+}
+
 export function useCampaignParticipants(campaignId: string, enabled = true) {
   return useQuery<CampaignParticipantResponse[]>({
     queryKey: ["campaigns", campaignId, "participants"],
     queryFn: () => campaignApi.getParticipants(campaignId),
-    enabled: enabled && /^\d+$/.test(campaignId) && Boolean(typeof window !== "undefined" && getToken()),
+    enabled:
+      enabled && /^\d+$/.test(campaignId) && Boolean(typeof window !== "undefined" && getToken()),
     retry: false,
   });
 }
@@ -256,8 +293,13 @@ export function useApproveCampaignParticipant(campaignId: string) {
 
 export function useRejectCampaignParticipant(campaignId: string) {
   const queryClient = useQueryClient();
-  return useMutation<CampaignParticipantResponse, Error, { participantId: number | string; reason?: string }>({
-    mutationFn: ({ participantId, reason }) => campaignApi.rejectParticipant(campaignId, participantId, reason),
+  return useMutation<
+    CampaignParticipantResponse,
+    Error,
+    { participantId: number | string; reason?: string }
+  >({
+    mutationFn: ({ participantId, reason }) =>
+      campaignApi.rejectParticipant(campaignId, participantId, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["campaigns", campaignId, "participants"] });
       queryClient.invalidateQueries({ queryKey: ["campaigns"] });
@@ -277,7 +319,8 @@ export function useCampaignComments(campaignId: string) {
 
   const addComment = useMutation({
     mutationFn: (content: string) => campaignApi.addComment(campaignId, content),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["campaigns", campaignId, "comments"] }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["campaigns", campaignId, "comments"] }),
   });
 
   return { ...query, addComment };
@@ -305,7 +348,9 @@ export function useCampaignChat(campaignId: string) {
 
     socket.onopen = () => {
       socket.send(`CONNECT\nAuthorization:Bearer ${token}\naccept-version:1.2\n\n\0`);
-      socket.send(`SUBSCRIBE\nid:campaign-${campaignId}\ndestination:/topic/campaigns/${campaignId}/chat\n\n\0`);
+      socket.send(
+        `SUBSCRIBE\nid:campaign-${campaignId}\ndestination:/topic/campaigns/${campaignId}/chat\n\n\0`,
+      );
     };
 
     socket.onmessage = (event) => {
@@ -352,7 +397,9 @@ export function useCampaignChat(campaignId: string) {
     mutationFn: (content: string) => {
       const socket = socketRef.current;
       if (socket?.readyState === WebSocket.OPEN) {
-        socket.send(`SEND\ndestination:/app/campaigns/${campaignId}/chat\ncontent-type:application/json\n\n${JSON.stringify({ content })}\0`);
+        socket.send(
+          `SEND\ndestination:/app/campaigns/${campaignId}/chat\ncontent-type:application/json\n\n${JSON.stringify({ content })}\0`,
+        );
         return Promise.resolve(undefined);
       }
       return campaignApi.addChatMessage(campaignId, content).then(() => undefined);
@@ -363,6 +410,53 @@ export function useCampaignChat(campaignId: string) {
   });
 
   return useMemo(() => ({ ...query, sendMessage }), [query, sendMessage]);
+}
+
+const DEFAULT_PLACEHOLDERS: Record<string, string> = {
+  environment:
+    "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600&auto=format&fit=crop&q=80",
+  infrastructure:
+    "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&auto=format&fit=crop&q=80",
+  public_safety:
+    "https://images.unsplash.com/photo-1593113598332-cd288d649433?w=600&auto=format&fit=crop&q=80",
+  construction:
+    "https://images.unsplash.com/photo-1486325212027-8081e485255e?w=600&auto=format&fit=crop&q=80",
+  fire_safety:
+    "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&auto=format&fit=crop&q=80",
+  default:
+    "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=600&q=80",
+};
+
+export function useCampaignThumbnail(campaign?: Campaign): string {
+  const feedbackId = campaign?.linkedFeedbackId;
+  const { data: feedback } = useFeedbackDetail(feedbackId ? String(feedbackId) : "");
+
+  return useMemo(() => {
+    if (!campaign) return DEFAULT_PLACEHOLDERS.default;
+
+    if (campaign.imageUrls && campaign.imageUrls.length > 0 && campaign.imageUrls[0]?.trim() !== "") {
+      return campaign.imageUrls[0];
+    }
+    if (campaign.coverImageUrl && campaign.coverImageUrl.trim() !== "") {
+      return campaign.coverImageUrl;
+    }
+    if (campaign.cover && !campaign.cover.includes("photo-1542601906990-b4d3fb778b09")) {
+      return campaign.cover;
+    }
+
+    if (feedback) {
+      if (feedback.attachments && feedback.attachments.length > 0) {
+        const img = feedback.attachments.find((att) => att.fileType?.startsWith("image/"));
+        if (img) return img.fileUrl;
+      }
+      if (feedback.mediaUrls && feedback.mediaUrls.length > 0) {
+        return feedback.mediaUrls[0];
+      }
+    }
+
+    const cat = campaign.category || "environment";
+    return DEFAULT_PLACEHOLDERS[cat] || DEFAULT_PLACEHOLDERS.default;
+  }, [campaign, feedback]);
 }
 
 export function usePinChatMessage(campaignId: string) {

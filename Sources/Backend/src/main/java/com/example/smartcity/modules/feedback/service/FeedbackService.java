@@ -27,6 +27,8 @@ import com.example.smartcity.common.exception.CustomException;
 import com.example.smartcity.common.exception.ResourceNotFoundException;
 import com.example.smartcity.modules.notification.WebSocketNotificationService;
 import com.example.smartcity.modules.notification.service.NotificationService;
+import com.example.smartcity.modules.notification.entity.Notification;
+import com.example.smartcity.modules.notification.repository.NotificationRepository;
 import org.springframework.http.HttpStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -55,6 +57,7 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
     private final FeedbackLogRepository feedbackLogRepository;
     private final WebSocketNotificationService webSocketNotificationService;
     private final NotificationService notificationService;
+    private final NotificationRepository notificationRepository;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final AttachmentRepository attachmentRepository;
@@ -659,6 +662,18 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
 
     @Transactional
     public Feedback changeStatus(Long feedbackId, FeedbackStatus newStatus, String note, String username) {
+        return changeStatus(feedbackId, newStatus, note, null, null, true, username);
+    }
+
+    @Transactional
+    public Feedback changeStatus(
+            Long feedbackId,
+            FeedbackStatus newStatus,
+            String note,
+            String requestMessage,
+            LocalDateTime responseDeadline,
+            boolean sendNotification,
+            String username) {
         Feedback feedback = feedbackRepository.findById(feedbackId)
                 .orElseThrow(() -> new ResourceNotFoundException("Feedback", feedbackId));
 
@@ -679,22 +694,96 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         // Fix BOLA/IDOR: Validate permission before action
         validateActionPermission(actionBy, feedback);
 
+        // Kiểm tra bắt buộc có bằng chứng xử lý trước khi hoàn tất (RESOLVED)
+        if (newStatus == FeedbackStatus.RESOLVED) {
+            boolean hasEvidence = attachmentRepository.existsByFeedbackIdAndAttachmentPurpose(feedbackId, "RESOLUTION_EVIDENCE");
+            if (!hasEvidence) {
+                throw new CustomException("Vui lòng đính kèm hình ảnh hoặc video bằng chứng xử lý trước khi hoàn tất.",
+                        HttpStatus.BAD_REQUEST.value());
+            }
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        String effectiveNote = resolveStatusNote(newStatus, note, requestMessage, responseDeadline);
+
         feedback.setStatus(newStatus);
-        feedback.setUpdatedAt(LocalDateTime.now());
+        feedback.setUpdatedAt(now);
         Feedback saved = feedbackRepository.save(feedback);
 
-        FeedbackLog log = new FeedbackLog(feedback, actionBy, current, newStatus, note);
+        FeedbackLog log = new FeedbackLog(feedback, actionBy, current, newStatus, effectiveNote);
         if (current == FeedbackStatus.PENDING && newStatus == FeedbackStatus.IN_PROGRESS) {
             log.setAction("ACCEPT");
         }
+        if (newStatus == FeedbackStatus.WAITING_INFO) {
+            log.setAction("REQUEST_INFO");
+        } else if (newStatus == FeedbackStatus.REJECTED) {
+            log.setAction("REJECT");
+        } else if (newStatus == FeedbackStatus.RESOLVED) {
+            log.setAction("RESOLVE");
+        } else if (log.getAction() == null) {
+            log.setAction("UPDATE_STATUS");
+        }
         feedbackLogRepository.save(log);
+
+        if (newStatus == FeedbackStatus.WAITING_INFO && sendNotification) {
+            notificationService.createFeedbackWaitingInfoNotification(feedback.getId(), effectiveNote);
+        }
 
         // Gửi WebSocket notification
         webSocketNotificationService.notifyFeedbackStatusChange(
                 feedbackId, newStatus.name(),
                 "Feedback #" + feedback.getTrackingCode() + " → " + newStatus);
 
+        // Tạo thông báo mới trong chuông thông báo cho cán bộ
+        Notification officerNotification = Notification.builder()
+                .user(actionBy)
+                .referenceId(saved.getId())
+                .feedbackId(saved.getId())
+                .title("Cập nhật trạng thái phản ánh")
+                .content(String.format("Bạn đã cập nhật trạng thái phản ánh %s thành %s.", 
+                        feedback.getTrackingCode(), 
+                        translateStatusInJava(newStatus)))
+                .type("FEEDBACK_STATUS_UPDATED")
+                .isRead(false)
+                .build();
+        officerNotification.setCreatedAt(now);
+        officerNotification.setUpdatedAt(now);
+        notificationRepository.save(officerNotification);
+
         return saved;
+    }
+
+    private String translateStatusInJava(FeedbackStatus status) {
+        if (status == null) return "-";
+        switch (status) {
+            case SUBMITTED: return "Đã gửi";
+            case PENDING_RECEIVE: return "Chờ tiếp nhận";
+            case PENDING: return "Đang xử lý";
+            case NEED_LOCATION_REVIEW: return "Đang xử lý";
+            case ASSIGNED: return "Đang xử lý";
+            case IN_PROGRESS: return "Đang xử lý";
+            case WAITING_INFO: return "Cần bổ sung thông tin";
+            case RESOLVED: return "Đã xử lý";
+            case REJECTED: return "Đã từ chối";
+            default: return status.name();
+        }
+    }
+
+    private String resolveStatusNote(
+            FeedbackStatus newStatus,
+            String note,
+            String requestMessage,
+            LocalDateTime responseDeadline) {
+        if (newStatus != FeedbackStatus.WAITING_INFO) {
+            return note;
+        }
+
+        String message = requestMessage != null && !requestMessage.isBlank() ? requestMessage.trim() : note;
+        if (responseDeadline == null) {
+            return message;
+        }
+        String deadlineLine = "Han phan hoi: " + responseDeadline;
+        return (message == null || message.isBlank()) ? deadlineLine : message + "\n" + deadlineLine;
     }
 
     @Transactional

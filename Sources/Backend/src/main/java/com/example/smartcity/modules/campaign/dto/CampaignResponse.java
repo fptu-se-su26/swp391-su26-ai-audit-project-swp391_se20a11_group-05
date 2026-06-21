@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -40,4 +41,9 @@ public class CampaignResponse {
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    private Long linkedFeedbackId;
+    private String boundaryGeojson;
+    private String coverImageUrl;
+    private List<String> imageUrls;
 }

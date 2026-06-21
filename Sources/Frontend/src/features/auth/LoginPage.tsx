@@ -5,10 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { AUTHORITY_ROLES, parseBackendRole, Role } from "@/lib/roles";
 import { authApi, ApiError } from "@/lib/api";
 import { requestCurrentGpsLocation } from "@/lib/location";
-import {
-  buildLoginLockoutMessage,
-  getLoginLockoutSeconds,
-} from "@/lib/loginLockout";
+import { buildLoginLockoutMessage, getLoginLockoutSeconds } from "@/lib/loginLockout";
 import { Loader2, AlertCircle, Eye, EyeOff, AtSign, Lock } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 import { LoginHeroPanel } from "./LoginHeroPanel";
@@ -55,12 +52,11 @@ export function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
 
   const citizenPortalError =
-    locale === "vi"
-      ? "Tai khoan nay khong ton tai."
-      : "This account does not exist.";
+    locale === "vi" ? "Tai khoan nay khong ton tai." : "This account does not exist.";
 
   const citizenRedirect =
-    redirect && !["/ward", "/police", "/city-admin", "/assistant"].some((path) => redirect.startsWith(path))
+    redirect &&
+    !["/ward", "/police", "/city-admin", "/assistant"].some((path) => redirect.startsWith(path))
       ? redirect
       : "/";
 

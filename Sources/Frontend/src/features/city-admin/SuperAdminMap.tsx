@@ -20,9 +20,9 @@ interface Props {
 
 const getHotspotColor = (unresolved: number) => {
   if (unresolved >= 15) return "#EF4444"; // Critical / High (Red)
-  if (unresolved >= 5) return "#F97316";  // Medium (Orange)
-  if (unresolved > 0) return "#FCD34D";   // Low (Yellow)
-  return "#94A3B8";                       // Zero / Neutral (Gray)
+  if (unresolved >= 5) return "#F97316"; // Medium (Orange)
+  if (unresolved > 0) return "#FCD34D"; // Low (Yellow)
+  return "#94A3B8"; // Zero / Neutral (Gray)
 };
 
 export function SuperAdminMap({ hotspots, onSelectWard, selectedWard }: Props) {
@@ -48,7 +48,9 @@ export function SuperAdminMap({ hotspots, onSelectWard, selectedWard }: Props) {
         });
       }
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (!leafletComponents) {
@@ -67,7 +69,8 @@ export function SuperAdminMap({ hotspots, onSelectWard, selectedWard }: Props) {
         center={center}
         zoom={12}
         className="w-full h-full"
-        zoomControl={true}
+        zoomControl={false}
+        attributionControl={false}
         scrollWheelZoom={true}
       >
         <TileLayer
@@ -116,7 +119,9 @@ export function SuperAdminMap({ hotspots, onSelectWard, selectedWard }: Props) {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">Tỷ lệ chưa xử lý:</span>
-                      <span className="font-bold text-slate-800">{h.unresolvedPct.toFixed(1)}%</span>
+                      <span className="font-bold text-slate-800">
+                        {h.unresolvedPct.toFixed(1)}%
+                      </span>
                     </div>
                     {h.topCategory && (
                       <div className="border-t border-slate-100 pt-1.5 mt-1">

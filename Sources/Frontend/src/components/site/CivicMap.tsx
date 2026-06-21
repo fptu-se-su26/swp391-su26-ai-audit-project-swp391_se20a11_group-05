@@ -30,6 +30,7 @@ interface Props {
   layerType?: "osm" | "satellite";
   onLayerTypeChange?: (layer: "osm" | "satellite") => void;
   onShowBoundaryChange?: (show: boolean) => void;
+  detailUrlTemplate?: string;
 }
 
 // Custom Leaflet circular marker generator passed L dynamically
@@ -137,7 +138,7 @@ function MapController({
 }
 
 export function CivicMap({
-  center = [16.044, 108.220],
+  center = [16.044, 108.22],
   zoom = 13,
   markers = [],
   height = "h-72 md:h-96",
@@ -150,6 +151,7 @@ export function CivicMap({
   layerType: propLayerType,
   onLayerTypeChange,
   onShowBoundaryChange,
+  detailUrlTemplate,
 }: Props) {
   // Dynamic import: Leaflet requires `window` at module-load time,
   // so we lazy-load react-leaflet and leaflet only on the client.
@@ -186,10 +188,7 @@ export function CivicMap({
 
   useEffect(() => {
     let cancelled = false;
-    void Promise.all([
-      import("react-leaflet"),
-      import("leaflet")
-    ]).then(([mod, LMod]) => {
+    void Promise.all([import("react-leaflet"), import("leaflet")]).then(([mod, LMod]) => {
       if (!cancelled) {
         setLeafletComponents({
           MapContainer: mod.MapContainer,
@@ -243,11 +242,13 @@ export function CivicMap({
   const layers = {
     osm: {
       url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     },
     satellite: {
       url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-      attribution: "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
+      attribution:
+        "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
     },
   };
 
@@ -329,7 +330,7 @@ export function CivicMap({
         center={center}
         zoom={zoom}
         className="w-full h-full"
-        zoomControl={interactive}
+        zoomControl={false}
         dragging={interactive}
         scrollWheelZoom={interactive}
         attributionControl={false}
@@ -355,9 +356,9 @@ export function CivicMap({
             key={wardName}
             data={wardGeoJson}
             style={{
-              color: "#ef4444",      // Red thin outline
+              color: "#ef4444", // Red thin outline
               weight: 2,
-              fillColor: "#ef4444",  // Semi-transparent red fill
+              fillColor: "#ef4444", // Semi-transparent red fill
               fillOpacity: 0.15,
             }}
           />
@@ -411,39 +412,44 @@ export function CivicMap({
                         {m.date}
                       </div>
                     )}
-                    {m.status && (() => {
-                      const grp = getGroupedFeedbackStatus(m.status);
-                      return (
-                        <div className="mt-1">
-                          <span className="font-semibold text-slate-700">Trạng thái: </span>
-                          <span
-                            className={`font-semibold px-1.5 py-0.5 rounded text-[10px] ${
-                              grp === "RESOLVED"
-                                ? "bg-green-50 text-green-700 border border-green-200"
+                    {m.status &&
+                      (() => {
+                        const grp = getGroupedFeedbackStatus(m.status);
+                        return (
+                          <div className="mt-1">
+                            <span className="font-semibold text-slate-700">Trạng thái: </span>
+                            <span
+                              className={`font-semibold px-1.5 py-0.5 rounded text-[10px] ${
+                                grp === "RESOLVED"
+                                  ? "bg-green-50 text-green-700 border border-green-200"
+                                  : grp === "REJECTED"
+                                    ? "bg-red-50 text-red-700 border border-red-200"
+                                    : grp === "IN_PROGRESS"
+                                      ? "bg-yellow-50 text-yellow-700 border border-yellow-200"
+                                      : "bg-blue-50 text-blue-700 border border-blue-200"
+                              }`}
+                            >
+                              {grp === "RESOLVED"
+                                ? "Đã xử lý"
                                 : grp === "REJECTED"
-                                ? "bg-red-50 text-red-700 border border-red-200"
-                                : grp === "IN_PROGRESS"
-                                ? "bg-yellow-50 text-yellow-700 border border-yellow-200"
-                                : "bg-blue-50 text-blue-700 border border-blue-200"
-                            }`}
-                          >
-                            {grp === "RESOLVED"
-                              ? "Đã xử lý"
-                              : grp === "REJECTED"
-                              ? "Đã từ chối"
-                              : grp === "IN_PROGRESS"
-                              ? "Đang xử lý"
-                              : "Chờ xử lý"}
-                          </span>
-                        </div>
-                      );
-                    })()}
+                                  ? "Đã từ chối"
+                                  : grp === "IN_PROGRESS"
+                                    ? "Đang xử lý"
+                                    : "Chờ xử lý"}
+                            </span>
+                          </div>
+                        );
+                      })()}
                   </div>
                   <div className="mt-2.5 pt-1.5 border-t border-slate-100 flex justify-end">
                     <a
-                      href={`/my-reports/${m.id}`}
+                      href={
+                        detailUrlTemplate
+                          ? detailUrlTemplate.replace(":id", String(m.id))
+                          : `/my-reports/${m.id}`
+                      }
                       className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[10px] font-semibold text-center no-underline transition-colors block"
-                      style={{ color: 'white' }}
+                      style={{ color: "white" }}
                     >
                       Xem chi tiết
                     </a>

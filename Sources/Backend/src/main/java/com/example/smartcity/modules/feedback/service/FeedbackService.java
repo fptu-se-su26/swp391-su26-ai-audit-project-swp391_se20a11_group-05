@@ -1,6 +1,9 @@
 package com.example.smartcity.modules.feedback.service;
 
 import com.example.smartcity.modules.feedback.dto.FeedbackRequest;
+import com.example.smartcity.ai_orchestrator.adapter.GeminiAdapter;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.example.smartcity.ai_orchestrator.guardrails.ContentGuardrailService;
 import com.example.smartcity.modules.feedback.entity.Category;
 import com.example.smartcity.rag.ingestion.EmbeddingClientFacade;
@@ -68,6 +71,7 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
     private final JdbcTemplate jdbcTemplate;
     private final EmbeddingClientFacade embeddingFacade;
     private final AiTaskRepository aiTaskRepository;
+    private final GeminiAdapter geminiAdapter;
 
     @org.springframework.beans.factory.annotation.Autowired
     @org.springframework.context.annotation.Lazy
@@ -149,10 +153,9 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             throw new CustomException("Vui long cho phep GPS truoc khi gui phan anh", HttpStatus.BAD_REQUEST.value());
         }
 
-        // AI Duplicate Detection: Kiểm tra phản ánh trùng lặp trong cùng Phường
-        if (ward != null && ward.getId() != null) {
-            checkDuplicateFeedback(request.getDescription(), ward.getId(), request.getLongitude(), request.getLatitude());
-        }
+        // AI Duplicate Detection: Kiểm tra phản ánh trùng lặp (có phường hoặc không)
+        Long wardId = (ward != null) ? ward.getId() : null;
+        checkDuplicateFeedback(request.getDescription(), wardId, request.getLongitude(), request.getLatitude());
 
         LocalDateTime now = LocalDateTime.now();
         Feedback feedback = new Feedback();
@@ -221,62 +224,99 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             float[] descriptionVector = embeddingFacade.embed(description);
             String vectorString = java.util.Arrays.toString(descriptionVector);
 
-            // [FIX] Khi wardId == null (phường chưa xác định), vẫn check trùng lặp
-            // bằng cách bỏ điều kiện ward_id — so sánh chỉ theo tọa độ và vector ngữ nghĩa
             String sql;
             Object[] params;
             if (wardId != null) {
-                // Tìm top 1 trong cùng Phường + tọa độ gần + vector gần (cosine < 0.20)
+                // Lấy Top 3 ứng viên trong cùng phường
                 sql = """
-                    SELECT tracking_code
+                    SELECT tracking_code, description
                     FROM feedbacks
                     WHERE ward_id = ?
-                      AND description_vector <=> ?::vector < 0.20
-                      AND ST_DWithin(location, ST_SetSRID(ST_Point(?, ?), 4326), 0.0009)
+                      AND description_vector <=> ?::vector < 0.70
+                      AND ST_DWithin(location, ST_SetSRID(ST_Point(?, ?), 4326), 0.005)
                       AND (
                           status IN ('PENDING', 'IN_PROGRESS', 'SUBMITTED', 'NEED_LOCATION_REVIEW', 'PENDING_RECEIVE', 'WAITING_INFO')
                           OR
                           (status = 'RESOLVED' AND resolved_at >= NOW() - INTERVAL '7 days')
                       )
                     ORDER BY description_vector <=> ?::vector ASC
-                    LIMIT 1
+                    LIMIT 3
                 """;
                 params = new Object[]{ wardId, vectorString, longitude, latitude, vectorString };
-
-                // Debug log top 3
-                jdbcTemplate.query(
-                    "SELECT tracking_code, (description_vector <=> ?::vector) as distance FROM feedbacks WHERE ward_id = ? AND description_vector IS NOT NULL AND ST_DWithin(location, ST_SetSRID(ST_Point(?, ?), 4326), 0.0009) ORDER BY description_vector <=> ?::vector ASC LIMIT 3",
-                    (rs, rowNum) -> { log.info("[DUPLICATE-DEBUG] Mã: {}, Distance: {}", rs.getString("tracking_code"), rs.getDouble("distance")); return null; },
-                    vectorString, wardId, longitude, latitude, vectorString
-                );
             } else {
-                // [FIX] wardId null → chỉ dùng tọa độ (bán kính ~100m)
                 log.warn("[Duplicate Detection] wardId null, fallback dùng tọa độ để check trùng lặp.");
                 sql = """
-                    SELECT tracking_code
+                    SELECT tracking_code, description
                     FROM feedbacks
-                    WHERE description_vector <=> ?::vector < 0.20
-                      AND ST_DWithin(location, ST_SetSRID(ST_Point(?, ?), 4326), 0.0009)
+                    WHERE description_vector <=> ?::vector < 0.70
+                      AND ST_DWithin(location, ST_SetSRID(ST_Point(?, ?), 4326), 0.005)
                       AND (
                           status IN ('PENDING', 'IN_PROGRESS', 'SUBMITTED', 'NEED_LOCATION_REVIEW', 'PENDING_RECEIVE', 'WAITING_INFO')
                           OR
                           (status = 'RESOLVED' AND resolved_at >= NOW() - INTERVAL '7 days')
                       )
                     ORDER BY description_vector <=> ?::vector ASC
-                    LIMIT 1
+                    LIMIT 3
                 """;
                 params = new Object[]{ vectorString, longitude, latitude, vectorString };
             }
 
-            List<String> results = jdbcTemplate.query(sql, (rs, rowNum) -> rs.getString("tracking_code"), params);
+            List<Map<String, Object>> candidates = jdbcTemplate.queryForList(sql, params);
 
-            if (!results.isEmpty()) {
-                String duplicateTrackingCode = results.get(0);
-                log.warn("[DUPLICATE-DETECTION] Phát hiện phản ánh trùng lặp. Mã trùng: {}", duplicateTrackingCode);
-                throw new CustomException(
-                    "Phản ánh tương tự đã được gửi bởi người dân khác. Vui lòng theo dõi mã phản ánh " + duplicateTrackingCode + " để cập nhật tiến độ.",
-                    HttpStatus.CONFLICT.value()
-                );
+            if (!candidates.isEmpty()) {
+                log.info("[DUPLICATE-DETECTION] Tìm thấy {} ứng viên tiềm năng bằng Vector Search. Gọi Gemini để xác minh...", candidates.size());
+                
+                StringBuilder oldFeedbacks = new StringBuilder();
+                for (int i = 0; i < candidates.size(); i++) {
+                    String tc = (String) candidates.get(i).get("tracking_code");
+                    String desc = (String) candidates.get(i).get("description");
+                    oldFeedbacks.append("[").append(tc).append("]: \"").append(desc).append("\"\n");
+                }
+
+                String systemPrompt = "Bạn là AI kiểm duyệt sự cố của hệ thống Smart City.";
+                String prompt = """
+                    Sự cố mới báo cáo: "%s"
+                    
+                    Dưới đây là các sự cố cũ có tọa độ và nội dung tương tự:
+                    %s
+                    
+                    Nhiệm vụ: Hãy xác định xem sự cố mới CÓ TRÙNG LẶP (cùng mô tả về một sự việc vật lý, cùng một đống rác, cùng một cái cây đổ...) với bất kỳ sự cố cũ nào không. 
+                    - Nếu chỉ là 2 sự cố tương tự nhưng không chắc là 1, trả về is_duplicate = false.
+                    - Nếu chắc chắn là 1 sự cố do 2 người khác nhau báo cáo, trả về is_duplicate = true.
+                    
+                    BẮT BUỘC trả về ĐÚNG định dạng JSON sau, không kèm bất kỳ giải thích nào khác. LƯU Ý QUAN TRỌNG: Chỉ trả về JSON thô hợp lệ. KHÔNG thêm bất kỳ văn bản nào, KHÔNG dùng emoji, KHÔNG dùng markdown ```json. Ký tự đầu tiên bắt buộc phải là '{':
+                    {
+                        "is_duplicate": <true/false>,
+                        "tracking_code": "<Điền mã FB-xxx của sự cố cũ nếu trùng, hoặc null nếu không trùng>",
+                        "reason": "<Giải thích ngắn gọn lý do>"
+                    }
+                """;
+                String finalPrompt = String.format(prompt, description, oldFeedbacks.toString());
+                
+                String aiRawResult = geminiAdapter.generateStructuredResponseAsync(systemPrompt, finalPrompt).get(15, java.util.concurrent.TimeUnit.SECONDS);
+                
+                String jsonStr = aiRawResult.replace("```json", "").replace("```", "").trim();
+                int startIndex = jsonStr.indexOf("{");
+                int endIndex = jsonStr.lastIndexOf("}");
+                if (startIndex >= 0 && endIndex >= 0 && startIndex <= endIndex) {
+                    jsonStr = jsonStr.substring(startIndex, endIndex + 1);
+                }
+                
+                ObjectMapper mapper = new ObjectMapper();
+                JsonNode rootNode = mapper.readTree(jsonStr);
+                boolean isDuplicate = rootNode.path("is_duplicate").asBoolean(false);
+                String dupTrackingCode = rootNode.path("tracking_code").asText(null);
+                String reason = rootNode.path("reason").asText("");
+                
+                if (isDuplicate && dupTrackingCode != null && !dupTrackingCode.equals("null") && !dupTrackingCode.isEmpty()) {
+                    log.warn("[DUPLICATE-DETECTION] AI xác nhận trùng lặp với {}. Lý do: {}", dupTrackingCode, reason);
+                    throw new CustomException(
+                        "Phản ánh tương tự đã được gửi bởi người dân khác. Vui lòng theo dõi mã phản ánh " + dupTrackingCode + " để cập nhật tiến độ.",
+                        HttpStatus.CONFLICT.value()
+                    );
+                } else {
+                    log.info("[DUPLICATE-DETECTION] AI xác nhận KHÔNG trùng lặp. Cho phép lưu đơn.");
+                }
             }
         } catch (CustomException ex) {
             throw ex;

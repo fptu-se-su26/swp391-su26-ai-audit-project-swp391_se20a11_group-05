@@ -28,7 +28,7 @@ public class EmbeddingClientFacade {
     // Gemini text-embedding-004 trả về vector 768 chiều
     private static final int VECTOR_DIM = 768;
     private static final String GEMINI_BASE_URL = "https://generativelanguage.googleapis.com";
-    private static final String EMBEDDING_MODEL = "gemini-embedding-2";
+    private static final String EMBEDDING_MODEL = "text-embedding-004";
 
     private final GeminiKeyPool keyPool;
     private final WebClient webClient;

@@ -95,7 +95,7 @@ export function DonutChart({ resolved, pending }: DonutChartProps) {
             />
             <span className="text-ink-soft">Đã xử lý</span>
             <span className="font-bold text-ink ml-auto tabular-nums">
-              {resolved.toLocaleString("en-US")}
+              {resolved.toLocaleString("vi-VN")}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -105,7 +105,7 @@ export function DonutChart({ resolved, pending }: DonutChartProps) {
             />
             <span className="text-ink-soft">Chờ xử lý</span>
             <span className="font-bold text-ink ml-auto tabular-nums">
-              {pending.toLocaleString("en-US")}
+              {pending.toLocaleString("vi-VN")}
             </span>
           </div>
           <div className="mt-1 pt-3 border-t border-slate-100">
@@ -170,7 +170,7 @@ export function HorizontalBarChart({
               boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
               fontSize: 13,
             }}
-            formatter={(value: number) => [`${value.toLocaleString("en-US")}${unit}`, "Đã xử lý"]}
+            formatter={(value: number) => [`${value.toLocaleString("vi-VN")}${unit}`, "Đã xử lý"]}
           />
           <Bar dataKey="value" radius={[0, 6, 6, 0]} fill={color} />
         </BarChart>

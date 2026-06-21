@@ -64,7 +64,6 @@ public class CategoryRoutingService {
             feedback.setAssignedToRole(null);
             feedback.setWard(null);
             feedback.setWardName(null);
-            feedback.setDistrictName(null);
             feedback.setCityName(null);
             return;
         }

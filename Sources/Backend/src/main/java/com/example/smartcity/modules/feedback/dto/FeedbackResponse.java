@@ -31,7 +31,6 @@ public class FeedbackResponse {
     private String priority;
     private Long wardId;
     private String wardName;
-    private String districtName;
     private String cityName;
     private Long assignedUnitId;
     private String assignedUnitName;

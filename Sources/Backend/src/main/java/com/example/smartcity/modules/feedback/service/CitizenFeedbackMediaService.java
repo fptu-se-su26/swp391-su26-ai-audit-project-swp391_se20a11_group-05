@@ -22,6 +22,9 @@ import com.example.smartcity.common.exception.CustomException;
 import com.example.smartcity.ai_orchestrator.guardrails.ContentGuardrailService;
 import com.example.smartcity.modules.feedback.service.AutoDispatchService;
 import lombok.RequiredArgsConstructor;
+import com.example.smartcity.modules.feedback.entity.AiTask;
+import com.example.smartcity.modules.feedback.repository.AiTaskRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,7 +41,9 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CitizenFeedbackMediaService {
+    private final AiTaskRepository aiTaskRepository;
     private static final long MIN_VIDEO_SECONDS = 10L;
     private static final long MAX_VIDEO_SECONDS = 30L;
     private static final long MAX_IMAGE_BYTES = 10L * 1024L * 1024L;
@@ -74,8 +79,11 @@ public class CitizenFeedbackMediaService {
         List<MultipartFile> safeFiles = files == null ? List.of() : files;
         validateMediaFiles(safeFiles, request.getVideoDurationsSeconds());
 
-        // Content Guardrail: kiểm tra PII (SĐT, CCCD) và nội dung vi phạm
-        contentGuardrailService.validateFeedbackContent(request.getTitle(), request.getDescription());
+        // Content Guardrail: kiểm tra PII (SĐT, CCCD, Email) và nội dung vi phạm
+        // [FIX] Bổ sung addressDetails vào kiểm tra PII (trước đây thiếu trường này)
+        String fullContent = request.getDescription()
+            + (request.getAddressDetails() != null ? " " + request.getAddressDetails() : "");
+        contentGuardrailService.validateFeedbackContent(request.getTitle(), fullContent);
 
         if (request.getLatitude() == null || request.getLongitude() == null) {
             throw new IllegalArgumentException("Latitude and longitude are required");
@@ -86,6 +94,12 @@ public class CitizenFeedbackMediaService {
         } catch (CustomException ex) {
             // Keep the submitted feedback and route it to manual location review.
         }
+
+        // AI Duplicate Detection: kiểm tra trùng lặp ngữ nghĩa TRƯỚC khi lưu
+        // [FIX] chạy dù ward == null — khi phường không xác định được vẫn check theo
+        //       toạ độ bằng wardId = 0 (fallback bỏ qua điều kiện ward) — tránh bỏ sót
+        Long wardId = (ward != null && ward.getId() != null) ? ward.getId() : null;
+        feedbackService.checkDuplicateFeedback(request.getDescription(), wardId, request.getLongitude(), request.getLatitude());
 
         LocalDateTime now = LocalDateTime.now();
         Feedback feedback = new Feedback();
@@ -103,10 +117,6 @@ public class CitizenFeedbackMediaService {
         feedback.setUpdatedAt(now);
         categoryRoutingService.applyAssignment(feedback, category, ward, now);
 
-        // AI Duplicate Detection: kiểm tra trùng lặp ngữ nghĩa trước khi lưu
-        if (ward != null && ward.getId() != null) {
-            feedbackService.checkDuplicateFeedback(request.getDescription(), ward.getId(), request.getLongitude(), request.getLatitude());
-        }
 
         Feedback savedFeedback = feedbackRepository.save(feedback);
 
@@ -119,8 +129,19 @@ public class CitizenFeedbackMediaService {
         notificationService.createFeedbackSubmittedNotification(savedFeedback);
         List<Attachment> savedAttachments = saveAttachments(savedFeedback, citizen, safeFiles);
 
-        // AI Auto-Dispatch: chấm điểm trust_score ngay sau khi upload ảnh xong
-        autoDispatchService.analyzeAndDispatch(savedFeedback.getId());
+        // Outbox Pattern: Tạo tác vụ PENDING trong ai_tasks
+        try {
+            AiTask aiTask = AiTask.builder()
+                .feedback(savedFeedback)
+                .status("PENDING")
+                .taskPriority(mapTaskPriority(savedFeedback.getPriority()))
+                .retryCount(0)
+                .build();
+            aiTaskRepository.save(aiTask);
+            log.info("[Outbox] Đã tạo AiTask cho media feedbackId={}", savedFeedback.getId());
+        } catch (Exception e) {
+            log.error("❌ [Outbox] Lỗi tạo AiTask cho media feedbackId={}: {}", savedFeedback.getId(), e.getMessage());
+        }
 
         return toResponse(savedFeedback, savedAttachments);
     }
@@ -224,7 +245,6 @@ public class CitizenFeedbackMediaService {
                 .managedByRole(feedback.getManagedByRole())
                 .wardId(feedback.getWard() == null ? null : feedback.getWard().getId())
                 .wardName(feedback.getWardName())
-                .districtName(feedback.getDistrictName())
                 .cityName(feedback.getCityName())
                 .assignedUnitId(feedback.getAssignedUnitId())
                 .assignedUnitName(feedback.getAssignedUnitName())
@@ -411,5 +431,16 @@ public class CitizenFeedbackMediaService {
     }
 
     private record EbmlValue(int offset, int size) {
+    }
+
+    private int mapTaskPriority(String priority) {
+        if (priority == null) return 1;
+        switch (priority.toUpperCase()) {
+            case "CRITICAL": return 3;
+            case "HIGH": return 2;
+            case "MEDIUM": return 1;
+            case "LOW": return 0;
+            default: return 1;
+        }
     }
 }

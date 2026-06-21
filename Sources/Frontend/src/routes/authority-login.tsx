@@ -27,10 +27,7 @@ import {
 } from "@/lib/roles";
 import { authApi, ApiError, getToken } from "@/lib/api";
 import { getAdministrativeUnitLabel } from "@/lib/administrativeUnit";
-import {
-  buildLoginLockoutMessage,
-  getLoginLockoutSeconds,
-} from "@/lib/loginLockout";
+import { buildLoginLockoutMessage, getLoginLockoutSeconds } from "@/lib/loginLockout";
 import {
   LogIn,
   Shield,
@@ -112,9 +109,7 @@ function AuthorityLoginPage() {
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaCode, setMfaCode] = useState("");
   const authorityPortalError =
-    locale === "vi"
-      ? "Tai khoan nay khong ton tai."
-      : "This account does not exist.";
+    locale === "vi" ? "Tai khoan nay khong ton tai." : "This account does not exist.";
 
   useEffect(() => {
     if (lockoutSeconds === null) return;

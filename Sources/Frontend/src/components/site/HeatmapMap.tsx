@@ -72,20 +72,19 @@ export function HeatmapMap({ hotspots }: HeatmapMapProps) {
 
   useEffect(() => {
     let cancelled = false;
-    void Promise.all([
-      import("react-leaflet"),
-      import("leaflet/dist/leaflet.css"),
-    ]).then(([mod]) => {
-      if (!cancelled) {
-        setLeafletComponents({
-          MapContainer: mod.MapContainer,
-          TileLayer: mod.TileLayer,
-          Rectangle: mod.Rectangle,
-          Popup: mod.Popup,
-          useMap: mod.useMap,
-        });
-      }
-    });
+    void Promise.all([import("react-leaflet"), import("leaflet/dist/leaflet.css")]).then(
+      ([mod]) => {
+        if (!cancelled) {
+          setLeafletComponents({
+            MapContainer: mod.MapContainer,
+            TileLayer: mod.TileLayer,
+            Rectangle: mod.Rectangle,
+            Popup: mod.Popup,
+            useMap: mod.useMap,
+          });
+        }
+      },
+    );
 
     // Thêm style animation fade-in
     const style = document.createElement("style");
@@ -124,7 +123,9 @@ export function HeatmapMap({ hotspots }: HeatmapMapProps) {
         <button
           onClick={() => setShowSurge(!showSurge)}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-full font-bold shadow-lg transition-all ${
-            showSurge ? "bg-slate-800 text-white" : "bg-white text-slate-700 border border-slate-200"
+            showSurge
+              ? "bg-slate-800 text-white"
+              : "bg-white text-slate-700 border border-slate-200"
           }`}
         >
           <Layers size={18} />
@@ -135,23 +136,40 @@ export function HeatmapMap({ hotspots }: HeatmapMapProps) {
       {/* Chú thích Mức độ (Legend) */}
       {showSurge && (
         <div className="absolute bottom-6 right-4 z-[1000] bg-white/95 backdrop-blur-sm p-3.5 rounded-xl shadow-lg border border-slate-100 text-xs min-w-[140px] animate-in fade-in slide-in-from-bottom-4">
-          <p className="font-extrabold mb-2 text-slate-800 uppercase tracking-wide text-[10px]">Lưu lượng phản ánh</p>
+          <p className="font-extrabold mb-2 text-slate-800 uppercase tracking-wide text-[10px]">
+            Lưu lượng phản ánh
+          </p>
           <div className="flex items-center gap-2.5 mb-1.5">
-            <div className="w-5 h-5 rounded-md" style={{ background: "#fb923c", opacity: 0.5 }}></div>
+            <div
+              className="w-5 h-5 rounded-md"
+              style={{ background: "#fb923c", opacity: 0.5 }}
+            ></div>
             <span className="font-medium text-slate-600">Trung bình</span>
           </div>
           <div className="flex items-center gap-2.5 mb-1.5">
-            <div className="w-5 h-5 rounded-md" style={{ background: "#ef4444", opacity: 0.6 }}></div>
+            <div
+              className="w-5 h-5 rounded-md"
+              style={{ background: "#ef4444", opacity: 0.6 }}
+            ></div>
             <span className="font-medium text-slate-600">Cao</span>
           </div>
           <div className="flex items-center gap-2.5">
-            <div className="w-5 h-5 rounded-md" style={{ background: "#991b1b", opacity: 0.75 }}></div>
+            <div
+              className="w-5 h-5 rounded-md"
+              style={{ background: "#991b1b", opacity: 0.75 }}
+            ></div>
             <span className="font-medium text-slate-600">Rất cao</span>
           </div>
         </div>
       )}
 
-      <MapContainer center={center} zoom={13} style={{ height: "100%", width: "100%" }} zoomControl={false}>
+      <MapContainer
+        center={center}
+        zoom={13}
+        style={{ height: "100%", width: "100%" }}
+        zoomControl={false}
+        attributionControl={false}
+      >
         {/* Lớp nền Bản đồ sáng màu (tương tự Grab) để làm nổi bật ô màu */}
         <TileLayer
           url="https://mt1.google.com/vt/lyrs=m&hl=vi&gl=VN&x={x}&y={y}&z={z}"
@@ -191,15 +209,22 @@ export function HeatmapMap({ hotspots }: HeatmapMapProps) {
                     </strong>
                     <div className="max-h-[160px] overflow-y-auto pr-2 space-y-2.5 mt-2 custom-scrollbar">
                       {cell.feedbacks.map((f, idx) => (
-                        <div key={idx} className="bg-slate-50 p-2.5 rounded-lg border border-slate-150 relative">
+                        <div
+                          key={idx}
+                          className="bg-slate-50 p-2.5 rounded-lg border border-slate-150 relative"
+                        >
                           <div className="font-bold text-slate-700 mb-1">{f.categoryName}</div>
                           <div className="flex items-center justify-between text-[11px]">
                             <span className="text-slate-500">Trạng thái:</span>
-                            <span className={`px-2 py-0.5 rounded-full font-semibold ${
-                              f.status === 'PENDING' ? 'bg-amber-100 text-amber-700' :
-                              f.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' :
-                              'bg-green-100 text-green-700'
-                            }`}>
+                            <span
+                              className={`px-2 py-0.5 rounded-full font-semibold ${
+                                f.status === "PENDING"
+                                  ? "bg-amber-100 text-amber-700"
+                                  : f.status === "IN_PROGRESS"
+                                    ? "bg-blue-100 text-blue-700"
+                                    : "bg-green-100 text-green-700"
+                              }`}
+                            >
                               {f.status}
                             </span>
                           </div>

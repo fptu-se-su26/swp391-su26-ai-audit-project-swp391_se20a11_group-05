@@ -37,6 +37,9 @@ public class FeedbackResponse {
     private String assignedToRole;
     private Long assignedStaffId;
     private String citizenName;
+    private String citizenPhone;
+    private String citizenEmail;
+    private Long citizenId;
     private String assigneeName;
     private String assignedAuthorityName;
     private String rejectionReason;

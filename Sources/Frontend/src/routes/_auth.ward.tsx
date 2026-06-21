@@ -11,6 +11,15 @@ import { Role } from "@/lib/roles";
 import { WardDashboard } from "@/features/ward/WardDashboard";
 
 export const Route = createFileRoute("/_auth/ward")({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): {
+    tab?: string;
+    detailId?: string;
+  } => ({
+    tab: search.tab as string | undefined,
+    detailId: search.detailId as string | undefined,
+  }),
   beforeLoad: ({ context }) => {
     const { currentUser } = context as {
       currentUser?: {
@@ -26,7 +35,10 @@ export const Route = createFileRoute("/_auth/ward")({
 
     // SECURITY check: Ensure that only the WARD_STAFF role is permitted to view ward operations.
     if (currentUser.role !== Role.WARD_STAFF) {
-      throw redirect({ to: "/authority-login", search: { redirect: undefined, error: "forbidden" } });
+      throw redirect({
+        to: "/authority-login",
+        search: { redirect: undefined, error: "forbidden" },
+      });
     }
   },
   head: () => ({

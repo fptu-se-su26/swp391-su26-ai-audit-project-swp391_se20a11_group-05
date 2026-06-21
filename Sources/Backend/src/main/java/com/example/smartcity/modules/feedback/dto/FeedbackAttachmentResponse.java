@@ -18,4 +18,5 @@ public class FeedbackAttachmentResponse {
     private String fileName;
     private Long fileSize;
     private LocalDateTime uploadedAt;
+    private String attachmentPurpose;
 }

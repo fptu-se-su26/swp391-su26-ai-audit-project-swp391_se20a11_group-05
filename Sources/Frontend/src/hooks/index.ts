@@ -42,8 +42,7 @@ export const queryKeys = {
       ["feedbacks", "list", page, size, filters] as const,
     publicList: (page: number, size: number, filters: FeedbackListFilters) =>
       ["feedbacks", "publicList", page, size, filters] as const,
-    publicStats: (filters: FeedbackListFilters) =>
-      ["feedbacks", "publicStats", filters] as const,
+    publicStats: (filters: FeedbackListFilters) => ["feedbacks", "publicStats", filters] as const,
     statuses: ["feedbacks", "statuses"] as const,
     detail: (id: string | number) => ["feedbacks", id] as const,
     publicDetail: (id: string | number) => ["feedbacks", "publicDetail", id] as const,
@@ -117,9 +116,9 @@ export function usePublicFeedbackStatistics(filters: FeedbackListFilters = {}) {
   });
 }
 
-export function useWardStaffStatistics(date: string) {
+export function useWardStaffStatistics(date?: string) {
   return useQuery<FeedbackLookupStatsResponse>({
-    queryKey: ["ward-staff-dashboard-statistics", date],
+    queryKey: ["ward-staff-dashboard-statistics", date || "all"],
     queryFn: () => feedbackApi.getWardStaffStatistics(date),
     staleTime: 30_000,
   });
@@ -175,12 +174,29 @@ export function useChangeFeedbackStatus() {
   return useMutation<
     FeedbackResponse,
     Error,
-    { id: number | string; status: string; note?: string }
+    {
+      id: number | string;
+      status: string;
+      note?: string;
+      requestMessage?: string;
+      responseDeadline?: string;
+      sendNotification?: boolean;
+    }
   >({
-    mutationFn: ({ id, status, note }) => feedbackApi.changeStatus(id, status, note),
+    mutationFn: ({ id, status, note, requestMessage, responseDeadline, sendNotification }) =>
+      feedbackApi.changeStatus(
+        id,
+        status,
+        note,
+        requestMessage,
+        responseDeadline,
+        sendNotification,
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["ward-staff-dashboard-statistics"] });
+      queryClient.invalidateQueries({ queryKey: ["feedbacks", "hotspots"] });
     },
   });
 }
@@ -221,7 +237,11 @@ export function useAcceptFeedback() {
 
 export function useUpdatePoliceFeedbackStatus() {
   const queryClient = useQueryClient();
-  return useMutation<PoliceFeedbackResponse, Error, { id: number | string; status: string; note?: string }>({
+  return useMutation<
+    PoliceFeedbackResponse,
+    Error,
+    { id: number | string; status: string; note?: string }
+  >({
     mutationFn: ({ id, status, note }) => policeApi.updateStatus(id, status, note),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
@@ -406,25 +426,25 @@ export function useMarkNotificationReadMutation() {
       await queryClient.cancelQueries({ queryKey: queryKeys.notifications.unreadCount });
 
       const previousNotifications = queryClient.getQueryData<NotificationResponse[]>(
-        queryKeys.notifications.all
+        queryKeys.notifications.all,
       );
       const previousUnreadCount = queryClient.getQueryData<number>(
-        queryKeys.notifications.unreadCount
+        queryKeys.notifications.unreadCount,
       );
 
       if (previousNotifications) {
         queryClient.setQueryData<NotificationResponse[]>(
           queryKeys.notifications.all,
           previousNotifications.map((n) =>
-            String(n.id) === String(id) ? { ...n, isRead: true } : n
-          )
+            String(n.id) === String(id) ? { ...n, isRead: true } : n,
+          ),
         );
       }
 
       if (typeof previousUnreadCount === "number") {
         queryClient.setQueryData<number>(
           queryKeys.notifications.unreadCount,
-          Math.max(0, previousUnreadCount - 1)
+          Math.max(0, previousUnreadCount - 1),
         );
       }
 
@@ -458,16 +478,16 @@ export function useMarkAllNotificationsReadMutation() {
       await queryClient.cancelQueries({ queryKey: queryKeys.notifications.unreadCount });
 
       const previousNotifications = queryClient.getQueryData<NotificationResponse[]>(
-        queryKeys.notifications.all
+        queryKeys.notifications.all,
       );
       const previousUnreadCount = queryClient.getQueryData<number>(
-        queryKeys.notifications.unreadCount
+        queryKeys.notifications.unreadCount,
       );
 
       if (previousNotifications) {
         queryClient.setQueryData<NotificationResponse[]>(
           queryKeys.notifications.all,
-          previousNotifications.map((n) => ({ ...n, isRead: true }))
+          previousNotifications.map((n) => ({ ...n, isRead: true })),
         );
       }
 
@@ -487,4 +507,3 @@ export function useMarkAllNotificationsReadMutation() {
     },
   });
 }
-

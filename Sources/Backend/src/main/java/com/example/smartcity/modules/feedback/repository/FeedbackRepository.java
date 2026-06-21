@@ -350,15 +350,16 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
      * Monthly trend dùng DB aggregate — GROUP BY year/month thay vì load entity.
      * Trả về [year, month, total_count, resolved_count]
      */
-    @org.springframework.data.jpa.repository.Query("""
-            SELECT FUNCTION('YEAR', f.createdAt), FUNCTION('MONTH', f.createdAt),
+    @org.springframework.data.jpa.repository.Query(value = """
+            SELECT EXTRACT(YEAR FROM f.created_at)::int,
+                   EXTRACT(MONTH FROM f.created_at)::int,
                    COUNT(f.id),
-                   SUM(CASE WHEN f.status = 'RESOLVED' THEN 1L ELSE 0L END)
-            FROM Feedback f
-            WHERE f.createdAt >= :from AND f.createdAt <= :to
-            GROUP BY FUNCTION('YEAR', f.createdAt), FUNCTION('MONTH', f.createdAt)
-            ORDER BY FUNCTION('YEAR', f.createdAt), FUNCTION('MONTH', f.createdAt)
-            """)
+                   SUM(CASE WHEN f.status = 'RESOLVED' THEN 1 ELSE 0 END)
+            FROM feedbacks f
+            WHERE f.created_at >= :from AND f.created_at <= :to
+            GROUP BY 1, 2
+            ORDER BY 1, 2
+            """, nativeQuery = true)
     List<Object[]> getMonthlyTrendStats(
             @org.springframework.data.repository.query.Param("from") java.time.LocalDateTime from,
             @org.springframework.data.repository.query.Param("to") java.time.LocalDateTime to);

@@ -192,7 +192,7 @@ function isWithinVietnam(lat: number, lng: number): boolean {
 // Phát hiện SĐT Việt Nam (0xxxxxxxxx) và CCCD mới 2021+ (12 số)
 // Tương thích đa trình duyệt (kể cả Safari cũ < 16.4 do không dùng negative lookbehind)
 const PII_PHONE_RE = /(?:^|[^\d])0\d{9}(?=[^\d]|$)/;
-const PII_CCCD_RE  = /(?:^|[^\d])\d{12}(?=[^\d]|$)/;
+const PII_CCCD_RE = /(?:^|[^\d])\d{12}(?=[^\d]|$)/;
 
 function detectPii(text: string): boolean {
   return PII_PHONE_RE.test(text) || PII_CCCD_RE.test(text);
@@ -202,14 +202,18 @@ function ReportPage() {
   const { t, locale } = useI18n();
   const { user } = useAuth();
   const location = useLocation();
-  const state = location.state as { initialTitle?: string; initialDescription?: string; initialCategoryCode?: string } | undefined;
+  const state = location.state as
+    | { initialTitle?: string; initialDescription?: string; initialCategoryCode?: string }
+    | undefined;
 
   const [submitted, setSubmitted] = useState(false);
   const [trackingCode, setTrackingCode] = useState("");
   const [piiError, setPiiError] = useState("");
 
   const { data: categories } = useCategories();
-  const [categoryCode, setCategoryCode] = useState<string | undefined>(state?.initialCategoryCode || undefined);
+  const [categoryCode, setCategoryCode] = useState<string | undefined>(
+    state?.initialCategoryCode || undefined,
+  );
   const createFeedback = useCreateFeedbackWithMedia();
 
   const storedLocation = getStoredGpsLocation();
@@ -506,7 +510,7 @@ function ReportPage() {
         toast.warning(
           locale === "vi"
             ? "Tọa độ định vị GPS không chính xác (nằm ngoài Việt Nam). Đã chuyển về vị trí mặc định tại Đà Nẵng, vui lòng kéo ghim hoặc click trên bản đồ để chỉnh sửa."
-            : "Inaccurate GPS coordinates detected. Reset to default location in Da Nang, please drag the pin or click on the map to adjust."
+            : "Inaccurate GPS coordinates detected. Reset to default location in Da Nang, please drag the pin or click on the map to adjust.",
         );
       } else {
         await applyLocation(location.latitude, location.longitude);
@@ -536,7 +540,9 @@ function ReportPage() {
       return false;
     }
     if (!title.trim()) {
-      toast.error(locale === "vi" ? "Vui lòng nhập tiêu đề phản ánh." : "Please enter a report title.");
+      toast.error(
+        locale === "vi" ? "Vui lòng nhập tiêu đề phản ánh." : "Please enter a report title.",
+      );
       return false;
     }
     if (photos.length === 0) {
@@ -655,10 +661,11 @@ function ReportPage() {
                       key={category.code}
                       type="button"
                       onClick={() => setCategoryCode(category.code)}
-                      className={`relative p-4 rounded-lg border-2 text-left transition-all duration-200 ${selected
+                      className={`relative p-4 rounded-lg border-2 text-left transition-all duration-200 ${
+                        selected
                           ? "border-[var(--status-success)] bg-[var(--status-success)]/5 shadow-sm ring-2 ring-[var(--status-success)]/20"
                           : "border-slate-200 bg-white hover:border-gov-blue/40 hover:shadow-sm"
-                        }`}
+                      }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <span className="text-gov-blue shrink-0">
@@ -769,7 +776,10 @@ function ReportPage() {
               <label className="block text-sm font-bold mb-2">{t("report.form.content")}</label>
               <textarea
                 value={description}
-                onChange={(e) => { setDescription(e.target.value); if (piiError) setPiiError(""); }}
+                onChange={(e) => {
+                  setDescription(e.target.value);
+                  if (piiError) setPiiError("");
+                }}
                 className={`w-full min-h-[150px] p-4 rounded-lg border-2 text-base focus:border-gov-blue outline-none bg-white transition-colors ${piiError ? "border-red-400" : "border-slate-200"}`}
                 placeholder={t("report.form.contentPlaceholder")}
               />
@@ -786,12 +796,13 @@ function ReportPage() {
                 <div className="min-w-0">
                   <p className="font-bold text-ink">{t("report.loc.title")}</p>
                   <p
-                    className={`text-sm font-semibold ${locationLoading
+                    className={`text-sm font-semibold ${
+                      locationLoading
                         ? "text-ink-soft"
                         : hasLocation
                           ? "text-[var(--status-success)]"
                           : "text-[var(--status-danger)]"
-                      }`}
+                    }`}
                   >
                     {locationLoading
                       ? t("report.loc.loading")
@@ -824,10 +835,8 @@ function ReportPage() {
                       : addressLoading
                         ? t("report.loc.addressLoading")
                         : address ||
-                        addressError ||
-                        (hasLocation
-                          ? t("report.loc.noAddress")
-                          : t("report.loc.clickRefresh"))}
+                          addressError ||
+                          (hasLocation ? t("report.loc.noAddress") : t("report.loc.clickRefresh"))}
                   </p>
                 </div>
               </div>
@@ -870,9 +879,7 @@ function ReportPage() {
           <div className="mb-4">
             <div>
               <h2 className="text-2xl font-heading text-gov-blue">{t("report.loc.mapTitle")}</h2>
-              <p className="text-sm text-ink-soft mt-1">
-                {t("report.loc.mapHint")}
-              </p>
+              <p className="text-sm text-ink-soft mt-1">{t("report.loc.mapHint")}</p>
             </div>
           </div>
 
@@ -902,4 +909,3 @@ function ReportPage() {
     </div>
   );
 }
-

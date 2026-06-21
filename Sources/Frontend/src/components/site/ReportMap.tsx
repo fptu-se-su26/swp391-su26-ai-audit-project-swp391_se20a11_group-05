@@ -92,15 +92,12 @@ export function ReportMap({
         }
       },
     }),
-    [onChangeLocation]
+    [onChangeLocation],
   );
 
   useEffect(() => {
     let cancelled = false;
-    void Promise.all([
-      import("react-leaflet"),
-      import("leaflet"),
-    ]).then(([rl, L]) => {
+    void Promise.all([import("react-leaflet"), import("leaflet")]).then(([rl, L]) => {
       if (cancelled) return;
 
       const icon = L.default.divIcon({
@@ -146,7 +143,9 @@ export function ReportMap({
         currentLocationIcon: icon,
       });
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (!modules) {
@@ -157,15 +156,8 @@ export function ReportMap({
     );
   }
 
-  const {
-    MapContainer,
-    TileLayer,
-    Marker,
-    Popup,
-    useMap,
-    useMapEvents,
-    currentLocationIcon,
-  } = modules;
+  const { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, currentLocationIcon } =
+    modules;
 
   return (
     <div className="w-full h-full relative">
@@ -175,7 +167,8 @@ export function ReportMap({
         className="w-full h-full"
         scrollWheelZoom={true}
         dragging={true}
-        zoomControl={true}
+        zoomControl={false}
+        attributionControl={false}
       >
         <MapViewUpdaterInner center={mapCenter} hasLocation={hasLocation} useMap={useMap} />
         <MapEventsHandler useMapEvents={useMapEvents} onChangeLocation={onChangeLocation} />

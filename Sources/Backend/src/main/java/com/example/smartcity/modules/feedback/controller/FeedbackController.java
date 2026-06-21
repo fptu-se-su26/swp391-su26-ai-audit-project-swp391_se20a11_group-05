@@ -281,7 +281,14 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
             @PathVariable Long id,
             @Valid @RequestBody StatusChangeRequest request,
             Authentication authentication) {
-        Feedback updated = feedbackService.changeStatus(id, request.getStatus(), request.getNote(), authentication.getName());
+        Feedback updated = feedbackService.changeStatus(
+                id,
+                request.getStatus(),
+                request.getNote(),
+                request.getRequestMessage(),
+                request.getResponseDeadline(),
+                Boolean.TRUE.equals(request.getSendNotification()),
+                authentication.getName());
         return ResponseEntity.ok(feedbackMapper.toDto(updated));
     }
 
@@ -339,6 +346,7 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
                 .fileName(attachment.getFileName())
                 .fileSize(attachment.getFileSize())
                 .uploadedAt(attachment.getUploadedAt())
+                .attachmentPurpose(attachment.getAttachmentPurpose())
                 .build();
     }
 
@@ -358,11 +366,13 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
         response.setAssignedAuthorityName(response.getAssignedUnitName());
         response.setAttachments(attachments);
         response.setMediaUrls(attachments.stream()
+                .filter(a -> !"RESOLUTION_EVIDENCE".equals(a.getAttachmentPurpose()))
                 .filter(a -> "IMAGE".equalsIgnoreCase(a.getFileType()))
                 .map(FeedbackAttachmentResponse::getFileUrl)
                 .toList());
                 
         response.setVideoUrl(attachments.stream()
+                .filter(a -> !"RESOLUTION_EVIDENCE".equals(a.getAttachmentPurpose()))
                 .filter(a -> "VIDEO".equalsIgnoreCase(a.getFileType()))
                 .map(FeedbackAttachmentResponse::getFileUrl)
                 .findFirst()

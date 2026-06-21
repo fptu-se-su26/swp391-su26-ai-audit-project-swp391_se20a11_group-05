@@ -57,6 +57,7 @@ class FeedbackServiceTest {
     @Mock private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
     @Mock private com.example.smartcity.rag.ingestion.EmbeddingClientFacade embeddingFacade;
     @Mock private AiTaskRepository aiTaskRepository;
+    @Mock private com.example.smartcity.ai_orchestrator.adapter.GeminiAdapter geminiAdapter;
     private CategoryRoutingService categoryRoutingService;
 
     private FeedbackService feedbackService;
@@ -86,7 +87,8 @@ class FeedbackServiceTest {
                 contentGuardrailService,
                 jdbcTemplate,
                 embeddingFacade,
-                aiTaskRepository
+                aiTaskRepository,
+                geminiAdapter
         );
 
         citizen = new User("citizen1", "encoded", "Người Dân", "0905123456",
@@ -240,7 +242,7 @@ class FeedbackServiceTest {
     void checkDuplicateFeedback_noDuplicate() {
         float[] vector = new float[]{0.1f, 0.2f};
         when(embeddingFacade.embed("Description")).thenReturn(vector);
-        when(jdbcTemplate.query(any(String.class), any(org.springframework.jdbc.core.RowMapper.class), any(Object[].class)))
+        when(jdbcTemplate.queryForList(any(String.class), any(Object[].class)))
                 .thenReturn(List.of());
 
         assertDoesNotThrow(() -> feedbackService.checkDuplicateFeedback("Description", 1L, 108.2022, 16.0544));
@@ -248,12 +250,21 @@ class FeedbackServiceTest {
 
     @Test
     @DisplayName("Should throw CustomException when checkDuplicateFeedback finds duplicate")
-    void checkDuplicateFeedback_duplicateFound() {
+    void checkDuplicateFeedback_duplicateFound() throws Exception {
         float[] vector = new float[]{0.1f, 0.2f};
         when(embeddingFacade.embed("Description")).thenReturn(vector);
-        when(jdbcTemplate.query(any(String.class), any(org.springframework.jdbc.core.RowMapper.class), any(Object[].class)))
-                .thenReturn(List.of()) // first call (sqlLog)
-                .thenReturn(List.of("FB-OLD123")); // second call (sql)
+        
+        java.util.Map<String, Object> candidate = new java.util.HashMap<>();
+        candidate.put("tracking_code", "FB-OLD123");
+        candidate.put("description", "Old incident");
+        
+        when(jdbcTemplate.queryForList(any(String.class), any(Object[].class)))
+                .thenReturn(List.of(candidate));
+                
+        String fakeJsonResponse = "{\"is_duplicate\": true, \"tracking_code\": \"FB-OLD123\", \"reason\": \"test\"}";
+        
+        when(geminiAdapter.generateStructuredResponseAsync(any(String.class), any(String.class)))
+                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(fakeJsonResponse));
 
         com.example.smartcity.common.exception.CustomException exception = assertThrows(
                 com.example.smartcity.common.exception.CustomException.class,

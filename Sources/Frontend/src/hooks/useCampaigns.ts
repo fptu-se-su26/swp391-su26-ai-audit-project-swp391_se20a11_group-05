@@ -358,6 +358,7 @@ export function useCampaignChat(campaignId: string) {
     queryFn: () => campaignApi.getChatMessages(campaignId),
     enabled,
     retry: false,
+    refetchInterval: 5000,
   });
 
   useEffect(() => {
@@ -376,11 +377,16 @@ export function useCampaignChat(campaignId: string) {
 
     socket.onmessage = (event) => {
       const payload = String(event.data);
-      const bodyStart = payload.indexOf("\n\n");
+      let bodyStart = payload.indexOf("\r\n\r\n");
+      let headerLength = 4;
+      if (bodyStart === -1) {
+        bodyStart = payload.indexOf("\n\n");
+        headerLength = 2;
+      }
       if (!payload.startsWith("MESSAGE") || bodyStart === -1) return;
 
       try {
-        const body = payload.slice(bodyStart + 2).replace(/\0$/, "");
+        const body = payload.slice(bodyStart + headerLength).replace(/\0$/, "");
         const message = JSON.parse(body) as CampaignChatMessageResponse;
         queryClient.setQueryData<CampaignChatMessageResponse[]>(
           ["campaigns", campaignId, "chat"],

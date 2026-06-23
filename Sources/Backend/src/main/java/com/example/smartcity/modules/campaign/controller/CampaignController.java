@@ -71,11 +71,11 @@ public class CampaignController {
     }
 
     @PostMapping("/{id}/approve")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @Deprecated
     public ResponseEntity<CampaignResponse> approveCampaign(
             @PathVariable Long id,
             Authentication authentication) {
-        return ResponseEntity.ok(campaignService.approveCampaign(id, authentication.getName()));
+        throw new UnsupportedOperationException("Approval flow is deprecated; campaigns are active upon creation.");
     }
 
     @PostMapping("/{id}/join")
@@ -213,6 +213,14 @@ public class CampaignController {
             Authentication authentication) {
         campaignService.delete(id, authentication.getName());
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/end")
+    @PreAuthorize("hasRole('WARD_STAFF')")
+    public ResponseEntity<CampaignResponse> endCampaign(
+            @PathVariable Long id,
+            Authentication authentication) {
+        return ResponseEntity.ok(campaignService.endCampaign(id, authentication.getName()));
     }
 
     private String username(Authentication authentication) {

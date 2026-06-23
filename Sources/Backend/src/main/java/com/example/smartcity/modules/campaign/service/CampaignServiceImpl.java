@@ -65,14 +65,15 @@ public class CampaignServiceImpl implements CampaignService {
     public Page<CampaignResponse> getAll(String status, Pageable pageable, String username) {
         User currentUser = findUser(username).orElse(null);
         String normalizedStatus = normalizeStatus(status);
+        LocalDateTime now = LocalDateTime.now();
 
         Page<Campaign> campaigns;
         if (currentUser == null) {
-            campaigns = campaignRepository.findPublicVisibleCampaigns(normalizedStatus, pageable);
+            campaigns = campaignRepository.findPublicVisibleCampaigns(normalizedStatus, now, pageable);
         } else if (currentUser.getRole() == Role.SUPER_ADMIN || currentUser.getRole() == Role.WARD_STAFF) {
-            campaigns = campaignRepository.findByOptionalStatus(normalizedStatus, pageable);
+            campaigns = campaignRepository.findByOptionalStatus(normalizedStatus, now, pageable);
         } else {
-            campaigns = campaignRepository.findVisibleCampaignsForUser(normalizedStatus, currentUser.getId(), pageable);
+            campaigns = campaignRepository.findVisibleCampaignsForUser(normalizedStatus, currentUser.getId(), now, pageable);
         }
 
         return campaigns.map(campaign -> toResponse(campaign, currentUser));
@@ -120,7 +121,7 @@ public class CampaignServiceImpl implements CampaignService {
                 .maxParticipants(request.getMaxParticipants())
                 .startTime(request.getStartTime())
                 .endTime(request.getEndTime())
-                .status(STATUS_PENDING_APPROVAL)
+                .status(STATUS_RECRUITING)
                 .linkedFeedbackId(request.getLinkedFeedbackId())
                 .boundaryGeojson(request.getBoundaryGeojson())
                 .coverImageUrl(request.getCoverImageUrl())
@@ -163,7 +164,11 @@ public class CampaignServiceImpl implements CampaignService {
         }
 
         Campaign campaign = getCampaign(campaignId);
-        if (!STATUS_RECRUITING.equals(campaign.getStatus())) {
+        LocalDateTime now = LocalDateTime.now();
+        boolean isEnded = "ENDED".equals(campaign.getStatus())
+                || "COMPLETED".equals(campaign.getStatus())
+                || (campaign.getEndTime() != null && now.isAfter(campaign.getEndTime()));
+        if (isEnded || !STATUS_RECRUITING.equals(campaign.getStatus())) {
             throw new CustomException("Campaign is not open for registration", HttpStatus.CONFLICT.value());
         }
 
@@ -322,7 +327,11 @@ public class CampaignServiceImpl implements CampaignService {
     public CampaignFeedbackResponse addFeedback(Long campaignId, CampaignFeedbackRequest request, String username) {
         User citizen = requireUser(username);
         Campaign campaign = getCampaign(campaignId);
-        if (!STATUS_COMPLETED.equals(campaign.getStatus())) {
+        LocalDateTime now = LocalDateTime.now();
+        boolean isEnded = "ENDED".equals(campaign.getStatus())
+                || "COMPLETED".equals(campaign.getStatus())
+                || (campaign.getEndTime() != null && now.isAfter(campaign.getEndTime()));
+        if (!isEnded) {
             throw new CustomException("Feedback is only available after campaign completion", HttpStatus.CONFLICT.value());
         }
 
@@ -429,16 +438,33 @@ public class CampaignServiceImpl implements CampaignService {
         campaignRepository.delete(campaign);
     }
 
+    @Override
+    @Transactional
+    public CampaignResponse endCampaign(Long id, String username) {
+        User user = requireUser(username);
+        Campaign campaign = getCampaign(id);
+        assertCanManage(campaign, user);
+
+        campaign.setStatus("ENDED");
+        return toResponse(campaignRepository.save(campaign), user);
+    }
+
     private CampaignResponse toResponse(Campaign campaign, User currentUser) {
         long participantCount = participantRepository.countByCampaign_IdAndJoinStatus(campaign.getId(), JOIN_APPROVED);
         Optional<CampaignParticipant> currentParticipant = currentUser == null
                 ? Optional.empty()
                 : participantRepository.findByCampaign_IdAndCitizen_Id(campaign.getId(), currentUser.getId());
 
+        LocalDateTime now = LocalDateTime.now();
+        boolean isEnded = "ENDED".equals(campaign.getStatus())
+                || "COMPLETED".equals(campaign.getStatus())
+                || (campaign.getEndTime() != null && now.isAfter(campaign.getEndTime()));
+
         boolean canManage = currentUser != null && canManage(campaign, currentUser);
         boolean privateDetailsVisible = currentUser != null && canViewPrivateDetails(campaign, currentUser);
         boolean canJoin = currentUser != null
                 && currentUser.getRole() == Role.CITIZEN
+                && !isEnded
                 && STATUS_RECRUITING.equals(campaign.getStatus())
                 && currentParticipant
                 .map(p -> JOIN_REJECTED.equals(p.getJoinStatus()) || JOIN_CANCELLED.equals(p.getJoinStatus()))
@@ -446,7 +472,7 @@ public class CampaignServiceImpl implements CampaignService {
         boolean canComment = currentUser != null && canComment(campaign, currentUser);
         boolean canFeedback = currentParticipant
                 .filter(p -> JOIN_APPROVED.equals(p.getJoinStatus()))
-                .map(p -> STATUS_COMPLETED.equals(campaign.getStatus())
+                .map(p -> isEnded
                         && !feedbackRepository.existsByCampaign_IdAndParticipant_Id(campaign.getId(), p.getId()))
                 .orElse(false);
 
@@ -464,7 +490,7 @@ public class CampaignServiceImpl implements CampaignService {
                 .maxParticipants(campaign.getMaxParticipants())
                 .startTime(campaign.getStartTime())
                 .endTime(campaign.getEndTime())
-                .status(campaign.getStatus())
+                .status(isEnded ? "ENDED" : "ACTIVE")
                 .wardId(campaign.getWard() != null ? campaign.getWard().getId() : null)
                 .wardName(campaign.getWard() != null ? campaign.getWard().getName() : null)
                 .createdByUserId(campaign.getCreatedByUser().getId())

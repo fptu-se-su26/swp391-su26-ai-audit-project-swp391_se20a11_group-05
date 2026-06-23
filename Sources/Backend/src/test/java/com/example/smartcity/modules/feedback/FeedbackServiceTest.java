@@ -7,14 +7,21 @@ import com.example.smartcity.modules.feedback.entity.Feedback;
 import com.example.smartcity.modules.feedback.entity.FeedbackStatus;
 import com.example.smartcity.modules.feedback.repository.CategoryRepository;
 import com.example.smartcity.modules.feedback.repository.FeedbackRepository;
+import com.example.smartcity.modules.feedback.service.CategoryRoutingService;
 import com.example.smartcity.modules.feedback.service.FeedbackService;
 import com.example.smartcity.modules.user.entity.Role;
 import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.user.repository.UserRepository;
 import com.example.smartcity.modules.feedback.repository.FeedbackLogRepository;
+import com.example.smartcity.modules.feedback.repository.AttachmentRepository;
+import com.example.smartcity.modules.feedback.repository.AiTaskRepository;
 import com.example.smartcity.modules.notification.WebSocketNotificationService;
+import com.example.smartcity.modules.notification.service.NotificationService;
+import com.example.smartcity.modules.notification.repository.NotificationRepository;
 import com.example.smartcity.modules.feedback.service.AutoDispatchService;
 import com.example.smartcity.modules.core.service.LocationResolutionService;
+import com.example.smartcity.ai_orchestrator.guardrails.ContentGuardrailService;
+import com.example.smartcity.common.exception.CustomException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,9 +47,18 @@ class FeedbackServiceTest {
     @Mock private CategoryRepository categoryRepository;
     @Mock private UserRepository userRepository;
     @Mock private FeedbackLogRepository feedbackLogRepository;
-    @Mock private WebSocketNotificationService notificationService;
+    @Mock private AttachmentRepository attachmentRepository;
+    @Mock private WebSocketNotificationService webSocketNotificationService;
+    @Mock private NotificationService notificationService;
+    @Mock private NotificationRepository notificationRepository;
     @Mock private AutoDispatchService autoDispatchService;
     @Mock private LocationResolutionService locationResolutionService;
+    @Mock private ContentGuardrailService contentGuardrailService;
+    @Mock private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+    @Mock private com.example.smartcity.rag.ingestion.EmbeddingClientFacade embeddingFacade;
+    @Mock private AiTaskRepository aiTaskRepository;
+    @Mock private com.example.smartcity.ai_orchestrator.adapter.GeminiAdapter geminiAdapter;
+    private CategoryRoutingService categoryRoutingService;
 
     private FeedbackService feedbackService;
 
@@ -55,8 +71,25 @@ class FeedbackServiceTest {
 
     @BeforeEach
     void setUp() {
-        feedbackService = new FeedbackService(feedbackRepository, feedbackLogRepository,
-                notificationService, categoryRepository, userRepository, autoDispatchService, locationResolutionService);
+        categoryRoutingService = new CategoryRoutingService();
+        feedbackService = new FeedbackService(
+                feedbackRepository,
+                feedbackLogRepository,
+                webSocketNotificationService,
+                notificationService,
+                notificationRepository,
+                categoryRepository,
+                userRepository,
+                attachmentRepository,
+                autoDispatchService,
+                locationResolutionService,
+                categoryRoutingService,
+                contentGuardrailService,
+                jdbcTemplate,
+                embeddingFacade,
+                aiTaskRepository,
+                geminiAdapter
+        );
 
         citizen = new User("citizen1", "encoded", "Người Dân", "0905123456",
                 "citizen@example.com", Role.CITIZEN);
@@ -76,7 +109,12 @@ class FeedbackServiceTest {
 
         category = new Category();
         category.setId(1L);
-        category.setName("Hạ tầng");
+        category.setCode("TRAFFIC");
+        category.setName("Giao thong");
+        category.setNameVi("Giao thong");
+        category.setNameEn("Traffic");
+        category.setManagedByRole("POLICE");
+        category.setActive(true);
 
         validRequest = FeedbackRequest.builder()
                 .title("Ổ gà trên đường Hùng Vương")
@@ -84,7 +122,7 @@ class FeedbackServiceTest {
                 .latitude(16.0544)
                 .longitude(108.2022)
                 .addressDetails("123 Nguyễn Văn Linh")
-                .categoryId(1L)
+                .categoryCode("TRAFFIC")
                 .wardId(1L)
                 .build();
     }
@@ -92,7 +130,7 @@ class FeedbackServiceTest {
     @Test
     @DisplayName("Should create feedback successfully")
     void createFeedback_success() {
-        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
+        when(categoryRepository.findByCodeAndActiveTrue("TRAFFIC")).thenReturn(Optional.of(category));
         when(userRepository.findByUsername("citizen1")).thenReturn(Optional.of(citizen));
         when(locationResolutionService.findAuthorityByLocation(16.0544, 108.2022)).thenReturn(ward);
         when(feedbackRepository.save(any(Feedback.class))).thenAnswer(invocation -> {
@@ -106,7 +144,7 @@ class FeedbackServiceTest {
         assertNotNull(result);
         assertTrue(result.getTrackingCode().startsWith("FB-"));
         assertEquals("Ổ gà trên đường Hùng Vương", result.getTitle());
-        assertEquals(FeedbackStatus.PENDING, result.getStatus());
+        assertEquals(FeedbackStatus.PENDING_RECEIVE, result.getStatus());
         assertEquals(category, result.getCategory());
         assertEquals(citizen, result.getCitizen());
         assertEquals(16.0544, result.getLatitude());
@@ -116,16 +154,13 @@ class FeedbackServiceTest {
     @Test
     @DisplayName("Should require GPS coordinates when creating feedback")
     void createFeedback_requiresGps() {
-        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
-        when(userRepository.findByUsername("citizen1")).thenReturn(Optional.of(citizen));
-
         FeedbackRequest invalid = FeedbackRequest.builder()
                 .title("Test")
                 .description("Test desc")
-                .categoryId(1L)
+                .categoryCode("TRAFFIC")
                 .build();
 
-        assertThrows(com.example.smartcity.common.exception.CustomException.class,
+        CustomException ex = assertThrows(CustomException.class,
                 () -> feedbackService.createFeedback(invalid, "citizen1"));
         verifyNoInteractions(locationResolutionService);
     }
@@ -133,14 +168,14 @@ class FeedbackServiceTest {
     @Test
     @DisplayName("Should throw when category not found")
     void createFeedback_categoryNotFound() {
-        when(categoryRepository.findById(999L)).thenReturn(Optional.empty());
-
         FeedbackRequest invalid = FeedbackRequest.builder()
                 .title("Test").description("Test desc")
-                .categoryId(999L).wardId(1L)
+                .categoryCode("INVALID").wardId(1L)
+                .latitude(16.0544)
+                .longitude(108.2022)
                 .build();
 
-        assertThrows(com.example.smartcity.common.exception.ResourceNotFoundException.class,
+        CustomException ex = assertThrows(CustomException.class,
                 () -> feedbackService.createFeedback(invalid, "citizen1"));
     }
 
@@ -201,6 +236,45 @@ class FeedbackServiceTest {
 
         assertTrue(result.isEmpty());
     }
+
+    @Test
+    @DisplayName("Should not throw exception when checkDuplicateFeedback finds no duplicate")
+    void checkDuplicateFeedback_noDuplicate() {
+        float[] vector = new float[]{0.1f, 0.2f};
+        when(embeddingFacade.embed("Description")).thenReturn(vector);
+        when(jdbcTemplate.queryForList(any(String.class), any(Object[].class)))
+                .thenReturn(List.of());
+
+        assertDoesNotThrow(() -> feedbackService.checkDuplicateFeedback("Description", 1L, 108.2022, 16.0544));
+    }
+
+    @Test
+    @DisplayName("Should throw CustomException when checkDuplicateFeedback finds duplicate")
+    void checkDuplicateFeedback_duplicateFound() throws Exception {
+        float[] vector = new float[]{0.1f, 0.2f};
+        when(embeddingFacade.embed("Description")).thenReturn(vector);
+        
+        java.util.Map<String, Object> candidate = new java.util.HashMap<>();
+        candidate.put("tracking_code", "FB-OLD123");
+        candidate.put("description", "Old incident");
+        
+        when(jdbcTemplate.queryForList(any(String.class), any(Object[].class)))
+                .thenReturn(List.of(candidate));
+                
+        String fakeJsonResponse = "{\"is_duplicate\": true, \"tracking_code\": \"FB-OLD123\", \"reason\": \"test\"}";
+        
+        when(geminiAdapter.generateStructuredResponseAsync(any(String.class), any(String.class)))
+                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(fakeJsonResponse));
+
+        com.example.smartcity.common.exception.CustomException exception = assertThrows(
+                com.example.smartcity.common.exception.CustomException.class,
+                () -> feedbackService.checkDuplicateFeedback("Description", 1L, 108.2022, 16.0544)
+        );
+
+        assertEquals(409, exception.getStatus());
+        assertTrue(exception.getMessage().contains("FB-OLD123"));
+    }
+
 
     private Feedback createSampleFeedback() {
         Feedback f = new Feedback();

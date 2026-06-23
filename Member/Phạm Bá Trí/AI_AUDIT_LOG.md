@@ -224,6 +224,34 @@
 
 ---
 
+---
+
+### Entry #: 017
+**Prompt Type:** LOGIC AUDIT & REFACTORING
+**Stage/Component:** AI Guardrails & Auto Dispatch Layer
+**Problem/Context:** Hệ thống AI Guardrails đã được tích hợp thành công, nhưng cần một cuộc kiểm tra chuyên sâu (Runtime Logic Audit) để vạch trần các lỗi ngầm có thể xảy ra ở môi trường thực tế (Race conditions, LazyInit) và đánh giá trải nghiệm người dùng (UX) khi bị AI từ chối đơn.
+**Prompt to AI:** "Bạn là một Senior Full-Stack Engineer và AI Systems Auditor... đóng vai một request cụ thể và trace nó qua toàn bộ hệ thống từ đầu đến cuối... tìm ra các lỗi logic ẩn mà unit test không phát hiện được."
+**AI Response (Summary):** AI vẽ ra Sơ đồ Luồng Thực Tế (Trace Map) xuất sắc và tóm trọn 2 lỗi Critical: 1) LazyInitializationException khi fallback AI sập do gọi `.getCitizen()` ngoài Transaction. 2) Race Condition khi gọi Notification Async trước khi Commit trạng thái DB. Kèm theo là 1 rủi ro lớn về UX khi bắt người dùng gõ lại form từ đầu.
+**Human Delta & Reflection:**
+- **Critical Thinking:** Nhận thức rõ ràng rằng code Spring Boot dù build thành công nhưng dính "Lazy Fetch" thì vẫn sẽ làm sập tính năng tự động ghi log khi lỗi (Silent failure). Việc Async Notification gọi trượt dữ liệu chưa commit là bài học kiến trúc đắt giá.
+- **Contextualization:** Trong hệ thống Smart City, việc công dân bị bắt gõ lại bản báo cáo dài 500 chữ chỉ vì AI bắt nhầm một từ "Toxic" là trải nghiệm cực kỳ tồi tệ. AI đã gợi ý thiết kế dùng React Router State để tự điền form là giải pháp cứu rỗi UX.
+- **Creative Synthesis:** Đã phối hợp cùng AI vá lỗi Backend bằng `@Transactional` riêng biệt cho method fallback và dùng `TransactionSynchronizationManager` để ép tiến trình chạy sau Commit. Phía Frontend tận dụng triệt để `useLocation().state`.
+- **Decision Ownership:** Chốt nghiệm thu và lưu lại các file Báo cáo Audit, Trace Map vào thư mục đồ án làm minh chứng năng lực gỡ lỗi cấp cao.
+
+---
+
+### Entry #: 018
+**Prompt Type:** REFACTORING & ARCHITECTURE-DESIGN
+**Stage/Component:** Implementation stage (AI Routing & Outbox Pattern)
+**Problem/Context:** Xây dựng luồng tự động điều phối và định tuyến sự cố bằng AI bất đồng bộ. Thiết kế cũ gọi trực tiếp dịch vụ LLM đồng bộ, gây rủi ro nghẽn luồng xử lý của Web server và mất dữ liệu khi hệ thống gặp sự cố mất điện hay sập mạng giữa chừng.
+**Prompt to AI:** "làm đi" (kèm theo yêu cầu di chuyển luồng AI Routing và phân loại sang mô hình Outbox Pattern lưu DB, PostGIS và HNSW Index).
+**AI Response (Summary):** AI đề xuất kiến trúc Outbox Pattern: tạo bảng `ai_tasks` và `ai_analysis_logs`, cập nhật trigger tự động đồng bộ hóa kiểu dữ liệu Geometry của PostGIS. Tái cấu trúc FeedbackService lưu task PENDING vào Outbox trong cùng một database transaction. Triển khai background worker định kỳ trong AutoDispatchService dùng cơ chế khóa dòng FOR UPDATE SKIP LOCKED để xử lý task song song và an toàn, đồng thời đo lường và ghi log độ trễ/token sử dụng của LLM.
+**Human Delta & Reflection:**
+- **Critical Thinking:** Việc di chuyển sang mô hình Outbox hướng cơ sở dữ liệu là giải pháp kiến trúc nâng cao giúp hệ thống có khả năng chịu lỗi tối đa (fault-tolerant) và đảm bảo tính nhất quán cuối cùng (eventual consistency). So với cách gọi API trực tiếp, Outbox Pattern giải phóng tài nguyên của thread xử lý Tomcat ngay lập tức.
+- **Contextualization:** Đặc biệt đối với các feedback có chứa toạ độ địa lý, việc ứng dụng PostGIS `ST_DWithin` thay thế cho so sánh toạ độ hình hộp chữ nhật (bounding box) thô sơ giúp tăng độ chính xác tìm kiếm trùng lặp.
+- **Creative Synthesis:** Sau khi gộp code, tôi đã phát hiện ra xung đột phiên bản di chuyển DB Flyway (cả nhánh local và nhánh `origin/Product` đều tạo migration version `V8`). Tôi đã chủ động đổi tên file migration local thành `V9` để tránh xung đột làm sập ứng dụng khi start.
+- **Decision Ownership:** Quyết định hoàn tất tái cấu trúc, sửa lại toàn bộ mock test cho FeedbackServiceTest và AutoDispatchServiceTest để compile thành công, tiến hành chạy test suite (45/45 pass) và khởi động kiểm thử trực tiếp hệ thống.
+
 ## III. Phát hiện Hallucination (Hallucination Detection)
 
 - **Trường hợp:** Khi yêu cầu AI tìm kiếm và tổng hợp 10 bài báo khoa học trên Springer (Entry 001).
@@ -243,6 +271,19 @@
 
 ---
 
+### Entry #: 002
+**Prompt Type:** VERIFICATION / REFACTORING
+**Stage/Component:** Implementation stage (Logic OTP) + Security Audit
+**Problem/Context:** Xây dựng tính năng đăng ký 2 bước và phát hiện các lỗ hổng bảo mật nghiêm trọng trong luồng SMS OTP cũ (không mã hóa OTP, dễ bị race condition, kẹt tài khoản đăng ký).
+**Prompt to AI:** "kiểm tra logic nghiệp vụ của otp", "fix tiếp đi", "kiểm trâu sâu nữa so thầy tôi kêu cái sms này hơi yếu đc 3 điểm"
+**AI Response (Summary):** AI đã chỉ ra 4 lỗ hổng nghiêm trọng: 1. Plaintext OTP, 2. Database Bloat, 3. Race Condition khi dò mã, 4. Deadlock dữ liệu rác. Sau đó, AI đã chủ động viết mã vá lỗi: sử dụng BCrypt cho OTP, thêm `@Lock(PESSIMISTIC_WRITE)`, tạo Job dọn rác `@Scheduled`, và sửa logic xóa tài khoản `INACTIVE` cũ. Đồng thời thiết kế UI Frontend thành 6-box input.
+
+**Human Delta & Reflection:**
+- **Critical Thinking:** AI đã phân tích rất chính xác các điểm yếu "chí mạng" mà thầy giáo đã cảnh báo. Đặc biệt là việc băm OTP (Hashing) và khóa bi quan (Pessimistic Lock) là kiến thức cấp cao, giúp nâng tầm dự án thành chuẩn Ngân hàng.
+- **Decision Ownership:** Quyết định cho phép xóa vật lý (Hard delete) các tài khoản `INACTIVE` cũ là một nước đi dũng cảm nhưng chính xác, giúp giải quyết hoàn toàn Deadlock cho người dùng. Đã tự mình verify bằng cách compile và run test 19 cases.
+
+---
+
 ## V. Cam kết học thuật
 
 Sinh viên/nhóm cam kết rằng:
@@ -253,4 +294,5 @@ Sinh viên/nhóm cam kết rằng:
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-| Phạm Bá Trí | 2026-05-21 |
+| Phạm Bá Trí | 2026-06-21 |
+

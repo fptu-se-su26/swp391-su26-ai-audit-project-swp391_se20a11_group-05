@@ -8,8 +8,12 @@ import com.example.smartcity.modules.feedback.entity.Category;
 import com.example.smartcity.modules.feedback.mapper.CategoryMapper;
 import com.example.smartcity.modules.feedback.service.CategoryService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/categories")
@@ -27,6 +31,14 @@ public class CategoryController extends BaseGenericController<Category, Category
     @Override
     protected BaseMapper<Category, CategoryDTO> getMapper() {
         return categoryMapper;
+    }
+
+    @Override
+    @GetMapping
+    public ResponseEntity<List<CategoryDTO>> getAll() {
+        return ResponseEntity.ok(categoryService.findActiveCategories().stream()
+                .map(categoryMapper::toDto)
+                .toList());
     }
 }
 

@@ -1,6 +1,7 @@
 # AI Tools
 .codegraph/
 .claude/
+.agent/
 CLAUDE.md
 
 # MCP & Gemini
@@ -25,3 +26,4 @@ dist/
 # Environment
 .env
 .env.local
+.env.local.ps1

@@ -27,10 +27,18 @@ public class CorsConfig {
         // Allowed origins — thêm domain production khi deploy
         config.setAllowedOrigins(List.of(
             "http://localhost:5173",   // Vite dev server
+            "http://localhost:5174",
+            "http://localhost:5175",
+            "http://localhost:5176",
+            "http://localhost:5177",
             "http://localhost:8080",   // Lovable sandbox port
             "http://localhost:3000",   // Alternative dev port
             "http://localhost:4173",   // Vite preview
             "http://127.0.0.1:5173",
+            "http://127.0.0.1:5174",
+            "http://127.0.0.1:5175",
+            "http://127.0.0.1:5176",
+            "http://127.0.0.1:5177",
             "http://127.0.0.1:8080",
             "http://127.0.0.1:3000"
         ));

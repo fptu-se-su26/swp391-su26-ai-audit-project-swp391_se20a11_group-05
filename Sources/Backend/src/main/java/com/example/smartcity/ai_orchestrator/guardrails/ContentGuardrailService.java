@@ -1,6 +1,7 @@
 package com.example.smartcity.ai_orchestrator.guardrails;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.text.Normalizer;
@@ -51,6 +52,48 @@ public class ContentGuardrailService {
         Pattern.compile("token|secret|credential", Pattern.CASE_INSENSITIVE),
         Pattern.compile("sql.*inject|drop.*table|select.*from", Pattern.CASE_INSENSITIVE)
     );
+
+    // ─── PII patterns dành riêng cho Feedback của Công dân ────────
+    // Mục đích: phát hiện SĐT Việt Nam và số CCCD bị lộ do người dùng vô tình nhập
+    // Lưu ý: KHÔNG dùng pattern 9 số (CMND cũ) vì gây false-positive cao
+    // với các con số bình thường trong mô tả (mã đường, toạ độ, số nhà...)
+    private static final List<Pattern> PII_PATTERNS = List.of(
+        // SĐT Việt Nam: bắt đầu bằng 0, tổng 10 chữ số liên tiếp (sau khi đã strip space/dash)
+        Pattern.compile("(?<![\\d])0[0-9]{9}(?![\\d])"),
+        // CCCD mới 2021+: đúng 12 chữ số liên tiếp (sau khi đã strip space/dash)
+        Pattern.compile("(?<![\\d])[0-9]{12}(?![\\d])"),
+        // Email cá nhân
+        Pattern.compile("[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}")
+    );
+
+    /**
+     * [PII Guard — Tầng 2 Backend] Kiểm tra nội dung feedback có chứa SĐT, CCCD hoặc Email không.
+     * Hỗ trợ phát hiện SĐT viết cách nhau bằng dấu cách/gạch ngang (ví dụ: "0 9 8 7 74 4 3", "09-8765-4321").
+     * Được gọi trong FeedbackService.createFeedback() trước khi lưu.
+     *
+     * @param title       Tiêu đề phản ánh
+     * @param description Nội dung mô tả
+     * @throws IllegalArgumentException nếu phát hiện thông tin cá nhân
+     */
+    public void validateFeedbackContent(String title, String description) {
+        String combined = (title == null ? "" : title) + " " + (description == null ? "" : description);
+
+        // [FIX] Tạo bản sao đã xóa dấu cách và gạch ngang để bắt SĐT bị tách rời
+        // Ví dụ: "0 9 8 7 74 4 3" → "0987744320" → match pattern SĐT 10 số
+        String compacted = combined.replaceAll("[\\s\\-]", "");
+
+        // Kiểm tra trên cả bản gốc lẫn bản compact
+        for (Pattern pii : PII_PATTERNS) {
+            boolean matchedOriginal = pii.matcher(combined).find();
+            boolean matchedCompacted = pii.matcher(compacted).find();
+            if (matchedOriginal || matchedCompacted) {
+                log.warn("[PII-GUARD] Phát hiện thông tin cá nhân trong feedback. pattern='{}'", pii.pattern());
+                throw new IllegalArgumentException(
+                    "Vui lòng xoá số điện thoại, số CCCD/CMND hoặc email khỏi nội dung phản ánh để bảo vệ thông tin cá nhân của bạn."
+                );
+            }
+        }
+    }
 
     // ─── Rate limiting per-user ────────────────────────────────────
     private static final int  WARN_THRESHOLD_PER_WINDOW = 3;    // 3 WARN trong 60s → auto-block
@@ -118,14 +161,19 @@ public class ContentGuardrailService {
      *   3. Lowercase
      */
     String normalize(String input) {
-        // NFD normalization
+        // NFD normalization — loại bỏ dấu Unicode đặc biệt và ký tự Cyrillic lookalike
         String nfd = Normalizer.normalize(input, Normalizer.Form.NFD)
                 .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
 
-        // Leet-speak (bỏ thay thế 0 và 1 vì phá hỏng số liệu bình thường)
+        // Leet-speak mở rộng: chặn các cách gõ bypass phổ biến
+        // Lưu ý: KHÔNG replace '0' và '1' trong hàm normalize chung vì sẽ phá hỏng kiểm tra
+        // số điện thoại/CCCD — chỉ áp dụng cho BLOCK/WARN pattern check, không cho PII check
         return nfd
-                .replace("4", "a")
-                .replace("3", "e")
+                .replace("4", "a")    // h4ck → hack
+                .replace("3", "e")    // 3xploit → exploit
+                .replace("@", "a")   // h@ck → hack
+                .replace("$", "s")   // $ql inject → sql inject
+                .replace("!", "i")   // !gnore → ignore
                 .toLowerCase();
     }
 
@@ -157,6 +205,29 @@ public class ContentGuardrailService {
     }
 
     // ──────────────────────────────────────────────────────────────
+
+    /**
+     * Dọn dẹp định kỳ userStates mỗi giờ để tránh rò rỉ bộ nhớ (memory leak).
+     * Loại bỏ các UserState đã hết thời gian block và thời gian sliding window.
+     */
+    @Scheduled(cron = "0 0 * * * *")
+    public void cleanupUserStates() {
+        log.info("🧹 [GUARDRAIL] Khởi chạy dọn dẹp định kỳ userStates...");
+        Instant now = Instant.now();
+        Instant windowStart = now.minusSeconds(WARN_WINDOW_SECONDS);
+        
+        int initialSize = userStates.size();
+        userStates.entrySet().removeIf(entry -> {
+            UserState state = entry.getValue();
+            boolean isBlocked = state.blockedUntil != null && now.isBefore(state.blockedUntil);
+            boolean isWindowActive = state.windowStart.isAfter(windowStart);
+            return !isBlocked && !isWindowActive;
+        });
+        
+        int cleanedCount = initialSize - userStates.size();
+        log.info("🧹 [GUARDRAIL] Đã dọn dẹp xong. Loại bỏ {} userStates hết hạn. Số lượng hiện tại: {}", 
+                cleanedCount, userStates.size());
+    }
 
     static class UserState {
         final AtomicInteger warnCount = new AtomicInteger(0);

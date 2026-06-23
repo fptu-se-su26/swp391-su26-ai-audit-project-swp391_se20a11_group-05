@@ -77,12 +77,29 @@ public class RefreshTokenService {
 
         log.info("[RefreshToken] Tạo token pair cho user '{}'", user.getUsername());
 
+        String orgName = "";
+        com.example.smartcity.modules.user.entity.Role userRole = user.getRole() != null ? user.getRole() : com.example.smartcity.modules.user.entity.Role.CITIZEN;
+        if (user.getWard() != null) {
+            String prefixWard = "COMMUNE".equalsIgnoreCase(user.getWard().getType()) ? "Xã " : "Phường ";
+            if (userRole == com.example.smartcity.modules.user.entity.Role.POLICE) {
+                orgName = "Công an " + prefixWard + user.getWard().getName();
+            } else if (userRole == com.example.smartcity.modules.user.entity.Role.WARD_STAFF) {
+                orgName = "UBND " + prefixWard + user.getWard().getName();
+            } else {
+                orgName = user.getWard().getName();
+            }
+        }
+
         return TokenPairResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .expiresIn(accessExpirationMs / 1000)
                 .username(user.getUsername())
-                .role("ROLE_" + user.getRole().name())
+                .role("ROLE_" + userRole.name())
+                .wardName(user.getWard() != null ? user.getWard().getName() : null)
+                .wardType(user.getWard() != null ? user.getWard().getType() : null)
+                .wardId(user.getWard() != null ? user.getWard().getId() : null)
+                .org(orgName)
                 .build();
     }
 

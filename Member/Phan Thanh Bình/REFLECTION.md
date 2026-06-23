@@ -59,12 +59,12 @@ Gợi ý:
 
 Đánh dấu các công cụ AI đã sử dụng.
 
-- [ ] ChatGPT
-- [ ] Gemini
+- [x] ChatGPT
+- [x] Gemini
 - [ ] Claude
 - [ ] GitHub Copilot
 - [ ] Cursor
-- [ ] Antigravity
+- [x] Antigravity
 - [ ] Microsoft Copilot
 - [ ] Perplexity
 - [ ] Công cụ khác: ....................................
@@ -72,7 +72,7 @@ Gợi ý:
 ### Công cụ được sử dụng nhiều nhất
 
 ```text
-Viết tại đây...
+Chat GPT
 ```
 
 ### Lý do sử dụng công cụ đó
@@ -422,3 +422,51 @@ Sinh viên/nhóm hiểu rằng:
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
 |  |  |
+
+## Bổ sung reflection cho lần sử dụng AI số 4
+
+```text
+Ở lần sử dụng AI số 4, nhóm dùng AI theo hướng tự học và tự đối chiếu thiết kế, không yêu cầu AI làm thay toàn bộ chức năng.
+Vấn đề cần giải quyết là cải thiện bảo mật đăng nhập bằng progressive login lockout và SMS OTP,
+đồng thời tránh nhầm lẫn giữa cổng đăng nhập của người dân và cổng đăng nhập của cán bộ.
+
+AI giúp nhóm nhìn rõ các phần cần phân tích:
+- dữ liệu nào cần lưu thêm trong bảng users,
+- AuthService nên kiểm tra lockout và OTP theo thứ tự nào,
+- khi nào cần reset trạng thái đăng nhập sai,
+- frontend nên hiển thị thời gian khóa như thế nào,
+- role guard cần redirect về portal nào,
+- test case nào cần có để chứng minh logic đúng.
+
+Điểm nhóm học được là một chức năng bảo mật nhỏ thường liên quan nhiều lớp của hệ thống:
+database, entity, service, controller, frontend state, routing, logout flow và unit test.
+Nếu chỉ sửa một nơi thì rất dễ tạo lỗi phụ, ví dụ tài khoản cán bộ bị chuyển về /login,
+hoặc user đã xác minh OTP nhưng trạng thái loginOtpRequired không được reset.
+
+Nhóm vẫn phải tự quyết định cách triển khai cuối cùng:
+dùng lockout theo từng tài khoản, thêm helper redirect theo role, giữ thông báo lỗi ở mức chung để giảm lộ thông tin,
+và viết test kiểm chứng từng stage. Vì vậy AI đóng vai trò như công cụ gợi ý và phản biện,
+còn trách nhiệm hiểu code, chỉnh sửa và kiểm chứng vẫn thuộc về nhóm.
+```
+
+### Cập nhật mục kiểm chứng kết quả AI
+
+```text
+Nhóm kiểm chứng kết quả AI bằng cách:
+- đọc lại diff của các file backend/frontend liên quan đến auth,
+- đối chiếu schema mới với User entity và migration,
+- viết test cho từng stage khóa đăng nhập,
+- kiểm tra luồng verify SMS OTP có reset trạng thái lockout,
+- kiểm tra redirect giữa /login và /authority-login theo role,
+- chuẩn bị chạy build/test trước khi merge.
+```
+
+### Cập nhật mục hạn chế/rủi ro
+
+```text
+Rủi ro còn lại:
+- Cần kiểm tra thực tế SMS OTP với số điện thoại thật hoặc môi trường giả lập.
+- Cần chạy lại full backend test để đảm bảo thay đổi AuthService không ảnh hưởng các flow đăng nhập khác.
+- Cần kiểm tra thủ công frontend countdown để đảm bảo message backend được parse đúng.
+- Cần đảm bảo migration V7 chạy ổn trên database đã có dữ liệu cũ.
+```

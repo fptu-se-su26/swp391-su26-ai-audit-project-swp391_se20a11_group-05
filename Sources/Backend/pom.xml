@@ -28,6 +28,9 @@
     </scm>
     <properties>
         <java.version>21</java.version>
+        <lombok.version>1.18.38</lombok.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
     <dependencies>
         <dependency>
@@ -75,6 +78,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
             <optional>true</optional>
         </dependency>
         <dependency>
@@ -181,7 +185,6 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <scope>runtime</scope>
         </dependency>
 
         <!-- Spring AI (Uncommment khi có API key & kết nối PostgreSQL + PGVector) -->
@@ -276,6 +279,7 @@
                                 <path>
                                     <groupId>org.projectlombok</groupId>
                                     <artifactId>lombok</artifactId>
+                                    <version>${lombok.version}</version>
                                 </path>
                                 <path>
                                     <groupId>org.mapstruct</groupId>
@@ -301,6 +305,7 @@
                                 <path>
                                     <groupId>org.projectlombok</groupId>
                                     <artifactId>lombok</artifactId>
+                                    <version>${lombok.version}</version>
                                 </path>
                             </annotationProcessorPaths>
                         </configuration>

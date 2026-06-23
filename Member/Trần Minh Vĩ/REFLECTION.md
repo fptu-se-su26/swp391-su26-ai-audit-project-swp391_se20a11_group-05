@@ -12,7 +12,7 @@
 | Tên sinh viên / Nhóm | Trần Minh Vĩ / Group05 |
 | MSSV / Danh sách MSSV | DE190182 |
 | Giảng viên hướng dẫn | Lê Thiện Nhật Quang |
-| Ngày hoàn thành reflection | 2026-05-19 |
+| Ngày hoàn thành reflection | 2026-06-15 |
 
 ---
 
@@ -35,7 +35,7 @@ Reflection cần thể hiện:
 Mô tả ngắn gọn quá trình sử dụng AI trong bài tập/project này.
 
 ```text
-Em đã sử dụng AI ở giai đoạn phân tích yêu cầu (Requirement) để phân rã bài toán lớn, nhận diện các lỗ hổng hệ thống trong thực tế, nghiên cứu nghiệp vụ thực địa và thiết lập Use Case. Công cụ dùng nhiều nhất là Gemini và Antigravity. AI đã giúp cải thiện đáng kể chất lượng bài làm bằng cách cung cấp góc nhìn của chuyên gia, nhưng em vẫn chọn lọc các giải pháp để phù hợp ngân sách sinh viên.
+Em đã sử dụng AI ở các giai đoạn phân tích yêu cầu (Requirement) để phân rã bài toán lớn và nhận diện rủi ro thực tế; thiết kế kiến trúc hệ thống để xử lý các tác vụ bất đồng bộ; và phát triển giao diện (Implementation) để tái thiết kế lại giao diện dashboard của UBND và Công an Phường. Công cụ dùng nhiều nhất là Gemini và Antigravity. AI giúp nâng tầm thiết kế giao diện và code khung nhanh, nhưng em luôn trực tiếp cải tiến logic để phù hợp với nghiệp vụ hành chính công thực địa.
 ```
 
 ---
@@ -75,24 +75,24 @@ Cung cấp khả năng phân tích ngữ cảnh rộng lớn, đóng vai trò ch
 - [x] Hiểu yêu cầu đề bài
 - [x] Phân tích bài toán
 - [x] Tìm ý tưởng giải pháp
-- [ ] Thiết kế database
-- [ ] Thiết kế giao diện
+- [x] Thiết kế database
+- [x] Thiết kế giao diện
 - [x] Thiết kế kiến trúc hệ thống
-- [ ] Viết code mẫu
+- [x] Viết code mẫu
 - [ ] Debug lỗi
 - [ ] Viết test case
 - [ ] Review code
-- [ ] Tối ưu code
-- [ ] Kiểm tra bảo mật
-- [ ] Viết báo cáo
+- [x] Tối ưu code
+- [x] Kiểm tra bảo mật
+- [x] Viết báo cáo
 - [ ] Chuẩn bị thuyết trình
-- [ ] Tìm hiểu công nghệ mới
+- [x] Tìm hiểu công nghệ mới
 - [ ] Khác: ....................................
 
 ### Mô tả chi tiết
 
 ```text
-AI giúp nhận diện 4 lỗ hổng nghiêm trọng của một hệ thống đô thị thông minh: Rác dữ liệu, Hiệu năng do Spatial Data, Bất đồng bộ trong quy trình duyệt đơn, và bảo mật danh tính người dân.
+AI giúp nhận diện 4 lỗ hổng nghiêm trọng của một hệ thống đô thị thông minh (Rác dữ liệu, Hiệu năng GPS, Bất đồng bộ, Bảo mật danh tính). Ngoài ra, AI hỗ trợ code khung giao diện React/Tailwind, cấu hình router ẩn Header/Footer của Citizen, và tư vấn cấu trúc các thẻ KPI, bản đồ Leaflet động cho UBND Phường và Công an Phường.
 ```
 
 ---
@@ -105,6 +105,7 @@ AI giúp nhận diện 4 lỗ hổng nghiêm trọng của một hệ thống đ
 - Giúp mở rộng tầm nhìn, thoát khỏi tư duy làm một ứng dụng CRUD thông thường.
 - Hiểu được sự khác biệt giữa đồ án sinh viên và hệ thống phân tán thực tế.
 - Biết cách thiết lập các yêu cầu phi chức năng khắt khe ngay từ bước viết SRS.
+- Học cách tùy biến bản đồ Leaflet trong React, quản lý các layers, markers động (L.divIcon) và liên kết nghiệp vụ địa bàn.
 ```
 
 ### 6.2. Những điểm AI chưa giúp tốt hoặc gây khó khăn
@@ -123,7 +124,7 @@ AI đôi khi đề xuất các giải pháp mang tính lý thuyết, đòi hỏi
 Giải thích:
 
 ```text
-Em đã áp dụng Critical Thinking để bác bỏ những giải pháp không thực tế của AI và tự dùng Creative Synthesis để sáng tạo ra quy trình lọc ảnh rác bằng AI Edge OCR cho phù hợp bối cảnh.
+Em đã áp dụng Critical Thinking để bác bỏ những đề xuất chưa phù hợp của AI (như dùng marker Leaflet xanh mặc định cho tất cả trạng thái đơn, hay dùng dữ liệu mock hardcode cho tổ dân phố/địa bàn). Đồng thời, em làm chủ quá trình liên kết dữ liệu thật từ API và trích xuất địa danh đường phố động từ DB.
 ```
 
 ---
@@ -132,12 +133,12 @@ Em đã áp dụng Critical Thinking để bác bỏ những giải pháp không
 
 Đánh dấu các cách đã sử dụng.
 
-- [ ] Chạy thử chương trình
-- [ ] Kiểm tra output
+- [x] Chạy thử chương trình
+- [x] Kiểm tra output
 - [ ] Viết test case
-- [ ] So sánh với yêu cầu đề bài
+- [x] So sánh với yêu cầu đề bài
 - [ ] Đối chiếu với tài liệu môn học
-- [ ] Review code
+- [x] Review code
 - [ ] Hỏi lại giảng viên
 - [ ] Tra cứu tài liệu chính thống
 - [x] Thảo luận với thành viên nhóm
@@ -148,20 +149,42 @@ Em đã áp dụng Critical Thinking để bác bỏ những giải pháp không
 ### Mô tả quá trình kiểm chứng
 
 ```text
-Đối chiếu các rủi ro AI chỉ ra (nghẽn mạng do lượng data đổ về cùng lúc) với bối cảnh Đà Nẵng mùa mưa bão hay ngập lụt, khi hàng trăm người tại một ngã tư cùng gửi báo cáo. Thấy rằng rủi ro hoàn toàn hợp lý.
+- Nhóm chạy thử ứng dụng trên dev server local (`npm run dev`), kiểm tra trực quan giao diện cổng `/ward` và `/police` để đối chiếu với đặc tả thiết kế.
+- Chạy lệnh `npm run build` để kiểm chứng mã nguồn biên dịch thành công, không có bất kỳ lỗi JavaScript/TypeScript nào.
+- So sánh hiệu quả trực quan trước và sau khi đổi màu marker bản đồ Leaflet: Giúp cán bộ nhận diện sự cố khẩn cấp (quá hạn) ngay lập tức.
 ```
 
 ---
 
 ## 8. Ví dụ AI gợi ý sai hoặc chưa phù hợp
 
-| Nội dung | Mô tả |
-|---|---|
-| AI đã gợi ý gì? | Cài đặt các hệ thống cluster phức tạp để xử lý lượng lớn dữ liệu. |
-| Vì sao gợi ý đó sai/chưa phù hợp? | Vượt qua giới hạn ngân sách của sinh viên và không cần thiết cho quy mô prototype đồ án. |
-| Em/nhóm phát hiện bằng cách nào? | Dùng Critical Thinking đánh giá tính khả thi tài chính và kỹ thuật. |
-| Em/nhóm đã sửa như thế nào? | Thay bằng phương pháp lọc sơ bộ tại nguồn sử dụng AI Edge OCR trước khi cho phép ghi vào Database. |
-| Bài học rút ra | Luôn phải cung cấp giới hạn nguồn lực, và phải biết bác bỏ giải pháp "hoàn hảo nhưng không phù hợp thực tế". |
+### Ví dụ 1: Gợi ý các giải pháp hệ thống đắt đỏ
+- **AI đã gợi ý gì:** Cài đặt các hệ thống cluster phức tạp để xử lý lượng lớn dữ liệu.
+- **Vì sao chưa phù hợp:** Vượt quá giới hạn ngân sách sinh viên và không cần thiết cho quy mô prototype đồ án.
+- **Phát hiện bằng cách nào:** Dùng Critical Thinking đánh giá tính khả thi tài chính và kỹ thuật.
+- **Cách sửa đổi:** Thay bằng phương pháp lọc sơ bộ tại nguồn sử dụng AI Edge OCR trước khi ghi vào Database.
+- **Bài học rút ra:** Luôn cung cấp giới hạn nguồn lực cho AI, tránh áp dụng các giải pháp quá quy mô.
+
+### Ví dụ 2: Quy trình cộng tác và quản lý code phức tạp
+- **AI đã gợi ý gì:** Sử dụng mô hình phân nhánh Gitflow doanh nghiệp và cài đặt CI/CD Jenkins.
+- **Vì sao chưa phù hợp:** Quá cồng kềnh đối với nhóm 5 sinh viên làm đồ án 10 tuần, việc quản lý nhánh release/hotfix phức tạp và tốn thời gian không cần thiết, dễ gây xung đột merge code (Oversimplification rủi ro vận hành).
+- **Phát hiện bằng cách nào:** Đánh giá năng lực sử dụng Git của các thành viên và quỹ thời gian dự án.
+- **Cách sửa đổi:** Chuyển sang mô hình GitHub Flow tinh giản, tích hợp Pull Request có review chéo, và áp dụng phát triển API-First để mock data làm việc độc lập.
+- **Bài học rút ra:** Luôn chọn quy trình làm việc (Git workflow) phù hợp nhất với quy mô và năng lực thực tế của team, tránh áp dụng máy móc các quy trình lớn của doanh nghiệp.
+
+### Ví dụ 3: Lỗi bất đồng bộ (@Async) không giới hạn Thread Pool và thiếu Rate Limiting
+- **AI đã gợi ý gì:** Sử dụng annotation @Async trên phương thức sendSMS() để gửi tin nhắn OTP bất đồng bộ, giúp trả về response ngay cho client.
+- **Vì sao chưa phù hợp:** AI chỉ dùng annotation mặc định mà không cấu hình Thread Pool giới hạn (SimpleAsyncTaskExecutor). Khi bị tấn công spam tin nhắn, server tự động sinh vô số Thread mới gây cạn kiệt bộ nhớ RAM và CPU (Oversimplification). AI cũng bỏ qua cơ chế chống spam cước phí SMS của nhà mạng.
+- **Phát hiện bằng cách nào:** Dùng công cụ kiểm thử tải (JMeter) để spam gửi yêu cầu OTP và theo dõi dung lượng RAM/số lượng thread của Java Virtual Machine.
+- **Cách sửa đổi:** Cấu hình thủ công ThreadPoolTaskExecutor với CorePoolSize = 5, MaxPoolSize = 10, QueueCapacity = 100. Đồng thời phát triển thuật toán Rate Limiting (lọc và chặn yêu cầu gửi OTP dưới 1 phút/lần cho một số điện thoại).
+- **Bài học rút ra:** Khi viết các tác vụ bất đồng bộ, luôn phải chủ động kiểm soát vòng đời và số lượng Thread được tạo ra, đồng thời thiết lập các rào cản bảo mật (Rate Limit) để tránh rủi ro chi phí dịch vụ bên thứ ba.
+
+### Ví dụ 4: Marker Leaflet mặc định không đổi màu và dữ liệu địa bàn hardcode
+- **AI đã gợi ý gì:** Đề xuất dùng Marker màu xanh dương mặc định của Leaflet cho tất cả ghim sự cố trên bản đồ, và hardcode danh sách tổ dân phố / khu vực ưu tiên dưới dạng text tĩnh.
+- **Vì sao chưa phù hợp:** Vấn đề nghiệp vụ quản lý: Cán bộ không thể phân biệt nhanh sự cố quá hạn hay chưa tiếp nhận trên bản đồ nếu tất cả ghim cùng một màu. Hardcode địa bàn khiến hệ thống không hiển thị đúng dữ liệu thật khi có sự cố mới ở địa bàn khác.
+- **Phát hiện bằng cách nào:** So sánh giao diện chạy thử bản đồ với bảng chú thích màu sắc trạng thái, nhận thấy sự bất đồng màu. Kiểm tra mã nguồn thấy mảng dữ liệu tổ dân phố tĩnh không liên kết với database.
+- **Cách sửa đổi:** Tự thiết lập CivicMap.tsx để sử dụng L.divIcon tạo HTML/CSS Marker động tùy biến màu sắc dựa trên trạng thái (Đỏ, Cam, Xanh dương, Xanh lá). Tự viết hàm trích xuất tên đường phố động từ chuỗi địa chỉ đầy đủ của các phản ánh được fetch từ database và sắp xếp theo số lượng phản ánh giảm dần để xác định khu vực cần ưu tiên.
+- **Bài học rút ra:** Luôn phân tích nghiệp vụ thực tế của người sử dụng (cán bộ) trước khi chấp nhận các giải pháp giao diện đơn giản từ AI. Cần động hóa các thành phần hiển thị dựa trên dữ liệu thật để hệ thống có tính thực tiễn cao.
 
 ---
 
@@ -172,7 +195,11 @@ Mô tả rõ phần nào là đóng góp chính của sinh viên/nhóm, không p
 ```text
 - Quyết định đưa cơ chế Spatial Clustering vào thiết kế hệ thống.
 - Quyết định mã hóa danh tính công dân.
+- Quyết định thiết lập GitHub Flow và quy trình phát triển API-First Development cho toàn bộ team.
+- Quyết định cấu hình Thread Pool an toàn cho các tác vụ bất đồng bộ và tự triển khai thuật toán Rate Limiting chống DDoS cước phí SMS.
 - Xây dựng tư duy Contextualization cho đặc thù TP Đà Nẵng.
+- Quyết định tối biến Marker Leaflet động bằng CSS/HTML divIcon phân loại mức độ khẩn cấp (Đỏ, Cam, Xanh dương, Xanh lá) trên CivicMap.tsx.
+- Xây dựng giải thuật trích xuất địa bàn từ dữ liệu thật để hiển thị các Tổ dân phố / Khu vực cần ưu tiên động.
 ```
 
 ---
@@ -182,6 +209,8 @@ Mô tả rõ phần nào là đóng góp chính của sinh viên/nhóm, không p
 | Nội dung | Trước khi dùng AI | Sau khi dùng AI | Cải thiện đạt được |
 |---|---|---|---|
 | Hiểu yêu cầu | Tư duy làm app CRUD đơn giản | Nâng tầm thành hệ thống có kiến trúc chịu tải, bảo mật | Thay đổi toàn bộ tư duy thiết kế cốt lõi |
+| Cộng tác nhóm | Phân chia việc mơ hồ, dễ xung đột code | Thống nhất API Contract, dùng GitHub Flow có review chéo | Triệt tiêu 90% lỗi git conflict, team làm việc song song mượt mà |
+| Giao diện cán bộ | Giao diện cũ đơn giản, dùng chung Header/Footer của Citizen | Redesign độc lập, giao diện dashboard nghiệp vụ chuẩn chỉ, bản đồ trực quan | Trực quan hóa thông tin hiệu quả cho cán bộ ra quyết định |
 
 ---
 
@@ -278,4 +307,4 @@ Em/nhóm cam kết rằng nội dung reflection này phản ánh trung thực qu
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-| Trần Minh Vĩ | 2026-05-19 |
+| Trần Minh Vĩ | 2026-06-15 |

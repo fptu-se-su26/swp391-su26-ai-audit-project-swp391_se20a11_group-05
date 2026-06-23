@@ -4,9 +4,12 @@ import com.example.smartcity.modules.feedback.entity.Attachment;
 import com.example.smartcity.modules.feedback.entity.Feedback;
 import com.example.smartcity.modules.feedback.repository.AttachmentRepository;
 import com.example.smartcity.modules.feedback.repository.FeedbackRepository;
+import com.example.smartcity.modules.feedback.service.SupabaseStorageService;
 import com.example.smartcity.modules.user.entity.User;
+import com.example.smartcity.modules.user.entity.Role;
 import com.example.smartcity.modules.user.repository.UserRepository;
 import com.example.smartcity.common.exception.ResourceNotFoundException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
@@ -28,6 +31,7 @@ import java.util.stream.Collectors;
 public class FileController {
 
     private final FileStorageService fileStorageService;
+    private final SupabaseStorageService supabaseStorageService;
     private final AttachmentRepository attachmentRepository;
     private final FeedbackRepository feedbackRepository;
     private final UserRepository userRepository;
@@ -40,13 +44,13 @@ public class FileController {
             @RequestParam("file") MultipartFile file,
             Authentication authentication) {
         if (file.isEmpty()) {
-            return ResponseEntity.badRequest().body(new UploadResponse(null, "File không được để trống"));
+            return ResponseEntity.badRequest().body(UploadResponse.error("File không được để trống"));
         }
 
-        String fileName = fileStorageService.storeFile(file);
-        String fileUrl = "/api/files/" + fileName;
-        log.info("[FileUpload] {} upload {}", authentication.getName(), fileName);
-        return ResponseEntity.ok(new UploadResponse(fileUrl, null));
+        validateImageOrVideo(file);
+        String fileUrl = supabaseStorageService.upload(file, 0L);
+        log.info("[FileUpload] {} upload {}", authentication.getName(), file.getOriginalFilename());
+        return ResponseEntity.ok(UploadResponse.success(fileUrl, file));
     }
 
     /**
@@ -58,7 +62,7 @@ public class FileController {
             @RequestParam("file") MultipartFile file,
             Authentication authentication) {
         if (file.isEmpty()) {
-            return ResponseEntity.badRequest().body(new UploadResponse(null, "File không được để trống"));
+            return ResponseEntity.badRequest().body(UploadResponse.error("File không được để trống"));
         }
 
         Feedback feedback = feedbackRepository.findById(feedbackId)
@@ -67,8 +71,8 @@ public class FileController {
         User user = userRepository.findByUsername(authentication.getName())
                 .orElseThrow(() -> new ResourceNotFoundException("User: " + authentication.getName()));
 
-        String fileName = fileStorageService.storeFile(file);
-        String fileUrl = "/api/files/" + fileName;
+        validateImageOrVideo(file);
+        String fileUrl = supabaseStorageService.upload(file, feedbackId);
 
         Attachment attachment = new Attachment();
         attachment.setFeedback(feedback);
@@ -80,8 +84,52 @@ public class FileController {
         attachment.setUploadedAt(LocalDateTime.now());
         attachmentRepository.save(attachment);
 
-        log.info("[FileUpload] {} gắn {} vào feedback #{}", authentication.getName(), fileName, feedbackId);
-        return ResponseEntity.ok(new UploadResponse(fileUrl, null));
+        log.info("[FileUpload] {} gắn {} vào feedback #{}", authentication.getName(), file.getOriginalFilename(), feedbackId);
+        return ResponseEntity.ok(UploadResponse.success(fileUrl, file));
+    }
+
+    /**
+     * Upload resolution evidence file và gắn vào feedback với role WARD_STAFF duy nhất, kiểm tra đúng wardId.
+     */
+    @PostMapping("/upload/resolution-evidence/{feedbackId}")
+    @PreAuthorize("hasRole('WARD_STAFF')")
+    public ResponseEntity<UploadResponse> uploadResolutionEvidence(
+            @PathVariable Long feedbackId,
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication) {
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body(UploadResponse.error("File không được để trống"));
+        }
+
+        Feedback feedback = feedbackRepository.findById(feedbackId)
+                .orElseThrow(() -> new ResourceNotFoundException("Feedback", feedbackId));
+
+        User user = userRepository.findByUsername(authentication.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("User: " + authentication.getName()));
+
+        // Kiểm tra quyền: phải là WARD_STAFF và đúng wardId của feedback đó
+        if (user.getRole() != Role.WARD_STAFF || user.getWard() == null || feedback.getWard() == null ||
+                !feedback.getWard().getId().equals(user.getWard().getId())) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
+                    .body(UploadResponse.error("Bạn không có quyền upload bằng chứng xử lý cho phản ánh này"));
+        }
+
+        validateImageOrVideo(file);
+        String fileUrl = supabaseStorageService.upload(file, feedbackId);
+
+        Attachment attachment = new Attachment();
+        attachment.setFeedback(feedback);
+        attachment.setFileUrl(fileUrl);
+        attachment.setFileType(toDatabaseFileType(file.getContentType()));
+        attachment.setFileName(file.getOriginalFilename());
+        attachment.setFileSize(file.getSize());
+        attachment.setUploadedBy(user);
+        attachment.setUploadedAt(LocalDateTime.now());
+        attachment.setAttachmentPurpose("RESOLUTION_EVIDENCE");
+        attachmentRepository.save(attachment);
+
+        log.info("[FileUpload] Cán bộ {} gắn bằng chứng xử lý {} vào feedback #{}", authentication.getName(), file.getOriginalFilename(), feedbackId);
+        return ResponseEntity.ok(UploadResponse.success(fileUrl, file));
     }
 
     /**
@@ -114,9 +162,10 @@ public class FileController {
         return switch (ext) {
             case ".jpg", ".jpeg" -> "image/jpeg";
             case ".png" -> "image/png";
-            case ".gif" -> "image/gif";
+            case ".webp" -> "image/webp";
             case ".mp4" -> "video/mp4";
-            case ".pdf" -> "application/pdf";
+            case ".mov" -> "video/quicktime";
+            case ".webm" -> "video/webm";
             default -> "application/octet-stream";
         };
     }
@@ -131,6 +180,34 @@ public class FileController {
         return "DOCUMENT";
     }
 
-    public record UploadResponse(String fileUrl, String error) {}
+    private void validateImageOrVideo(MultipartFile file) {
+        String contentType = file.getContentType() == null ? "" : file.getContentType().toLowerCase();
+        if (!contentType.startsWith("image/") && !contentType.startsWith("video/")) {
+            throw new IllegalArgumentException("Chỉ cho phép upload image/* hoặc video/*");
+        }
+    }
+
+    public record UploadResponse(String fileUrl, String fileType, String fileName, Long fileSize, String error) {
+        static UploadResponse success(String fileUrl, MultipartFile file) {
+            return new UploadResponse(
+                    fileUrl,
+                    toResponseFileType(file.getContentType()),
+                    file.getOriginalFilename(),
+                    file.getSize(),
+                    null
+            );
+        }
+
+        static UploadResponse error(String error) {
+            return new UploadResponse(null, null, null, null, error);
+        }
+
+        private static String toResponseFileType(String contentType) {
+            String type = contentType == null ? "" : contentType.toLowerCase();
+            if (type.startsWith("image/")) return "IMAGE";
+            if (type.startsWith("video/")) return "VIDEO";
+            return null;
+        }
+    }
     public record AttachmentDto(Long id, String fileUrl, String fileType) {}
 }

@@ -502,7 +502,7 @@ export function PoliceDashboard() {
           diffDays,
         };
       })
-      .sort((a, b) => b.diffDays - a.diffDays)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 5);
   }, [feedbacks]);
 
@@ -1013,7 +1013,7 @@ export function PoliceDashboard() {
                     <div>
                       <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
                         <h3 className="font-extrabold text-base text-[#0B2545]">
-                          Phản ánh ưu tiên cao
+                          Phản ánh mới cần xử lý
                         </h3>
                         <Link
                           to="/my-reports"
@@ -1072,11 +1072,8 @@ export function PoliceDashboard() {
                               ))
                             ) : priorityReports.length === 0 ? (
                               <tr>
-                                <td
-                                  colSpan={6}
-                                  className="px-5 py-8 text-center text-xs text-slate-400"
-                                >
-                                  Chưa có phản ánh ưu tiên cao.
+                                <td colSpan={6} className="px-5 py-8 text-center text-xs text-slate-400">
+                                  Chưa có phản ánh mới cần xử lý.
                                 </td>
                               </tr>
                             ) : (

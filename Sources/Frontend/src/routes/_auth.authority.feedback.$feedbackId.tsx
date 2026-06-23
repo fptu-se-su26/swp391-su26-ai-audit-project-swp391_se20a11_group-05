@@ -423,6 +423,18 @@ export function FeedbackDetailPageComponent({
       toast.error("Vui lòng nhập mô tả chiến dịch.");
       return;
     }
+    if (!campaignLocation.trim()) {
+      toast.error("Vui lòng nhập địa điểm diễn ra chiến dịch.");
+      return;
+    }
+    if (!campaignTools.trim()) {
+      toast.error("Vui lòng nhập dụng cụ hỗ trợ cần thiết.");
+      return;
+    }
+    if (!campaignOrganizer.trim()) {
+      toast.error("Vui lòng nhập đơn vị đứng ra tổ chức.");
+      return;
+    }
     if (!campaignStart || !campaignEnd) {
       toast.error("Vui lòng chọn thời gian bắt đầu và kết thúc.");
       return;
@@ -439,8 +451,8 @@ export function FeedbackDetailPageComponent({
         category: campaignCategory as any,
         locationText: campaignLocation.trim(),
         privateLocationText: campaignLocation.trim(),
-        requiredTools: campaignTools.trim() || undefined,
-        organizerContact: campaignOrganizer.trim() || undefined,
+        requiredTools: campaignTools.trim(),
+        organizerContact: campaignOrganizer.trim(),
         maxParticipants: campaignParticipants,
         startTime: new Date(campaignStart).toISOString(),
         endTime: new Date(campaignEnd).toISOString(),
@@ -1283,7 +1295,7 @@ export function FeedbackDetailPageComponent({
 
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                Địa điểm diễn ra
+                Địa điểm diễn ra <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -1383,7 +1395,7 @@ export function FeedbackDetailPageComponent({
 
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                Dụng cụ hỗ trợ cần thiết
+                Dụng cụ hỗ trợ cần thiết <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -1396,7 +1408,7 @@ export function FeedbackDetailPageComponent({
 
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                Đơn vị đứng ra tổ chức
+                Đơn vị đứng ra tổ chức <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"

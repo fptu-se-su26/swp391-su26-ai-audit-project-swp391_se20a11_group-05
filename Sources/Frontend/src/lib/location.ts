@@ -97,7 +97,6 @@ function isValidCoordinate(latitude: unknown, longitude: unknown): boolean {
 
 function isGeolocationPositionError(error: unknown): error is GeolocationPositionError {
   return (
-    typeof GeolocationPositionError !== "undefined" &&
-    error instanceof GeolocationPositionError
+    typeof GeolocationPositionError !== "undefined" && error instanceof GeolocationPositionError
   );
 }

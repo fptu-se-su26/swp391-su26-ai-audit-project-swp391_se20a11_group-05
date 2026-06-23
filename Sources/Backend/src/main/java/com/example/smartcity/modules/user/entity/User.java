@@ -66,6 +66,15 @@ public class User extends BaseEntity {
     @Column(name = "locked_until")
     private LocalDateTime lockedUntil;
 
+    @Column(name = "login_lock_stage", nullable = false)
+    private int loginLockStage = 0;
+
+    @Column(name = "login_otp_required", nullable = false)
+    private boolean loginOtpRequired = false;
+
+    @Column(name = "last_failed_login_at")
+    private LocalDateTime lastFailedLoginAt;
+
     // [SOFT DELETE] Managed by @SQLDelete + @Where — do not set manually
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
@@ -134,6 +143,15 @@ public class User extends BaseEntity {
 
     public LocalDateTime getLockedUntil() { return lockedUntil; }
     public void setLockedUntil(LocalDateTime lockedUntil) { this.lockedUntil = lockedUntil; }
+
+    public int getLoginLockStage() { return loginLockStage; }
+    public void setLoginLockStage(int loginLockStage) { this.loginLockStage = loginLockStage; }
+
+    public boolean isLoginOtpRequired() { return loginOtpRequired; }
+    public void setLoginOtpRequired(boolean loginOtpRequired) { this.loginOtpRequired = loginOtpRequired; }
+
+    public LocalDateTime getLastFailedLoginAt() { return lastFailedLoginAt; }
+    public void setLastFailedLoginAt(LocalDateTime lastFailedLoginAt) { this.lastFailedLoginAt = lastFailedLoginAt; }
 
     public boolean isTemporarilyLocked() {
         return lockedUntil != null && LocalDateTime.now().isBefore(lockedUntil);

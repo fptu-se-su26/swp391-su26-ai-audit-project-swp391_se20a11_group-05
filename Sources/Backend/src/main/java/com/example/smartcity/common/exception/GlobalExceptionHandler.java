@@ -7,7 +7,9 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -37,6 +39,13 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(400, "Dữ liệu đầu vào không hợp lệ (Validation failed)", errors));
     }
 
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Object>> handleUnreadableMessage(HttpMessageNotReadableException ex) {
+        log.warn("Invalid request body", ex);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(400, "Dữ liệu gửi lên không đúng định dạng. Vui lòng kiểm tra lại ngày giờ và các trường số."));
+    }
+
     /**
      * [SECURITY] Xử lý Rate Limit — đặt TRƯỚC catch-all Exception.class
      * để Spring nhận đúng handler cụ thể hơn.
@@ -51,29 +60,43 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(429, ex.getMessage()));
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<Object>> handleIllegalArgument(IllegalArgumentException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(400, ex.getMessage()));
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleNoResource(NoResourceFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.error(404, "Resource not found"));
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiResponse<Object>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
-        String rootMessage = getRootMessage(ex).toLowerCase();
-        log.warn("Data integrity violation: {}", rootMessage);
-
-        String message = "Dữ liệu đã tồn tại hoặc không hợp lệ.";
-        if (rootMessage.contains("username")) {
-            message = "Tên đăng nhập đã tồn tại!";
-        } else if (rootMessage.contains("email")) {
-            message = "Email đã được sử dụng!";
-        } else if (rootMessage.contains("phone")) {
-            message = "Số điện thoại này đã được liên kết với tài khoản khác!";
+        log.warn("Database integrity violation: {}", ex.getMessage());
+        String rootMsg = getRootMessage(ex);
+        String userFriendlyMsg = "Dữ liệu bị trùng lặp hoặc vi phạm ràng buộc hệ thống.";
+        if (rootMsg != null) {
+            if (rootMsg.contains("users_phone_number_key") || rootMsg.contains("phone_number")) {
+                userFriendlyMsg = "Số điện thoại này đã được liên kết với tài khoản khác!";
+            } else if (rootMsg.contains("users_username_key") || rootMsg.contains("username")) {
+                userFriendlyMsg = "Tên đăng nhập đã tồn tại!";
+            } else if (rootMsg.contains("users_email_key") || rootMsg.contains("email")) {
+                userFriendlyMsg = "Email đã được sử dụng!";
+            } else {
+                userFriendlyMsg = rootMsg; // TRICK FOR DEBUGGING
+            }
         }
-
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(400, message));
+                .body(ApiResponse.error(400, userFriendlyMsg));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleGenericException(Exception ex) {
         log.error("Unhandled server error", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error(500, "Internal Server Error. Vui lòng thử lại sau."));
+                .body(ApiResponse.error(500, "Internal Server Error: " + getRootMessage(ex)));
     }
 
     private String getRootMessage(Throwable ex) {

@@ -16,6 +16,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.http.HttpMethod;
 import org.springframework.web.cors.CorsConfigurationSource;
 
 @Configuration
@@ -50,9 +51,11 @@ public class SecurityConfig {
                         // Public: static assets, auth endpoints
                         .requestMatchers("/", "/favicon.ico", "/**/*.png", "/**/*.gif", "/**/*.svg", "/**/*.jpg", "/**/*.html", "/**/*.css", "/**/*.js").permitAll()
                         .requestMatchers("/api/auth/**").permitAll() // Login/Register/MFA are public
-                        .requestMatchers("/api/rag/chatbot", "/api/rag/stream").permitAll() // Public Chatbot endpoints
-                        .requestMatchers("/api/weather/forecast/public").permitAll() // Cho phép người dân xem dự báo thời tiết cơ bản không cần login
+                        .requestMatchers("/api/rag/chatbot", "/api/rag/stream", "/api/chat/stream").permitAll() // Public Chatbot endpoints
                         .requestMatchers("/actuator/health").permitAll() // Health check only
+                        .requestMatchers("/api/feedbacks/public/**", "/api/feedbacks/statuses").permitAll() // Public Feedback Lookups & Statuses
+                        .requestMatchers(HttpMethod.GET, "/api/campaigns", "/api/campaigns/*").permitAll()
+                        .requestMatchers("/ws", "/ws/**", "/ws-native", "/ws-native/**").permitAll()
                         // Authenticated: all business endpoints
                         .requestMatchers("/api/ai/**").authenticated()
                         .requestMatchers("/api/rag/**").authenticated()

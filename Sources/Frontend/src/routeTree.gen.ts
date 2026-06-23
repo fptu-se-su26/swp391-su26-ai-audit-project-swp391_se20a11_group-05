@@ -9,22 +9,40 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VerifyOtpRouteImport } from './routes/verify-otp'
+import { Route as TinTucRouteImport } from './routes/tin-tuc'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ReportRouteImport } from './routes/report'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as FeedbackSearchRouteImport } from './routes/feedback-search'
 import { Route as AuthorityLoginRouteImport } from './routes/authority-login'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MyReportsIndexRouteImport } from './routes/my-reports.index'
+import { Route as CampaignsIndexRouteImport } from './routes/campaigns.index'
 import { Route as MyReportsIdRouteImport } from './routes/my-reports.$id'
+import { Route as CampaignsCreateRouteImport } from './routes/campaigns.create'
+import { Route as CampaignsIdRouteImport } from './routes/campaigns.$id'
 import { Route as AuthWardRouteImport } from './routes/_auth.ward'
 import { Route as AuthPoliceRouteImport } from './routes/_auth.police'
 import { Route as AuthCityAdminRouteImport } from './routes/_auth.city-admin'
 import { Route as AuthAssistantRouteImport } from './routes/_auth.assistant'
+import { Route as CampaignsIdGroupChatRouteImport } from './routes/campaigns.$id.group-chat'
+import { Route as AuthAuthorityFeedbackFeedbackIdRouteImport } from './routes/_auth.authority.feedback.$feedbackId'
 
+const VerifyOtpRoute = VerifyOtpRouteImport.update({
+  id: '/verify-otp',
+  path: '/verify-otp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TinTucRoute = TinTucRouteImport.update({
+  id: '/tin-tuc',
+  path: '/tin-tuc',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -55,6 +73,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FeedbackSearchRoute = FeedbackSearchRouteImport.update({
+  id: '/feedback-search',
+  path: '/feedback-search',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthorityLoginRoute = AuthorityLoginRouteImport.update({
   id: '/authority-login',
   path: '/authority-login',
@@ -74,9 +97,24 @@ const MyReportsIndexRoute = MyReportsIndexRouteImport.update({
   path: '/my-reports/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CampaignsIndexRoute = CampaignsIndexRouteImport.update({
+  id: '/campaigns/',
+  path: '/campaigns/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MyReportsIdRoute = MyReportsIdRouteImport.update({
   id: '/my-reports/$id',
   path: '/my-reports/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CampaignsCreateRoute = CampaignsCreateRouteImport.update({
+  id: '/campaigns/create',
+  path: '/campaigns/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CampaignsIdRoute = CampaignsIdRouteImport.update({
+  id: '/campaigns/$id',
+  path: '/campaigns/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthWardRoute = AuthWardRouteImport.update({
@@ -99,125 +137,204 @@ const AuthAssistantRoute = AuthAssistantRouteImport.update({
   path: '/assistant',
   getParentRoute: () => AuthRoute,
 } as any)
+const CampaignsIdGroupChatRoute = CampaignsIdGroupChatRouteImport.update({
+  id: '/group-chat',
+  path: '/group-chat',
+  getParentRoute: () => CampaignsIdRoute,
+} as any)
+const AuthAuthorityFeedbackFeedbackIdRoute =
+  AuthAuthorityFeedbackFeedbackIdRouteImport.update({
+    id: '/authority/feedback/$feedbackId',
+    path: '/authority/feedback/$feedbackId',
+    getParentRoute: () => AuthRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/authority-login': typeof AuthorityLoginRoute
+  '/feedback-search': typeof FeedbackSearchRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/tin-tuc': typeof TinTucRoute
+  '/verify-otp': typeof VerifyOtpRoute
   '/assistant': typeof AuthAssistantRoute
   '/city-admin': typeof AuthCityAdminRoute
   '/police': typeof AuthPoliceRoute
   '/ward': typeof AuthWardRoute
+  '/campaigns/$id': typeof CampaignsIdRouteWithChildren
+  '/campaigns/create': typeof CampaignsCreateRoute
   '/my-reports/$id': typeof MyReportsIdRoute
+  '/campaigns/': typeof CampaignsIndexRoute
   '/my-reports/': typeof MyReportsIndexRoute
+  '/campaigns/$id/group-chat': typeof CampaignsIdGroupChatRoute
+  '/authority/feedback/$feedbackId': typeof AuthAuthorityFeedbackFeedbackIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/authority-login': typeof AuthorityLoginRoute
+  '/feedback-search': typeof FeedbackSearchRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/tin-tuc': typeof TinTucRoute
+  '/verify-otp': typeof VerifyOtpRoute
   '/assistant': typeof AuthAssistantRoute
   '/city-admin': typeof AuthCityAdminRoute
   '/police': typeof AuthPoliceRoute
   '/ward': typeof AuthWardRoute
+  '/campaigns/$id': typeof CampaignsIdRouteWithChildren
+  '/campaigns/create': typeof CampaignsCreateRoute
   '/my-reports/$id': typeof MyReportsIdRoute
+  '/campaigns': typeof CampaignsIndexRoute
   '/my-reports': typeof MyReportsIndexRoute
+  '/campaigns/$id/group-chat': typeof CampaignsIdGroupChatRoute
+  '/authority/feedback/$feedbackId': typeof AuthAuthorityFeedbackFeedbackIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_auth': typeof AuthRouteWithChildren
   '/authority-login': typeof AuthorityLoginRoute
+  '/feedback-search': typeof FeedbackSearchRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/tin-tuc': typeof TinTucRoute
+  '/verify-otp': typeof VerifyOtpRoute
   '/_auth/assistant': typeof AuthAssistantRoute
   '/_auth/city-admin': typeof AuthCityAdminRoute
   '/_auth/police': typeof AuthPoliceRoute
   '/_auth/ward': typeof AuthWardRoute
+  '/campaigns/$id': typeof CampaignsIdRouteWithChildren
+  '/campaigns/create': typeof CampaignsCreateRoute
   '/my-reports/$id': typeof MyReportsIdRoute
+  '/campaigns/': typeof CampaignsIndexRoute
   '/my-reports/': typeof MyReportsIndexRoute
+  '/campaigns/$id/group-chat': typeof CampaignsIdGroupChatRoute
+  '/_auth/authority/feedback/$feedbackId': typeof AuthAuthorityFeedbackFeedbackIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/authority-login'
+    | '/feedback-search'
     | '/login'
     | '/notifications'
     | '/profile'
     | '/register'
     | '/report'
     | '/sitemap.xml'
+    | '/tin-tuc'
+    | '/verify-otp'
     | '/assistant'
     | '/city-admin'
     | '/police'
     | '/ward'
+    | '/campaigns/$id'
+    | '/campaigns/create'
     | '/my-reports/$id'
+    | '/campaigns/'
     | '/my-reports/'
+    | '/campaigns/$id/group-chat'
+    | '/authority/feedback/$feedbackId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/authority-login'
+    | '/feedback-search'
     | '/login'
     | '/notifications'
     | '/profile'
     | '/register'
     | '/report'
     | '/sitemap.xml'
+    | '/tin-tuc'
+    | '/verify-otp'
     | '/assistant'
     | '/city-admin'
     | '/police'
     | '/ward'
+    | '/campaigns/$id'
+    | '/campaigns/create'
     | '/my-reports/$id'
+    | '/campaigns'
     | '/my-reports'
+    | '/campaigns/$id/group-chat'
+    | '/authority/feedback/$feedbackId'
   id:
     | '__root__'
     | '/'
     | '/_auth'
     | '/authority-login'
+    | '/feedback-search'
     | '/login'
     | '/notifications'
     | '/profile'
     | '/register'
     | '/report'
     | '/sitemap.xml'
+    | '/tin-tuc'
+    | '/verify-otp'
     | '/_auth/assistant'
     | '/_auth/city-admin'
     | '/_auth/police'
     | '/_auth/ward'
+    | '/campaigns/$id'
+    | '/campaigns/create'
     | '/my-reports/$id'
+    | '/campaigns/'
     | '/my-reports/'
+    | '/campaigns/$id/group-chat'
+    | '/_auth/authority/feedback/$feedbackId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRouteWithChildren
   AuthorityLoginRoute: typeof AuthorityLoginRoute
+  FeedbackSearchRoute: typeof FeedbackSearchRoute
   LoginRoute: typeof LoginRoute
   NotificationsRoute: typeof NotificationsRoute
   ProfileRoute: typeof ProfileRoute
   RegisterRoute: typeof RegisterRoute
   ReportRoute: typeof ReportRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  TinTucRoute: typeof TinTucRoute
+  VerifyOtpRoute: typeof VerifyOtpRoute
+  CampaignsIdRoute: typeof CampaignsIdRouteWithChildren
+  CampaignsCreateRoute: typeof CampaignsCreateRoute
   MyReportsIdRoute: typeof MyReportsIdRoute
+  CampaignsIndexRoute: typeof CampaignsIndexRoute
   MyReportsIndexRoute: typeof MyReportsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/verify-otp': {
+      id: '/verify-otp'
+      path: '/verify-otp'
+      fullPath: '/verify-otp'
+      preLoaderRoute: typeof VerifyOtpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tin-tuc': {
+      id: '/tin-tuc'
+      path: '/tin-tuc'
+      fullPath: '/tin-tuc'
+      preLoaderRoute: typeof TinTucRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
@@ -260,6 +377,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/feedback-search': {
+      id: '/feedback-search'
+      path: '/feedback-search'
+      fullPath: '/feedback-search'
+      preLoaderRoute: typeof FeedbackSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/authority-login': {
       id: '/authority-login'
       path: '/authority-login'
@@ -288,11 +412,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MyReportsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/campaigns/': {
+      id: '/campaigns/'
+      path: '/campaigns'
+      fullPath: '/campaigns/'
+      preLoaderRoute: typeof CampaignsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/my-reports/$id': {
       id: '/my-reports/$id'
       path: '/my-reports/$id'
       fullPath: '/my-reports/$id'
       preLoaderRoute: typeof MyReportsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/campaigns/create': {
+      id: '/campaigns/create'
+      path: '/campaigns/create'
+      fullPath: '/campaigns/create'
+      preLoaderRoute: typeof CampaignsCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/campaigns/$id': {
+      id: '/campaigns/$id'
+      path: '/campaigns/$id'
+      fullPath: '/campaigns/$id'
+      preLoaderRoute: typeof CampaignsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_auth/ward': {
@@ -323,6 +468,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthAssistantRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/campaigns/$id/group-chat': {
+      id: '/campaigns/$id/group-chat'
+      path: '/group-chat'
+      fullPath: '/campaigns/$id/group-chat'
+      preLoaderRoute: typeof CampaignsIdGroupChatRouteImport
+      parentRoute: typeof CampaignsIdRoute
+    }
+    '/_auth/authority/feedback/$feedbackId': {
+      id: '/_auth/authority/feedback/$feedbackId'
+      path: '/authority/feedback/$feedbackId'
+      fullPath: '/authority/feedback/$feedbackId'
+      preLoaderRoute: typeof AuthAuthorityFeedbackFeedbackIdRouteImport
+      parentRoute: typeof AuthRoute
+    }
   }
 }
 
@@ -331,6 +490,7 @@ interface AuthRouteChildren {
   AuthCityAdminRoute: typeof AuthCityAdminRoute
   AuthPoliceRoute: typeof AuthPoliceRoute
   AuthWardRoute: typeof AuthWardRoute
+  AuthAuthorityFeedbackFeedbackIdRoute: typeof AuthAuthorityFeedbackFeedbackIdRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
@@ -338,21 +498,40 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthCityAdminRoute: AuthCityAdminRoute,
   AuthPoliceRoute: AuthPoliceRoute,
   AuthWardRoute: AuthWardRoute,
+  AuthAuthorityFeedbackFeedbackIdRoute: AuthAuthorityFeedbackFeedbackIdRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
+interface CampaignsIdRouteChildren {
+  CampaignsIdGroupChatRoute: typeof CampaignsIdGroupChatRoute
+}
+
+const CampaignsIdRouteChildren: CampaignsIdRouteChildren = {
+  CampaignsIdGroupChatRoute: CampaignsIdGroupChatRoute,
+}
+
+const CampaignsIdRouteWithChildren = CampaignsIdRoute._addFileChildren(
+  CampaignsIdRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRouteWithChildren,
   AuthorityLoginRoute: AuthorityLoginRoute,
+  FeedbackSearchRoute: FeedbackSearchRoute,
   LoginRoute: LoginRoute,
   NotificationsRoute: NotificationsRoute,
   ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,
   ReportRoute: ReportRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  TinTucRoute: TinTucRoute,
+  VerifyOtpRoute: VerifyOtpRoute,
+  CampaignsIdRoute: CampaignsIdRouteWithChildren,
+  CampaignsCreateRoute: CampaignsCreateRoute,
   MyReportsIdRoute: MyReportsIdRoute,
+  CampaignsIndexRoute: CampaignsIndexRoute,
   MyReportsIndexRoute: MyReportsIndexRoute,
 }
 export const routeTree = rootRouteImport

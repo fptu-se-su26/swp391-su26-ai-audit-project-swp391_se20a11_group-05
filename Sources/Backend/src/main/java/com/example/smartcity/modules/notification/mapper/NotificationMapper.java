@@ -11,9 +11,13 @@ public interface NotificationMapper extends BaseMapper<Notification, Notificatio
 
     @Override
     @Mapping(source = "user.id", target = "userId")
+    @Mapping(source = "referenceId", target = "feedbackId")
+    @Mapping(source = "read", target = "isRead")
     NotificationDTO toDto(Notification entity);
 
     @Override
     @Mapping(source = "userId", target = "user.id")
+    @Mapping(source = "feedbackId", target = "referenceId")
+    @Mapping(source = "read", target = "isRead")
     Notification toEntity(NotificationDTO dto);
 }

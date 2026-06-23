@@ -30,7 +30,8 @@ public interface DocumentChunkRepository extends JpaRepository<DocumentChunk, UU
      * Dùng Cosine Distance (<=>), kết quả nhỏ hơn = gần hơn.
      */
     @Query(value = """
-        SELECT * FROM document_chunks
+        SELECT id, content, source_url, doc_type, language, page_number, version, permission_level, created_at, updated_at, NULL AS embedding 
+        FROM document_chunks
         WHERE doc_type = :docType
           AND language = :lang
         ORDER BY embedding <=> cast(:queryVector AS vector)
@@ -48,7 +49,8 @@ public interface DocumentChunkRepository extends JpaRepository<DocumentChunk, UU
      * allowedLevels là danh sách: ['PUBLIC', 'STAFF_ONLY']
      */
     @Query(value = """
-        SELECT * FROM document_chunks
+        SELECT id, content, source_url, doc_type, language, page_number, version, permission_level, created_at, updated_at, NULL AS embedding 
+        FROM document_chunks
         WHERE doc_type = :docType
           AND language = :lang
           AND permission_level IN (:allowedLevels)
@@ -72,10 +74,11 @@ public interface DocumentChunkRepository extends JpaRepository<DocumentChunk, UU
      * Cung cấp thuật toán BM25 gốc trên Supabase, thay thế cho Lucene.
      */
     @Query(value = """
-        SELECT * FROM document_chunks c
-        WHERE c.doc_type = :docType
-          AND to_tsvector('simple', c.content) @@ plainto_tsquery('simple', :keyword)
-        ORDER BY ts_rank_cd(to_tsvector('simple', c.content), plainto_tsquery('simple', :keyword)) DESC
+        SELECT id, content, source_url, doc_type, language, page_number, version, permission_level, created_at, updated_at, NULL AS embedding 
+        FROM document_chunks
+        WHERE doc_type = :docType
+          AND to_tsvector('simple', content) @@ plainto_tsquery('simple', :keyword)
+        ORDER BY ts_rank_cd(to_tsvector('simple', content), plainto_tsquery('simple', :keyword)) DESC
         LIMIT :topK
         """, nativeQuery = true)
     List<DocumentChunk> findByKeyword(

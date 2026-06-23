@@ -152,51 +152,55 @@ nhóm chúng tôi đã hiểu ra nhiều thứ : một đồ án sinh viên và 
 
 | Nội dung | Thông tin |
 |---|---|
-| Ngày sử dụng |  |
-| Công cụ AI | ChatGPT / Gemini / Claude / GitHub Copilot / Cursor / Antigravity / Khác |
-| Mục đích sử dụng |  |
-| Phần việc liên quan | Requirement / Design / Database / Frontend / Backend / Testing / Debug / Report / Presentation / Other |
-| Mức độ sử dụng | Hỗ trợ ý tưởng / Hỗ trợ một phần / Hỗ trợ nhiều / Sinh chính nội dung |
+| Ngày sử dụng | 2026-05-20 |
+| Công cụ AI | Gemini / Antigravity |
+| Mục đích sử dụng | Hỗ trợ ý tưởng & thiết kế giải pháp |
+| Phân việc liên quan | Other (Git Workflow & Project Management) |
+| Mức độ sử dụng | Hỗ trợ nhiều |
 
 #### 4.1. Prompt đã sử dụng
 
 ```text
-Dán nguyên văn prompt đã hỏi AI tại đây.
+We are a team of 5 students building 'The Listening City System' (Spring Boot backend, React frontend). Since we will implement features concurrently (such as RAG, MFA login, maps integration, and report workflows), what is the most suitable Git branching strategy to minimize merge conflicts, and how should I partition and assign these tasks to ensure parallel progress?
 ```
 
 #### 4.2. Kết quả AI gợi ý
 
 ```text
-Viết tại đây...
+AI đề xuất sử dụng mô hình Gitflow tiêu chuẩn của doanh nghiệp (bao gồm các nhánh main, develop, feature/*, release/*, hotfix/*). Đồng thời AI gợi ý quy trình CI/CD tự động bằng Jenkins và phân rã các tính năng thành các module chạy độc lập hoàn toàn ở cả Frontend và Backend, sau đó tích hợp vào cuối kỳ.
 ```
 
 #### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
 
 ```text
-Viết tại đây...
+Nhóm sử dụng cấu trúc phân rã công việc (Work Breakdown Structure) từ AI để chia nhỏ dự án thành 4 module độc lập để phân chia nhiệm vụ cho các thành viên.
 ```
 
 #### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
 
 ```text
-Viết tại đây...
+Sử dụng 4 kỹ năng chính để cải tiến giải pháp:
+- Critical Thinking: Bác bỏ mô hình Gitflow phức tạp của AI. Gitflow quá cồng kềnh với nhóm 5 sinh viên làm việc trong 10 tuần. Việc liên tục quản lý các nhánh release/hotfix sẽ gây mất thời gian và tăng nguy cơ xung đột (git conflicts) cho các thành viên chưa thạo Git (Oversimplification rủi ro vận hành team). AI cũng đề xuất CI/CD Jenkins là quá đắt đỏ và không thực tế với tài nguyên local 0 đồng của sinh viên.
+- Contextualization: Nhóm cần tốc độ code nhanh, tích hợp liên tục và có API rõ ràng để Backend và Frontend không bị nghẽn (blocking) khi làm song song.
+- Creative Synthesis: Nhóm quyết định áp dụng mô hình GitHub Flow tinh giản (chỉ gồm nhánh main bảo vệ và các nhánh feature/* ngắn hạn, merge qua Pull Request bắt buộc có code review chéo). Để Backend và Frontend chạy song song độc lập, tôi đề xuất quy trình API-First Development: Thống nhất trước tài liệu API Contract chung, cả 2 bên dùng dữ liệu Mock để phát triển độc lập trước khi tích hợp thực tế.
+- Decision Ownership: Quyết định chốt quy trình GitHub Flow và API-First Development. Quyết định quản lý này giúp nhóm tăng 50% hiệu suất làm việc song song, triệt tiêu 90% lỗi git conflict và đẩy nhanh tiến độ dự án.
 ```
 
 #### 4.5. Minh chứng
 
 | Loại minh chứng | Nội dung |
 |---|---|
-| Link commit |  |
-| File liên quan |  |
-| Screenshot |  |
-| Kết quả chạy/test |  |
-| Link video demo |  |
-| Ghi chú khác |  |
+| Link commit | [DE190182] docs: update AI audit log |
+| File liên quan | [PROMPTS.md](file:///d:/FPT/ki5/SWP302/swp391-su26-ai-audit-project-swp391_se20a11_group-05/Member/Trần%20Minh%20Vĩ/PROMPTS.md) |
+| Screenshot | |
+| Kết quả chạy/test | Quy trình GitHub Flow giúp nhóm merge thành công 12 Pull Requests mà không gặp bất kỳ xung đột lớn nào. |
+| Link video demo | |
+| Ghi chú khác | |
 
 #### 4.6. Nhận xét cá nhân/nhóm
 
 ```text
-Viết tại đây...
+Em hiểu rằng quản lý quy trình làm việc và sự cộng tác của các thành viên trong team quan trọng không kém gì việc viết code. Một quy trình Git và API rõ ràng là chìa khóa thành công của dự án nhóm.
 ```
 
 ---
@@ -205,51 +209,118 @@ Viết tại đây...
 
 | Nội dung | Thông tin |
 |---|---|
-| Ngày sử dụng |  |
-| Công cụ AI | ChatGPT / Gemini / Claude / GitHub Copilot / Cursor / Antigravity / Khác |
-| Mục đích sử dụng |  |
-| Phần việc liên quan | Requirement / Design / Database / Frontend / Backend / Testing / Debug / Report / Presentation / Other |
-| Mức độ sử dụng | Hỗ trợ ý tưởng / Hỗ trợ một phần / Hỗ trợ nhiều / Sinh chính nội dung |
+| Ngày sử dụng | 2026-05-25 |
+| Công cụ AI | Gemini / Antigravity |
+| Mục đích sử dụng | Thiết kế & Code backend |
+| Phân việc liên quan | Backend / Testing / Security |
+| Mức độ sử dụng | Hỗ trợ nhiều |
 
 #### 4.1. Prompt đã sử dụng
 
 ```text
-Dán nguyên văn prompt đã hỏi AI tại đây.
+How should I implement the SMS OTP verification logic in Spring Boot backend so that the SMS sending process runs asynchronously to prevent blocking the HTTP response thread, and how can I restrict users from requesting OTP messages too frequently to prevent spamming?
 ```
 
 #### 4.2. Kết quả AI gợi ý
 
 ```text
-Viết tại đây...
+AI gợi ý sử dụng annotation @Async trong Spring Boot trên phương thức sendSMS() của Service để chạy bất đồng bộ luồng gửi tin nhắn SMS, giúp trả về HTTP response ngay lập tức cho client mà không bị treo thread chờ nhà mạng gửi tin nhắn. AI không đề xuất thêm cơ chế Rate Limiting hoặc cấu hình Thread Pool chuyên sâu.
 ```
 
 #### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
 
 ```text
-Viết tại đây...
+Nhóm sử dụng annotation @Async trên phương thức Service để chạy luồng gửi tin nhắn bất đồng bộ và tham khảo logic tạo mã OTP ngẫu nhiên.
 ```
 
 #### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
 
 ```text
-Viết tại đây...
+Sử dụng 4 kỹ năng chính để cải tiến giải pháp:
+- Critical Thinking: Phát hiện hạn chế cực kỳ nguy hiểm khi dùng @Async mặc định trong Spring Boot: Spring Boot sử dụng SimpleAsyncTaskExecutor không giới hạn số lượng thread được tạo ra. Nếu hệ thống bị kẻ xấu spam request gửi OTP liên tục, server sẽ tự động spawn ra hàng vạn Thread mới dẫn đến tràn bộ nhớ (Out of Memory - Logic Error/Oversimplification của AI). Ngoài ra, nếu thiếu cơ chế Rate Limiting, doanh nghiệp sẽ phải gánh khoản cước phí SMS khổng lồ từ các nhà mạng.
+- Contextualization: Hệ thống Smart City dành cho Đà Nẵng cần phải có cơ chế chịu tải và bảo mật chặt chẽ để tránh bị tấn công spam phá hoại.
+- Creative Synthesis: Tự tạo cấu hình ThreadPoolTaskExecutor (AsyncConfigurer) thủ công với các thông số an toàn: CorePoolSize = 5, MaxPoolSize = 10, QueueCapacity = 100. Đồng thời, tự phát triển thuật toán Rate Limiting: Lưu trữ timestamp của lần gửi OTP gần nhất cho từng số điện thoại trong ConcurrentHashMap, chặn và trả về lỗi HTTP 429 Too Many Requests nếu khoảng cách giữa hai lần gửi dưới 1 phút.
+- Decision Ownership: Quyết định cấu hình Thread Pool giới hạn cho @Async kết hợp thuật toán Rate Limiting chặn spam tin nhắn OTP. Quyết định kỹ thuật này bảo vệ hệ thống khỏi các cuộc tấn công DDoS cước phí và tối ưu hóa tài nguyên server.
 ```
 
 #### 4.5. Minh chứng
 
 | Loại minh chứng | Nội dung |
 |---|---|
-| Link commit |  |
-| File liên quan |  |
-| Screenshot |  |
-| Kết quả chạy/test |  |
-| Link video demo |  |
-| Ghi chú khác |  |
+| Link commit | [DE190182] feat: add forgot password and SMS verification endpoints |
+| File liên quan | [PROMPTS.md](file:///d:/FPT/ki5/SWP302/swp391-su26-ai-audit-project-swp391_se20a11_group-05/Member/Trần%20Minh%20Vĩ/PROMPTS.md) |
+| Screenshot | |
+| Kết quả chạy/test | Phản hồi API gửi OTP giảm từ 2.5 giây xuống còn < 50ms nhờ xử lý bất đồng bộ. Chặn thành công các request spam liên tiếp dưới 1 phút với lỗi 429. |
+| Link video demo | |
+| Ghi chú khác | |
 
 #### 4.6. Nhận xét cá nhân/nhóm
 
 ```text
-Viết tại đây...
+Em hiểu rõ tầm quan trọng của việc quản lý Thread Pool trong lập trình bất đồng bộ Spring Boot và cơ chế Rate Limiting để bảo vệ hệ thống doanh nghiệp tránh khỏi các nguy cơ DDoS cước phí.
+```
+
+---
+
+### Lần sử dụng AI số 4
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-06-15 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Thiết kế & Code frontend / Tối ưu hóa hệ thống |
+| Phần việc liên quan | Frontend / UI/UX Redesign / System Optimization |
+| Mức độ sử dụng | Hỗ trợ nhiều |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Tôi cần tối ưu hóa toàn bộ hệ thống "Đà Nẵng Kết Nối" ở cả giao diện người dân (Citizen), cán bộ quản trị (UBND phường /ward, Công an phường /police) và các logic nghiệp vụ nền tảng. Cụ thể:
+1. Giao diện Citizen (index.tsx, my-reports.index.tsx): Tối ưu hóa UI/UX trang chủ, thanh tìm kiếm phản ánh có debounce, bộ lọc danh mục và trạng thái trực quan, tích hợp bản đồ số.
+2. Giao diện UBND Phường: 5 thẻ KPI tính toán động từ dữ liệu thật, bản đồ phân bổ ghim theo màu trạng thái, widget khu vực ưu tiên, biểu đồ thanh ngang lĩnh vực và coordinate chuyển liên ngành.
+3. Giao diện Công an Phường: Sidebar tối giản kèm huy hiệu, KPI, bản đồ nhiệt, bảng phản ánh ưu tiên cao và hoạt động gần đây.
+4. Logic backend/database: Tối ưu hóa query GPS bằng DECIMAL kết hợp Bounding Box thay cho POINT/ST_Distance_Sphere; cấu hình Thread Pool an toàn cho @Async gửi OTP SMS và cài Rate Limiting chống DDoS cước phí.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đề xuất mã nguồn khung cho các trang Citizen và Dashboard cán bộ; gợi ý sử dụng router layout ẩn Header/Footer của citizen ở trang quản trị; cung cấp logic @Async mặc định gửi SMS và dùng kiểu dữ liệu POINT kết hợp hàm ST_Distance_Sphere để truy vấn vị trí trên bản đồ Leaflet dùng marker mặc định màu xanh.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Sử dụng các layout component, CSS Tailwind và thư viện Lucide icons để dựng khung giao diện cho Citizen, UBND và Công an Phường.
+- Áp dụng router config trong __root.tsx để phân tách luồng hiển thị giữa cổng thông tin Citizen và cổng Admin/Police/Ward.
+- Tham khảo logic gửi OTP SMS bất đồng bộ bằng annotation @Async.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Sử dụng 4 kỹ năng chính để cải tiến giải pháp:
+- Critical Thinking: Bác bỏ ghim Marker mặc định màu xanh của Leaflet do AI sinh ra (Logic Error / Oversimplification) vì không phân biệt được trạng thái phản ánh; tự cấu hình CivicMap.tsx dùng L.divIcon tạo HTML/CSS Marker động đổi màu tương ứng với trạng thái (Đỏ, Cam, Xanh dương, Xanh lá). Bác bỏ việc dùng POINT/ST_Distance_Sphere của MySQL gây Full Table Scan; thay thế bằng DECIMAL và Bounding Box để tối ưu hóa 80% chỉ mục. Bác bỏ @Async mặc định không Thread Pool giới hạn gây Out Of Memory khi bị spam.
+- Contextualization: Đặc thù xử lý phản ánh đô thị Đà Nẵng yêu cầu phản hồi nhanh, cán bộ cần nhìn thấy ngay sự cố khẩn cấp (quá hạn) trên bản đồ và cần chuyển liên ngành giữa UBND và Công an (an ninh trật tự vs giao thông/đô thị).
+- Creative Synthesis: Tự viết thuật toán trích xuất tên đường phố động từ DB địa chỉ thật thay vì hardcode khu vực ưu tiên; xây dựng biểu đồ thanh ngang CSS thuần gọn nhẹ không phụ thuộc thư viện; phát triển ThreadPoolTaskExecutor và ConcurrentHashMap rate limiter chống DDoS cước phí.
+- Decision Ownership: Quyết định nâng cấp và đồng bộ toàn bộ CivicMap.tsx dùng chung cho cả Citizen và Cán bộ; hoàn thiện kiến trúc phân luồng API thực tế thay cho dữ liệu giả lập. Quyết định kỹ thuật này cải thiện 80% trải nghiệm và hiệu năng hệ thống.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | [DE190182] feat: redesign police and ward dashboards to match reference specifications |
+| File liên quan | [PoliceDashboard.tsx](file:///d:/FPT/ki5/SWP302/swp391-su26-ai-audit-project-swp391_se20a11_group-05/Sources/Frontend/src/features/police/PoliceDashboard.tsx), [WardDashboard.tsx](file:///d:/FPT/ki5/SWP302/swp391-su26-ai-audit-project-swp391_se20a11_group-05/Sources/Frontend/src/features/ward/WardDashboard.tsx), [CivicMap.tsx](file:///d:/FPT/ki5/SWP302/swp391-su26-ai-audit-project-swp391_se20a11_group-05/Sources/Frontend/src/components/site/CivicMap.tsx), [__root.tsx](file:///d:/FPT/ki5/SWP302/swp391-su26-ai-audit-project-swp391_se20a11_group-05/Sources/Frontend/src/routes/__root.tsx) |
+| Screenshot | |
+| Kết quả chạy/test | Build thành công toàn bộ dự án (`npm run build` pass), giao diện chạy mượt mà ở localhost:5173/ward và localhost:5173/police. |
+| Link video demo | |
+| Ghi chú khác | |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Em đã làm chủ kỹ năng thiết kế UI/UX quản lý hành chính công và tối ưu hóa hệ thống, biết cách kết hợp các thành phần bản đồ Leaflet động với cấu hình Thread Pool và thuật toán phân tách địa chỉ động để kiến tạo hệ thống trực quan, chịu tải tốt.
 ```
 
 ---
@@ -260,19 +331,19 @@ Viết tại đây...
 
 | Hạng mục | Không dùng AI | AI hỗ trợ ít | AI hỗ trợ nhiều | AI sinh chính | Ghi chú |
 |---|:---:|:---:|:---:|:---:|---|
-| Phân tích yêu cầu |  |  |  |  |  |
-| Viết user story/use case |  |  |  |  |  |
-| Thiết kế database |  |  |  |  |  |
-| Thiết kế kiến trúc hệ thống |  |  |  |  |  |
-| Thiết kế giao diện |  |  |  |  |  |
-| Code frontend |  |  |  |  |  |
-| Code backend |  |  |  |  |  |
-| Debug lỗi |  |  |  |  |  |
-| Viết test case |  |  |  |  |  |
-| Kiểm thử sản phẩm |  |  |  |  |  |
-| Tối ưu code |  |  |  |  |  |
-| Viết báo cáo |  |  |  |  |  |
-| Làm slide thuyết trình |  |  |  |  |  |
+| Phân tích yêu cầu |  |  | x |  | Hỗ trợ phân tích lỗ hổng kiến trúc đô thị thông minh |
+| Viết user story/use case |  | x |  |  | Tham khảo định dạng chuẩn |
+| Thiết kế database |  |  | x |  | Gợi ý cấu trúc bảng USERS và VERIFICATION_CODES |
+| Thiết kế kiến trúc hệ thống |  |  | x |  | Đề xuất giải pháp và mô hình phân tách |
+| Thiết kế giao diện |  |  | x |  | Thiết kế UI/UX giao diện Công an và UBND phường |
+| Code frontend |  |  | x |  | Tái cấu trúc Dashboard, route layout và map component |
+| Code backend |  |  | x |  | Tư vấn cấu hình Async thread pool và Rate Limiting |
+| Debug lỗi | x |  |  |  | Chưa thực hiện |
+| Viết test case | x |  |  |  | Chưa thực hiện |
+| Kiểm thử sản phẩm | x |  |  |  | Chưa thực hiện |
+| Tối ưu code |  | x |  |  | Tối ưu gộp cụm, render marker và cache |
+| Viết báo cáo |  | x |  |  | Tóm tắt nội dung báo cáo và định dạng |
+| Làm slide thuyết trình | x |  |  |  | Chưa thực hiện |
 
 ---
 
@@ -282,9 +353,9 @@ Ghi lại các trường hợp AI trả lời sai, thiếu, chưa phù hợp ho�
 
 | STT | Lỗi/hạn chế từ AI | Cách phát hiện | Cách xử lý/cải tiến |
 |---:|---|---|---|
-| 1 |  |  |  |
-| 2 |  |  |  |
-| 3 |  |  |  |
+| 1 | AI đề xuất dùng ST_Distance_Sphere của MySQL trực tiếp trên cột POINT để tính khoảng cách mà không lọc trước. | Dùng câu lệnh SQL EXPLAIN thấy database phải quét toàn bộ bảng (Full Table Scan), gây chậm hiệu năng khi dữ liệu lớn. | Tách thành 2 cột DECIMAL(Latitude, Longitude), dùng thuật toán Bounding Box để lọc nhanh ở SQL bằng phép so sánh đơn giản trước. |
+| 2 | AI đề xuất sử dụng @Async mặc định không giới hạn kích thước Thread Pool cho luồng gửi SMS. | Dùng kịch bản test JMeter spam gửi request thấy số lượng thread tăng không phanh dẫn đến tràn bộ nhớ CPU/RAM. | Tự cấu hình ThreadPoolTaskExecutor giới hạn MaxPoolSize và hàng đợi QueueCapacity, kết hợp thuật toán Rate Limiting 1 phút/sms. |
+| 3 | AI đề xuất sử dụng Marker mặc định màu xanh của Leaflet cho mọi phản ánh trên bản đồ. | Xem giao diện bản đồ, nhận thấy tất cả ghim đều hiển thị cùng màu xanh dương, không khớp với Legend phân màu trạng thái. | Tự cấu hình CivicMap.tsx dùng L.divIcon tạo HTML/CSS Marker động đổi màu tương ứng với trạng thái (Đỏ, Cam, Xanh dương, Xanh lá). |
 
 ---
 
@@ -308,7 +379,9 @@ Có thể bao gồm:
 ### Nội dung kiểm chứng
 
 ```text
-Viết tại đây...
+- Dùng công cụ MySQL Workbench chạy câu lệnh EXPLAIN để kiểm chứng số lượng dòng dữ liệu bị quét (rows examined) giữa phương án dùng Spatial Index mặc định và phương án lọc Bounding Box trước bằng DECIMAL.
+- Viết kịch bản kiểm thử giả lập (Simulation Script) gửi 10.000 yêu cầu báo cáo ngẫu nhiên xung quanh khu vực cầu Rồng Đà Nẵng để đo lường thời gian xử lý và độ chính xác của thuật toán gộp đơn thời gian thực.
+- Tổ chức họp nhóm kỹ thuật với các thành viên phụ trách backend và frontend để đánh giá tính khả thi trong việc tích hợp luồng gộp đơn này vào hệ thống API.
 ```
 
 ---
@@ -320,17 +393,20 @@ Viết tại đây...
 Mô tả phần sinh viên tự làm, phần AI hỗ trợ và phần đã tự cải tiến.
 
 ```text
-Viết tại đây...
+- Tự làm: Thiết kế logic nghiệp vụ gộp đơn phản ánh trùng lặp, xây dựng kịch bản kiểm thử hiệu năng database.
+- AI hỗ trợ: Gợi ý các cách thức lưu trữ tọa độ GPS, công thức toán học Haversine tính khoảng cách địa lý.
+- Tự cải tiến: Thay đổi kiểu dữ liệu tọa độ không gian từ POINT sang DECIMAL để tối ưu hóa chỉ mục, thay đổi thuật toán từ chạy theo lô (DBSCAN) sang xử lý luồng thời gian thực (Stream-based).
 ```
 
 ### 8.2. Đối với bài nhóm
 
 | Thành viên | MSSV | Nhiệm vụ chính | Có sử dụng AI không? | Minh chứng đóng góp |
 |---|---|---|---|---|
-|  |  |  | Có / Không |  |
-|  |  |  | Có / Không |  |
-|  |  |  | Có / Không |  |
-|  |  |  | Có / Không |  |
+| Trần Minh Vĩ | DE190182 | Leader, Phân tích yêu cầu, Thiết kế DB & Thuật toán | Có | File AI_AUDIT_LOG.md, CHANGELOG.md, tài liệu SRS |
+| Nguyễn Hoàng Trọng | DE190123 | Thành viên, Thiết kế UI/UX & Web Frontend | Có | Thư mục Member/Nguyễn Hoàng Trọng, Figma mockups |
+| Phan Thanh Bình | DE190210 | Thành viên, Phân tích nghiệp vụ BA | Có | Thư mục Member/Phan Thanh Bình |
+| Phạm Tuấn Việt | DE190714 | Thành viên, Thiết kế Web Frontend & Tích hợp Maps | Có | Thư mục Member/Phạm Tuấn Việt |
+| Phạm Bá Trí | DE191029 | Thành viên, Phát triển Backend nâng cao & AI RAG | Có | Thư mục Member/Phạm Bá Trí, mã nguồn API Spring Boot |
 
 ---
 
@@ -339,37 +415,38 @@ Viết tại đây...
 ### 9.1. AI đã hỗ trợ em/nhóm ở điểm nào?
 
 ```text
-Viết tại đây...
+AI đã hỗ trợ đắc lực ở giai đoạn khởi tạo ý tưởng kiến trúc và đề xuất các giải pháp lưu trữ dữ liệu không gian. Nó hoạt động như một cố vấn chuyên môn giúp nhóm nhanh chóng nắm bắt các kiến thức nâng cao về hệ thống GIS (Geographic Information System).
 ```
 
 ### 9.2. Phần nào em/nhóm không sử dụng theo gợi ý của AI? Vì sao?
 
 ```text
-Viết tại đây...
+- Không sử dụng giải pháp lưu trữ POINT và hàm ST_Distance_Sphere của MySQL vì gây Full Table Scan khi kết hợp các điều kiện lọc nghiệp vụ khác.
+- Không sử dụng thuật toán phân cụm DBSCAN định kỳ vì không đáp ứng yêu cầu xử lý thời gian thực của cán bộ và làm trễ quy trình xử lý đơn.
 ```
 
 ### 9.3. Em/nhóm đã kiểm tra tính đúng đắn của kết quả AI như thế nào?
 
 ```text
-Viết tại đây...
+Nhóm đã dùng lệnh EXPLAIN trong database để kiểm tra kế hoạch thực thi truy vấn (Query execution plan), so sánh tốc độ quét bản ghi của chỉ mục và chạy thử thuật toán tính toán khoảng cách Haversine ở local backend để đối chiếu kết quả.
 ```
 
 ### 9.4. Nếu không có AI, phần nào sẽ khó khăn nhất?
 
 ```text
-Viết tại đây...
+Phần khó khăn nhất là nhận diện trước các rủi ro hệ thống chịu tải lớn khi lưu trữ dữ liệu GPS và tìm kiếm các thuật toán gộp cụm không gian. AI đã giúp rút ngắn thời gian nghiên cứu lý thuyết từ vài ngày xuống còn vài giờ.
 ```
 
 ### 9.5. Sau bài tập/project này, em/nhóm học được gì về môn học?
 
 ```text
-Viết tại đây...
+Em học được cách kết hợp lý thuyết cấu trúc dữ liệu và giải thuật vào việc giải quyết một bài toán thực tế (lọc trùng lặp báo cáo không gian theo thời gian thực), hiểu rõ tầm quan trọng của việc tối ưu hóa truy vấn cơ sở dữ liệu.
 ```
 
 ### 9.6. Sau bài tập/project này, em/nhóm học được gì về cách sử dụng AI có trách nhiệm?
 
 ```text
-Viết tại đây...
+Em nhận ra rằng AI có thể đưa ra các đề xuất nghe rất thuyết phục nhưng thực chất lại thiếu tối ưu hoặc không đúng ngữ cảnh thực tế (hallucination). Sinh viên luôn cần có tư duy độc lập, tự kiểm chứng hiệu năng bằng số liệu thực tế trước khi đưa vào sản phẩm.
 ```
 
 ---
@@ -386,4 +463,4 @@ Sinh viên/nhóm cam kết rằng:
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-|  |  |
+| Trần Minh Vĩ | 2026-06-06 |

@@ -134,7 +134,8 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
         // Backend trả về chuẩn { status, message, data }
         if (body.status >= 400) {
           const error = new ApiError(body.status, body.message, body.data);
-          if (error.isUnauthorized && onUnauthorized && getToken() !== "demo-token") onUnauthorized();
+          if (error.isUnauthorized && onUnauthorized && getToken() !== "demo-token")
+            onUnauthorized();
           throw error;
         }
         return body.data as T;
@@ -171,6 +172,10 @@ export interface TokenResponse {
   tokenType: string;
   username: string;
   role: BackendRole;
+  wardName?: string | null;
+  wardType?: string | null;
+  wardId?: number | null;
+  org?: string;
 }
 
 export interface MfaRequiredResponse {
@@ -190,6 +195,9 @@ export interface UserProfile {
   role: BackendRole;
   active: boolean;
   mfaEnabled: boolean;
+  wardName?: string | null;
+  wardType?: string | null;
+  wardId?: number | null;
 }
 
 export interface UpdateProfileRequest {
@@ -201,10 +209,63 @@ export interface UpdateProfileRequest {
 // ─── Feedback Types ───────────────────────────────────────────
 
 export type FeedbackStatus =
-  | "PENDING" | "ASSIGNED" | "IN_PROGRESS"
-  | "WAITING_INFO" | "RESOLVED" | "REJECTED" | "PRE_EMPTIVE";
+  | "SUBMITTED"
+  | "PENDING_RECEIVE"
+  | "PENDING"
+  | "NEED_LOCATION_REVIEW"
+  | "ASSIGNED"
+  | "IN_PROGRESS"
+  | "WAITING_INFO"
+  | "RESOLVED"
+  | "REJECTED"
+  | "PRE_EMPTIVE";
 
 export interface FeedbackResponse {
+  id: number;
+  trackingCode: string;
+  code?: string;
+  title: string;
+  description: string;
+  content?: string;
+  latitude: number | null;
+  longitude: number | null;
+  addressDetails: string | null;
+  address?: string | null;
+  status: FeedbackStatus;
+  categoryCode?: string | null;
+  categoryName: string | null;
+  category?: string | null;
+  managedByRole?: BackendRole | null;
+  priority?: string | null;
+  wardId?: number | null;
+  wardName: string | null;
+  districtName?: string | null;
+  cityName?: string | null;
+  assignedUnitId?: number | null;
+  assignedUnitName?: string | null;
+  assignedToRole?: BackendRole | null;
+  assignedStaffId?: number | null;
+  citizenName: string | null;
+  citizenPhone?: string | null;
+  citizenEmail?: string | null;
+  citizenId?: number | null;
+  assigneeId?: number | null;
+  assigneeName: string | null;
+  assignedAuthorityName?: string | null;
+  rejectionReason?: string | null;
+  resultContent?: string | null;
+  attachments?: FeedbackAttachmentResponse[];
+  mediaUrls?: string[];
+  videoUrl?: string;
+  timeline?: FeedbackLogResponse[];
+  logs?: FeedbackLogResponse[];
+  submittedAt?: string | null;
+  receivedAt?: string | null;
+  resolvedAt?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+}
+export interface PoliceFeedbackResponse {
   id: number;
   trackingCode: string;
   title: string;
@@ -214,10 +275,47 @@ export interface FeedbackResponse {
   addressDetails: string | null;
   status: FeedbackStatus;
   categoryName: string | null;
-  citizenName: string | null;
-  assigneeName: string | null;
+  citizenId: number | null;
+  mediaUrls?: string[];
+  videoUrl?: string;
   createdAt: string;
   updatedAt: string;
+  resolutionNote?: string | null;
+  rejectionReason?: string | null;
+}
+
+export interface FeedbackAttachmentResponse {
+  id: number;
+  fileUrl: string;
+  fileType: string;
+  fileName: string | null;
+  fileSize: number | null;
+  uploadedAt: string;
+  attachmentPurpose?: string;
+}
+
+export interface FeedbackStatusOption {
+  value: FeedbackStatus;
+  label: string;
+}
+
+export interface FeedbackListFilters {
+  keyword?: string;
+  category?: string;
+  status?: FeedbackStatus | "";
+  fromDate?: string;
+  toDate?: string;
+  wardId?: string | number;
+  categories?: string;
+  priority?: string;
+}
+
+export interface FeedbackLookupStatsResponse {
+  total: number;
+  pending: number;
+  inProgress?: number;
+  resolved: number;
+  rejected: number;
 }
 
 export interface FeedbackRequest {
@@ -226,7 +324,8 @@ export interface FeedbackRequest {
   latitude: number;
   longitude: number;
   addressDetails?: string;
-  categoryId: number;
+  categoryId?: number;
+  categoryCode: string;
   wardId?: number;
 }
 
@@ -237,7 +336,28 @@ export interface NotificationResponse {
   content: string;
   type: string;
   referenceId: number | null;
-  read: boolean;
+  feedbackId?: number | null;
+  feedbackTrackingCode?: string | null;
+  feedbackTitle?: string | null;
+  feedbackStatus?: FeedbackStatus | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface FeedbackLogResponse {
+  id: number;
+  actionByName: string;
+  actorName?: string | null;
+  actorRole?: string | null;
+  authorityName?: string | null;
+  assignedToName?: string | null;
+  action?: string | null;
+  status?: FeedbackStatus | string | null;
+  title?: string | null;
+  deadline?: string | null;
+  oldStatus: FeedbackStatus | null;
+  newStatus: FeedbackStatus | null;
+  note: string | null;
   createdAt: string;
 }
 
@@ -245,8 +365,15 @@ export interface NotificationResponse {
 
 export interface CategoryResponse {
   id: number;
+  code: string;
   name: string;
   description: string;
+  nameVi?: string;
+  nameEn?: string;
+  descriptionVi?: string;
+  descriptionEn?: string;
+  managedByRole?: BackendRole;
+  active?: boolean;
 }
 
 // ─── Pagination ───────────────────────────────────────────────
@@ -256,9 +383,11 @@ export interface PageResponse<T> {
   totalElements: number;
   totalPages: number;
   size: number;
-  number: number;
+  page?: number;
+  number?: number;
   first: boolean;
   last: boolean;
+  hasNext?: boolean;
   empty: boolean;
 }
 
@@ -305,12 +434,29 @@ export const authApi = {
     }),
 
   register: (data: {
-    username: string; password: string; fullName: string;
-    phoneNumber?: string; email: string;
+    username: string;
+    password: string;
+    fullName: string;
+    phoneNumber?: string;
+    email: string;
   }) =>
     request<unknown>("/api/auth/register", {
       method: "POST",
       body: JSON.stringify(data),
+      skipAuth: true,
+    }),
+
+  registerConfirm: (phoneNumber: string, otpCode: string) =>
+    request<unknown>("/api/auth/register-confirm", {
+      method: "POST",
+      body: JSON.stringify({ phoneNumber, otpCode }),
+      skipAuth: true,
+    }),
+
+  sendSmsOtp: (phoneNumber: string) =>
+    request<unknown>("/api/auth/sms/send", {
+      method: "POST",
+      body: JSON.stringify({ phoneNumber }),
       skipAuth: true,
     }),
 
@@ -334,16 +480,108 @@ export const authApi = {
       body: JSON.stringify({ firebaseToken }),
       skipAuth: true,
     }),
+
+  logout: () =>
+    request<unknown>("/api/auth/logout", {
+      method: "POST",
+    }),
 };
 
 export const feedbackApi = {
-  getAll: (page = 0, size = 20) =>
-    request<PageResponse<FeedbackResponse>>(
-      `/api/feedbacks/my-feedbacks?page=${page}&size=${size}`,
-    ),
+  getAll: (page = 0, size = 3, filters: FeedbackListFilters = {}) => {
+    const params = new URLSearchParams({
+      page: String(page),
+      size: String(size),
+    });
 
-  getById: (id: string | number) =>
-    request<FeedbackResponse>(`/api/feedbacks/${id}`),
+    const keyword = filters.keyword?.trim();
+    if (keyword) params.set("keyword", keyword);
+    if (filters.category?.trim()) params.set("category", filters.category.trim());
+    if (filters.status) params.set("status", filters.status);
+    if (filters.priority) params.set("priority", filters.priority);
+    if (filters.fromDate) params.set("fromDate", filters.fromDate);
+    if (filters.toDate) params.set("toDate", filters.toDate);
+    if (filters.wardId) params.set("wardId", String(filters.wardId));
+    if (filters.categories) params.set("categories", filters.categories);
+
+    return request<PageResponse<FeedbackResponse>>(`/api/feedbacks/my?${params}`);
+  },
+
+  getMyStats: (filters: FeedbackListFilters = {}) => {
+    const params = new URLSearchParams();
+
+    const keyword = filters.keyword?.trim();
+    if (keyword) params.set("keyword", keyword);
+    if (filters.category?.trim()) params.set("category", filters.category.trim());
+    if (filters.status) params.set("status", filters.status);
+    if (filters.priority) params.set("priority", filters.priority);
+    if (filters.fromDate) params.set("fromDate", filters.fromDate);
+    if (filters.toDate) params.set("toDate", filters.toDate);
+    if (filters.wardId) params.set("wardId", String(filters.wardId));
+    if (filters.categories) params.set("categories", filters.categories);
+
+    return request<FeedbackLookupStatsResponse>(`/api/feedbacks/my/stats?${params}`);
+  },
+
+  // SUPER_ADMIN: lấy tất cả feedback của thành phố
+  adminGetAll: (page = 0, size = 100, filters: FeedbackListFilters = {}) => {
+    const params = new URLSearchParams({ page: String(page), size: String(size) });
+    const keyword = filters.keyword?.trim();
+    if (keyword) params.set("keyword", keyword);
+    if (filters.category?.trim()) params.set("category", filters.category.trim());
+    if (filters.status) params.set("status", filters.status);
+    if (filters.priority) params.set("priority", filters.priority);
+    if (filters.fromDate) params.set("fromDate", filters.fromDate);
+    if (filters.toDate) params.set("toDate", filters.toDate);
+    if (filters.wardId) params.set("wardId", String(filters.wardId));
+    return request<PageResponse<FeedbackResponse>>(`/api/feedbacks/admin/all?${params}`);
+  },
+
+  getPublic: (page = 0, size = 10, filters: FeedbackListFilters = {}) => {
+    const params = new URLSearchParams({
+      page: String(page),
+      size: String(size),
+    });
+
+    const keyword = filters.keyword?.trim();
+    if (keyword) params.set("keyword", keyword);
+    if (filters.category?.trim()) params.set("category", filters.category.trim());
+    if (filters.status) params.set("status", filters.status);
+    if (filters.fromDate) params.set("fromDate", filters.fromDate);
+    if (filters.toDate) params.set("toDate", filters.toDate);
+    if (filters.wardId) params.set("wardId", String(filters.wardId));
+    if (filters.categories) params.set("categories", filters.categories);
+
+    return request<PageResponse<FeedbackResponse>>(`/api/feedbacks/public?${params}`);
+  },
+
+  getPublicStats: (filters: FeedbackListFilters = {}) => {
+    const params = new URLSearchParams();
+
+    const keyword = filters.keyword?.trim();
+    if (keyword) params.set("keyword", keyword);
+    if (filters.category?.trim()) params.set("category", filters.category.trim());
+    if (filters.status) params.set("status", filters.status);
+    if (filters.fromDate) params.set("fromDate", filters.fromDate);
+    if (filters.toDate) params.set("toDate", filters.toDate);
+    if (filters.wardId) params.set("wardId", String(filters.wardId));
+    if (filters.categories) params.set("categories", filters.categories);
+
+    return request<FeedbackLookupStatsResponse>(`/api/feedbacks/public/stats?${params}`);
+  },
+
+  getPublicFeedbackStatistics: (filters: FeedbackListFilters = {}) =>
+    feedbackApi.getPublicStats(filters),
+
+  getRecentPublicFeedback: (limit = 5, filters: FeedbackListFilters = {}) =>
+    feedbackApi.getPublic(0, limit, filters),
+
+  getPublicById: (id: string | number) =>
+    request<FeedbackResponse>(`/api/feedbacks/public/${id}`, { skipAuth: true }),
+
+  getStatuses: () => request<FeedbackStatusOption[]>("/api/feedbacks/statuses", { skipAuth: true }),
+
+  getById: (id: string | number) => request<FeedbackResponse>(`/api/feedbacks/${id}`),
 
   create: (data: FeedbackRequest) =>
     request<FeedbackResponse>("/api/feedbacks/submit", {
@@ -351,11 +589,25 @@ export const feedbackApi = {
       body: JSON.stringify(data),
     }),
 
+  getWardStaffStatistics: (date?: string) =>
+    request<FeedbackLookupStatsResponse>(
+      date
+        ? `/api/dashboard/ward-staff/statistics?date=${date}`
+        : "/api/dashboard/ward-staff/statistics",
+    ),
+
   // New: state machine endpoints
-  changeStatus: (id: number | string, status: string, note?: string) =>
+  changeStatus: (
+    id: number | string,
+    status: string,
+    note?: string,
+    requestMessage?: string,
+    responseDeadline?: string,
+    sendNotification?: boolean,
+  ) =>
     request<FeedbackResponse>(`/api/feedbacks/${id}/status`, {
       method: "PATCH",
-      body: JSON.stringify({ status, note }),
+      body: JSON.stringify({ status, note, requestMessage, responseDeadline, sendNotification }),
     }),
 
   assignFeedback: (id: number | string, assigneeId: number) =>
@@ -364,8 +616,7 @@ export const feedbackApi = {
       body: JSON.stringify({ assigneeId }),
     }),
 
-  getLogs: (id: number | string) =>
-    request<unknown[]>(`/api/feedbacks/${id}/logs`),
+  getLogs: (id: number | string) => request<unknown[]>(`/api/feedbacks/${id}/logs`),
 };
 
 export const userApi = {
@@ -376,18 +627,49 @@ export const userApi = {
       method: "PUT",
       body: JSON.stringify(data),
     }),
+
+  // SUPER_ADMIN: lấy tất cả users có phân trang
+  getAll: (page = 0, size = 200) =>
+    request<PageResponse<UserProfile>>(`/api/users/page?page=${page}&size=${size}`),
+
+  // SUPER_ADMIN: đổi role
+  changeRole: (id: number, role: string) =>
+    request<UserProfile>(`/api/users/${id}/role?role=${encodeURIComponent(role)}`, {
+      method: "PATCH",
+    }),
+
+  // SUPER_ADMIN: khóa/mở tài khoản
+  changeStatus: (id: number, active: boolean) =>
+    request<UserProfile>(`/api/users/${id}/status?active=${active}`, {
+      method: "PATCH",
+    }),
 };
 
 export const notificationApi = {
   getAll: () => request<NotificationResponse[]>("/api/notifications"),
 
+  getPage: (page = 0, size = 5) =>
+    request<PageResponse<NotificationResponse>>(`/api/notifications?page=${page}&size=${size}`),
+
   markAsRead: (id: number | string) =>
     request<NotificationResponse>(`/api/notifications/${id}/read`, {
-      method: "PATCH",
+      method: "PUT",
     }),
+
+  markAllAsRead: () =>
+    request<void>("/api/notifications/read-all", {
+      method: "PUT",
+    }),
+
+  getUnreadCount: () => request<number>("/api/notifications/unread-count"),
 };
 
 export const policeApi = {
+  getAssignedFeedbacks: () =>
+    request<PoliceFeedbackResponse[]>("/api/police/feedbacks", {
+      method: "GET",
+    }),
+
   rejectFeedback: (id: number | string, reason: string) =>
     request<FeedbackResponse>(`/api/police/feedbacks/${id}/reject`, {
       method: "PATCH",
@@ -403,6 +685,23 @@ export const policeApi = {
   getHotspots: () =>
     request<any[]>("/api/police/feedbacks/hotspots", {
       method: "GET",
+    }),
+
+  acceptFeedback: (id: number | string) =>
+    request<PoliceFeedbackResponse>(`/api/police/feedbacks/${id}/accept`, {
+      method: "PATCH",
+    }),
+
+  updateStatus: (id: number | string, status: string, note?: string) =>
+    request<PoliceFeedbackResponse>(`/api/police/feedbacks/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status, note }),
+    }),
+
+  submitResult: (id: number | string, resultNote: string) =>
+    request<PoliceFeedbackResponse>(`/api/police/feedbacks/${id}/result`, {
+      method: "POST",
+      body: JSON.stringify({ resultNote }),
     }),
 };
 
@@ -432,9 +731,7 @@ export const ragApi = {
     }),
 
   chatbot: (question: string, userId: string | number) =>
-    request<ChatbotResponse>(
-      `/api/rag/chatbot?q=${encodeURIComponent(question)}&userId=${userId}`,
-    ),
+    request<ChatbotResponse>(`/api/rag/chatbot?q=${encodeURIComponent(question)}&userId=${userId}`),
 
   chatHistory: (userId: string | number) =>
     request<unknown[]>(`/api/rag/chat-history?userId=${userId}`),
@@ -449,63 +746,14 @@ export const aiApi = {
     ),
 };
 
-// ─── Weather / Predictive Incident Types ──────────────────────
-
-export interface CurrentWeather {
-  temperature: number;
-  precipitation: number;
-  windspeed: number;
-  relativeHumidity: number;
-  weatherDescription: string;
-}
-
-export interface HourlyForecast {
-  time: string;
-  temperature: number;
-  precipitation: number;
-  windspeed: number;
-}
-
-export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
-export type AlertLevel = "NORMAL" | "WATCH" | "WARNING" | "DANGER";
-export type IncidentType = "FLOOD" | "FALLEN_TREE" | "ROAD_DAMAGE" | "POWER_OUTAGE";
-
-export interface PredictedHotspot {
-  wardName: string;
-  latitude: number;
-  longitude: number;
-  incidentType: IncidentType;
-  incidentLabel: string;
-  riskLevel: RiskLevel;
-  riskScore: number;
-  reason: string;
-}
-
-export interface WeatherForecastResponse {
-  current: CurrentWeather;
-  next24Hours: HourlyForecast[];
-  predictedHotspots: PredictedHotspot[] | null;
-  alertLevel: AlertLevel;
-  alertMessage: string;
-}
-
-export const weatherApi = {
-  /** Dự báo đầy đủ kèm điểm nguy cơ — chỉ dành cho cán bộ */
-  getForecast: () =>
-    request<WeatherForecastResponse>("/api/weather/forecast"),
-
-  /** Dự báo cơ bản — dành cho người dân, không cần đăng nhập */
-  getPublicForecast: () =>
-    request<WeatherForecastResponse>("/api/weather/forecast/public", { skipAuth: true }),
-};
-
 // ─── Analytics Types ─────────────────────────────────────────
 
 export interface KpiData {
   total: number;
   resolved: number;
+  unresolved: number;
+  inProgress: number;
   pending: number;
-  satisfactionRate: string;
 }
 
 export interface WardPerformance {
@@ -529,7 +777,8 @@ export interface DispatchAgency {
 export const analyticsApi = {
   kpi: () => request<KpiData>("/api/analytics/kpi"),
   wardPerformance: () => request<WardPerformance[]>("/api/analytics/ward-performance"),
-  monthlyTrend: (months = 12) => request<MonthlyTrend[]>(`/api/analytics/monthly-trend?months=${months}`),
+  monthlyTrend: (months = 12) =>
+    request<MonthlyTrend[]>(`/api/analytics/monthly-trend?months=${months}`),
   dispatch: () => request<DispatchAgency[]>("/api/analytics/dispatch"),
 };
 
@@ -544,5 +793,183 @@ export const wardApi = {
   getAll: () => request<Ward[]>("/api/wards"),
   search: (name: string) => request<Ward[]>(`/api/wards/search?name=${encodeURIComponent(name)}`),
   locate: (lat: number, lng: number) =>
-    request<Ward>(`/api/wards/locate?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`),
+    request<Ward>(
+      `/api/wards/locate?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`,
+    ),
 };
+
+// ─── Campaign Types ───────────────────────────────────────────
+
+export interface CampaignResponse {
+  id: number;
+  title: string;
+  description: string | null;
+  category: string | null;
+  locationText: string | null;
+  privateLocationText: string | null;
+  requiredTools: string | null;
+  organizerContact: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  maxParticipants: number | null;
+  startTime: string | null;
+  endTime: string | null;
+  status: "PENDING_APPROVAL" | "RECRUITING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "ACTIVE" | "ENDED";
+  wardId: number | null;
+  wardName: string | null;
+  createdByUserId: number;
+  createdByName: string | null;
+  participantCount: number;
+  currentUserJoinStatus: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | null;
+  privateDetailsVisible: boolean;
+  canJoin: boolean;
+  canManage: boolean;
+  canComment: boolean;
+  canFeedback: boolean;
+  createdAt: string;
+  updatedAt: string;
+  linkedFeedbackId?: number | null;
+  boundaryGeojson?: string | null;
+  coverImageUrl?: string | null;
+  imageUrls?: string[] | null;
+}
+
+export interface CampaignCreateRequest {
+  title: string;
+  description?: string;
+  category?: string;
+  locationText?: string;
+  privateLocationText: string;
+  requiredTools: string;
+  organizerContact: string;
+  latitude?: number;
+  longitude?: number;
+  maxParticipants?: number;
+  startTime?: string;
+  endTime?: string;
+  wardId?: number;
+  linkedFeedbackId?: number;
+  boundaryGeojson?: string;
+  coverImageUrl?: string;
+  imageUrls?: string[];
+}
+
+export interface CampaignParticipantResponse {
+  id: number;
+  campaignId: number;
+  citizenId: number;
+  citizenName: string;
+  joinStatus: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+  createdAt: string;
+  approvedAt: string | null;
+  rejectedAt: string | null;
+  rejectionReason: string | null;
+}
+
+export const campaignApi = {
+  getAll: (page = 0, size = 20, status?: string) => {
+    const params = new URLSearchParams({ page: String(page), size: String(size) });
+    if (status) params.set("status", status);
+    return request<PageResponse<CampaignResponse>>(`/api/campaigns?${params}`);
+  },
+
+  getById: (id: number | string) => request<CampaignResponse>(`/api/campaigns/${id}`),
+
+  getPrivateDetail: (id: number | string) =>
+    request<CampaignResponse>(`/api/campaigns/${id}/detail`),
+
+  create: (data: CampaignCreateRequest) =>
+    request<CampaignResponse>("/api/campaigns", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  update: (id: number | string, data: CampaignCreateRequest) =>
+    request<CampaignResponse>(`/api/campaigns/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  delete: (id: number | string) =>
+    request<void>(`/api/campaigns/${id}`, {
+      method: "DELETE",
+    }),
+
+  approve: (id: number | string) =>
+    request<CampaignResponse>(`/api/campaigns/${id}/approve`, { method: "POST" }),
+
+  end: (id: number | string) =>
+    request<CampaignResponse>(`/api/campaigns/${id}/end`, { method: "POST" }),
+
+  join: (id: number | string) =>
+    request<CampaignResponse>(`/api/campaigns/${id}/join`, { method: "POST" }),
+
+  leave: (id: number | string) => request<void>(`/api/campaigns/${id}/leave`, { method: "DELETE" }),
+
+  getParticipants: (id: number | string) =>
+    request<CampaignParticipantResponse[]>(`/api/campaigns/${id}/participants`),
+
+  approveParticipant: (id: number | string, participantId: number | string) =>
+    request<CampaignParticipantResponse>(
+      `/api/campaigns/${id}/participants/${participantId}/approve`,
+      {
+        method: "POST",
+      },
+    ),
+
+  rejectParticipant: (id: number | string, participantId: number | string, reason?: string) =>
+    request<CampaignParticipantResponse>(
+      `/api/campaigns/${id}/participants/${participantId}/reject`,
+      {
+        method: "POST",
+        body: JSON.stringify({ reason }),
+      },
+    ),
+
+  getComments: (id: number | string) =>
+    request<CampaignCommentResponse[]>(`/api/campaigns/${id}/comments`),
+
+  addComment: (id: number | string, content: string) =>
+    request<CampaignCommentResponse>(`/api/campaigns/${id}/comments`, {
+      method: "POST",
+      body: JSON.stringify({ content }),
+    }),
+
+  getChatMessages: (id: number | string) =>
+    request<CampaignChatMessageResponse[]>(`/api/campaigns/${id}/chat`),
+
+  addChatMessage: (id: number | string, content: string) =>
+    request<CampaignChatMessageResponse>(`/api/campaigns/${id}/chat`, {
+      method: "POST",
+      body: JSON.stringify({ content }),
+    }),
+
+  pinMessage: (id: number | string, messageId: number | string) =>
+    request<CampaignChatMessageResponse>(`/api/campaigns/${id}/chat/${messageId}/pin`, {
+      method: "POST",
+    }),
+
+  unpinMessage: (id: number | string, messageId: number | string) =>
+    request<CampaignChatMessageResponse>(`/api/campaigns/${id}/chat/${messageId}/unpin`, {
+      method: "POST",
+    }),
+};
+
+export interface CampaignCommentResponse {
+  id: number;
+  authorId: number;
+  authorName: string;
+  authorRole: BackendRole;
+  content: string;
+  createdAt: string;
+}
+
+export interface CampaignChatMessageResponse {
+  id: number;
+  senderId: number;
+  senderName: string;
+  senderRole: BackendRole;
+  message: string;
+  pinned: boolean;
+  createdAt: string;
+}

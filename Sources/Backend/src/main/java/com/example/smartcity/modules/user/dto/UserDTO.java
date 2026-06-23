@@ -19,4 +19,5 @@ public class UserDTO {
     private Role role;
     private boolean isActive;
     private boolean isMfaEnabled;
+    private Long wardId;
 }

@@ -209,77 +209,60 @@ Viết tại đây...
 
 ---
 
-# [Phase 04] Implementation
+# [Phase 04] Cải thiện bảo mật đăng nhập và phân luồng portal
 
 ## Ngày thực hiện
 
 ```text
-DD/MM/YYYY
+17/06/2026
 ```
 
 ## Đã hoàn thành
 
-- [ ] Tạo project structure
-- [ ] Cài đặt database connection
-- [ ] Xây dựng backend
-- [ ] Xây dựng frontend
-- [ ] Xây dựng authentication/authorization
-- [ ] Xử lý CRUD
-- [ ] Xử lý validation
-- [ ] Tích hợp API
-- [ ] Xử lý upload/download file
-- [ ] Xử lý lỗi
-- [ ] Tối ưu giao diện
-- [ ] Cập nhật README hướng dẫn chạy
-
-Ghi nhận thực tế đã hoàn thành trong đợt 2:
-- [x] Xây dựng backend cho use case upload media
-- [x] Tích hợp endpoint media theo module feedback
-- [x] Cập nhật helper frontend để gọi đúng endpoint media
-- [x] Xử lý validation và tương thích payload template frontend
+- [x] Thêm cơ chế progressive login lockout theo từng tài khoản.
+- [x] Thêm trạng thái yêu cầu SMS OTP sau nhiều lần đăng nhập sai.
+- [x] Thêm migration database cho các cột login_lock_stage, login_otp_required, last_failed_login_at.
+- [x] Cập nhật AuthService để reset lockout sau login thành công hoặc verify OTP thành công.
+- [x] Cập nhật frontend để hiển thị countdown khi bị khóa đăng nhập.
+- [x] Tách redirect giữa citizen login và authority login.
+- [x] Cập nhật logout để quay về đúng trang đăng nhập theo role.
+- [x] Bổ sung test cho các case lockout và OTP.
 
 ## Thay đổi chi tiết
 
 | STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
 |---:|---|---|---|---|
-| 1 | Chuẩn hóa FeedbackService để tương thích template frontend khi thiếu categoryId | Phan Thanh Bình | FeedbackService.java | Commit 37217fd |
-| 2 | Thêm endpoint POST /api/feedbacks/media cho use case upload media | Phan Thanh Bình | FeedbackController.java | Commit 99ad3b8 |
-| 3 | Cập nhật helper frontend gọi đúng endpoint /api/feedbacks/media | Phan Thanh Bình | citizenFeedbackMediaApi.ts | Commit a0692cf |
-| 4 | Bổ sung các class hỗ trợ media: service, DTO, repository, storage service | Phan Thanh Bình | modules/feedback/* | Commit nhóm đã tạo trước đó |
-| 5 | Kiểm tra compile backend để xác nhận merge an toàn | Phan Thanh Bình | Backend build | mvn -q -DskipTests compile PASS |
+| 1 | Thêm progressive lockout: 5 lần sai khóa 1 phút, sau đó mỗi 3 lần sai tăng stage khóa 3 phút, 6 phút, rồi yêu cầu SMS OTP | Phan Thanh Bình | AuthService.java; User.java; UserRepository.java | Chưa commit |
+| 2 | Thêm migration và fallback schema init cho các trường lockout mới | Phan Thanh Bình | V7__progressive_login_lockout.sql; DataInitializer.java | Chưa commit |
+| 3 | Cập nhật verify SMS OTP để reset trạng thái loginOtpRequired | Phan Thanh Bình | AuthController.java; AuthService.java | Chưa commit |
+| 4 | Thêm countdown lockout và xử lý lỗi 429 trên frontend login | Phan Thanh Bình | loginLockout.ts; LoginPage.tsx; authority-login.tsx | Chưa commit |
+| 5 | Chuẩn hóa redirect theo role và tách citizen/authority portal | Phan Thanh Bình | roles.ts; guardUtils.ts; _auth routes; Header.tsx; WardDashboard.tsx; PoliceDashboard.tsx; CityAdminDashboard.tsx | Chưa commit |
+| 6 | Bổ sung test cho lockout stage, OTP required và reset trạng thái | Phan Thanh Bình | AuthServiceTest.java; AuthControllerTest.java | Chưa commit |
 
 ## AI có hỗ trợ không?
 
-- [ ] Có
-- [ ] Không
-
-Đánh dấu thực tế:
 - [x] Có
+- [ ] Không
 
 Nếu có, mô tả AI đã hỗ trợ phần nào:
 
 ```text
-AI hỗ trợ rà soát độ khớp backend-frontend, đề xuất cấu trúc class thiếu cho use case media,
-đồng thời hỗ trợ kiểm tra rủi ro khi merge vào product branch.
+AI hỗ trợ phân tích hướng thiết kế progressive login lockout, các trạng thái cần lưu trong bảng users,
+luồng xử lý khi đăng nhập sai nhiều lần, cách reset sau OTP, cách frontend hiển thị countdown,
+và các test case cần kiểm chứng. Nhóm tự triển khai, chỉnh sửa và đối chiếu lại với code hiện tại.
 ```
 
 ## Commit/Screenshot minh chứng
 
 ```text
-Commit chính:
-- 37217fd
-- 99ad3b8
-- a0692cf
-
-Kết quả kiểm tra:
-- mvn -q -DskipTests compile => PASS
+Chưa commit. Sau khi commit có thể bổ sung hash/link commit vào đây.
 ```
 
 ## Ghi chú
 
 ```text
-Đợt cập nhật này tập trung vào tính tương thích và an toàn merge:
-không thay đổi phá vỡ flow cũ, bổ sung theo hướng additive.
+Thay đổi này tập trung vào security và UX của đăng nhập.
+Cần chạy lại backend test/build và kiểm tra thủ công hai cổng /login, /authority-login trước khi merge.
 ```
 
 ---

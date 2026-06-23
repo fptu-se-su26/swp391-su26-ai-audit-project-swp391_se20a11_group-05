@@ -31,8 +31,20 @@ public class Campaign extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(length = 50)
+    private String category;
+
     @Column(name = "location_text", length = 255)
     private String locationText;
+
+    @Column(name = "private_location_text", length = 500)
+    private String privateLocationText;
+
+    @Column(name = "required_tools", columnDefinition = "TEXT")
+    private String requiredTools;
+
+    @Column(name = "organizer_contact", length = 255)
+    private String organizerContact;
 
     private Double latitude;
 
@@ -47,7 +59,19 @@ public class Campaign extends BaseEntity {
     @Column(name = "end_time")
     private LocalDateTime endTime;
 
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 30)
     @Builder.Default
-    private String status = "PENDING";
+    private String status = "RECRUITING";
+
+    @Column(name = "linked_feedback_id")
+    private Long linkedFeedbackId;
+
+    @Column(name = "boundary_geojson", columnDefinition = "TEXT")
+    private String boundaryGeojson;
+
+    @Column(name = "cover_image_url", length = 512)
+    private String coverImageUrl;
+
+    @Column(name = "image_urls", columnDefinition = "TEXT")
+    private String imageUrls;
 }

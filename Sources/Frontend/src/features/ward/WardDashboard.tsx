@@ -98,26 +98,7 @@ const mapCategoryName = (name: string | null | undefined): string => {
   return "Hạ tầng đô thị";
 };
 
-// Ward neighborhood/residential group name generator based on report details
-const getAreaName = (fb: FeedbackResponse) => {
-  const addr = fb.addressDetails || fb.address || "";
-  if (addr.includes("Trường Chinh")) return "Tổ dân phố 7 - Trường Chinh";
-  if (addr.includes("Âu Cơ")) return "Tổ dân phố 3 - Âu Cơ";
-  if (addr.includes("Cộng Hòa")) return "Tổ dân phố 11 - Cộng Hòa";
-  if (addr.includes("Hoàng Văn Thụ")) return "Tổ dân phố 5 - Hoàng Văn Thụ";
-  if (addr.includes("Lê Trọng Tấn")) return "Tổ dân phố 9 - Lê Trọng Tấn";
-  if (addr.includes("Hoàng Diệu")) return "Tổ dân phố 2 - Hoàng Diệu";
-  if (addr.includes("Nguyễn Văn Linh")) return "Tổ dân phố 4 - Nguyễn Văn Linh";
 
-  const streetName = addr
-    .split(/[,\-]/)[0]
-    ?.replace(/^(Duong|Kiet|Hem|Đường|Kiệt|Hẻm)\s+/i, "")
-    .trim();
-  if (streetName && streetName.length > 4) {
-    return `Tổ dân phố ${(fb.id % 15) + 1} - ${streetName}`;
-  }
-  return `Tổ dân phố ${(fb.id % 15) + 1}`;
-};
 
 export function WardDashboard() {
   const { locale } = useI18n();
@@ -144,6 +125,9 @@ export function WardDashboard() {
   const [activeStatusFilter, setActiveStatusFilter] = useState<
     "ALL" | "PENDING" | "IN_PROGRESS" | "RESOLVED" | "REJECTED"
   >("ALL");
+  const [activeTaskGroupFilter, setActiveTaskGroupFilter] = useState<
+    "OVERDUE_RECEIVE" | "PENDING_12H" | "WAITING_INFO" | "TRANSFERRED" | null
+  >(null);
   const [selectedFeedbackId, setSelectedFeedbackId] = useState<number | null>(null);
 
   const defaultCenter = useMemo<[number, number]>(() => {
@@ -348,9 +332,35 @@ export function WardDashboard() {
   }, [totalCount, pendingCount, inProgressCount, resolvedCount, rejectedCount]);
 
   const filteredFeedbacks = useMemo(() => {
-    if (activeStatusFilter === "ALL") return feedbacks;
-    return feedbacks.filter((fb) => getGroupedFeedbackStatus(fb.status) === activeStatusFilter);
-  }, [feedbacks, activeStatusFilter]);
+    let result = feedbacks;
+
+    if (activeTaskGroupFilter) {
+      result = result.filter((fb) => {
+        const status = (fb.status || "").toUpperCase();
+        const now = new Date();
+        const created = new Date(fb.createdAt);
+        const diffTime = Math.abs(now.getTime() - created.getTime());
+        const diffHours = diffTime / (1000 * 60 * 60);
+
+        switch (activeTaskGroupFilter) {
+          case "OVERDUE_RECEIVE":
+            return (status === "SUBMITTED" || status === "PENDING_RECEIVE") && diffHours > 24;
+          case "PENDING_12H":
+            return (status === "PENDING" || status === "PRE_EMPTIVE") && diffHours > 12;
+          case "WAITING_INFO":
+            return status === "WAITING_INFO" || status === "NEED_MORE_INFO";
+          case "TRANSFERRED":
+            return status === "TRANSFERRED";
+          default:
+            return true;
+        }
+      });
+    } else if (activeStatusFilter !== "ALL") {
+      result = result.filter((fb) => getGroupedFeedbackStatus(fb.status) === activeStatusFilter);
+    }
+
+    return result;
+  }, [feedbacks, activeStatusFilter, activeTaskGroupFilter]);
 
   const mapMarkers = useMemo(() => {
     return filteredFeedbacks
@@ -374,31 +384,40 @@ export function WardDashboard() {
     return defaultCenter;
   }, [mapMarkers, defaultCenter]);
 
-  // Priority Area list calculation â€” uses feedbacks already filtered by selectedDate via useFeedbacks
-  const priorityAreas = useMemo(() => {
-    const areaCounts: Record<string, { count: number; category: string }> = {};
+  // Compute counts for the 4 task groups from feedbacks
+  const taskGroupCounts = useMemo(() => {
+    let overdueReceive = 0;
+    let pending12h = 0;
+    let waitingInfo = 0;
+    let transferred = 0;
 
     feedbacks.forEach((fb) => {
-      const grp = getGroupedFeedbackStatus(fb.status);
-      const isUnresolved = grp !== "RESOLVED" && grp !== "REJECTED";
-      if (isUnresolved) {
-        const area = getAreaName(fb);
-        const cat = mapCategoryName(fb.categoryName);
-        if (!areaCounts[area]) {
-          areaCounts[area] = { count: 0, category: cat };
-        }
-        areaCounts[area].count++;
+      const status = (fb.status || "").toUpperCase();
+      const now = new Date();
+      const created = new Date(fb.createdAt);
+      const diffTime = Math.abs(now.getTime() - created.getTime());
+      const diffHours = diffTime / (1000 * 60 * 60);
+
+      if ((status === "SUBMITTED" || status === "PENDING_RECEIVE") && diffHours > 24) {
+        overdueReceive++;
+      }
+      if ((status === "PENDING" || status === "PRE_EMPTIVE") && diffHours > 12) {
+        pending12h++;
+      }
+      if (status === "WAITING_INFO" || status === "NEED_MORE_INFO") {
+        waitingInfo++;
+      }
+      if (status === "TRANSFERRED") {
+        transferred++;
       }
     });
 
-    return Object.entries(areaCounts)
-      .map(([name, data]) => ({
-        name,
-        count: data.count,
-        category: data.category,
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
+    return {
+      OVERDUE_RECEIVE: overdueReceive,
+      PENDING_12H: pending12h,
+      WAITING_INFO: waitingInfo,
+      TRANSFERRED: transferred,
+    };
   }, [feedbacks]);
 
   // Categories chart stats
@@ -979,12 +998,16 @@ export function WardDashboard() {
                         color: "bg-red-50 text-red-700 border-red-200",
                       },
                     ].map((chip) => {
-                      const isActive = activeStatusFilter === chip.key;
+                      // Active state is only true if no task group filter is active
+                      const isActive = activeStatusFilter === chip.key && !activeTaskGroupFilter;
                       return (
                         <button
                           key={chip.key}
                           type="button"
-                          onClick={() => setActiveStatusFilter(chip.key as any)}
+                          onClick={() => {
+                            setActiveStatusFilter(chip.key as any);
+                            setActiveTaskGroupFilter(null);
+                          }}
                           className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border transition ${
                             isActive
                               ? "bg-blue-600 text-white border-blue-600 shadow-sm"
@@ -1002,6 +1025,30 @@ export function WardDashboard() {
                         </button>
                       );
                     })}
+
+                    {activeTaskGroupFilter && (
+                      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#E8F0FE] text-[#1A73E8] border border-[#D2E3FC] animate-fadeIn">
+                        <span>
+                          Bộ lọc công việc: {
+                            activeTaskGroupFilter === "OVERDUE_RECEIVE"
+                              ? "Quá hạn tiếp nhận"
+                              : activeTaskGroupFilter === "PENDING_12H"
+                                ? "Chờ xử lý > 12 giờ"
+                                : activeTaskGroupFilter === "WAITING_INFO"
+                                  ? "Yêu cầu bổ sung"
+                                  : "Đã chuyển liên ngành"
+                          }
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setActiveTaskGroupFilter(null)}
+                          className="hover:bg-blue-200 text-blue-800 rounded-full w-4 h-4 inline-flex items-center justify-center cursor-pointer border-0 ml-1 font-bold text-[10px]"
+                          title="Bỏ lọc công việc"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Split Content (Map + Sidebar List) */}
@@ -1128,60 +1175,124 @@ export function WardDashboard() {
                   </div>
                 </div>
 
-                {/* Priority Area Panel (35%) */}
+                {/* Work Tasks Widget (35%) */}
                 <div className="lg:col-span-4 bg-white rounded-2xl border border-[#E4EAF2] shadow-sm p-5 flex flex-col justify-between h-[480px]">
                   <div>
-                    <h3 className="font-extrabold text-base text-[#0B2545] border-b border-slate-100 pb-3 mb-4">
-                      Khu vực cần ưu tiên
-                    </h3>
-                    <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                      <h3 className="font-extrabold text-base text-[#0B2545]">
+                        Công việc cần xử lý
+                      </h3>
+                      <button
+                        onClick={() => handleSectionChange("feedback")}
+                        className="text-xs font-bold text-[#0F5BD8] hover:underline cursor-pointer bg-transparent border-0"
+                      >
+                        Xem tất cả →
+                      </button>
+                    </div>
+                    <div className="space-y-3">
                       {feedbacksLoading ? (
-                        [1, 2, 3].map((i) => (
-                          <div key={i} className="flex gap-3 animate-pulse">
-                            <div className="w-6 h-6 bg-slate-100 rounded-full shrink-0" />
+                        [1, 2, 3, 4].map((i) => (
+                          <div key={i} className="flex gap-3 animate-pulse py-2">
+                            <div className="w-3 h-3 bg-slate-100 rounded-full shrink-0" />
                             <div className="flex-1 space-y-2">
                               <div className="h-3 bg-slate-100 rounded w-1/3" />
                               <div className="h-2.5 bg-slate-100 rounded w-2/3" />
                             </div>
                           </div>
                         ))
-                      ) : priorityAreas.length === 0 ? (
-                        <div className="py-8 text-center text-xs text-slate-400">
-                          Chưa có khu vực cần ưu tiên.
-                        </div>
                       ) : (
-                        priorityAreas.map((area, idx) => (
-                          <div key={idx} className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-3 min-w-0">
-                              <span className="w-6 h-6 rounded-full bg-red-50 text-red-600 font-extrabold text-xs flex items-center justify-center shrink-0">
-                                {idx + 1}
-                              </span>
-                              <div className="min-w-0">
-                                <span className="text-xs font-bold text-slate-700 block truncate">
-                                  {area.name}
-                                </span>
-                                <span className="text-[10px] text-slate-400 font-semibold">
-                                  Chủ yếu: {area.category}
+                        [
+                          {
+                            key: "OVERDUE_RECEIVE" as const,
+                            title: "Quá hạn tiếp nhận",
+                            desc: "Phản ánh chờ tiếp nhận quá 24 giờ",
+                            color: "bg-red-500",
+                            textColor: "text-red-700",
+                            bgColor: "bg-red-50",
+                            borderColor: "border-red-200",
+                            activeBorderColor: "border-red-500",
+                            count: taskGroupCounts.OVERDUE_RECEIVE,
+                          },
+                          {
+                            key: "PENDING_12H" as const,
+                            title: "Chờ xử lý > 12 giờ",
+                            desc: "Sắp quá hạn xử lý",
+                            color: "bg-amber-500",
+                            textColor: "text-amber-700",
+                            bgColor: "bg-amber-50",
+                            borderColor: "border-amber-200",
+                            activeBorderColor: "border-amber-500",
+                            count: taskGroupCounts.PENDING_12H,
+                          },
+                          {
+                            key: "WAITING_INFO" as const,
+                            title: "Yêu cầu bổ sung thông tin",
+                            desc: "Đang chờ người dân phản hồi",
+                            color: "bg-blue-500",
+                            textColor: "text-blue-700",
+                            bgColor: "bg-blue-50",
+                            borderColor: "border-blue-200",
+                            activeBorderColor: "border-blue-500",
+                            count: taskGroupCounts.WAITING_INFO,
+                          },
+                          {
+                            key: "TRANSFERRED" as const,
+                            title: "Đã chuyển liên ngành",
+                            desc: "Cần theo dõi tiến độ phối hợp",
+                            color: "bg-purple-500",
+                            textColor: "text-purple-700",
+                            bgColor: "bg-purple-50",
+                            borderColor: "border-purple-200",
+                            activeBorderColor: "border-purple-500",
+                            count: taskGroupCounts.TRANSFERRED,
+                          },
+                        ].map((group) => {
+                          const isZero = group.count === 0;
+                          const isActive = activeTaskGroupFilter === group.key;
+                          return (
+                            <button
+                              key={group.key}
+                              type="button"
+                              onClick={() => {
+                                if (isActive) {
+                                  setActiveTaskGroupFilter(null);
+                                } else {
+                                  setActiveTaskGroupFilter(group.key);
+                                  setActiveStatusFilter("ALL");
+                                }
+                              }}
+                              className={`w-full flex items-center justify-between p-2.5 rounded-xl border transition-all text-left ${
+                                isActive
+                                  ? `${group.bgColor} border-2 ${group.activeBorderColor} shadow-sm`
+                                  : isZero
+                                    ? "bg-white border-slate-100 opacity-50 hover:opacity-100 hover:border-slate-200 cursor-pointer"
+                                    : "bg-white border-slate-100 hover:border-slate-200 hover:shadow-sm cursor-pointer"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${group.color}`} />
+                                <div className="min-w-0">
+                                  <span className={`text-xs font-bold block truncate ${isZero ? "text-slate-500 font-medium" : "text-slate-800"}`}>
+                                    {group.title}
+                                  </span>
+                                  <span className="text-[10px] text-slate-400 font-medium block truncate mt-0.5">
+                                    {group.desc}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <span className={`text-xs font-extrabold px-2.5 py-0.5 rounded-full ${isZero ? "bg-slate-100 text-slate-400" : `${group.bgColor} ${group.textColor}`}`}>
+                                  {group.count}
                                 </span>
                               </div>
-                            </div>
-                            <div className="text-right shrink-0">
-                              <span className="text-xs font-extrabold text-slate-700 block">
-                                {area.count} phản ánh
-                              </span>
-                            </div>
-                          </div>
-                        ))
+                            </button>
+                          );
+                        })
                       )}
                     </div>
                   </div>
-                  <div className="pt-2 text-right">
-                    <Link
-                      to="/my-reports"
-                      className="text-xs font-bold text-[#0F5BD8] hover:underline inline-flex items-center gap-1"
-                    >
-                      Xem tất cả →
-                    </Link>
+                  <div className="pt-2 text-[10px] text-slate-400 font-semibold italic text-center border-t border-slate-50 shrink-0">
+                    Bấm vào từng nhóm công việc để xem trên bản đồ & danh sách phản ánh.
                   </div>
                 </div>
               </div>

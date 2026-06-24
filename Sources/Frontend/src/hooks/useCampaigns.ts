@@ -22,10 +22,12 @@ import { useFeedbackDetail } from "./index";
 function mapStatus(status: CampaignResponse["status"]): Campaign["status"] {
   const statusMap: Record<CampaignResponse["status"], Campaign["status"]> = {
     PENDING_APPROVAL: "pending_review",
-    RECRUITING: "recruiting",
-    IN_PROGRESS: "inProgress",
-    COMPLETED: "completed",
-    CANCELLED: "completed",
+    RECRUITING: "active",
+    IN_PROGRESS: "active",
+    COMPLETED: "ended",
+    CANCELLED: "ended",
+    ACTIVE: "active",
+    ENDED: "ended",
   };
   return statusMap[status] ?? "pending_review";
 }
@@ -46,7 +48,7 @@ function mapResponseToCampaign(response: CampaignResponse): Campaign {
   const status = mapStatus(response.status);
   const target = response.maxParticipants ?? 30;
   const progress =
-    status === "completed"
+    status === "completed" || status === "ended"
       ? 100
       : target > 0
         ? Math.min(100, Math.round((response.participantCount / target) * 100))
@@ -98,10 +100,11 @@ function mapResponseToCampaign(response: CampaignResponse): Campaign {
 }
 
 export function useCampaignList(): Campaign[] {
-  const [localCampaigns, setLocalCampaigns] = useState<Campaign[]>(() => getCampaigns());
+  const [localCampaigns, setLocalCampaigns] = useState<Campaign[]>([]);
   const hasToken = Boolean(typeof window !== "undefined" && getToken());
 
   useEffect(() => {
+    setLocalCampaigns(getCampaigns());
     const unsub = onCampaignsChanged(() => setLocalCampaigns(getCampaigns()));
     return unsub;
   }, []);
@@ -123,9 +126,7 @@ export function useCampaignList(): Campaign[] {
 }
 
 export function useCampaignDetail(id: string): Campaign | undefined {
-  const [localCampaign, setLocalCampaign] = useState<Campaign | undefined>(() =>
-    getCampaignById(id),
-  );
+  const [localCampaign, setLocalCampaign] = useState<Campaign | undefined>(undefined);
   const isNumericId = /^\d+$/.test(id);
   const hasToken = Boolean(typeof window !== "undefined" && getToken());
 
@@ -265,6 +266,26 @@ export function useDeleteCampaign() {
   return useMutation<void, Error, string | number>({
     mutationFn: (id) => campaignApi.delete(id),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+    },
+  });
+}
+
+export function useUpdateCampaign() {
+  const queryClient = useQueryClient();
+  return useMutation<CampaignResponse, Error, { id: string | number; data: CampaignCreateRequest }>({
+    mutationFn: ({ id, data }) => campaignApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+    },
+  });
+}
+
+export function useEndCampaign() {
+  const queryClient = useQueryClient();
+  return useMutation<CampaignResponse, Error, string | number>({
+    mutationFn: (id) => campaignApi.end(id),
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["campaigns"] });
     },
   });

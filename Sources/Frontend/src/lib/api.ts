@@ -814,7 +814,7 @@ export interface CampaignResponse {
   maxParticipants: number | null;
   startTime: string | null;
   endTime: string | null;
-  status: "PENDING_APPROVAL" | "RECRUITING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+  status: "PENDING_APPROVAL" | "RECRUITING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "ACTIVE" | "ENDED";
   wardId: number | null;
   wardName: string | null;
   createdByUserId: number;
@@ -897,6 +897,9 @@ export const campaignApi = {
 
   approve: (id: number | string) =>
     request<CampaignResponse>(`/api/campaigns/${id}/approve`, { method: "POST" }),
+
+  end: (id: number | string) =>
+    request<CampaignResponse>(`/api/campaigns/${id}/end`, { method: "POST" }),
 
   join: (id: number | string) =>
     request<CampaignResponse>(`/api/campaigns/${id}/join`, { method: "POST" }),

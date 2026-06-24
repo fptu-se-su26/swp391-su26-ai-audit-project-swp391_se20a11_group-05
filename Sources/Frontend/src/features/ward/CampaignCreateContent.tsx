@@ -322,7 +322,7 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
       setShowSuccessDialog(true);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Không thể gửi chiến dịch để phê duyệt.",
+        error instanceof Error ? error.message : "Không thể tạo chiến dịch.",
         { id: uploadToastId }
       );
     } finally {
@@ -726,11 +726,11 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
               className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#7C3AED] px-5 text-sm font-black text-white shadow-md transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
             >
               <Send size={16} />
-              {isLoading || isUploading ? "Đang gửi..." : "Gửi phê duyệt"}
+              {isLoading || isUploading ? "Đang tạo..." : "Tạo chiến dịch"}
             </button>
           </footer>
           <p className="text-right text-xs font-semibold text-slate-500">
-            Chiến dịch sẽ được chuyển đến Ủy ban Thành phố để phê duyệt.
+            Chiến dịch sẽ hoạt động và công khai ngay sau khi tạo.
           </p>
         </div>
 
@@ -739,18 +739,13 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
             <div className="space-y-3">
               <ProcessStep
                 color="bg-[#7C3AED]"
-                label="Tạo & gửi"
-                text="Hoàn thành biểu mẫu và gửi phê duyệt."
-              />
-              <ProcessStep
-                color="bg-[#3B82F6]"
-                label="Lãnh đạo duyệt"
-                text="Ủy ban Thành phố đánh giá mức phù hợp."
+                label="Tạo chiến dịch"
+                text="Hoàn thành biểu mẫu và tạo chiến dịch."
               />
               <ProcessStep
                 color="bg-[#10B981]"
                 label="Mở đăng ký"
-                text="Chiến dịch được công khai cho người dân."
+                text="Chiến dịch hoạt động ngay lập tức và công khai cho người dân tham gia."
               />
             </div>
           </HelperCard>
@@ -772,8 +767,8 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
                   alt="Preview campaign"
                   className="h-full w-full object-cover"
                 />
-                <span className="absolute left-3 top-3 rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
-                  Chờ duyệt
+                <span className="absolute left-3 top-3 rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
+                  Đang tuyển
                 </span>
               </div>
               <div className="p-4">
@@ -810,10 +805,10 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
               <div className="grid h-14 w-14 place-items-center rounded-2xl bg-violet-50 text-[#7C3AED] mb-4">
                 <HelpCircle size={28} />
               </div>
-              <h3 className="text-lg font-black text-slate-900">Xác nhận gửi phê duyệt</h3>
+              <h3 className="text-lg font-black text-slate-900">Xác nhận tạo chiến dịch</h3>
               <p className="mt-2 text-sm font-semibold text-slate-500 leading-relaxed">
-                Bạn có chắc chắn muốn gửi chiến dịch này lên Ủy ban Thành phố để phê duyệt? 
-                Sau khi gửi, thông tin sẽ được xem xét và duyệt trước khi công khai.
+                Bạn có chắc chắn muốn tạo chiến dịch này?
+                Chiến dịch sẽ bắt đầu tuyển quân ngay lập tức sau khi tạo thành công.
               </p>
             </div>
             
@@ -850,16 +845,16 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
                 <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-amber-400 animate-ping opacity-75" />
               </div>
               
-              <h3 className="text-xl font-black text-slate-900">Gửi phê duyệt thành công!</h3>
+              <h3 className="text-xl font-black text-slate-900">Tạo chiến dịch thành công!</h3>
               
               <div className="mt-3 rounded-xl bg-slate-50 p-4 border border-slate-100 w-full text-left space-y-2">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Trạng thái đơn</p>
-                <div className="flex items-center gap-2 text-amber-600 font-extrabold text-sm">
-                  <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping" />
-                  Đang chờ phê duyệt từ Thành phố
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Trạng thái chiến dịch</p>
+                <div className="flex items-center gap-2 text-emerald-600 font-extrabold text-sm">
+                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                  Đang hoạt động (Đang tuyển)
                 </div>
                 <p className="text-xs font-semibold leading-relaxed text-slate-500">
-                  Chiến dịch đã được đưa vào hàng đợi kiểm duyệt. Bạn có thể theo dõi tiến độ trong tab quản lý chiến dịch của phường.
+                  Chiến dịch đã được kích hoạt trực tiếp. Người dân có thể theo dõi và đăng ký tham gia ngay.
                 </p>
               </div>
             </div>

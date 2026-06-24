@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import type { ElementType, ReactNode } from "react";
 import {
   ArrowLeft,
@@ -24,7 +24,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import {
-  useApproveCampaign,
   useApproveCampaignParticipant,
   useCampaignChat,
   useCampaignComments,
@@ -33,6 +32,8 @@ import {
   useJoinCampaign,
   useRejectCampaignParticipant,
   useCampaignThumbnail,
+  useEndCampaign,
+  useUpdateCampaign,
 } from "@/hooks/useCampaigns";
 import type { CampaignParticipantResponse } from "@/lib/api";
 import { Role, useAuth } from "@/lib/auth";
@@ -75,13 +76,53 @@ function CampaignDetailPage() {
 export function CampaignDetailPageComponent({
   campaignId,
   onBack,
+  initialEditMode,
 }: {
   campaignId: string;
   onBack?: () => void;
+  initialEditMode?: boolean;
 }) {
   const campaign = useCampaignDetail(campaignId);
   const image = useCampaignThumbnail(campaign);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  const [isEditing, setIsEditing] = useState(initialEditMode || false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editCategory, setEditCategory] = useState<any>("environment");
+  const [editTarget, setEditTarget] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editLocationText, setEditLocationText] = useState("");
+  const [editPrivateLocationText, setEditPrivateLocationText] = useState("");
+  const [editRequiredTools, setEditRequiredTools] = useState("");
+  const [editOrganizerContact, setEditOrganizerContact] = useState("");
+  const [editStartTime, setEditStartTime] = useState("");
+  const [editEndTime, setEditEndTime] = useState("");
+  const [editLatitude, setEditLatitude] = useState<number | null>(null);
+  const [editLongitude, setEditLongitude] = useState<number | null>(null);
+
+  const hasInitializedRef = useRef(false);
+
+  useEffect(() => {
+    hasInitializedRef.current = false;
+  }, [campaignId]);
+
+  useEffect(() => {
+    if (campaign && (!hasInitializedRef.current || !isEditing)) {
+      setEditTitle(campaign.name || "");
+      setEditCategory(campaign.category || "environment");
+      setEditTarget(String(campaign.target || 30));
+      setEditDescription(campaign.desc || "");
+      setEditLocationText(campaign.locationText || "");
+      setEditPrivateLocationText(campaign.privateLocationText || "");
+      setEditRequiredTools(campaign.requiredTools || "");
+      setEditOrganizerContact(campaign.organizerContact || "");
+      setEditStartTime(campaign.startTime ? campaign.startTime.slice(0, 16) : "");
+      setEditEndTime(campaign.endTime ? campaign.endTime.slice(0, 16) : "");
+      setEditLatitude(campaign.latitude ?? null);
+      setEditLongitude(campaign.longitude ?? null);
+      hasInitializedRef.current = true;
+    }
+  }, [campaign, isEditing]);
 
   useEffect(() => {
     if (!campaign?.imageUrls || campaign.imageUrls.length <= 1) {
@@ -95,7 +136,96 @@ export function CampaignDetailPageComponent({
 
   const { user, isAuthenticated } = useAuth();
   const joinCampaign = useJoinCampaign();
-  const approveCampaign = useApproveCampaign();
+  const endCampaign = useEndCampaign();
+  const updateCampaign = useUpdateCampaign();
+
+  const handleSave = async () => {
+    if (!editTitle.trim()) {
+      toast.error("Vui lòng nhập tên chiến dịch.");
+      return;
+    }
+    if (!editLocationText.trim()) {
+      toast.error("Vui lòng nhập địa chỉ cụ thể.");
+      return;
+    }
+    if (!editDescription.trim()) {
+      toast.error("Vui lòng nhập mô tả chi tiết chiến dịch.");
+      return;
+    }
+    if (!editPrivateLocationText.trim()) {
+      toast.error("Vui lòng nhập điểm tập trung nội bộ.");
+      return;
+    }
+    if (!editRequiredTools.trim()) {
+      toast.error("Vui lòng nhập dụng cụ cần mang theo.");
+      return;
+    }
+    if (!editOrganizerContact.trim()) {
+      toast.error("Vui lòng nhập thông tin liên hệ ban tổ chức.");
+      return;
+    }
+    if (!editStartTime) {
+      toast.error("Vui lòng chọn thời gian bắt đầu.");
+      return;
+    }
+    if (!editEndTime) {
+      toast.error("Vui lòng chọn thời gian kết thúc.");
+      return;
+    }
+
+    const start = new Date(editStartTime);
+    const end = new Date(editEndTime);
+    if (end <= start) {
+      toast.error("Thời gian kết thúc phải diễn ra sau thời gian bắt đầu.");
+      return;
+    }
+
+    const maxPartNum = Number.parseInt(editTarget, 10);
+    if (Number.isNaN(maxPartNum) || maxPartNum <= 0) {
+      toast.error("Số lượng tình nguyện viên tối đa phải là số nguyên dương.");
+      return;
+    }
+
+    try {
+      await updateCampaign.mutateAsync({
+        id: campaignId,
+        data: {
+          title: editTitle.trim(),
+          category: editCategory,
+          description: editDescription.trim(),
+          locationText: editLocationText.trim(),
+          privateLocationText: editPrivateLocationText.trim(),
+          requiredTools: editRequiredTools.trim(),
+          organizerContact: editOrganizerContact.trim(),
+          maxParticipants: maxPartNum,
+          startTime: editStartTime || undefined,
+          endTime: editEndTime || undefined,
+          latitude: editLatitude ?? undefined,
+          longitude: editLongitude ?? undefined,
+          coverImageUrl: campaign.coverImageUrl ?? undefined,
+          imageUrls: campaign.imageUrls ?? undefined,
+        },
+      });
+      toast.success("Cập nhật chiến dịch thành công.");
+      setIsEditing(false);
+    } catch (err) {
+      toast.error("Lỗi khi cập nhật chiến dịch: " + (err instanceof Error ? err.message : "Lỗi hệ thống"));
+    }
+  };
+
+  const handleEndCampaign = async () => {
+    if (!window.confirm("Bạn có chắc chắn muốn kết thúc sớm chiến dịch này? Hành động này sẽ khóa đơn đăng ký và dừng tuyển quân.")) {
+      return;
+    }
+    try {
+      await endCampaign.mutateAsync(campaignId);
+      toast.success("Đã kết thúc chiến dịch thành công.");
+    } catch (err) {
+      toast.error(
+        "Không thể kết thúc chiến dịch: " + (err instanceof Error ? err.message : "Lỗi hệ thống"),
+      );
+    }
+  };
 
   const isUnauthorizedOfficer = user?.role === "WARD_STAFF" && campaign && !campaign.canManage;
 
@@ -145,11 +275,6 @@ export function CampaignDetailPageComponent({
     toast.success("Đã gửi yêu cầu tham gia, vui lòng chờ người quản lý duyệt.");
   };
 
-  const handleApprove = async () => {
-    await approveCampaign.mutateAsync(campaign.id);
-    toast.success("Đã phê duyệt chiến dịch và mở đăng ký.");
-  };
-
   return (
     <main className="min-h-screen bg-[#F8F7FF] pb-16 text-slate-950">
       <div className="mx-auto max-w-[1280px] px-4 py-6 sm:px-6 lg:px-8">
@@ -177,133 +302,284 @@ export function CampaignDetailPageComponent({
                 Chỉ xem
               </span>
             )}
+            {campaign.canManage && (
+              <>
+                {isEditing ? (
+                  <>
+                    <button
+                      onClick={handleSave}
+                      disabled={updateCampaign.isPending}
+                      className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-black text-white hover:bg-emerald-700 transition cursor-pointer disabled:opacity-50"
+                    >
+                      <CheckCircle2 size={13} />
+                      Lưu
+                    </button>
+                    <button
+                      onClick={() => setIsEditing(false)}
+                      className="inline-flex items-center gap-1 rounded-lg bg-slate-200 px-3 py-1.5 text-xs font-black text-slate-700 hover:bg-slate-300 transition cursor-pointer"
+                    >
+                      Hủy
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="inline-flex items-center gap-1 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-black text-white hover:bg-violet-700 transition cursor-pointer"
+                  >
+                    Chỉnh sửa
+                  </button>
+                )}
+              </>
+            )}
             <StatusBadge status={campaign.status} />
           </div>
         </div>
 
         <section className="grid gap-6 lg:grid-cols-[minmax(0,65fr)_minmax(320px,35fr)]">
           <article className="space-y-6">
-            {(() => {
-              const hasMultipleImages = !!(campaign.imageUrls && campaign.imageUrls.length > 1);
-              const galleryImages = campaign.imageUrls && campaign.imageUrls.length > 0 
-                ? campaign.imageUrls 
-                : [image];
-              const displayImage = galleryImages[activeImageIndex] || image;
-              
-              return (
-                <div className="space-y-3">
-                  <div className="relative aspect-[21/9] overflow-hidden rounded-2xl shadow-lg group">
-                    <img 
-                      src={displayImage} 
-                      alt={campaign.name} 
-                      className="h-full w-full object-cover transition-all duration-500 hover:scale-[1.02]" 
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent pointer-events-none" />
-                    <h1 className="absolute bottom-6 left-6 right-6 text-2xl font-black leading-tight text-white md:text-[28px] pointer-events-none">
-                      {campaign.name}
-                    </h1>
-                    
-                    {hasMultipleImages && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => setActiveImageIndex((prev) => (prev === 0 ? galleryImages.length - 1 : prev - 1))}
-                          className="absolute left-4 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition hover:bg-black/60 cursor-pointer select-none opacity-0 group-hover:opacity-100 duration-200 text-xl font-bold"
-                        >
-                          &lsaquo;
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setActiveImageIndex((prev) => (prev === galleryImages.length - 1 ? 0 : prev + 1))}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition hover:bg-black/60 cursor-pointer select-none opacity-0 group-hover:opacity-100 duration-200 text-xl font-bold"
-                        >
-                          &rsaquo;
-                        </button>
-                      </>
-                    )}
-                  </div>
-                  
-                  {hasMultipleImages && (
-                    <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-thin">
-                      {galleryImages.map((imgUrl, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => setActiveImageIndex(idx)}
-                          className={`relative aspect-video w-24 flex-shrink-0 overflow-hidden rounded-lg border-2 shadow-sm transition duration-200 hover:brightness-110 cursor-pointer ${
-                            idx === activeImageIndex ? "border-[#7C3AED] scale-[1.02] shadow-md" : "border-transparent opacity-75 hover:opacity-100"
-                          }`}
-                        >
-                          <img src={imgUrl} alt={`Thumbnail ${idx}`} className="h-full w-full object-cover" />
-                        </button>
-                      ))}
+            {isEditing ? (
+              <div className="space-y-6">
+                <section className="rounded-2xl border border-violet-100 bg-white p-7 shadow-md">
+                  <h2 className="mb-4 text-xl font-black text-slate-950">Thông tin chung</h2>
+                  <div className="space-y-5">
+                    <div>
+                      <label className="mb-1 block text-sm font-black text-[#0B2545]">Tên chiến dịch</label>
+                      <input
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/15"
+                        placeholder="Nhập tên chiến dịch"
+                      />
                     </div>
-                  )}
-                </div>
-              );
-            })()}
 
-            <section className="rounded-2xl border border-violet-100 bg-white p-7 shadow-md">
-              <div className="grid gap-3 md:grid-cols-3">
-                <InfoTile
-                  icon={MapPin}
-                  label="Khu vực"
-                  value={campaign.locationText || campaign.ward}
-                />
-                <InfoTile
-                  icon={Users}
-                  label="Người tham gia"
-                  value={`${campaign.participants}/${campaign.target}`}
-                />
-                <InfoTile icon={CalendarDays} label="Thời gian" value={dateRange(campaign)} />
-              </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="mb-1 block text-sm font-black text-[#0B2545]">Lĩnh vực</label>
+                        <select
+                          value={editCategory}
+                          onChange={(e) => setEditCategory(e.target.value)}
+                          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/15"
+                        >
+                          <option value="environment">Môi trường</option>
+                          <option value="infrastructure">Hạ tầng</option>
+                          <option value="public_safety">An toàn cộng đồng</option>
+                          <option value="construction">Xây dựng</option>
+                          <option value="fire_safety">Phòng cháy chữa cháy</option>
+                        </select>
+                      </div>
 
-              <div className="mt-7 rounded-xl bg-[#F3F0FF] p-5">
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-black text-slate-900">Tiến độ tuyển quân</p>
-                    <p className="text-xs font-semibold text-slate-500">
-                      Cập nhật theo số lượng người được duyệt tham gia.
-                    </p>
+                      <div>
+                        <label className="mb-1 block text-sm font-black text-[#0B2545]">Tình nguyện viên cần tuyển</label>
+                        <input
+                          value={editTarget}
+                          onChange={(e) => setEditTarget(e.target.value)}
+                          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/15"
+                          type="number"
+                          min="1"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-sm font-black text-[#0B2545]">Mô tả chi tiết chiến dịch</label>
+                      <textarea
+                        value={editDescription}
+                        onChange={(e) => setEditDescription(e.target.value)}
+                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/15 min-h-32"
+                        placeholder="Mục đích, thông điệp truyền tải..."
+                      />
+                    </div>
                   </div>
-                  <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#7C3AED] shadow-sm">
-                    {campaign.participants}/{campaign.target} ({progressPercent}%)
-                  </span>
-                </div>
-                <div className="h-2.5 overflow-hidden rounded-full bg-white">
-                  <div
-                    className="h-full rounded-full bg-[#10B981] transition-all duration-700"
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                </div>
+                </section>
+
+                <section className="rounded-2xl border border-violet-100 bg-white p-7 shadow-md">
+                  <h2 className="mb-4 text-xl font-black text-slate-950">Lịch và địa điểm</h2>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="mb-1 block text-sm font-black text-[#0B2545]">Thời gian bắt đầu</label>
+                      <input
+                        type="datetime-local"
+                        value={editStartTime}
+                        onChange={(e) => setEditStartTime(e.target.value)}
+                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/15"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-black text-[#0B2545]">Thời gian kết thúc</label>
+                      <input
+                        type="datetime-local"
+                        value={editEndTime}
+                        onChange={(e) => setEditEndTime(e.target.value)}
+                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/15"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <label className="mb-1 block text-sm font-black text-[#0B2545]">Địa chỉ cụ thể (Địa điểm)</label>
+                    <input
+                      value={editLocationText}
+                      onChange={(e) => setEditLocationText(e.target.value)}
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/15"
+                      placeholder="Nhập địa chỉ, phường hoặc quận tại Đà Nẵng"
+                    />
+                  </div>
+                </section>
+
+                <section className="rounded-2xl border border-amber-200 bg-[#FFFBF0] p-7 shadow-md">
+                  <h2 className="mb-4 text-xl font-black text-slate-950">Thông tin nội bộ</h2>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="mb-1 block text-sm font-black text-[#0B2545]">Điểm tập trung / Hẹn gặp</label>
+                      <textarea
+                        value={editPrivateLocationText}
+                        onChange={(e) => setEditPrivateLocationText(e.target.value)}
+                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/15 min-h-24"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-black text-[#0B2545]">Công cụ cần mang theo</label>
+                      <textarea
+                        value={editRequiredTools}
+                        onChange={(e) => setEditRequiredTools(e.target.value)}
+                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/15 min-h-24"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-black text-[#0B2545]">Người phụ trách / SĐT</label>
+                      <input
+                        value={editOrganizerContact}
+                        onChange={(e) => setEditOrganizerContact(e.target.value)}
+                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/15"
+                      />
+                    </div>
+                  </div>
+                </section>
               </div>
-            </section>
-
-            {campaign.desc && (
-              <Panel title="Mô tả chi tiết chiến dịch" icon={ListIcon}>
-                <p className="text-sm leading-7 text-slate-600 whitespace-pre-wrap">
-                  {campaign.desc}
-                </p>
-              </Panel>
-            )}
-
-            {campaign.privateDetailsVisible ? (
-              <PrivateDetails campaign={campaign} />
             ) : (
-              <section className="rounded-2xl border border-dashed border-amber-200 bg-[#FFFBF0] p-6 shadow-sm">
-                <div className="flex items-start gap-3">
-                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-700">
-                    <Lock size={20} />
+              <>
+                {(() => {
+                  const hasMultipleImages = !!(campaign.imageUrls && campaign.imageUrls.length > 1);
+                  const galleryImages = campaign.imageUrls && campaign.imageUrls.length > 0 
+                    ? campaign.imageUrls 
+                    : [image];
+                  const displayImage = galleryImages[activeImageIndex] || image;
+                  
+                  return (
+                    <div className="space-y-3">
+                      <div className="relative aspect-[21/9] overflow-hidden rounded-2xl shadow-lg group">
+                        <img 
+                          src={displayImage} 
+                          alt={campaign.name} 
+                          className="h-full w-full object-cover transition-all duration-500 hover:scale-[1.02]" 
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent pointer-events-none" />
+                        <h1 className="absolute bottom-6 left-6 right-6 text-2xl font-black leading-tight text-white md:text-[28px] pointer-events-none">
+                          {campaign.name}
+                        </h1>
+                        
+                        {hasMultipleImages && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setActiveImageIndex((prev) => (prev === 0 ? galleryImages.length - 1 : prev - 1))}
+                              className="absolute left-4 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition hover:bg-black/60 cursor-pointer select-none opacity-0 group-hover:opacity-100 duration-200 text-xl font-bold"
+                            >
+                              &lsaquo;
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setActiveImageIndex((prev) => (prev === galleryImages.length - 1 ? 0 : prev + 1))}
+                              className="absolute right-4 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition hover:bg-black/60 cursor-pointer select-none opacity-0 group-hover:opacity-100 duration-200 text-xl font-bold"
+                            >
+                              &rsaquo;
+                            </button>
+                          </>
+                        )}
+                      </div>
+                      
+                      {hasMultipleImages && (
+                        <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-thin">
+                          {galleryImages.map((imgUrl, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => setActiveImageIndex(idx)}
+                              className={`relative aspect-video w-24 flex-shrink-0 overflow-hidden rounded-lg border-2 shadow-sm transition duration-200 hover:brightness-110 cursor-pointer ${
+                                idx === activeImageIndex ? "border-[#7C3AED] scale-[1.02] shadow-md" : "border-transparent opacity-75 hover:opacity-100"
+                              }`}
+                            >
+                              <img src={imgUrl} alt={`Thumbnail ${idx}`} className="h-full w-full object-cover" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                <section className="rounded-2xl border border-violet-100 bg-white p-7 shadow-md">
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <InfoTile
+                      icon={MapPin}
+                      label="Khu vực"
+                      value={campaign.locationText || campaign.ward}
+                    />
+                    <InfoTile
+                      icon={Users}
+                      label="Người tham gia"
+                      value={`${campaign.participants}/${campaign.target}`}
+                    />
+                    <InfoTile icon={CalendarDays} label="Thời gian" value={dateRange(campaign)} />
                   </div>
-                  <div>
-                    <h2 className="font-black text-slate-900">Thông tin nội bộ được bảo mật</h2>
-                    <p className="mt-1 text-sm leading-6 text-slate-600">
-                      Vị trí tập trung cụ thể, dụng cụ, liên hệ ban tổ chức và group chat chỉ hiển
-                      thị cho người đã được duyệt tham gia hoặc người quản lý chiến dịch.
+
+                  <div className="mt-7 rounded-xl bg-[#F3F0FF] p-5">
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-black text-slate-900">Tiến độ tuyển quân</p>
+                        <p className="text-xs font-semibold text-slate-500">
+                          Cập nhật theo số lượng người được duyệt tham gia.
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#7C3AED] shadow-sm">
+                        {campaign.participants}/{campaign.target} ({progressPercent}%)
+                      </span>
+                    </div>
+                    <div className="h-2.5 overflow-hidden rounded-full bg-white">
+                      <div
+                        className="h-full rounded-full bg-[#10B981] transition-all duration-700"
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                  </div>
+                </section>
+
+                {campaign.desc && (
+                  <Panel title="Mô tả chi tiết chiến dịch" icon={ListIcon}>
+                    <p className="text-sm leading-7 text-slate-600 whitespace-pre-wrap">
+                      {campaign.desc}
                     </p>
-                  </div>
-                </div>
-              </section>
+                  </Panel>
+                )}
+
+                {campaign.privateDetailsVisible ? (
+                  <PrivateDetails campaign={campaign} />
+                ) : (
+                  <section className="rounded-2xl border border-dashed border-amber-200 bg-[#FFFBF0] p-6 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-700">
+                        <Lock size={20} />
+                      </div>
+                      <div>
+                        <h2 className="font-black text-slate-900">Thông tin nội bộ được bảo mật</h2>
+                        <p className="mt-1 text-sm leading-6 text-slate-600">
+                          Vị trí tập trung cụ thể, dụng cụ, liên hệ ban tổ chức và group chat chỉ hiển
+                          thị cho người đã được duyệt tham gia hoặc người quản lý chiến dịch.
+                        </p>
+                      </div>
+                    </div>
+                  </section>
+                )}
+              </>
             )}
 
             <MapPanel campaign={campaign} />
@@ -311,31 +587,11 @@ export function CampaignDetailPageComponent({
           </article>
 
           <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
-            {user?.role === Role.SUPER_ADMIN && campaign.status === "pending_review" && (
-              <section className="rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-lg">
-                <div className="mb-3 flex items-center gap-2 font-black text-amber-800">
-                  <ShieldCheck size={18} />
-                  Cần phê duyệt
-                </div>
-                <p className="mb-4 text-sm leading-6 text-amber-800">
-                  Chiến dịch đang chờ lãnh đạo thành phố phê duyệt trước khi mở đăng ký cho người
-                  dân.
-                </p>
-                <button
-                  onClick={handleApprove}
-                  disabled={approveCampaign.isPending}
-                  className="h-11 w-full rounded-xl bg-amber-600 text-sm font-black text-white transition hover:brightness-110 disabled:opacity-60"
-                >
-                  Phê duyệt và mở đăng ký
-                </button>
-              </section>
-            )}
-
             <section className="rounded-2xl border border-violet-100 bg-white p-6 shadow-lg">
               <h2 className="mb-4 text-sm font-black uppercase tracking-wider text-slate-500">
                 Hành động
               </h2>
-              {campaign.status === "recruiting" && user?.role !== "WARD_STAFF" && (
+              {(campaign.status === "active" || campaign.status === "recruiting") && user?.role !== "WARD_STAFF" && (
                 <button
                   onClick={handleJoin}
                   disabled={joinCampaign.isPending || !campaign.canJoin || isUnauthorizedOfficer}
@@ -344,6 +600,16 @@ export function CampaignDetailPageComponent({
                   {campaign.currentUserJoinStatus === "PENDING"
                     ? "Đang chờ duyệt"
                     : "Đăng ký tham gia"}
+                </button>
+              )}
+
+              {campaign.canManage && (campaign.status === "active" || campaign.status === "recruiting") && (
+                <button
+                  onClick={handleEndCampaign}
+                  disabled={endCampaign.isPending}
+                  className="h-12 w-full rounded-xl bg-red-600 text-sm font-black text-white shadow-md transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50 mb-3"
+                >
+                  {endCampaign.isPending ? "Đang xử lý..." : "Kết thúc chiến dịch"}
                 </button>
               )}
 
@@ -383,13 +649,7 @@ export function CampaignDetailPageComponent({
                   <p className="mt-1 text-sm font-semibold text-slate-500">{campaign.ward}</p>
                 </div>
               </div>
-              <button
-                type="button"
-                className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-violet-200 text-sm font-black text-[#7C3AED] transition hover:bg-[#F3F0FF]"
-              >
-                <MessageCircle size={16} />
-                Nhắn tin
-              </button>
+
             </section>
 
             <GroupChatNavigationCard campaign={campaign} approvedStatus={approvedStatus} />
@@ -790,12 +1050,23 @@ function StatusBadge({ status }: { status: Campaign["status"] }) {
       className: "border-slate-200 bg-slate-100 text-slate-600",
     },
     recruiting: {
-      label: "Đang tuyển",
+      label: "Đang hoạt động",
       className: "border-emerald-200 bg-emerald-50 text-emerald-700",
     },
-    inProgress: { label: "Đang thực hiện", className: "border-blue-200 bg-blue-50 text-blue-700" },
-    completed: { label: "Hoàn thành", className: "border-violet-200 bg-violet-50 text-[#7C3AED]" },
-  }[status];
+    inProgress: { label: "Đang hoạt động", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+    completed: { label: "Đã kết thúc", className: "border-red-200 bg-red-50 text-red-700" },
+    active: {
+      label: "Đang hoạt động",
+      className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    },
+    ended: {
+      label: "Đã kết thúc",
+      className: "border-red-200 bg-red-50 text-red-700",
+    },
+  }[status] ?? {
+    label: "Đang hoạt động",
+    className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  };
 
   return (
     <span

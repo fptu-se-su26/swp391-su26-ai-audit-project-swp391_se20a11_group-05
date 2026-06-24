@@ -224,7 +224,7 @@ export function ModernPoliceDashboard() {
         <div className="p-6 pb-4 border-b border-white/10 flex flex-col items-center">
           <img src={policeEmblemImg} alt="Emblem" className="w-16 h-16 object-contain mb-3 drop-shadow-md" />
           <h1 className="text-center font-bold text-[13px] text-white uppercase leading-snug w-full px-1">
-            {user?.org || "CÔNG AN ĐÀ NẴNG"}
+            CÔNG AN ĐÀ NẴNG
           </h1>
         </div>
         

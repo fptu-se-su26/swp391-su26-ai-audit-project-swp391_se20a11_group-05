@@ -673,7 +673,7 @@ export function PoliceDashboard() {
           {!sidebarCollapsed && (
             <div className="mt-3 text-center">
               <span className="font-extrabold text-[13px] tracking-wider uppercase block text-amber-400 leading-snug px-2">
-                {user?.org || "CÔNG AN ĐÀ NẴNG"}
+                CÔNG AN ĐÀ NẴNG
               </span>
             </div>
           )}

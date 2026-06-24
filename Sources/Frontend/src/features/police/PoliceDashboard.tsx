@@ -861,7 +861,7 @@ export function PoliceDashboard() {
                     <ChevronDown size={14} className="text-slate-400" />
                   </div>
                   <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block mt-0.5">
-                    {user?.org || "Admin công an phường"}
+                    {user?.org || "Quản trị viên"}
                   </span>
                 </div>
               </button>
@@ -873,7 +873,7 @@ export function PoliceDashboard() {
                       {user?.name || "Thượng úy Nguyễn Văn An"}
                     </div>
                     <div className="text-[10px] text-slate-400 font-semibold truncate mt-0.5">
-                      {user?.org || "Admin công an phường"}
+                      {user?.org || "Quản trị viên"}
                     </div>
                   </div>
                   <Link

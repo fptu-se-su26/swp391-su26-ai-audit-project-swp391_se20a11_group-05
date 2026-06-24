@@ -52,14 +52,15 @@ function getCategoryInfo(category?: string) {
 
 function getStatusInfo(status?: string) {
   switch (status) {
-    case "completed":
-      return { label: "Hoàn thành", bg: "bg-green-100 text-green-800 border-green-200" };
+    case "active":
     case "recruiting":
-      return { label: "Đang tuyển", bg: "bg-amber-100 text-amber-800 border-amber-200" };
     case "inProgress":
-      return { label: "Đang diễn ra", bg: "bg-blue-100 text-blue-800 border-blue-200" };
+      return { label: "Đang hoạt động", bg: "bg-emerald-100 text-emerald-800 border border-emerald-200" };
+    case "ended":
+    case "completed":
+      return { label: "Đã kết thúc", bg: "bg-red-100 text-red-800 border border-red-200" };
     default:
-      return { label: "Chờ duyệt", bg: "bg-slate-100 text-slate-800 border-slate-200" };
+      return { label: "Đang hoạt động", bg: "bg-emerald-100 text-emerald-800 border border-emerald-200" };
   }
 }
 
@@ -69,7 +70,8 @@ export function WardCampaignPage() {
   const { tab } = Route.useSearch();
   const [activeCampaignId, setActiveCampaignId] = useState<string | null>(null);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
-
+  const [editModeOnOpen, setEditModeOnOpen] = useState(false);
+  
   const activeCampaign = useMemo(() => {
     if (!campaigns.length) return null;
     return campaigns.find((c) => c.id === activeCampaignId) || campaigns[0];
@@ -78,10 +80,16 @@ export function WardCampaignPage() {
   // Statistics calculated from real-time backend data
   const stats = useMemo(() => {
     const total = campaigns.length;
-    const recruiting = campaigns.filter((c) => c.status === "recruiting").length;
-    const inProgress = campaigns.filter((c) => c.status === "inProgress").length;
-    const completed = campaigns.filter((c) => c.status === "completed").length;
-    return { total, recruiting, inProgress, completed };
+    const recruiting = campaigns.filter(
+      (c) => (c.status === "active" || c.status === "recruiting") && c.participants < c.target,
+    ).length;
+    const full = campaigns.filter(
+      (c) => (c.status === "active" || c.status === "recruiting") && c.participants >= c.target,
+    ).length;
+    const ended = campaigns.filter(
+      (c) => c.status === "ended" || c.status === "completed",
+    ).length;
+    return { total, recruiting, full, ended };
   }, [campaigns]);
 
   const deleteCampaign = useDeleteCampaign();
@@ -94,13 +102,8 @@ export function WardCampaignPage() {
   };
 
   const handleEdit = (id: string) => {
-    toast.info(
-      "Chức năng chỉnh sửa chi tiết chiến dịch đang được phát triển. Vui lòng liên hệ Admin thành phố.",
-    );
-  };
-
-  const handleManage = (id: string) => {
     setSelectedCampaignId(id);
+    setEditModeOnOpen(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -125,6 +128,7 @@ export function WardCampaignPage() {
 
   const handleViewDetail = (id: string) => {
     setSelectedCampaignId(id);
+    setEditModeOnOpen(false);
   };
 
   if (tab === "campaign/create") {
@@ -150,8 +154,13 @@ export function WardCampaignPage() {
   if (selectedCampaignId) {
     return (
       <CampaignDetailPageComponent
+        key={selectedCampaignId}
         campaignId={selectedCampaignId}
-        onBack={() => setSelectedCampaignId(null)}
+        initialEditMode={editModeOnOpen}
+        onBack={() => {
+          setSelectedCampaignId(null);
+          setEditModeOnOpen(false);
+        }}
       />
     );
   }
@@ -188,21 +197,21 @@ export function WardCampaignPage() {
           icon={Users}
           label="Đang tuyển thành viên"
           value={stats.recruiting}
-          note="Đang mở đơn đăng ký"
+          note="Thành viên chưa đầy"
           tone="amber"
         />
         <KpiCard
-          icon={Clock3}
-          label="Đang diễn ra"
-          value={stats.inProgress}
-          note="Hoạt động thực tế"
+          icon={CheckCircle2}
+          label="Đã tuyển đủ thành viên"
+          value={stats.full}
+          note="Thành viên đã đầy"
           tone="emerald"
         />
         <KpiCard
-          icon={CheckCircle2}
-          label="Đã hoàn thành"
-          value={stats.completed}
-          note="Đã nghiệm thu kết quả"
+          icon={Clock3}
+          label="Đã kết thúc"
+          value={stats.ended}
+          note="Đã quá hạn hoặc đóng"
           tone="violet"
         />
       </div>
@@ -321,12 +330,20 @@ export function WardCampaignPage() {
                       </span>
                     </td>
                     <td className="px-5 py-4">
-                      <div className="flex items-center gap-2">
-                        <span className="font-sans text-xs font-extrabold text-slate-700">
-                          {c.participants}
-                        </span>
-                        <span className="text-xs font-semibold text-slate-400">/ {c.target}</span>
-                      </div>
+                      {(() => {
+                        const isFull = c.participants >= c.target;
+                        return (
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-extrabold ${
+                              isFull
+                                ? "bg-red-50 text-red-700 border-red-200"
+                                : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            }`}
+                          >
+                            {isFull ? "Đã đầy" : "Đang tuyển"} {c.participants}/{c.target}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-5 py-4 text-sm font-bold text-slate-500">{c.createdBy}</td>
                     <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
@@ -346,13 +363,6 @@ export function WardCampaignPage() {
                               title="Chỉnh sửa"
                             >
                               <Pencil size={14} />
-                            </button>
-                            <button
-                              onClick={() => handleManage(c.id)}
-                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition"
-                              title="Điều hành"
-                            >
-                              <Settings size={14} />
                             </button>
                             <button
                               onClick={() => handleDelete(c.id)}

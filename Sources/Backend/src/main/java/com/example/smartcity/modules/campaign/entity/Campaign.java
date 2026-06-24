@@ -61,7 +61,7 @@ public class Campaign extends BaseEntity {
 
     @Column(nullable = false, length = 30)
     @Builder.Default
-    private String status = "PENDING_APPROVAL";
+    private String status = "RECRUITING";
 
     @Column(name = "linked_feedback_id")
     private Long linkedFeedbackId;

@@ -306,7 +306,7 @@ public class DataInitializer implements CommandLineRunner {
                     max_participants INTEGER,
                     start_time TIMESTAMP,
                     end_time TIMESTAMP,
-                    status VARCHAR(30) DEFAULT 'PENDING_APPROVAL'
+                    status VARCHAR(30) DEFAULT 'RECRUITING'
                 )
                 """);
         executeSchemaSql("ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS created_at TIMESTAMP");
@@ -325,10 +325,10 @@ public class DataInitializer implements CommandLineRunner {
         executeSchemaSql("ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS max_participants INTEGER");
         executeSchemaSql("ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS start_time TIMESTAMP");
         executeSchemaSql("ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS end_time TIMESTAMP");
-        executeSchemaSql("ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT 'PENDING_APPROVAL'");
+        executeSchemaSql("ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT 'RECRUITING'");
         executeSchemaSql("ALTER TABLE campaigns ALTER COLUMN status TYPE VARCHAR(30)");
-        executeSchemaSql("ALTER TABLE campaigns ALTER COLUMN status SET DEFAULT 'PENDING_APPROVAL'");
-        executeSchemaSql("UPDATE campaigns SET status = 'PENDING_APPROVAL' WHERE status IS NULL");
+        executeSchemaSql("ALTER TABLE campaigns ALTER COLUMN status SET DEFAULT 'RECRUITING'");
+        executeSchemaSql("UPDATE campaigns SET status = 'RECRUITING' WHERE status IS NULL");
         dropLegacyCampaignCheckConstraints();
         alignLegacyCampaignColumns();
 

@@ -36,10 +36,8 @@ export const Route = createFileRoute("/campaigns/")({
 
 const statusOptions = [
   { value: "all", label: "Tất cả trạng thái" },
-  { value: "recruiting", label: "Đang tuyển" },
-  { value: "inProgress", label: "Đang thực hiện" },
-  { value: "completed", label: "Hoàn thành" },
-  { value: "pending_review", label: "Chờ duyệt" },
+  { value: "active", label: "Đang hoạt động" },
+  { value: "ended", label: "Đã kết thúc" },
 ];
 
 const categoryOptions: { value: "all" | CampaignCategory; label: string }[] = [
@@ -92,7 +90,10 @@ function CampaignList() {
         campaign.ward.toLowerCase().includes(keyword) ||
         campaign.desc.toLowerCase().includes(keyword) ||
         (campaign.locationText ?? "").toLowerCase().includes(keyword);
-      const matchesStatus = status === "all" || campaign.status === status;
+      const matchesStatus =
+        status === "all" ||
+        (status === "active" && (campaign.status === "active" || campaign.status === "recruiting" || campaign.status === "inProgress")) ||
+        (status === "ended" && (campaign.status === "ended" || campaign.status === "completed"));
       const matchesCategory = category === "all" || campaign.category === category;
       return matchesSearch && matchesStatus && matchesCategory;
     });
@@ -117,41 +118,41 @@ function CampaignList() {
     { label: "Tất cả chiến dịch", value: campaigns.length, icon: ListChecks, color: "#7C3AED", border: "border-l-[#7C3AED]" },
     {
       label: "Đang tuyển quân",
-      value: campaigns.filter((c) => c.status === "recruiting").length,
+      value: campaigns.filter((c) => (c.status === "active" || c.status === "recruiting") && c.participants < c.target).length,
       icon: Megaphone,
       color: "#10B981",
       border: "border-l-[#10B981]",
     },
     {
-      label: "Đang thực hiện",
-      value: campaigns.filter((c) => c.status === "inProgress").length,
+      label: "Tuyển đủ thành viên",
+      value: campaigns.filter((c) => (c.status === "active" || c.status === "recruiting") && c.participants >= c.target).length,
       icon: Zap,
       color: "#3B82F6",
       border: "border-l-[#3B82F6]",
     },
     {
-      label: "Hoàn thành",
-      value: campaigns.filter((c) => c.status === "completed").length,
+      label: "Đã kết thúc",
+      value: campaigns.filter((c) => c.status === "ended" || c.status === "completed").length,
       icon: CheckCircle2,
-      color: "#6B7280",
-      border: "border-l-[#6B7280]",
+      color: "#EF4444",
+      border: "border-l-[#EF4444]",
     },
   ];
 
   return (
     <main className="min-h-screen bg-[#F8F7FF] pb-16 text-slate-950">
       <div className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 lg:px-8">
-        <section 
+        <section
           className="relative mb-10 overflow-hidden rounded-[28px] p-8 shadow-2xl md:p-12 min-h-[440px] flex items-center border border-white/10"
         >
           {/* Blurred realistic background image */}
-          <div 
-            className="absolute inset-0 bg-cover bg-center blur-[4px] scale-[1.03] pointer-events-none" 
+          <div
+            className="absolute inset-0 bg-cover bg-center blur-[4px] scale-[1.03] pointer-events-none"
             style={{ backgroundImage: `url(${heroBg})` }}
           />
           {/* Uniform light overlay to ensure text contrast while revealing the full background */}
           <div className="absolute inset-0 bg-slate-950/30 pointer-events-none" />
-          
+
           <div className="absolute -top-40 -right-40 h-96 w-96 rounded-full bg-violet-600/10 blur-3xl pointer-events-none" />
           <div className="absolute -bottom-20 -left-20 h-80 w-80 rounded-full bg-emerald-600/10 blur-3xl pointer-events-none" />
 
@@ -162,12 +163,12 @@ function CampaignList() {
                 <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
                 Chiến dịch đã phê duyệt
               </div>
-              
+
               <h1 className="mt-5 text-4xl sm:text-5xl font-black tracking-tight text-white leading-[1.15]">
                 Chiến dịch <br className="hidden sm:inline" />
                 <span className="bg-gradient-to-r from-violet-200 via-indigo-100 to-white bg-clip-text text-transparent">cộng đồng</span>
               </h1>
-              
+
               <p className="mt-4 max-w-xl text-base leading-relaxed text-slate-300 font-medium">
                 Xem các chiến dịch đã được phê duyệt, đăng ký tham gia và theo dõi tiến độ cải thiện đô thị tại địa phương của bạn.
               </p>
@@ -356,9 +357,8 @@ function CampaignCard({
 
   return (
     <article
-      className={`overflow-hidden rounded-xl border border-violet-100 bg-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:shadow-lg ${
-        compact ? "grid md:grid-cols-[280px_1fr]" : ""
-      }`}
+      className={`overflow-hidden rounded-xl border border-violet-100 bg-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:shadow-lg ${compact ? "grid md:grid-cols-[280px_1fr]" : ""
+        }`}
     >
       <div className={`relative bg-slate-100 ${compact ? "min-h-56 md:min-h-full" : "aspect-video"}`}>
         <img src={image} alt={campaign.name} className="h-full w-full object-cover" loading="lazy" />
@@ -426,7 +426,7 @@ function CampaignCard({
             <button
               type="button"
               onClick={onJoin}
-              disabled={isJoining || !campaign.canJoin || campaign.status !== "recruiting"}
+              disabled={isJoining || !campaign.canJoin || (campaign.status !== "active" && campaign.status !== "recruiting")}
               className="inline-flex h-11 items-center justify-center rounded-lg bg-[#7C3AED] text-sm font-black text-white shadow-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Tham gia
@@ -441,10 +441,12 @@ function CampaignCard({
 function StatusBadge({ status }: { status: Campaign["status"] }) {
   const meta = {
     pending_review: { label: "Chờ duyệt", className: "border-slate-200 bg-slate-100 text-slate-600" },
-    recruiting: { label: "Đang tuyển", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
-    inProgress: { label: "Đang thực hiện", className: "border-amber-200 bg-amber-50 text-amber-700" },
-    completed: { label: "Hoàn thành", className: "border-violet-200 bg-violet-50 text-[#7C3AED]" },
-  }[status];
+    recruiting: { label: "Đang hoạt động", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+    inProgress: { label: "Đang hoạt động", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+    completed: { label: "Đã kết thúc", className: "border-red-200 bg-red-50 text-red-700" },
+    active: { label: "Đang hoạt động", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+    ended: { label: "Đã kết thúc", className: "border-red-200 bg-red-50 text-red-700" },
+  }[status] ?? { label: "Đang hoạt động", className: "border-emerald-200 bg-emerald-50 text-emerald-700" };
 
   return <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black shadow-sm ${meta.className}`}>{meta.label}</span>;
 }
@@ -486,7 +488,7 @@ function VolunteerIllustration() {
           <path d="M87 75 C100 70, 105 85, 90 85 Z" fill="#059669" />
           {/* Soil/Pot */}
           <ellipse cx="80" cy="140" rx="18" ry="6" fill="#78350F" />
-          
+
           {/* Person Kneeling */}
           {/* Legs/knees */}
           <path d="M25 140 Q35 125 50 125 T70 140" fill="none" stroke="#818CF8" strokeWidth="10" strokeLinecap="round" />

@@ -101,14 +101,14 @@ public class DataInitializer implements CommandLineRunner {
         if (userRepository.findByUsername("police1").isEmpty()) {
             User police = new User(
                     "police1",
-                    passwordEncoder.encode("123456"),
+                    passwordEncoder.encode("Police@1"),
                     "Công An Phường 1",
                     "0900000003",
                     "police1@example.com",
                     Role.POLICE
             );
             userRepository.save(police);
-            log.info("Seeded police account: police1 / 123456");
+            log.info("Seeded police account: police1 / Police@1");
         }
 
         if (userRepository.findByUsername("admin").isEmpty()) {

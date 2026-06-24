@@ -257,7 +257,7 @@ export function ModernPoliceDashboard() {
           <div className="flex-[2] xl:flex-[2.5] flex items-center gap-3 lg:gap-4 min-w-0">
             <img src={policeEmblemImg} alt="Police Emblem" className="w-[45px] h-[45px] lg:w-[50px] lg:h-[50px] object-contain drop-shadow-sm shrink-0" />
             <div className="flex flex-col min-w-0">
-              <h2 className="text-[17px] md:text-[19px] lg:text-[21px] font-bold leading-tight truncate" style={{ color: colors.primaryNavy }}>
+              <h2 className="text-[15px] md:text-[17px] lg:text-[19px] font-bold leading-snug whitespace-normal break-words" style={{ color: colors.primaryNavy }}>
                 {user?.org ? user.org.toUpperCase() : (user?.wardName ? `CÔNG AN ${user.wardType === 'COMMUNE' ? 'XÃ' : 'PHƯỜNG'} ${user.wardName.toUpperCase()}` : "CÔNG AN ĐỊA PHƯƠNG")}
               </h2>
               <span className="text-[12px] lg:text-[13px] font-medium mt-0.5 truncate hidden sm:block" style={{ color: colors.textSecondary }}>

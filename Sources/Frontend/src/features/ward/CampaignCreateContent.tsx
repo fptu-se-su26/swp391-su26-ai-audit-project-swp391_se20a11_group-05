@@ -1125,7 +1125,7 @@ function CampaignLocationPicker({
                     : "text-slate-700 hover:bg-slate-50 font-semibold"
                 }`}
               >
-                🗺️ Bản đồ
+                🗺️ Bản đồ (Google)
               </button>
               <button
                 type="button"
@@ -1157,7 +1157,7 @@ function CampaignLocationPicker({
         <TileLayer
           url={
             mapLayerType === "osm"
-              ? "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              ? "https://mt1.google.com/vt/lyrs=m&hl=vi&gl=VN&x={x}&y={y}&z={z}"
               : "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
           }
         />

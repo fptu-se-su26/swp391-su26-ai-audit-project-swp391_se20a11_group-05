@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { Layers } from "lucide-react";
+import { Layers, ChevronDown, ChevronUp } from "lucide-react";
 
 interface Hotspot {
   latitude: number;
@@ -58,6 +58,7 @@ export function HeatmapMap({ hotspots }: HeatmapMapProps) {
   const center = [16.0544, 108.2022] as [number, number]; // Trực diện trung tâm Đà Nẵng
 
   const [showSurge, setShowSurge] = useState(true);
+  const [isLegendOpen, setIsLegendOpen] = useState(true);
 
   // Tạo lưới các khu vực điểm nóng
   const gridCells = useMemo(() => generateGrid(hotspots || [], 0.005), [hotspots]);
@@ -133,33 +134,39 @@ export function HeatmapMap({ hotspots }: HeatmapMapProps) {
         </button>
       </div>
 
-      {/* Chú thích Mức độ (Legend) */}
       {showSurge && (
-        <div className="absolute bottom-6 right-4 z-[1000] bg-white/95 backdrop-blur-sm p-3.5 rounded-xl shadow-lg border border-slate-100 text-xs min-w-[140px] animate-in fade-in slide-in-from-bottom-4">
-          <p className="font-extrabold mb-2 text-slate-800 uppercase tracking-wide text-[10px]">
-            Lưu lượng phản ánh
-          </p>
-          <div className="flex items-center gap-2.5 mb-1.5">
-            <div
-              className="w-5 h-5 rounded-md"
-              style={{ background: "#fb923c", opacity: 0.5 }}
-            ></div>
-            <span className="font-medium text-slate-600">Trung bình</span>
+        <div className="absolute bottom-6 right-4 z-[1000] bg-white/95 backdrop-blur-sm p-3.5 rounded-xl shadow-lg border border-slate-100 text-xs min-w-[140px] transition-all">
+          <div className="flex items-center justify-between mb-2 cursor-pointer" onClick={() => setIsLegendOpen(!isLegendOpen)}>
+            <p className="font-extrabold text-slate-800 uppercase tracking-wide text-[10px]">
+              Lưu lượng phản ánh
+            </p>
+            {isLegendOpen ? <ChevronDown size={14} className="text-slate-600" /> : <ChevronUp size={14} className="text-slate-600" />}
           </div>
-          <div className="flex items-center gap-2.5 mb-1.5">
-            <div
-              className="w-5 h-5 rounded-md"
-              style={{ background: "#ef4444", opacity: 0.6 }}
-            ></div>
-            <span className="font-medium text-slate-600">Cao</span>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <div
-              className="w-5 h-5 rounded-md"
-              style={{ background: "#991b1b", opacity: 0.75 }}
-            ></div>
-            <span className="font-medium text-slate-600">Rất cao</span>
-          </div>
+          {isLegendOpen && (
+            <div className="animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-center gap-2.5 mb-1.5">
+                <div
+                  className="w-5 h-5 rounded-[4px]"
+                  style={{ background: "#fb923c", opacity: 0.5 }}
+                ></div>
+                <span className="font-medium text-slate-600">Trung bình</span>
+              </div>
+              <div className="flex items-center gap-2.5 mb-1.5">
+                <div
+                  className="w-5 h-5 rounded-[4px]"
+                  style={{ background: "#ef4444", opacity: 0.6 }}
+                ></div>
+                <span className="font-medium text-slate-600">Cao</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <div
+                  className="w-5 h-5 rounded-[4px]"
+                  style={{ background: "#991b1b", opacity: 0.75 }}
+                ></div>
+                <span className="font-medium text-slate-600">Rất cao</span>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

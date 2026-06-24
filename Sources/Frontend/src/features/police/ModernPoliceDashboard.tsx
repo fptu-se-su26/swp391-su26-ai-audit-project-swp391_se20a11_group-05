@@ -21,6 +21,8 @@ import {
   Settings,
   MoreVertical,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   CheckCircle2,
   Clock,
   LogOut,
@@ -54,6 +56,7 @@ export function ModernPoliceDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const [filterStatus, setFilterStatus] = useState<"ALL" | "PENDING" | "ASSIGNED" | "IN_PROGRESS" | "RESOLVED" | "REJECTED">("ALL");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isMapFilterOpen, setIsMapFilterOpen] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -481,19 +484,24 @@ export function ModernPoliceDashboard() {
 
                 {/* 60% RIGHT PANEL: HOTSPOT MAP */}
                 <div className="w-[60%] bg-white rounded-[8px] border relative overflow-hidden flex flex-col" style={{ borderColor: colors.border }}>
-                  <div className="absolute top-4 left-4 bg-white p-3 rounded-[8px] border shadow-sm z-10" style={{ borderColor: colors.border }}>
-                    <h4 className="text-xs font-bold mb-2 uppercase tracking-wide" style={{ color: colors.primaryNavy }}>Bộ lọc Bản đồ</h4>
-                    <div className="space-y-2 text-xs">
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={mapFilters.traffic} onChange={(e) => setMapFilters(prev => ({...prev, traffic: e.target.checked}))} /> Giao thông
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={mapFilters.security} onChange={(e) => setMapFilters(prev => ({...prev, security: e.target.checked}))} /> An ninh trật tự
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={mapFilters.fire} onChange={(e) => setMapFilters(prev => ({...prev, fire: e.target.checked}))} /> Phòng cháy chữa cháy
-                      </label>
+                  <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm p-3.5 rounded-xl border shadow-sm z-10 transition-all min-w-[150px]" style={{ borderColor: colors.border }}>
+                    <div className="flex items-center justify-between mb-2 cursor-pointer" onClick={() => setIsMapFilterOpen(!isMapFilterOpen)}>
+                      <h4 className="text-[10px] font-extrabold uppercase tracking-wide" style={{ color: colors.primaryNavy }}>Bộ lọc Bản đồ</h4>
+                      {isMapFilterOpen ? <ChevronUp size={14} style={{ color: colors.primaryNavy }} /> : <ChevronDown size={14} style={{ color: colors.primaryNavy }} />}
                     </div>
+                    {isMapFilterOpen && (
+                      <div className="space-y-2.5 text-[11px] font-medium text-slate-700 animate-in fade-in slide-in-from-top-2">
+                        <label className="flex items-center gap-2 cursor-pointer hover:text-blue-600 transition-colors">
+                          <input type="checkbox" checked={mapFilters.traffic} onChange={(e) => setMapFilters(prev => ({...prev, traffic: e.target.checked}))} className="rounded-sm" /> Giao thông
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer hover:text-blue-600 transition-colors">
+                          <input type="checkbox" checked={mapFilters.security} onChange={(e) => setMapFilters(prev => ({...prev, security: e.target.checked}))} className="rounded-sm" /> An ninh trật tự
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer hover:text-blue-600 transition-colors">
+                          <input type="checkbox" checked={mapFilters.fire} onChange={(e) => setMapFilters(prev => ({...prev, fire: e.target.checked}))} className="rounded-sm" /> Phòng cháy chữa cháy
+                        </label>
+                      </div>
+                    )}
                   </div>
                   <Suspense
                     fallback={

@@ -216,9 +216,8 @@ export function CampaignMap({
 
   const layers = {
     osm: {
-      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      url: "https://mt1.google.com/vt/lyrs=m&hl=vi&gl=VN&x={x}&y={y}&z={z}",
+      attribution: "&copy; Google Maps",
     },
     satellite: {
       url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
@@ -277,7 +276,7 @@ export function CampaignMap({
                     : "text-slate-700 hover:bg-slate-50 font-semibold"
                 }`}
               >
-                🗺️ Bản đồ đường phố
+                🗺️ Bản đồ (Google Maps)
               </button>
               <button
                 type="button"

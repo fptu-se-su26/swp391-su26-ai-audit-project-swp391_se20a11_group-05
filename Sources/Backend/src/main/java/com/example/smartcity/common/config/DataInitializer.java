@@ -124,7 +124,7 @@ public class DataInitializer implements CommandLineRunner {
             log.info("Seeded admin account: admin / admin123");
         }
         seedDefaultWards();
-        ensureDefaultWardStaffHasWard();
+        ensureDefaultUsersHaveWard();
         seedDefaultCategories();
 
         try {
@@ -201,15 +201,27 @@ public class DataInitializer implements CommandLineRunner {
         wardRepository.save(ward);
     }
 
-    private void ensureDefaultWardStaffHasWard() {
+    private void ensureDefaultUsersHaveWard() {
         userRepository.findByUsername("ward_staff1").ifPresent(wardStaff -> {
             if (wardStaff.getWard() != null) {
                 return;
             }
-            wardRepository.findAll().stream().findFirst().ifPresent(defaultWard -> {
+            wardRepository.findById(1L).or(() -> wardRepository.findAll().stream().findFirst()).ifPresent(defaultWard -> {
                 wardStaff.setWard(defaultWard);
                 userRepository.save(wardStaff);
                 log.info("Assigned default ward {} to ward_staff1.", defaultWard.getName());
+            });
+        });
+
+        userRepository.findByUsername("police1").ifPresent(police -> {
+            if (police.getWard() != null) {
+                return;
+            }
+            // Assign to Ward Hải Châu (ID 1 usually)
+            wardRepository.findById(1L).or(() -> wardRepository.findAll().stream().findFirst()).ifPresent(defaultWard -> {
+                police.setWard(defaultWard);
+                userRepository.save(police);
+                log.info("Assigned default ward {} to police1.", defaultWard.getName());
             });
         });
     }

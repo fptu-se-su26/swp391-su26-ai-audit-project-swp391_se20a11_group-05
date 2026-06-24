@@ -228,12 +228,12 @@ public class PoliceFeedbackService {
         java.util.List<Attachment> attachments = attachmentRepository.findByFeedbackId(feedback.getId());
         
         res.setMediaUrls(attachments.stream()
-                .filter(att -> att.getFileType() != null && att.getFileType().toLowerCase().startsWith("image/"))
+                .filter(att -> "IMAGE".equals(att.getFileType()))
                 .map(Attachment::getFileUrl)
                 .collect(Collectors.toList()));
                 
         res.setVideoUrl(attachments.stream()
-                .filter(att -> att.getFileType() != null && att.getFileType().toLowerCase().startsWith("video/"))
+                .filter(att -> "VIDEO".equals(att.getFileType()))
                 .map(Attachment::getFileUrl)
                 .findFirst()
                 .orElse(null));

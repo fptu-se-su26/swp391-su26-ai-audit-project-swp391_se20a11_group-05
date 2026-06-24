@@ -55,4 +55,6 @@ public interface CampaignService {
     CampaignResponse update(Long id, CampaignRequest request, String username);
 
     void delete(Long id, String username);
+
+    CampaignResponse endCampaign(Long id, String username);
 }

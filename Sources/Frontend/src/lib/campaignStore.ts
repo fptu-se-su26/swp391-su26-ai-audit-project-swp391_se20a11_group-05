@@ -12,7 +12,7 @@ export type CampaignCategory =
   | "construction"
   | "fire_safety";
 
-export type CampaignStatus = "pending_review" | "recruiting" | "inProgress" | "completed";
+export type CampaignStatus = "pending_review" | "recruiting" | "inProgress" | "completed" | "active" | "ended";
 
 export interface Campaign {
   id: string;
@@ -83,7 +83,21 @@ function readStorage(): Campaign[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return SEED_CAMPAIGNS;
-    const parsed = JSON.parse(raw) as Campaign[];
+    let parsed = JSON.parse(raw) as Campaign[];
+    
+    // Clean up test campaigns ("Tạo cho vui")
+    const initialLength = parsed.length;
+    parsed = parsed.filter(
+      (c) =>
+        c.name !== "Tạo cho vui" &&
+        c.nameEn !== "Tạo cho vui" &&
+        c.desc !== "Tạo cho vui" &&
+        c.descEn !== "Tạo cho vui"
+    );
+    if (parsed.length !== initialLength) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+    }
+
     const seedIds = new Set(SEED_CAMPAIGNS.map((campaign) => campaign.id));
     const userCreated = parsed.filter((campaign) => !seedIds.has(campaign.id));
     return [...SEED_CAMPAIGNS, ...userCreated];
@@ -138,7 +152,7 @@ export function createCampaign(params: {
     name: params.title,
     nameEn: params.title,
     category: params.category,
-    status: "pending_review",
+    status: "recruiting",
     ward: params.wardName || "Đà Nẵng",
     createdBy: "Cán bộ phường",
     createdByEn: "Ward staff",

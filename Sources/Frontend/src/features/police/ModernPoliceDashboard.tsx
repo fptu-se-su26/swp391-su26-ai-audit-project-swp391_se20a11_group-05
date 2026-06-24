@@ -1,4 +1,4 @@
-import React, { useState, Suspense, useMemo, useEffect } from "react";
+import React, { useState, Suspense, useMemo, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { useHotspots, usePoliceAssignedFeedbacks, useAcceptFeedback, useRejectFeedback, useRequestMoreInfo, useUpdatePoliceFeedbackStatus } from "@/hooks";
 import { clientOnly } from "@/components/ClientOnly";
@@ -23,7 +23,9 @@ import {
   ChevronRight,
   CheckCircle2,
   Clock,
-  LogOut
+  LogOut,
+  Key,
+  Flag
 } from "lucide-react";
 import policeEmblemImg from "@/assets/police-emblem.png";
 
@@ -51,6 +53,18 @@ export function ModernPoliceDashboard() {
   const { data: feedbacksData } = usePoliceAssignedFeedbacks();
   const [activeTab, setActiveTab] = useState("overview");
   const [filterStatus, setFilterStatus] = useState<"ALL" | "PENDING" | "ASSIGNED" | "IN_PROGRESS" | "RESOLVED" | "REJECTED">("ALL");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   
   const acceptMut = useAcceptFeedback();
   const rejectMut = useRejectFeedback();
@@ -207,14 +221,10 @@ export function ModernPoliceDashboard() {
 
   const menuItems = [
     { id: "overview", name: "Tổng quan", icon: Home },
-    { id: "receive", name: "Tiếp nhận phản ánh", icon: Inbox },
     { id: "manage", name: "Quản lý phản ánh", icon: ClipboardList },
-    { id: "tracking", name: "Theo dõi xử lý", icon: RefreshCw },
-    { id: "overdue", name: "Phản ánh quá hạn", icon: AlertTriangle },
-    { id: "hotspots", name: "Điểm nóng vi phạm", icon: MapIcon },
+    { id: "campaigns", name: "Chiến dịch", icon: Flag },
     { id: "reports", name: "Báo cáo thống kê", icon: BarChart2 },
-    { id: "officers", name: "Quản lý cán bộ", icon: Users },
-    { id: "settings", name: "Cấu hình hệ thống", icon: Settings },
+    { id: "settings", name: "Cài đặt tài khoản", icon: Settings },
   ];
 
   return (
@@ -299,7 +309,7 @@ export function ModernPoliceDashboard() {
           </div>
 
           {/* RIGHT SECTION */}
-          <div className="flex items-center justify-end gap-5 shrink-0">
+          <div className="flex items-center justify-end gap-5 shrink-0 relative">
             <div className="text-[13px] font-medium text-right leading-tight hidden lg:block whitespace-nowrap" style={{ color: colors.textSecondary }}>
               <div className="text-[14px]">{currentTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</div>
               <div>{currentTime.toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
@@ -308,23 +318,84 @@ export function ModernPoliceDashboard() {
               <Bell size={20} />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full border border-white" style={{ backgroundColor: colors.criticalRed }}></span>
             </button>
-            <div className="flex items-center gap-3 pl-5 border-l shrink-0" style={{ borderColor: colors.border }}>
-              <div className="text-right hidden sm:block whitespace-nowrap">
-                <div className="text-sm font-bold leading-none">{user?.name || "Cán bộ trực ban"}</div>
-                <div className="text-[11px] font-medium mt-1 uppercase tracking-wide" style={{ color: colors.textSecondary }}>
-                  {user?.org || "Trực ban tác chiến"}
-                </div>
-              </div>
-              <div className="w-10 h-10 rounded flex items-center justify-center text-white font-bold shrink-0" style={{ backgroundColor: colors.secondaryBlue }}>
-                <User size={20} />
-              </div>
+            <div className="flex items-center pl-5 border-l shrink-0 relative" style={{ borderColor: colors.border }} ref={dropdownRef}>
               <button 
-                onClick={handleLogout}
-                className="w-10 h-10 rounded flex items-center justify-center text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0"
-                title="Đăng xuất"
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="relative w-[48px] h-[34px] rounded overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.1)] border border-black/5 cursor-pointer hover:shadow-md transition-all waving-flag-container" 
+                title="Tài khoản & Thiết lập"
               >
-                <LogOut size={20} />
+                <div className="relative w-full h-full scale-[1.15]">
+                  <svg viewBox="0 0 300 200" className="w-full h-full">
+                    <rect width="300" height="200" fill="#DA251D"/>
+                    <g transform="translate(150, 100) scale(60)">
+                      <polygon points="0,-1 0.2245,-0.309 0.951,-0.309 0.363,0.118 0.587,0.809 0,0.382 -0.587,0.809 -0.363,0.118 -0.951,-0.309 -0.2245,-0.309" fill="#FFFF00"/>
+                    </g>
+                  </svg>
+                  <div className="absolute inset-0 wind-ripple mix-blend-overlay"></div>
+                </div>
+                <style>{`
+                  @keyframes flag-wave {
+                    0%   { transform: perspective(400px) rotateY(-10deg) rotateX(2deg) scaleY(1); }
+                    30%  { transform: perspective(400px) rotateY(5deg) rotateX(-1deg) scaleY(1.05); }
+                    60%  { transform: perspective(400px) rotateY(-5deg) rotateX(3deg) scaleY(0.95); }
+                    100% { transform: perspective(400px) rotateY(-10deg) rotateX(2deg) scaleY(1); }
+                  }
+                  @keyframes wind-ripple-anim {
+                    0% { background-position: 200% 0; opacity: 0.2; }
+                    50% { opacity: 0.6; }
+                    100% { background-position: -200% 0; opacity: 0.2; }
+                  }
+                  .waving-flag-container {
+                    animation: flag-wave 1.5s ease-in-out infinite;
+                    transform-origin: left center;
+                  }
+                  .wind-ripple {
+                    background: linear-gradient(
+                      90deg, 
+                      rgba(0,0,0,0) 0%, 
+                      rgba(255,255,255,0.4) 25%, 
+                      rgba(0,0,0,0.4) 50%, 
+                      rgba(255,255,255,0.4) 75%, 
+                      rgba(0,0,0,0) 100%
+                    );
+                    background-size: 200% 100%;
+                    animation: wind-ripple-anim 1.5s linear infinite;
+                    pointer-events: none;
+                  }
+                `}</style>
               </button>
+
+              {/* DROPDOWN MENU */}
+              {isDropdownOpen && (
+                <div className="absolute top-[120%] right-0 w-60 bg-white rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] border border-slate-100 py-2 z-50 animate-in fade-in slide-in-from-top-2">
+                  <div className="px-4 py-3 border-b border-slate-50 mb-1 bg-slate-50/50">
+                    <p className="text-[14px] font-bold text-slate-800 leading-tight">{user?.name || "Cán bộ trực ban"}</p>
+                    <p className="text-[11px] font-semibold text-blue-600 mt-1 uppercase tracking-wide truncate">
+                      {user?.org ? user.org : (user?.wardName ? `CÔNG AN ${user.wardType === 'COMMUNE' ? 'XÃ' : 'PHƯỜNG'} ${user.wardName}` : "CÔNG AN ĐỊA PHƯƠNG")}
+                    </p>
+                  </div>
+                  <button className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+                    <User size={16} />
+                    Thông tin cá nhân
+                  </button>
+                  <button className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+                    <Key size={16} />
+                    Đổi mật khẩu
+                  </button>
+                  <button className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+                    <Settings size={16} />
+                    Cài đặt hệ thống
+                  </button>
+                  <div className="h-px bg-slate-100 my-1"></div>
+                  <button 
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <LogOut size={16} />
+                    Đăng xuất
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>

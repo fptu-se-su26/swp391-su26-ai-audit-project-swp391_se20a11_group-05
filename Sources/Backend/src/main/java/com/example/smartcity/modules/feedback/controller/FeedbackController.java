@@ -321,7 +321,11 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
                     FeedbackResponse response = feedbackMapper.toDto(feedback);
                     List<FeedbackAttachmentResponse> attachments = attachmentsByFeedbackId.getOrDefault(feedback.getId(), List.of());
                     response.setAttachments(attachments);
-                    response.setMediaUrls(attachments.stream().map(FeedbackAttachmentResponse::getFileUrl).toList());
+                    response.setMediaUrls(attachments.stream()
+                            .filter(a -> !"RESOLUTION_EVIDENCE".equals(a.getAttachmentPurpose()))
+                            .filter(a -> a.getFileType() != null && a.getFileType().toLowerCase().startsWith("image/"))
+                            .map(FeedbackAttachmentResponse::getFileUrl)
+                            .toList());
                     return response;
                 })
                 .toList();
@@ -367,13 +371,13 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
         response.setAttachments(attachments);
         response.setMediaUrls(attachments.stream()
                 .filter(a -> !"RESOLUTION_EVIDENCE".equals(a.getAttachmentPurpose()))
-                .filter(a -> "IMAGE".equalsIgnoreCase(a.getFileType()))
+                .filter(a -> a.getFileType() != null && a.getFileType().toLowerCase().startsWith("image/"))
                 .map(FeedbackAttachmentResponse::getFileUrl)
                 .toList());
                 
         response.setVideoUrl(attachments.stream()
                 .filter(a -> !"RESOLUTION_EVIDENCE".equals(a.getAttachmentPurpose()))
-                .filter(a -> "VIDEO".equalsIgnoreCase(a.getFileType()))
+                .filter(a -> a.getFileType() != null && a.getFileType().toLowerCase().startsWith("video/"))
                 .map(FeedbackAttachmentResponse::getFileUrl)
                 .findFirst()
                 .orElse(null));

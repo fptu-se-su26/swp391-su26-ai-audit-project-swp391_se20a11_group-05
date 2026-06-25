@@ -17,4 +17,6 @@ public interface CampaignParticipantRepository extends JpaRepository<CampaignPar
     long countByCampaign_IdAndJoinStatus(Long campaignId, String joinStatus);
 
     List<CampaignParticipant> findByCampaign_IdOrderByCreatedAtDesc(Long campaignId);
+
+    void deleteByCampaign_Id(Long campaignId);
 }

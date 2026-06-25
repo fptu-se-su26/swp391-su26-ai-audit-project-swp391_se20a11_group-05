@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ArrowRight,
   CalendarDays,
+  Camera,
   CheckCircle2,
   Clock3,
   Copy,
@@ -19,6 +20,7 @@ import {
   Package,
   Send,
   ShieldCheck,
+  X,
   Users,
   UserRound,
 } from "lucide-react";
@@ -35,7 +37,7 @@ import {
   useEndCampaign,
   useUpdateCampaign,
 } from "@/hooks/useCampaigns";
-import type { CampaignParticipantResponse } from "@/lib/api";
+import { getToken, type CampaignParticipantResponse } from "@/lib/api";
 import { Role, useAuth } from "@/lib/auth";
 import type { Campaign } from "@/lib/campaignStore";
 import {
@@ -43,6 +45,7 @@ import {
   buildGoogleMapsSearchUrl,
   resolveCampaignCoordinates,
 } from "@/lib/campaignLocation";
+import { SingleCampaignMap } from "@/components/site/SingleCampaignMap";
 
 export const Route = createFileRoute("/campaigns/$id")({
   head: () => ({
@@ -59,6 +62,9 @@ export const Route = createFileRoute("/campaigns/$id")({
 
 const defaultHeroImage =
   "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&auto=format&fit=crop&q=85";
+
+const API_BASE: string =
+  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) || "";
 
 function CampaignDetailPage() {
   const { id } = Route.useParams();
@@ -99,6 +105,10 @@ export function CampaignDetailPageComponent({
   const [editEndTime, setEditEndTime] = useState("");
   const [editLatitude, setEditLatitude] = useState<number | null>(null);
   const [editLongitude, setEditLongitude] = useState<number | null>(null);
+  const [editImageUrls, setEditImageUrls] = useState<string[]>([]);
+  const [newImageFiles, setNewImageFiles] = useState<File[]>([]);
+  const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
 
   const hasInitializedRef = useRef(false);
 
@@ -120,6 +130,16 @@ export function CampaignDetailPageComponent({
       setEditEndTime(campaign.endTime ? campaign.endTime.slice(0, 16) : "");
       setEditLatitude(campaign.latitude ?? null);
       setEditLongitude(campaign.longitude ?? null);
+      const currentImageUrls = campaign.imageUrls?.filter((url) => url?.trim()) ?? [];
+      setEditImageUrls(
+        currentImageUrls.length > 0
+          ? currentImageUrls
+          : campaign.coverImageUrl?.trim()
+            ? [campaign.coverImageUrl]
+            : [],
+      );
+      setNewImageFiles([]);
+      setNewImagePreviews([]);
       hasInitializedRef.current = true;
     }
   }, [campaign, isEditing]);
@@ -138,6 +158,86 @@ export function CampaignDetailPageComponent({
   const joinCampaign = useJoinCampaign();
   const endCampaign = useEndCampaign();
   const updateCampaign = useUpdateCampaign();
+
+  const handleEditImagesUpload = (files: FileList | null) => {
+    if (!files) return;
+
+    const validFiles: File[] = [];
+    Array.from(files).forEach((file) => {
+      if (!file.type.startsWith("image/")) {
+        toast.error(`File "${file.name}" không phải là ảnh hợp lệ.`);
+        return;
+      }
+      validFiles.push(file);
+    });
+
+    if (validFiles.length === 0) return;
+
+    const availableSlots = 5 - editImageUrls.length - newImageFiles.length;
+    if (availableSlots <= 0) {
+      toast.warning("Chỉ cho phép tối đa 5 ảnh cho một chiến dịch.");
+      return;
+    }
+
+    if (validFiles.length > availableSlots) {
+      toast.warning("Chỉ cho phép tối đa 5 ảnh cho một chiến dịch.");
+    }
+
+    const filesToAppend = validFiles.slice(0, availableSlots);
+    setNewImageFiles((prev) => [...prev, ...filesToAppend]);
+
+    filesToAppend.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setNewImagePreviews((prev) => [...prev, String(reader.result)]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeExistingImage = (index: number) => {
+    setEditImageUrls((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const removeNewImage = (index: number) => {
+    setNewImageFiles((prev) => prev.filter((_, i) => i !== index));
+    setNewImagePreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const uploadNewCampaignImages = async () => {
+    if (newImageFiles.length === 0) return [];
+
+    setIsUploadingImages(true);
+    const uploadedUrls: string[] = [];
+    const token = getToken();
+
+    try {
+      for (const file of newImageFiles) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch(`${API_BASE}/api/files/upload`, {
+          method: "POST",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Tải lên ảnh ${file.name} thất bại.`);
+        }
+
+        const data = await response.json();
+        if (!data?.fileUrl) {
+          throw new Error(`Không nhận được URL cho ảnh ${file.name}.`);
+        }
+        uploadedUrls.push(data.fileUrl);
+      }
+
+      return uploadedUrls;
+    } finally {
+      setIsUploadingImages(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!editTitle.trim()) {
@@ -187,6 +287,9 @@ export function CampaignDetailPageComponent({
     }
 
     try {
+      const uploadedImageUrls = await uploadNewCampaignImages();
+      const nextImageUrls = [...editImageUrls, ...uploadedImageUrls];
+
       await updateCampaign.mutateAsync({
         id: campaignId,
         data: {
@@ -202,11 +305,13 @@ export function CampaignDetailPageComponent({
           endTime: editEndTime || undefined,
           latitude: editLatitude ?? undefined,
           longitude: editLongitude ?? undefined,
-          coverImageUrl: campaign.coverImageUrl ?? undefined,
-          imageUrls: campaign.imageUrls ?? undefined,
+          boundaryGeojson: campaign.boundaryGeojson ?? undefined,
+          coverImageUrl: nextImageUrls[0] || undefined,
+          imageUrls: nextImageUrls,
         },
       });
       toast.success("Cập nhật chiến dịch thành công.");
+      setActiveImageIndex(0);
       setIsEditing(false);
     } catch (err) {
       toast.error("Lỗi khi cập nhật chiến dịch: " + (err instanceof Error ? err.message : "Lỗi hệ thống"));
@@ -297,22 +402,17 @@ export function CampaignDetailPageComponent({
             </Link>
           )}
           <div className="flex items-center gap-2">
-            {user?.role === "WARD_STAFF" && !campaign.canManage && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-black text-slate-500 shadow-sm uppercase tracking-wide">
-                Chỉ xem
-              </span>
-            )}
             {campaign.canManage && (
               <>
                 {isEditing ? (
                   <>
                     <button
                       onClick={handleSave}
-                      disabled={updateCampaign.isPending}
+                      disabled={updateCampaign.isPending || isUploadingImages}
                       className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-black text-white hover:bg-emerald-700 transition cursor-pointer disabled:opacity-50"
                     >
                       <CheckCircle2 size={13} />
-                      Lưu
+                      {isUploadingImages || updateCampaign.isPending ? "Đang lưu" : "Lưu"}
                     </button>
                     <button
                       onClick={() => setIsEditing(false)}
@@ -339,6 +439,103 @@ export function CampaignDetailPageComponent({
           <article className="space-y-6">
             {isEditing ? (
               <div className="space-y-6">
+                <section className="rounded-2xl border border-violet-100 bg-white p-7 shadow-md">
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h2 className="text-xl font-black text-slate-950">Hình ảnh chiến dịch</h2>
+                      <p className="mt-1 text-xs font-semibold text-slate-500">
+                        Ảnh đầu tiên sẽ được dùng làm ảnh bìa.
+                      </p>
+                    </div>
+                    <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-[#7C3AED] px-4 text-sm font-black text-white transition hover:bg-[#6D28D9]">
+                      <Camera size={16} />
+                      Thêm ảnh
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="sr-only"
+                        onChange={(event) => {
+                          handleEditImagesUpload(event.target.files);
+                          event.target.value = "";
+                        }}
+                      />
+                    </label>
+                  </div>
+
+                  {editImageUrls.length + newImagePreviews.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                      {editImageUrls.map((url, index) => (
+                        <div key={`${url}-${index}`} className="group relative aspect-video overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                          <img src={url} alt={`Ảnh chiến dịch ${index + 1}`} className="h-full w-full object-cover" />
+                          {index === 0 && (
+                            <span className="absolute left-2 top-2 rounded-lg bg-[#7C3AED] px-2 py-0.5 text-[10px] font-extrabold text-white shadow-md">
+                              Ảnh bìa
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeExistingImage(index)}
+                            className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-slate-950/70 text-white opacity-0 transition hover:bg-red-600 group-hover:opacity-100"
+                            title="Xóa ảnh"
+                          >
+                            <X size={15} />
+                          </button>
+                        </div>
+                      ))}
+
+                      {newImagePreviews.map((url, index) => {
+                        const absoluteIndex = editImageUrls.length + index;
+                        return (
+                          <div key={`${url}-${index}`} className="group relative aspect-video overflow-hidden rounded-xl border border-violet-200 bg-slate-50">
+                            <img src={url} alt={`Ảnh mới ${index + 1}`} className="h-full w-full object-cover" />
+                            {absoluteIndex === 0 && (
+                              <span className="absolute left-2 top-2 rounded-lg bg-[#7C3AED] px-2 py-0.5 text-[10px] font-extrabold text-white shadow-md">
+                                Ảnh bìa
+                              </span>
+                            )}
+                            <span className="absolute bottom-2 left-2 rounded-lg bg-white/90 px-2 py-0.5 text-[10px] font-extrabold text-[#7C3AED] shadow-sm">
+                              Ảnh mới
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => removeNewImage(index)}
+                              className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-slate-950/70 text-white opacity-0 transition hover:bg-red-600 group-hover:opacity-100"
+                              title="Xóa ảnh"
+                            >
+                              <X size={15} />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <label className="grid aspect-[21/9] cursor-pointer place-items-center rounded-2xl border-2 border-dashed border-violet-200 bg-[#F8F7FF] text-center transition hover:border-[#7C3AED]">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="sr-only"
+                        onChange={(event) => {
+                          handleEditImagesUpload(event.target.files);
+                          event.target.value = "";
+                        }}
+                      />
+                      <div>
+                        <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-[#F3F0FF] text-[#7C3AED]">
+                          <Camera size={22} />
+                        </div>
+                        <p className="mt-3 text-sm font-black text-slate-800">
+                          Thêm ảnh cho chiến dịch
+                        </p>
+                        <p className="mt-1 text-xs font-semibold text-slate-500">
+                          Tối đa 5 ảnh, ảnh đầu tiên sẽ là ảnh bìa.
+                        </p>
+                      </div>
+                    </label>
+                  )}
+                </section>
+
                 <section className="rounded-2xl border border-violet-100 bg-white p-7 shadow-md">
                   <h2 className="mb-4 text-xl font-black text-slate-950">Thông tin chung</h2>
                   <div className="space-y-5">
@@ -776,13 +973,7 @@ function MapPanel({ campaign }: { campaign: Campaign }) {
   return (
     <Panel title="Vị trí hoạt động" icon={MapPin}>
       <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white">
-        <iframe
-          title={displayLocation}
-          src={buildGoogleMapsEmbedUrl(coordinates)}
-          className="h-80 w-full border-0"
-          loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
-        />
+        <SingleCampaignMap campaign={campaign} height="320px" staticMode={false} />
         <div className="flex flex-col gap-3 border-t border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm font-semibold text-slate-600">{displayLocation}</p>
           <a

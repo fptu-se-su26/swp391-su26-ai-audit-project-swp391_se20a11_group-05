@@ -22,11 +22,11 @@ import { useFeedbackDetail } from "./index";
 function mapStatus(status: CampaignResponse["status"]): Campaign["status"] {
   const statusMap: Record<CampaignResponse["status"], Campaign["status"]> = {
     PENDING_APPROVAL: "pending_review",
-    RECRUITING: "active",
-    IN_PROGRESS: "active",
-    COMPLETED: "ended",
+    RECRUITING: "recruiting",
+    IN_PROGRESS: "inProgress",
+    COMPLETED: "completed",
     CANCELLED: "ended",
-    ACTIVE: "active",
+    ACTIVE: "inProgress",
     ENDED: "ended",
   };
   return statusMap[status] ?? "pending_review";
@@ -265,7 +265,36 @@ export function useDeleteCampaign() {
   const queryClient = useQueryClient();
   return useMutation<void, Error, string | number>({
     mutationFn: (id) => campaignApi.delete(id),
-    onSuccess: () => {
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ["campaigns"] });
+      const previousCampaignQueries = queryClient.getQueriesData<PageResponse<CampaignResponse>>({
+        queryKey: ["campaigns"],
+      });
+
+      previousCampaignQueries.forEach(([queryKey, previousPage]) => {
+        if (!previousPage?.content) return;
+
+        const nextContent = previousPage.content.filter(
+          (campaign) => String(campaign.id) !== String(id),
+        );
+        if (nextContent.length === previousPage.content.length) return;
+
+        queryClient.setQueryData<PageResponse<CampaignResponse>>(queryKey, {
+          ...previousPage,
+          content: nextContent,
+          totalElements: Math.max(0, previousPage.totalElements - 1),
+          empty: nextContent.length === 0,
+        });
+      });
+
+      return { previousCampaignQueries };
+    },
+    onError: (_error, _id, context) => {
+      context?.previousCampaignQueries.forEach(([queryKey, previousPage]) => {
+        queryClient.setQueryData(queryKey, previousPage);
+      });
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["campaigns"] });
     },
   });

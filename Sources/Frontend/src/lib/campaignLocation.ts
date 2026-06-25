@@ -124,8 +124,17 @@ const LOCATION_PATTERNS: Array<{ patterns: string[]; coordinates: CampaignCoordi
 ];
 
 export function resolveCampaignCoordinates(
-  campaign: Pick<Campaign, "id" | "locationText" | "ward" | "name">,
+  campaign: Pick<Campaign, "id" | "locationText" | "ward" | "name" | "latitude" | "longitude">,
 ): CampaignCoordinates {
+  if (campaign.latitude != null && campaign.longitude != null) {
+    return {
+      lat: campaign.latitude,
+      lng: campaign.longitude,
+      label: campaign.locationText || "Vị trí hoạt động",
+      zoom: 16,
+    };
+  }
+
   const seeded = CAMPAIGN_COORDINATES_BY_ID[campaign.id];
   if (seeded) return seeded;
 

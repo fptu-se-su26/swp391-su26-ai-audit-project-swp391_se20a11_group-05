@@ -1,5 +1,5 @@
-import React, { useMemo, useState, useEffect } from "react";
-import { Layers, ChevronDown, ChevronUp } from "lucide-react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
+import { Layers, ChevronDown, ChevronUp, Map as MapIcon } from "lucide-react";
 
 interface Hotspot {
   latitude: number;
@@ -59,6 +59,21 @@ export function HeatmapMap({ hotspots }: HeatmapMapProps) {
 
   const [showSurge, setShowSurge] = useState(true);
   const [isLegendOpen, setIsLegendOpen] = useState(true);
+  const [mapLayerType, setMapLayerType] = useState<"osm" | "satellite">("osm");
+  const [isLayersOpen, setIsLayersOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsLayersOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, []);
 
   // Tạo lưới các khu vực điểm nóng
   const gridCells = useMemo(() => generateGrid(hotspots || [], 0.005), [hotspots]);
@@ -120,7 +135,48 @@ export function HeatmapMap({ hotspots }: HeatmapMapProps) {
   return (
     <div className="h-full w-full rounded-lg overflow-hidden border border-slate-200 shadow-sm relative z-0 bg-white">
       {/* Nút bật/tắt Layer (như UI Grab) */}
-      <div className="absolute top-4 right-4 z-[1000]">
+      <div className="absolute top-4 right-4 flex items-center gap-3 z-[1000]">
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => setIsLayersOpen(!isLayersOpen)}
+            className="flex items-center justify-center w-11 h-11 bg-white hover:bg-slate-50 border border-slate-200 rounded-full shadow-lg transition-all text-slate-700"
+            title="Lớp bản đồ"
+          >
+            <MapIcon size={18} />
+          </button>
+          {isLayersOpen && (
+            <div className="absolute right-0 mt-2 w-40 bg-white border border-slate-200 rounded-xl shadow-xl py-1 z-[1100] text-left">
+              <button
+                type="button"
+                onClick={() => {
+                  setMapLayerType("osm");
+                  setIsLayersOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2 text-xs transition ${
+                  mapLayerType === "osm"
+                    ? "bg-blue-50 text-blue-600 font-extrabold"
+                    : "text-slate-700 hover:bg-slate-50 font-semibold"
+                }`}
+              >
+                🗺️ Bản đồ (Google)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMapLayerType("satellite");
+                  setIsLayersOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2 text-xs transition ${
+                  mapLayerType === "satellite"
+                    ? "bg-blue-50 text-blue-600 font-extrabold"
+                    : "text-slate-700 hover:bg-slate-50 font-semibold"
+                }`}
+              >
+                🛰️ Vệ tinh
+              </button>
+            </div>
+          )}
+        </div>
         <button
           onClick={() => setShowSurge(!showSurge)}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-full font-bold shadow-lg transition-all ${
@@ -177,11 +233,15 @@ export function HeatmapMap({ hotspots }: HeatmapMapProps) {
         zoomControl={false}
         attributionControl={false}
       >
-        {/* Lớp nền Bản đồ sáng màu (tương tự Grab) để làm nổi bật ô màu */}
+        {/* Lớp nền Bản đồ */}
         <TileLayer
-          url="https://mt1.google.com/vt/lyrs=m&hl=vi&gl=VN&x={x}&y={y}&z={z}"
+          url={
+            mapLayerType === "osm"
+              ? "https://mt1.google.com/vt/lyrs=m&hl=vi&gl=VN&x={x}&y={y}&z={z}"
+              : "https://mt1.google.com/vt/lyrs=y&hl=vi&gl=VN&x={x}&y={y}&z={z}"
+          }
           attribution="&copy; Google Maps"
-          className="map-tiles-light" // Có thể filter CSS nếu muốn nhạt bớt
+          className={mapLayerType === "osm" ? "map-tiles-light" : ""} // Có thể filter CSS nếu muốn nhạt bớt
         />
 
         {showSurge &&

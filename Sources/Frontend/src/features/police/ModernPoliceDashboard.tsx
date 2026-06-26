@@ -55,6 +55,8 @@ export function ModernPoliceDashboard() {
   const { data: feedbacksData } = usePoliceAssignedFeedbacks();
   const [activeTab, setActiveTab] = useState("overview");
   const [filterStatus, setFilterStatus] = useState<"ALL" | "PENDING" | "ASSIGNED" | "IN_PROGRESS" | "RESOLVED" | "REJECTED">("ALL");
+  const [filterDate, setFilterDate] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMapFilterOpen, setIsMapFilterOpen] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -181,18 +183,44 @@ export function ModernPoliceDashboard() {
   }, [feedbacks]);
 
   // Dữ liệu cho tab Quản lý phản ánh
-  const filteredForManage = useMemo(() => {
-    return feedbacks.filter((f) => {
-      if (filterStatus === "ALL") return true;
-      if (filterStatus === "PENDING")
-        return ["PENDING", "PENDING_RECEIVE", "SUBMITTED", "NEED_LOCATION_REVIEW"].includes(f.status);
-      if (filterStatus === "ASSIGNED") return f.status === "ASSIGNED";
-      if (filterStatus === "IN_PROGRESS") return ["IN_PROGRESS", "WAITING_INFO"].includes(f.status);
-      if (filterStatus === "RESOLVED") return f.status === "RESOLVED";
-      if (filterStatus === "REJECTED") return f.status === "REJECTED";
+  const { filteredForManage, groupedForManage } = useMemo(() => {
+    const filtered = feedbacks.filter((f) => {
+      if (filterStatus === "PENDING" && !["PENDING", "PENDING_RECEIVE", "SUBMITTED", "NEED_LOCATION_REVIEW"].includes(f.status)) return false;
+      if (filterStatus === "ASSIGNED" && f.status !== "ASSIGNED") return false;
+      if (filterStatus === "IN_PROGRESS" && !["IN_PROGRESS", "WAITING_INFO"].includes(f.status)) return false;
+      if (filterStatus === "RESOLVED" && f.status !== "RESOLVED") return false;
+      if (filterStatus === "REJECTED" && f.status !== "REJECTED") return false;
+      
+      if (filterDate) {
+        const itemDateStr = new Date(f.createdAt).toLocaleDateString('vi-VN');
+        const filterDateStr = new Date(filterDate).toLocaleDateString('vi-VN');
+        if (itemDateStr !== filterDateStr) return false;
+      }
+      
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const tracking = (f.trackingCode || "").toLowerCase();
+        const title = (f.title || "").toLowerCase();
+        const category = (f.categoryName || "").toLowerCase();
+        const citizen = (f.citizenName || "").toLowerCase();
+        
+        if (!tracking.includes(q) && !title.includes(q) && !category.includes(q) && !citizen.includes(q)) {
+          return false;
+        }
+      }
+
       return true;
     }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [feedbacks, filterStatus]);
+
+    const groups: Record<string, typeof feedbacks> = {};
+    filtered.forEach((f) => {
+      const dateStr = new Date(f.createdAt).toLocaleDateString('vi-VN');
+      if (!groups[dateStr]) groups[dateStr] = [];
+      groups[dateStr].push(f);
+    });
+
+    return { filteredForManage: filtered, groupedForManage: groups };
+  }, [feedbacks, filterStatus, filterDate, searchQuery]);
 
   const [mapFilters, setMapFilters] = useState({
     traffic: true,
@@ -248,7 +276,13 @@ export function ModernPoliceDashboard() {
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => {
+                  setActiveTab(item.id);
+                  if (item.id === "manage") {
+                    setFilterStatus("ALL");
+                    setFilterDate("");
+                  }
+                }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-sm font-medium transition-colors ${
                   isActive ? "text-white" : "text-slate-300 hover:text-white hover:bg-white/5"
                 }`}
@@ -303,7 +337,9 @@ export function ModernPoliceDashboard() {
             <div className="relative w-full max-w-[400px]">
               <input 
                 type="text" 
-                placeholder="Tìm kiếm phản ánh, hồ sơ..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Tìm kiếm mã HS, tiêu đề, người gửi..." 
                 className="w-full h-10 pl-10 pr-4 rounded-[4px] border text-sm focus:outline-none focus:ring-1 bg-slate-50 transition-all"
                 style={{ borderColor: colors.border }}
               />
@@ -587,6 +623,24 @@ export function ModernPoliceDashboard() {
                   <p className="text-sm text-slate-500 mt-1">Danh sách hồ sơ phản ánh hiện tại trên địa bàn</p>
                 </div>
                 <div className="flex gap-2">
+                  <div className="relative flex items-center">
+                    <input 
+                      type="date"
+                      value={filterDate}
+                      onChange={(e) => setFilterDate(e.target.value)}
+                      className="h-9 px-3 border rounded-[4px] text-sm focus:outline-none focus:ring-1 bg-slate-50 text-slate-700"
+                      title="Lọc theo ngày"
+                    />
+                    {filterDate && (
+                      <button 
+                        onClick={() => setFilterDate("")}
+                        className="absolute right-8 text-slate-400 hover:text-red-500"
+                        title="Xóa bộ lọc ngày"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
                   <select 
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value as any)}
@@ -617,78 +671,89 @@ export function ModernPoliceDashboard() {
                   </thead>
                   <tbody className="divide-y" style={{ borderColor: colors.border }}>
                     {filteredForManage.length > 0 ? (
-                      filteredForManage.map((item, idx) => {
-                        const statusLabel = 
-                          item.status === 'RESOLVED' ? 'Hoàn thành' :
-                          item.status === 'REJECTED' ? 'Từ chối' :
-                          item.status === 'WAITING_INFO' ? 'Chờ bổ sung' :
-                          item.status === 'IN_PROGRESS' ? 'Đang xử lý' :
-                          item.status === 'ASSIGNED' ? 'Đã tiếp nhận' :
-                          'Chờ duyệt';
-                        
-                        const statusClass = 
-                          item.status === 'RESOLVED' ? 'bg-green-100 text-green-700' :
-                          item.status === 'REJECTED' ? 'bg-red-100 text-red-700' :
-                          item.status === 'WAITING_INFO' ? 'bg-purple-100 text-purple-700' :
-                          item.status === 'IN_PROGRESS' ? 'bg-orange-100 text-orange-700' :
-                          item.status === 'ASSIGNED' ? 'bg-blue-100 text-blue-700' :
-                          'bg-slate-100 text-slate-700';
-
-                        return (
-                          <tr 
-                            key={idx} 
-                            onClick={() => navigate({ to: "/authority/feedback/$feedbackId", params: { feedbackId: String(item.id) } })}
-                            className="hover:bg-slate-50 cursor-pointer transition-colors"
-                          >
-                            <td className="px-4 py-3 font-bold" style={{ color: colors.secondaryBlue }}>{item.trackingCode}</td>
-                            <td className="px-4 py-3 max-w-[250px] truncate font-medium text-slate-800" title={item.title}>{item.title}</td>
-                            <td className="px-4 py-3 text-slate-600">{item.categoryName}</td>
-                            <td className="px-4 py-3 text-slate-600">{item.citizenName || 'Ẩn danh'}</td>
-                            <td className="px-4 py-3 text-slate-600">{new Date(item.createdAt).toLocaleDateString('vi-VN')}</td>
-                            <td className="px-4 py-3">
-                              <span className={`px-2 py-1 rounded-[4px] text-[11px] font-semibold ${statusClass}`}>
-                                {statusLabel}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3">
-                              {["PENDING", "PENDING_RECEIVE", "SUBMITTED", "NEED_LOCATION_REVIEW"].includes(item.status) && (
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={(e) => handleAccept(e, item.id)}
-                                    disabled={acceptMut.isPending}
-                                    className="px-2 py-1 bg-blue-600 text-white text-[11px] font-bold rounded hover:bg-blue-700 disabled:opacity-50"
-                                  >
-                                    Tiếp nhận
-                                  </button>
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); setRejectingItem(item); }}
-                                    className="px-2 py-1 bg-red-100 text-red-600 text-[11px] font-bold rounded hover:bg-red-200"
-                                  >
-                                    Từ chối
-                                  </button>
-                                </div>
-                              )}
-                              {item.status === "ASSIGNED" && (
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={(e) => handleStartProcessing(e, item.id)}
-                                    disabled={updateStatusMut.isPending}
-                                    className="px-2 py-1 bg-amber-500 text-white text-[11px] font-bold rounded hover:bg-amber-600 disabled:opacity-50"
-                                  >
-                                    Xử lý ngay
-                                  </button>
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); setRequestInfoItem(item); }}
-                                    className="px-2 py-1 bg-slate-100 text-slate-700 text-[11px] font-bold rounded hover:bg-slate-200"
-                                  >
-                                    Hỏi thêm
-                                  </button>
-                                </div>
-                              )}
+                      Object.entries(groupedForManage).map(([dateStr, items]) => (
+                        <React.Fragment key={dateStr}>
+                          <tr className="bg-slate-100/70 border-y" style={{ borderColor: colors.border }}>
+                            <td colSpan={7} className="px-4 py-2 text-xs font-bold text-slate-700 uppercase tracking-wide">
+                              Ngày: {dateStr}
                             </td>
                           </tr>
-                        );
-                      })
+                          {items.map((item, idx) => {
+                            const statusLabel = 
+                              item.status === 'RESOLVED' ? 'Hoàn thành' :
+                              item.status === 'REJECTED' ? 'Từ chối' :
+                              item.status === 'WAITING_INFO' ? 'Chờ bổ sung' :
+                              item.status === 'IN_PROGRESS' ? 'Đang xử lý' :
+                              item.status === 'ASSIGNED' ? 'Đã tiếp nhận' :
+                              'Chờ duyệt';
+                            
+                            const statusClass = 
+                              item.status === 'RESOLVED' ? 'bg-green-100 text-green-700' :
+                              item.status === 'REJECTED' ? 'bg-red-100 text-red-700' :
+                              item.status === 'WAITING_INFO' ? 'bg-purple-100 text-purple-700' :
+                              item.status === 'IN_PROGRESS' ? 'bg-orange-100 text-orange-700' :
+                              item.status === 'ASSIGNED' ? 'bg-blue-100 text-blue-700' :
+                              'bg-slate-100 text-slate-700';
+
+                            return (
+                              <tr 
+                                key={item.id} 
+                                onClick={() => navigate({ to: "/authority/feedback/$feedbackId", params: { feedbackId: String(item.id) } })}
+                                className="hover:bg-slate-50 cursor-pointer transition-colors"
+                              >
+                                <td className="px-4 py-3 font-bold" style={{ color: colors.secondaryBlue }}>{item.trackingCode}</td>
+                                <td className="px-4 py-3 max-w-[250px] truncate font-medium text-slate-800" title={item.title}>{item.title}</td>
+                                <td className="px-4 py-3 text-slate-600">{item.categoryName}</td>
+                                <td className="px-4 py-3 text-slate-600">{item.citizenName || 'Ẩn danh'}</td>
+                                <td className="px-4 py-3 text-slate-600">
+                                  {new Date(item.createdAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                </td>
+                                <td className="px-4 py-3">
+                                  <span className={`px-2 py-1 rounded-[4px] text-[11px] font-semibold ${statusClass}`}>
+                                    {statusLabel}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3">
+                                  {["PENDING", "PENDING_RECEIVE", "SUBMITTED", "NEED_LOCATION_REVIEW"].includes(item.status) && (
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={(e) => handleAccept(e, item.id)}
+                                        disabled={acceptMut.isPending}
+                                        className="px-2 py-1 bg-blue-600 text-white text-[11px] font-bold rounded hover:bg-blue-700 disabled:opacity-50"
+                                      >
+                                        Tiếp nhận
+                                      </button>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); setRejectingItem(item); }}
+                                        className="px-2 py-1 bg-red-100 text-red-600 text-[11px] font-bold rounded hover:bg-red-200"
+                                      >
+                                        Từ chối
+                                      </button>
+                                    </div>
+                                  )}
+                                  {item.status === "ASSIGNED" && (
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={(e) => handleStartProcessing(e, item.id)}
+                                        disabled={updateStatusMut.isPending}
+                                        className="px-2 py-1 bg-amber-500 text-white text-[11px] font-bold rounded hover:bg-amber-600 disabled:opacity-50"
+                                      >
+                                        Xử lý ngay
+                                      </button>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); setRequestInfoItem(item); }}
+                                        className="px-2 py-1 bg-slate-100 text-slate-700 text-[11px] font-bold rounded hover:bg-slate-200"
+                                      >
+                                        Hỏi thêm
+                                      </button>
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </React.Fragment>
+                      ))
                     ) : (
                       <tr>
                         <td colSpan={6} className="px-4 py-8 text-center text-slate-500">

@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo } from "react";
-import { MapPin } from "lucide-react";
+import { useEffect, useState, useMemo, useRef } from "react";
+import { MapPin, Layers } from "lucide-react";
 
 const CURRENT_LOCATION_ZOOM = 17;
 
@@ -68,6 +68,21 @@ export function ReportMap({
   locationLoading,
   onChangeLocation,
 }: ReportMapProps) {
+  const [mapLayerType, setMapLayerType] = useState<"osm" | "satellite">("osm");
+  const [isLayersOpen, setIsLayersOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsLayersOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, []);
   // Dynamic import: Leaflet requires `window` at module-load time,
   // so we lazy-load react-leaflet and leaflet only on the client.
   const [modules, setModules] = useState<{
@@ -161,6 +176,56 @@ export function ReportMap({
 
   return (
     <div className="w-full h-full relative">
+      <div
+        ref={dropdownRef}
+        className="absolute top-3 right-3 flex flex-col items-end gap-2 text-xs"
+        style={{ zIndex: 1000 }}
+      >
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setIsLayersOpen(!isLayersOpen)}
+            className="w-10 h-10 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl shadow-md flex items-center justify-center cursor-pointer transition text-slate-600"
+            title="Lớp bản đồ"
+          >
+            <Layers size={18} />
+          </button>
+
+          {isLayersOpen && (
+            <div className="absolute right-0 mt-2 w-40 bg-white border border-slate-200 rounded-xl shadow-xl py-1 z-[1100] text-left">
+              <button
+                type="button"
+                onClick={() => {
+                  setMapLayerType("osm");
+                  setIsLayersOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2 text-xs transition ${
+                  mapLayerType === "osm"
+                    ? "bg-blue-50 text-blue-600 font-extrabold"
+                    : "text-slate-700 hover:bg-slate-50 font-semibold"
+                }`}
+              >
+                🗺️ Bản đồ (Google)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMapLayerType("satellite");
+                  setIsLayersOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2 text-xs transition ${
+                  mapLayerType === "satellite"
+                    ? "bg-blue-50 text-blue-600 font-extrabold"
+                    : "text-slate-700 hover:bg-slate-50 font-semibold"
+                }`}
+              >
+                🛰️ Vệ tinh
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
       <MapContainer
         center={mapCenter}
         zoom={hasLocation ? CURRENT_LOCATION_ZOOM : 13}
@@ -174,7 +239,11 @@ export function ReportMap({
         <MapEventsHandler useMapEvents={useMapEvents} onChangeLocation={onChangeLocation} />
         <TileLayer
           attribution="&copy; Google Maps"
-          url="https://mt1.google.com/vt/lyrs=m&hl=vi&gl=VN&x={x}&y={y}&z={z}"
+          url={
+            mapLayerType === "osm"
+              ? "https://mt1.google.com/vt/lyrs=m&hl=vi&gl=VN&x={x}&y={y}&z={z}"
+              : "https://mt1.google.com/vt/lyrs=y&hl=vi&gl=VN&x={x}&y={y}&z={z}"
+          }
         />
         {markerDisplayed && latitude !== null && longitude !== null && currentLocationIcon && (
           <Marker

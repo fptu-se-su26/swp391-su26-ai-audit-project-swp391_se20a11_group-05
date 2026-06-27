@@ -78,3 +78,28 @@ ALTER TABLE campaign_chat_messages ADD COLUMN IF NOT EXISTS pinned BOOLEAN;
 UPDATE campaign_chat_messages SET pinned = FALSE WHERE pinned IS NULL;
 ALTER TABLE campaign_chat_messages ALTER COLUMN pinned SET DEFAULT FALSE;
 ALTER TABLE campaign_chat_messages ALTER COLUMN pinned SET NOT NULL;
+
+-- 9. Campaign participants table updates
+ALTER TABLE campaign_participants ADD COLUMN IF NOT EXISTS volunteer_experience VARCHAR(1000);
+ALTER TABLE campaign_participants ADD COLUMN IF NOT EXISTS availability_hours VARCHAR(200);
+ALTER TABLE campaign_participants ADD COLUMN IF NOT EXISTS cancellation_reason VARCHAR(500);
+ALTER TABLE campaign_participants ADD COLUMN IF NOT EXISTS cancel_count INT;
+UPDATE campaign_participants SET cancel_count = 0 WHERE cancel_count IS NULL;
+ALTER TABLE campaign_participants ALTER COLUMN cancel_count SET DEFAULT 0;
+ALTER TABLE campaign_participants ALTER COLUMN cancel_count SET NOT NULL;
+ALTER TABLE campaign_participants ADD COLUMN IF NOT EXISTS confirmation_deadline TIMESTAMP;
+
+-- 10. Email verifications table
+CREATE TABLE IF NOT EXISTS email_verifications (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT,
+    email VARCHAR(100) NOT NULL,
+    otp_code VARCHAR(255) NOT NULL,
+    purpose VARCHAR(30) NOT NULL DEFAULT 'CAMPAIGN_JOIN',
+    expires_at TIMESTAMP NOT NULL,
+    verified_at TIMESTAMP,
+    is_used BOOLEAN DEFAULT FALSE,
+    attempts INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_email_is_used ON email_verifications(email, is_used);

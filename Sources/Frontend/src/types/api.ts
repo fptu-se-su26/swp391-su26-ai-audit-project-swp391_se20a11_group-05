@@ -88,6 +88,7 @@ export interface FeedbackResponse {
   createdAt: string;
   updatedAt: string;
   attachments?: FeedbackAttachmentResponse[];
+  publicVisible?: boolean;
 }
 
 export interface FeedbackAttachmentResponse {
@@ -109,6 +110,7 @@ export interface FeedbackRequest {
   categoryId?: number;
   categoryCode: string;
   wardId?: number;
+  publicVisible?: boolean;
 }
 
 // ─── Category Types ───────────────────────────────────────────

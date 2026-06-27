@@ -327,6 +327,7 @@ export interface FeedbackRequest {
   categoryId?: number;
   categoryCode: string;
   wardId?: number;
+  publicVisible?: boolean;
 }
 
 export interface NotificationResponse {
@@ -577,7 +578,7 @@ export const feedbackApi = {
     feedbackApi.getPublic(0, limit, filters),
 
   getPublicById: (id: string | number) =>
-    request<FeedbackResponse>(`/api/feedbacks/public/${id}`, { skipAuth: true }),
+    request<FeedbackResponse>(`/api/feedbacks/public/${id}`, { skipAuth: !getToken() }),
 
   getStatuses: () => request<FeedbackStatusOption[]>("/api/feedbacks/statuses", { skipAuth: true }),
 

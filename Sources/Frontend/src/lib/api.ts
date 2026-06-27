@@ -178,6 +178,23 @@ export interface TokenResponse {
   org?: string;
 }
 
+/**
+ * TokenPairResponse — Backend trả về sau firebase-login, mfa/verify, và refresh
+ * Có cả accessToken (ngắn hạn) lẫn refreshToken (dài hạn)
+ */
+export interface TokenPairResponse {
+  accessToken: string;
+  refreshToken: string;
+  tokenType: string;
+  expiresIn: number;
+  username: string;
+  role: BackendRole;
+  wardName?: string | null;
+  wardType?: string | null;
+  wardId?: number | null;
+  org?: string;
+}
+
 export interface MfaRequiredResponse {
   username: string;
   mfaRequired: true;
@@ -475,7 +492,7 @@ export const authApi = {
     }),
 
   firebaseLogin: (firebaseToken: string) =>
-    request<TokenResponse>("/api/auth/firebase-login", {
+    request<TokenPairResponse>("/api/auth/firebase-login", {
       method: "POST",
       body: JSON.stringify({ firebaseToken }),
       skipAuth: true,

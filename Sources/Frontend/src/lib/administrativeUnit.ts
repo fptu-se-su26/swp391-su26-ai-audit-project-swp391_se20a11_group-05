@@ -27,6 +27,35 @@ export function getAdministrativeUnitLabel(type?: string | null, name?: string |
   return cleanName ? `UBND ${cleanName}` : "UBND";
 }
 
+export function getPoliceUnitLabel(type?: string | null, name?: string | null) {
+  const cleanName = name?.trim();
+  const normalizedType = type?.trim().toLowerCase();
+
+  if (
+    normalizedType === "commune" ||
+    normalizedType === "xã" ||
+    normalizedType === "xa" ||
+    normalizedType?.includes("xã") ||
+    normalizedType?.includes(" xa ") ||
+    normalizedType?.includes("commune")
+  ) {
+    return cleanName ? `Công an Xã ${cleanName}` : "Công an Xã";
+  }
+
+  if (
+    normalizedType === "ward" ||
+    normalizedType === "phường" ||
+    normalizedType === "phuong" ||
+    normalizedType?.includes("phường") ||
+    normalizedType?.includes("phuong") ||
+    normalizedType?.includes("ward")
+  ) {
+    return cleanName ? `Công an Phường ${cleanName}` : "Công an Phường";
+  }
+
+  return cleanName ? `Công an ${cleanName}` : "Công an";
+}
+
 export function getAdministrativeUnitName(name?: string | null, fallback?: string | null) {
   const source = name?.trim() || fallback?.trim() || "";
   return source

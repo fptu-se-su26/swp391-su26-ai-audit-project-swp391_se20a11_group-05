@@ -38,8 +38,15 @@ public class PoliceFeedbackService {
      * Lấy danh sách phản ánh được phân công cho cán bộ công an
      */
     public List<PoliceFeedbackResponse> getAssignedFeedbacks(String username) {
-        // Lấy tất cả phản ánh thuộc quyền quản lý của Công an (POLICE)
-        return feedbackRepository.findByManagedByRole("POLICE", org.springframework.data.domain.PageRequest.of(0, 100))
+        User policeUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy user công an: " + username));
+
+        if (policeUser.getWard() == null) {
+            return java.util.Collections.emptyList();
+        }
+
+        // Lấy tất cả phản ánh thuộc quyền quản lý của Công an (POLICE) VÀ thuộc phường của cán bộ
+        return feedbackRepository.findByManagedByRoleAndWardId("POLICE", policeUser.getWard().getId(), org.springframework.data.domain.PageRequest.of(0, 500))
                 .getContent().stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
@@ -48,9 +55,17 @@ public class PoliceFeedbackService {
     /**
      * Lấy danh sách điểm nóng (Hotspots) cho Bản đồ Nhiệt (Heatmap)
      */
-    public List<HotspotResponse> getHotspots() {
-        // Trong thực tế sẽ filter theo ngày tháng, khu vực. Ở đây lấy tất cả feedback có tọa độ
-        return feedbackRepository.findAll().stream()
+    public List<HotspotResponse> getHotspots(String username) {
+        User policeUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy user công an: " + username));
+
+        if (policeUser.getWard() == null) {
+            return java.util.Collections.emptyList();
+        }
+
+        // Lấy tất cả feedback thuộc quyền quản lý của POLICE và thuộc phường của cán bộ
+        return feedbackRepository.findByManagedByRoleAndWardId("POLICE", policeUser.getWard().getId(), org.springframework.data.domain.PageRequest.of(0, 1000))
+                .getContent().stream()
                 .filter(f -> f.getLatitude() != null && f.getLongitude() != null)
                 .map(f -> {
                     // Đánh trọng số: Việc khẩn cấp/chưa xử lý = 3, Đang xử lý = 2, Đã xong/Từ chối = 1

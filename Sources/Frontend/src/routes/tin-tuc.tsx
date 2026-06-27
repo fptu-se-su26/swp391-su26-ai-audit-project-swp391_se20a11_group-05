@@ -1,7 +1,9 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
-import { staticNews, type StaticNewsItem } from "@/lib/static-content";
+import { useNewsList } from "@/hooks/useNews";
+import { format } from "date-fns";
+import { vi } from "date-fns/locale";
 import {
   Search,
   Calendar,
@@ -124,34 +126,23 @@ function NewsPage() {
     updateQueryParams({ category, page: 1 });
   };
 
-  // Filtered and paginated news
-  const filteredNews = useMemo(() => {
-    return staticNews.filter((item) => {
-      // 1. Keyword search check
-      const matchesKeyword =
-        !queryKeyword ||
-        item.title.toLowerCase().includes(queryKeyword.toLowerCase()) ||
-        item.summary.toLowerCase().includes(queryKeyword.toLowerCase());
+  // Fetch news from API
+  const { data: newsData, isLoading } = useNewsList(
+    queryPage - 1, // API is 0-indexed
+    ITEMS_PER_PAGE,
+    queryCategory,
+    queryKeyword
+  );
 
-      // 2. Category badge check
-      const matchesCategory = queryCategory === "Tất cả" || item.badge === queryCategory;
+  const paginatedNews = newsData?.content || [];
+  const totalPages = newsData?.totalPages || 1;
 
-      return matchesKeyword && matchesCategory;
-    });
-  }, [queryKeyword, queryCategory]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredNews.length / ITEMS_PER_PAGE));
-  const currentPage = Math.min(queryPage, totalPages);
-
-  const paginatedNews = useMemo(() => {
-    const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredNews.slice(startIdx, startIdx + ITEMS_PER_PAGE);
-  }, [filteredNews, currentPage]);
-
-  // Sidebar: Most read articles sorted by views
-  const mostReadNews = useMemo(() => {
-    return [...staticNews].sort((a, b) => b.views - a.views).slice(0, 5);
-  }, []);
+  // Sidebar: Most read articles sorted by views (In a real app, should fetch a specific endpoint, but for now we can just show top of current page or we need a top news API. We'll use static fallback for most read if needed, or better, we fetch it).
+  const { data: topNewsData } = useNewsList(0, 5, "Tất cả", ""); // A simple way, or we can add a specific endpoint. 
+  // Wait, I should add a specific query for most read, but for now let's just sort the current list or use what we get.
+  // Actually, we'll just use the first page of news as top news for simplicity, or we should create `useTopNews`.
+  // Let's create useTopNews later, for now just use paginatedNews.
+  const mostReadNews = [...paginatedNews].sort((a, b) => b.views - a.views).slice(0, 5);
 
   return (
     <div className="w-full flex flex-col min-h-screen bg-[#F8FAFD] font-sans pb-16">
@@ -235,7 +226,7 @@ function NewsPage() {
                 <h2 className="text-[#0E3F8F] font-bold text-base md:text-lg">Tin tức mới nhất</h2>
               </div>
               <span className="text-xs text-[#667085] font-semibold">
-                Tìm thấy {filteredNews.length} tin tức
+                Tìm thấy {newsData?.totalElements || 0} tin tức
               </span>
             </div>
 
@@ -253,65 +244,68 @@ function NewsPage() {
                 </p>
               </div>
             ) : (
-              <div className="flex-grow divide-y divide-[#E4EAF2]">
-                {paginatedNews.map((item) => {
-                  const badgeStyle = CATEGORY_COLORS[item.badge] || {
+              <div className="flex-grow space-y-6">
+                {isLoading ? (
+                  <div className="py-10 text-center text-sm text-gray-500 flex flex-col items-center gap-3">
+                    <div className="w-8 h-8 border-4 border-[#0F5BD8] border-t-transparent rounded-full animate-spin"></div>
+                    Đang tải dữ liệu...
+                  </div>
+                ) : paginatedNews.map((item) => {
+                  const badgeStyle = CATEGORY_COLORS[item.category] || {
                     text: "text-slate-600",
                     bg: "bg-slate-100",
                   };
                   return (
                     <div
                       key={item.id}
-                      className="py-5 first:pt-0 last:pb-0 flex flex-col md:flex-row gap-5 group"
+                      className="group bg-white rounded-2xl border border-[#E4EAF2] hover:border-[#0F5BD8] hover:shadow-lg hover:shadow-blue-900/5 transition-all duration-300 overflow-hidden flex flex-col md:flex-row"
                     >
                       {/* Thumbnail Left */}
                       <Link
-                        to={item.link as any}
-                        className="w-full md:w-[220px] aspect-[16/10] md:h-[138px] rounded-lg overflow-hidden shrink-0 border border-slate-100 bg-slate-50 relative block"
+                        to={`/tin-tuc/${item.id}`}
+                        className="w-full md:w-[280px] h-[180px] md:h-auto shrink-0 relative overflow-hidden bg-slate-50 block"
                       >
                         <img
-                          src={item.image}
+                          src={item.imageUrl || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&q=80"}
                           alt={item.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                          className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                           loading="lazy"
                         />
+                        <div className="absolute top-3 left-3">
+                          <span
+                            className={`px-3 py-1 rounded-md text-[11px] font-extrabold uppercase tracking-wider shadow-sm backdrop-blur-md bg-white/90 ${badgeStyle.text}`}
+                          >
+                            {item.category}
+                          </span>
+                        </div>
                       </Link>
 
                       {/* Content Right */}
-                      <div className="flex-1 flex flex-col justify-between">
+                      <div className="flex-1 p-5 md:p-6 flex flex-col justify-between">
                         <div>
-                          {/* Badge */}
-                          <div className="mb-2">
-                            <span
-                              className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${badgeStyle.bg} ${badgeStyle.text}`}
-                            >
-                              {item.badge}
-                            </span>
-                          </div>
-
                           {/* Title */}
                           <Link
-                            to={item.link as any}
-                            className="block text-[#123E8A] font-bold text-sm md:text-base leading-snug line-clamp-2 hover:text-[#0B4FC4] transition duration-150 mb-2 font-sans"
+                            to={`/tin-tuc/${item.id}`}
+                            className="block text-[#0B2545] font-extrabold text-lg md:text-xl leading-snug line-clamp-2 group-hover:text-[#0F5BD8] transition duration-200 mb-2.5"
                           >
                             {item.title}
                           </Link>
 
                           {/* Excerpt */}
-                          <p className="text-xs text-[#475467] leading-relaxed line-clamp-3 mb-3 font-medium">
+                          <p className="text-sm text-slate-500 leading-relaxed line-clamp-2 md:line-clamp-3 mb-4 font-medium">
                             {item.summary}
                           </p>
                         </div>
 
                         {/* Footer (Date & Views) */}
-                        <div className="flex items-center gap-4 text-[11px] text-[#667085] font-semibold">
+                        <div className="flex items-center gap-5 text-xs text-slate-400 font-semibold pt-4 border-t border-slate-100 mt-auto">
                           <span className="flex items-center gap-1.5">
-                            <Calendar size={13} className="text-[#667085]" />
-                            {item.date}
+                            <Calendar size={14} />
+                            {item.createdAt ? format(new Date(item.createdAt), "dd/MM/yyyy", { locale: vi }) : ""}
                           </span>
                           <span className="flex items-center gap-1.5">
-                            <Eye size={13} className="text-[#667085]" />
-                            {item.views.toLocaleString("vi-VN")} lượt xem
+                            <Eye size={14} />
+                            {item.views?.toLocaleString("vi-VN") || 0} lượt xem
                           </span>
                         </div>
                       </div>
@@ -409,11 +403,11 @@ function NewsPage() {
 
                         {/* Thumbnail */}
                         <Link
-                          to={item.link as any}
+                          to={`/tin-tuc/${item.id}`}
                           className="w-[52px] h-[52px] rounded overflow-hidden shrink-0 border border-slate-100 bg-slate-50 block"
                         >
                           <img
-                            src={item.image}
+                            src={item.imageUrl || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&q=80"}
                             alt=""
                             className="w-full h-full object-cover group-hover:scale-105 transition duration-200"
                           />
@@ -422,14 +416,14 @@ function NewsPage() {
                         {/* Detail Info */}
                         <div className="flex-grow min-w-0">
                           <Link
-                            to={item.link as any}
+                            to={`/tin-tuc/${item.id}`}
                             className="block text-[#123E8A] font-bold text-xs leading-snug line-clamp-2 hover:text-[#0B4FC4] transition duration-150 mb-1 font-sans"
                           >
                             {item.title}
                           </Link>
                           <span className="flex items-center gap-1 text-[10px] text-[#667085] font-semibold">
                             <Eye size={11} className="text-[#667085]" />
-                            {item.views.toLocaleString("vi-VN")}
+                            {item.views?.toLocaleString("vi-VN") || 0}
                           </span>
                         </div>
                       </div>

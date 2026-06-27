@@ -93,6 +93,7 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
 
     @Override
     @GetMapping("/{id}")
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public ResponseEntity<FeedbackResponse> getById(@PathVariable Long id) {
         Feedback feedback = feedbackService.findById(id);
         org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();

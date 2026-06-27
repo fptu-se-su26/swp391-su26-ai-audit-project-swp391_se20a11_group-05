@@ -469,6 +469,7 @@ export function FeedbackDetailPageComponent({
         linkedFeedbackId: report.id,
         linkedFeedbackCode: report.trackingCode || report.code || String(report.id),
         linkedFeedbackTitle: report.title,
+        wardId: user?.wardId ?? undefined,
         wardName: report.wardName || user?.wardName || undefined,
         latitude: report.latitude ?? undefined,
         longitude: report.longitude ?? undefined,

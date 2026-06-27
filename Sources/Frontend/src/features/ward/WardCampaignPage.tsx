@@ -74,7 +74,7 @@ export function WardCampaignPage() {
   
   const activeCampaign = useMemo(() => {
     if (!campaigns.length) return null;
-    return campaigns.find((c) => c.id === activeCampaignId) || campaigns[0];
+    return activeCampaignId ? campaigns.find((c) => c.id === activeCampaignId) || null : null;
   }, [campaigns, activeCampaignId]);
 
   // Statistics calculated from real-time backend data

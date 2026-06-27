@@ -604,7 +604,10 @@ function ReportDetail() {
       linkedFeedbackId: report?.id,
       linkedFeedbackCode: report?.trackingCode,
       linkedFeedbackTitle: report?.title,
+      wardId: user?.wardId ?? undefined,
       wardName: report?.wardName ?? undefined,
+      latitude: report?.latitude ?? undefined,
+      longitude: report?.longitude ?? undefined,
     }).then(() => {
       setShowCreateCampaignModal(false);
       // linkedCampaign sẽ tự cập nhật qua useEffect + onCampaignsChanged

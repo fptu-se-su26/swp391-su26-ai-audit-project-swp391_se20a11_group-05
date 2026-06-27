@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { Layers, MapPin, Users, Compass, CheckCircle } from "lucide-react";
+import { Eye, Layers, MapPin, Users, Compass, CheckCircle } from "lucide-react";
 import { WARD_BOUNDARIES } from "@/lib/geojson";
 import type { Campaign } from "@/lib/campaignStore";
 import { useAuth } from "@/lib/auth";
@@ -10,6 +10,7 @@ interface Props {
   activeCampaign?: Campaign;
   showBoundary?: boolean;
   onCampaignClick?: (campaign: Campaign) => void;
+  onCampaignDetail?: (campaign: Campaign) => void;
 }
 
 // Helper to resolve coordinates from string or object
@@ -96,9 +97,16 @@ function MapController({
 }) {
   const map = useMap();
   const hasFittedRef = useRef(false);
+  const lastFocusedCampaignIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (activeCampaign) {
+      const activeCampaignId = String(activeCampaign.id);
+      if (lastFocusedCampaignIdRef.current === activeCampaignId) {
+        return;
+      }
+      lastFocusedCampaignIdRef.current = activeCampaignId;
+
       const pos = resolveCampaignLatLng(activeCampaign);
       if (!pos) return;
 
@@ -127,6 +135,7 @@ function MapController({
 
       map.flyTo(pos, 15, { animate: true });
     } else if (campaigns.length > 0 && L && !hasFittedRef.current) {
+      lastFocusedCampaignIdRef.current = null;
       try {
         const points = campaigns
           .map(resolveCampaignLatLng)
@@ -143,7 +152,7 @@ function MapController({
         console.error("Error fitting list bounds:", e);
       }
     }
-  }, [activeCampaign, campaigns, map, L]);
+  }, [activeCampaign?.id, campaigns, map, L]);
 
   return null;
 }
@@ -154,6 +163,7 @@ export function CampaignMap({
   activeCampaign,
   showBoundary = true,
   onCampaignClick,
+  onCampaignDetail,
 }: Props) {
   const [leafletComponents, setLeafletComponents] = useState<{
     MapContainer: any;
@@ -380,15 +390,15 @@ export function CampaignMap({
                 }}
               >
                 <Popup>
-                  <div className="p-2 max-w-[240px]">
-                    <div className="flex items-center gap-1.5 mb-1">
+                  <div className="w-[250px] p-2">
+                    <div className="mb-2 flex flex-wrap items-center gap-1.5">
                       <span
-                        className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider ${
+                        className={`rounded-md px-2 py-1 text-[10px] font-black uppercase leading-none tracking-wide ${
                           c.status === "completed"
-                            ? "bg-green-100 text-green-700"
+                            ? "bg-emerald-50 text-emerald-700"
                             : c.status === "recruiting"
-                              ? "bg-amber-100 text-amber-700"
-                              : "bg-blue-100 text-[#1E5EFF]"
+                              ? "bg-amber-50 text-amber-700"
+                              : "bg-blue-50 text-[#1E5EFF]"
                         }`}
                       >
                         {c.status === "completed"
@@ -397,7 +407,7 @@ export function CampaignMap({
                             ? "Đang tuyển"
                             : "Đang diễn ra"}
                       </span>
-                      <span className="text-[10px] text-slate-400 font-semibold uppercase">
+                      <span className="rounded-md bg-slate-50 px-2 py-1 text-[10px] font-black uppercase leading-none tracking-wide text-slate-500">
                         {c.category === "environment"
                           ? "Môi trường"
                           : c.category === "infrastructure"
@@ -405,15 +415,25 @@ export function CampaignMap({
                             : "An toàn"}
                       </span>
                     </div>
-                    <strong className="text-slate-800 text-sm font-extrabold block leading-snug">
+                    <strong className="block text-base font-black leading-snug text-slate-900">
                       {c.name}
                     </strong>
-                    <span className="text-[11px] text-slate-400 block mt-0.5">
+                    <span className="mt-1 block text-xs font-bold text-slate-400">
                       Phường: {c.ward}
                     </span>
-                    <p className="text-slate-600 text-xs mt-1 leading-relaxed line-clamp-2">
+                    <p className="mt-3 line-clamp-3 text-sm font-medium leading-5 text-slate-600">
                       {c.desc}
                     </p>
+                    {onCampaignDetail && (
+                      <button
+                        type="button"
+                        onClick={() => onCampaignDetail(c)}
+                        className="mt-4 inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-[#0F5BD8] px-3 text-xs font-black text-white shadow-sm transition hover:bg-[#0B4FC0] cursor-pointer"
+                      >
+                        <Eye size={14} />
+                        Xem chi tiết
+                      </button>
+                    )}
                   </div>
                 </Popup>
               </Marker>

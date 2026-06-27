@@ -1125,7 +1125,7 @@ function CampaignLocationPicker({
                     : "text-slate-700 hover:bg-slate-50 font-semibold"
                 }`}
               >
-                🗺️ Bản đồ
+                🗺️ Bản đồ (Google)
               </button>
               <button
                 type="button"

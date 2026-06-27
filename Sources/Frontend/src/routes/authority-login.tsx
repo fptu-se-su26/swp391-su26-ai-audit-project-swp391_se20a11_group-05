@@ -26,7 +26,7 @@ import {
   parseBackendRole,
 } from "@/lib/roles";
 import { authApi, ApiError, getToken } from "@/lib/api";
-import { getAdministrativeUnitLabel } from "@/lib/administrativeUnit";
+import { getAdministrativeUnitLabel, getPoliceUnitLabel } from "@/lib/administrativeUnit";
 import { buildLoginLockoutMessage, getLoginLockoutSeconds } from "@/lib/loginLockout";
 import {
   LogIn,
@@ -163,7 +163,7 @@ function AuthorityLoginPage() {
         login({
           name: data.username,
           role,
-          org: data.org || getAdministrativeUnitLabel(data.wardType, data.wardName),
+          org: data.org || (role === Role.POLICE ? getPoliceUnitLabel(data.wardType, data.wardName) : getAdministrativeUnitLabel(data.wardType, data.wardName)),
           wardName: data.wardName,
           wardType: data.wardType,
           wardId: data.wardId,
@@ -217,7 +217,7 @@ function AuthorityLoginPage() {
       login({
         name: data.username,
         role,
-        org: data.org || getAdministrativeUnitLabel(data.wardType, data.wardName),
+        org: data.org || (role === Role.POLICE ? getPoliceUnitLabel(data.wardType, data.wardName) : getAdministrativeUnitLabel(data.wardType, data.wardName)),
         wardName: data.wardName,
         wardType: data.wardType,
         wardId: data.wardId,

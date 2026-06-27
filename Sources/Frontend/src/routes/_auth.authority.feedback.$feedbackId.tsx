@@ -265,12 +265,22 @@ export function FeedbackDetailPageComponent({
     }
   }, [report, user]);
 
-  // Check if current user is Ward Staff and belongs to the same ward
+  // Check if current user is Ward Staff or Police and belongs to the same ward
   const hasWriteAccess = useMemo(() => {
     if (!user || !report) return false;
-    if (user.role !== Role.WARD_STAFF) return false;
     if (report.wardId !== user.wardId) return false;
-    return isWardStaffCategory(report.categoryCode || report.category || report.categoryName);
+    
+    const catCode = report.categoryCode || report.category || report.categoryName;
+    
+    if (user.role === Role.WARD_STAFF) {
+      return isWardStaffCategory(catCode);
+    }
+    
+    if (user.role === Role.POLICE) {
+      return isPoliceCategory(catCode);
+    }
+    
+    return false;
   }, [user, report]);
 
   const canCreateCampaign = useMemo(() => {
@@ -574,8 +584,8 @@ export function FeedbackDetailPageComponent({
             <div>
               <p className="text-sm font-bold">Chế độ xem chi tiết (Chỉ đọc)</p>
               <p className="text-xs text-amber-800/90 mt-0.5">
-                Tài khoản của bạn chỉ được phép xem phản ánh này. Bạn không thuộc UBND{" "}
-                {report.wardName || "phường quản lý"} hoặc không có quyền thao tác trực tiếp.
+                Tài khoản của bạn chỉ được phép xem phản ánh này. Có thể bạn không thuộc{" "}
+                {report.wardName || "phường quản lý"} hoặc lĩnh vực này không thuộc thẩm quyền xử lý của bạn.
               </p>
             </div>
           </div>
@@ -1503,6 +1513,15 @@ function isWardStaffCategory(value?: string | null) {
   }
   const text = normalized.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   return text.includes("MOI TRUONG") || text.includes("XAY DUNG") || text.includes("HA TANG");
+}
+
+function isPoliceCategory(value?: string | null) {
+  const normalized = (value || "").toUpperCase();
+  if (["PUBLIC_SECURITY", "FIRE_SAFETY", "TRAFFIC"].includes(normalized)) {
+    return true;
+  }
+  const text = normalized.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return text.includes("AN NINH") || text.includes("PCCC") || text.includes("GIAO THONG") || text.includes("CHAY NO");
 }
 
 function invalidateFeedbackSyncQueries(queryClient: QueryClient, feedbackId?: string | number) {

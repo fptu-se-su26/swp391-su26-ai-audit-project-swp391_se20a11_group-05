@@ -8,7 +8,7 @@
 
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Role } from "@/lib/roles";
-import { PoliceDashboard } from "@/features/police/PoliceDashboard";
+import { ModernPoliceDashboard } from "@/features/police/ModernPoliceDashboard";
 
 export const Route = createFileRoute("/_auth/police")({
   beforeLoad: ({ context }) => {
@@ -34,5 +34,5 @@ export const Route = createFileRoute("/_auth/police")({
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
-  component: PoliceDashboard,
+  component: ModernPoliceDashboard,
 });

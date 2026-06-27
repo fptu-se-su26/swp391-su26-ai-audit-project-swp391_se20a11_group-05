@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import com.example.smartcity.modules.user.entity.User;
 
 @Service
 @RequiredArgsConstructor
@@ -95,6 +96,22 @@ public class NotificationService extends BaseServiceImpl<Notification, Long> {
                 savedFeedback.getCitizen().getId(),
                 saved.getId());
         return saved;
+    }
+
+    @Transactional
+    public void createCampaignNotification(User user, Long campaignId, String title, String content, String type) {
+        Notification notification = Notification.builder()
+                .user(user)
+                .referenceId(campaignId)
+                .title(title)
+                .content(content)
+                .type(type)
+                .isRead(false)
+                .build();
+        LocalDateTime now = LocalDateTime.now();
+        notification.setCreatedAt(now);
+        notification.setUpdatedAt(now);
+        notificationRepository.save(notification);
     }
 
     /**

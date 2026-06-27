@@ -35,6 +35,8 @@ const HeatmapMap = clientOnly(() =>
   import("@/components/site/HeatmapMap").then((m) => ({ default: m.HeatmapMap })),
 );
 
+import { PoliceCampaignPage } from "./PoliceCampaignPage";
+
 // Design System Colors mapping to Tailwind arbitrary values
 const colors = {
   primaryNavy: "#0B1F4D",
@@ -51,6 +53,19 @@ const colors = {
 export function ModernPoliceDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  const policeUnitName = useMemo(() => {
+    if (user?.org) return user.org.toUpperCase();
+    if (user?.wardName) {
+      const wardTypeStr = user.wardType === 'COMMUNE' ? 'XÃ' : 'PHƯỜNG';
+      const wardName = user.wardName.toUpperCase();
+      return wardName.includes('PHƯỜNG') || wardName.includes('XÃ') || wardName.includes('THỊ TRẤN') 
+        ? `CÔNG AN ${wardName}` 
+        : `CÔNG AN ${wardTypeStr} ${wardName}`;
+    }
+    return "CÔNG AN PHƯỜNG NGŨ HÀNH SƠN";
+  }, [user]);
+
   const { data: hotspots } = useHotspots();
   const { data: feedbacksData } = usePoliceAssignedFeedbacks();
   const [activeTab, setActiveTab] = useState("overview");
@@ -305,7 +320,7 @@ export function ModernPoliceDashboard() {
             <img src={policeEmblemImg} alt="Police Emblem" className="w-[45px] h-[45px] lg:w-[50px] lg:h-[50px] object-contain drop-shadow-sm shrink-0" />
             <div className="flex flex-col min-w-0">
               <h2 className="text-[15px] md:text-[17px] lg:text-[19px] font-bold leading-snug whitespace-normal break-words" style={{ color: colors.primaryNavy }}>
-                {user?.org ? user.org.toUpperCase() : (user?.wardName ? `CÔNG AN ${user.wardType === 'COMMUNE' ? 'XÃ' : 'PHƯỜNG'} ${user.wardName.toUpperCase()}` : "CÔNG AN ĐỊA PHƯƠNG")}
+                {policeUnitName}
               </h2>
               <span className="text-[12px] lg:text-[13px] font-medium mt-0.5 truncate hidden sm:block" style={{ color: colors.textSecondary }}>
                 Hệ thống tiếp nhận và xử lý phản ánh người dân
@@ -410,7 +425,7 @@ export function ModernPoliceDashboard() {
                   <div className="px-4 py-3 border-b border-slate-50 mb-1 bg-slate-50/50">
                     <p className="text-[14px] font-bold text-slate-800 leading-tight">{user?.name || "Cán bộ trực ban"}</p>
                     <p className="text-[11px] font-semibold text-blue-600 mt-1 uppercase tracking-wide truncate">
-                      {user?.org ? user.org : (user?.wardName ? `CÔNG AN ${user.wardType === 'COMMUNE' ? 'XÃ' : 'PHƯỜNG'} ${user.wardName}` : "CÔNG AN ĐỊA PHƯƠNG")}
+                      {policeUnitName}
                     </p>
                   </div>
                   <button className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors">
@@ -766,7 +781,10 @@ export function ModernPoliceDashboard() {
               </div>
             </div>
           )}
-          {activeTab !== "overview" && activeTab !== "manage" && (
+          {activeTab === "campaigns" && (
+            <PoliceCampaignPage />
+          )}
+          {activeTab !== "overview" && activeTab !== "manage" && activeTab !== "campaigns" && (
             <div className="flex items-center justify-center h-full text-slate-400">
               Chức năng đang được cập nhật theo giao diện mới...
             </div>

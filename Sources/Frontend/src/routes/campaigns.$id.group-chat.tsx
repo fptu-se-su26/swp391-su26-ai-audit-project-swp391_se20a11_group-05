@@ -15,7 +15,7 @@ import {
   PinOff,
 } from "lucide-react";
 import logoImg from "@/assets/logo.png";
-import { useCampaignDetail, useCampaignChat, usePinChatMessage, useUnpinChatMessage } from "@/hooks/useCampaigns";
+import { useCampaignDetail, useCampaignChat, usePinChatMessage, useUnpinChatMessage, useCampaignParticipants } from "@/hooks/useCampaigns";
 import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/campaigns/$id/group-chat")({
@@ -41,27 +41,17 @@ type ChatMessage = {
   status?: "sent" | "seen";
 };
 
-const HOST_NAME = "Cán Bộ Phường 1";
 const DEFAULT_CAMPAIGN_NAME = "Chiến dịch Mùa Hè Xanh - Dọn dẹp bãi biển Xuân Thiều";
 
-const members = [
-  { name: HOST_NAME, initials: "CB", online: true, role: "host" },
-  { name: "citizen1", initials: "C1", online: true, role: "me" },
-  { name: "Nguyễn Văn A", initials: "A", online: true, role: "member" },
-  { name: "Trần Thị B", initials: "B", online: false, role: "member" },
-  { name: "Lê Minh C", initials: "C", online: false, role: "member" },
-  { name: "Phạm Hoàng D", initials: "D", online: true, role: "member" },
-  { name: "Võ Thanh E", initials: "E", online: false, role: "member" },
-  { name: "Đặng Ngọc F", initials: "F", online: false, role: "member" },
-];
 
 const initialMessages: ChatMessage[] = [
   {
     id: "m1",
-    sender: HOST_NAME,
+    sender: "Người chủ trì",
     role: "host",
     time: "10:15",
     text: "Chào mọi người! Chiến dịch sẽ bắt đầu lúc 6h sáng 19/6. Mọi người tập trung đúng giờ nhé.",
+    pinned: false,
   },
   {
     id: "m2",
@@ -69,6 +59,7 @@ const initialMessages: ChatMessage[] = [
     role: "member",
     time: "10:17",
     text: "Dạ em sẽ có mặt ạ!",
+    pinned: false,
   },
   {
     id: "m3",
@@ -76,13 +67,15 @@ const initialMessages: ChatMessage[] = [
     role: "member",
     time: "10:18",
     text: "Mình cần mang thêm găng tay không ạ?",
+    pinned: false,
   },
   {
     id: "m4",
-    sender: HOST_NAME,
+    sender: "Người chủ trì",
     role: "host",
     time: "10:19",
     text: "Mình sẽ chuẩn bị dụng cụ cho mọi người, không cần mang thêm.",
+    pinned: false,
   },
   {
     id: "m5",
@@ -91,6 +84,7 @@ const initialMessages: ChatMessage[] = [
     time: "10:20",
     text: "Ok em hiểu rồi ạ, cảm ơn anh/chị!",
     status: "seen",
+    pinned: false,
   },
 ];
 
@@ -106,10 +100,34 @@ function CampaignGroupChatPage() {
   const { data: chatMessages = [], sendMessage, isLoading: chatLoading } = useCampaignChat(id);
   const pinMutation = usePinChatMessage(id);
   const unpinMutation = useUnpinChatMessage(id);
+  const participantsQuery = useCampaignParticipants(id);
+  const realParticipants = participantsQuery.data ?? [];
 
+  const hostName = campaign?.createdBy || "Người chủ trì";
   const campaignName = campaign?.name || DEFAULT_CAMPAIGN_NAME;
   const memberCount = campaign?.participants || 1;
   const target = campaign?.target || 30;
+  
+  const members = useMemo(() => {
+    const hostMember = { name: hostName, initials: hostName.split(" ").at(-1)?.[0] || "H", online: true, role: "host" };
+    const meMember = user ? { name: user.name, initials: user.name.split(" ").at(-1)?.[0] || "C", online: true, role: "me" } : null;
+    
+    const approvedParticipants = realParticipants
+      .filter((p) => p.joinStatus === "APPROVED" && (!user || p.citizenName !== user.name))
+      .map((p, i) => ({
+        name: p.citizenName,
+        initials: p.citizenName.split(" ").at(-1)?.[0] || "U",
+        online: i % 3 === 0, // Mock online status
+        role: "member",
+      }));
+
+    const result = [hostMember];
+    if (meMember && meMember.name !== hostName) {
+      result.push(meMember);
+    }
+    result.push(...approvedParticipants);
+    return result;
+  }, [hostName, user, realParticipants]);
   const onlineCount = members.filter((member) => member.online).length;
   const progressPercent = Math.min(100, Math.round((memberCount / target) * 100));
 
@@ -155,9 +173,12 @@ function CampaignGroupChatPage() {
         target={target}
         memberCount={memberCount}
         progressPercent={progressPercent}
+        hostName={hostName}
+        hostWard={campaign?.ward || "Chưa cập nhật"}
+        members={members}
       />
     ),
-    [campaignName, id, memberCount, progressPercent, target],
+    [campaignName, id, memberCount, progressPercent, target, hostName, campaign?.ward, members],
   );
 
   const handleSendMessage = () => {
@@ -274,7 +295,7 @@ function CampaignGroupChatPage() {
             <div className="flex shrink-0 items-center justify-between gap-3 border-b border-blue-100 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800 md:px-6">
               <span className="min-w-0">
                 <Crown size={15} className="mr-1 inline text-amber-500" />
-                {HOST_NAME} là người chủ trì nhóm này. Hãy tôn trọng nội quy chiến dịch.
+                {hostName} là người chủ trì nhóm này. Hãy tôn trọng nội quy chiến dịch.
               </span>
               <button
                 type="button"
@@ -297,7 +318,7 @@ function CampaignGroupChatPage() {
                 <ChatBubble 
                   key={message.id} 
                   message={message} 
-                  canManage={campaign.canManage}
+                  canManage={campaign.canManage || false}
                   onPin={(msgId) => pinMutation.mutate(msgId)}
                   onUnpin={(msgId) => unpinMutation.mutate(msgId)}
                 />
@@ -371,12 +392,18 @@ function GroupSidebar({
   target,
   memberCount,
   progressPercent,
+  hostName,
+  hostWard,
+  members,
 }: {
   campaignId: string;
   campaignName: string;
   target: number;
   memberCount: number;
   progressPercent: number;
+  hostName: string;
+  hostWard: string;
+  members: any[];
 }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-white">
@@ -424,14 +451,14 @@ function GroupSidebar({
           <div className="rounded-lg border border-amber-100 bg-amber-50/60 p-3">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <span className="grid h-10 w-10 place-items-center rounded-full bg-amber-100 text-sm font-black text-amber-700">
-                  CB
+                <span className="grid h-10 w-10 place-items-center rounded-full bg-amber-100 text-sm font-black text-amber-700 uppercase">
+                  {hostName.split(" ").at(-1)?.[0] || "H"}
                 </span>
                 <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
               </div>
               <div className="min-w-0">
-                <p className="truncate text-sm font-black text-slate-900">{HOST_NAME}</p>
-                <p className="text-xs font-semibold text-slate-500">Ngũ Hành Sơn</p>
+                <p className="truncate text-sm font-black text-slate-900">{hostName}</p>
+                <p className="text-xs font-semibold text-slate-500">{hostWard}</p>
               </div>
             </div>
             <span className="mt-3 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[11px] font-black text-amber-700">
@@ -474,7 +501,9 @@ function GroupSidebar({
               </div>
             ))}
           </div>
-          <p className="mt-3 text-xs font-bold text-slate-400">+ 22 người khác</p>
+          {members.length > 8 && (
+            <p className="mt-3 text-xs font-bold text-slate-400">+ {members.length - 8} người khác</p>
+          )}
         </section>
       </div>
     </div>
@@ -524,10 +553,10 @@ function ChatBubble({
   
     return (
       <div className="flex items-start gap-2 group" style={{ animation: "chatSlideUp 0.2s ease" }}>
-        <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-black ${
+        <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-black uppercase ${
           host ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
         }`}>
-          {host ? "CB" : message.sender.split(" ").at(-1)?.[0] || "A"}
+          {host ? message.sender.split(" ").at(-1)?.[0] || "H" : message.sender.split(" ").at(-1)?.[0] || "A"}
         </span>
       <div
         className={`max-w-[78%] rounded-[0_12px_12px_12px] bg-white px-4 py-2.5 text-slate-800 shadow-sm relative ${

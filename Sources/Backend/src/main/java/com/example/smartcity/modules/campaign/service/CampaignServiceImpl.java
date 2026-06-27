@@ -101,8 +101,8 @@ public class CampaignServiceImpl implements CampaignService {
     @Transactional
     public CampaignResponse create(CampaignRequest request, String username) {
         User creator = requireUser(username);
-        if (creator.getRole() != Role.WARD_STAFF) {
-            throw new CustomException("Only ward staff can create campaigns", HttpStatus.FORBIDDEN.value());
+        if (creator.getRole() != Role.WARD_STAFF && creator.getRole() != Role.POLICE && creator.getRole() != Role.SUPER_ADMIN) {
+            throw new CustomException("Bạn không có quyền tạo chiến dịch", HttpStatus.FORBIDDEN.value());
         }
 
         Ward ward = resolveWard(request, creator);
@@ -591,15 +591,21 @@ public class CampaignServiceImpl implements CampaignService {
     }
 
     private Ward resolveWard(CampaignRequest request, User creator) {
-        if (creator.getWard() == null) {
-            throw new CustomException("Ward staff account is not assigned to a ward", HttpStatus.CONFLICT.value());
+        if (creator.getWard() == null && creator.getRole() != Role.SUPER_ADMIN) {
+            // Police and Authority might not be assigned to a specific ward in the system sometimes, 
+            // but if they are creating a local campaign, they should either be linked to a Ward or we allow it to be global.
+            // Let's rely on linkedFeedback's ward or the creator's ward.
+            if (creator.getRole() == Role.POLICE || creator.getRole() == Role.SUPER_ADMIN) {
+                return null; // Global campaign or linked to feedback's location
+            }
+            throw new CustomException("Tài khoản chưa được phân công quản lý phường/xã", HttpStatus.CONFLICT.value());
         }
         return creator.getWard();
     }
 
     private void assertCanViewCampaign(Campaign campaign, User user) {
         if (STATUS_PENDING_APPROVAL.equals(campaign.getStatus())
-                && (user == null || (!canManage(campaign, user) && user.getRole() != Role.SUPER_ADMIN && user.getRole() != Role.WARD_STAFF))) {
+                && (user == null || (!canManage(campaign, user) && user.getRole() != Role.SUPER_ADMIN && user.getRole() != Role.WARD_STAFF && user.getRole() != Role.POLICE))) {
             throw new CustomException("Campaign not found", HttpStatus.NOT_FOUND.value());
         }
     }
@@ -625,6 +631,7 @@ public class CampaignServiceImpl implements CampaignService {
     private boolean canManage(Campaign campaign, User user) {
         return user != null
                 && (user.getRole() == Role.SUPER_ADMIN
+                || (user.getRole() == Role.POLICE && campaign.getCreatedByUser() != null && campaign.getCreatedByUser().getId().equals(user.getId()))
                 || (user.getRole() == Role.WARD_STAFF
                     && campaign.getWard() != null
                     && user.getWard() != null

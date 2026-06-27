@@ -10,7 +10,10 @@ import { OFFICIAL_CATEGORIES } from "@/lib/categoryConfig";
 import { reports as mockReports, kpis } from "@/lib/mock-data";
 import { StatusBadge } from "@/components/site/StatusBadge";
 import { mapStatus } from "@/lib/status";
+import { useQuery } from "@tanstack/react-query";
+import { campaignApi } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCampaignList } from "@/hooks/useCampaigns";
 import {
   BarChart,
   Bar,
@@ -44,6 +47,8 @@ import {
   ShieldCheck,
   Clock,
   HeartHandshake,
+  Rocket,
+  Users,
 } from "lucide-react";
 import { lazy, Suspense, useState, useEffect } from "react";
 import { staticNews, staticFaqs } from "@/lib/static-content";
@@ -155,6 +160,11 @@ function HomePage() {
     isLoading: recentLoading,
     refetch: refetchRecent,
   } = useRecentPublicFeedback(5);
+
+  const allCampaigns = useCampaignList();
+  const activeCampaigns = allCampaigns
+    .filter((c) => c.status === "recruiting" || c.status === "active" || c.status === "inProgress")
+    .slice(0, 4);
 
   const refetch = () => {
     refetchList();
@@ -1099,6 +1109,58 @@ function HomePage() {
                 ))}
             </div>
           </section>
+
+          {/* NEW SECTION: ACTIVE CAMPAIGNS */}
+          {activeCampaigns.length > 0 && (
+            <section className="lg:col-span-8 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border border-emerald-200 p-5 md:p-6 animate-fade-in-up mt-6">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-6 bg-emerald-600 rounded-sm" />
+                  <h2 className="text-emerald-900 font-bold text-lg md:text-xl font-sans flex items-center gap-2">
+                    <Rocket size={20} className="text-emerald-600 animate-pulse" />
+                    Chiến dịch đang gọi đăng ký
+                  </h2>
+                </div>
+                <Link
+                  to="/campaigns"
+                  className="text-sm font-semibold text-emerald-700 hover:underline flex items-center gap-1 font-sans"
+                >
+                  Xem tất cả &rarr;
+                </Link>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                {activeCampaigns.map((campaign) => (
+                  <Link
+                    key={campaign.id}
+                    to="/campaigns/$id"
+                    params={{ id: campaign.id.toString() }}
+                    className="bg-white rounded-xl border border-emerald-100 p-4 hover:shadow-[0_8px_24px_rgba(5,150,105,0.12)] hover:-translate-y-1 transition-all group flex flex-col"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[10px] font-bold uppercase tracking-wider font-sans">
+                        {campaign.category === "traffic" ? "Giao thông" : campaign.category === "fire_safety" ? "PCCC" : campaign.category === "public_safety" ? "An ninh" : "Cộng đồng"}
+                      </span>
+                      <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 flex items-center gap-1">
+                        <Users size={12} />
+                        {campaign.participants}/{campaign.target || "∞"}
+                      </span>
+                    </div>
+                    <h3 className="text-base font-bold text-slate-900 group-hover:text-emerald-600 transition-colors line-clamp-2 mb-3 leading-tight font-sans flex-1">
+                      {campaign.name}
+                    </h3>
+                    <div className="flex items-center text-xs font-medium text-slate-500 gap-1.5 mb-4 truncate font-sans">
+                      <MapPin size={14} className="shrink-0 text-slate-400" />
+                      <span className="truncate">{campaign.locationText || campaign.ward || "Đà Nẵng"}</span>
+                    </div>
+                    <div className="w-full bg-emerald-600 text-white text-sm font-bold py-2.5 rounded-lg text-center group-hover:bg-emerald-700 transition-colors font-sans shadow-sm">
+                      Tham gia ngay
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* Right Column: Map + Hotline (Sections 5, 6) */}
           <div className="lg:col-span-4 flex flex-col justify-between lg:space-y-0 space-y-6">

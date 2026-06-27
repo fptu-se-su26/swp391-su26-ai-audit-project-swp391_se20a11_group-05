@@ -78,3 +78,10 @@ ALTER TABLE campaign_chat_messages ADD COLUMN IF NOT EXISTS pinned BOOLEAN;
 UPDATE campaign_chat_messages SET pinned = FALSE WHERE pinned IS NULL;
 ALTER TABLE campaign_chat_messages ALTER COLUMN pinned SET DEFAULT FALSE;
 ALTER TABLE campaign_chat_messages ALTER COLUMN pinned SET NOT NULL;
+
+-- 11. Feedbacks table - public_visible column
+ALTER TABLE feedbacks ADD COLUMN IF NOT EXISTS public_visible BOOLEAN;
+UPDATE feedbacks SET public_visible = TRUE WHERE public_visible IS NULL;
+ALTER TABLE feedbacks ALTER COLUMN public_visible SET DEFAULT TRUE;
+ALTER TABLE feedbacks ALTER COLUMN public_visible SET NOT NULL;
+

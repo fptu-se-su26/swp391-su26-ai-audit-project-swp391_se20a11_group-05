@@ -89,6 +89,9 @@ public class Feedback extends BaseEntity {
     @JoinColumn(name = "citizen_id", nullable = false)
     private User citizen;
 
+    @Column(name = "public_visible", nullable = false)
+    private Boolean publicVisible = true;
+
     @Transient
     private User assignee;
 
@@ -148,6 +151,8 @@ public class Feedback extends BaseEntity {
     public void setCitizen(User citizen) { this.citizen = citizen; }
     public User getAssignee() { return assignee; }
     public void setAssignee(User assignee) { this.assignee = assignee; }
+    public Boolean getPublicVisible() { return publicVisible; }
+    public void setPublicVisible(Boolean publicVisible) { this.publicVisible = publicVisible; }
 }
 
 

@@ -49,6 +49,22 @@ public class CampaignParticipant {
     @Column(name = "cancelled_at")
     private LocalDateTime cancelledAt;
 
+    @Column(name = "volunteer_experience", length = 1000)
+    private String volunteerExperience;
+
+    @Column(name = "availability_hours", length = 200)
+    private String availabilityHours;
+
+    @Column(name = "cancellation_reason", length = 500)
+    private String cancellationReason;
+
+    @Column(name = "cancel_count", nullable = false)
+    @Builder.Default
+    private Integer cancelCount = 0;
+
+    @Column(name = "confirmation_deadline")
+    private LocalDateTime confirmationDeadline;
+
     @Column(name = "created_at", updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();

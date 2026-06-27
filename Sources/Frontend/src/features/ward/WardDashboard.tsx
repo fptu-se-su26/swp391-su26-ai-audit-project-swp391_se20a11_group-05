@@ -46,6 +46,7 @@ import { getAdministrativeUnitLabel, getAdministrativeUnitName } from "@/lib/adm
 import { WardFeedbackManagementPage } from "./WardFeedbackManagementPage";
 import { WardCampaignPage } from "./WardCampaignPage";
 import { WardProfileConfigPage } from "./WardProfileConfigPage";
+import { WardStatisticsPage } from "./WardStatisticsPage";
 
 const CivicMap = clientOnly(() =>
   import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
@@ -53,7 +54,7 @@ const CivicMap = clientOnly(() =>
 
 import { WARD_CENTERS } from "@/lib/geojson";
 
-type WardSection = "overview" | "feedback" | "campaign" | "schedule" | "config";
+type WardSection = "overview" | "feedback" | "campaign" | "statistics" | "schedule" | "config";
 
 // Date formatting helper
 function formatDate(dateStr: string, includeTime = true): string {
@@ -113,7 +114,7 @@ export function WardDashboard() {
   const [userOpen, setUserOpen] = useState(false);
   const { tab, detailId } = Route.useSearch();
   const activeSection = (
-    tab && (["overview", "feedback", "campaign", "schedule", "config"].includes(tab) || tab.startsWith("campaign/"))
+    tab && (["overview", "feedback", "campaign", "statistics", "schedule", "config"].includes(tab) || tab.startsWith("campaign/"))
       ? (tab.startsWith("campaign/") ? "campaign" : tab)
       : "overview"
   ) as WardSection;
@@ -584,6 +585,7 @@ export function WardDashboard() {
     { name: "Tổng quan", section: "overview" as const, icon: Sliders },
     { name: "Phản ánh", section: "feedback" as const, icon: FileText },
     { name: "Chiến dịch", section: "campaign" as const, icon: Activity },
+    { name: "Thống kê", section: "statistics" as const, icon: BarChart3 },
     { name: "Cấu hình", section: "config" as const, icon: Settings },
   ];
 
@@ -1363,7 +1365,105 @@ export function WardDashboard() {
                         Xem tất cả →
                       </Link>
                     </div>
-                    <div className="overflow-x-auto -mx-5">
+                    <div className="space-y-3">
+                      {feedbacksLoading ? (
+                        [1, 2, 3].map((i) => (
+                          <div key={i} className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="space-y-2">
+                                <Skeleton className="h-3 w-20" />
+                                <Skeleton className="h-4 w-56" />
+                                <Skeleton className="h-3 w-40" />
+                              </div>
+                              <Skeleton className="h-6 w-20" />
+                            </div>
+                          </div>
+                        ))
+                      ) : priorityReports.length === 0 ? (
+                        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/70 px-4 py-8 text-center">
+                          <p className="text-sm font-bold text-slate-500">
+                            Chưa có phản ánh ưu tiên cao.
+                          </p>
+                        </div>
+                      ) : (
+                        priorityReports.map((row) => {
+                          const grp = getGroupedFeedbackStatus(row.status);
+                          const statusMeta =
+                            grp === "PENDING"
+                              ? {
+                                  label: "Chờ xử lý",
+                                  className: "bg-blue-50 text-blue-700 border-blue-100",
+                                }
+                              : grp === "IN_PROGRESS"
+                                ? {
+                                    label: "Đang xử lý",
+                                    className: "bg-amber-50 text-amber-700 border-amber-100",
+                                  }
+                                : grp === "RESOLVED"
+                                  ? {
+                                      label: "Đã xử lý",
+                                      className: "bg-emerald-50 text-emerald-700 border-emerald-100",
+                                    }
+                                  : grp === "REJECTED"
+                                    ? {
+                                        label: "Đã từ chối",
+                                        className: "bg-red-50 text-red-600 border-red-100",
+                                      }
+                                    : {
+                                        label: "Không xác định",
+                                        className: "bg-slate-50 text-slate-600 border-slate-100",
+                                      };
+
+                          return (
+                            <div
+                              key={row.id}
+                              className="rounded-xl border border-slate-100 bg-slate-50/60 p-4 transition hover:border-blue-100 hover:bg-blue-50/30"
+                            >
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div className="min-w-0 flex-1">
+                                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                                    <span className="rounded-md bg-white px-2 py-1 text-[10px] font-black uppercase tracking-wide text-[#0B2545] ring-1 ring-slate-200">
+                                      {row.trackingCode}
+                                    </span>
+                                    <span
+                                      className={`rounded-md border px-2 py-1 text-[10px] font-black ${statusMeta.className}`}
+                                    >
+                                      {statusMeta.label}
+                                    </span>
+                                  </div>
+                                  <h4 className="line-clamp-2 text-sm font-extrabold leading-5 text-[#0B2545]">
+                                    {row.title}
+                                  </h4>
+                                  <div className="mt-3 grid gap-2 text-xs font-semibold text-slate-500 sm:grid-cols-2">
+                                    <span className="truncate">
+                                      Lĩnh vực:{" "}
+                                      <b className="font-extrabold text-slate-700">
+                                        {mapCategoryName(row.categoryName)}
+                                      </b>
+                                    </span>
+                                    <span className="truncate" title={row.addressDetails || row.address || "Tân Bình"}>
+                                      Địa chỉ: {row.addressDetails || row.address || "Tân Bình"}
+                                    </span>
+                                    <span className="font-sans text-slate-400">
+                                      {formatDate(row.createdAt)}
+                                    </span>
+                                  </div>
+                                </div>
+                                <Link
+                                  to="/ward"
+                                  search={{ tab: "feedback", detailId: String(row.id) }}
+                                  className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg bg-[#0F5BD8] px-3 text-xs font-black text-white shadow-sm transition hover:bg-[#0B4FC0]"
+                                >
+                                  Xem chi tiết
+                                </Link>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    <div className="hidden">
                       <table className="w-full text-left border-collapse">
                         <thead>
                           <tr className="border-b border-[#E4EAF2] bg-slate-50/50">
@@ -1497,7 +1597,7 @@ export function WardDashboard() {
                 {/* Right Panel Stack: Coordination & Quick Info (30%) */}
                 <div className="lg:col-span-3 flex flex-col gap-6">
                   {/* Inter-agency Coordination â€” Police only */}
-                  <div className="bg-white rounded-2xl border border-[#E4EAF2] shadow-sm p-5 space-y-4">
+                  <div className="hidden">
                     <div className="flex items-center gap-1 pb-2 border-b border-slate-100">
                       <h3 className="font-extrabold text-sm text-[#0B2545]">Phối hợp liên ngành</h3>
                       <span className="text-[10px] text-slate-400 cursor-pointer">â“˜</span>
@@ -1735,6 +1835,8 @@ export function WardDashboard() {
             </>
           ) : activeSection === "campaign" ? (
             <WardCampaignPage />
+          ) : activeSection === "statistics" ? (
+            <WardStatisticsPage />
           ) : activeSection === "config" ? (
             <WardProfileConfigPage
               user={user}
@@ -1761,26 +1863,13 @@ export function WardDashboard() {
 function WardSectionPlaceholder({
   section,
 }: {
-  section: Exclude<WardSection, "overview" | "feedback">;
+  section: "schedule";
 }) {
-  const labels: Record<
-    Exclude<WardSection, "overview" | "feedback">,
-    { title: string; description: string }
-  > = {
-    campaign: {
-      title: "Chi\u1ebfn d\u1ecbch",
-      description:
-        "Khu v\u1ef1c qu\u1ea3n l\u00fd chi\u1ebfn d\u1ecbch s\u1ebd \u0111\u01b0\u1ee3c hi\u1ec3n th\u1ecb trong khung dashboard n\u00e0y.",
-    },
+  const labels: Record<"schedule", { title: string; description: string }> = {
     schedule: {
       title: "L\u1ecbch ti\u1ebfp c\u00f4ng d\u00e2n",
       description:
         "Khu v\u1ef1c l\u1ecbch ti\u1ebfp c\u00f4ng d\u00e2n s\u1ebd \u0111\u01b0\u1ee3c hi\u1ec3n th\u1ecb trong khung dashboard n\u00e0y.",
-    },
-    config: {
-      title: "C\u1ea5u h\u00ecnh",
-      description:
-        "Khu v\u1ef1c c\u1ea5u h\u00ecnh s\u1ebd \u0111\u01b0\u1ee3c hi\u1ec3n th\u1ecb trong khung dashboard n\u00e0y.",
     },
   };
   const copy = labels[section];

@@ -435,6 +435,11 @@ public class CampaignServiceImpl implements CampaignService {
         User user = requireUser(username);
         Campaign campaign = getCampaign(id);
         assertCanManage(campaign, user);
+
+        feedbackRepository.deleteByCampaign_Id(id);
+        commentRepository.deleteByCampaign_Id(id);
+        chatMessageRepository.deleteByCampaign_Id(id);
+        participantRepository.deleteByCampaign_Id(id);
         campaignRepository.delete(campaign);
     }
 
@@ -485,12 +490,12 @@ public class CampaignServiceImpl implements CampaignService {
                 .privateLocationText(privateDetailsVisible ? campaign.getPrivateLocationText() : null)
                 .requiredTools(privateDetailsVisible ? campaign.getRequiredTools() : null)
                 .organizerContact(privateDetailsVisible ? campaign.getOrganizerContact() : null)
-                .latitude(privateDetailsVisible ? campaign.getLatitude() : null)
-                .longitude(privateDetailsVisible ? campaign.getLongitude() : null)
+                .latitude(campaign.getLatitude())
+                .longitude(campaign.getLongitude())
                 .maxParticipants(campaign.getMaxParticipants())
                 .startTime(campaign.getStartTime())
                 .endTime(campaign.getEndTime())
-                .status(isEnded ? "ENDED" : "ACTIVE")
+                .status(isEnded ? "ENDED" : campaign.getStatus())
                 .wardId(campaign.getWard() != null ? campaign.getWard().getId() : null)
                 .wardName(campaign.getWard() != null ? campaign.getWard().getName() : null)
                 .createdByUserId(campaign.getCreatedByUser().getId())

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { Layers } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 
 export interface WardHotspot {
@@ -26,8 +27,22 @@ const getHotspotColor = (unresolved: number) => {
 };
 
 export function SuperAdminMap({ hotspots, onSelectWard, selectedWard }: Props) {
-  // Center coordinates of Da Nang urban area
   const center: [number, number] = [16.0544, 108.2022];
+  const [mapLayerType, setMapLayerType] = useState<"osm" | "satellite">("osm");
+  const [isLayersOpen, setIsLayersOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsLayersOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, []);
 
   const [leafletComponents, setLeafletComponents] = useState<{
     MapContainer: any;
@@ -65,6 +80,51 @@ export function SuperAdminMap({ hotspots, onSelectWard, selectedWard }: Props) {
 
   return (
     <div className="w-full h-full min-h-[360px] relative z-0">
+      {/* Nút bật/tắt Layer */}
+      <div className="absolute top-4 right-4 z-[1000]">
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => setIsLayersOpen(!isLayersOpen)}
+            className="flex items-center justify-center w-10 h-10 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl shadow-md transition-all text-slate-700"
+            title="Lớp bản đồ"
+          >
+            <Layers size={18} />
+          </button>
+          {isLayersOpen && (
+            <div className="absolute right-0 mt-2 w-40 bg-white border border-slate-200 rounded-xl shadow-xl py-1 z-[1100] text-left">
+              <button
+                type="button"
+                onClick={() => {
+                  setMapLayerType("osm");
+                  setIsLayersOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2 text-xs transition ${
+                  mapLayerType === "osm"
+                    ? "bg-blue-50 text-[#0B4FC4] font-extrabold"
+                    : "text-slate-700 hover:bg-slate-50 font-semibold"
+                }`}
+              >
+                🗺️ Bản đồ (Google)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMapLayerType("satellite");
+                  setIsLayersOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2 text-xs transition ${
+                  mapLayerType === "satellite"
+                    ? "bg-blue-50 text-[#0B4FC4] font-extrabold"
+                    : "text-slate-700 hover:bg-slate-50 font-semibold"
+                }`}
+              >
+                🛰️ Vệ tinh
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
       <MapContainer
         center={center}
         zoom={12}
@@ -75,7 +135,11 @@ export function SuperAdminMap({ hotspots, onSelectWard, selectedWard }: Props) {
       >
         <TileLayer
           attribution="&copy; Google Maps"
-          url="https://mt1.google.com/vt/lyrs=m&hl=vi&gl=VN&x={x}&y={y}&z={z}"
+          url={
+            mapLayerType === "osm"
+              ? "https://mt1.google.com/vt/lyrs=m&hl=vi&gl=VN&x={x}&y={y}&z={z}"
+              : "https://mt1.google.com/vt/lyrs=y&hl=vi&gl=VN&x={x}&y={y}&z={z}"
+          }
         />
         {hotspots.map((h) => {
           const color = getHotspotColor(h.unresolved);

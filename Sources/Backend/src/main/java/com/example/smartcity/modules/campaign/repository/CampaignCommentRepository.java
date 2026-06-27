@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface CampaignCommentRepository extends JpaRepository<CampaignComment, Long> {
     List<CampaignComment> findTop50ByCampaign_IdOrderByCreatedAtDesc(Long campaignId);
+
+    void deleteByCampaign_Id(Long campaignId);
 }

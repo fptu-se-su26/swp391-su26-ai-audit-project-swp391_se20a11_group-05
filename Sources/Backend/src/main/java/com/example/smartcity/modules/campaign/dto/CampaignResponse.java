@@ -35,6 +35,7 @@ public class CampaignResponse {
     private String currentUserJoinStatus;
     private boolean privateDetailsVisible;
     private boolean canJoin;
+    private boolean canLeave;
     private boolean canManage;
     private boolean canComment;
     private boolean canFeedback;

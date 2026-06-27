@@ -43,9 +43,10 @@ export interface Campaign {
   privateLocationText?: string;
   requiredTools?: string;
   organizerContact?: string;
-  currentUserJoinStatus?: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+  currentUserJoinStatus?: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "WAITLIST" | "PENDING_CONFIRM" | "NO_SHOW";
   privateDetailsVisible?: boolean;
   canJoin?: boolean;
+  canLeave?: boolean;
   canManage?: boolean;
   canComment?: boolean;
   canFeedback?: boolean;

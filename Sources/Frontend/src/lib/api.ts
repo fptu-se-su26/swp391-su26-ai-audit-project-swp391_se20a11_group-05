@@ -837,9 +837,10 @@ export interface CampaignResponse {
   createdByUserId: number;
   createdByName: string | null;
   participantCount: number;
-  currentUserJoinStatus: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | null;
+  currentUserJoinStatus: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "WAITLIST" | "PENDING_CONFIRM" | "NO_SHOW" | null;
   privateDetailsVisible: boolean;
   canJoin: boolean;
+  canLeave: boolean;
   canManage: boolean;
   canComment: boolean;
   canFeedback: boolean;
@@ -876,7 +877,14 @@ export interface CampaignParticipantResponse {
   campaignId: number;
   citizenId: number;
   citizenName: string;
-  joinStatus: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+  joinStatus: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "WAITLIST" | "PENDING_CONFIRM" | "NO_SHOW";
+  volunteerExperience?: string;
+  availabilityHours?: string;
+  cancellationReason?: string | null;
+  confirmationDeadline?: string | null;
+  pastCampaignCount: number;
+  averageRating: number;
+  noShowCount: number;
   createdAt: string;
   approvedAt: string | null;
   rejectedAt: string | null;
@@ -918,10 +926,34 @@ export const campaignApi = {
   end: (id: number | string) =>
     request<CampaignResponse>(`/api/campaigns/${id}/end`, { method: "POST" }),
 
-  join: (id: number | string) =>
-    request<CampaignResponse>(`/api/campaigns/${id}/join`, { method: "POST" }),
+  join: (id: number | string, data: { volunteerExperience?: string; availabilityHours?: string; otpCode: string }) =>
+    request<CampaignResponse>(`/api/campaigns/${id}/join`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 
-  leave: (id: number | string) => request<void>(`/api/campaigns/${id}/leave`, { method: "DELETE" }),
+  leave: (id: number | string, reason: string) =>
+    request<void>(`/api/campaigns/${id}/leave`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
+
+  confirmWaitlist: (id: number | string) =>
+    request<void>(`/api/campaigns/${id}/confirm`, { method: "POST" }),
+
+  batchApproveParticipants: (id: number | string, participantIds: (number | string)[]) =>
+    request<CampaignParticipantResponse[]>(`/api/campaigns/${id}/participants/batch-approve`, {
+      method: "POST",
+      body: JSON.stringify({ participantIds }),
+    }),
+
+  markNoShow: (id: number | string, participantId: number | string) =>
+    request<CampaignParticipantResponse>(`/api/campaigns/${id}/participants/${participantId}/no-show`, {
+      method: "POST",
+    }),
+
+  sendEmailOtp: () =>
+    request<string>("/api/campaigns/email-otp/send", { method: "POST" }),
 
   getParticipants: (id: number | string) =>
     request<CampaignParticipantResponse[]>(`/api/campaigns/${id}/participants`),

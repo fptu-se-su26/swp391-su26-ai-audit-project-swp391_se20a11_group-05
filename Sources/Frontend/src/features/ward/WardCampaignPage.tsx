@@ -13,10 +13,10 @@ import {
   Target,
   FileText,
   Pencil,
-  Trash2,
+
   Settings,
 } from "lucide-react";
-import { useCampaignList, useCampaignThumbnail, useDeleteCampaign } from "@/hooks/useCampaigns";
+import { useCampaignList, useCampaignThumbnail } from "@/hooks/useCampaigns";
 import { CampaignMap } from "@/components/site/CampaignMap";
 import type { Campaign } from "@/lib/campaignStore";
 import { useAuth } from "@/lib/auth";
@@ -92,7 +92,7 @@ export function WardCampaignPage() {
     return { total, recruiting, full, ended };
   }, [campaigns]);
 
-  const deleteCampaign = useDeleteCampaign();
+
 
   const handleCreateRedirect = () => {
     navigate({
@@ -106,25 +106,7 @@ export function WardCampaignPage() {
     setEditModeOnOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (
-      window.confirm(
-        "Bạn có chắc chắn muốn xóa chiến dịch này không? Hành động này không thể hoàn tác.",
-      )
-    ) {
-      try {
-        await deleteCampaign.mutateAsync(id);
-        toast.success("Đã xóa chiến dịch thành công.");
-        if (activeCampaignId === id) {
-          setActiveCampaignId(null);
-        }
-      } catch (err) {
-        toast.error(
-          "Không thể xóa chiến dịch: " + (err instanceof Error ? err.message : "Lỗi hệ thống"),
-        );
-      }
-    }
-  };
+
 
   const handleViewDetail = (id: string) => {
     setSelectedCampaignId(id);
@@ -224,6 +206,7 @@ export function WardCampaignPage() {
             campaigns={campaigns}
             activeCampaign={activeCampaign || undefined}
             onCampaignClick={(c) => setActiveCampaignId(c.id)}
+            onCampaignDetail={(c) => handleViewDetail(c.id)}
           />
         </div>
         <div className="lg:col-span-4">
@@ -301,11 +284,6 @@ export function WardCampaignPage() {
                         <p className="max-w-[280px] truncate text-sm font-extrabold text-[#0B2545]">
                           {c.name}
                         </p>
-                        {!c.canManage && (
-                          <span className="inline-flex rounded bg-slate-100 px-2 py-0.5 text-[9px] font-extrabold text-slate-500 uppercase tracking-wide">
-                            Chỉ xem
-                          </span>
-                        )}
                       </div>
                       <p className="mt-1 max-w-[280px] truncate text-xs font-medium text-slate-400">
                         {c.desc}
@@ -331,16 +309,19 @@ export function WardCampaignPage() {
                     </td>
                     <td className="px-5 py-4">
                       {(() => {
+                        const isClosed = c.status === "ended" || c.status === "completed";
                         const isFull = c.participants >= c.target;
                         return (
                           <span
                             className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-extrabold ${
-                              isFull
+                              isClosed
+                                ? "bg-slate-50 text-slate-600 border-slate-200"
+                                : isFull
                                 ? "bg-red-50 text-red-700 border-red-200"
                                 : "bg-emerald-50 text-emerald-700 border-emerald-200"
                             }`}
                           >
-                            {isFull ? "Đã đầy" : "Đang tuyển"} {c.participants}/{c.target}
+                            {isClosed ? "Đã đóng" : `${isFull ? "Đã đầy" : "Đang tuyển"} ${c.participants}/${c.target}`}
                           </span>
                         );
                       })()}
@@ -356,22 +337,13 @@ export function WardCampaignPage() {
                           <Eye size={15} />
                         </button>
                         {c.canManage && (
-                          <>
-                            <button
-                              onClick={() => handleEdit(c.id)}
-                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition"
-                              title="Chỉnh sửa"
-                            >
-                              <Pencil size={14} />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(c.id)}
-                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 text-red-500 hover:bg-red-50 hover:text-red-700 transition"
-                              title="Xóa"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </>
+                          <button
+                            onClick={() => handleEdit(c.id)}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition"
+                            title="Chỉnh sửa"
+                          >
+                            <Pencil size={14} />
+                          </button>
                         )}
                       </div>
                     </td>
@@ -438,16 +410,6 @@ function QuickDetailsPanel({
       <div className="space-y-4 overflow-hidden">
         <div className="relative h-44 rounded-xl overflow-hidden bg-slate-100 shrink-0">
           <img src={thumbnail} alt={campaign.name} className="w-full h-full object-cover" />
-          <span
-            className={`absolute top-3 left-3 px-2 py-0.5 text-[10px] font-extrabold rounded-full border ${catInfo.bg}`}
-          >
-            {catInfo.label}
-          </span>
-          <span
-            className={`absolute top-3 right-3 px-2 py-0.5 text-[10px] font-extrabold rounded-full ${statusInfo.bg}`}
-          >
-            {statusInfo.label}
-          </span>
         </div>
 
         <div className="space-y-2 overflow-y-auto max-h-[190px] pr-1">
@@ -472,6 +434,24 @@ function QuickDetailsPanel({
             <span>
               Thành viên: {campaign.participants}/{campaign.target}
             </span>
+          </div>
+          <div className="space-y-1.5 pt-1">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-slate-400">Lĩnh vực:</span>
+              <span
+                className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-extrabold ${catInfo.bg}`}
+              >
+                {catInfo.label}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-slate-400">Trạng thái:</span>
+              <span
+                className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-extrabold ${statusInfo.bg}`}
+              >
+                {statusInfo.label}
+              </span>
+            </div>
           </div>
         </div>
 

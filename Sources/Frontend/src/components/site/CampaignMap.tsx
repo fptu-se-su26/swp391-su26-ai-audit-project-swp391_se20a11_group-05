@@ -217,11 +217,11 @@ export function CampaignMap({
   const layers = {
     osm: {
       url: "https://mt1.google.com/vt/lyrs=m&hl=vi&gl=VN&x={x}&y={y}&z={z}",
-      attribution: "&copy; Google Maps",
+      attribution: "&copy; Google Maps Road",
     },
     satellite: {
       url: "https://mt1.google.com/vt/lyrs=y&hl=vi&gl=VN&x={x}&y={y}&z={z}",
-      attribution: "&copy; Google Maps",
+      attribution: "&copy; Google Maps Hybrid",
     },
   };
 

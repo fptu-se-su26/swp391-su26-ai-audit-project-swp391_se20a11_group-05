@@ -27,6 +27,7 @@ import { FeedbacksPage } from "./pages/FeedbacksPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { UsersPage } from "./pages/UsersPage";
 import { PermissionsPage } from "./pages/PermissionsPage";
+import { NewsManagement } from "../news/NewsManagement";
 import { toast } from "sonner";
 import {
   LayoutDashboard,
@@ -147,7 +148,7 @@ export function CityAdminDashboard() {
   const [userOpen, setUserOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<
-    "overview" | "feedbacks" | "reports" | "users" | "permissions"
+    "overview" | "feedbacks" | "reports" | "users" | "news" | "permissions"
   >("overview");
   const [fullscreen, setFullscreen] = useState(false);
 
@@ -278,6 +279,13 @@ export function CityAdminDashboard() {
       icon: Users,
       badge: null,
       description: "Quản lý người dùng",
+    },
+    {
+      name: "Tin tức",
+      tab: "news" as const,
+      icon: FileText,
+      badge: null,
+      description: "Quản lý tin tức",
     },
     // Tạm ẩn Phân quyền theo yêu cầu
     // {
@@ -1048,6 +1056,7 @@ export function CityAdminDashboard() {
                 {activeTab === "feedbacks" && <FeedbacksPage />}
                 {activeTab === "reports" && <ReportsPage />}
                 {activeTab === "users" && <UsersPage />}
+                {activeTab === "news" && <NewsManagement />}
                 {/* Tạm ẩn PermissionsPage */}
                 {/* {activeTab === "permissions" && <PermissionsPage />} */}
               </>

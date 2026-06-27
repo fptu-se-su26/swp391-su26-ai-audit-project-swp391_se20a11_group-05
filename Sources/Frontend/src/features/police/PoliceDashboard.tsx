@@ -74,6 +74,7 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
+import { NewsManagement } from "../news/NewsManagement";
 
 const CivicMap = clientOnly(() =>
   import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
@@ -648,6 +649,7 @@ export function PoliceDashboard() {
     { name: "Tổng quan", id: "overview", icon: Grid },
     { name: "Phản ánh", id: "feedbacks", icon: FileText },
     { name: "Theo dõi xử lý", id: "tracking", icon: Activity },
+    { name: "Tin tức", id: "news", icon: FileText },
     { name: "Báo cáo", id: "reports", icon: BarChart3 },
     { name: "Cấu hình", id: "settings", icon: Sliders },
   ];

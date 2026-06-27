@@ -46,6 +46,7 @@ import { getAdministrativeUnitLabel, getAdministrativeUnitName } from "@/lib/adm
 import { WardFeedbackManagementPage } from "./WardFeedbackManagementPage";
 import { WardCampaignPage } from "./WardCampaignPage";
 import { WardProfileConfigPage } from "./WardProfileConfigPage";
+import { NewsManagement } from "../news/NewsManagement";
 
 const CivicMap = clientOnly(() =>
   import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
@@ -53,7 +54,7 @@ const CivicMap = clientOnly(() =>
 
 import { WARD_CENTERS } from "@/lib/geojson";
 
-type WardSection = "overview" | "feedback" | "campaign" | "schedule" | "config";
+type WardSection = "overview" | "feedback" | "campaign" | "news" | "schedule" | "config";
 
 // Date formatting helper
 function formatDate(dateStr: string, includeTime = true): string {
@@ -113,7 +114,7 @@ export function WardDashboard() {
   const [userOpen, setUserOpen] = useState(false);
   const { tab, detailId } = Route.useSearch();
   const activeSection = (
-    tab && (["overview", "feedback", "campaign", "schedule", "config"].includes(tab) || tab.startsWith("campaign/"))
+    tab && (["overview", "feedback", "campaign", "news", "schedule", "config"].includes(tab) || tab.startsWith("campaign/"))
       ? (tab.startsWith("campaign/") ? "campaign" : tab)
       : "overview"
   ) as WardSection;
@@ -584,6 +585,7 @@ export function WardDashboard() {
     { name: "Tổng quan", section: "overview" as const, icon: Sliders },
     { name: "Phản ánh", section: "feedback" as const, icon: FileText },
     { name: "Chiến dịch", section: "campaign" as const, icon: Activity },
+    { name: "Tin tức", section: "news" as const, icon: FileText },
     { name: "Cấu hình", section: "config" as const, icon: Settings },
   ];
 
@@ -1735,6 +1737,8 @@ export function WardDashboard() {
             </>
           ) : activeSection === "campaign" ? (
             <WardCampaignPage />
+          ) : activeSection === "news" ? (
+            <NewsManagement />
           ) : activeSection === "config" ? (
             <WardProfileConfigPage
               user={user}

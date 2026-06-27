@@ -236,47 +236,11 @@ public class ChatbotService {
             List<String> needsMoreInfo = (List<String>) parsed.getOrDefault("needsMoreInfo", new ArrayList<>());
             
             if (needsMoreInfo.isEmpty()) {
-                // Đủ thông tin, gọi service tạo feedback
-                FeedbackRequest req = new FeedbackRequest();
-                req.setTitle("Phản ánh qua Chatbot");
-                req.setDescription((String) parsed.get("description"));
-                String address = (String) parsed.get("location");
-                req.setAddressDetails(address);
-                
-                String categoryCode = (String) parsed.getOrDefault("category", "URBAN_INFRASTRUCTURE");
-                req.setCategoryCode(categoryCode);
-                
-                // Mặc định tọa độ trung tâm Đà Nẵng
-                double lat = 16.0544;
-                double lon = 108.2022;
-                
-                // Gọi Nominatim Forward Geocoding
-                try {
-                    String url = "https://nominatim.openstreetmap.org/search?format=json&q=" + java.net.URLEncoder.encode(address + ", Da Nang, Vietnam", "UTF-8");
-                    org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
-                    org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
-                    headers.set("User-Agent", "SmartCity/1.0");
-                    org.springframework.http.ResponseEntity<java.util.List> response = restTemplate.exchange(url, org.springframework.http.HttpMethod.GET, new org.springframework.http.HttpEntity<>(headers), java.util.List.class);
-                    java.util.List<Map> results = response.getBody();
-                    if (results != null && !results.isEmpty()) {
-                        Map<String, Object> firstMatch = results.get(0);
-                        lat = Double.parseDouble(firstMatch.get("lat").toString());
-                        lon = Double.parseDouble(firstMatch.get("lon").toString());
-                    }
-                } catch (Exception e) {
-                    log.warn("Lỗi Geocoding cho địa chỉ {}: {}", address, e.getMessage());
-                }
-                
-                req.setLatitude(lat);
-                req.setLongitude(lon);
-                
-                try {
-                    Feedback created = feedbackService.createFeedback(req, user.getUsername());
-                    parsed.put("trackingCode", created.getTrackingCode());
-                    parsed.put("reply", "✅ Phản ánh của bạn đã được ghi nhận thành công! Mã tra cứu của bạn là **" + created.getTrackingCode() + "**.");
-                } catch (Exception e) {
-                    parsed.put("reply", "Rất tiếc, đã có lỗi xảy ra khi tạo phản ánh: " + e.getMessage());
-                }
+                // Đã thu thập đủ thông tin text (category, location, description)
+                // KHÔNG TẠO TRỰC TIẾP VÀO DB ĐỂ TRÁNH LỖI NGHIỆP VỤ (THIẾU GPS THẬT, THIẾU ẢNH CHỨNG MINH).
+                // Trả về intent và data để Frontend tự động mở Form điền sẵn.
+                parsed.put("reply", "✅ Em đã ghi nhận thông tin sơ bộ của cô chú.\n\n⚠️ Tuy nhiên, hệ thống Đô thị Thông minh yêu cầu **vị trí bản đồ chính xác** và **hình ảnh hiện trường** để xử lý sự cố hiệu quả nhất.\n\n👉 Cô chú vui lòng bấm vào nút **Tạo Phản Ánh** (hoặc để ứng dụng tự động mở) để đính kèm thêm ảnh và hoàn tất gửi đơn nhé!");
+                parsed.put("action", "OPEN_FEEDBACK_FORM"); // Signal cho Frontend để trigger màn hình Tạo Phản Ánh
             } else {
                 if (!parsed.containsKey("reply") || parsed.get("reply") == null || ((String)parsed.get("reply")).isEmpty()) {
                     parsed.put("reply", "Em đã ghi nhận thông tin. Cô chú vui lòng cung cấp thêm: " + String.join(", ", needsMoreInfo));

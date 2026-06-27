@@ -9,6 +9,8 @@ import com.example.smartcity.modules.campaign.dto.CampaignMessageRequest;
 import com.example.smartcity.modules.campaign.dto.CampaignParticipantResponse;
 import com.example.smartcity.modules.campaign.dto.CampaignRequest;
 import com.example.smartcity.modules.campaign.dto.CampaignResponse;
+import com.example.smartcity.modules.campaign.dto.CampaignJoinRequest;
+import com.example.smartcity.modules.campaign.dto.CampaignBatchApproveRequest;
 import com.example.smartcity.modules.campaign.service.CampaignService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -80,15 +82,52 @@ public class CampaignController {
 
     @PostMapping("/{id}/join")
     @PreAuthorize("hasRole('CITIZEN')")
-    public ResponseEntity<CampaignResponse> join(@PathVariable Long id, Authentication authentication) {
-        return ResponseEntity.ok(campaignService.join(id, authentication.getName()));
+    public ResponseEntity<CampaignResponse> join(
+            @PathVariable Long id,
+            @RequestBody @Valid CampaignJoinRequest request,
+            Authentication authentication) {
+        return ResponseEntity.ok(campaignService.join(id, request, authentication.getName()));
     }
 
-    @DeleteMapping("/{id}/leave")
+    @PostMapping("/{id}/leave")
     @PreAuthorize("hasRole('CITIZEN')")
-    public ResponseEntity<Void> leave(@PathVariable Long id, Authentication authentication) {
-        campaignService.leave(id, authentication.getName());
+    public ResponseEntity<Void> leave(
+            @PathVariable Long id,
+            @RequestBody(required = false) CampaignActionRequest request,
+            Authentication authentication) {
+        campaignService.leave(id, request, authentication.getName());
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/confirm")
+    @PreAuthorize("hasRole('CITIZEN')")
+    public ResponseEntity<Void> confirmWaitlist(@PathVariable Long id, Authentication authentication) {
+        campaignService.confirmWaitlist(id, authentication.getName());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{id}/participants/batch-approve")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN')")
+    public ResponseEntity<List<CampaignParticipantResponse>> batchApprove(
+            @PathVariable Long id,
+            @RequestBody @Valid CampaignBatchApproveRequest request,
+            Authentication authentication) {
+        return ResponseEntity.ok(campaignService.batchApproveParticipants(id, request, authentication.getName()));
+    }
+
+    @PostMapping("/{id}/participants/{participantId}/no-show")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN')")
+    public ResponseEntity<CampaignParticipantResponse> markNoShow(
+            @PathVariable Long id,
+            @PathVariable Long participantId,
+            Authentication authentication) {
+        return ResponseEntity.ok(campaignService.markNoShow(id, participantId, authentication.getName()));
+    }
+
+    @PostMapping("/email-otp/send")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<String> sendEmailOtp(Authentication authentication) {
+        return ResponseEntity.ok(campaignService.sendEmailOtp(authentication.getName()));
     }
 
     @GetMapping("/{id}/participants")

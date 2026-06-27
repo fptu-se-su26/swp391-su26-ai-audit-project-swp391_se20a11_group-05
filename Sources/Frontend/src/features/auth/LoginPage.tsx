@@ -6,6 +6,7 @@ import { AUTHORITY_ROLES, parseBackendRole, Role } from "@/lib/roles";
 import { authApi, ApiError } from "@/lib/api";
 import { requestCurrentGpsLocation } from "@/lib/location";
 import { buildLoginLockoutMessage, getLoginLockoutSeconds } from "@/lib/loginLockout";
+import { signInWithGoogle, signOutFirebase } from "@/lib/firebase";
 import { Loader2, AlertCircle, Eye, EyeOff, AtSign, Lock } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 import { LoginHeroPanel } from "./LoginHeroPanel";
@@ -45,6 +46,7 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lockoutSeconds, setLockoutSeconds] = useState<number | null>(null);
   const [mfaRequired, setMfaRequired] = useState(false);
@@ -180,6 +182,83 @@ export function LoginPage() {
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ─── Google Sign-In Handler ──────────────────────────────────
+  const handleGoogleLogin = async () => {
+    clearLoginError();
+    setGoogleLoading(true);
+
+    try {
+      // 1. Mở popup Google, lấy Firebase ID Token
+      const googleResult = await signInWithGoogle();
+
+      // 2. Gửi token lên backend để xác thực
+      try {
+        // 3a. Thành công → đăng nhập bình thường
+        // firebaseLogin trả về TokenPairResponse: { accessToken, refreshToken, username, role, org }
+        const data = await authApi.firebaseLogin(googleResult.idToken);
+        const role = parseBackendRole(data.role);
+        if (AUTHORITY_ROLES.has(role)) {
+          setError(
+            locale === "vi"
+              ? "Tài khoản này không tồn tại trên cổng công dân."
+              : "This account does not exist on the citizen portal.",
+          );
+          // Đăng xuất khỏi Firebase để tránh tự động login lần sau
+          await signOutFirebase().catch(() => {});
+          return;
+        }
+
+        login({
+          name: data.username,
+          role,
+          org: data.org || "",
+          token: data.accessToken,   // TokenPairResponse dùng accessToken (không phải token)
+        });
+        void requestCurrentGpsLocation().catch(() => {});
+        navigate({ to: citizenRedirect });
+      } catch (apiErr) {
+        if (apiErr instanceof ApiError && apiErr.status === 404) {
+          // 3b. Tài khoản chưa tồn tại trong hệ thống
+          // → Đẩy về trang đăng ký, kèm email đã xác minh qua Google
+          await signOutFirebase().catch(() => {});
+          navigate({
+            to: "/register",
+            search: {
+              googleEmail: googleResult.email ?? undefined,
+              googleName: googleResult.displayName ?? undefined,
+            },
+          });
+        } else if (apiErr instanceof ApiError && apiErr.status === 403) {
+          // 3c. Tài khoản bị khóa hoặc chưa kích hoạt
+          await signOutFirebase().catch(() => {});
+          setError(apiErr.message);
+        } else {
+          await signOutFirebase().catch(() => {});
+          setError(
+            apiErr instanceof ApiError
+              ? apiErr.message
+              : locale === "vi"
+                ? "Lỗi kết nối. Vui lòng thử lại."
+                : "Connection error. Please try again.",
+          );
+        }
+      }
+    } catch (popupErr) {
+      // Lỗi popup (user đóng popup, hoặc cấu hình Firebase sai)
+      const msg = popupErr instanceof Error ? popupErr.message : "";
+      if (!msg.includes("popup-closed-by-user") && !msg.includes("cancelled-popup-request")) {
+        setError(
+          locale === "vi"
+            ? "Không thể mở cửa sổ Google. Vui lòng kiểm tra cài đặt trình duyệt."
+            : "Could not open Google window. Please check your browser settings.",
+        );
+      }
+      // Nếu user tự đóng popup → không hiện lỗi
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -346,14 +425,24 @@ export function LoginPage() {
 
                 {/* Google Sign In Option */}
                 <button
+                  id="btn-google-login"
                   type="button"
-                  onClick={() => {
-                    // Google OAuth placeholder
-                  }}
-                  className="w-full min-h-[52px] rounded-xl border-2 border-slate-200 bg-white text-sm font-semibold text-ink hover:border-gov-blue hover:bg-slate-50 transition-all flex items-center justify-center gap-3"
+                  onClick={handleGoogleLogin}
+                  disabled={googleLoading || loading}
+                  className="w-full min-h-[52px] rounded-xl border-2 border-slate-200 bg-white text-sm font-semibold text-ink hover:border-gov-blue hover:bg-slate-50 transition-all flex items-center justify-center gap-3 disabled:opacity-60"
                 >
-                  <GoogleIcon />
-                  {locale === "vi" ? "Tiếp tục với Google" : "Continue with Google"}
+                  {googleLoading ? (
+                    <Loader2 size={18} className="animate-spin text-gov-blue" />
+                  ) : (
+                    <GoogleIcon />
+                  )}
+                  {googleLoading
+                    ? locale === "vi"
+                      ? "Đang xác thực..."
+                      : "Authenticating..."
+                    : locale === "vi"
+                      ? "Tiếp tục với Google"
+                      : "Continue with Google"}
                 </button>
               </form>
             )}

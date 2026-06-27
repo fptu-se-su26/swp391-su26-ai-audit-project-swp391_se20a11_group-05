@@ -503,7 +503,7 @@ export function PoliceDashboard() {
           diffDays,
         };
       })
-      .sort((a, b) => b.diffDays - a.diffDays)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 5);
   }, [feedbacks]);
 
@@ -675,7 +675,7 @@ export function PoliceDashboard() {
           {!sidebarCollapsed && (
             <div className="mt-3 text-center">
               <span className="font-extrabold text-[13px] tracking-wider uppercase block text-amber-400 leading-snug px-2">
-                {user?.org || "CÔNG AN ĐÀ NẴNG"}
+                CÔNG AN ĐÀ NẴNG
               </span>
             </div>
           )}
@@ -863,7 +863,7 @@ export function PoliceDashboard() {
                     <ChevronDown size={14} className="text-slate-400" />
                   </div>
                   <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block mt-0.5">
-                    {user?.org || "Admin công an phường"}
+                    {user?.org || "Quản trị viên"}
                   </span>
                 </div>
               </button>
@@ -875,7 +875,7 @@ export function PoliceDashboard() {
                       {user?.name || "Thượng úy Nguyễn Văn An"}
                     </div>
                     <div className="text-[10px] text-slate-400 font-semibold truncate mt-0.5">
-                      {user?.org || "Admin công an phường"}
+                      {user?.org || "Quản trị viên"}
                     </div>
                   </div>
                   <Link
@@ -1015,7 +1015,7 @@ export function PoliceDashboard() {
                     <div>
                       <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
                         <h3 className="font-extrabold text-base text-[#0B2545]">
-                          Phản ánh ưu tiên cao
+                          Phản ánh mới cần xử lý
                         </h3>
                         <Link
                           to="/my-reports"
@@ -1074,11 +1074,8 @@ export function PoliceDashboard() {
                               ))
                             ) : priorityReports.length === 0 ? (
                               <tr>
-                                <td
-                                  colSpan={6}
-                                  className="px-5 py-8 text-center text-xs text-slate-400"
-                                >
-                                  Chưa có phản ánh ưu tiên cao.
+                                <td colSpan={6} className="px-5 py-8 text-center text-xs text-slate-400">
+                                  Chưa có phản ánh mới cần xử lý.
                                 </td>
                               </tr>
                             ) : (

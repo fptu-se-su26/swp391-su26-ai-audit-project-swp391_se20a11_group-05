@@ -303,7 +303,7 @@ export function CivicMap({
                     : "text-slate-700 hover:bg-slate-50 font-semibold"
                 }`}
               >
-                <span>🗺️</span> Bản đồ đường phố (OSM)
+                <span>🗺️</span> Bản đồ (Google Maps)
               </button>
               <button
                 type="button"

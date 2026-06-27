@@ -275,7 +275,7 @@ export function CampaignMap({
                     : "text-slate-700 hover:bg-slate-50 font-semibold"
                 }`}
               >
-                🗺️ Bản đồ đường phố
+                🗺️ Bản đồ (Google Maps)
               </button>
               <button
                 type="button"

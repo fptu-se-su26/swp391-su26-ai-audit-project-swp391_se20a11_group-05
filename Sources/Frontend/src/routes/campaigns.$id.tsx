@@ -305,7 +305,7 @@ export function CampaignDetailPageComponent({
           endTime: editEndTime || undefined,
           latitude: editLatitude ?? undefined,
           longitude: editLongitude ?? undefined,
-          boundaryGeojson: campaign.boundaryGeojson ?? undefined,
+          boundaryGeojson: campaign?.boundaryGeojson ?? undefined,
           coverImageUrl: nextImageUrls[0] || undefined,
           imageUrls: nextImageUrls,
         },
@@ -1083,8 +1083,8 @@ function GroupChatNavigationCard({
   const latest = chat.data?.at(-1);
   const latestPreview = latest
     ? `${latest.senderName}: ${latest.message}`
-    : "Cán Bộ Phường 1: Chiến dịch sẽ bắt đầu lúc 6h sáng 19/6.";
-  const avatars = ["CB", "A", "B"];
+    : `${campaign.createdBy || "Người chủ trì"}: Chiến dịch sẽ bắt đầu lúc 6h sáng 19/6.`;
+  const avatars = [campaign.createdBy ? campaign.createdBy.split(" ").at(-1)?.[0] || "H" : "CB", "A", "B"];
 
   return (
     <section className="rounded-2xl border border-violet-100 bg-white p-6 shadow-lg">

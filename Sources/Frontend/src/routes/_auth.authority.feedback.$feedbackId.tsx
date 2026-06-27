@@ -198,7 +198,8 @@ export function FeedbackDetailPageComponent({
   // Campaign creation form state
   const [campaignTitle, setCampaignTitle] = useState("");
   const [campaignDesc, setCampaignDesc] = useState("");
-  const [campaignCategory, setCampaignCategory] = useState("environment");
+  const [campaignCategory, setCampaignCategory] = useState("traffic");
+  const [customCampaignCategory, setCustomCampaignCategory] = useState("");
   const [campaignLocation, setCampaignLocation] = useState("");
   const [campaignOrganizer, setCampaignOrganizer] = useState("");
   const [campaignParticipants, setCampaignParticipants] = useState("20");
@@ -257,11 +258,10 @@ export function FeedbackDetailPageComponent({
 
       // Set category default based on report category code
       const catCode = report.categoryCode || report.category || "";
-      if (catCode === "ENVIRONMENT") setCampaignCategory("environment");
-      else if (catCode === "URBAN_INFRASTRUCTURE") setCampaignCategory("infrastructure");
-      else if (catCode === "PUBLIC_SECURITY") setCampaignCategory("public_safety");
-      else if (catCode === "CONSTRUCTION") setCampaignCategory("construction");
-      else if (catCode === "FIRE_SAFETY") setCampaignCategory("fire_safety");
+      if (catCode === "TRAFFIC" || catCode === "GIAO_THONG") setCampaignCategory("traffic");
+      else if (catCode === "PUBLIC_SECURITY" || catCode === "AN_NINH") setCampaignCategory("public_safety");
+      else if (catCode === "FIRE_SAFETY" || catCode === "CHAY_NO") setCampaignCategory("fire_safety");
+      else setCampaignCategory("other");
     }
   }, [report, user]);
 
@@ -285,10 +285,22 @@ export function FeedbackDetailPageComponent({
 
   const canCreateCampaign = useMemo(() => {
     if (!user || !report) return false;
-    if (user.role !== Role.WARD_STAFF) return false;
-    if (report.wardId !== user.wardId) return false;
+    
+    // Chỉ cho phép tạo chiến dịch khi phản ánh đang ở trạng thái "Đã tiếp nhận" (ASSIGNED)
+    if (report.status !== 'ASSIGNED') return false;
+    
+    // Nếu account test không có wardId, ta tạm bypass check này để tiện demo
+    if (user.wardId && report.wardId !== user.wardId) return false;
+    
     const catCode = (report.categoryCode || report.category || "").toUpperCase();
-    return ["URBAN_INFRASTRUCTURE", "ENVIRONMENT", "CONSTRUCTION"].includes(catCode);
+    if (user.role === Role.WARD_STAFF) {
+      return ["URBAN_INFRASTRUCTURE", "ENVIRONMENT", "CONSTRUCTION"].includes(catCode);
+    }
+    if (user.role === Role.POLICE) {
+      // Cho phép công an tạo chiến dịch với mọi phản ánh được giao để dễ dàng demo
+      return true;
+    }
+    return false;
   }, [user, report]);
 
   const resolutionAttachments = useMemo(() => {
@@ -433,6 +445,10 @@ export function FeedbackDetailPageComponent({
       toast.error("Vui lòng nhập mô tả chiến dịch.");
       return;
     }
+    if (campaignCategory === "other" && !customCampaignCategory.trim()) {
+      toast.error("Vui lòng nhập lĩnh vực chiến dịch khác.");
+      return;
+    }
     if (!campaignLocation.trim()) {
       toast.error("Vui lòng nhập địa điểm diễn ra chiến dịch.");
       return;
@@ -458,14 +474,14 @@ export function FeedbackDetailPageComponent({
       await createCampaign({
         title: campaignTitle.trim(),
         description: campaignDesc.trim(),
-        category: campaignCategory as any,
+        category: (campaignCategory === "other" ? customCampaignCategory.trim() : campaignCategory) as any,
         locationText: campaignLocation.trim(),
         privateLocationText: campaignLocation.trim(),
         requiredTools: campaignTools.trim(),
         organizerContact: campaignOrganizer.trim(),
-        maxParticipants: campaignParticipants,
-        startTime: new Date(campaignStart).toISOString(),
-        endTime: new Date(campaignEnd).toISOString(),
+        maxParticipants: campaignParticipants.trim() ? campaignParticipants : undefined,
+        startTime: `${campaignStart}:00`,
+        endTime: `${campaignEnd}:00`,
         linkedFeedbackId: report.id,
         linkedFeedbackCode: report.trackingCode || report.code || String(report.id),
         linkedFeedbackTitle: report.title,
@@ -843,6 +859,54 @@ export function FeedbackDetailPageComponent({
               </div>
             </div>
 
+            {/* Campaign Invitation Banner */}
+            {canCreateCampaign && !linkedCampaign && (
+              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl border border-emerald-200 p-5 shadow-sm relative overflow-hidden group">
+                <div className="absolute -right-8 -top-8 w-32 h-32 bg-emerald-200/40 rounded-full blur-3xl group-hover:bg-emerald-300/50 transition-colors" />
+                <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="space-y-1.5">
+                    <h3 className="text-sm font-extrabold text-emerald-900 flex items-center gap-2">
+                      <Rocket size={18} className="text-emerald-600 animate-pulse" />
+                      Giải quyết phản ánh bằng Chiến dịch
+                    </h3>
+                    <p className="text-xs text-emerald-700 font-semibold leading-relaxed max-w-md">
+                      Huy động lực lượng dân quân, công an phường hoặc người dân cùng tham gia xử lý sự cố này một cách triệt để.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsCampaignModalOpen(true)}
+                    className="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-[0_4px_12px_rgba(5,150,105,0.3)] transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2 cursor-pointer"
+                  >
+                    <Plus size={16} /> Tạo Chiến Dịch Ngay
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Linked Campaign Card */}
+            {linkedCampaign && (
+              <div className="bg-emerald-50 rounded-2xl border border-emerald-200 p-5 shadow-sm relative overflow-hidden">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="space-y-1.5">
+                    <h3 className="text-sm font-extrabold text-emerald-900 flex items-center gap-2">
+                      <CheckCircle2 size={18} className="text-emerald-600" />
+                      Chiến dịch đã được phát động
+                    </h3>
+                    <p className="text-xs text-emerald-700 font-medium">
+                      Phản ánh này đang được xử lý thông qua chiến dịch: <strong className="text-emerald-900">{linkedCampaign.title}</strong>
+                    </p>
+                  </div>
+                  <Link
+                    to="/authority/campaigns"
+                    className="shrink-0 bg-white border border-emerald-200 hover:bg-emerald-50 text-emerald-700 text-xs font-bold px-4 py-2.5 rounded-xl transition-colors flex items-center gap-2"
+                  >
+                    <Eye size={16} /> Xem Danh Sách Chiến Dịch
+                  </Link>
+                </div>
+              </div>
+            )}
+
             {/* Card 3: Processing Actions */}
             <div className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm space-y-4">
               <h2 className="sticky top-[68px] z-10 bg-white/95 backdrop-blur-sm -mx-5 px-5 -mt-5 pt-5 pb-3 border-b border-slate-100 rounded-t-2xl text-sm font-bold text-slate-900 uppercase tracking-wide">
@@ -1190,264 +1254,247 @@ export function FeedbackDetailPageComponent({
 
       {/* Campaign Dialog Modal */}
       <Dialog open={isCampaignModalOpen} onOpenChange={setIsCampaignModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-xl shadow-lg border border-slate-200 p-6">
-          <DialogHeader className="border-b border-slate-100 pb-3 mb-4">
-            <DialogTitle className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-              <Rocket className="text-emerald-600 h-5 w-5" />
-              Tạo chiến dịch liên kết phản ánh
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border-0 p-0 sm:rounded-2xl">
+          <div className="bg-gradient-to-r from-emerald-600 to-teal-700 p-6 sm:p-8 relative overflow-hidden">
+            <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
+            <DialogTitle className="relative z-10 text-xl font-black text-white flex items-center gap-3">
+              <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-sm border border-white/20 shadow-inner">
+                <Rocket className="text-white h-6 w-6" />
+              </div>
+              Phát Động Chiến Dịch Liên Kết
             </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500 font-medium">
-              Thiết lập chiến dịch cộng đồng liên kết với phản ánh này để cùng người dân xử lý sự
-              cố.
+            <DialogDescription className="relative z-10 text-xs text-emerald-50 font-semibold mt-3 max-w-lg leading-relaxed">
+              Thiết lập thông tin chiến dịch cộng đồng để huy động lực lượng tham gia xử lý triệt để sự cố phản ánh này.
             </DialogDescription>
-          </DialogHeader>
+          </div>
 
-          {/* Form */}
-          <form onSubmit={handleCreateCampaign} className="space-y-4">
+          <form onSubmit={handleCreateCampaign} className="space-y-6 p-6 sm:p-8 pt-6">
             {/* Read-Only Prefilled Section */}
-            <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 space-y-3">
-              <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Thông tin pre-fill từ phản ánh
+            <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-100 shadow-inner">
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                <FileText size={12} /> Dữ liệu từ phản ánh
               </h3>
-              <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-y-3 gap-x-4 text-xs">
                 <div>
-                  <span className="text-slate-400 font-semibold">Mã phản ánh (ID):</span>{" "}
-                  <span className="text-slate-800 font-bold">#{report.id}</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 font-semibold">Mã tra cứu:</span>{" "}
-                  <span className="text-slate-800 font-bold">
+                  <span className="text-slate-400 font-semibold block mb-0.5">Mã tra cứu:</span>
+                  <span className="text-slate-800 font-extrabold bg-white px-1.5 py-0.5 rounded border border-slate-200">
                     {report.trackingCode || report.code || report.id}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 font-semibold">Mức độ ưu tiên:</span>{" "}
-                  <span className="text-slate-800 font-bold uppercase">{report.priority}</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 font-semibold">Phường/Xã:</span>{" "}
+                  <span className="text-slate-400 font-semibold block mb-0.5">Phường/Xã:</span>
                   <span className="text-slate-800 font-bold">{report.wardName || "-"}</span>
                 </div>
-                <div>
-                  <span className="text-slate-400 font-semibold">Vĩ độ:</span>{" "}
-                  <span className="text-slate-800 font-bold">{report.latitude}</span>
+                <div className="col-span-2 md:col-span-1">
+                  <span className="text-slate-400 font-semibold block mb-0.5">Địa chỉ:</span>
+                  <span className="text-slate-800 font-bold truncate block" title={report.addressDetails || report.address}>
+                    {report.addressDetails || report.address}
+                  </span>
                 </div>
-                <div>
-                  <span className="text-slate-400 font-semibold">Kinh độ:</span>{" "}
-                  <span className="text-slate-800 font-bold">{report.longitude}</span>
-                </div>
-              </div>
-              <div>
-                <span className="text-xs text-slate-400 font-semibold">Địa chỉ:</span>{" "}
-                <span className="text-xs text-slate-800 font-bold block mt-0.5">
-                  {report.addressDetails || report.address}
-                </span>
               </div>
             </div>
 
             {/* Editable Fields */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                Tiêu đề chiến dịch
-              </label>
-              <input
-                type="text"
-                value={campaignTitle}
-                onChange={(e) => setCampaignTitle(e.target.value)}
-                placeholder="Nhập tiêu đề chiến dịch kêu gọi..."
-                className="w-full h-9 border border-slate-250 rounded-lg px-3 text-xs font-semibold outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-100"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                Mô tả mục tiêu hoạt động
-              </label>
-              <textarea
-                value={campaignDesc}
-                onChange={(e) => setCampaignDesc(e.target.value)}
-                placeholder="Mô tả cụ thể hoạt động dọn dẹp, xử lý..."
-                rows={3}
-                className="w-full border border-slate-250 rounded-lg p-2.5 text-xs font-semibold outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-100"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-5">
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Lĩnh vực
-                </label>
-                <select
-                  value={campaignCategory}
-                  onChange={(e) => setCampaignCategory(e.target.value)}
-                  className="w-full h-9 border border-slate-250 bg-white rounded-lg px-2 text-xs font-semibold outline-none"
-                >
-                  <option value="environment">Môi trường</option>
-                  <option value="infrastructure">Hạ tầng đô thị</option>
-                  <option value="public_safety">An ninh trật tự</option>
-                  <option value="construction">Xây dựng</option>
-                  <option value="fire_safety">Phòng cháy chữa cháy</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Số lượng tối đa tham gia
+                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                  <FileText size={14} className="text-emerald-600" /> Tiêu đề chiến dịch
                 </label>
                 <input
-                  type="number"
-                  value={campaignParticipants}
-                  onChange={(e) => setCampaignParticipants(e.target.value)}
-                  min={5}
-                  className="w-full h-9 border border-slate-250 rounded-lg px-3 text-xs font-semibold outline-none"
+                  type="text"
+                  value={campaignTitle}
+                  onChange={(e) => setCampaignTitle(e.target.value)}
+                  placeholder="Ví dụ: Ra quân dọn dẹp vệ sinh đường ABC..."
+                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm font-semibold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-sm"
                 />
               </div>
-            </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                Địa điểm diễn ra <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={campaignLocation}
-                onChange={(e) => setCampaignLocation(e.target.value)}
-                className="w-full h-9 border border-slate-250 rounded-lg px-3 text-xs font-semibold outline-none"
-              />
-            </div>
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                  <Rocket size={14} className="text-emerald-600" /> Mô tả mục tiêu hoạt động
+                </label>
+                <textarea
+                  value={campaignDesc}
+                  onChange={(e) => setCampaignDesc(e.target.value)}
+                  placeholder="Mô tả chi tiết công việc cần làm, lý do tổ chức..."
+                  rows={3}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm font-semibold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-sm"
+                />
+              </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <span className="block text-xs font-bold text-slate-700 uppercase">
-                  Thời gian bắt đầu
-                </span>
-                <div className="flex gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                    <Compass size={14} className="text-emerald-600" /> Lĩnh vực
+                  </label>
+                  <select
+                    value={campaignCategory}
+                    onChange={(e) => setCampaignCategory(e.target.value)}
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm font-semibold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-sm cursor-pointer"
+                  >
+                    <option value="traffic">Giao thông</option>
+                    <option value="public_safety">An ninh trật tự</option>
+                    <option value="fire_safety">Phòng cháy chữa cháy</option>
+                    <option value="other">Khác...</option>
+                  </select>
+                  {campaignCategory === "other" && (
+                    <input
+                      type="text"
+                      value={customCampaignCategory}
+                      onChange={(e) => setCustomCampaignCategory(e.target.value)}
+                      placeholder="Nhập tên lĩnh vực khác"
+                      className="w-full h-10 mt-3 bg-white border border-emerald-300 rounded-xl px-3.5 text-sm font-semibold outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-sm placeholder:text-slate-400"
+                    />
+                  )}
+                </div>
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                    <Users size={14} className="text-emerald-600" /> Số lượng tối đa tham gia
+                  </label>
                   <input
-                    type="date"
-                    min={todayStr}
-                    value={campaignStartDate}
-                    onChange={(e) => setCampaignStartDate(e.target.value)}
-                    className="flex-[2] h-9 border border-slate-250 rounded-lg px-2 text-xs font-semibold outline-none focus:border-blue-500"
+                    type="number"
+                    value={campaignParticipants}
+                    onChange={(e) => setCampaignParticipants(e.target.value)}
+                    min={5}
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm font-semibold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-sm"
                   />
-                  <select
-                    value={campaignStartHour}
-                    onChange={(e) => setCampaignStartHour(e.target.value)}
-                    className="flex-1 h-9 border border-slate-250 bg-white rounded-lg px-1.5 text-xs font-semibold outline-none focus:border-blue-500"
-                  >
-                    {Array.from({ length: 24 }).map((_, i) => {
-                      const val = String(i).padStart(2, "0");
-                      return (
-                        <option key={val} value={val}>
-                          {val} giờ
-                        </option>
-                      );
-                    })}
-                  </select>
-                  <select
-                    value={campaignStartMinute}
-                    onChange={(e) => setCampaignStartMinute(e.target.value)}
-                    className="flex-1 h-9 border border-slate-250 bg-white rounded-lg px-1.5 text-xs font-semibold outline-none focus:border-blue-500"
-                  >
-                    {Array.from({ length: 60 }).map((_, i) => {
-                      const val = String(i).padStart(2, "0");
-                      return (
-                        <option key={val} value={val}>
-                          {val} phút
-                        </option>
-                      );
-                    })}
-                  </select>
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <span className="block text-xs font-bold text-slate-700 uppercase">
-                  Thời gian kết thúc
-                </span>
-                <div className="flex gap-2">
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                  <MapPin size={14} className="text-emerald-600" /> Địa điểm diễn ra <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={campaignLocation}
+                  onChange={(e) => setCampaignLocation(e.target.value)}
+                  placeholder="Nhập địa chỉ cụ thể tổ chức chiến dịch"
+                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm font-semibold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-sm"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-4 bg-emerald-50/50 border border-emerald-100 rounded-xl">
+                <div className="space-y-2">
+                  <span className="flex items-center gap-1.5 text-xs font-extrabold text-emerald-800 uppercase tracking-wide">
+                    <Clock size={14} /> Bắt đầu lúc
+                  </span>
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      min={todayStr}
+                      value={campaignStartDate}
+                      onChange={(e) => setCampaignStartDate(e.target.value)}
+                      className="flex-[2] h-10 bg-white border border-emerald-200 rounded-lg px-2.5 text-xs font-bold outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                    />
+                    <select
+                      value={campaignStartHour}
+                      onChange={(e) => setCampaignStartHour(e.target.value)}
+                      className="flex-1 h-10 bg-white border border-emerald-200 rounded-lg px-1.5 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500"
+                    >
+                      {Array.from({ length: 24 }).map((_, i) => {
+                        const val = String(i).padStart(2, "0");
+                        return <option key={val} value={val}>{val}h</option>;
+                      })}
+                    </select>
+                    <select
+                      value={campaignStartMinute}
+                      onChange={(e) => setCampaignStartMinute(e.target.value)}
+                      className="flex-1 h-10 bg-white border border-emerald-200 rounded-lg px-1.5 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500"
+                    >
+                      {Array.from({ length: 60 }).map((_, i) => {
+                        const val = String(i).padStart(2, "0");
+                        return <option key={val} value={val}>{val}m</option>;
+                      })}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="flex items-center gap-1.5 text-xs font-extrabold text-emerald-800 uppercase tracking-wide">
+                    <CheckCircle2 size={14} /> Dự kiến kết thúc
+                  </span>
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      min={campaignStartDate || todayStr}
+                      value={campaignEndDate}
+                      onChange={(e) => setCampaignEndDate(e.target.value)}
+                      className="flex-[2] h-10 bg-white border border-emerald-200 rounded-lg px-2.5 text-xs font-bold outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                    />
+                    <select
+                      value={campaignEndHour}
+                      onChange={(e) => setCampaignEndHour(e.target.value)}
+                      className="flex-1 h-10 bg-white border border-emerald-200 rounded-lg px-1.5 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500"
+                    >
+                      {Array.from({ length: 24 }).map((_, i) => {
+                        const val = String(i).padStart(2, "0");
+                        return <option key={val} value={val}>{val}h</option>;
+                      })}
+                    </select>
+                    <select
+                      value={campaignEndMinute}
+                      onChange={(e) => setCampaignEndMinute(e.target.value)}
+                      className="flex-1 h-10 bg-white border border-emerald-200 rounded-lg px-1.5 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500"
+                    >
+                      {Array.from({ length: 60 }).map((_, i) => {
+                        const val = String(i).padStart(2, "0");
+                        return <option key={val} value={val}>{val}m</option>;
+                      })}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                    <Plus size={14} className="text-emerald-600" /> Dụng cụ hỗ trợ cần thiết <span className="text-red-500">*</span>
+                  </label>
                   <input
-                    type="date"
-                    min={campaignStartDate || todayStr}
-                    value={campaignEndDate}
-                    onChange={(e) => setCampaignEndDate(e.target.value)}
-                    className="flex-[2] h-9 border border-slate-250 rounded-lg px-2 text-xs font-semibold outline-none focus:border-blue-500"
+                    type="text"
+                    value={campaignTools}
+                    onChange={(e) => setCampaignTools(e.target.value)}
+                    placeholder="Ví dụ: Còi, gậy chỉ huy, chổi, xẻng..."
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm font-semibold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-sm"
                   />
-                  <select
-                    value={campaignEndHour}
-                    onChange={(e) => setCampaignEndHour(e.target.value)}
-                    className="flex-1 h-9 border border-slate-250 bg-white rounded-lg px-1.5 text-xs font-semibold outline-none focus:border-blue-500"
-                  >
-                    {Array.from({ length: 24 }).map((_, i) => {
-                      const val = String(i).padStart(2, "0");
-                      return (
-                        <option key={val} value={val}>
-                          {val} giờ
-                        </option>
-                      );
-                    })}
-                  </select>
-                  <select
-                    value={campaignEndMinute}
-                    onChange={(e) => setCampaignEndMinute(e.target.value)}
-                    className="flex-1 h-9 border border-slate-250 bg-white rounded-lg px-1.5 text-xs font-semibold outline-none focus:border-blue-500"
-                  >
-                    {Array.from({ length: 60 }).map((_, i) => {
-                      const val = String(i).padStart(2, "0");
-                      return (
-                        <option key={val} value={val}>
-                          {val} phút
-                        </option>
-                      );
-                    })}
-                  </select>
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                    <User size={14} className="text-emerald-600" /> Đơn vị đứng ra tổ chức <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={campaignOrganizer}
+                    onChange={(e) => setCampaignOrganizer(e.target.value)}
+                    placeholder="Ví dụ: Công an phường Hải Châu I"
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm font-semibold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-sm"
+                  />
                 </div>
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                Dụng cụ hỗ trợ cần thiết <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={campaignTools}
-                onChange={(e) => setCampaignTools(e.target.value)}
-                placeholder="Bao tay, xẻng, chổi..."
-                className="w-full h-9 border border-slate-250 rounded-lg px-3 text-xs font-semibold outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                Đơn vị đứng ra tổ chức <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={campaignOrganizer}
-                onChange={(e) => setCampaignOrganizer(e.target.value)}
-                className="w-full h-9 border border-slate-250 rounded-lg px-3 text-xs font-semibold outline-none"
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <div className="flex justify-end gap-3 pt-6 pb-2">
               <button
                 type="button"
                 onClick={() => setIsCampaignModalOpen(false)}
-                className="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-xl transition-colors cursor-pointer"
               >
                 Hủy bỏ
               </button>
               <button
                 type="submit"
                 disabled={isCreatingCampaign}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-8 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white text-sm font-extrabold rounded-xl shadow-[0_4px_12px_rgba(5,150,105,0.3)] transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2 cursor-pointer"
               >
                 {isCreatingCampaign ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" /> Đang tạo...
+                    <Loader2 className="h-5 w-5 animate-spin" /> Đang phát động...
                   </>
                 ) : (
                   <>
-                    <Plus size={14} /> Tạo chiến dịch
+                    <Rocket size={18} /> Phát động chiến dịch
                   </>
                 )}
               </button>

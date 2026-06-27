@@ -252,6 +252,21 @@
 - **Creative Synthesis:** Sau khi gộp code, tôi đã phát hiện ra xung đột phiên bản di chuyển DB Flyway (cả nhánh local và nhánh `origin/Product` đều tạo migration version `V8`). Tôi đã chủ động đổi tên file migration local thành `V9` để tránh xung đột làm sập ứng dụng khi start.
 - **Decision Ownership:** Quyết định hoàn tất tái cấu trúc, sửa lại toàn bộ mock test cho FeedbackServiceTest và AutoDispatchServiceTest để compile thành công, tiến hành chạy test suite (45/45 pass) và khởi động kiểm thử trực tiếp hệ thống.
 
+### Entry #: 019
+**Prompt Type:** ARCHITECTURE-DESIGN & PROBLEM-SOLVING
+**Stage/Component:** Frontend Authentication — Google Firebase Sign-In
+**Problem/Context:** Hệ thống đăng nhập hiện tại chỉ hỗ trợ username/password. Yêu cầu tích hợp thêm đăng nhập bằng Google thông qua Firebase Auth để nâng cao trải nghiệm người dùng (Citizen Portal). Cần đảm bảo luồng hoạt động đúng với Backend hiện có (endpoint `/api/auth/firebase-login` nhận Firebase ID Token và trả về `TokenPairResponse`).
+**Prompt to AI:** "trc khi thêm thêm vô env thì kiểm tra logic nghiệp vụ" — yêu cầu kiểm tra toàn bộ luồng Frontend → Backend trước khi triển khai thực tế.
+**AI Response (Summary):** AI đã đọc toàn bộ 4 thành phần: `firebase.ts` (khởi tạo SDK), `LoginPage.tsx` (handler Google Login), `api.ts` (kiểu dữ liệu và API call), `AuthService.java` (backend xác thực). Phát hiện bug nghiêm trọng: Frontend đang đọc field `token` nhưng backend trả về `accessToken` trong `TokenPairResponse`. AI sửa bug, bổ sung type `TokenPairResponse`, cài đặt thư viện `firebase` và tạo file `.env.local.example` mẫu.
+
+**Human Delta & Reflection:**
+- **Critical Thinking:** Việc kiểm tra logic nghiệp vụ trước khi điền biến môi trường là quyết định đúng đắn — phát hiện được bug type mismatch (`token` vs `accessToken`) mà nếu chỉ chạy thử sẽ âm thầm thất bại mà không báo lỗi rõ ràng.
+- **Contextualization:** Trong hệ thống Smart City, việc đăng nhập bằng Google giúp người dân không cần nhớ mật khẩu, phù hợp với đặc thù người dùng phổ thông và tăng tỷ lệ sử dụng app.
+- **Creative Synthesis:** Tôi đã tự mình đăng ký Firebase Console, tạo project `Citysystem`, bật Google Sign-In provider, đăng ký Web App và lấy Config SDK — những bước thực tế này AI không thể thay thế.
+- **Decision Ownership:** Quyết định kiểm tra kỹ logic (đặc biệt mapping field Backend ↔ Frontend) trước khi điền API Key thật vào `.env.local`, đảm bảo không lãng phí thời gian debug sau khi cấu hình xong.
+
+---
+
 ## III. Phát hiện Hallucination (Hallucination Detection)
 
 - **Trường hợp:** Khi yêu cầu AI tìm kiếm và tổng hợp 10 bài báo khoa học trên Springer (Entry 001).

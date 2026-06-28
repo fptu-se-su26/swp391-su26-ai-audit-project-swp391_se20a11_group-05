@@ -6,6 +6,7 @@ public enum ChatIntent {
     CREATE_FEEDBACK,
     QA_LEGAL,
     STATISTICS,
-    REPORT_COPILOT
+    REPORT_COPILOT,
+    DISCOVER_CAMPAIGN
 }
 

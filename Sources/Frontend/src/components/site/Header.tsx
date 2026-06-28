@@ -68,7 +68,7 @@ function iconForType(type?: string) {
     case "FEEDBACK_COMPLETED":
     case "FEEDBACK_CLOSED":
       return CheckCircle2;
-    case "NEED_MORE_INFO":
+    case "FEEDBACK_WAITING_INFO":
       return MessageSquareWarning;
     default:
       return Clock3;

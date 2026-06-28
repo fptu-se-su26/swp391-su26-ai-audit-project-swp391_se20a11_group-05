@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import type { ElementType, ReactNode } from "react";
 import {
   ArrowLeft,
@@ -44,6 +44,8 @@ import {
   useSendEmailOtp,
   useBatchApproveParticipants,
   useMarkNoShow,
+  useUpdateCampaign,
+  useEndCampaign,
 } from "@/hooks/useCampaigns";
 import type { CampaignParticipantResponse } from "@/lib/api";
 import { Role, useAuth } from "@/lib/auth";
@@ -53,6 +55,7 @@ import {
   buildGoogleMapsSearchUrl,
   resolveCampaignCoordinates,
 } from "@/lib/campaignLocation";
+import { SingleCampaignMap } from "@/components/site/SingleCampaignMap";
 
 export const Route = createFileRoute("/campaigns/$id")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -78,16 +81,179 @@ const defaultHeroImage =
 function CampaignDetailPage() {
   const { id } = Route.useParams();
   const { join } = Route.useSearch();
+  return <CampaignDetailPageComponent campaignId={id} join={join} />;
+}
+
+type CampaignDetailPageComponentProps = {
+  campaignId: string;
+  join?: boolean;
+  initialEditMode?: boolean;
+  onBack?: () => void;
+  isWard?: boolean;
+};
+
+export function CampaignDetailPageComponent({
+  campaignId,
+  join = false,
+  initialEditMode,
+  onBack,
+  isWard = false,
+}: CampaignDetailPageComponentProps) {
+  const theme = {
+    primaryText: isWard ? "text-indigo-600" : "text-[#7C3AED]",
+    primaryBg: isWard ? "bg-indigo-600" : "bg-[#7C3AED]",
+    primaryBorder: isWard ? "border-indigo-600" : "border-[#7C3AED]",
+    primaryHover: isWard ? "hover:bg-indigo-700" : "hover:brightness-110",
+    lightBg: isWard ? "bg-indigo-50/30" : "bg-[#F3F0FF]",
+    lightBorder: isWard ? "border-slate-100" : "border-violet-100",
+    lightBgHover: isWard ? "hover:bg-indigo-50/50" : "hover:bg-[#F3F0FF]",
+    avatarBg: isWard ? "bg-indigo-50" : "bg-[#F3F0FF]",
+    avatarText: isWard ? "text-indigo-600" : "text-[#7C3AED]",
+    focusRing: isWard ? "focus:border-indigo-600 focus:ring-indigo-100/50" : "focus:border-[#7C3AED] focus:ring-[#7C3AED]/15",
+    tabActive: isWard ? "border-indigo-600 text-indigo-600" : "border-[#7C3AED] text-[#7C3AED]",
+    mainBg: isWard ? "bg-slate-50/50" : "bg-[#F8F7FF]",
+    textHover: isWard ? "hover:text-indigo-700" : "hover:text-[#7C3AED]",
+    textHoverPrimary: isWard ? "hover:text-indigo-600" : "hover:text-[#7C3AED]",
+    borderDashed: isWard ? "border-indigo-200 bg-indigo-50/20" : "border-violet-100 bg-[#F8F7FF]",
+  };
+
   const isGroupChatRoute = useRouterState({
     select: (state) => state.location.pathname.endsWith("/group-chat"),
   });
-  const campaign = useCampaignDetail(id);
+  const campaign = useCampaignDetail(campaignId);
   const { user, isAuthenticated } = useAuth();
   const joinCampaign = useJoinCampaign();
   const approveCampaign = useApproveCampaign();
   const leaveCampaign = useLeaveCampaign();
   const confirmWaitlist = useConfirmWaitlist();
   const sendEmailOtp = useSendEmailOtp();
+
+  const updateCampaign = useUpdateCampaign();
+  const endCampaign = useEndCampaign();
+
+  const [isEditing, setIsEditing] = useState(initialEditMode || false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editCategory, setEditCategory] = useState<any>("environment");
+  const [editTarget, setEditTarget] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editLocationText, setEditLocationText] = useState("");
+  const [editPrivateLocationText, setEditPrivateLocationText] = useState("");
+  const [editRequiredTools, setEditRequiredTools] = useState("");
+  const [editOrganizerContact, setEditOrganizerContact] = useState("");
+  const [editStartTime, setEditStartTime] = useState("");
+  const [editEndTime, setEditEndTime] = useState("");
+  const [editLatitude, setEditLatitude] = useState<number | null>(null);
+  const [editLongitude, setEditLongitude] = useState<number | null>(null);
+
+  const hasInitializedRef = useRef(false);
+
+  useEffect(() => {
+    hasInitializedRef.current = false;
+  }, [campaignId]);
+
+  useEffect(() => {
+    if (campaign && (!hasInitializedRef.current || !isEditing)) {
+      setEditTitle(campaign.name || "");
+      setEditCategory(campaign.category || "environment");
+      setEditTarget(String(campaign.target || 30));
+      setEditDescription(campaign.desc || "");
+      setEditLocationText(campaign.locationText || "");
+      setEditPrivateLocationText(campaign.privateLocationText || "");
+      setEditRequiredTools(campaign.requiredTools || "");
+      setEditOrganizerContact(campaign.organizerContact || "");
+      setEditStartTime(campaign.startTime ? campaign.startTime.slice(0, 16) : "");
+      setEditEndTime(campaign.endTime ? campaign.endTime.slice(0, 16) : "");
+      setEditLatitude(campaign.latitude ?? null);
+      setEditLongitude(campaign.longitude ?? null);
+      hasInitializedRef.current = true;
+    }
+  }, [campaign, isEditing]);
+
+  const handleSave = async () => {
+    if (!editTitle.trim()) {
+      toast.error("Vui lòng nhập tên chiến dịch.");
+      return;
+    }
+    if (!editLocationText.trim()) {
+      toast.error("Vui lòng nhập địa chỉ cụ thể.");
+      return;
+    }
+    if (!editDescription.trim()) {
+      toast.error("Vui lòng nhập mô tả chi tiết chiến dịch.");
+      return;
+    }
+    if (!editPrivateLocationText.trim()) {
+      toast.error("Vui lòng nhập điểm tập trung nội bộ.");
+      return;
+    }
+    if (!editRequiredTools.trim()) {
+      toast.error("Vui lòng nhập dụng cụ cần mang theo.");
+      return;
+    }
+    if (!editOrganizerContact.trim()) {
+      toast.error("Vui lòng nhập thông tin liên hệ ban tổ chức.");
+      return;
+    }
+    if (!editStartTime) {
+      toast.error("Vui lòng chọn thời gian bắt đầu.");
+      return;
+    }
+    if (!editEndTime) {
+      toast.error("Vui lòng chọn thời gian kết thúc.");
+      return;
+    }
+
+    const start = new Date(editStartTime);
+    const end = new Date(editEndTime);
+    if (end <= start) {
+      toast.error("Thời gian kết thúc phải diễn ra sau thời gian bắt đầu.");
+      return;
+    }
+
+    const maxPartNum = Number.parseInt(editTarget, 10);
+    if (Number.isNaN(maxPartNum) || maxPartNum <= 0) {
+      toast.error("Số lượng tình nguyện viên tối đa phải là số nguyên dương.");
+      return;
+    }
+
+    try {
+      await updateCampaign.mutateAsync({
+        id: campaignId,
+        data: {
+          title: editTitle.trim(),
+          category: editCategory,
+          description: editDescription.trim(),
+          locationText: editLocationText.trim(),
+          privateLocationText: editPrivateLocationText.trim(),
+          requiredTools: editRequiredTools.trim(),
+          organizerContact: editOrganizerContact.trim(),
+          maxParticipants: maxPartNum,
+          startTime: editStartTime || undefined,
+          endTime: editEndTime || undefined,
+          latitude: editLatitude ?? undefined,
+          longitude: editLongitude ?? undefined,
+          coverImageUrl: campaign.coverImageUrl ?? undefined,
+          imageUrls: campaign.imageUrls ?? undefined,
+        },
+      });
+      toast.success("Cập nhật chiến dịch thành công.");
+      setIsEditing(false);
+    } catch (err) {
+      toast.error("Lỗi khi cập nhật chiến dịch: " + (err instanceof Error ? err.message : "Lỗi hệ thống"));
+    }
+  };
+
+  const handleEndCampaign = async () => {
+    if (!window.confirm("Bạn có chắc chắn muốn kết thúc sớm chiến dịch này? Hành động này sẽ khóa đơn đăng ký và dừng tuyển quân.")) {
+      return;
+    }
+    try {
+      await endCampaign.mutateAsync(campaignId);
+      toast.success("Đã kết thúc chiến dịch thành công.");
+    } catch (err) {
+      toast.error("Lỗi khi kết thúc chiến dịch: " + (err instanceof Error ? err.message : "Lỗi hệ thống"));
+    }
+  };
 
   // Smart Join Modal states
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -169,6 +335,12 @@ function CampaignDetailPage() {
           <h1 className="text-2xl font-black text-slate-900">Không tìm thấy chiến dịch</h1>
           <Link
             to="/campaigns"
+            onClick={(event) => {
+              if (onBack) {
+                event.preventDefault();
+                onBack();
+              }
+            }}
             className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#7C3AED]"
           >
             <ArrowLeft size={16} />
@@ -259,104 +431,290 @@ function CampaignDetailPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#F8F7FF] pb-16 text-slate-950">
+    <main className={`min-h-screen ${theme.mainBg} pb-16 text-slate-950`}>
       <div className="mx-auto max-w-[1280px] px-4 py-6 sm:px-6 lg:px-8">
         <div className="mb-5 flex items-center justify-between gap-4">
           <Link
             to="/campaigns"
-            className="inline-flex items-center gap-2 text-sm font-black text-slate-600 transition hover:text-[#6D28D9]"
+            onClick={(event) => {
+              if (onBack) {
+                event.preventDefault();
+                onBack();
+              }
+            }}
+            className={`inline-flex items-center gap-2 text-sm font-black text-slate-600 transition ${theme.textHoverPrimary}`}
           >
             <ArrowLeft size={16} />
             Chiến dịch
           </Link>
-          <StatusBadge status={campaign.status} />
+          <div className="flex items-center gap-2">
+            {user?.role === "WARD_STAFF" && !campaign.canManage && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-black text-slate-500 shadow-sm uppercase tracking-wide">
+                Chỉ xem
+              </span>
+            )}
+            {campaign.canManage && (
+              <>
+                {isEditing ? (
+                  <>
+                    <button
+                      onClick={handleSave}
+                      disabled={updateCampaign.isPending}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-black text-white hover:bg-emerald-700 transition active:scale-[0.97] cursor-pointer disabled:opacity-50"
+                    >
+                      <CheckCircle2 size={13} />
+                      Lưu
+                    </button>
+                    <button
+                      onClick={() => setIsEditing(false)}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-slate-200 px-3 py-1.5 text-xs font-black text-slate-700 hover:bg-slate-300 transition active:scale-[0.97] cursor-pointer"
+                    >
+                      Hủy
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-black text-white shadow-sm transition ${theme.primaryBg} ${theme.primaryHover} active:scale-[0.97] cursor-pointer`}
+                  >
+                    Chỉnh sửa
+                  </button>
+                )}
+              </>
+            )}
+            <StatusBadge status={campaign.status} theme={theme} />
+          </div>
         </div>
 
         <section className="grid gap-6 lg:grid-cols-[minmax(0,65fr)_minmax(320px,35fr)]">
           <article className="space-y-6">
-            <div className="relative aspect-[21/9] overflow-hidden rounded-2xl shadow-lg">
-              <img
-                src={campaign.cover || defaultHeroImage}
-                alt={campaign.name}
-                className="h-full w-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-              <h1 className="absolute bottom-6 left-6 right-6 text-2xl font-black leading-tight text-white md:text-[28px]">
-                {campaign.name}
-              </h1>
-            </div>
+            {isEditing ? (
+              <div className="space-y-6">
+                <section className={`rounded-2xl border ${theme.lightBorder} bg-white p-7 shadow-md`}>
+                  <h2 className="mb-4 text-xl font-black text-slate-950">Thông tin chung</h2>
+                  <div className="space-y-5">
+                    <div>
+                      <label className={`mb-1.5 block text-sm font-black ${isWard ? "text-slate-700" : "text-[#0B2545]"}`}>Tên chiến dịch</label>
+                      <input
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        className={`w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition ${theme.focusRing}`}
+                        placeholder="Ví dụ: Dọn rác bãi biển Mỹ Khê..."
+                      />
+                    </div>
 
-            <section className="rounded-2xl border border-violet-100 bg-white p-7 shadow-md">
-              <p className="text-base leading-8 text-slate-600">
-                {campaign.desc || "Chưa có mô tả công khai."}
-              </p>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className={`mb-1.5 block text-sm font-black ${isWard ? "text-slate-700" : "text-[#0B2545]"}`}>Danh mục</label>
+                        <select
+                          value={editCategory}
+                          onChange={(e) => setEditCategory(e.target.value)}
+                          className={`w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition ${theme.focusRing}`}
+                        >
+                          <option value="environment">Môi trường</option>
+                          <option value="infrastructure">Hạ tầng</option>
+                          <option value="public_safety">An toàn cộng đồng</option>
+                          <option value="construction">Xây dựng</option>
+                          <option value="fire_safety">Phòng cháy chữa cháy</option>
+                        </select>
+                      </div>
 
-              <div className="mt-6 grid gap-3 md:grid-cols-3">
-                <InfoTile
-                  icon={MapPin}
-                  label="Khu vực"
-                  value={campaign.locationText || campaign.ward}
-                />
-                <InfoTile
-                  icon={Users}
-                  label="Người tham gia"
-                  value={`${campaign.participants}/${campaign.target}`}
-                />
-                <InfoTile icon={CalendarDays} label="Thời gian" value={dateRange(campaign)} />
-              </div>
+                      <div>
+                        <label className={`mb-1.5 block text-sm font-black ${isWard ? "text-slate-700" : "text-[#0B2545]"}`}>Tình nguyện viên cần tuyển</label>
+                        <input
+                          value={editTarget}
+                          onChange={(e) => setEditTarget(e.target.value)}
+                          className={`w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition ${theme.focusRing} font-mono`}
+                          type="number"
+                          min="1"
+                        />
+                      </div>
+                    </div>
 
-              <div className="mt-7 rounded-xl bg-[#F3F0FF] p-5">
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-black text-slate-900">Tiến độ tuyển quân</p>
-                    <p className="text-xs font-semibold text-slate-500">
-                      Cập nhật theo số lượng người được duyệt tham gia.
-                    </p>
+                    <div>
+                      <label className={`mb-1.5 block text-sm font-black ${isWard ? "text-slate-700" : "text-[#0B2545]"}`}>Mô tả chi tiết chiến dịch</label>
+                      <textarea
+                        value={editDescription}
+                        onChange={(e) => setEditDescription(e.target.value)}
+                        className={`w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition ${theme.focusRing} min-h-32 leading-relaxed`}
+                        placeholder="Mục đích, thông điệp truyền tải..."
+                      />
+                    </div>
                   </div>
-                  <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#7C3AED] shadow-sm">
-                    {campaign.participants}/{campaign.target} ({progressPercent}%)
-                  </span>
-                </div>
-                <div className="h-2.5 overflow-hidden rounded-full bg-white">
-                  <div
-                    className="h-full rounded-full bg-[#10B981] transition-all duration-700"
-                    style={{ width: `${progressPercent}%` }}
-                  />
+                </section>
+
+                <section className={`rounded-2xl border ${theme.lightBorder} bg-white p-7 shadow-md`}>
+                  <h2 className="mb-4 text-xl font-black text-slate-950">Lịch và địa điểm</h2>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className={`mb-1.5 block text-sm font-black ${isWard ? "text-slate-700" : "text-[#0B2545]"}`}>Thời gian bắt đầu</label>
+                      <input
+                        type="datetime-local"
+                        value={editStartTime}
+                        onChange={(e) => setEditStartTime(e.target.value)}
+                        className={`w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition ${theme.focusRing} font-mono`}
+                      />
+                    </div>
+                    <div>
+                      <label className={`mb-1.5 block text-sm font-black ${isWard ? "text-slate-700" : "text-[#0B2545]"}`}>Thời gian kết thúc</label>
+                      <input
+                        type="datetime-local"
+                        value={editEndTime}
+                        onChange={(e) => setEditEndTime(e.target.value)}
+                        className={`w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition ${theme.focusRing} font-mono`}
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <label className={`mb-1.5 block text-sm font-black ${isWard ? "text-slate-700" : "text-[#0B2545]"}`}>Địa chỉ cụ thể (Địa điểm)</label>
+                    <input
+                      value={editLocationText}
+                      onChange={(e) => setEditLocationText(e.target.value)}
+                      className={`w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition ${theme.focusRing}`}
+                      placeholder="Nhập địa chỉ, phường hoặc quận tại Đà Nẵng"
+                    />
+                  </div>
+                </section>
+
+                <section className="rounded-2xl border border-amber-200 bg-[#FFFBF0] p-7 shadow-md">
+                  <h2 className="mb-4 text-xl font-black text-amber-900">Thông tin nội bộ</h2>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="mb-1.5 block text-sm font-black text-amber-800">Điểm tập trung / Hẹn gặp</label>
+                      <textarea
+                        value={editPrivateLocationText}
+                        onChange={(e) => setEditPrivateLocationText(e.target.value)}
+                        className={`w-full rounded-lg border border-amber-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition ${theme.focusRing} min-h-24 leading-relaxed`}
+                        placeholder="Điểm hẹn tập trung chi tiết chỉ hiển thị cho tình nguyện viên được duyệt..."
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-sm font-black text-amber-800">Công cụ cần mang theo</label>
+                      <textarea
+                        value={editRequiredTools}
+                        onChange={(e) => setEditRequiredTools(e.target.value)}
+                        className={`w-full rounded-lg border border-amber-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition ${theme.focusRing} min-h-24 leading-relaxed`}
+                        placeholder="Các dụng cụ bắt buộc/khuyến khích tự mang theo..."
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-sm font-black text-amber-800">Người phụ trách / SĐT</label>
+                      <input
+                        value={editOrganizerContact}
+                        onChange={(e) => setEditOrganizerContact(e.target.value)}
+                        className={`w-full rounded-lg border border-amber-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition ${theme.focusRing}`}
+                        placeholder="Họ tên người phụ trách và số điện thoại liên hệ..."
+                      />
+                    </div>
+                  </div>
+                </section>
+
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(false)}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 hover:bg-slate-50 transition active:scale-[0.97] cursor-pointer"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={updateCampaign.isPending}
+                    className={`inline-flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-black text-white shadow-sm transition ${theme.primaryBg} ${theme.primaryHover} active:scale-[0.97] cursor-pointer disabled:opacity-50`}
+                  >
+                    {updateCampaign.isPending ? "Đang lưu..." : "Lưu thay đổi"}
+                  </button>
                 </div>
               </div>
-            </section>
-
-            <Panel title="Về chiến dịch này" icon={ListIcon}>
-              <p className="text-sm leading-7 text-slate-600">
-                Chiến dịch được phát động nhằm kêu gọi cộng đồng chung tay dọn dẹp bãi biển Xuân
-                Thiều, một trong những bãi biển đẹp của Đà Nẵng. Hoạt động gồm thu gom rác thải
-                nhựa, phân loại rác tại chỗ, trồng cây ven biển và tuyên truyền bảo vệ môi trường.
-                Đây là cơ hội để người dân Đà Nẵng thể hiện tình yêu quê hương và ý thức bảo vệ
-                thiên nhiên.
-              </p>
-            </Panel>
-
-            {campaign.privateDetailsVisible ? (
-              <PrivateDetails campaign={campaign} />
             ) : (
-              <section className="rounded-2xl border border-dashed border-amber-200 bg-[#FFFBF0] p-6 shadow-sm">
-                <div className="flex items-start gap-3">
-                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-700">
-                    <Lock size={20} />
-                  </div>
-                  <div>
-                    <h2 className="font-black text-slate-900">Thông tin nội bộ được bảo mật</h2>
-                    <p className="mt-1 text-sm leading-6 text-slate-600">
-                      Vị trí tập trung cụ thể, dụng cụ, liên hệ ban tổ chức và group chat chỉ hiển
-                      thị cho người đã được duyệt tham gia hoặc người quản lý chiến dịch.
-                    </p>
-                  </div>
+              <>
+                <div className="relative aspect-[21/9] overflow-hidden rounded-2xl shadow-lg">
+                  <img
+                    src={campaign.cover || defaultHeroImage}
+                    alt={campaign.name}
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+                  <h1 className={`absolute bottom-6 left-6 right-6 text-2xl font-black leading-tight text-white md:text-[28px] ${isWard ? "font-sans" : ""}`}>
+                    {campaign.name}
+                  </h1>
                 </div>
-              </section>
+
+                <section className={`rounded-2xl border ${theme.lightBorder} bg-white p-7 shadow-md`}>
+                  <p className="text-base leading-8 text-slate-600">
+                    {campaign.desc || "Chưa có mô tả công khai."}
+                  </p>
+
+                  <div className="mt-6 grid gap-3 md:grid-cols-3">
+                    <InfoTile
+                      icon={MapPin}
+                      label="Khu vực"
+                      value={campaign.locationText || campaign.ward}
+                      theme={theme}
+                    />
+                    <InfoTile
+                      icon={Users}
+                      label="Người tham gia"
+                      value={`${campaign.participants}/${campaign.target}`}
+                      theme={theme}
+                    />
+                    <InfoTile icon={CalendarDays} label="Thời gian" value={dateRange(campaign)} theme={theme} />
+                  </div>
+
+                  <div className={`mt-7 rounded-xl ${theme.lightBg} p-5`}>
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-black text-slate-900">Tiến độ tuyển quân</p>
+                        <p className="text-xs font-semibold text-slate-500">
+                          Cập nhật theo số lượng người được duyệt tham gia.
+                        </p>
+                      </div>
+                      <span className={`rounded-full bg-white px-3 py-1 text-xs font-black ${theme.primaryText} shadow-sm`}>
+                        {campaign.participants}/{campaign.target} ({progressPercent}%)
+                      </span>
+                    </div>
+                    <div className="h-2.5 overflow-hidden rounded-full bg-white">
+                      <div
+                        className="h-full rounded-full bg-[#10B981] transition-all duration-700"
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                  </div>
+                </section>
+
+                <Panel title="Về chiến dịch này" icon={ListIcon} theme={theme}>
+                  <p className="text-sm leading-7 text-slate-600">
+                    Chiến dịch được phát động nhằm kêu gọi cộng đồng chung tay dọn dẹp bãi biển Xuân
+                    Thiều, một trong những bãi biển đẹp của Đà Nẵng. Hoạt động gồm thu gom rác thải
+                    nhựa, phân loại rác tại chỗ, trồng cây ven biển và tuyên truyền bảo vệ môi trường.
+                    Đây là cơ hội để người dân Đà Nẵng thể hiện tình yêu quê hương và ý thức bảo vệ
+                    thiên nhiên.
+                  </p>
+                </Panel>
+
+                {campaign.privateDetailsVisible ? (
+                  <PrivateDetails campaign={campaign} theme={theme} />
+                ) : (
+                  <section className="rounded-2xl border border-dashed border-amber-200 bg-[#FFFBF0] p-6 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-700">
+                        <Lock size={20} />
+                      </div>
+                      <div>
+                        <h2 className="font-black text-slate-900">Thông tin nội bộ được bảo mật</h2>
+                        <p className="mt-1 text-sm leading-6 text-slate-600">
+                          Vị trí tập trung cụ thể, dụng cụ, liên hệ ban tổ chức và group chat chỉ hiển
+                          thị cho người đã được duyệt tham gia hoặc người quản lý chiến dịch.
+                        </p>
+                      </div>
+                    </div>
+                  </section>
+                )}
+              </>
             )}
 
-            <MapPanel campaign={campaign} />
-            <DiscussionPanel campaign={campaign} />
+            <MapPanel campaign={campaign} theme={theme} />
           </article>
 
           <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
@@ -373,19 +731,29 @@ function CampaignDetailPage() {
                 <button
                   onClick={handleApprove}
                   disabled={approveCampaign.isPending}
-                  className="h-11 w-full rounded-xl bg-amber-600 text-sm font-black text-white transition hover:brightness-110 disabled:opacity-60"
+                  className="h-11 w-full rounded-xl bg-amber-600 text-sm font-black text-white transition hover:brightness-110 active:scale-[0.97] disabled:opacity-60"
                 >
                   Phê duyệt và mở đăng ký
                 </button>
               </section>
             )}
 
-            <section className="rounded-2xl border border-violet-100 bg-white p-6 shadow-lg">
+            <section className={`rounded-2xl border ${theme.lightBorder} bg-white p-6 shadow-lg`}>
               <h2 className="mb-4 text-sm font-black uppercase tracking-wider text-slate-500">
                 Hành động
               </h2>
+              {campaign.canManage && (campaign.status === "recruiting" || campaign.status === "inProgress") && (
+                <button
+                  onClick={handleEndCampaign}
+                  disabled={endCampaign.isPending}
+                  className="mb-3 h-12 w-full rounded-xl bg-red-600 text-sm font-black text-white shadow-md transition hover:bg-red-700 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {endCampaign.isPending ? "Đang xử lý..." : "Kết thúc chiến dịch"}
+                </button>
+              )}
               {(campaign.status === "recruiting" ||
                 campaign.status === "completed" ||
+                campaign.status === "ended" ||
                 campaign.status === "inProgress") && (
                 <div
                   title={campaign.status !== "recruiting" ? "Chiến dịch đã đóng" : undefined}
@@ -404,7 +772,7 @@ function CampaignDetailPage() {
                       joinCampaign.isPending ||
                       !campaign.canJoin
                     }
-                    className="h-12 w-full rounded-xl bg-[#7C3AED] text-sm font-black text-white shadow-md transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                    className={`h-12 w-full rounded-xl ${theme.primaryBg} text-sm font-black text-white shadow-md transition ${theme.primaryHover} active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50`}
                   >
                     {campaign.currentUserJoinStatus === "PENDING"
                       ? "Đang chờ duyệt"
@@ -426,7 +794,7 @@ function CampaignDetailPage() {
                   type="button"
                   onClick={handleConfirmWaitlist}
                   disabled={confirmWaitlist.isPending}
-                  className="mt-3 h-12 w-full rounded-xl bg-emerald-600 text-sm font-black text-white shadow-md transition hover:brightness-110 disabled:opacity-50"
+                  className="mt-3 h-12 w-full rounded-xl bg-emerald-600 text-sm font-black text-white shadow-md transition hover:brightness-110 active:scale-[0.97] disabled:opacity-50"
                 >
                   Xác nhận tham gia chính thức
                 </button>
@@ -436,7 +804,7 @@ function CampaignDetailPage() {
                 <button
                   type="button"
                   onClick={() => setShowLeaveModal(true)}
-                  className="mt-3 h-11 w-full rounded-xl border border-red-200 bg-red-50 text-sm font-black text-red-700 shadow-sm transition hover:bg-red-100"
+                  className="mt-3 h-11 w-full rounded-xl border border-red-200 bg-red-50 text-sm font-black text-red-700 shadow-sm transition hover:bg-red-100 active:scale-[0.97]"
                 >
                   Hủy tham gia
                 </button>
@@ -463,14 +831,14 @@ function CampaignDetailPage() {
               )}
             </section>
 
-            {campaign.canManage && <ParticipantReviewPanel campaignId={campaign.id} />}
+            {campaign.canManage && <ParticipantReviewPanel campaignId={campaign.id} theme={theme} />}
 
-            <section className="rounded-2xl border border-violet-100 bg-white p-6 shadow-lg">
+            <section className={`rounded-2xl border ${theme.lightBorder} bg-white p-6 shadow-lg`}>
               <h2 className="mb-4 text-sm font-black uppercase tracking-wider text-slate-500">
                 Người phụ trách
               </h2>
               <div className="flex items-center gap-3">
-                <div className="grid h-14 w-14 place-items-center rounded-full bg-[#F3F0FF] text-lg font-black text-[#7C3AED]">
+                <div className={`grid h-14 w-14 place-items-center rounded-full ${theme.avatarBg} text-lg font-black ${theme.avatarText}`}>
                   CB
                 </div>
                 <div>
@@ -480,15 +848,15 @@ function CampaignDetailPage() {
               </div>
               <button
                 type="button"
-                className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-violet-200 text-sm font-black text-[#7C3AED] transition hover:bg-[#F3F0FF]"
+                className={`mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border ${theme.lightBorder} text-sm font-black ${theme.primaryText} transition ${theme.lightBgHover} active:scale-[0.97]`}
               >
                 <MessageCircle size={16} />
                 Nhắn tin
               </button>
             </section>
 
-            <GroupChatNavigationCard campaign={campaign} approvedStatus={approvedStatus} />
-            <ShareCard />
+            <GroupChatNavigationCard campaign={campaign} approvedStatus={approvedStatus} theme={theme} />
+            <ShareCard theme={theme} />
           </aside>
         </section>
       </div>
@@ -667,7 +1035,7 @@ function CampaignDetailPage() {
   );
 }
 
-function ParticipantReviewPanel({ campaignId }: { campaignId: string }) {
+function ParticipantReviewPanel({ campaignId, theme }: { campaignId: string; theme: any }) {
   const participantsQuery = useCampaignParticipants(campaignId);
   const approveParticipant = useApproveCampaignParticipant(campaignId);
   const rejectParticipant = useRejectCampaignParticipant(campaignId);
@@ -786,7 +1154,7 @@ function ParticipantReviewPanel({ campaignId }: { campaignId: string }) {
     filteredPending.length > 0 && filteredPending.every((p) => selectedIds[p.id]);
 
   return (
-    <section className="rounded-2xl border border-violet-100 bg-white p-5 shadow-lg space-y-4">
+    <section className={`rounded-2xl border ${theme.lightBorder} bg-white p-5 shadow-lg space-y-4`}>
       {/* Tabs */}
       <div className="flex border-b border-slate-100">
         <button
@@ -794,7 +1162,7 @@ function ParticipantReviewPanel({ campaignId }: { campaignId: string }) {
           onClick={() => setActiveTab("pending")}
           className={`flex-1 pb-3 text-sm font-black transition-all ${
             activeTab === "pending"
-              ? "border-b-2 border-[#7C3AED] text-[#7C3AED]"
+              ? `border-b-2 ${theme.tabActive}`
               : "text-slate-500 hover:text-slate-800"
           }`}
         >
@@ -805,7 +1173,7 @@ function ParticipantReviewPanel({ campaignId }: { campaignId: string }) {
           onClick={() => setActiveTab("approved")}
           className={`flex-1 pb-3 text-sm font-black transition-all ${
             activeTab === "approved"
-              ? "border-b-2 border-[#7C3AED] text-[#7C3AED]"
+              ? `border-b-2 ${theme.tabActive}`
               : "text-slate-500 hover:text-slate-800"
           }`}
         >
@@ -816,7 +1184,7 @@ function ParticipantReviewPanel({ campaignId }: { campaignId: string }) {
           onClick={() => setActiveTab("cancelled")}
           className={`flex-1 pb-3 text-sm font-black transition-all ${
             activeTab === "cancelled"
-              ? "border-b-2 border-[#7C3AED] text-[#7C3AED]"
+              ? `border-b-2 ${theme.tabActive}`
               : "text-slate-500 hover:text-slate-800"
           }`}
         >
@@ -827,8 +1195,8 @@ function ParticipantReviewPanel({ campaignId }: { campaignId: string }) {
       {activeTab === "pending" && (
         <div className="space-y-4">
           {/* Filters Panel */}
-          <div className="rounded-xl bg-[#F8F7FF] p-3.5 border border-violet-50 space-y-3">
-            <div className="flex items-center gap-2 text-xs font-black uppercase text-[#7C3AED]">
+          <div className={`rounded-xl ${theme.mainBg} p-3.5 border ${theme.lightBorder} space-y-3`}>
+            <div className={`flex items-center gap-2 text-xs font-black uppercase ${theme.primaryText}`}>
               <Filter size={14} />
               Bộ lọc nâng cao
             </div>
@@ -840,7 +1208,7 @@ function ParticipantReviewPanel({ campaignId }: { campaignId: string }) {
                 <select
                   value={minPastCampaigns}
                   onChange={(e) => setMinPastCampaigns(Number(e.target.value))}
-                  className="w-full h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold focus:border-[#7C3AED] outline-none"
+                  className={`w-full h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold ${theme.focusRing} outline-none`}
                 >
                   <option value={0}>0 chiến dịch</option>
                   <option value={1}>1 chiến dịch</option>
@@ -855,7 +1223,7 @@ function ParticipantReviewPanel({ campaignId }: { campaignId: string }) {
                 <select
                   value={minRating}
                   onChange={(e) => setMinRating(Number(e.target.value))}
-                  className="w-full h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold focus:border-[#7C3AED] outline-none"
+                  className={`w-full h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold ${theme.focusRing} outline-none`}
                 >
                   <option value={0}>Mọi đánh giá</option>
                   <option value={3}>Từ 3.0 ★ trở lên</option>
@@ -870,7 +1238,7 @@ function ParticipantReviewPanel({ campaignId }: { campaignId: string }) {
                 type="checkbox"
                 checked={noShowOnly}
                 onChange={(e) => setNoShowOnly(e.target.checked)}
-                className="h-3.5 w-3.5 rounded border-slate-300 text-[#7C3AED] focus:ring-[#7C3AED]/20"
+                className={`h-3.5 w-3.5 rounded border-slate-300 ${theme.primaryText} ${theme.focusRing}`}
               />
               <span className="text-xs font-semibold text-slate-600">
                 Chỉ hiện người có cảnh báo (No-show &gt; 2)
@@ -886,7 +1254,7 @@ function ParticipantReviewPanel({ campaignId }: { campaignId: string }) {
                   type="checkbox"
                   checked={isAllSelected}
                   onChange={(e) => handleSelectAll(e.target.checked)}
-                  className="h-3.5 w-3.5 rounded border-slate-300 text-[#7C3AED] focus:ring-[#7C3AED]/20"
+                  className={`h-3.5 w-3.5 rounded border-slate-300 ${theme.primaryText} ${theme.focusRing}`}
                 />
                 <span className="text-xs font-black text-slate-700">Chọn tất cả</span>
               </label>
@@ -929,7 +1297,7 @@ function ParticipantReviewPanel({ campaignId }: { campaignId: string }) {
                         type="checkbox"
                         checked={!!selectedIds[p.id]}
                         onChange={() => handleToggleSelect(p.id)}
-                        className="mt-1 h-3.5 w-3.5 rounded border-slate-300 text-[#7C3AED] focus:ring-[#7C3AED]/20"
+                        className={`mt-1 h-3.5 w-3.5 rounded border-slate-300 ${theme.primaryText} ${theme.focusRing}`}
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
@@ -982,7 +1350,7 @@ function ParticipantReviewPanel({ campaignId }: { campaignId: string }) {
                         type="button"
                         onClick={() => handleReject(p)}
                         disabled={rejectParticipant.isPending || approveParticipant.isPending}
-                        className="h-8.5 rounded-lg border border-red-200 bg-red-50 text-xs font-black text-red-700 hover:bg-red-100 disabled:opacity-50 transition"
+                        className="h-8.5 rounded-lg border border-red-200 bg-red-50 text-xs font-black text-red-700 hover:bg-red-100 disabled:opacity-50 transition active:scale-[0.97]"
                       >
                         Từ chối
                       </button>
@@ -990,7 +1358,7 @@ function ParticipantReviewPanel({ campaignId }: { campaignId: string }) {
                         type="button"
                         onClick={() => handleApprove(p)}
                         disabled={approveParticipant.isPending || rejectParticipant.isPending}
-                        className="h-8.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-xs font-black text-white disabled:opacity-50 transition"
+                        className="h-8.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-xs font-black text-white disabled:opacity-50 transition active:scale-[0.97]"
                       >
                         Duyệt
                       </button>
@@ -1031,7 +1399,7 @@ function ParticipantReviewPanel({ campaignId }: { campaignId: string }) {
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <p className="font-black text-slate-900 truncate flex items-center gap-1">
                             {p.citizenName}
-                            <span className="text-[10px] text-[#7C3AED]">
+                            <span className={`text-[10px] ${theme.primaryText}`}>
                               {isExpanded ? "▲ Thu gọn" : "▼ Chi tiết"}
                             </span>
                           </p>
@@ -1169,7 +1537,7 @@ function ParticipantReviewPanel({ campaignId }: { campaignId: string }) {
   );
 }
 
-function PrivateDetails({ campaign }: { campaign: Campaign }) {
+function PrivateDetails({ campaign, theme }: { campaign: Campaign; theme: any }) {
   return (
     <section className="rounded-2xl border border-amber-300 bg-[#FFFBF0] p-6 shadow-sm">
       <div className="mb-4 flex items-center gap-2 text-lg font-black text-slate-950">
@@ -1181,43 +1549,40 @@ function PrivateDetails({ campaign }: { campaign: Campaign }) {
           icon={MapPin}
           label="Điểm tập kết"
           value={campaign.privateLocationText || "Chưa cập nhật"}
+          theme={theme}
         />
         <InfoTile
           icon={Package}
           label="Dụng cụ"
           value={campaign.requiredTools || "Chưa cập nhật"}
+          theme={theme}
         />
         <InfoTile
           icon={Users}
           label="Liên hệ"
           value={campaign.organizerContact || "Chưa cập nhật"}
+          theme={theme}
         />
       </div>
     </section>
   );
 }
 
-function MapPanel({ campaign }: { campaign: Campaign }) {
+function MapPanel({ campaign, theme }: { campaign: Campaign; theme: any }) {
   const coordinates = resolveCampaignCoordinates(campaign);
   const displayLocation = campaign.locationText || coordinates.label;
 
   return (
-    <Panel title="Vị trí hoạt động" icon={MapPin}>
+    <Panel title="Vị trí hoạt động" icon={MapPin} theme={theme}>
       <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white">
-        <iframe
-          title={displayLocation}
-          src={buildGoogleMapsEmbedUrl(coordinates)}
-          className="h-80 w-full border-0"
-          loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
-        />
+        <SingleCampaignMap campaign={campaign} height="320px" />
         <div className="flex flex-col gap-3 border-t border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm font-semibold text-slate-600">{displayLocation}</p>
           <a
             href={buildGoogleMapsSearchUrl(coordinates)}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-violet-200 px-4 text-sm font-black text-[#7C3AED] transition hover:bg-[#F3F0FF]"
+            className={`inline-flex h-10 items-center justify-center gap-2 rounded-lg border ${theme.lightBorder} px-4 text-sm font-black ${theme.primaryText} transition ${theme.lightBgHover} active:scale-[0.97]`}
           >
             <Map size={16} />
             Xem trên Google Maps
@@ -1304,9 +1669,11 @@ function DiscussionPanel({ campaign }: { campaign: Campaign }) {
 function GroupChatNavigationCard({
   campaign,
   approvedStatus,
+  theme,
 }: {
   campaign: Campaign;
   approvedStatus: boolean;
+  theme: any;
 }) {
   const chat = useCampaignChat(campaign.id);
   const memberCount = Math.max(1, campaign.participants || 0);
@@ -1317,10 +1684,10 @@ function GroupChatNavigationCard({
   const avatars = ["CB", "A", "B"];
 
   return (
-    <section className="rounded-2xl border border-violet-100 bg-white p-6 shadow-lg">
+    <section className={`rounded-2xl border ${theme.lightBorder} bg-white p-6 shadow-lg`}>
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="flex items-center gap-2 text-sm font-black text-slate-950">
-          <MessageSquare size={17} className="text-[#7C3AED]" />
+          <MessageSquare size={17} className={theme.primaryText} />
           Nhóm chat chiến dịch
         </h2>
         {approvedStatus && (
@@ -1333,7 +1700,7 @@ function GroupChatNavigationCard({
         {avatars.map((avatar) => (
           <span
             key={avatar}
-            className="grid h-9 w-9 place-items-center rounded-full border-2 border-white bg-[#F3F0FF] text-xs font-black text-[#7C3AED] shadow-sm"
+            className={`grid h-9 w-9 place-items-center rounded-full border-2 border-white ${theme.avatarBg} text-xs font-black ${theme.avatarText} shadow-sm`}
           >
             {avatar}
           </span>
@@ -1346,7 +1713,7 @@ function GroupChatNavigationCard({
       <Link
         to="/campaigns/$id/group-chat"
         params={{ id: campaign.id }}
-        className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#7C3AED] px-4 text-sm font-black text-white shadow-sm transition hover:brightness-110"
+        className={`mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl ${theme.primaryBg} px-4 text-sm font-black text-white shadow-sm transition ${theme.primaryHover} active:scale-[0.97]`}
       >
         Vào nhóm chat
         <ArrowRight size={16} />
@@ -1355,16 +1722,16 @@ function GroupChatNavigationCard({
   );
 }
 
-function ShareCard() {
+function ShareCard({ theme }: { theme: any }) {
   return (
-    <section className="rounded-2xl border border-violet-100 bg-white p-6 shadow-lg">
+    <section className={`rounded-2xl border ${theme.lightBorder} bg-white p-6 shadow-lg`}>
       <h2 className="mb-4 text-sm font-black uppercase tracking-wider text-slate-500">
         Chia sẻ chiến dịch
       </h2>
       <div className="grid grid-cols-3 gap-3">
-        <IconButton label="Facebook" icon={Facebook} />
-        <IconButton label="Zalo" text="Z" />
-        <IconButton label="Copy link" icon={Copy} />
+        <IconButton label="Facebook" icon={Facebook} theme={theme} />
+        <IconButton label="Zalo" text="Z" theme={theme} />
+        <IconButton label="Copy link" icon={Copy} theme={theme} />
       </div>
     </section>
   );
@@ -1374,15 +1741,17 @@ function IconButton({
   label,
   icon: Icon,
   text,
+  theme,
 }: {
   label: string;
   icon?: ElementType;
   text?: string;
+  theme: any;
 }) {
   return (
     <button
       type="button"
-      className="grid h-11 place-items-center rounded-xl border border-violet-100 bg-[#F8F7FF] text-sm font-black text-[#7C3AED] transition hover:bg-[#F3F0FF]"
+      className={`grid h-11 place-items-center rounded-xl border ${theme.lightBorder} ${theme.mainBg} text-sm font-black ${theme.primaryText} transition ${theme.lightBgHover} active:scale-[0.97]`}
       aria-label={label}
       title={label}
     >
@@ -1395,15 +1764,17 @@ function Panel({
   title,
   icon: Icon,
   children,
+  theme,
 }: {
   title: string;
   icon: ElementType;
   children: ReactNode;
+  theme: any;
 }) {
   return (
-    <section className="rounded-2xl border border-violet-100 bg-white p-6 shadow-md">
+    <section className={`rounded-2xl border ${theme.lightBorder} bg-white p-6 shadow-md`}>
       <h2 className="mb-4 flex items-center gap-2 text-xl font-black text-slate-950">
-        <Icon size={20} className="text-[#7C3AED]" />
+        <Icon size={20} className={theme.primaryText} />
         {title}
       </h2>
       {children}
@@ -1417,26 +1788,28 @@ function Composer({
   onSubmit,
   disabled,
   placeholder,
+  theme,
 }: {
   value: string;
   onChange: (value: string) => void;
   onSubmit: () => void;
   disabled?: boolean;
   placeholder: string;
+  theme: any;
 }) {
   return (
     <div className="flex gap-2">
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 min-w-0 flex-1 rounded-xl border border-slate-200 px-4 text-sm outline-none transition focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/15"
+        className={`h-11 min-w-0 flex-1 rounded-xl border border-slate-200 px-4 text-sm outline-none transition ${theme.focusRing}`}
         placeholder={placeholder}
       />
       <button
         type="button"
         onClick={onSubmit}
         disabled={disabled}
-        className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#7C3AED] text-white transition hover:brightness-110 disabled:opacity-50"
+        className={`inline-flex h-11 w-11 items-center justify-center rounded-xl ${theme.primaryBg} text-white transition ${theme.primaryHover} active:scale-[0.97] disabled:opacity-50`}
       >
         <Send size={17} />
       </button>
@@ -1448,14 +1821,16 @@ function InfoTile({
   icon: Icon,
   label,
   value,
+  theme,
 }: {
   icon: ElementType;
   label: string;
   value: string;
+  theme: any;
 }) {
   return (
-    <div className="rounded-xl border border-violet-100 bg-[#F3F0FF] p-4">
-      <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-wider text-[#7C3AED]">
+    <div className={`rounded-xl border ${theme.lightBorder} ${theme.lightBg} p-4`}>
+      <div className={`mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-wider ${theme.primaryText}`}>
         <Icon size={15} />
         {label}
       </div>
@@ -1464,7 +1839,7 @@ function InfoTile({
   );
 }
 
-function StatusBadge({ status }: { status: Campaign["status"] }) {
+function StatusBadge({ status, theme }: { status: Campaign["status"]; theme?: any }) {
   const meta = {
     pending_review: {
       label: "Chờ duyệt",
@@ -1475,8 +1850,20 @@ function StatusBadge({ status }: { status: Campaign["status"] }) {
       className: "border-emerald-200 bg-emerald-50 text-emerald-700",
     },
     inProgress: { label: "Đang thực hiện", className: "border-blue-200 bg-blue-50 text-blue-700" },
-    completed: { label: "Hoàn thành", className: "border-violet-200 bg-violet-50 text-[#7C3AED]" },
-  }[status];
+    completed: {
+      label: "Hoàn thành",
+      className: theme && theme.primaryBorder && theme.lightBg && theme.primaryText
+        ? `${theme.primaryBorder} ${theme.lightBg} ${theme.primaryText}`
+        : "border-violet-200 bg-violet-50 text-[#7C3AED]",
+    },
+    ended: {
+      label: "Đã kết thúc",
+      className: "border-red-200 bg-red-50 text-red-700",
+    },
+  }[status] ?? {
+    label: "Đã kết thúc",
+    className: "border-red-200 bg-red-50 text-red-700",
+  };
 
   return (
     <span

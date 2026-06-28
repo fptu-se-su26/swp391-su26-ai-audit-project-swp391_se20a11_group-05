@@ -99,6 +99,12 @@ public class ChatbotService {
             || lower.contains("thủ tục") || lower.contains("pháp lý")) {
             return ChatIntent.QA_LEGAL;
         }
+
+        if (lower.contains("chiến dịch") || lower.contains("sự kiện")
+            || lower.contains("tình nguyện") || lower.contains("lễ hội")
+            || lower.contains("hiến máu") || lower.contains("dọn rác")) {
+            return ChatIntent.DISCOVER_CAMPAIGN;
+        }
         
         return ChatIntent.GENERAL;
     }
@@ -138,6 +144,9 @@ public class ChatbotService {
                 break;
             case REPORT_COPILOT:
                 responseData = handleReportCopilot(bestProvider, question, user, historyContext);
+                break;
+            case DISCOVER_CAMPAIGN:
+                responseData = handleDiscoverCampaign(question);
                 break;
             case GENERAL:
             default:
@@ -261,6 +270,22 @@ public class ChatbotService {
         return new java.util.HashMap<>(Map.of(
             "intent", "QA_LEGAL",
             "emotion", "NEUTRAL",
+            "reply", ragResponse.answer(),
+            "citations", ragResponse.citations()
+        ));
+    }
+
+    private Map<String, Object> handleDiscoverCampaign(String question) {
+        RetrievalOptions options = RetrievalOptions.defaults("danang-campaign", LANGUAGE);
+        String customPrompt = "Bạn là người điều phối sự kiện tình nguyện tại Đà Nẵng. Hãy đọc các chiến dịch ở CONTEXT và trả lời câu hỏi của người dân.\n" +
+            "Nếu không có chiến dịch nào trong CONTEXT phù hợp, hãy bảo là hiện chưa có chiến dịch nào tương ứng, khuyên họ quay lại sau.\n" +
+            "Hãy trả về định dạng rõ ràng, nêu tên chiến dịch, thời gian, địa điểm và tóm tắt mục đích một cách hào hứng.";
+        RagRequest request = new RagRequest(question, options);
+        RagResponse ragResponse = ragOrchestrator.query(request, customPrompt);
+
+        return new java.util.HashMap<>(Map.of(
+            "intent", "DISCOVER_CAMPAIGN",
+            "emotion", "POSITIVE",
             "reply", ragResponse.answer(),
             "citations", ragResponse.citations()
         ));

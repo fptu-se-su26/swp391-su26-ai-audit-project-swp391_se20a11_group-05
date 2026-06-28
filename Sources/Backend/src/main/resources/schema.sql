@@ -79,7 +79,13 @@ UPDATE campaign_chat_messages SET pinned = FALSE WHERE pinned IS NULL;
 ALTER TABLE campaign_chat_messages ALTER COLUMN pinned SET DEFAULT FALSE;
 ALTER TABLE campaign_chat_messages ALTER COLUMN pinned SET NOT NULL;
 
--- 9. Campaign participants table updates
+-- 11. Feedbacks table - public_visible column
+ALTER TABLE feedbacks ADD COLUMN IF NOT EXISTS public_visible BOOLEAN;
+UPDATE feedbacks SET public_visible = TRUE WHERE public_visible IS NULL;
+ALTER TABLE feedbacks ALTER COLUMN public_visible SET DEFAULT TRUE;
+ALTER TABLE feedbacks ALTER COLUMN public_visible SET NOT NULL;
+
+-- 12. Campaign participants table updates
 ALTER TABLE campaign_participants ADD COLUMN IF NOT EXISTS volunteer_experience VARCHAR(1000);
 ALTER TABLE campaign_participants ADD COLUMN IF NOT EXISTS availability_hours VARCHAR(200);
 ALTER TABLE campaign_participants ADD COLUMN IF NOT EXISTS cancellation_reason VARCHAR(500);
@@ -89,7 +95,7 @@ ALTER TABLE campaign_participants ALTER COLUMN cancel_count SET DEFAULT 0;
 ALTER TABLE campaign_participants ALTER COLUMN cancel_count SET NOT NULL;
 ALTER TABLE campaign_participants ADD COLUMN IF NOT EXISTS confirmation_deadline TIMESTAMP;
 
--- 10. Email verifications table
+-- 13. Email verifications table
 CREATE TABLE IF NOT EXISTS email_verifications (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT,

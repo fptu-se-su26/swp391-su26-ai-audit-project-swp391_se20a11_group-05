@@ -56,7 +56,7 @@ export const Route = createFileRoute("/report")({
   component: ReportPage,
 });
 
-const ReportMap = clientOnly(() =>
+const ReportMap = clientOnly<any>(() =>
   import("@/components/site/ReportMap").then((m) => ({ default: m.ReportMap })),
 );
 
@@ -209,6 +209,7 @@ function ReportPage() {
   const [submitted, setSubmitted] = useState(false);
   const [trackingCode, setTrackingCode] = useState("");
   const [piiError, setPiiError] = useState("");
+  const [isPrivate, setIsPrivate] = useState(false);
 
   const { data: categories } = useCategories();
   const [categoryCode, setCategoryCode] = useState<string | undefined>(
@@ -592,6 +593,7 @@ function ReportPage() {
           addressDetails: address || detectedWard || `${latitude}, ${longitude}`,
           categoryCode,
           videoDurationsSeconds,
+          publicVisible: !isPrivate,
         },
         files: [...photos, ...videos],
       });
@@ -789,6 +791,30 @@ function ReportPage() {
                   <span>{piiError}</span>
                 </div>
               )}
+            </div>
+
+            <div className="rounded-lg border border-slate-200 bg-white p-4 flex items-start justify-between gap-4 transition-all hover:shadow-sm">
+              <div className="flex gap-3">
+                <span className="text-xl leading-none text-gov-blue shrink-0 mt-0.5">🔒</span>
+                <div>
+                  <label htmlFor="private-toggle" className="font-bold text-ink cursor-pointer block select-none">
+                    {t("report.form.privateLabel")}
+                  </label>
+                  <p className="text-xs text-ink-soft mt-1 leading-relaxed">
+                    {t("report.form.privateHint")}
+                  </p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-0.5">
+                <input
+                  id="private-toggle"
+                  type="checkbox"
+                  checked={isPrivate}
+                  onChange={(e) => setIsPrivate(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gov-blue"></div>
+              </label>
             </div>
 
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">

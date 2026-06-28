@@ -26,6 +26,7 @@ import com.example.smartcity.modules.campaign.repository.CampaignParticipantRepo
 import com.example.smartcity.modules.campaign.repository.CampaignRepository;
 import com.example.smartcity.modules.core.entity.Ward;
 import com.example.smartcity.modules.core.repository.WardRepository;
+import com.example.smartcity.modules.core.service.LocationResolutionService;
 import com.example.smartcity.modules.user.entity.Role;
 import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.user.repository.UserRepository;
@@ -66,6 +67,7 @@ public class CampaignServiceImpl implements CampaignService {
     private final CampaignFeedbackRepository feedbackRepository;
     private final UserRepository userRepository;
     private final WardRepository wardRepository;
+    private final LocationResolutionService locationResolutionService;
     private final CampaignIngestionService campaignIngestionService;
     private final EmailOtpService emailOtpService;
     private final NotificationService notificationService;
@@ -116,6 +118,7 @@ public class CampaignServiceImpl implements CampaignService {
         }
 
         Ward ward = resolveWard(request, creator);
+        assertCampaignLocationWithinWard(request, ward);
         Campaign campaign = Campaign.builder()
                 .createdByUser(creator)
                 .ward(ward)
@@ -486,6 +489,7 @@ public class CampaignServiceImpl implements CampaignService {
         User user = requireUser(username);
         Campaign campaign = getCampaign(id);
         assertCanManage(campaign, user);
+        assertCampaignLocationWithinWard(request, campaign.getWard());
 
         campaign.setTitle(request.getTitle());
         campaign.setDescription(request.getDescription());
@@ -702,6 +706,27 @@ public class CampaignServiceImpl implements CampaignService {
             throw new CustomException("Ward staff account is not assigned to a ward", HttpStatus.CONFLICT.value());
         }
         return creator.getWard();
+    }
+
+    private void assertCampaignLocationWithinWard(CampaignRequest request, Ward assignedWard) {
+        if (assignedWard == null) {
+            throw new CustomException("Ward staff account is not assigned to a ward", HttpStatus.CONFLICT.value());
+        }
+        if (request.getLatitude() == null || request.getLongitude() == null) {
+            return;
+        }
+
+        Ward resolvedWard = locationResolutionService.resolveWard(request.getLatitude(), request.getLongitude());
+        if (resolvedWard == null || resolvedWard.getId() == null || !resolvedWard.getId().equals(assignedWard.getId())) {
+            String assignedWardName = assignedWard.getName() != null ? assignedWard.getName() : "ward được phân công";
+            String resolvedWardName = resolvedWard != null && resolvedWard.getName() != null
+                    ? resolvedWard.getName()
+                    : "khu vực khác";
+            throw new CustomException(
+                    "Địa điểm chiến dịch nằm ngoài địa bàn " + assignedWardName
+                            + " (hệ thống xác định là " + resolvedWardName + ").",
+                    HttpStatus.FORBIDDEN.value());
+        }
     }
 
     private void assertCanViewCampaign(Campaign campaign, User user) {

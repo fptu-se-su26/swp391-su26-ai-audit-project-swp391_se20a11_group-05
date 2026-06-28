@@ -18,6 +18,7 @@ import {
   Users,
   HelpCircle,
   CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useCreateCampaign } from "@/hooks/useCampaigns";
@@ -104,6 +105,7 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
 
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [locationErrorMessage, setLocationErrorMessage] = useState("");
   const [createdCampaignId, setCreatedCampaignId] = useState<number | string | null>(null);
 
   useEffect(() => {
@@ -264,7 +266,6 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
       ? createGeoJsonCircle(selectedCoordinates, radiusVal)
       : undefined;
 
-    const uploadToastId = toast.loading("Đang tải lên các hình ảnh...");
     const uploadedUrls: string[] = [];
 
     try {
@@ -291,12 +292,6 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
         }
       }
 
-      if (selectedPhotos.length > 0) {
-        toast.success("Tải lên hình ảnh thành công.", { id: uploadToastId });
-      } else {
-        toast.dismiss(uploadToastId);
-      }
-
       const coverImageUrl = uploadedUrls.length > 0 ? uploadedUrls[0] : undefined;
 
       const campaign = await submit({
@@ -310,7 +305,8 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
         startTime,
         endTime,
         maxParticipants,
-        wardName: user?.org,
+        wardId: user?.wardId ?? undefined,
+        wardName: user?.wardName || user?.org,
         latitude: selectedCoordinates.lat,
         longitude: selectedCoordinates.lng,
         boundaryGeojson,
@@ -321,10 +317,12 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
       setCreatedCampaignId(campaign.id);
       setShowSuccessDialog(true);
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Không thể tạo chiến dịch.",
-        { id: uploadToastId }
-      );
+      const message = error instanceof Error ? error.message : "Không thể tạo chiến dịch.";
+      if (message.toLowerCase().includes("ngoài địa bàn")) {
+        setLocationErrorMessage(message);
+      } else {
+        toast.error(message);
+      }
     } finally {
       setIsUploading(false);
     }
@@ -792,6 +790,46 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
         </aside>
       </div>
       </form>
+
+      {/* Location Scope Error Modal */}
+      {locationErrorMessage && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-slate-900/45 backdrop-blur-sm"
+            onClick={() => setLocationErrorMessage("")}
+          />
+          <div className="relative w-full max-w-[460px] overflow-hidden rounded-2xl border border-red-100 bg-white p-6 text-left shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <button
+              type="button"
+              onClick={() => setLocationErrorMessage("")}
+              className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-full text-slate-400 transition hover:bg-red-50 hover:text-red-600 cursor-pointer"
+              aria-label="Đóng"
+            >
+              ×
+            </button>
+            <div className="flex gap-4 pr-8">
+              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-red-50 text-red-600">
+                <AlertCircle size={24} />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-red-600">Địa điểm ngoài địa bàn</h3>
+                <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">
+                  {locationErrorMessage}
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setLocationErrorMessage("")}
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-red-600 px-5 text-sm font-black text-white shadow-md transition hover:bg-red-700 cursor-pointer"
+              >
+                Đã hiểu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Confirmation Modal */}
       {showConfirmDialog && (

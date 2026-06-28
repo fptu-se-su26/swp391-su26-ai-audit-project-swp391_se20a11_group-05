@@ -3,7 +3,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, useRef, Suspense } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
-import { usePublicFeedbacks, usePublicFeedbackStats, useFeedbackStatuses } from "@/lib/hooks";
+import { usePublicFeedbacks, usePublicFeedbackStats, useFeedbackStatuses, useFeedbacks } from "@/lib/hooks";
+import { useQuery } from "@tanstack/react-query";
 import { EmptyState, ErrorState } from "@/components/site/EmptyState";
 import {
   Search,
@@ -24,11 +25,12 @@ import {
   Info,
   Loader2,
   X,
+  User,
 } from "lucide-react";
 import { mapStatus } from "@/lib/status";
 import { toast } from "sonner";
 import { Role } from "@/lib/roles";
-import { type FeedbackStatus } from "@/lib/api";
+import { feedbackApi, type FeedbackStatus } from "@/lib/api";
 import { OFFICIAL_CATEGORIES } from "@/lib/categoryConfig";
 import { WardFeedbackManagementPage } from "@/features/ward/WardFeedbackManagementPage";
 
@@ -46,6 +48,7 @@ export const Route = createFileRoute("/feedback-search")({
     range?: string;
     wardId?: string | number;
     categories?: string;
+    tab?: string;
   } => ({
     category: search.category as string | undefined,
     q: search.q as string | undefined,
@@ -57,6 +60,7 @@ export const Route = createFileRoute("/feedback-search")({
         : Number(search.wardId)
       : undefined,
     categories: search.categories as string | undefined,
+    tab: search.tab as string | undefined,
   }),
   head: () => ({
     meta: [
@@ -110,8 +114,21 @@ function FeedbackSearch() {
 function PublicFeedbackLookup() {
   const { locale, t } = useI18n();
   const navigate = useNavigate({ from: "/feedback-search" });
-  const { category = "", q = "", status = "", range = "", wardId, categories } = Route.useSearch();
+  const { category = "", q = "", status = "", range = "", wardId, categories, tab } = Route.useSearch();
   const { isAuthenticated, user: currentUser } = useAuth();
+
+  const [activeTab, setActiveTab] = useState<"public" | "my">(() => {
+    return tab === "my" ? "my" : "public";
+  });
+
+  useEffect(() => {
+    if (tab === "my") {
+      setActiveTab("my");
+    } else {
+      setActiveTab("public");
+    }
+  }, [tab]);
+
   const isWardStaffUser = currentUser?.role === "WARD_STAFF";
   // WARD_STAFF allowed categories constant
   const WARD_STAFF_CATEGORIES = ["URBAN_INFRASTRUCTURE", "ENVIRONMENT", "CONSTRUCTION"];
@@ -303,23 +320,56 @@ function PublicFeedbackLookup() {
 
   // Main reports list fetch (Public lookup)
   const {
-    data: feedbacksPage,
-    isLoading,
-    isFetching,
-    refetch,
-    error,
-    isError,
-  } = usePublicFeedbacks(page, pageSize, apiFilters);
+    data: publicFeedbacksPage,
+    isLoading: isPublicLoading,
+    isFetching: isPublicFetching,
+    refetch: refetchPublic,
+    error: publicError,
+    isError: isPublicError,
+  } = usePublicFeedbacks(page, pageSize, apiFilters, {
+    enabled: activeTab === "public",
+  });
+
+  // Citizen's own reports list fetch
+  const {
+    data: myFeedbacksPage,
+    isLoading: isMyLoading,
+    isFetching: isMyFetching,
+    refetch: refetchMy,
+    error: myError,
+    isError: isMyError,
+  } = useFeedbacks(page, pageSize, apiFilters, {
+    enabled: activeTab === "my" && isAuthenticated,
+  });
 
   // Fetch public statistics for overview panel
-  const { data: publicStats } = usePublicFeedbackStats(apiFilters);
+  const { data: publicStats } = usePublicFeedbackStats(apiFilters, {
+    enabled: activeTab === "public",
+  });
+
+  // Fetch citizen's own statistics for overview panel
+  const { data: myStats } = useQuery({
+    queryKey: ["feedbacks", "my-stats", apiFilters],
+    queryFn: () => feedbackApi.getMyStats(apiFilters),
+    enabled: activeTab === "my" && isAuthenticated,
+    staleTime: 30_000,
+  });
 
   const { data: statuses = [] } = useFeedbackStatuses();
 
-  // Reset page number on filter changes
+  // Combine query states based on activeTab
+  const feedbacksPage = activeTab === "my" ? myFeedbacksPage : publicFeedbacksPage;
+  const isLoading = activeTab === "my" ? isMyLoading : isPublicLoading;
+  const isFetching = activeTab === "my" ? isMyFetching : isPublicFetching;
+  const isError = activeTab === "my" ? isMyError : isPublicError;
+  const error = activeTab === "my" ? myError : publicError;
+  const refetch = activeTab === "my" ? refetchMy : refetchPublic;
+
+  // Reset page number on filter/tab changes
   useEffect(() => {
     setPage(0);
   }, [
+    activeTab,
     filters.keyword,
     filters.location,
     filters.category,
@@ -352,16 +402,17 @@ function PublicFeedbackLookup() {
 
   // Combined statistics helper from backend
   const stats = useMemo(() => {
-    if (publicStats) {
+    const activeStats = activeTab === "my" ? myStats : publicStats;
+    if (activeStats) {
       return {
-        total: publicStats.total,
-        resolved: publicStats.resolved,
-        pending: publicStats.pending,
-        rejected: publicStats.rejected,
+        total: activeStats.total,
+        resolved: activeStats.resolved,
+        pending: activeStats.pending,
+        rejected: activeStats.rejected,
       };
     }
     return { total: 0, resolved: 0, pending: 0, rejected: 0 };
-  }, [publicStats]);
+  }, [activeTab, publicStats, myStats]);
 
   // Popular categories calculations based on real data list
   const categoryStats = useMemo(() => {
@@ -498,6 +549,16 @@ function PublicFeedbackLookup() {
     }
   };
 
+  const handleTabChange = (newTab: "public" | "my") => {
+    setActiveTab(newTab);
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        tab: newTab === "my" ? "my" : undefined,
+      }),
+    });
+  };
+
   const getStatusInfo = (status: string) => {
     switch (status) {
       case "RESOLVED":
@@ -585,6 +646,38 @@ function PublicFeedbackLookup() {
       <div className="max-w-[1440px] mx-auto w-full px-6 md:px-12 pb-16">
         {/* 2. Large Search & Filter Panel */}
         <div className="-mt-12 relative z-20 bg-white border border-[#E4EAF2] rounded-2xl p-6 shadow-md mb-8">
+          {/* Tab Navigation */}
+          <div className="flex gap-6 border-b border-[#E4EAF2] mb-6 pb-2">
+            <button
+              type="button"
+              onClick={() => handleTabChange("public")}
+              className={`pb-2 text-sm font-bold transition-all relative cursor-pointer ${
+                activeTab === "public"
+                  ? "text-[#0B4FC4]"
+                  : "text-[#667085] hover:text-[#0B4FC4]"
+              }`}
+            >
+              {locale === "vi" ? "Phản ánh công cộng" : "Public Feedbacks"}
+              {activeTab === "public" && (
+                <div className="absolute bottom-[-9px] left-0 right-0 h-0.5 bg-[#0B4FC4]" />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleTabChange("my")}
+              className={`pb-2 text-sm font-bold transition-all relative cursor-pointer ${
+                activeTab === "my"
+                  ? "text-[#0B4FC4]"
+                  : "text-[#667085] hover:text-[#0B4FC4]"
+              }`}
+            >
+              {locale === "vi" ? "Phản ánh của tôi" : "My Reports"}
+              {activeTab === "my" && (
+                <div className="absolute bottom-[-9px] left-0 right-0 h-0.5 bg-[#0B4FC4]" />
+              )}
+            </button>
+          </div>
+
           <form onSubmit={handleSearchSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               {/* Field 1: Từ khóa */}
@@ -865,249 +958,286 @@ function PublicFeedbackLookup() {
           {/* Left Column: Report results list */}
           <div className="md:col-span-8 space-y-6">
             <div className="bg-white border border-[#E4EAF2] rounded-2xl p-5 md:p-6 shadow-sm space-y-6">
-              {/* Header result info */}
-              <div className="flex items-center justify-between border-b border-slate-100 pb-4 flex-wrap gap-2">
-                <div className="text-sm font-semibold text-[#475467]">
-                  {isFiltered ? (
-                    <>
-                      {locale === "vi" ? "Tìm thấy" : "Found"}{" "}
-                      <span className="text-2xl font-extrabold text-[#0B4FC4] font-sans inline-block align-middle -mt-1 mx-1">
-                        {feedbacksPage?.totalElements ?? 0}
-                      </span>{" "}
-                      {locale === "vi" ? "kết quả" : "results"}
-                    </>
-                  ) : null}
-                </div>
-
-                <div className="flex items-center gap-2 text-xs font-bold">
-                  <span className="text-[#667085]">
-                    {locale === "vi" ? "Sắp xếp theo:" : "Sort by:"}
-                  </span>
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="bg-transparent text-[#123E8A] outline-none border-b-2 border-transparent focus:border-[#0B4FC4] cursor-pointer py-1 font-bold"
+              {activeTab === "my" && !isAuthenticated ? (
+                <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                  <div className="w-16 h-16 bg-blue-50 text-[#0B4FC4] rounded-full flex items-center justify-center mb-4">
+                    <User size={32} />
+                  </div>
+                  <h3 className="text-lg font-bold text-[#123E8A] mb-2 font-sans">
+                    {locale === "vi" ? "Yêu cầu đăng nhập" : "Login Required"}
+                  </h3>
+                  <p className="text-sm text-[#667085] max-w-sm mb-6 font-sans">
+                    {locale === "vi"
+                      ? "Vui lòng đăng nhập tài khoản công dân để theo dõi các phản ánh cá nhân đã gửi của bạn."
+                      : "Please login with a citizen account to track your submitted reports."}
+                  </p>
+                  <Link
+                    to="/login"
+                    search={{ redirect: "/feedback-search?tab=my" }}
+                    className="px-6 py-2.5 bg-[#0B4FC4] hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-md font-sans"
                   >
-                    <option value="newest">{locale === "vi" ? "Mới nhất" : "Newest"}</option>
-                    <option value="oldest">{locale === "vi" ? "Cũ nhất" : "Oldest"}</option>
-                    <option value="updated">
-                      {locale === "vi" ? "Cập nhật gần nhất" : "Last updated"}
-                    </option>
-                  </select>
+                    {locale === "vi" ? "Đăng nhập ngay" : "Login Now"}
+                  </Link>
                 </div>
-              </div>
-
-              {/* Error state */}
-              {isError && !isLoading && (
-                <ErrorState
-                  message={
-                    error instanceof Error
-                      ? error.message
-                      : locale === "vi"
-                        ? "Không thể tải dữ liệu phản ánh."
-                        : "Failed to load reports."
-                  }
-                  onRetry={() => refetch()}
-                  compact
-                />
-              )}
-
-              {/* Loading skeleton */}
-              {isLoading && (
-                <div className="space-y-4">
-                  {[1, 2, 3].map((s) => (
-                    <div
-                      key={s}
-                      className="border border-[#E4EAF2] rounded-2xl p-5 flex gap-4 animate-pulse"
-                    >
-                      <div className="w-32 aspect-[16/10] bg-slate-100 rounded-xl" />
-                      <div className="flex-1 space-y-3">
-                        <div className="h-4 bg-slate-100 rounded w-1/4" />
-                        <div className="h-5 bg-slate-100 rounded w-3/4" />
-                        <div className="h-4 bg-slate-100 rounded w-1/2" />
-                      </div>
+              ) : (
+                <>
+                  {/* Header result info */}
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-4 flex-wrap gap-2">
+                    <div className="text-sm font-semibold text-[#475467]">
+                      {isFiltered ? (
+                        <>
+                          {locale === "vi" ? "Tìm thấy" : "Found"}{" "}
+                          <span className="text-2xl font-extrabold text-[#0B4FC4] font-sans inline-block align-middle -mt-1 mx-1">
+                            {feedbacksPage?.totalElements ?? 0}
+                          </span>{" "}
+                          {locale === "vi" ? "kết quả" : "results"}
+                        </>
+                      ) : null}
                     </div>
-                  ))}
-                </div>
-              )}
 
-              {/* Empty state */}
-              {!isLoading && !isError && sortedFeedbacks.length === 0 && (
-                <EmptyState
-                  title={
-                    locale === "vi"
-                      ? "Không tìm thấy phản ánh phù hợp."
-                      : "No matching reports found."
-                  }
-                  description={
-                    locale === "vi"
-                      ? "Vui lòng thử thay đổi từ khóa hoặc bộ lọc tìm kiếm."
-                      : "Please try modifying your keywords or filters."
-                  }
-                  action={
-                    <button
-                      onClick={handleReset}
-                      className="px-4 py-2 bg-[#0B4FC4] hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition"
-                    >
-                      {locale === "vi" ? "Xóa bộ lọc" : "Clear filters"}
-                    </button>
-                  }
-                />
-              )}
+                    <div className="flex items-center gap-2 text-xs font-bold">
+                      <span className="text-[#667085]">
+                        {locale === "vi" ? "Sắp xếp theo:" : "Sort by:"}
+                      </span>
+                      <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        className="bg-transparent text-[#123E8A] outline-none border-b-2 border-transparent focus:border-[#0B4FC4] cursor-pointer py-1 font-bold"
+                      >
+                        <option value="newest">{locale === "vi" ? "Mới nhất" : "Newest"}</option>
+                        <option value="oldest">{locale === "vi" ? "Cũ nhất" : "Oldest"}</option>
+                        <option value="updated">
+                          {locale === "vi" ? "Cập nhật gần nhất" : "Last updated"}
+                        </option>
+                      </select>
+                    </div>
+                  </div>
 
-              {/* List rows */}
-              {!isLoading && !isError && sortedFeedbacks.length > 0 && (
-                <div className="space-y-4">
-                  {sortedFeedbacks.map((report) => (
-                    <article
-                      key={report.id}
-                      onClick={() =>
-                        navigate({ to: "/my-reports/$id", params: { id: String(report.id) } })
+                  {/* Error state */}
+                  {isError && !isLoading && (
+                    <ErrorState
+                      message={
+                        error instanceof Error
+                          ? error.message
+                          : locale === "vi"
+                            ? "Không thể tải dữ liệu phản ánh."
+                            : "Failed to load reports."
                       }
-                      className="bg-white rounded-xl border border-[#E4EAF2] p-4 flex flex-col md:flex-row gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
-                    >
-                      {/* Left thumbnail */}
-                      <div className="w-full md:w-36 aspect-[16/10] md:h-[90px] bg-slate-50 rounded-xl overflow-hidden shrink-0 border border-slate-100 relative">
-                        <img
-                          src={
-                            report.attachments?.[0]?.fileUrl ||
-                            "https://images.unsplash.com/photo-1596402184320-417e7178b2cd?auto=format&fit=crop&w=150&h=150&q=80"
-                          }
-                          alt=""
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
-                      </div>
+                      onRetry={() => refetch()}
+                      compact
+                    />
+                  )}
 
-                      {/* Main text content */}
-                      <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="px-2 py-0.5 bg-[#EAF2FF] text-[#0B4FC4] text-[9px] font-bold rounded font-mono uppercase tracking-wider">
-                              {locale === "vi" ? "Mã:" : "Code:"} {report.trackingCode}
-                            </span>
+                  {/* Loading skeleton */}
+                  {isLoading && (
+                    <div className="space-y-4">
+                      {[1, 2, 3].map((s) => (
+                        <div
+                          key={s}
+                          className="border border-[#E4EAF2] rounded-2xl p-5 flex gap-4 animate-pulse"
+                        >
+                          <div className="w-32 aspect-[16/10] bg-slate-100 rounded-xl" />
+                          <div className="flex-1 space-y-3">
+                            <div className="h-4 bg-slate-100 rounded w-1/4" />
+                            <div className="h-5 bg-slate-100 rounded w-3/4" />
+                            <div className="h-4 bg-slate-100 rounded w-1/2" />
                           </div>
-                          <h3 className="text-base font-bold text-[#123E8A] leading-snug line-clamp-1 mb-2 hover:text-[#0B4FC4] transition-colors">
-                            {report.title}
-                          </h3>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-y-2 gap-x-4 text-[11px] text-[#667085]">
-                            <span className="flex items-center gap-1.5 truncate">
-                              <MapPin size={13} className="shrink-0 text-slate-400" />
-                              {report.addressDetails ||
-                                report.wardName ||
-                                (locale === "vi" ? "Đà Nẵng" : "Da Nang")}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Empty state */}
+                  {!isLoading && !isError && sortedFeedbacks.length === 0 && (
+                    <EmptyState
+                      title={
+                        locale === "vi"
+                          ? "Không tìm thấy phản ánh phù hợp."
+                          : "No matching reports found."
+                      }
+                      description={
+                        locale === "vi"
+                          ? "Vui lòng thử thay đổi từ khóa hoặc bộ lọc tìm kiếm."
+                          : "Please try modifying your keywords or filters."
+                      }
+                      action={
+                        <button
+                          onClick={handleReset}
+                          className="px-4 py-2 bg-[#0B4FC4] hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition"
+                        >
+                          {locale === "vi" ? "Xóa bộ lọc" : "Clear filters"}
+                        </button>
+                      }
+                    />
+                  )}
+
+                  {/* List rows */}
+                  {!isLoading && !isError && sortedFeedbacks.length > 0 && (
+                    <div className="space-y-4">
+                      {sortedFeedbacks.map((report) => (
+                        <article
+                          key={report.id}
+                          onClick={() =>
+                            navigate({ to: "/my-reports/$id", params: { id: String(report.id) } })
+                          }
+                          className="bg-white rounded-xl border border-[#E4EAF2] p-4 flex flex-col md:flex-row gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
+                        >
+                          {/* Left thumbnail */}
+                          <div className="w-full md:w-36 aspect-[16/10] md:h-[90px] bg-slate-50 rounded-xl overflow-hidden shrink-0 border border-slate-100 relative">
+                            <img
+                              src={
+                                report.attachments?.[0]?.fileUrl ||
+                                "https://images.unsplash.com/photo-1596402184320-417e7178b2cd?auto=format&fit=crop&w=150&h=150&q=80"
+                              }
+                              alt=""
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                            />
+                          </div>
+
+                          {/* Main text content */}
+                          <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                            <div>
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                <span className="px-2 py-0.5 bg-[#EAF2FF] text-[#0B4FC4] text-[9px] font-bold rounded font-mono uppercase tracking-wider">
+                                  {locale === "vi" ? "Mã:" : "Code:"} {report.trackingCode}
+                                </span>
+                                {/* Privacy indicator */}
+                                {activeTab === "my" && (
+                                  <span className={`px-2 py-0.5 text-[9px] font-bold rounded font-sans uppercase tracking-wider ${
+                                    report.publicVisible
+                                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                      : "bg-amber-50 text-amber-700 border border-amber-200"
+                                  }`}>
+                                    {report.publicVisible
+                                      ? (locale === "vi" ? "Công khai" : "Public")
+                                      : (locale === "vi" ? "Riêng tư" : "Private")}
+                                  </span>
+                                )}
+                              </div>
+                              <h3 className="text-base font-bold text-[#123E8A] leading-snug line-clamp-1 mb-2 hover:text-[#0B4FC4] transition-colors">
+                                {report.title}
+                              </h3>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-y-2 gap-x-4 text-[11px] text-[#667085]">
+                                <span className="flex items-center gap-1.5 truncate">
+                                  <MapPin size={13} className="shrink-0 text-slate-400" />
+                                  {report.addressDetails ||
+                                    report.wardName ||
+                                    (locale === "vi" ? "Đà Nẵng" : "Da Nang")}
+                                </span>
+                                <span className="flex items-center gap-1.5 truncate">
+                                  <Grid size={13} className="shrink-0 text-slate-400" />
+                                  {report.categoryName ||
+                                    report.category ||
+                                    (locale === "vi" ? "Khác" : "Other")}
+                                </span>
+                                <span className="flex items-center gap-1.5 truncate">
+                                  <MapPin size={13} className="shrink-0 text-slate-400" />
+                                  {report.wardName ||
+                                    (locale === "vi"
+                                      ? "Cần kiểm tra vị trí"
+                                      : "Location review needed")}
+                                </span>
+                                <span className="flex items-center gap-1.5 truncate">
+                                  <Grid size={13} className="shrink-0 text-slate-400" />
+                                  {report.assignedUnitName ||
+                                    (locale === "vi" ? "Chưa phân đơn vị" : "Unassigned unit")}
+                                </span>
+                                <span className="flex items-center gap-1.5 truncate text-nowrap">
+                                  <Calendar size={13} className="shrink-0 text-slate-400" />
+                                  {new Date(report.createdAt).toLocaleDateString(
+                                    locale === "vi" ? "vi-VN" : "en-US",
+                                  )}{" "}
+                                  -{" "}
+                                  {new Date(report.createdAt).toLocaleTimeString(
+                                    locale === "vi" ? "vi-VN" : "en-US",
+                                    {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    },
+                                  )}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Right action status section */}
+                          <div className="flex flex-col items-end justify-between shrink-0 self-stretch md:border-l md:border-slate-100 md:pl-5 md:min-w-[120px] md:pt-0 pt-3 border-t md:border-t-0 border-slate-100">
+                            <span
+                              className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wide leading-none ${getStatusInfo(report.status).badgeClass}`}
+                            >
+                              {getStatusInfo(report.status).label}
                             </span>
-                            <span className="flex items-center gap-1.5 truncate">
-                              <Grid size={13} className="shrink-0 text-slate-400" />
-                              {report.categoryName ||
-                                report.category ||
-                                (locale === "vi" ? "Khác" : "Other")}
-                            </span>
-                            <span className="flex items-center gap-1.5 truncate">
-                              <MapPin size={13} className="shrink-0 text-slate-400" />
-                              {report.wardName ||
-                                (locale === "vi"
-                                  ? "Cần kiểm tra vị trí"
-                                  : "Location review needed")}
-                            </span>
-                            <span className="flex items-center gap-1.5 truncate">
-                              <Grid size={13} className="shrink-0 text-slate-400" />
-                              {report.assignedUnitName ||
-                                (locale === "vi" ? "Chưa phân đơn vị" : "Unassigned unit")}
-                            </span>
-                            <span className="flex items-center gap-1.5 truncate">
-                              <Calendar size={13} className="shrink-0 text-slate-400" />
-                              {new Date(report.createdAt).toLocaleDateString(
+                            <span className="text-[10px] text-[#667085] font-medium mt-auto md:mb-0 mb-1">
+                              {locale === "vi" ? "Cập nhật:" : "Updated:"}{" "}
+                              {new Date(report.updatedAt || report.createdAt).toLocaleDateString(
                                 locale === "vi" ? "vi-VN" : "en-US",
-                              )}{" "}
-                              -{" "}
-                              {new Date(report.createdAt).toLocaleTimeString(
-                                locale === "vi" ? "vi-VN" : "en-US",
-                                {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                },
                               )}
                             </span>
                           </div>
-                        </div>
-                      </div>
+                        </article>
+                      ))}
+                    </div>
+                  )}
 
-                      {/* Right action status section */}
-                      <div className="flex flex-col items-end justify-between shrink-0 self-stretch md:border-l md:border-slate-100 md:pl-5 md:min-w-[120px] md:pt-0 pt-3 border-t md:border-t-0 border-slate-100">
-                        <span
-                          className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wide leading-none ${getStatusInfo(report.status).badgeClass}`}
+                  {/* Pagination */}
+                  {!isLoading && !isError && totalPages > 1 && (
+                    <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 pt-6 mt-8">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setPage((p) => Math.max(0, p - 1))}
+                          disabled={feedbacksPage?.first}
+                          className="w-9 h-9 rounded-xl border border-[#E4EAF2] bg-white flex items-center justify-center text-slate-400 disabled:opacity-30 hover:bg-slate-50 transition-colors"
+                          aria-label={locale === "vi" ? "Trang trước" : "Previous page"}
                         >
-                          {getStatusInfo(report.status).label}
-                        </span>
-                        <span className="text-[10px] text-[#667085] font-medium mt-auto md:mb-0 mb-1">
-                          {locale === "vi" ? "Cập nhật:" : "Updated:"}{" "}
-                          {new Date(report.updatedAt || report.createdAt).toLocaleDateString(
-                            locale === "vi" ? "vi-VN" : "en-US",
-                          )}
-                        </span>
+                          <ChevronLeft size={16} />
+                        </button>
+
+                        {pageButtons.map((pi) => (
+                          <button
+                            key={pi}
+                            type="button"
+                            onClick={() => setPage(pi)}
+                            className={`w-9 h-9 rounded-xl font-bold text-xs border transition-colors ${
+                              pi === page
+                                ? "bg-[#0B4FC4] text-white border-[#0B4FC4]"
+                                : "bg-white border-[#E4EAF2] text-[#475467] hover:border-[#0B4FC4]"
+                            }`}
+                          >
+                            {pi + 1}
+                          </button>
+                        ))}
+
+                        <button
+                          type="button"
+                          onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                          disabled={feedbacksPage?.last}
+                          className="w-9 h-9 rounded-xl border border-[#E4EAF2] bg-white flex items-center justify-center text-slate-400 disabled:opacity-30 hover:bg-slate-50 transition-colors"
+                          aria-label={locale === "vi" ? "Trang sau" : "Next page"}
+                        >
+                          <ChevronRight size={16} />
+                        </button>
                       </div>
-                    </article>
-                  ))}
-                </div>
-              )}
 
-              {/* Pagination */}
-              {!isLoading && !isError && totalPages > 1 && (
-                <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 pt-6 mt-8">
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setPage((p) => Math.max(0, p - 1))}
-                      disabled={feedbacksPage?.first}
-                      className="w-9 h-9 rounded-xl border border-[#E4EAF2] bg-white flex items-center justify-center text-slate-400 disabled:opacity-30 hover:bg-slate-50 transition-colors"
-                      aria-label={locale === "vi" ? "Trang trước" : "Previous page"}
-                    >
-                      <ChevronLeft size={16} />
-                    </button>
-
-                    {pageButtons.map((pi) => (
-                      <button
-                        key={pi}
-                        type="button"
-                        onClick={() => setPage(pi)}
-                        className={`w-9 h-9 rounded-xl font-bold text-xs border transition-colors ${
-                          pi === page
-                            ? "bg-[#0B4FC4] text-white border-[#0B4FC4]"
-                            : "bg-white border-[#E4EAF2] text-[#475467] hover:border-[#0B4FC4]"
-                        }`}
-                      >
-                        {pi + 1}
-                      </button>
-                    ))}
-
-                    <button
-                      type="button"
-                      onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                      disabled={feedbacksPage?.last}
-                      className="w-9 h-9 rounded-xl border border-[#E4EAF2] bg-white flex items-center justify-center text-slate-400 disabled:opacity-30 hover:bg-slate-50 transition-colors"
-                      aria-label={locale === "vi" ? "Trang sau" : "Next page"}
-                    >
-                      <ChevronRight size={16} />
-                    </button>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-xs font-bold text-[#475467]">
-                    <span>{locale === "vi" ? "Hiển thị:" : "Show:"}</span>
-                    <select
-                      value={pageSize}
-                      onChange={(e) => {
-                        setPageSize(Number(e.target.value));
-                        setPage(0);
-                      }}
-                      className="bg-white border-2 border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-[#123E8A] focus:border-[#0B4FC4] outline-none cursor-pointer"
-                    >
-                      <option value={5}>5 / {locale === "vi" ? "trang" : "page"}</option>
-                      <option value={10}>10 / {locale === "vi" ? "trang" : "page"}</option>
-                      <option value={20}>20 / {locale === "vi" ? "trang" : "page"}</option>
-                    </select>
-                  </div>
-                </div>
+                      <div className="flex items-center gap-2 text-xs font-bold text-[#475467]">
+                        <span>{locale === "vi" ? "Hiển thị:" : "Show:"}</span>
+                        <select
+                          value={pageSize}
+                          onChange={(e) => {
+                            setPageSize(Number(e.target.value));
+                            setPage(0);
+                          }}
+                          className="bg-white border-2 border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-[#123E8A] focus:border-[#0B4FC4] outline-none cursor-pointer"
+                        >
+                          <option value={5}>5 / {locale === "vi" ? "trang" : "page"}</option>
+                          <option value={10}>10 / {locale === "vi" ? "trang" : "page"}</option>
+                          <option value={20}>20 / {locale === "vi" ? "trang" : "page"}</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 

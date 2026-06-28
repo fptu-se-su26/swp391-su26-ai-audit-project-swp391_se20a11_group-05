@@ -182,6 +182,7 @@ export function useCreateCampaign() {
       linkedFeedbackCode?: string | null;
       linkedFeedbackTitle?: string | null;
       wardName?: string;
+      wardId?: number | null;
       latitude?: number;
       longitude?: number;
       boundaryGeojson?: string;
@@ -211,6 +212,7 @@ export function useCreateCampaign() {
             startTime: params.startTime || undefined,
             endTime: params.endTime || undefined,
             linkedFeedbackId: params.linkedFeedbackId ? Number(params.linkedFeedbackId) : undefined,
+            wardId: params.wardId ?? undefined,
             latitude: params.latitude,
             longitude: params.longitude,
             boundaryGeojson: params.boundaryGeojson,

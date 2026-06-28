@@ -9,6 +9,10 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -30,6 +34,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class SelfRagService {
 
     private final GroqAdapter groqAdapter;
+    private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+    // Giới hạn 3 luồng gọi LLM song song để tránh Rate Limit (429)
+    private final Semaphore rateLimiter = new Semaphore(3);
 
     // Ngưỡng chấp nhận (có thể cấu hình từ application.properties)
 
@@ -78,47 +85,64 @@ public class SelfRagService {
             batches.add(chunks.subList(i, Math.min(i + 5, chunks.size())));
         }
 
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
         int globalIndex = 0;
+        
         for (List<DocumentChunk> batch : batches) {
-            try {
-                StringBuilder promptBuilder = new StringBuilder("Chấm điểm mức độ liên quan của từng đoạn văn với câu hỏi.\n");
-                promptBuilder.append("Câu hỏi: ").append(question).append("\n\n");
-                
-                for (int i = 0; i < batch.size(); i++) {
-                    promptBuilder.append("--- Đoạn văn ").append(i + 1).append(" ---\n");
-                    promptBuilder.append(batch.get(i).getContent()).append("\n\n");
-                }
-                
-                promptBuilder.append("Trả về mảng JSON chứa các điểm số từ 0.0 đến 1.0, theo đúng thứ tự. ");
-                promptBuilder.append("BẮT BUỘC định dạng: {\"scores\": [0.9, 0.2]}. KHÔNG giải thích thêm.");
-                
-                String verdict = groqAdapter.generateResponseAsync("Bạn là chuyên gia phân loại tài liệu. Luôn trả về JSON.", promptBuilder.toString()).get();
-                
-                String cleanJson = cleanAndExtractJson(verdict);
-                JsonNode rootNode = mapper.readTree(cleanJson.trim());
-                JsonNode scoresArray = rootNode.path("scores");
-                
-                if (scoresArray.isArray() && scoresArray.size() == batch.size()) {
+            final int startIndex = globalIndex;
+            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                try {
+                    // Chờ cấp phép từ Semaphore
+                    rateLimiter.acquire();
+                    
+                    StringBuilder promptBuilder = new StringBuilder("Chấm điểm mức độ liên quan của từng đoạn văn với câu hỏi.\n");
+                    promptBuilder.append("Câu hỏi: ").append(question).append("\n\n");
+                    
                     for (int i = 0; i < batch.size(); i++) {
-                        scores.set(globalIndex + i, scoresArray.get(i).asDouble());
+                        promptBuilder.append("--- Đoạn văn ").append(i + 1).append(" ---\n");
+                        promptBuilder.append(batch.get(i).getContent()).append("\n\n");
                     }
-                } else {
-                    throw new RuntimeException("LLM sinh JSON thiếu/dư mảng điểm số");
+                    
+                    promptBuilder.append("Trả về mảng JSON chứa các điểm số từ 0.0 đến 1.0, theo đúng thứ tự. ");
+                    promptBuilder.append("BẮT BUỘC định dạng: {\"scores\": [0.9, 0.2]}. KHÔNG giải thích thêm.");
+                    
+                    String verdict = groqAdapter.generateResponseAsync("Bạn là chuyên gia phân loại tài liệu. Luôn trả về JSON.", promptBuilder.toString()).get();
+                    
+                    String cleanJson = cleanAndExtractJson(verdict);
+                    JsonNode rootNode = mapper.readTree(cleanJson.trim());
+                    JsonNode scoresArray = rootNode.path("scores");
+                    
+                    if (scoresArray.isArray() && scoresArray.size() == batch.size()) {
+                        for (int i = 0; i < batch.size(); i++) {
+                            scores.set(startIndex + i, scoresArray.get(i).asDouble());
+                        }
+                    } else {
+                        throw new RuntimeException("LLM sinh JSON thiếu/dư mảng điểm số");
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    log.error("⚠️ [Self-RAG] Thread bị ngắt khi chấm batch", e);
+                    for (int i = 0; i < batch.size(); i++) {
+                        scores.set(startIndex + i, computeKeywordOverlapScore(question, batch.get(i).getContent()));
+                    }
+                } catch (Exception e) {
+                    log.warn("⚠️ [Self-RAG] Lỗi gọi LLM chấm batch, dùng fallback: {}", e.getMessage());
+                    for (int i = 0; i < batch.size(); i++) {
+                        scores.set(startIndex + i, computeKeywordOverlapScore(question, batch.get(i).getContent()));
+                    }
+                } finally {
+                    // Trả lại cấp phép
+                    rateLimiter.release();
                 }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                log.error("⚠️ [Self-RAG] Thread bị ngắt khi chấm batch", e);
-                for (int i = 0; i < batch.size(); i++) {
-                    scores.set(globalIndex + i, computeKeywordOverlapScore(question, batch.get(i).getContent()));
-                }
-            } catch (Exception e) {
-                log.warn("⚠️ [Self-RAG] Lỗi gọi LLM chấm batch, dùng fallback: {}", e.getMessage());
-                for (int i = 0; i < batch.size(); i++) {
-                    scores.set(globalIndex + i, computeKeywordOverlapScore(question, batch.get(i).getContent()));
-                }
-            }
+            }, executor);
+            
+            futures.add(future);
             globalIndex += batch.size();
         }
+        
+        // Đợi tất cả batch hoàn thành
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        
         return scores;
     }
 

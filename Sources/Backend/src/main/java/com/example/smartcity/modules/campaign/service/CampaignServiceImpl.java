@@ -10,6 +10,10 @@ import com.example.smartcity.modules.campaign.dto.CampaignMessageRequest;
 import com.example.smartcity.modules.campaign.dto.CampaignParticipantResponse;
 import com.example.smartcity.modules.campaign.dto.CampaignRequest;
 import com.example.smartcity.modules.campaign.dto.CampaignResponse;
+import com.example.smartcity.modules.campaign.dto.CampaignJoinRequest;
+import com.example.smartcity.modules.campaign.dto.CampaignBatchApproveRequest;
+import com.example.smartcity.modules.auth.service.EmailOtpService;
+import com.example.smartcity.modules.notification.service.NotificationService;
 import com.example.smartcity.modules.campaign.entity.Campaign;
 import com.example.smartcity.modules.campaign.entity.CampaignChatMessage;
 import com.example.smartcity.modules.campaign.entity.CampaignComment;
@@ -51,6 +55,9 @@ public class CampaignServiceImpl implements CampaignService {
     private static final String JOIN_APPROVED = "APPROVED";
     private static final String JOIN_REJECTED = "REJECTED";
     private static final String JOIN_CANCELLED = "CANCELLED";
+    private static final String JOIN_WAITLIST = "WAITLIST";
+    private static final String JOIN_PENDING_CONFIRM = "PENDING_CONFIRM";
+    private static final String JOIN_NO_SHOW = "NO_SHOW";
 
     private final CampaignRepository campaignRepository;
     private final CampaignParticipantRepository participantRepository;
@@ -60,6 +67,8 @@ public class CampaignServiceImpl implements CampaignService {
     private final UserRepository userRepository;
     private final WardRepository wardRepository;
     private final CampaignIngestionService campaignIngestionService;
+    private final EmailOtpService emailOtpService;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -160,11 +169,17 @@ public class CampaignServiceImpl implements CampaignService {
 
     @Override
     @Transactional
-    public CampaignResponse join(Long campaignId, String username) {
+    public CampaignResponse join(Long campaignId, CampaignJoinRequest request, String username) {
         User citizen = requireUser(username);
         if (citizen.getRole() != Role.CITIZEN) {
             throw new CustomException("Only citizens can join campaigns", HttpStatus.FORBIDDEN.value());
         }
+        if (citizen.getEmail() == null || citizen.getEmail().isBlank()) {
+            throw new CustomException("Tài khoản chưa cấu hình email để nhận mã OTP.", HttpStatus.BAD_REQUEST.value());
+        }
+
+        // Verify OTP
+        emailOtpService.verifyOtp(citizen.getEmail(), request.getOtpCode());
 
         Campaign campaign = getCampaign(campaignId);
         LocalDateTime now = LocalDateTime.now();
@@ -175,25 +190,40 @@ public class CampaignServiceImpl implements CampaignService {
             throw new CustomException("Campaign is not open for registration", HttpStatus.CONFLICT.value());
         }
 
+        long approvedCount = participantRepository.countByCampaign_IdAndJoinStatus(campaignId, JOIN_APPROVED);
+        String targetStatus = JOIN_PENDING;
+        if (campaign.getMaxParticipants() != null && approvedCount >= campaign.getMaxParticipants()) {
+            targetStatus = JOIN_WAITLIST;
+        }
+
         Optional<CampaignParticipant> existing = participantRepository
                 .findByCampaign_IdAndCitizen_Id(campaignId, citizen.getId());
         if (existing.isPresent()) {
             CampaignParticipant participant = existing.get();
-            if (JOIN_PENDING.equals(participant.getJoinStatus()) || JOIN_APPROVED.equals(participant.getJoinStatus())) {
+            if (JOIN_PENDING.equals(participant.getJoinStatus()) ||
+                JOIN_APPROVED.equals(participant.getJoinStatus()) ||
+                JOIN_WAITLIST.equals(participant.getJoinStatus()) ||
+                JOIN_PENDING_CONFIRM.equals(participant.getJoinStatus())) {
                 throw new CustomException("You have already registered for this campaign", HttpStatus.CONFLICT.value());
             }
-            participant.setJoinStatus(JOIN_PENDING);
+            participant.setJoinStatus(targetStatus);
+            participant.setVolunteerExperience(request.getVolunteerExperience());
+            participant.setAvailabilityHours(request.getAvailabilityHours());
             participant.setApprovedBy(null);
             participant.setApprovedAt(null);
             participant.setRejectedAt(null);
             participant.setRejectionReason(null);
             participant.setCancelledAt(null);
+            participant.setCancellationReason(null);
+            participant.setConfirmationDeadline(null);
             participantRepository.save(participant);
         } else {
             CampaignParticipant participant = CampaignParticipant.builder()
                     .campaign(campaign)
                     .citizen(citizen)
-                    .joinStatus(JOIN_PENDING)
+                    .joinStatus(targetStatus)
+                    .volunteerExperience(request.getVolunteerExperience())
+                    .availabilityHours(request.getAvailabilityHours())
                     .build();
             participantRepository.save(participant);
         }
@@ -203,17 +233,61 @@ public class CampaignServiceImpl implements CampaignService {
 
     @Override
     @Transactional
-    public void leave(Long campaignId, String username) {
+    public void leave(Long campaignId, CampaignActionRequest request, String username) {
         User citizen = requireUser(username);
-        participantRepository.findByCampaign_IdAndCitizen_Id(campaignId, citizen.getId())
-                .ifPresent(participant -> {
-                    participant.setJoinStatus(JOIN_CANCELLED);
-                    participant.setApprovedBy(null);
-                    participant.setApprovedAt(null);
-                    participant.setRejectedAt(null);
-                    participant.setRejectionReason(null);
-                    participant.setCancelledAt(LocalDateTime.now());
-                    participantRepository.save(participant);
+        Campaign campaign = getCampaign(campaignId);
+
+        if (campaign.getStartTime() != null && LocalDateTime.now().isAfter(campaign.getStartTime().minusHours(12))) {
+            throw new CustomException("Chỉ có thể hủy tham gia tối thiểu 12 giờ trước khi chiến dịch bắt đầu.", HttpStatus.BAD_REQUEST.value());
+        }
+
+        CampaignParticipant participant = participantRepository.findByCampaign_IdAndCitizen_Id(campaignId, citizen.getId())
+                .orElseThrow(() -> new CustomException("Không tìm thấy thông tin đăng ký của bạn cho chiến dịch này.", HttpStatus.NOT_FOUND.value()));
+
+        if (!JOIN_PENDING.equals(participant.getJoinStatus()) &&
+            !JOIN_APPROVED.equals(participant.getJoinStatus()) &&
+            !JOIN_WAITLIST.equals(participant.getJoinStatus()) &&
+            !JOIN_PENDING_CONFIRM.equals(participant.getJoinStatus())) {
+            throw new CustomException("Trạng thái đăng ký hiện tại không thể thực hiện hủy.", HttpStatus.BAD_REQUEST.value());
+        }
+
+        if (participant.getCancelCount() != null && participant.getCancelCount() >= 1) {
+            throw new CustomException("Không được phép hủy tham gia 2 lần liên tiếp cho cùng một chiến dịch.", HttpStatus.BAD_REQUEST.value());
+        }
+
+        boolean wasApproved = JOIN_APPROVED.equals(participant.getJoinStatus());
+
+        participant.setJoinStatus(JOIN_CANCELLED);
+        participant.setApprovedBy(null);
+        participant.setApprovedAt(null);
+        participant.setRejectedAt(null);
+        participant.setRejectionReason(null);
+        participant.setCancelledAt(LocalDateTime.now());
+        participant.setCancellationReason(request != null ? request.getReason() : "Hủy bởi người dùng");
+        participant.setCancelCount((participant.getCancelCount() == null ? 0 : participant.getCancelCount()) + 1);
+        participant.setConfirmationDeadline(null);
+        participantRepository.save(participant);
+
+        if (wasApproved) {
+            promoteNextWaitlist(campaignId);
+        }
+    }
+
+    private void promoteNextWaitlist(Long campaignId) {
+        participantRepository.findFirstByCampaign_IdAndJoinStatusOrderByCreatedAtAsc(campaignId, JOIN_WAITLIST)
+                .ifPresent(nextParticipant -> {
+                    nextParticipant.setJoinStatus(JOIN_PENDING_CONFIRM);
+                    nextParticipant.setConfirmationDeadline(LocalDateTime.now().plusHours(2));
+                    participantRepository.save(nextParticipant);
+
+                    // Send notification to citizen
+                    notificationService.createCampaignNotification(
+                            nextParticipant.getCitizen(),
+                            campaignId,
+                            "🔔 Xác nhận tham gia chiến dịch",
+                            "Bạn đã được chọn từ danh sách chờ cho chiến dịch '" + nextParticipant.getCampaign().getTitle() + "'. Vui lòng xác nhận tham gia trong vòng 2 giờ.",
+                            "CAMPAIGN_WAITLIST_PROMOTE"
+                    );
                 });
     }
 
@@ -477,8 +551,23 @@ public class CampaignServiceImpl implements CampaignService {
                 && !isEnded
                 && STATUS_RECRUITING.equals(campaign.getStatus())
                 && currentParticipant
-                .map(p -> JOIN_REJECTED.equals(p.getJoinStatus()) || JOIN_CANCELLED.equals(p.getJoinStatus()))
+                .map(p -> JOIN_REJECTED.equals(p.getJoinStatus()) ||
+                          JOIN_CANCELLED.equals(p.getJoinStatus()) ||
+                          JOIN_NO_SHOW.equals(p.getJoinStatus()))
                 .orElse(true);
+
+        boolean canLeave = false;
+        if (currentUser != null && currentUser.getRole() == Role.CITIZEN && currentParticipant.isPresent()) {
+            CampaignParticipant p = currentParticipant.get();
+            boolean statusOk = JOIN_PENDING.equals(p.getJoinStatus()) || JOIN_APPROVED.equals(p.getJoinStatus()) || JOIN_WAITLIST.equals(p.getJoinStatus()) || JOIN_PENDING_CONFIRM.equals(p.getJoinStatus());
+            boolean cancelCountOk = p.getCancelCount() == null || p.getCancelCount() < 1;
+            boolean timeOk = campaign.getStartTime() == null || LocalDateTime.now().isBefore(campaign.getStartTime().minusHours(12));
+            log.info("CAN_LEAVE_DEBUG: statusOk={}, cancelCountOk={}, timeOk={}, status={}, count={}, startTime={}", statusOk, cancelCountOk, timeOk, p.getJoinStatus(), p.getCancelCount(), campaign.getStartTime());
+            canLeave = statusOk && cancelCountOk && timeOk;
+        } else {
+            log.info("CAN_LEAVE_DEBUG: currentUser={}, role={}, hasParticipant={}", currentUser != null ? currentUser.getUsername() : "null", currentUser != null ? currentUser.getRole() : "null", currentParticipant.isPresent());
+        }
+
         boolean canComment = currentUser != null && canComment(campaign, currentUser);
         boolean canFeedback = currentParticipant
                 .filter(p -> JOIN_APPROVED.equals(p.getJoinStatus()))
@@ -509,6 +598,7 @@ public class CampaignServiceImpl implements CampaignService {
                 .currentUserJoinStatus(currentParticipant.map(CampaignParticipant::getJoinStatus).orElse(null))
                 .privateDetailsVisible(privateDetailsVisible)
                 .canJoin(canJoin)
+                .canLeave(canLeave)
                 .canManage(canManage)
                 .canComment(canComment)
                 .canFeedback(canFeedback)
@@ -522,12 +612,24 @@ public class CampaignServiceImpl implements CampaignService {
     }
 
     private CampaignParticipantResponse toParticipantResponse(CampaignParticipant participant) {
+        long pastCampaignCount = participantRepository.countByCitizen_IdAndJoinStatus(participant.getCitizen().getId(), JOIN_APPROVED);
+        long noShowCount = participantRepository.countByCitizen_IdAndJoinStatus(participant.getCitizen().getId(), JOIN_NO_SHOW);
+        Double avg = feedbackRepository.getAverageRatingForCitizen(participant.getCitizen().getId());
+        double averageRating = avg != null ? avg : 0.0;
+
         return CampaignParticipantResponse.builder()
                 .id(participant.getId())
                 .campaignId(participant.getCampaign().getId())
                 .citizenId(participant.getCitizen().getId())
                 .citizenName(participant.getCitizen().getFullName())
                 .joinStatus(participant.getJoinStatus())
+                .volunteerExperience(participant.getVolunteerExperience())
+                .availabilityHours(participant.getAvailabilityHours())
+                .cancellationReason(participant.getCancellationReason())
+                .confirmationDeadline(participant.getConfirmationDeadline())
+                .pastCampaignCount((int) pastCampaignCount)
+                .averageRating(averageRating)
+                .noShowCount((int) noShowCount)
                 .createdAt(participant.getCreatedAt())
                 .approvedAt(participant.getApprovedAt())
                 .rejectedAt(participant.getRejectedAt())
@@ -659,6 +761,7 @@ public class CampaignServiceImpl implements CampaignService {
         return value == null || value.isBlank() ? null : value.trim();
     }
 
+
     private List<String> parseImageUrls(String imageUrls) {
         if (imageUrls == null || imageUrls.isBlank()) {
             return List.of();
@@ -672,4 +775,112 @@ public class CampaignServiceImpl implements CampaignService {
         }
         return String.join(",", urls.stream().filter(url -> url != null && !url.isBlank()).toList());
     }
+
+    @Override
+    @Transactional
+    public void confirmWaitlist(Long campaignId, String username) {
+        User citizen = requireUser(username);
+        CampaignParticipant participant = participantRepository.findByCampaign_IdAndCitizen_Id(campaignId, citizen.getId())
+                .orElseThrow(() -> new CustomException("Đăng ký không tồn tại.", HttpStatus.NOT_FOUND.value()));
+
+        if (!JOIN_PENDING_CONFIRM.equals(participant.getJoinStatus())) {
+            throw new CustomException("Bạn không ở trong danh sách chờ cần xác nhận.", HttpStatus.BAD_REQUEST.value());
+        }
+
+        if (participant.getConfirmationDeadline() != null && LocalDateTime.now().isAfter(participant.getConfirmationDeadline())) {
+            participant.setJoinStatus(JOIN_CANCELLED);
+            participant.setCancelledAt(LocalDateTime.now());
+            participant.setCancellationReason("Hết hạn xác nhận chờ (2 giờ)");
+            participantRepository.save(participant);
+
+            promoteNextWaitlist(campaignId);
+            throw new CustomException("Thời hạn xác nhận đã hết (quá 2 giờ). Hệ thống đã nhường chỗ cho người tiếp theo.", HttpStatus.BAD_REQUEST.value());
+        }
+
+        participant.setJoinStatus(JOIN_APPROVED);
+        participant.setApprovedAt(LocalDateTime.now());
+        participant.setConfirmationDeadline(null);
+        participantRepository.save(participant);
+    }
+
+    @Override
+    @Transactional
+    public List<CampaignParticipantResponse> batchApproveParticipants(Long campaignId, CampaignBatchApproveRequest request, String username) {
+        User manager = requireUser(username);
+        Campaign campaign = getCampaign(campaignId);
+        assertCanManage(campaign, manager);
+
+        List<CampaignParticipant> updated = new ArrayList<>();
+        long approvedCount = participantRepository.countByCampaign_IdAndJoinStatus(campaignId, JOIN_APPROVED);
+
+        for (Long participantId : request.getParticipantIds()) {
+            CampaignParticipant participant = getParticipant(participantId, campaignId);
+            if (!JOIN_PENDING.equals(participant.getJoinStatus())) {
+                continue;
+            }
+
+            if (campaign.getMaxParticipants() != null && approvedCount >= campaign.getMaxParticipants()) {
+                throw new CustomException("Đã đạt giới hạn số lượng người tham gia tối đa của chiến dịch.", HttpStatus.CONFLICT.value());
+            }
+
+            participant.setJoinStatus(JOIN_APPROVED);
+            participant.setApprovedBy(manager);
+            participant.setApprovedAt(LocalDateTime.now());
+            participant.setRejectedAt(null);
+            participant.setRejectionReason(null);
+            participant.setCancelledAt(null);
+            participant.setConfirmationDeadline(null);
+            updated.add(participantRepository.save(participant));
+            approvedCount++;
+        }
+
+        return updated.stream().map(this::toParticipantResponse).toList();
+    }
+
+    @Override
+    @Transactional
+    public CampaignParticipantResponse markNoShow(Long campaignId, Long participantId, String username) {
+        User manager = requireUser(username);
+        Campaign campaign = getCampaign(campaignId);
+        assertCanManage(campaign, manager);
+
+        CampaignParticipant participant = getParticipant(participantId, campaignId);
+        participant.setJoinStatus(JOIN_NO_SHOW);
+        participant.setApprovedBy(null);
+        participant.setApprovedAt(null);
+        participant.setRejectedAt(null);
+        participant.setRejectionReason("Cán bộ phường đánh giá vắng mặt không lý do");
+        participant.setCancelledAt(LocalDateTime.now());
+        
+        return toParticipantResponse(participantRepository.save(participant));
+    }
+
+    @Override
+    @Transactional
+    public String sendEmailOtp(String username) {
+        User user = requireUser(username);
+        if (user.getEmail() == null || user.getEmail().isBlank()) {
+            throw new CustomException("Tài khoản chưa được cấu hình email. Vui lòng cập nhật email trong hồ sơ.", HttpStatus.BAD_REQUEST.value());
+        }
+        return emailOtpService.generateAndSendOtp(user, user.getEmail());
+    }
+
+    @org.springframework.scheduling.annotation.Scheduled(fixedDelay = 60000)
+    @Transactional
+    public void processExpiredConfirmations() {
+        List<CampaignParticipant> expired = participantRepository
+                .findByJoinStatusAndConfirmationDeadlineBefore(JOIN_PENDING_CONFIRM, LocalDateTime.now());
+        
+        for (CampaignParticipant participant : expired) {
+            log.info("[Waitlist] Participant {} expired waiting for confirmation on campaign {}", 
+                    participant.getCitizen().getUsername(), participant.getCampaign().getId());
+            participant.setJoinStatus(JOIN_CANCELLED);
+            participant.setCancelledAt(LocalDateTime.now());
+            participant.setCancellationReason("Hết hạn xác nhận chờ (quá 2 giờ)");
+            participantRepository.save(participant);
+
+            promoteNextWaitlist(participant.getCampaign().getId());
+        }
+    }
 }
+

@@ -13,8 +13,8 @@ import {
   Target,
   FileText,
   Pencil,
-
   Settings,
+  Search,
 } from "lucide-react";
 import { useCampaignList, useCampaignThumbnail } from "@/hooks/useCampaigns";
 import { CampaignMap } from "@/components/site/CampaignMap";
@@ -64,14 +64,52 @@ function getStatusInfo(status?: string) {
   }
 }
 
-export function WardCampaignPage() {
+interface WardCampaignPageProps {
+  hideHeader?: boolean;
+}
+
+export function WardCampaignPage({ hideHeader = false }: WardCampaignPageProps) {
+  const { user } = useAuth();
   const campaigns = useCampaignList();
   const navigate = useNavigate();
   const { tab } = Route.useSearch();
   const [activeCampaignId, setActiveCampaignId] = useState<string | null>(null);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [editModeOnOpen, setEditModeOnOpen] = useState(false);
-  
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [viewMode, setViewMode] = useState<"city" | "managed">("city");
+
+  const filteredCampaigns = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return campaigns.filter((c) => {
+      const matchesSearch =
+        !query ||
+        c.name.toLowerCase().includes(query) ||
+        (c.desc ?? "").toLowerCase().includes(query) ||
+        (c.locationText ?? "").toLowerCase().includes(query) ||
+        (c.ward ?? "").toLowerCase().includes(query);
+
+      const matchesStatus =
+        selectedStatus === "all" ||
+        (selectedStatus === "active" && (c.status === "active" || c.status === "recruiting" || c.status === "inProgress")) ||
+        (selectedStatus === "ended" && (c.status === "ended" || c.status === "completed"));
+
+      const matchesCategory =
+        selectedCategory === "all" ||
+        c.category === selectedCategory;
+
+      const matchesViewMode =
+        viewMode === "city" ||
+        !user?.wardId ||
+        String(c.wardId) === String(user.wardId);
+
+      return matchesSearch && matchesStatus && matchesCategory && matchesViewMode;
+    });
+  }, [campaigns, searchQuery, selectedStatus, selectedCategory, viewMode, user]);
+
   const activeCampaign = useMemo(() => {
     if (!campaigns.length) return null;
     return activeCampaignId ? campaigns.find((c) => c.id === activeCampaignId) || null : null;
@@ -150,21 +188,23 @@ export function WardCampaignPage() {
   return (
     <div className="space-y-6">
       {/* Title Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-extrabold text-[#0B2545]">Quản lý chiến dịch</h1>
-          <p className="mt-1 text-sm font-medium text-slate-500">
-            Theo dõi và điều phối các chiến dịch cộng đồng trên địa bàn dựa trên dữ liệu thực tế.
-          </p>
+      {!hideHeader && (
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-extrabold text-[#0B2545]">Quản lý chiến dịch</h1>
+            <p className="mt-1 text-sm font-medium text-slate-500">
+              Theo dõi và điều phối các chiến dịch cộng đồng trên địa bàn dựa trên dữ liệu thực tế.
+            </p>
+          </div>
+          <button
+            onClick={handleCreateRedirect}
+            className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#0F5BD8] px-4 text-sm font-bold text-white shadow-sm transition hover:bg-[#0B4FC0]"
+          >
+            <Plus size={17} />
+            Tạo chiến dịch
+          </button>
         </div>
-        <button
-          onClick={handleCreateRedirect}
-          className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#0F5BD8] px-4 text-sm font-bold text-white shadow-sm transition hover:bg-[#0B4FC0]"
-        >
-          <Plus size={17} />
-          Tạo chiến dịch
-        </button>
-      </div>
+      )}
 
       {/* KPI Cards Panel */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -203,10 +243,12 @@ export function WardCampaignPage() {
         <div className="lg:col-span-8">
           <CampaignMap
             height="480px"
-            campaigns={campaigns}
+            campaigns={filteredCampaigns}
             activeCampaign={activeCampaign || undefined}
             onCampaignClick={(c) => setActiveCampaignId(c.id)}
             onCampaignDetail={(c) => handleViewDetail(c.id)}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
           />
         </div>
         <div className="lg:col-span-4">
@@ -228,12 +270,51 @@ export function WardCampaignPage() {
       </div>
 
       {/* Campaigns Table */}
-      <section className="rounded-2xl border border-[#E4EAF2] bg-white shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-          <h2 className="text-lg font-extrabold text-[#0B2545]">Danh sách tất cả chiến dịch</h2>
-          <span className="text-xs font-bold text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg">
-            Tổng số: {campaigns.length}
-          </span>
+      <section className="rounded-2xl border border-[#E4EAF2] bg-white shadow-sm overflow-hidden animate-fade-in">
+        <div className="p-5 border-b border-slate-100 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 className="text-lg font-extrabold text-[#0B2545]">
+              {viewMode === "city" ? "Danh sách tất cả chiến dịch" : "Danh sách chiến dịch đang quản lý"}
+            </h2>
+            <p className="text-xs font-medium text-slate-400 mt-1">
+              Đang hiển thị {filteredCampaigns.length} trên tổng số {campaigns.length} chiến dịch
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Search Input */}
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Tìm kiếm chiến dịch..."
+                className="h-9 w-full sm:w-56 rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-xs outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100/50 transition-all placeholder-slate-400"
+              />
+            </div>
+            {/* Status Select */}
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100/50 transition-all cursor-pointer"
+            >
+              <option value="all">Tất cả trạng thái</option>
+              <option value="active">Đang hoạt động</option>
+              <option value="ended">Đã kết thúc</option>
+            </select>
+            {/* Category Select */}
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100/50 transition-all cursor-pointer"
+            >
+              <option value="all">Tất cả lĩnh vực</option>
+              <option value="environment">Môi trường</option>
+              <option value="infrastructure">Hạ tầng</option>
+              <option value="public_safety">An toàn</option>
+              <option value="construction">Xây dựng</option>
+              <option value="fire_safety">Phòng cháy</option>
+            </select>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[850px] text-left border-collapse">
@@ -266,90 +347,98 @@ export function WardCampaignPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {campaigns.map((c) => {
-                const catInfo = getCategoryInfo(c.category);
-                const statusInfo = getStatusInfo(c.status);
-                const isSelected = activeCampaignId === c.id;
+              {filteredCampaigns.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-5 py-12 text-center text-xs text-slate-400 font-bold bg-slate-50/10">
+                    Không tìm thấy chiến dịch phù hợp với bộ lọc.
+                  </td>
+                </tr>
+              ) : (
+                filteredCampaigns.map((c) => {
+                  const catInfo = getCategoryInfo(c.category);
+                  const statusInfo = getStatusInfo(c.status);
+                  const isSelected = activeCampaignId === c.id;
 
-                return (
-                  <tr
-                    key={c.id}
-                    className={`transition hover:bg-slate-50/80 cursor-pointer ${
-                      isSelected ? "bg-blue-50/40" : ""
-                    }`}
-                    onClick={() => setActiveCampaignId(c.id)}
-                  >
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2">
-                        <p className="max-w-[280px] truncate text-sm font-extrabold text-[#0B2545]">
-                          {c.name}
+                  return (
+                    <tr
+                      key={c.id}
+                      className={`transition hover:bg-slate-50/80 cursor-pointer ${
+                        isSelected ? "bg-blue-50/40" : ""
+                      }`}
+                      onClick={() => setActiveCampaignId(c.id)}
+                    >
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-2">
+                          <p className="max-w-[280px] truncate text-sm font-extrabold text-[#0B2545]">
+                            {c.name}
+                          </p>
+                        </div>
+                        <p className="mt-1 max-w-[280px] truncate text-xs font-medium text-slate-400">
+                          {c.desc}
                         </p>
-                      </div>
-                      <p className="mt-1 max-w-[280px] truncate text-xs font-medium text-slate-400">
-                        {c.desc}
-                      </p>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span
-                        className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-extrabold ${catInfo.bg}`}
-                      >
-                        {catInfo.label}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-sm font-bold text-slate-600">{c.ward}</td>
-                    <td className="px-5 py-4 text-xs font-medium text-slate-500">
-                      {formatDate(c.startTime)} - {formatDate(c.endTime)}
-                    </td>
-                    <td className="px-5 py-4">
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-extrabold ${statusInfo.bg}`}
-                      >
-                        {statusInfo.label}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      {(() => {
-                        const isClosed = c.status === "ended" || c.status === "completed";
-                        const isFull = c.participants >= c.target;
-                        return (
-                          <span
-                            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-extrabold ${
-                              isClosed
-                                ? "bg-slate-50 text-slate-600 border-slate-200"
-                                : isFull
-                                ? "bg-red-50 text-red-700 border-red-200"
-                                : "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            }`}
-                          >
-                            {isClosed ? "Đã đóng" : `${isFull ? "Đã đầy" : "Đang tuyển"} ${c.participants}/${c.target}`}
-                          </span>
-                        );
-                      })()}
-                    </td>
-                    <td className="px-5 py-4 text-sm font-bold text-slate-500">{c.createdBy}</td>
-                    <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => handleViewDetail(c.id)}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition"
-                          title="Xem chi tiết"
+                      </td>
+                      <td className="px-5 py-4">
+                        <span
+                          className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-extrabold ${catInfo.bg}`}
                         >
-                          <Eye size={15} />
-                        </button>
-                        {c.canManage && (
+                          {catInfo.label}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 text-sm font-bold text-slate-600">{c.ward}</td>
+                      <td className="px-5 py-4 text-xs font-medium text-slate-500">
+                        {formatDate(c.startTime)} - {formatDate(c.endTime)}
+                      </td>
+                      <td className="px-5 py-4">
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-extrabold ${statusInfo.bg}`}
+                        >
+                          {statusInfo.label}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        {(() => {
+                          const isClosed = c.status === "ended" || c.status === "completed";
+                          const isFull = c.participants >= c.target;
+                          return (
+                            <span
+                              className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-extrabold ${
+                                isClosed
+                                  ? "bg-slate-50 text-slate-600 border-slate-200"
+                                  : isFull
+                                  ? "bg-red-50 text-red-700 border-red-200"
+                                  : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              }`}
+                            >
+                              {isClosed ? "Đã đóng" : `${isFull ? "Đã đầy" : "Đang tuyển"} ${c.participants}/${c.target}`}
+                            </span>
+                          );
+                        })()}
+                      </td>
+                      <td className="px-5 py-4 text-sm font-bold text-slate-500">{c.createdBy}</td>
+                      <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-1.5">
                           <button
-                            onClick={() => handleEdit(c.id)}
+                            onClick={() => handleViewDetail(c.id)}
                             className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition"
-                            title="Chỉnh sửa"
+                            title="Xem chi tiết"
                           >
-                            <Pencil size={14} />
+                            <Eye size={15} />
                           </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                          {c.canManage && (
+                            <button
+                              onClick={() => handleEdit(c.id)}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition"
+                              title="Chỉnh sửa"
+                            >
+                              <Pencil size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

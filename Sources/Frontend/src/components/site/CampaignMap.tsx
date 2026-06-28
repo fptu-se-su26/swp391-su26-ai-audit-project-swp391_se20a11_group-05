@@ -11,6 +11,8 @@ interface Props {
   showBoundary?: boolean;
   onCampaignClick?: (campaign: Campaign) => void;
   onCampaignDetail?: (campaign: Campaign) => void;
+  viewMode?: "city" | "managed";
+  onViewModeChange?: (mode: "city" | "managed") => void;
 }
 
 // Helper to resolve coordinates from string or object
@@ -164,6 +166,8 @@ export function CampaignMap({
   showBoundary = true,
   onCampaignClick,
   onCampaignDetail,
+  viewMode,
+  onViewModeChange,
 }: Props) {
   const [leafletComponents, setLeafletComponents] = useState<{
     MapContainer: any;
@@ -181,14 +185,16 @@ export function CampaignMap({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { user } = useAuth();
-  const [viewMode, setViewMode] = useState<"city" | "managed">("city");
+  const [localViewMode, setLocalViewMode] = useState<"city" | "managed">("city");
+  const actualViewMode = viewMode ?? localViewMode;
+  const setActualViewMode = onViewModeChange ?? setLocalViewMode;
 
   const filteredCampaigns = useMemo(() => {
-    if (viewMode === "city" || !user?.wardId) {
+    if (actualViewMode === "city" || !user?.wardId) {
       return campaigns;
     }
     return campaigns.filter((c) => String(c.wardId) === String(user.wardId));
-  }, [campaigns, viewMode, user]);
+  }, [campaigns, actualViewMode, user]);
 
   useEffect(() => {
     let cancelled = false;
@@ -448,9 +454,9 @@ export function CampaignMap({
         <div className="flex border border-slate-200 rounded-xl p-1 bg-white max-w-md shadow-sm">
           <button
             type="button"
-            onClick={() => setViewMode("city")}
+            onClick={() => setActualViewMode("city")}
             className={`flex-1 py-2 text-center text-[11px] font-black rounded-lg transition-all ${
-              viewMode === "city"
+              actualViewMode === "city"
                 ? "bg-[#0F5BD8] text-white shadow-sm"
                 : "text-slate-600 hover:text-slate-800 hover:bg-slate-50"
             }`}
@@ -459,9 +465,9 @@ export function CampaignMap({
           </button>
           <button
             type="button"
-            onClick={() => setViewMode("managed")}
+            onClick={() => setActualViewMode("managed")}
             className={`flex-1 py-2 text-center text-[11px] font-black rounded-lg transition-all ${
-              viewMode === "managed"
+              actualViewMode === "managed"
                 ? "bg-[#0F5BD8] text-white shadow-sm"
                 : "text-slate-600 hover:text-slate-800 hover:bg-slate-50"
             }`}
@@ -471,7 +477,7 @@ export function CampaignMap({
         </div>
 
         {/* Empty State Warning */}
-        {viewMode === "managed" && filteredCampaigns.length === 0 && (
+        {actualViewMode === "managed" && filteredCampaigns.length === 0 && (
           <div className="p-4 bg-amber-50/70 border border-amber-200/60 rounded-xl text-xs font-bold text-amber-800 flex items-center gap-2">
             <span>⚠️</span>
             <span>Bạn hiện chưa quản lý chiến dịch nào thuộc phường/xã của mình.</span>

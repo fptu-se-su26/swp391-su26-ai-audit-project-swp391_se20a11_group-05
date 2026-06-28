@@ -39,4 +39,6 @@ public class CitizenFeedbackMediaRequest {
 
     @Builder.Default
     private List<Long> videoDurationsSeconds = new ArrayList<>();
+
+    private Boolean publicVisible;
 }

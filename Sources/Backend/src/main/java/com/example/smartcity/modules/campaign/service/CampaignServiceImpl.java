@@ -59,6 +59,7 @@ public class CampaignServiceImpl implements CampaignService {
     private final CampaignFeedbackRepository feedbackRepository;
     private final UserRepository userRepository;
     private final WardRepository wardRepository;
+    private final CampaignIngestionService campaignIngestionService;
 
     @Override
     @Transactional(readOnly = true)
@@ -129,7 +130,9 @@ public class CampaignServiceImpl implements CampaignService {
                 .build();
 
         try {
-            return toResponse(campaignRepository.saveAndFlush(campaign), creator);
+            Campaign saved = campaignRepository.saveAndFlush(campaign);
+            campaignIngestionService.ingestCampaignAsync(saved);
+            return toResponse(saved, creator);
         } catch (DataIntegrityViolationException ex) {
             log.warn("Failed to create campaign due to database constraint: {}", ex.getMostSpecificCause().getMessage());
             throw new CustomException(
@@ -426,7 +429,9 @@ public class CampaignServiceImpl implements CampaignService {
         campaign.setCoverImageUrl(request.getCoverImageUrl());
         campaign.setImageUrls(joinImageUrls(request.getImageUrls()));
 
-        return toResponse(campaignRepository.save(campaign), user);
+        Campaign saved = campaignRepository.save(campaign);
+        campaignIngestionService.ingestCampaignAsync(saved);
+        return toResponse(saved, user);
     }
 
     @Override

@@ -27,15 +27,178 @@ import {
   Clock,
   LogOut,
   Key,
-  Flag
+  Flag,
+  Camera,
+  Calendar
 } from "lucide-react";
 import policeEmblemImg from "@/assets/police-emblem.png";
+import { PoliceCampaignPage } from "./PoliceCampaignPage";
 
 const HeatmapMap = clientOnly(() =>
   import("@/components/site/HeatmapMap").then((m) => ({ default: m.HeatmapMap })),
 );
+const initialSchedule = [
+  { day: "Thứ 2", date: "29/06", morning: "Trực ban hành chính", mOfficer: "Đ/c Nguyễn Văn A", afternoon: "Xử lý hồ sơ", aOfficer: "Đ/c Lê Thị B", night: "-", nOfficer: "-" },
+  { day: "Thứ 3", date: "30/06", morning: "Tuần tra địa bàn", mOfficer: "Đ/c Phạm Văn C, Đ/c Võ D", afternoon: "Tuần tra địa bàn", aOfficer: "Đ/c Phạm Văn C, Đ/c Võ D", night: "Trực chỉ huy", nOfficer: "Đ/c Hoàng Văn E" },
+  { day: "Thứ 4", date: "01/07", morning: "Nghỉ bù", mOfficer: "-", afternoon: "Nghỉ bù", aOfficer: "-", night: "-", nOfficer: "-" },
+  { day: "Thứ 5", date: "02/07", morning: "Xử lý hồ sơ", mOfficer: "Đ/c Trần H", afternoon: "Tiếp công dân", aOfficer: "Đ/c Nguyễn Văn A", night: "-", nOfficer: "-" },
+  { day: "Thứ 6", date: "03/07", morning: "Họp giao ban", mOfficer: "Toàn Đội", afternoon: "Trực ban hành chính", aOfficer: "Đ/c Lê Thị B", night: "Tuần tra đêm", nOfficer: "Đ/c Phạm Văn C, Đ/c Trần H" },
+  { day: "Thứ 7", date: "04/07", morning: "-", mOfficer: "-", afternoon: "-", aOfficer: "-", night: "-", nOfficer: "-" },
+  { day: "Chủ nhật", date: "05/07", morning: "Trực ban", mOfficer: "Đ/c Đặng L", afternoon: "Trực ban", aOfficer: "Đ/c Đặng L", night: "-", nOfficer: "-" },
+];
 
-import { PoliceCampaignPage } from "./PoliceCampaignPage";
+const DutyRoster = () => {
+  const [view, setView] = useState<'week'|'month'|'year'>('week');
+  const [isEditing, setIsEditing] = useState(false);
+  const [schedule, setSchedule] = useState(initialSchedule);
+  
+  return (
+    <div className="max-w-[1600px] mx-auto bg-white rounded-[8px] border shadow-sm p-6" style={{ borderColor: "#D9E1EC" }}>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+        <div>
+          <h3 className="text-lg font-bold" style={{ color: "#0B1F4D" }}>Lịch phân công trực công tác</h3>
+          <p className="text-sm text-slate-500 mt-1">Quản lý và theo dõi lịch trực ban, tuần tra, họp giao ban của đơn vị</p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-4 items-end sm:items-center">
+          {view === 'week' && (
+            <button 
+              onClick={() => {
+                if (isEditing) {
+                  toast.success("Đã lưu lịch phân công trực thành công!");
+                }
+                setIsEditing(!isEditing);
+              }} 
+              className={`px-4 py-1.5 text-sm font-bold rounded-[4px] transition-all ${isEditing ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-white border text-blue-600 hover:bg-blue-50'}`}
+              style={!isEditing ? { borderColor: "#D9E1EC" } : {}}
+            >
+              {isEditing ? 'Lưu lịch trực' : 'Sửa lịch trực'}
+            </button>
+          )}
+          <div className="flex gap-1 bg-slate-100 p-1 rounded-[6px] shrink-0">
+          <button onClick={() => setView('week')} className={`px-4 py-1.5 text-sm font-medium rounded-[4px] transition-all ${view === 'week' ? 'bg-white shadow-sm text-[#0B1F4D]' : 'text-slate-500 hover:text-slate-700'}`}>Theo Tuần</button>
+          <button onClick={() => setView('month')} className={`px-4 py-1.5 text-sm font-medium rounded-[4px] transition-all ${view === 'month' ? 'bg-white shadow-sm text-[#0B1F4D]' : 'text-slate-500 hover:text-slate-700'}`}>Theo Tháng</button>
+          <button onClick={() => setView('year')} className={`px-4 py-1.5 text-sm font-medium rounded-[4px] transition-all ${view === 'year' ? 'bg-white shadow-sm text-[#0B1F4D]' : 'text-slate-500 hover:text-slate-700'}`}>Theo Năm</button>
+        </div>
+      </div>
+    </div>
+    
+    {view === 'week' && (
+        <div className="border rounded-[8px] overflow-hidden" style={{ borderColor: "#D9E1EC" }}>
+          <table className="w-full text-left border-collapse min-w-[700px]">
+            <thead className="bg-slate-50">
+              <tr>
+                <th className="px-4 py-3 text-[12px] font-semibold text-slate-600 uppercase border-b border-r w-32">Thứ / Ngày</th>
+                <th className="px-4 py-3 text-[12px] font-semibold text-slate-600 uppercase border-b border-r text-center">Ca Sáng<br/><span className="text-[10px] font-normal text-slate-400">07:30 - 11:30</span></th>
+                <th className="px-4 py-3 text-[12px] font-semibold text-slate-600 uppercase border-b border-r text-center">Ca Chiều<br/><span className="text-[10px] font-normal text-slate-400">13:30 - 17:30</span></th>
+                <th className="px-4 py-3 text-[12px] font-semibold text-slate-600 uppercase border-b text-center">Ca Đêm<br/><span className="text-[10px] font-normal text-slate-400">17:30 - 07:30</span></th>
+              </tr>
+            </thead>
+            <tbody className="text-[13px]">
+              {schedule.map((row, idx) => (
+                <tr key={idx} className="border-b last:border-b-0 hover:bg-slate-50/50">
+                  <td className="px-4 py-4 border-r bg-slate-50/30">
+                    <div className="font-bold text-slate-700 text-sm">{row.day}</div>
+                    <div className="text-xs text-slate-500 mt-0.5">{row.date}</div>
+                  </td>
+                  <td className="px-4 py-4 border-r text-center align-top">
+                    {row.morning !== "-" ? (
+                      <div className="flex flex-col items-center">
+                        <span className="inline-block px-3 py-1 bg-blue-50 text-blue-700 rounded-[4px] font-medium border border-blue-100 mb-1.5">{row.morning}</span>
+                        {isEditing ? (
+                          <input type="text" value={row.mOfficer} onChange={(e) => { const newSch = [...schedule]; newSch[idx].mOfficer = e.target.value; setSchedule(newSch); }} className="w-full text-[11px] font-semibold text-slate-700 text-center border rounded px-1 py-1 focus:ring-1 focus:outline-none" placeholder="Tên cán bộ..." />
+                        ) : (
+                          <span className="text-[11px] font-semibold text-slate-600 max-w-[120px] text-center">{row.mOfficer}</span>
+                        )}
+                      </div>
+                    ) : <span className="text-slate-300">-</span>}
+                  </td>
+                  <td className="px-4 py-4 border-r text-center align-top">
+                    {row.afternoon !== "-" ? (
+                      <div className="flex flex-col items-center">
+                        <span className="inline-block px-3 py-1 bg-amber-50 text-amber-700 rounded-[4px] font-medium border border-amber-100 mb-1.5">{row.afternoon}</span>
+                        {isEditing ? (
+                          <input type="text" value={row.aOfficer} onChange={(e) => { const newSch = [...schedule]; newSch[idx].aOfficer = e.target.value; setSchedule(newSch); }} className="w-full text-[11px] font-semibold text-slate-700 text-center border rounded px-1 py-1 focus:ring-1 focus:outline-none" placeholder="Tên cán bộ..." />
+                        ) : (
+                          <span className="text-[11px] font-semibold text-slate-600 max-w-[120px] text-center">{row.aOfficer}</span>
+                        )}
+                      </div>
+                    ) : <span className="text-slate-300">-</span>}
+                  </td>
+                  <td className="px-4 py-4 text-center align-top">
+                    {row.night !== "-" ? (
+                      <div className="flex flex-col items-center">
+                        <span className="inline-block px-3 py-1 bg-indigo-50 text-indigo-700 rounded-[4px] font-medium border border-indigo-100 mb-1.5">{row.night}</span>
+                        {isEditing ? (
+                          <input type="text" value={row.nOfficer} onChange={(e) => { const newSch = [...schedule]; newSch[idx].nOfficer = e.target.value; setSchedule(newSch); }} className="w-full text-[11px] font-semibold text-slate-700 text-center border rounded px-1 py-1 focus:ring-1 focus:outline-none" placeholder="Tên cán bộ..." />
+                        ) : (
+                          <span className="text-[11px] font-semibold text-slate-600 max-w-[120px] text-center">{row.nOfficer}</span>
+                        )}
+                      </div>
+                    ) : <span className="text-slate-300">-</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {view === 'month' && (
+        <div className="border rounded-[8px] p-6" style={{ borderColor: "#D9E1EC" }}>
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-lg font-bold text-slate-700">Tháng 6 / 2026</h4>
+            <div className="flex gap-4 text-xs font-medium">
+              <span className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-blue-100 border border-blue-200"></div> Hành chính</span>
+              <span className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-indigo-100 border border-indigo-200"></div> Trực đêm</span>
+              <span className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-amber-100 border border-amber-200"></div> Tuần tra</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-7 gap-px bg-slate-200 rounded-[8px] overflow-hidden border" style={{ borderColor: "#D9E1EC" }}>
+            {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map(d => <div key={d} className="bg-slate-50 font-bold text-sm text-slate-600 py-3 text-center">{d}</div>)}
+            {Array.from({length: 30}).map((_, i) => (
+              <div key={i} className={`bg-white h-28 p-2 flex flex-col hover:bg-slate-50 transition-colors ${i === 14 ? 'bg-blue-50/30' : ''}`}>
+                <span className={`text-xs font-bold self-end w-6 h-6 flex items-center justify-center rounded-full ${i === 14 ? 'bg-blue-600 text-white' : 'text-slate-600'}`}>{i+1}</span>
+                <div className="flex flex-col gap-1 mt-auto">
+                  {i % 4 === 0 && <span className="text-[10px] bg-blue-50 text-blue-700 border border-blue-100 p-1 rounded-[4px] truncate leading-tight font-medium" title="Đ/c Nguyễn Văn A">Hành chính - Đ/c A</span>}
+                  {i % 6 === 2 && <span className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-100 p-1 rounded-[4px] truncate leading-tight font-medium" title="Đ/c Trần H">Trực đêm - Đ/c H</span>}
+                  {i % 5 === 3 && <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-100 p-1 rounded-[4px] truncate leading-tight font-medium" title="Đ/c Võ D">Tuần tra - Đ/c D</span>}
+                </div>
+              </div>
+            ))}
+            {/* Empty padding for the rest of the calendar grid (if 30 days start on Monday, ends on Tuesday, need 5 more days) */}
+            {Array.from({length: 5}).map((_, i) => <div key={'empty'+i} className="bg-slate-50 h-28 p-2 opacity-50"></div>)}
+          </div>
+        </div>
+      )}
+      {view === 'year' && (
+        <div className="border rounded-[8px] p-6" style={{ borderColor: "#D9E1EC" }}>
+          <h4 className="text-lg font-bold text-slate-700 mb-6 text-center uppercase tracking-wide">Thống Kê Ca Trực Năm 2026</h4>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {Array.from({length: 12}).map((_, i) => (
+              <div key={i} className="border rounded-[8px] p-4 bg-slate-50 flex flex-col items-center hover:shadow-md transition-shadow cursor-pointer hover:border-blue-300 group">
+                <span className="font-bold text-lg text-slate-700 group-hover:text-blue-700 transition-colors">Tháng {i+1}</span>
+                <div className="mt-3 w-full bg-white border rounded-[6px] p-3 text-center">
+                  <div className="text-2xl font-black text-slate-800">{15 + (i%4)*5}</div>
+                  <div className="text-[11px] font-medium text-slate-500 uppercase mt-1">Tổng ca trực</div>
+                </div>
+                <div className="flex w-full gap-2 mt-2">
+                  <div className="flex-1 bg-white border rounded-[4px] p-1.5 text-center">
+                    <div className="text-sm font-bold text-blue-600">{10 + (i%3)*2}</div>
+                    <div className="text-[9px] text-slate-500">SÁNG</div>
+                  </div>
+                  <div className="flex-1 bg-white border rounded-[4px] p-1.5 text-center">
+                    <div className="text-sm font-bold text-indigo-600">{5 + (i%2)*3}</div>
+                    <div className="text-[9px] text-slate-500">ĐÊM</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 
 // Design System Colors mapping to Tailwind arbitrary values
 const colors = {
@@ -75,6 +238,24 @@ export function ModernPoliceDashboard() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMapFilterOpen, setIsMapFilterOpen] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  
+  const [profileForm, setProfileForm] = useState({
+    name: user?.name || "",
+    phone: "0901234567",
+    rank: "Thiếu tá",
+  });
+  
+  const [passwordForm, setPasswordForm] = useState({
+    current: "",
+    new: "",
+    confirm: ""
+  });
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -166,8 +347,46 @@ export function ModernPoliceDashboard() {
     }
   };
 
-  // Filtered feedbacks
-  const feedbacks = useMemo(() => feedbacksData || [], [feedbacksData]);
+  // Filtered feedbacks: Separate priority (same title >= 2) and regular
+  const { priorityFeedbacks, regularFeedbacks } = useMemo(() => {
+    if (!feedbacksData) return { priorityFeedbacks: [], regularFeedbacks: [] };
+    
+    // Group feedbacks by a content key (title + location) to find duplicates
+    const contentGroups: Record<string, typeof feedbacksData> = {};
+    feedbacksData.forEach(f => {
+      const titleKey = (f.title || "").toLowerCase().trim();
+      const lat = f.latitude ? f.latitude.toFixed(4) : "";
+      const lng = f.longitude ? f.longitude.toFixed(4) : "";
+      const addressKey = (f.addressDetails || "").toLowerCase().trim();
+      const key = `${titleKey}_${lat}_${lng}_${addressKey}`;
+      
+      if (!contentGroups[key]) contentGroups[key] = [];
+      contentGroups[key].push(f);
+    });
+
+    const pList: typeof feedbacksData = [];
+    const rList: typeof feedbacksData = [];
+
+    feedbacksData.forEach(f => {
+      const titleKey = (f.title || "").toLowerCase().trim();
+      const lat = f.latitude ? f.latitude.toFixed(4) : "";
+      const lng = f.longitude ? f.longitude.toFixed(4) : "";
+      const addressKey = (f.addressDetails || "").toLowerCase().trim();
+      const key = `${titleKey}_${lat}_${lng}_${addressKey}`;
+      
+      // Condition: 2 or more feedbacks with the SAME content and location
+      if (contentGroups[key].length >= 2) {
+        pList.push(f);
+      } else {
+        rList.push(f);
+      }
+    });
+
+    return { priorityFeedbacks: pList, regularFeedbacks: rList };
+  }, [feedbacksData]);
+
+  // Regular feedbacks for normal processing boards
+  const feedbacks = regularFeedbacks;
 
   // Calculate Stats
   const pendingCount = feedbacks.filter(
@@ -184,18 +403,17 @@ export function ModernPoliceDashboard() {
   const resolvedCount = feedbacks.filter((f) => f.status === "RESOLVED").length;
   const rejectedCount = feedbacks.filter((f) => f.status === "REJECTED").length;
 
-  // Vụ việc ưu tiên: Lấy các phản ánh chưa hoàn thành, ưu tiên Critical/High hoặc mới nhất
-  const priorityIncidents = useMemo(() => {
-    return [...feedbacks]
-      .filter((f) => f.status !== "RESOLVED" && f.status !== "REJECTED")
-      .sort((a, b) => {
-        const priorityScore = (p: string) => (p === "CRITICAL" ? 3 : p === "HIGH" ? 2 : 1);
-        const diff = priorityScore(b.priority) - priorityScore(a.priority);
-        if (diff !== 0) return diff;
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      })
-      .slice(0, 5); // Hiển thị 5 vụ việc
-  }, [feedbacks]);
+  // Group priority incidents by date
+  const groupedPriorityIncidents = useMemo(() => {
+    const sorted = [...priorityFeedbacks].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const groups: Record<string, typeof priorityFeedbacks> = {};
+    sorted.forEach((f) => {
+      const dateStr = new Date(f.createdAt).toLocaleDateString('vi-VN');
+      if (!groups[dateStr]) groups[dateStr] = [];
+      groups[dateStr].push(f);
+    });
+    return groups;
+  }, [priorityFeedbacks]);
 
   // Dữ liệu cho tab Quản lý phản ánh
   const { filteredForManage, groupedForManage } = useMemo(() => {
@@ -269,6 +487,7 @@ export function ModernPoliceDashboard() {
     { id: "overview", name: "Tổng quan", icon: Home },
     { id: "manage", name: "Quản lý phản ánh", icon: ClipboardList },
     { id: "campaigns", name: "Chiến dịch", icon: Flag },
+    { id: "schedule", name: "Lịch trực ban", icon: Calendar },
     { id: "reports", name: "Báo cáo thống kê", icon: BarChart2 },
     { id: "settings", name: "Cài đặt tài khoản", icon: Settings },
   ];
@@ -428,17 +647,19 @@ export function ModernPoliceDashboard() {
                       {policeUnitName}
                     </p>
                   </div>
-                  <button className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+                  <button 
+                    onClick={() => { setIsProfileDialogOpen(true); setIsDropdownOpen(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                  >
                     <User size={16} />
                     Thông tin cá nhân
                   </button>
-                  <button className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+                  <button 
+                    onClick={() => { setIsPasswordDialogOpen(true); setIsDropdownOpen(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                  >
                     <Key size={16} />
                     Đổi mật khẩu
-                  </button>
-                  <button className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors">
-                    <Settings size={16} />
-                    Cài đặt hệ thống
                   </button>
                   <div className="h-px bg-slate-100 my-1"></div>
                   <button 
@@ -499,32 +720,56 @@ export function ModernPoliceDashboard() {
                           <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase">Mã HS</th>
                           <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase">Phân loại</th>
                           <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase">Trạng thái</th>
+                          <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase">Độ trùng khớp (AI)</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y" style={{ borderColor: colors.border }}>
-                        {priorityIncidents.length > 0 ? (
-                          priorityIncidents.map((row, i) => {
-                            const isUrgent = row.priority === "CRITICAL" || row.priority === "HIGH";
-                            return (
-                              <tr key={i} className={`hover:bg-slate-50 ${isUrgent ? 'bg-red-50/30' : ''}`}>
-                                <td className="px-4 py-3 font-medium" style={{ color: colors.primaryNavy }}>{row.trackingCode}</td>
-                                <td className="px-4 py-3 text-slate-600">{row.categoryName}</td>
-                                <td className="px-4 py-3">
-                                  <span className="text-[11px] px-2 py-1 rounded-[4px] font-semibold" 
-                                    style={{ 
-                                      backgroundColor: isUrgent ? '#FEE2E2' : '#F1F5F9',
-                                      color: isUrgent ? colors.criticalRed : colors.textSecondary 
-                                    }}>
-                                    {row.priority === "CRITICAL" ? "Khẩn cấp" : row.priority === "HIGH" ? "Ưu tiên" : "Bình thường"}
-                                  </span>
+                        {Object.keys(groupedPriorityIncidents).length > 0 ? (
+                          Object.entries(groupedPriorityIncidents).map(([dateStr, items]) => (
+                            <React.Fragment key={dateStr}>
+                              <tr className="bg-slate-100/70 border-y" style={{ borderColor: colors.border }}>
+                                <td colSpan={4} className="px-4 py-2 text-[11px] font-bold text-slate-700 uppercase tracking-wide">
+                                  Ngày: {dateStr}
                                 </td>
                               </tr>
-                            );
-                          })
+                              {items.map((row) => {
+                                const isUrgent = row.priority === "CRITICAL" || row.priority === "HIGH";
+                                // Mock AI Score (tạo số ngẫu nhiên nhưng cố định theo ID để demo)
+                                const mockScore = 85 + (Number(row.id) % 15);
+                                
+                                return (
+                                  <tr key={row.id} 
+                                    onClick={() => navigate({ to: "/authority/feedback/$feedbackId", params: { feedbackId: String(row.id) } })}
+                                    className={`hover:bg-slate-50 cursor-pointer ${isUrgent ? 'bg-red-50/30' : ''}`}
+                                  >
+                                    <td className="px-4 py-3 font-medium" style={{ color: colors.primaryNavy }}>{row.trackingCode}</td>
+                                    <td className="px-4 py-3 text-slate-600 truncate max-w-[120px]" title={row.title}>{row.categoryName}</td>
+                                    <td className="px-4 py-3">
+                                      <span className="text-[11px] px-2 py-1 rounded-[4px] font-semibold" 
+                                        style={{ 
+                                          backgroundColor: isUrgent ? '#FEE2E2' : '#F1F5F9',
+                                          color: isUrgent ? colors.criticalRed : colors.textSecondary 
+                                        }}>
+                                        {row.priority === "CRITICAL" ? "Khẩn cấp" : row.priority === "HIGH" ? "Ưu tiên" : "Bình thường"}
+                                      </span>
+                                    </td>
+                                    <td className="px-4 py-3">
+                                      <div className="flex items-center gap-1.5" title="Khớp: Tiêu đề, Nội dung, Định vị">
+                                        <span className="text-[11px] font-bold text-green-700 bg-green-100 px-1.5 py-0.5 rounded-[4px] border border-green-200">
+                                          {mockScore}%
+                                        </span>
+                                        <span className="text-[10px] font-semibold text-slate-400">3/4</span>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </React.Fragment>
+                          ))
                         ) : (
                           <tr>
-                            <td colSpan={3} className="px-4 py-8 text-center text-slate-500 text-sm">
-                              Không có vụ việc nào đang chờ xử lý
+                            <td colSpan={4} className="px-4 py-8 text-center text-slate-500 text-sm">
+                              Không có vụ việc ưu tiên nào
                             </td>
                           </tr>
                         )}
@@ -784,7 +1029,10 @@ export function ModernPoliceDashboard() {
           {activeTab === "campaigns" && (
             <PoliceCampaignPage />
           )}
-          {activeTab !== "overview" && activeTab !== "manage" && activeTab !== "campaigns" && (
+          {activeTab === "schedule" && (
+            <DutyRoster />
+          )}
+          {activeTab !== "overview" && activeTab !== "manage" && activeTab !== "campaigns" && activeTab !== "schedule" && (
             <div className="flex items-center justify-center h-full text-slate-400">
               Chức năng đang được cập nhật theo giao diện mới...
             </div>
@@ -857,6 +1105,203 @@ export function ModernPoliceDashboard() {
               style={{ backgroundColor: colors.secondaryBlue }}
             >
               {requestInfoMut.isPending ? "Đang gửi..." : "Gửi yêu cầu"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Profile Dialog */}
+      <Dialog open={isProfileDialogOpen} onOpenChange={(open) => { setIsProfileDialogOpen(open); if(!open) setIsEditingProfile(false); }}>
+        <DialogContent className="bg-white rounded-[8px] p-0 max-w-[950px] overflow-hidden">
+          <div className="flex flex-col md:flex-row h-full">
+            {/* Cột trái: Thông tin cá nhân */}
+            <div className="w-full md:w-[350px] p-6 bg-slate-50 border-r" style={{ borderColor: colors.border }}>
+              <DialogHeader className="mb-6">
+                <DialogTitle className="text-lg font-bold" style={{ color: colors.primaryNavy }}>Hồ sơ Cán bộ</DialogTitle>
+              </DialogHeader>
+              
+              <div className="space-y-4">
+                {/* Avatar Section */}
+                <div className="flex flex-col items-center mb-6">
+                  <div className="relative group">
+                    <div className="w-24 h-24 rounded-full border-4 shadow-sm overflow-hidden flex items-center justify-center bg-white" style={{ borderColor: colors.border }}>
+                      {profileAvatar ? (
+                        <img src={profileAvatar} alt="Avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        <User size={40} className="text-slate-400" />
+                      )}
+                    </div>
+                    <label 
+                      htmlFor="avatar-upload"
+                      className="absolute bottom-0 right-0 bg-blue-600 rounded-full w-8 h-8 flex items-center justify-center text-white border-2 border-white shadow-md hover:bg-blue-700 transition-colors cursor-pointer"
+                      title="Đổi ảnh đại diện"
+                    >
+                      <Camera size={14} />
+                    </label>
+                    <input 
+                      id="avatar-upload"
+                      type="file" 
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const url = URL.createObjectURL(file);
+                          setProfileAvatar(url);
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[13px] font-semibold text-slate-700 mb-1">Đơn vị công tác</label>
+                  <input type="text" value={policeUnitName} disabled className="w-full h-9 px-3 border rounded-[4px] text-sm bg-slate-100/50 text-slate-500 cursor-not-allowed" style={{ borderColor: colors.border }} />
+                </div>
+                <div>
+                  <label className="block text-[13px] font-semibold text-slate-700 mb-1">Họ và Tên</label>
+                  <input type="text" value={profileForm.name} disabled={!isEditingProfile} onChange={e => setProfileForm({...profileForm, name: e.target.value})} className={`w-full h-9 px-3 border rounded-[4px] text-sm focus:outline-none focus:ring-1 ${!isEditingProfile ? 'bg-transparent border-transparent px-0 font-medium text-slate-800' : 'bg-white text-slate-800'}`} style={{ borderColor: !isEditingProfile ? 'transparent' : colors.border }} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[13px] font-semibold text-slate-700 mb-1">Cấp bậc</label>
+                    <select value={profileForm.rank} disabled={!isEditingProfile} onChange={e => setProfileForm({...profileForm, rank: e.target.value})} className={`w-full h-9 px-3 border rounded-[4px] text-sm focus:outline-none focus:ring-1 ${!isEditingProfile ? 'bg-transparent border-transparent px-0 font-medium text-slate-800 appearance-none' : 'bg-white text-slate-800'}`} style={{ borderColor: !isEditingProfile ? 'transparent' : colors.border }}>
+                      <option value="Thượng úy">Thượng úy</option>
+                      <option value="Đại úy">Đại úy</option>
+                      <option value="Thiếu tá">Thiếu tá</option>
+                      <option value="Trung tá">Trung tá</option>
+                      <option value="Thượng tá">Thượng tá</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[13px] font-semibold text-slate-700 mb-1">Số điện thoại</label>
+                    <input type="text" value={profileForm.phone} disabled={!isEditingProfile} onChange={e => setProfileForm({...profileForm, phone: e.target.value})} className={`w-full h-9 px-3 border rounded-[4px] text-sm focus:outline-none focus:ring-1 ${!isEditingProfile ? 'bg-transparent border-transparent px-0 font-medium text-slate-800' : 'bg-white text-slate-800'}`} style={{ borderColor: !isEditingProfile ? 'transparent' : colors.border }} />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-8 pt-6 border-t flex justify-end gap-3" style={{ borderColor: colors.border }}>
+                {!isEditingProfile ? (
+                  <button 
+                    onClick={() => setIsEditingProfile(true)} 
+                    className="w-full py-2 text-sm font-bold text-white rounded-[4px] hover:opacity-90 transition-opacity" 
+                    style={{ backgroundColor: colors.secondaryBlue }}
+                  >
+                    Chỉnh sửa thông tin
+                  </button>
+                ) : (
+                  <>
+                    <button onClick={() => setIsEditingProfile(false)} className="flex-1 py-2 text-sm font-medium text-slate-600 bg-slate-200 rounded-[4px] hover:bg-slate-300">Hủy</button>
+                    <button 
+                      onClick={() => { 
+                        toast.success("Đã cập nhật thông tin thành công!"); 
+                        setIsEditingProfile(false);
+                      }} 
+                      className="flex-1 py-2 text-sm font-bold text-white rounded-[4px] hover:opacity-90 transition-opacity" 
+                      style={{ backgroundColor: colors.primaryNavy }}
+                    >
+                      Lưu lại
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Cột phải: Lịch phân công công tác */}
+            <div className="flex-1 p-6 bg-white flex flex-col">
+              <div className="flex items-center gap-2 mb-6">
+                <Clock className="text-blue-600" size={20} />
+                <h3 className="text-lg font-bold" style={{ color: colors.primaryNavy }}>Lịch phân công trực công tác tuần này</h3>
+              </div>
+              
+              <div className="flex-1 overflow-auto rounded-lg border" style={{ borderColor: colors.border }}>
+                <table className="w-full text-left border-collapse">
+                  <thead className="bg-slate-50 sticky top-0">
+                    <tr>
+                      <th className="px-4 py-3 text-[12px] font-semibold text-slate-600 uppercase border-b border-r w-24">Thứ / Ngày</th>
+                      <th className="px-4 py-3 text-[12px] font-semibold text-slate-600 uppercase border-b border-r text-center">Ca Sáng<br/><span className="text-[10px] font-normal text-slate-400">07:30 - 11:30</span></th>
+                      <th className="px-4 py-3 text-[12px] font-semibold text-slate-600 uppercase border-b border-r text-center">Ca Chiều<br/><span className="text-[10px] font-normal text-slate-400">13:30 - 17:30</span></th>
+                      <th className="px-4 py-3 text-[12px] font-semibold text-slate-600 uppercase border-b text-center">Ca Đêm<br/><span className="text-[10px] font-normal text-slate-400">17:30 - 07:30</span></th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-[13px]">
+                    {[
+                      { day: "Thứ 2", date: "29/06", morning: "Trực ban hành chính", afternoon: "Xử lý hồ sơ", night: "-" },
+                      { day: "Thứ 3", date: "30/06", morning: "Tuần tra địa bàn", afternoon: "Tuần tra địa bàn", night: "Trực chỉ huy" },
+                      { day: "Thứ 4", date: "01/07", morning: "Nghỉ bù", afternoon: "Nghỉ bù", night: "-" },
+                      { day: "Thứ 5", date: "02/07", morning: "Xử lý hồ sơ", afternoon: "Tiếp công dân", night: "-" },
+                      { day: "Thứ 6", date: "03/07", morning: "Họp giao ban", afternoon: "Trực ban hành chính", night: "Tuần tra đêm" },
+                      { day: "Thứ 7", date: "04/07", morning: "-", afternoon: "-", night: "-" },
+                      { day: "Chủ nhật", date: "05/07", morning: "Trực ban", afternoon: "Trực ban", night: "-" },
+                    ].map((row, idx) => (
+                      <tr key={idx} className="border-b last:border-b-0 hover:bg-slate-50/50">
+                        <td className="px-4 py-3 border-r bg-slate-50/30">
+                          <div className="font-semibold text-slate-700">{row.day}</div>
+                          <div className="text-[11px] text-slate-400">{row.date}</div>
+                        </td>
+                        <td className="px-4 py-3 border-r text-center">
+                          {row.morning !== "-" ? <span className="inline-block px-2 py-1 bg-blue-50 text-blue-700 rounded text-[12px] font-medium">{row.morning}</span> : <span className="text-slate-300">-</span>}
+                        </td>
+                        <td className="px-4 py-3 border-r text-center">
+                          {row.afternoon !== "-" ? <span className="inline-block px-2 py-1 bg-amber-50 text-amber-700 rounded text-[12px] font-medium">{row.afternoon}</span> : <span className="text-slate-300">-</span>}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {row.night !== "-" ? <span className="inline-block px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-[12px] font-medium">{row.night}</span> : <span className="text-slate-300">-</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-4 flex justify-between items-center text-[11px] text-slate-500">
+                <span>* Lịch trực có thể thay đổi theo lệnh điều động đột xuất của Trưởng Công an Phường.</span>
+                <button onClick={() => setIsProfileDialogOpen(false)} className="px-6 py-2 rounded font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors">Đóng cửa sổ</button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Password Dialog */}
+      <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+        <DialogContent className="bg-white rounded-[8px] p-6 max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold" style={{ color: colors.primaryNavy }}>Đổi mật khẩu</DialogTitle>
+          </DialogHeader>
+          <div className="py-2 space-y-4">
+            <div>
+              <label className="block text-[13px] font-semibold text-slate-700 mb-1">Mật khẩu hiện tại</label>
+              <input type="password" value={passwordForm.current} onChange={e => setPasswordForm({...passwordForm, current: e.target.value})} className="w-full h-9 px-3 border rounded-[4px] text-sm focus:outline-none focus:ring-1 bg-slate-50 text-slate-700" style={{ borderColor: colors.border }} />
+            </div>
+            <div>
+              <label className="block text-[13px] font-semibold text-slate-700 mb-1">Mật khẩu mới</label>
+              <input type="password" value={passwordForm.new} onChange={e => setPasswordForm({...passwordForm, new: e.target.value})} className="w-full h-9 px-3 border rounded-[4px] text-sm focus:outline-none focus:ring-1 bg-slate-50 text-slate-700" style={{ borderColor: colors.border }} />
+            </div>
+            <div>
+              <label className="block text-[13px] font-semibold text-slate-700 mb-1">Xác nhận mật khẩu mới</label>
+              <input type="password" value={passwordForm.confirm} onChange={e => setPasswordForm({...passwordForm, confirm: e.target.value})} className="w-full h-9 px-3 border rounded-[4px] text-sm focus:outline-none focus:ring-1 bg-slate-50 text-slate-700" style={{ borderColor: colors.border }} />
+            </div>
+          </div>
+          <DialogFooter className="flex justify-end gap-3 mt-4">
+            <button onClick={() => setIsPasswordDialogOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-[4px] hover:bg-slate-200">Hủy</button>
+            <button 
+              onClick={() => { 
+                if (!passwordForm.current || !passwordForm.new || !passwordForm.confirm) {
+                  toast.error("Vui lòng điền đầy đủ thông tin!");
+                  return;
+                }
+                if (passwordForm.new !== passwordForm.confirm) {
+                  toast.error("Mật khẩu xác nhận không khớp!");
+                  return;
+                }
+                toast.success("Đổi mật khẩu thành công!"); 
+                setIsPasswordDialogOpen(false); 
+                setPasswordForm({current: "", new: "", confirm: ""});
+              }} 
+              className="px-4 py-2 text-sm font-bold text-white rounded-[4px] hover:opacity-90" 
+              style={{ backgroundColor: colors.primaryNavy }}
+            >
+              Xác nhận đổi
             </button>
           </DialogFooter>
         </DialogContent>

@@ -28,6 +28,7 @@ import com.example.smartcity.modules.feedback.dto.StatusChangeRequest;
 import com.example.smartcity.modules.feedback.dto.AssignRequest;
 import com.example.smartcity.modules.feedback.dto.FeedbackLogResponse;
 import com.example.smartcity.modules.feedback.dto.FeedbackLookupStatsResponse;
+import com.example.smartcity.modules.feedback.dto.FeedbackSupplementRequest;
 
 import java.util.List;
 import java.time.LocalDate;
@@ -279,6 +280,28 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
         String username = authentication.getName();
         Feedback saved = feedbackService.createFeedback(request, username);
         return ResponseEntity.ok(feedbackMapper.toDto(saved));
+    }
+
+    @PostMapping("/{id}/supplement")
+    @PreAuthorize("hasRole('CITIZEN')")
+    public ResponseEntity<FeedbackResponse> supplementInfo(
+            @PathVariable Long id,
+            @Valid @RequestBody FeedbackSupplementRequest request,
+            Authentication authentication) {
+        if ((request.getContent() == null || request.getContent().trim().isEmpty()) &&
+                (request.getImageUrls() == null || request.getImageUrls().isEmpty())) {
+            throw new com.example.smartcity.common.exception.CustomException(
+                    "Vui lòng cung cấp nội dung mô tả hoặc ít nhất một hình ảnh.",
+                    org.springframework.http.HttpStatus.BAD_REQUEST.value()
+            );
+        }
+        Feedback updated = feedbackService.supplementInfo(
+                id,
+                request.getContent(),
+                request.getImageUrls(),
+                authentication.getName()
+        );
+        return ResponseEntity.ok(toDetailResponse(updated));
     }
 
     // ═══ State Machine Endpoints ═════════════════════════════════

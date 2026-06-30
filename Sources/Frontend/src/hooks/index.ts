@@ -286,6 +286,18 @@ export function useRequestMoreInfo() {
   });
 }
 
+export function useSupplementFeedbackInfo() {
+  const queryClient = useQueryClient();
+  return useMutation<FeedbackResponse, Error, { id: number | string; content?: string; imageUrls?: string[] }>({
+    mutationFn: ({ id, content, imageUrls }) => feedbackApi.supplementInfo(id, content, imageUrls),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.feedbacks.detail(variables.id) });
+    },
+  });
+}
+
 export function useHotspots() {
   return useQuery<any[]>({
     queryKey: ["feedbacks", "hotspots"],

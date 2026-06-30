@@ -66,7 +66,8 @@ public class DataInitializer implements CommandLineRunner {
             jdbcTemplate.execute("ALTER TABLE feedbacks DROP CONSTRAINT IF EXISTS feedbacks_status_check");
             jdbcTemplate.execute("ALTER TABLE feedback_logs DROP CONSTRAINT IF EXISTS feedback_logs_old_status_check");
             jdbcTemplate.execute("ALTER TABLE feedback_logs DROP CONSTRAINT IF EXISTS feedback_logs_new_status_check");
-            log.info("Successfully dropped check constraint feedbacks_status_check");
+            jdbcTemplate.execute("ALTER TABLE feedback_logs DROP CONSTRAINT IF EXISTS feedback_logs_action_check");
+            log.info("Successfully dropped check constraint feedbacks_status_check and action constraints");
         } catch (Exception e) {
             log.warn("Could not drop feedbacks_status_check: {}", e.getMessage());
         }

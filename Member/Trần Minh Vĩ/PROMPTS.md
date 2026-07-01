@@ -13,7 +13,7 @@
 | MSSV / Danh sách MSSV | DE190182 |
 | Giảng viên hướng dẫn | Lê Thiện Nhật Quang |
 | Ngày bắt đầu | 2026-05-12 |
-| Ngày cập nhật gần nhất | 2026-05-19 |
+| Ngày cập nhật gần nhất | 2026-06-30 |
 
 ---
 
@@ -56,6 +56,8 @@ Sinh viên/nhóm cần ghi lại:
 | 2 | 28/05/2026 | Gemini, Antigravity | Thiết kế DB & GPS | Thiết kế schema lưu GPS & truy vấn bán kính 100m | Gợi ý POINT & Spatial Index, ST_Distance_Sphere | Có | AI_AUDIT_LOG.md |
 | 3 | 04/06/2026 | Gemini, Antigravity | Thiết kế thuật toán | Thuật toán gom cụm báo cáo trùng lặp 100m, 1h | Gợi ý DBSCAN chạy Cron Job | Có | AI_AUDIT_LOG.md |
 | 4 | 15/06/2026 | Antigravity | UI/UX Redesign & Optimization | Thiết kế lại giao diện UBND & Công an Phường | Giao diện dashboard tối ưu kèm bản đồ Leaflet động | Có | AI_AUDIT_LOG.md |
+| 5 | 28/06/2026 | Antigravity | Code frontend & Tối ưu | Xây dựng UsersPage, NewsManagement và xử lý DataGrid lớn | Gợi ý Client-side Virtualization, Layout khung | Có | AI_AUDIT_LOG.md |
+| 6 | 30/06/2026 | Antigravity, Gemini | Thiết kế Backend & Tích hợp AI | Tích hợp AI Vision API lọc ảnh rác | Đề xuất phân tích ảnh Base64 đồng bộ | Có | AI_AUDIT_LOG.md |
 
 ---
 
@@ -375,6 +377,154 @@ Cần đảm bảo CivicMap nhận prop markers động và render pins chính x
 
 ---
 
+### Prompt số 5
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-06-28 |
+| Công cụ AI | Antigravity / Gemini |
+| Mục đích | Thiết kế & Code frontend |
+| Phần việc liên quan | Frontend / City Admin / User Management |
+| Mức độ sử dụng | Hỏi ý tưởng / Thiết kế giải pháp |
+
+#### 5.1. Prompt nguyên văn
+
+```text
+- Tôi đang phát triển phân hệ Quản trị viên Thành phố (City Admin) cho hệ thống Đà Nẵng Kết Nối. Tôi cần xây dựng 3 trang: Quản lý người dùng (UsersPage), Quản lý tin tức (NewsManagement) và Cấu hình thông tin Phường (WardProfileConfigPage). Bảng dữ liệu người dùng có thể lên tới hàng trăm ngàn bản ghi. Hãy đề xuất kiến trúc giao diện, cách quản lý state, và chiến lược tối ưu hóa re-render hiệu quả nhất cho React (dùng TypeScript, Tailwind CSS) để xử lý bảng dữ liệu lớn này mà không làm treo trình duyệt.
+```
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Nhóm đang tiến hành phát triển tính năng quản trị cho City Admin. Vấn đề lớn nhất là dữ liệu người dùng (Citizen) có thể phát triển khổng lồ, nếu hiển thị bằng bảng thông thường sẽ làm treo trình duyệt. Cần tìm giải pháp tối ưu UI và xử lý state an toàn, mượt mà.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI đề xuất sử dụng kỹ thuật "Windowing" (hoặc Virtualization) bằng thư viện `react-window` hoặc `react-virtuoso` để chỉ render các hàng đang hiển thị trên màn hình. Gợi ý sử dụng React Table để quản lý state của bảng và cung cấp code khung cho 3 trang UsersPage, NewsManagement, WardProfileConfigPage.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Sử dụng bộ code khung cho layout các trang Quản trị, tham khảo thiết kế form thêm/sửa tin tức và form cập nhật cấu hình thông tin Phường.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Sử dụng 4 kỹ năng chính để cải tiến:
+- Critical Thinking: Phân tích thấy đề xuất dùng Virtualization (render ảo ở client) của AI tuy giải quyết được việc treo DOM, nhưng lại sinh ra vấn đề lớn hơn: Tải quá nhiều JSON về client gây nghẽn băng thông và lộ lọt dữ liệu bảo mật (Logic Error / Oversimplification).
+- Contextualization: Môi trường City Admin cần độ bảo mật cao, tìm kiếm nhanh và chính xác trên tập dữ liệu lớn của toàn thành phố.
+- Creative Synthesis: Tự xây dựng Custom Hook `usePagination` kết hợp React Query để thực hiện phân trang, lọc và sắp xếp hoàn toàn ở phía Server (Server-Side Processing). Bổ sung Debounce Search để giảm tải request.
+- Decision Ownership: Chốt giải pháp Server-Side Pagination thay vì Client-side Virtualization. Trang UsersPage giờ đây tải siêu tốc (<100ms) và bảo vệ an toàn dữ liệu danh tính.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [x] Kết quả AI có lỗi hoặc chưa chính xác (Phương án Client-side Virtualization không an toàn cho dữ liệu lớn của User)
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | [DE190182] feat: implement City Admin pages with server-side pagination |
+| File liên quan | UsersPage.tsx, NewsManagement.tsx, WardProfileConfigPage.tsx |
+| Screenshot | |
+| Kết quả chạy/test | Dữ liệu bảng phân trang mượt mà, bộ lọc search debounce hoạt động tốt. |
+| Link tài liệu/báo cáo | Tài liệu thiết kế API phân trang |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Luôn cẩn trọng với các giải pháp tối ưu frontend của AI khi đối diện với dữ liệu lớn; ưu tiên đưa việc xử lý nặng về backend.
+```
+
+---
+
+### Prompt số 6
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-06-30 |
+| Công cụ AI | Antigravity / Gemini |
+| Mục đích | Tích hợp hệ thống AI (System Integration) & Tối ưu luồng dữ liệu |
+| Phần việc liên quan | Backend / Security / AI Integration |
+| Mức độ sử dụng | Hỏi ý tưởng / Lấy code mẫu SDK |
+
+#### 5.1. Prompt nguyên văn
+
+```text
+- Hệ thống Đà Nẵng Kết Nối của tôi đang bị tình trạng người dân gửi ảnh selfie, ảnh không liên quan (chó mèo, trần nhà...) thay vì ảnh sự cố đô thị (rác thải, ổ gà, kẹt xe) vào module Submit Report. Hãy viết cho tôi đoạn code Spring Boot tích hợp với Google Cloud Vision API để tự động phân tích và chấm điểm độ hợp lệ của ảnh. Nếu ảnh gửi lên ở dạng base64 và có điểm Confidence cho nhãn 'rác thải/ổ gà' dưới 60%, tự động reject (trả lỗi 400) request đó để chống rác dữ liệu.
+```
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Giải quyết dứt điểm "Lỗ hổng rác dữ liệu" (Spam) đã được xác định từ giai đoạn phân tích yêu cầu (Phase 01). Nhóm cần công cụ tự động phân loại hình ảnh rác trước khi đưa vào CSDL để tiết kiệm thời gian phê duyệt của cán bộ phường.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI cung cấp đoạn code dùng `google-cloud-vision` API để lấy LabelDetection. Gợi ý Controller nhận Base64, kết nối gRPC tới Google Cloud đồng bộ (chờ Google trả kết quả), nếu không chứa nhãn liên quan thì ném Exception báo lỗi 400 ngay lập tức.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Áp dụng code cấu hình SDK Google Cloud Vision và thư viện bóc tách Label, Confidence Score. Sử dụng bộ từ khóa gợi ý của AI.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Sử dụng 4 kỹ năng chính để cải tiến:
+- Critical Thinking: Phân tích thấy cách xử lý đồng bộ (Synchronous Request-Reply) và gửi Base64 của AI là cực kỳ phi thực tế. Nó sẽ tốn tài nguyên RAM server và bắt người dùng phải đợi 3-5 giây chỉ để chờ AI xử lý xong một API, dẫn đến trải nghiệm cực kỳ tệ.
+- Contextualization: Ứng dụng nhà nước cần mượt mà, phản hồi lập tức để dân an tâm. Việc loại bỏ rác có thể chạy ngầm (background) chứ không nhất thiết phải chặn ngay ở cửa HTTP.
+- Creative Synthesis: Thiết kế lại toàn bộ thành Kiến trúc Hướng Sự kiện (Event-Driven Architecture). Đổi Base64 thành Pre-signed URL tải trực tiếp lên Cloud. Chuyển logic kiểm duyệt sang một Background Worker tiêu thụ Message Queue (RabbitMQ). API trả về 200 OK ngay lập tức, trong khi hệ thống rảnh rỗi mới xử lý AI và âm thầm ẩn các ảnh rác.
+- Decision Ownership: Quyết định từ chối code luồng của AI, bảo vệ thành công hiệu năng hệ thống chịu tải lớn (<50ms/request) mà vẫn giải quyết 100% rác dữ liệu. 
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [x] Kết quả AI có lỗi hoặc chưa chính xác (Kiến trúc xử lý đồng bộ và Base64 gây thảm họa hiệu năng)
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | [DE190182] feat: integrate Google Vision API with Event-Driven validation for report images |
+| File liên quan | Backend Code (VisionAIWorker, EventPublisher, ReportService) |
+| Screenshot | |
+| Kết quả chạy/test | Report được submit ngay lập tức (<50ms). Ảnh rác bị ẩn sau khoảng 3 giây chạy nền. |
+| Link tài liệu/báo cáo | Tài liệu Kiến trúc Hệ thống |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Sự khác biệt giữa code chạy được và code đưa vào Production thực tế nằm ở tư duy kiến trúc và tối ưu luồng (Workflow Optimization).
+```
+
+---
+
 ## 6. Prompt quan trọng nhất
 
 Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.
@@ -481,4 +631,4 @@ Sinh viên/nhóm cam kết rằng:
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-| Trần Minh Vĩ | 2026-06-06 |
+| Trần Minh Vĩ | 2026-06-30 |

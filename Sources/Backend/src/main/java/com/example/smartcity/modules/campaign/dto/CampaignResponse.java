@@ -20,6 +20,7 @@ public class CampaignResponse {
     private String organizerContact;
     private Double latitude;
     private Double longitude;
+    private Integer minParticipants;
     private Integer maxParticipants;
     private LocalDateTime startTime;
     private LocalDateTime endTime;

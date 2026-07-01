@@ -46,7 +46,18 @@ export class ErrorBoundary extends Component<Props, State> {
               >
                 Thử lại
               </button>
-              <a href="/" className="btn-civic btn-civic-ghost">
+              <a
+                href={(() => {
+                  if (typeof window !== "undefined") {
+                    const path = window.location.pathname;
+                    if (path.startsWith("/ward")) return "/ward";
+                    if (path.startsWith("/city-admin")) return "/city-admin";
+                    if (path.startsWith("/police")) return "/police";
+                  }
+                  return "/";
+                })()}
+                className="btn-civic btn-civic-ghost"
+              >
                 Về trang chủ
               </a>
             </div>

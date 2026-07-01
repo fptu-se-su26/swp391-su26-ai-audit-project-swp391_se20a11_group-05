@@ -285,6 +285,15 @@ public class AutoDispatchService {
                 feedback.setStatus(FeedbackStatus.ASSIGNED);
                 feedbackRepository.save(feedback);
 
+                if ("WARD_STAFF".equals(receiverType)) {
+                    TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            citizenNotificationService.createFeedbackAssignedToWardNotification(feedbackId);
+                        }
+                    });
+                }
+
                 if (aiResult.getTrust_score() <= 70) {
                     FeedbackLog logEntry = new FeedbackLog(feedback, feedback.getCitizen(), oldStatus, oldStatus, 
                         "🟡 [AI WARNING] Trust Score trung bình (" + aiResult.getTrust_score() + "%). Yêu cầu duyệt kỹ. AI phân loại: " + safePriority + " - " + safeDomain + ". Lý do: " + aiResult.getReason());
@@ -338,6 +347,15 @@ public class AutoDispatchService {
                 FeedbackLog logEntry = new FeedbackLog(feedback, feedback.getCitizen(), feedback.getStatus(), feedback.getStatus(), 
                     "⚠️ [HỆ THỐNG] Phân tích AI thất bại hoàn toàn sau 3 lần thử (" + errorMessage + "). Báo cáo chuyển sang luồng Duyệt Thủ Công.");
                 feedbackLogRepository.save(logEntry);
+
+                if ("WARD_STAFF".equals(feedback.getManagedByRole()) && feedback.getWard() != null) {
+                    TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            citizenNotificationService.createFeedbackAssignedToWardNotification(feedbackId);
+                        }
+                    });
+                }
             }
         } else {
             aiTask.setStatus("PENDING");

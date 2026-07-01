@@ -16,5 +16,13 @@ public interface CampaignParticipantRepository extends JpaRepository<CampaignPar
 
     long countByCampaign_IdAndJoinStatus(Long campaignId, String joinStatus);
 
+    long countByCitizen_IdAndJoinStatus(Long citizenId, String joinStatus);
+
+    java.util.Optional<CampaignParticipant> findFirstByCampaign_IdAndJoinStatusOrderByCreatedAtAsc(Long campaignId, String joinStatus);
+
+    java.util.List<CampaignParticipant> findByJoinStatusAndConfirmationDeadlineBefore(String joinStatus, java.time.LocalDateTime now);
+
     List<CampaignParticipant> findByCampaign_IdOrderByCreatedAtDesc(Long campaignId);
+
+    void deleteByCampaign_Id(Long campaignId);
 }

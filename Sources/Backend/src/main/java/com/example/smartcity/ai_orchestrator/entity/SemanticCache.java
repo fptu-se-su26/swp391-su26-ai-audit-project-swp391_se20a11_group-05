@@ -23,7 +23,6 @@ public class SemanticCache {
     private String queryText;
 
     @Column(name = "query_vector", columnDefinition = "vector(768)")
-    @Convert(converter = com.example.smartcity.common.config.VectorConverter.class)
     private float[] queryVector;
 
     @Column(name = "response_text", columnDefinition = "TEXT", nullable = false)

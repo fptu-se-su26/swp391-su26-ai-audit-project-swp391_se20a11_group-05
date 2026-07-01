@@ -3,6 +3,8 @@
 .claude/
 .agent/
 CLAUDE.md
+SKILL.md
+
 
 # MCP & Gemini
 .mcp.json
@@ -27,3 +29,4 @@ dist/
 .env
 .env.local
 .env.local.ps1
+application-local.properties

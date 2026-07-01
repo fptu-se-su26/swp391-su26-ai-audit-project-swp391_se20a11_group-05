@@ -62,6 +62,8 @@ function iconForType(type?: string) {
     case "FEEDBACK_REJECTED":
       return AlertCircle;
     case "FEEDBACK_ASSIGNED":
+    case "FEEDBACK_ASSIGNED_TO_WARD":
+    case "FEEDBACK_INFO_SUPPLEMENTED":
       return RouteIcon;
     case "FEEDBACK_IN_PROGRESS":
       return FileClock;
@@ -203,7 +205,11 @@ export function Header() {
         await markRead.mutateAsync(item.id);
       }
       if (feedbackId) {
-        await navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
+        if (isWardStaff) {
+          await navigate({ to: "/ward", search: { tab: "feedback", detailId: String(feedbackId) } });
+        } else {
+          await navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
+        }
       } else {
         await navigate({ to: "/notifications" });
       }

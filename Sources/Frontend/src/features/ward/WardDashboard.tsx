@@ -11,6 +11,7 @@ import {
   useWardStaffStatistics,
 } from "@/hooks";
 import { useAuth } from "@/lib/auth";
+import { useFeedbackNotification } from "@/hooks/use-notification";
 import { getLoginPathForRole, Role } from "@/lib/roles";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Route } from "@/routes/_auth.ward";
@@ -107,6 +108,7 @@ export function WardDashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, logout, login } = useAuth();
+  useFeedbackNotification();
 
   // State controls for sidebar and dropdowns
   const [sidebarOpen, setSidebarOpen] = useState(false);

@@ -58,8 +58,8 @@ import { lazy, Suspense, useState, useEffect } from "react";
 import { staticNews, staticFaqs } from "@/lib/static-content";
 
 const CivicMap = clientOnly(() =>
-  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
-);
+  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
+) as any;
 
 // ── Da Nang city slideshow images (Unsplash)
 const DA_NANG_SLIDES = [

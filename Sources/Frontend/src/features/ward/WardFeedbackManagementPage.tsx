@@ -597,10 +597,10 @@ function PriorityBadge({ value }: { value?: string | null }) {
     normalized === "URGENT" || normalized === "CRITICAL"
       ? { label: "Khẩn cấp", className: "bg-rose-50/50 text-rose-700 border-rose-100" }
       : normalized === "HIGH"
-        ? { label: "Cao", className: "bg-amber-50/50 text-amber-700 border-amber-100" }
+        ? { label: "Cao", className: "bg-rose-50/50 text-rose-700 border-rose-100" }
         : normalized === "LOW"
-          ? { label: "Thấp", className: "bg-slate-50/50 text-slate-700 border-slate-100" }
-          : { label: "Trung bình", className: "bg-indigo-50/50 text-indigo-700 border-indigo-100" };
+          ? { label: "Thấp", className: "bg-emerald-50/50 text-emerald-700 border-emerald-100" }
+          : { label: "Trung bình", className: "bg-amber-50/50 text-amber-700 border-amber-100" };
   return (
     <span className={`inline-block rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider whitespace-nowrap ${info.className}`}>
       {info.label}

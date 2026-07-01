@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from "react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface NotificationPayload {
   type: string;
@@ -13,6 +14,7 @@ interface NotificationPayload {
  * Fallback về polling khi WebSocket không khả dụng.
  */
 export function useFeedbackNotification(feedbackId?: number | string) {
+  const queryClient = useQueryClient();
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -47,6 +49,8 @@ export function useFeedbackNotification(feedbackId?: number | string) {
           toast.info(payload.title, {
             description: payload.message,
           });
+          void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+          void queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
         } catch {
           // ignore non-JSON messages
         }

@@ -78,7 +78,7 @@ export const Route = createFileRoute("/campaigns/$id")({
 const defaultHeroImage =
   "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&auto=format&fit=crop&q=85";
 
-function CampaignDetailPage() {
+export function CampaignDetailPage() {
   const { id } = Route.useParams();
   const { join } = Route.useSearch();
   return <CampaignDetailPageComponent campaignId={id} join={join} />;
@@ -755,39 +755,39 @@ export function CampaignDetailPageComponent({
                 campaign.status === "completed" ||
                 campaign.status === "ended" ||
                 campaign.status === "inProgress") && (
-                <div
-                  title={campaign.status !== "recruiting" ? "Chiến dịch đã đóng" : undefined}
-                  className="w-full"
-                >
-                  <button
-                    onClick={() => {
-                      if (!isAuthenticated) {
-                        toast.error("Vui lòng đăng nhập để tham gia chiến dịch.");
-                        return;
-                      }
-                      setShowJoinModal(true);
-                    }}
-                    disabled={
-                      campaign.status !== "recruiting" ||
-                      joinCampaign.isPending ||
-                      !campaign.canJoin
-                    }
-                    className={`h-12 w-full rounded-xl ${theme.primaryBg} text-sm font-black text-white shadow-md transition ${theme.primaryHover} active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50`}
+                  <div
+                    title={campaign.status !== "recruiting" ? "Chiến dịch đã đóng" : undefined}
+                    className="w-full"
                   >
-                    {campaign.currentUserJoinStatus === "PENDING"
-                      ? "Đang chờ duyệt"
-                      : campaign.currentUserJoinStatus === "APPROVED"
-                        ? "Đã tham gia"
-                        : campaign.currentUserJoinStatus === "WAITLIST"
-                          ? "Đang ở danh sách chờ"
-                          : campaign.currentUserJoinStatus === "PENDING_CONFIRM"
-                            ? "Chờ xác nhận"
-                            : campaign.status !== "recruiting"
-                              ? "Chiến dịch đã đóng"
-                              : "Đăng ký tham gia"}
-                  </button>
-                </div>
-              )}
+                    <button
+                      onClick={() => {
+                        if (!isAuthenticated) {
+                          toast.error("Vui lòng đăng nhập để tham gia chiến dịch.");
+                          return;
+                        }
+                        setShowJoinModal(true);
+                      }}
+                      disabled={
+                        campaign.status !== "recruiting" ||
+                        joinCampaign.isPending ||
+                        !campaign.canJoin
+                      }
+                      className="h-12 w-full rounded-xl bg-[#7C3AED] text-sm font-black text-white shadow-md transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {campaign.currentUserJoinStatus === "PENDING"
+                        ? "Đang chờ duyệt"
+                        : campaign.currentUserJoinStatus === "APPROVED"
+                          ? "Đã tham gia"
+                          : campaign.currentUserJoinStatus === "WAITLIST"
+                            ? "Đang ở danh sách chờ"
+                            : campaign.currentUserJoinStatus === "PENDING_CONFIRM"
+                              ? "Chờ xác nhận"
+                              : campaign.status !== "recruiting"
+                                ? "Chiến dịch đã đóng"
+                                : "Đăng ký tham gia"}
+                    </button>
+                  </div>
+                )}
 
               {campaign.currentUserJoinStatus === "PENDING_CONFIRM" && (
                 <button
@@ -918,11 +918,10 @@ export function CampaignDetailPageComponent({
                               key={shift}
                               type="button"
                               onClick={() => handleToggleSlot(day, shift)}
-                              className={`h-8 px-2.5 rounded-lg border text-xs font-semibold transition ${
-                                isSelected
-                                  ? "bg-[#7C3AED] text-white border-[#7C3AED] shadow-sm"
-                                  : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-                              }`}
+                              className={`h-8 px-2.5 rounded-lg border text-xs font-semibold transition ${isSelected
+                                ? "bg-[#7C3AED] text-white border-[#7C3AED] shadow-sm"
+                                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                                }`}
                             >
                               {shift.split(" ")[0]}{" "}
                               <span className="text-[10px] opacity-80">{shift.split(" ")[1]}</span>
@@ -1160,33 +1159,30 @@ function ParticipantReviewPanel({ campaignId, theme }: { campaignId: string; the
         <button
           type="button"
           onClick={() => setActiveTab("pending")}
-          className={`flex-1 pb-3 text-sm font-black transition-all ${
-            activeTab === "pending"
-              ? `border-b-2 ${theme.tabActive}`
-              : "text-slate-500 hover:text-slate-800"
-          }`}
+          className={`flex-1 pb-3 text-sm font-black transition-all ${activeTab === "pending"
+            ? "border-b-2 border-[#7C3AED] text-[#7C3AED]"
+            : "text-slate-500 hover:text-slate-800"
+            }`}
         >
           Đang chờ ({pendingParticipants.length})
         </button>
         <button
           type="button"
           onClick={() => setActiveTab("approved")}
-          className={`flex-1 pb-3 text-sm font-black transition-all ${
-            activeTab === "approved"
-              ? `border-b-2 ${theme.tabActive}`
-              : "text-slate-500 hover:text-slate-800"
-          }`}
+          className={`flex-1 pb-3 text-sm font-black transition-all ${activeTab === "approved"
+            ? "border-b-2 border-[#7C3AED] text-[#7C3AED]"
+            : "text-slate-500 hover:text-slate-800"
+            }`}
         >
           Đã duyệt ({approvedParticipants.length})
         </button>
         <button
           type="button"
           onClick={() => setActiveTab("cancelled")}
-          className={`flex-1 pb-3 text-sm font-black transition-all ${
-            activeTab === "cancelled"
-              ? `border-b-2 ${theme.tabActive}`
-              : "text-slate-500 hover:text-slate-800"
-          }`}
+          className={`flex-1 pb-3 text-sm font-black transition-all ${activeTab === "cancelled"
+            ? "border-b-2 border-[#7C3AED] text-[#7C3AED]"
+            : "text-slate-500 hover:text-slate-800"
+            }`}
         >
           Đã hủy & Từ chối ({cancelledParticipants.length})
         </button>
@@ -1286,11 +1282,10 @@ function ParticipantReviewPanel({ campaignId, theme }: { campaignId: string; the
                 return (
                   <div
                     key={p.id}
-                    className={`rounded-xl border p-3.5 transition space-y-3 ${
-                      isFlagged
-                        ? "border-red-200 bg-red-50/70 shadow-sm"
-                        : "border-slate-200 bg-white"
-                    }`}
+                    className={`rounded-xl border p-3.5 transition space-y-3 ${isFlagged
+                      ? "border-red-200 bg-red-50/70 shadow-sm"
+                      : "border-slate-200 bg-white"
+                      }`}
                   >
                     <div className="flex items-start gap-2.5">
                       <input
@@ -1508,17 +1503,17 @@ function ParticipantReviewPanel({ campaignId, theme }: { campaignId: string; the
                     <div className="pt-1.5 border-t border-slate-100 space-y-1 text-xs">
                       {isRejected
                         ? p.rejectionReason && (
-                            <p className="text-red-600 leading-relaxed">
-                              <span className="font-black text-red-700">Lý do từ chối:</span>{" "}
-                              {p.rejectionReason}
-                            </p>
-                          )
+                          <p className="text-red-600 leading-relaxed">
+                            <span className="font-black text-red-700">Lý do từ chối:</span>{" "}
+                            {p.rejectionReason}
+                          </p>
+                        )
                         : p.cancellationReason && (
-                            <p className="text-slate-600 leading-relaxed">
-                              <span className="font-black text-slate-700">Lý do hủy:</span>{" "}
-                              {p.cancellationReason}
-                            </p>
-                          )}
+                          <p className="text-slate-600 leading-relaxed">
+                            <span className="font-black text-slate-700">Lý do hủy:</span>{" "}
+                            {p.cancellationReason}
+                          </p>
+                        )}
                       {p.volunteerExperience && (
                         <p className="text-slate-500 leading-relaxed text-[11px]">
                           <span className="font-black text-slate-500">Kinh nghiệm ban đầu:</span>{" "}
@@ -1850,20 +1845,9 @@ function StatusBadge({ status, theme }: { status: Campaign["status"]; theme?: an
       className: "border-emerald-200 bg-emerald-50 text-emerald-700",
     },
     inProgress: { label: "Đang thực hiện", className: "border-blue-200 bg-blue-50 text-blue-700" },
-    completed: {
-      label: "Hoàn thành",
-      className: theme && theme.primaryBorder && theme.lightBg && theme.primaryText
-        ? `${theme.primaryBorder} ${theme.lightBg} ${theme.primaryText}`
-        : "border-violet-200 bg-violet-50 text-[#7C3AED]",
-    },
-    ended: {
-      label: "Đã kết thúc",
-      className: "border-red-200 bg-red-50 text-red-700",
-    },
-  }[status] ?? {
-    label: "Đã kết thúc",
-    className: "border-red-200 bg-red-50 text-red-700",
-  };
+    completed: { label: "Hoàn thành", className: "border-violet-200 bg-violet-50 text-[#7C3AED]" },
+    ended: { label: "Đã kết thúc", className: "border-red-200 bg-red-50 text-red-700" },
+  }[status] ?? { label: status || "Không rõ", className: "border-slate-200 bg-slate-50 text-slate-600" };
 
   return (
     <span

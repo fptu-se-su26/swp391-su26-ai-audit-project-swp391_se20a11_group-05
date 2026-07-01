@@ -643,6 +643,12 @@ export const feedbackApi = {
     }),
 
   getLogs: (id: number | string) => request<unknown[]>(`/api/feedbacks/${id}/logs`),
+
+  supplementInfo: (id: number | string, content?: string, imageUrls?: string[]) =>
+    request<FeedbackResponse>(`/api/feedbacks/${id}/supplement`, {
+      method: "POST",
+      body: JSON.stringify({ content, imageUrls }),
+    }),
 };
 
 export const userApi = {

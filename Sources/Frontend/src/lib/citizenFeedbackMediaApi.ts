@@ -12,6 +12,7 @@ export interface CitizenFeedbackMediaRequest {
   categoryId?: number;
   categoryCode: string;
   videoDurationsSeconds: number[];
+  publicVisible?: boolean;
 }
 
 export interface FeedbackAttachmentResponse {
@@ -50,6 +51,7 @@ export interface CitizenFeedbackMediaResponse {
   createdAt: string;
   updatedAt: string;
   attachments: FeedbackAttachmentResponse[];
+  publicVisible?: boolean;
 }
 
 export async function submitCitizenFeedbackMedia(

@@ -68,11 +68,17 @@ export const queryKeys = {
 
 // ─── Feedback Hooks ──────────────────────────────────────────
 
-export function useFeedbacks(page = 0, size = 3, filters: FeedbackListFilters = {}) {
+export function useFeedbacks(
+  page = 0,
+  size = 3,
+  filters: FeedbackListFilters = {},
+  options?: { enabled?: boolean },
+) {
   return useQuery<PageResponse<FeedbackResponse>>({
     queryKey: queryKeys.feedbacks.list(page, size, filters),
     queryFn: () => feedbackApi.getAll(page, size, filters),
     staleTime: 30_000, // 30s cache
+    ...options,
   });
 }
 
@@ -92,11 +98,17 @@ export function useFeedbackDetail(id: string | number) {
   });
 }
 
-export function usePublicFeedbacks(page = 0, size = 10, filters: FeedbackListFilters = {}) {
+export function usePublicFeedbacks(
+  page = 0,
+  size = 10,
+  filters: FeedbackListFilters = {},
+  options?: { enabled?: boolean },
+) {
   return useQuery<PageResponse<FeedbackResponse>>({
     queryKey: queryKeys.feedbacks.publicList(page, size, filters),
     queryFn: () => feedbackApi.getPublic(page, size, filters),
     staleTime: 30_000,
+    ...options,
   });
 }
 
@@ -270,6 +282,18 @@ export function useRequestMoreInfo() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+}
+
+export function useSupplementFeedbackInfo() {
+  const queryClient = useQueryClient();
+  return useMutation<FeedbackResponse, Error, { id: number | string; content?: string; imageUrls?: string[] }>({
+    mutationFn: ({ id, content, imageUrls }) => feedbackApi.supplementInfo(id, content, imageUrls),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.feedbacks.detail(variables.id) });
     },
   });
 }

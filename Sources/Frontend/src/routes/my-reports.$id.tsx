@@ -31,11 +31,12 @@ import {
   Flag,
   CalendarDays,
   X,
+  Camera,
 } from "lucide-react";
-import { lazy, Suspense, useState, useMemo, useEffect } from "react";
+import { lazy, Suspense, useState, useMemo, useEffect, useRef } from "react";
 import { EmptyState, ErrorState } from "@/components/site/EmptyState";
 import { StatusBadge } from "@/components/site/StatusBadge";
-import { usePublicFeedbackDetail, useFeedbackStatuses, useChangeFeedbackStatus } from "@/lib/hooks";
+import { usePublicFeedbackDetail, useFeedbackStatuses, useChangeFeedbackStatus, useSupplementFeedbackInfo } from "@/lib/hooks";
 import { useI18n } from "@/lib/i18n";
 import { useCreateCampaign } from "@/hooks/useCampaigns";
 import { getCampaignByFeedbackId, onCampaignsChanged } from "@/lib/campaignStore";
@@ -44,6 +45,7 @@ import {
   type FeedbackAttachmentResponse,
   type FeedbackLogResponse,
   type FeedbackStatus,
+  getToken,
 } from "@/lib/api";
 import { mapStatus } from "@/lib/status";
 import { Role } from "@/lib/roles";
@@ -54,6 +56,9 @@ import { toast } from "sonner";
 const CivicMap = clientOnly(() =>
   import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
 );
+
+const API_BASE: string =
+  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) || "";
 
 export const Route = createFileRoute("/my-reports/$id")({
   head: ({ params }) => ({
@@ -74,6 +79,7 @@ function ReportDetail() {
   const canManageCampaignFromReport = user?.role === Role.WARD_STAFF;
 
   const changeStatusMutation = useChangeFeedbackStatus();
+  const supplementMutation = useSupplementFeedbackInfo();
   const { data: statuses = [] } = useFeedbackStatuses();
   const [selectedStatus, setSelectedStatus] = useState<FeedbackStatus | "">("");
 
@@ -116,6 +122,10 @@ function ReportDetail() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showAddInfoModal, setShowAddInfoModal] = useState(false);
   const [additionalInfo, setAdditionalInfo] = useState("");
+  const [supplementPhotos, setSupplementPhotos] = useState<File[]>([]);
+  const [supplementPreviews, setSupplementPreviews] = useState<string[]>([]);
+  const [supplementUploading, setSupplementUploading] = useState(false);
+  const supplementPhotoInputRef = useRef<HTMLInputElement>(null);
   const [infoList, setInfoList] = useState<string[]>([]);
 
   // Campaign creation modal state
@@ -310,26 +320,7 @@ function ReportDetail() {
       position: mapCenter,
       title: report.title,
       description: report.description || report.content,
-      status: "inProgress" as const,
-    },
-    // Nearby reports to show "Nearby reports" on the map
-    {
-      position: [reportLat + 0.0012, reportLng + 0.0015] as [number, number],
-      title: isVi ? "Rác thải không được thu gom" : "Trash pile not collected",
-      description: isVi ? "Rác thải sinh hoạt ùn ứ lâu ngày" : "Household waste accumulated",
-      status: "pending" as const,
-    },
-    {
-      position: [reportLat - 0.0016, reportLng - 0.002] as [number, number],
-      title: isVi ? "Rác thải đổ tràn vỉa hè" : "Trash scattered on pavement",
-      description: isVi ? "Xà bần đổ tràn lan" : "Construction debris scattered",
-      status: "resolved" as const,
-    },
-    {
-      position: [reportLat + 0.0007, reportLng - 0.0018] as [number, number],
-      title: isVi ? "Mùi hôi từ rác thải" : "Foul smell from trash",
-      description: isVi ? "Mùi hôi bốc lên từ cống thoát nước" : "Odor from garbage dump",
-      status: "pending" as const,
+      status: report.status,
     },
   ];
 
@@ -439,9 +430,20 @@ function ReportDetail() {
           (s) => s.title.toLowerCase() === item.title.toLowerCase(),
         );
         const isResolvedStep = item.title === "Đã xử lý xong" || item.title === "Resolved" || item.title === "Đã giải quyết" || item.title.toLowerCase().includes("resolve");
+        const isProvideInfoStep = item.action === "PROVIDE_INFO" || item.title === "Bổ sung thông tin" || item.title === "Provided info";
+
         const stepImages = isResolvedStep && resolutionAttachments.length > 0
           ? resolutionAttachments.map(a => a.fileUrl)
-          : matchingStatic?.images;
+          : isProvideInfoStep
+            ? attachments
+                .filter((a) => {
+                  if (a.attachmentPurpose !== "SUPPLEMENTARY_EVIDENCE") return false;
+                  const logTime = new Date(item.createdAt || "").getTime();
+                  const uploadTime = new Date(a.uploadedAt || "").getTime();
+                  return Math.abs(uploadTime - logTime) < 60000; // within 1 minute
+                })
+                .map((a) => a.fileUrl)
+            : matchingStatic?.images;
 
         return {
           title: item.title,
@@ -569,15 +571,110 @@ function ReportDetail() {
     );
   };
 
-  const handleAddInfoSubmit = (e: React.FormEvent) => {
+  const handleSupplementPhotoSelected = (files: FileList | null) => {
+    if (!files) return;
+    const newFiles = Array.from(files);
+    const validFiles = newFiles.filter((file) => {
+      const validType = file.type.startsWith("image/");
+      const validSize = file.size <= 10 * 1024 * 1024;
+
+      if (!validType) {
+        toast.error(isVi ? `${file.name} không phải file ảnh.` : `${file.name} is not an image file.`);
+      }
+      if (!validSize) {
+        toast.error(isVi ? `${file.name} vượt quá 10MB.` : `${file.name} exceeds 10MB.`);
+      }
+
+      return validType && validSize;
+    });
+
+    const availableSlots = Math.max(0, 5 - supplementPhotos.length);
+    const acceptedFiles = validFiles.slice(0, availableSlots);
+    if (validFiles.length > availableSlots) {
+      toast.error(isVi ? "Chỉ được upload tối đa 5 ảnh bổ sung." : "Only up to 5 supplemental images can be uploaded.");
+    }
+
+    setSupplementPhotos((prev) => [...prev, ...acceptedFiles]);
+    acceptedFiles.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setSupplementPreviews((prev) => [...prev, event.target!.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    if (supplementPhotoInputRef.current) supplementPhotoInputRef.current.value = "";
+  };
+
+  const removeSupplementPhoto = (idx: number) => {
+    setSupplementPhotos((prev) => prev.filter((_, i) => i !== idx));
+    setSupplementPreviews((prev) => prev.filter((_, i) => i !== idx));
+    if (supplementPhotoInputRef.current) supplementPhotoInputRef.current.value = "";
+  };
+
+  const handleAddInfoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!additionalInfo.trim()) return;
-    setInfoList([...infoList, additionalInfo]);
-    setAdditionalInfo("");
-    setShowAddInfoModal(false);
-    toast.success(
-      isVi ? "Bổ sung thông tin thành công!" : "Additional information submitted successfully!",
-    );
+    if (!report) return;
+    if (!additionalInfo.trim() && supplementPhotos.length === 0) {
+      toast.error(
+        isVi
+          ? "Vui lòng nhập nội dung hoặc chọn ít nhất một hình ảnh."
+          : "Please enter content or select at least one image.",
+      );
+      return;
+    }
+
+    setSupplementUploading(true);
+    try {
+      // 1. Upload files first if there are any
+      const imageUrls: string[] = [];
+      const token = getToken();
+
+      for (const file of supplementPhotos) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const res = await fetch(`${API_BASE}/api/files/upload`, {
+          method: "POST",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: formData,
+        });
+
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+          throw new Error(
+            data?.message || data?.error || `Upload ${file.name} failed`,
+          );
+        }
+        imageUrls.push(data.fileUrl);
+      }
+
+      // 2. Call supplement API
+      await supplementMutation.mutateAsync({
+        id: report.id,
+        content: additionalInfo.trim() || undefined,
+        imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
+      });
+
+      // 3. Clear states
+      setAdditionalInfo("");
+      setSupplementPhotos([]);
+      setSupplementPreviews([]);
+      setShowAddInfoModal(false);
+      toast.success(
+        isVi ? "Bổ sung thông tin thành công!" : "Additional information submitted successfully!",
+      );
+      refetch();
+    } catch (err: any) {
+      console.error(err);
+      toast.error(
+        isVi 
+          ? (err.message || "Không thể bổ sung thông tin.") 
+          : (err.message || "Unable to submit additional information."),
+      );
+    } finally {
+      setSupplementUploading(false);
+    }
   };
 
   const handleCreateCampaignSubmit = (e: React.FormEvent) => {
@@ -604,7 +701,10 @@ function ReportDetail() {
       linkedFeedbackId: report?.id,
       linkedFeedbackCode: report?.trackingCode,
       linkedFeedbackTitle: report?.title,
+      wardId: user?.wardId ?? undefined,
       wardName: report?.wardName ?? undefined,
+      latitude: report?.latitude ?? undefined,
+      longitude: report?.longitude ?? undefined,
     }).then(() => {
       setShowCreateCampaignModal(false);
       // linkedCampaign sẽ tự cập nhật qua useEffect + onCampaignsChanged
@@ -925,7 +1025,7 @@ function ReportDetail() {
                     {isVi ? "Bản đồ vị trí sự cố" : "Incident Map Location"}
                   </h3>
 
-                  <div className="relative rounded-xl overflow-hidden border border-slate-100 flex-1 h-[240px] md:h-[260px] shadow-sm">
+                  <div className="relative z-0 rounded-xl overflow-hidden border border-slate-100 flex-1 h-[240px] md:h-[260px] shadow-sm">
                     <Suspense
                       fallback={
                         <div className="w-full h-full bg-slate-50 animate-pulse flex items-center justify-center text-slate-400 text-xs font-semibold">
@@ -945,10 +1045,7 @@ function ReportDetail() {
                   </div>
                 </div>
 
-                <div className="pt-3 flex items-center justify-between">
-                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
-                    {isVi ? "Khu vực giám sát" : "Surveillance Area"}
-                  </span>
+                <div className="pt-3 flex items-center justify-end">
                   <a
                     href={`https://www.google.com/maps/search/?api=1&query=${reportLat},${reportLng}`}
                     target="_blank"
@@ -1233,16 +1330,7 @@ function ReportDetail() {
                     (isVi ? "UBND phường Hòa Xuân" : "Hoa Xuan Ward People's Committee")
                   }
                 />
-                <DetailRow
-                  icon={UserRound}
-                  label={isVi ? "Cán bộ phụ trách" : "Assigned Officer"}
-                  value={
-                    report.assigneeName ||
-                    (isVi
-                      ? "Nguyễn Văn D - Tổ trưởng Tổ quản lý đô thị số 3"
-                      : "Nguyen Van D - Head of Urban Management Team 3")
-                  }
-                />
+
               </div>
             </div>
 
@@ -1522,7 +1610,8 @@ function ReportDetail() {
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => setShowAddInfoModal(true)}
-                  className="px-3.5 py-3 border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold text-[11px] rounded-xl flex flex-col items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer min-h-[70px]"
+                  disabled={report?.status !== "WAITING_INFO"}
+                  className="px-3.5 py-3 border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold text-[11px] rounded-xl flex flex-col items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer min-h-[70px] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Plus size={16} className="text-[#0B4FC4]" />
                   {isVi ? "Bổ sung thông tin" : "Add Info"}
@@ -1584,22 +1673,71 @@ function ReportDetail() {
                   value={additionalInfo}
                   onChange={(e) => setAdditionalInfo(e.target.value)}
                   placeholder={isVi ? "Nhập thêm chi tiết..." : "Enter additional details..."}
-                  className="w-full min-h-[120px] border border-slate-200 rounded-xl p-3.5 text-sm outline-none focus:border-[#0B4FC4] bg-slate-50/50 resize-none font-medium"
-                  required
+                  className="w-full min-h-[100px] border border-slate-200 rounded-xl p-3.5 text-sm outline-none focus:border-[#0B4FC4] bg-slate-50/50 resize-none font-medium"
                 />
               </div>
+
+              {/* Image upload section */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest flex items-center justify-between">
+                  <span>{isVi ? "Hình ảnh đính kèm (không bắt buộc)" : "Attached Images (optional)"}</span>
+                  <span className="text-slate-300 font-semibold">{supplementPhotos.length}/5</span>
+                </label>
+                <div className="flex flex-wrap gap-2.5 items-center">
+                  {supplementPreviews.map((preview, idx) => (
+                    <div key={`${preview}-${idx}`} className="relative group w-16 h-16 rounded-xl overflow-hidden border border-slate-200 shadow-sm transition-transform hover:scale-102">
+                      <img src={preview} alt="" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removeSupplementPhoto(idx)}
+                        className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-600/90 text-white rounded-full flex items-center justify-center hover:bg-red-700 transition shadow cursor-pointer"
+                        aria-label="Remove image"
+                      >
+                        <X size={10} strokeWidth={3} />
+                      </button>
+                    </div>
+                  ))}
+
+                  {supplementPhotos.length < 5 && (
+                    <button
+                      type="button"
+                      onClick={() => supplementPhotoInputRef.current?.click()}
+                      className="w-16 h-16 border-2 border-dashed border-slate-200 hover:border-[#0B4FC4] text-slate-400 hover:text-[#0B4FC4] rounded-xl flex flex-col items-center justify-center gap-1 bg-slate-50/50 hover:bg-blue-50/20 transition-all cursor-pointer shadow-sm"
+                    >
+                      <Camera size={18} />
+                      <span className="text-[9px] font-bold">{isVi ? "Chọn ảnh" : "Add"}</span>
+                    </button>
+                  )}
+                </div>
+                <input
+                  ref={supplementPhotoInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => handleSupplementPhotoSelected(e.target.files)}
+                  multiple
+                />
+              </div>
+
               <div className="flex justify-end gap-2.5 pt-3">
                 <button
                   type="button"
-                  onClick={() => setShowAddInfoModal(false)}
+                  onClick={() => {
+                    setAdditionalInfo("");
+                    setSupplementPhotos([]);
+                    setSupplementPreviews([]);
+                    setShowAddInfoModal(false);
+                  }}
                   className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer min-h-[38px]"
                 >
                   {isVi ? "Hủy" : "Cancel"}
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#0B4FC4] text-white font-bold text-xs rounded-lg hover:bg-blue-700 transition shadow-sm cursor-pointer min-h-[38px]"
+                  disabled={supplementMutation.isPending || supplementUploading}
+                  className="px-4 py-2 bg-[#0B4FC4] text-white font-bold text-xs rounded-lg hover:bg-blue-700 transition shadow-sm cursor-pointer min-h-[38px] disabled:opacity-50 flex items-center gap-1.5 justify-center"
                 >
+                  {(supplementMutation.isPending || supplementUploading) && <Loader2 className="animate-spin" size={14} />}
                   {isVi ? "Gửi thông tin" : "Submit"}
                 </button>
               </div>

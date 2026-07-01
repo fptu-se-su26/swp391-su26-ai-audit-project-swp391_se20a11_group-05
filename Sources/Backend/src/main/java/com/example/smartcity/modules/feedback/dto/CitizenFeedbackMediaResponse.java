@@ -38,4 +38,5 @@ public class CitizenFeedbackMediaResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<FeedbackAttachmentResponse> attachments;
+    private Boolean publicVisible;
 }

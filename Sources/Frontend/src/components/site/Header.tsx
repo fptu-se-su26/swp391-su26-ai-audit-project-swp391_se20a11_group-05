@@ -62,13 +62,15 @@ function iconForType(type?: string) {
     case "FEEDBACK_REJECTED":
       return AlertCircle;
     case "FEEDBACK_ASSIGNED":
+    case "FEEDBACK_ASSIGNED_TO_WARD":
+    case "FEEDBACK_INFO_SUPPLEMENTED":
       return RouteIcon;
     case "FEEDBACK_IN_PROGRESS":
       return FileClock;
     case "FEEDBACK_COMPLETED":
     case "FEEDBACK_CLOSED":
       return CheckCircle2;
-    case "NEED_MORE_INFO":
+    case "FEEDBACK_WAITING_INFO":
       return MessageSquareWarning;
     default:
       return Clock3;
@@ -203,7 +205,11 @@ export function Header() {
         await markRead.mutateAsync(item.id);
       }
       if (feedbackId) {
-        await navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
+        if (isWardStaff) {
+          await navigate({ to: "/ward", search: { tab: "feedback", detailId: String(feedbackId) } });
+        } else {
+          await navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
+        }
       } else {
         await navigate({ to: "/notifications" });
       }
@@ -605,6 +611,7 @@ export function Header() {
 
                   <Link
                     to="/feedback-search"
+                    search={{ tab: "my" }}
                     onClick={() => setUserOpen(false)}
                     className="w-full text-left px-4 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2.5 font-sans"
                   >
@@ -763,6 +770,7 @@ export function Header() {
                 </Link>
                 <Link
                   to="/feedback-search"
+                  search={{ tab: "my" }}
                   onClick={() => setOpen(false)}
                   className="block min-h-[48px] px-4 py-3 rounded-md font-semibold text-[#123E8A] hover:bg-slate-50 font-sans"
                 >

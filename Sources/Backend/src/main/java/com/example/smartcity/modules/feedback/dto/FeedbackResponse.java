@@ -53,6 +53,7 @@ public class FeedbackResponse {
     private LocalDateTime resolvedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private Boolean publicVisible;
 }
 
 

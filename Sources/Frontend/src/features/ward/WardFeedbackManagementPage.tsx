@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode, type SelectHTMLAttributes } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, RefreshCw, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw, Search, SlidersHorizontal, ChevronDown, ChevronUp } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Role } from "@/lib/roles";
 import { useCategories, useFeedbacks } from "@/lib/hooks";
@@ -30,11 +30,16 @@ const PRIORITY_OPTIONS = [
   { value: "CRITICAL", label: "Khẩn cấp" },
 ];
 
-export function WardFeedbackManagementPage() {
+interface WardFeedbackManagementPageProps {
+  hideHeader?: boolean;
+}
+
+export function WardFeedbackManagementPage({ hideHeader = false }: WardFeedbackManagementPageProps) {
   const { user } = useAuth();
   const isWardStaff = user?.role === Role.WARD_STAFF;
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [searchDraft, setSearchDraft] = useState("");
   const [statusDraft, setStatusDraft] = useState<FeedbackStatus | "">("");
   const [categoryDraft, setCategoryDraft] = useState("");
@@ -49,6 +54,56 @@ export function WardFeedbackManagementPage() {
     wardId: isWardStaff ? user?.wardId || undefined : undefined,
     categories: isWardStaff ? WARD_STAFF_CATEGORY_CODES.join(",") : undefined,
   }));
+
+  // Debounce searchDraft to avoid excessive API requests
+  const [debouncedSearch, setDebouncedSearch] = useState(searchDraft);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchDraft);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchDraft]);
+
+  // Automatically apply filters when any input changes
+  useEffect(() => {
+    const nextKeyword = debouncedSearch.trim();
+    const nextWardId = isWardStaff ? user?.wardId || undefined : wardDraft || undefined;
+
+    setFilters((prev) => {
+      if (
+        prev.keyword === nextKeyword &&
+        prev.status === statusDraft &&
+        prev.category === categoryDraft &&
+        prev.priority === priorityDraft &&
+        prev.fromDate === fromDateDraft &&
+        prev.toDate === toDateDraft &&
+        prev.wardId === nextWardId
+      ) {
+        return prev;
+      }
+      setPage(0);
+      return {
+        keyword: nextKeyword,
+        status: statusDraft,
+        category: categoryDraft,
+        priority: priorityDraft,
+        fromDate: fromDateDraft,
+        toDate: toDateDraft,
+        wardId: nextWardId,
+        categories: isWardStaff ? WARD_STAFF_CATEGORY_CODES.join(",") : undefined,
+      };
+    });
+  }, [
+    debouncedSearch,
+    statusDraft,
+    categoryDraft,
+    priorityDraft,
+    fromDateDraft,
+    toDateDraft,
+    wardDraft,
+    isWardStaff,
+    user?.wardId,
+  ]);
 
   const queryFilters = useMemo<FeedbackListFilters>(
     () => ({
@@ -154,159 +209,193 @@ export function WardFeedbackManagementPage() {
   };
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-[#344767]">
-        Quản lý, tiếp nhận và xử lý phản ánh của người dân trong địa bàn
-      </p>
+    <div className="space-y-6">
+      {!hideHeader && (
+        <div className="flex flex-col gap-1.5">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest font-mono">
+            Danh sách phản ánh
+          </p>
+          <p className="text-sm text-slate-500 font-medium">
+            Quản lý, tiếp nhận và xử lý phản ánh của người dân trong địa bàn
+          </p>
+        </div>
+      )}
 
       <form
         onSubmit={(event) => {
           event.preventDefault();
           applyFilters();
         }}
-        className="rounded-lg border border-[#DFE7F2] bg-white p-5 shadow-sm"
+        className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm space-y-4"
       >
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <FilterField label="Tìm kiếm">
-            <div className="relative">
-              <Search
-                size={17}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7A99]"
-              />
-              <input
-                value={searchDraft}
-                onChange={(event) => setSearchDraft(event.target.value)}
-                className="h-10 w-full rounded-md border border-[#CBD7E6] bg-white pl-10 pr-3 text-sm text-[#0B2545] outline-none focus:border-[#0B4FC4] focus:ring-2 focus:ring-blue-100"
-                placeholder="Tìm theo mã, nội dung, địa điểm, người gửi..."
-              />
-            </div>
-          </FilterField>
-          <FilterField label="Trạng thái">
-            <Select
-              value={statusDraft}
-              onChange={(event) => setStatusDraft(event.target.value as FeedbackStatus | "")}
-            >
-              <option value="">Tất cả</option>
-              <option value="PENDING_RECEIVE">Chờ tiếp nhận</option>
-              <option value="PENDING">Đang chờ xử lý</option>
-              <option value="IN_PROGRESS">Đang xử lý</option>
-              <option value="WAITING_INFO">Yêu cầu bổ sung thông tin</option>
-              <option value="RESOLVED">Đã xử lý</option>
-              <option value="REJECTED">Từ chối xử lý</option>
-            </Select>
-          </FilterField>
-          <FilterField label="Lĩnh vực">
-            <Select
-              value={categoryDraft}
-              onChange={(event) => setCategoryDraft(event.target.value)}
-            >
-              <option value="">Tất cả</option>
-              {categoryOptions.map((category) => (
-                <option key={category.code} value={category.code}>
-                  {category.label}
-                </option>
-              ))}
-            </Select>
-          </FilterField>
-          <FilterField label="Mức độ ưu tiên">
-            <Select
-              value={priorityDraft}
-              onChange={(event) => setPriorityDraft(event.target.value)}
-            >
-              {PRIORITY_OPTIONS.map((priority) => (
-                <option key={priority.value} value={priority.value}>
-                  {priority.label}
-                </option>
-              ))}
-            </Select>
-          </FilterField>
-          <FilterField label="Từ ngày">
-            <input
-              type="date"
-              value={fromDateDraft}
-              onChange={(event) => setFromDateDraft(event.target.value)}
-              className="h-10 w-full rounded-md border border-[#CBD7E6] px-3 text-sm outline-none focus:border-[#0B4FC4] focus:ring-2 focus:ring-blue-100"
+        {/* Main Search Row */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search
+              size={16}
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
             />
-          </FilterField>
-          <FilterField label="Đến ngày">
             <input
-              type="date"
-              value={toDateDraft}
-              onChange={(event) => setToDateDraft(event.target.value)}
-              className="h-10 w-full rounded-md border border-[#CBD7E6] px-3 text-sm outline-none focus:border-[#0B4FC4] focus:ring-2 focus:ring-blue-100"
+              value={searchDraft}
+              onChange={(event) => setSearchDraft(event.target.value)}
+              className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3.5 text-sm text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100/50 transition-all placeholder-slate-400"
+              placeholder="Nhập mã, nội dung hoặc địa điểm để tìm kiếm..."
             />
-          </FilterField>
-          <FilterField label="Địa bàn">
-            <Select
-              value={wardDraft}
-              disabled={isWardStaff}
-              onChange={(event) => setWardDraft(event.target.value)}
-            >
-              <option value="">
-                {isWardStaff ? user?.wardName || "Phường đang quản lý" : "Tất cả"}
-              </option>
-              {isWardStaff && user?.wardId ? (
-                <option value={String(user.wardId)}>
-                  {user.wardName || "Phường đang quản lý"}
-                </option>
-              ) : null}
-              {!isWardStaff &&
-                wards.map((ward) => (
-                  <option key={ward.id} value={ward.id}>
-                    {ward.name}
-                  </option>
-                ))}
-            </Select>
-          </FilterField>
-          <div className="flex items-end justify-end gap-3">
+          </div>
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={resetFilters}
-              className="inline-flex h-10 items-center gap-2 rounded-md border border-[#CBD7E6] bg-white px-4 text-sm font-semibold text-[#0B2545] hover:bg-slate-50"
+              onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
+              className={`inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-semibold transition active:scale-[0.97] cursor-pointer ${
+                isAdvancedOpen
+                  ? "border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-800"
+              }`}
             >
-              <RefreshCw size={16} />
-              Đặt lại
+              <SlidersHorizontal size={15} />
+              Bộ lọc nâng cao
+              {isAdvancedOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
             </button>
             <button
               type="submit"
-              className="inline-flex h-10 items-center gap-2 rounded-md bg-[#0B5CE7] px-5 text-sm font-semibold text-white shadow-sm hover:bg-[#084BC0]"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition active:scale-[0.97] cursor-pointer"
             >
-              <Search size={16} />
+              <Search size={15} />
               Tìm kiếm
             </button>
           </div>
         </div>
+
+        {/* Collapsible Advanced Filters Panel */}
+        {isAdvancedOpen && (
+          <div className="grid grid-cols-1 gap-4 pt-4 border-t border-slate-100 md:grid-cols-2 xl:grid-cols-3 animate-fade-in">
+            <FilterField label="Trạng thái">
+              <Select
+                value={statusDraft}
+                onChange={(event) => setStatusDraft(event.target.value as FeedbackStatus | "")}
+              >
+                <option value="">Tất cả</option>
+                <option value="PENDING_RECEIVE">Chờ tiếp nhận</option>
+                <option value="PENDING">Đang chờ xử lý</option>
+                <option value="IN_PROGRESS">Đang xử lý</option>
+                <option value="WAITING_INFO">Yêu cầu bổ sung thông tin</option>
+                <option value="RESOLVED">Đã xử lý</option>
+                <option value="REJECTED">Từ chối xử lý</option>
+              </Select>
+            </FilterField>
+            <FilterField label="Lĩnh vực">
+              <Select
+                value={categoryDraft}
+                onChange={(event) => setCategoryDraft(event.target.value)}
+              >
+                <option value="">Tất cả</option>
+                {categoryOptions.map((category) => (
+                  <option key={category.code} value={category.code}>
+                    {category.label}
+                  </option>
+                ))}
+              </Select>
+            </FilterField>
+            <FilterField label="Mức độ ưu tiên">
+              <Select
+                value={priorityDraft}
+                onChange={(event) => setPriorityDraft(event.target.value)}
+              >
+                {PRIORITY_OPTIONS.map((priority) => (
+                  <option key={priority.value} value={priority.value}>
+                    {priority.label}
+                  </option>
+                ))}
+              </Select>
+            </FilterField>
+            <FilterField label="Từ ngày">
+              <input
+                type="date"
+                value={fromDateDraft}
+                onChange={(event) => setFromDateDraft(event.target.value)}
+                className="h-10 w-full rounded-xl border border-slate-200 px-3.5 text-sm outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100/50 transition-all text-slate-800"
+              />
+            </FilterField>
+            <FilterField label="Đến ngày">
+              <input
+                type="date"
+                value={toDateDraft}
+                onChange={(event) => setToDateDraft(event.target.value)}
+                className="h-10 w-full rounded-xl border border-slate-200 px-3.5 text-sm outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100/50 transition-all text-slate-800"
+              />
+            </FilterField>
+            <FilterField label="Địa bàn">
+              <Select
+                value={wardDraft}
+                disabled={isWardStaff}
+                onChange={(event) => setWardDraft(event.target.value)}
+              >
+                <option value="">
+                  {isWardStaff ? user?.wardName || "Phường đang quản lý" : "Tất cả"}
+                </option>
+                {isWardStaff && user?.wardId ? (
+                  <option value={String(user.wardId)}>
+                    {user.wardName || "Phường đang quản lý"}
+                  </option>
+                ) : null}
+                {!isWardStaff &&
+                  wards.map((ward) => (
+                    <option key={ward.id} value={ward.id}>
+                      {ward.name}
+                    </option>
+                  ))}
+              </Select>
+            </FilterField>
+            <div className="md:col-span-2 xl:col-span-3 flex justify-end">
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition active:scale-[0.97] cursor-pointer"
+              >
+                <RefreshCw size={15} />
+                Đặt lại bộ lọc
+              </button>
+            </div>
+          </div>
+        )}
       </form>
 
-      <div className="rounded-lg border border-[#DFE7F2] bg-white shadow-sm">
-        <div className="flex gap-7 overflow-x-auto border-b border-[#E6EDF6] px-4">
-          {STATUS_TABS.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => {
-                setActiveTab(tab.key);
-                setStatusDraft(tab.key === "ALL" ? "" : tab.key);
-                setPage(0);
-              }}
-              className={`flex h-14 shrink-0 items-center gap-2 border-b-3 px-1 text-sm font-bold ${
-                activeTab === tab.key
-                  ? "border-[#0B5CE7] text-[#0B2545]"
-                  : "border-transparent text-[#344767] hover:text-[#0B4FC4]"
-              }`}
-            >
-              {tab.label}
-              <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs text-[#0B5CE7]">
-                {stats?.[tab.countKey] ?? 0}
-              </span>
-            </button>
-          ))}
+      <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+        <div className="flex gap-4 overflow-x-auto border-b border-slate-100 px-6 bg-slate-50/30">
+          {STATUS_TABS.map((tab) => {
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => {
+                  setActiveTab(tab.key);
+                  setStatusDraft(tab.key === "ALL" ? "" : tab.key);
+                  setPage(0);
+                }}
+                className={`flex h-14 shrink-0 items-center gap-2 border-b-2 px-1 text-xs font-bold uppercase tracking-wider transition-all duration-200 active:scale-[0.98] cursor-pointer ${
+                  isActive
+                    ? "border-indigo-600 text-indigo-600 font-extrabold"
+                    : "border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-200"
+                }`}
+              >
+                {tab.label}
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold font-mono transition-colors ${
+                    isActive ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-500"
+                  }`}
+                >
+                  {stats?.[tab.countKey] ?? 0}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
-        <div className="overflow-x-auto p-4">
-          <table className="w-full min-w-[1080px] border-separate border-spacing-0 overflow-hidden rounded-lg border border-[#E3EAF4] text-left">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-left">
             <thead>
-              <tr className="bg-white text-xs font-bold text-[#0B2545]">
+              <tr className="bg-slate-50/70 text-slate-500 border-b border-slate-100">
                 {[
                   "Mã phản ánh",
                   "Nội dung phản ánh",
@@ -318,62 +407,73 @@ export function WardFeedbackManagementPage() {
                   "Thời gian gửi",
                   "Thao tác",
                 ].map((header) => (
-                  <th key={header} className="border-b border-[#E3EAF4] px-3 py-3">
+                  <th
+                    key={header}
+                    className="px-4 py-3.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100"
+                  >
                     {header}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E3EAF4]">
+            <tbody className="divide-y divide-slate-100">
               {isLoading ? (
                 Array.from({ length: pageSize }).map((_, index) => (
-                  <tr key={index}>
-                    <td colSpan={9} className="px-3 py-3">
-                      <div className="h-9 animate-pulse rounded bg-slate-100" />
+                  <tr key={index} className="border-b border-slate-100 last:border-0">
+                    <td colSpan={9} className="px-4 py-4">
+                      <div className="h-10 animate-pulse rounded-xl bg-slate-100/70" />
                     </td>
                   </tr>
                 ))
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-sm text-slate-500">
+                  <td
+                    colSpan={9}
+                    className="px-4 py-16 text-center text-xs text-slate-400 font-bold bg-slate-50/10"
+                  >
                     Không có phản ánh phù hợp.
                   </td>
                 </tr>
               ) : (
                 rows.map((feedback) => (
-                  <tr key={feedback.id} className="text-sm text-[#0B2545] hover:bg-[#F8FBFF]">
-                    <td className="px-3 py-3 font-semibold text-[#0B5CE7]">
+                  <tr
+                    key={feedback.id}
+                    className="hover:bg-slate-50/50 border-b border-slate-100 last:border-0 transition-colors"
+                  >
+                    <td className="px-4 py-3.5 font-bold font-mono text-indigo-600 text-xs">
                       {feedback.trackingCode || feedback.code || `#${feedback.id}`}
                     </td>
-                    <td className="max-w-[230px] px-3 py-3">
-                      <div className="line-clamp-2 font-medium">
+                    <td className="max-w-[240px] px-4 py-3.5">
+                      <div className="line-clamp-2 font-semibold text-slate-800 text-xs">
                         {feedback.title || feedback.description}
                       </div>
                     </td>
-                    <td className="px-3 py-3">{feedback.citizenName || "-"}</td>
-                    <td className="max-w-[180px] px-3 py-3">
+                    <td className="px-4 py-3.5 text-xs text-slate-600 font-medium">
+                      {feedback.citizenName || "-"}
+                    </td>
+                    <td className="max-w-[200px] px-4 py-3.5 text-xs text-slate-500 font-medium">
                       <span className="line-clamp-2">
                         {feedback.addressDetails || feedback.wardName || "-"}
                       </span>
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="px-4 py-3.5 text-xs text-slate-600 font-semibold">
                       {feedback.categoryName ||
                         officialCategoryName(feedback.categoryCode || feedback.category || "")}
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="px-4 py-3.5">
                       <PriorityBadge value={feedback.priority} />
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="px-4 py-3.5">
                       <StatusBadge status={feedback.status} />
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="px-4 py-3.5 text-xs text-slate-500 font-mono font-medium">
                       {formatDateTime(feedback.submittedAt || feedback.createdAt)}
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="px-4 py-3.5 text-right">
                       <Link
                         to="/ward"
                         search={{ tab: "feedback", detailId: String(feedback.id) }}
-                        className="inline-flex rounded-md border border-[#CBD7E6] px-3 py-2 text-xs font-bold text-[#0B5CE7] hover:bg-blue-50 cursor-pointer"
+                        className="inline-flex items-center justify-center px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition active:scale-[0.97] cursor-pointer"
                       >
                         Xem chi tiết
                       </Link>
@@ -385,8 +485,8 @@ export function WardFeedbackManagementPage() {
           </table>
         </div>
 
-        <div className="flex flex-col gap-3 border-t border-[#E6EDF6] px-4 py-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-3 text-sm text-[#344767]">
+        <div className="flex flex-col gap-4 border-t border-slate-100 px-6 py-4 md:flex-row md:items-center md:justify-between bg-slate-50/30">
+          <div className="flex items-center gap-3 text-xs text-slate-500 font-semibold">
             <span>Hiển thị</span>
             <select
               value={pageSize}
@@ -394,20 +494,26 @@ export function WardFeedbackManagementPage() {
                 setPageSize(Number(event.target.value));
                 setPage(0);
               }}
-              className="h-9 rounded-md border border-[#CBD7E6] bg-white px-3 font-semibold text-[#0B2545]"
+              className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs font-bold text-slate-700 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100/50"
             >
               <option value={5}>5</option>
               <option value={10}>10</option>
               <option value={20}>20</option>
             </select>
-            <span>trên tổng số {totalElements.toLocaleString("vi-VN")} phản ánh</span>
+            <span>
+              trên tổng số{" "}
+              <strong className="font-mono text-slate-700">
+                {totalElements.toLocaleString("vi-VN")}
+              </strong>{" "}
+              phản ánh
+            </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <PageButton
               disabled={page === 0}
               onClick={() => setPage((value) => Math.max(0, value - 1))}
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={14} />
             </PageButton>
             {pageButtons.map((pageIndex) => (
               <PageButton
@@ -422,7 +528,7 @@ export function WardFeedbackManagementPage() {
               disabled={totalPages === 0 || page >= totalPages - 1}
               onClick={() => setPage((value) => Math.min(totalPages - 1, value + 1))}
             >
-              <ChevronRight size={16} />
+              <ChevronRight size={14} />
             </PageButton>
           </div>
         </div>
@@ -434,7 +540,7 @@ export function WardFeedbackManagementPage() {
 function FilterField({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="flex flex-col gap-2">
-      <span className="text-xs font-bold text-[#0B2545]">{label}</span>
+      <span className="text-xs font-bold text-slate-400 uppercase tracking-widest font-mono">{label}</span>
       {children}
     </label>
   );
@@ -444,7 +550,7 @@ function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <select
       {...props}
-      className={`h-10 w-full rounded-md border border-[#CBD7E6] bg-white px-3 text-sm text-[#0B2545] outline-none focus:border-[#0B4FC4] focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100 disabled:text-slate-500 ${props.className || ""}`}
+      className={`h-10 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100/50 transition-all disabled:bg-slate-100 disabled:text-slate-400 cursor-pointer ${props.className || ""}`}
     />
   );
 }
@@ -465,10 +571,10 @@ function PageButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`flex h-9 min-w-9 items-center justify-center rounded-md border px-3 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-40 ${
+      className={`flex h-8 min-w-[32px] items-center justify-center rounded-lg border px-2 text-xs font-bold font-mono transition-all duration-200 active:scale-[0.95] disabled:cursor-not-allowed disabled:opacity-30 ${
         active
-          ? "border-[#0B5CE7] bg-[#0B5CE7] text-white"
-          : "border-[#E0E8F3] bg-white text-[#0B2545] hover:bg-blue-50"
+          ? "border-indigo-600 bg-indigo-600 text-white shadow-sm shadow-indigo-100"
+          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-800"
       }`}
     >
       {children}
@@ -479,7 +585,7 @@ function PageButton({
 function StatusBadge({ status }: { status: string }) {
   const info = getOfficerStatusInfo(status);
   return (
-    <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${info.className}`}>
+    <span className={`inline-block rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider whitespace-nowrap ${info.className}`}>
       {info.label}
     </span>
   );
@@ -489,14 +595,14 @@ function PriorityBadge({ value }: { value?: string | null }) {
   const normalized = (value || "MEDIUM").toUpperCase();
   const info =
     normalized === "URGENT" || normalized === "CRITICAL"
-      ? { label: "Khẩn cấp", className: "bg-red-100 text-red-800" }
+      ? { label: "Khẩn cấp", className: "bg-rose-50/50 text-rose-700 border-rose-100" }
       : normalized === "HIGH"
-        ? { label: "Cao", className: "bg-red-50 text-red-700" }
+        ? { label: "Cao", className: "bg-rose-50/50 text-rose-700 border-rose-100" }
         : normalized === "LOW"
-          ? { label: "Thấp", className: "bg-green-50 text-green-700" }
-          : { label: "Trung bình", className: "bg-orange-50 text-orange-700" };
+          ? { label: "Thấp", className: "bg-emerald-50/50 text-emerald-700 border-emerald-100" }
+          : { label: "Trung bình", className: "bg-amber-50/50 text-amber-700 border-amber-100" };
   return (
-    <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${info.className}`}>
+    <span className={`inline-block rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider whitespace-nowrap ${info.className}`}>
       {info.label}
     </span>
   );
@@ -505,43 +611,43 @@ function PriorityBadge({ value }: { value?: string | null }) {
 function getOfficerStatusInfo(status: string) {
   const upper = (status || "").toUpperCase();
   if (upper === "RESOLVED") {
-    return { label: "Đã xử lý", className: "bg-green-50 text-green-700 border-green-200" };
+    return { label: "Đã xử lý", className: "bg-emerald-50/50 text-emerald-700 border-emerald-100" };
   }
   if (upper === "REJECTED") {
-    return { label: "Từ chối xử lý", className: "bg-red-50 text-red-700 border-red-200" };
+    return { label: "Từ chối xử lý", className: "bg-rose-50/50 text-rose-700 border-rose-100" };
   }
   if (upper === "SUBMITTED") {
-    return { label: "Đã gửi", className: "bg-slate-100 text-slate-700 border-slate-200" };
+    return { label: "Đã gửi", className: "bg-indigo-50/50 text-indigo-700 border-indigo-100" };
   }
   if (upper === "PENDING_RECEIVE") {
-    return { label: "Chờ tiếp nhận", className: "bg-orange-50 text-orange-700 border-orange-200" };
+    return { label: "Chờ tiếp nhận", className: "bg-indigo-50/50 text-indigo-700 border-indigo-100" };
   }
   if (upper === "WAITING_INFO" || upper === "NEED_MORE_INFO") {
     return {
       label: "Yêu cầu bổ sung thông tin",
-      className: "bg-amber-50 text-amber-700 border-amber-200",
+      className: "bg-slate-50/50 text-slate-700 border-slate-100",
     };
   }
   if (upper === "TRANSFERRED") {
     return {
       label: "Đã chuyển xử lý",
-      className: "bg-purple-50 text-purple-700 border-purple-200",
+      className: "bg-amber-50/50 text-amber-700 border-amber-100",
     };
   }
   if (upper === "PENDING") {
-    return { label: "Đang chờ xử lý", className: "bg-sky-50 text-sky-700 border-sky-200" };
+    return { label: "Đang chờ xử lý", className: "bg-indigo-50/50 text-indigo-700 border-indigo-100" };
   }
   if (upper === "ASSIGNED") {
-    return { label: "Đã phân công", className: "bg-teal-50 text-teal-700 border-teal-200" };
+    return { label: "Đã phân công", className: "bg-amber-50/50 text-amber-700 border-amber-100" };
   }
   if (upper === "NEED_LOCATION_REVIEW") {
-    return { label: "Cần xác minh vị trí", className: "bg-pink-50 text-pink-700 border-pink-200" };
+    return { label: "Cần xác minh vị trí", className: "bg-slate-50/50 text-slate-700 border-slate-100" };
   }
   if (upper === "PRE_EMPTIVE") {
-    return { label: "Xử lý trước", className: "bg-violet-50 text-violet-700 border-violet-200" };
+    return { label: "Xử lý trước", className: "bg-amber-50/50 text-amber-700 border-amber-100" };
   }
   // Default for IN_PROGRESS and fallback
-  return { label: "Đang xử lý", className: "bg-blue-50 text-blue-700 border-blue-200" };
+  return { label: "Đang xử lý", className: "bg-amber-50/50 text-amber-700 border-amber-100" };
 }
 
 function officialCategoryName(code: string) {

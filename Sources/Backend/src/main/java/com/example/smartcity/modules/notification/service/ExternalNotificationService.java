@@ -1,6 +1,10 @@
 package com.example.smartcity.modules.notification.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -8,8 +12,17 @@ import org.springframework.stereotype.Service;
 @Service
 public class ExternalNotificationService {
 
+    @Autowired(required = false)
+    private JavaMailSender mailSender;
+
+    @Value("${spring.mail.host:}")
+    private String mailHost;
+
+    @Value("${spring.mail.username:}")
+    private String mailFrom;
+
     /**
-     * Giả lập gửi Email thông báo trạng thái cập nhật (Chạy bất đồng bộ)
+     * Gửi Email thông báo trạng thái cập nhật (Chạy bất đồng bộ)
      */
     @Async
     public void sendEmailNotification(String toEmail, String subject, String body) {
@@ -17,15 +30,29 @@ public class ExternalNotificationService {
         log.info("Sending Email to: {}", toEmail);
         log.info("Subject: {}", subject);
         log.info("Body: {}", body);
-        
-        try {
-            // Giả lập delay mạng khi gửi mail thực tế
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+
+        if (mailSender != null && mailHost != null && !mailHost.isBlank()) {
+            try {
+                SimpleMailMessage message = new SimpleMailMessage();
+                message.setFrom(mailFrom != null && !mailFrom.isBlank() ? mailFrom : "noreply@smartcity.gov.vn");
+                message.setTo(toEmail);
+                message.setSubject(subject);
+                message.setText(body);
+
+                mailSender.send(message);
+                log.info("Email sent successfully via SMTP!");
+            } catch (Exception e) {
+                log.error("Failed to send email via SMTP, falling back. Error: {}", e.getMessage());
+            }
+        } else {
+            try {
+                // Giả lập delay mạng khi gửi mail thực tế
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            log.info("Email sent successfully (Fallback/Mock mode)!");
         }
-        
-        log.info("Email sent successfully!");
         log.info("======================================================");
     }
 

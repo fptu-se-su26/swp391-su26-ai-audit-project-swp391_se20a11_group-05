@@ -106,7 +106,7 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         return feedbackRepository.findAll(pageable);
     }
 
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    @Transactional
     public Feedback createFeedback(FeedbackRequest request, String username) {
         // 1. GPS là bắt buộc để tránh phản ánh không có vị trí xử lý & tránh lỗi NPE unboxing khi gọi geocoding
         if (request.getLatitude() == null || request.getLongitude() == null) {
@@ -169,6 +169,7 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         feedback.setSource("CITIZEN_APP");
         feedback.setCategory(category);
         feedback.setCitizen(citizen);
+        feedback.setPublicVisible(request.getPublicVisible() == null || request.getPublicVisible());
         feedback.setCreatedAt(now);
         feedback.setUpdatedAt(now);
         categoryRoutingService.applyAssignment(feedback, category, ward, now);
@@ -793,6 +794,75 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         return saved;
     }
 
+    @Transactional
+    public Feedback supplementInfo(Long feedbackId, String content, List<String> imageUrls, String username) {
+        Feedback feedback = feedbackRepository.findById(feedbackId)
+                .orElseThrow(() -> new ResourceNotFoundException("Feedback", feedbackId));
+
+        User actionBy = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User: " + username));
+
+        // 1. Security check: Only the citizen who submitted the feedback can supplement info
+        if (feedback.getCitizen() == null || !feedback.getCitizen().getId().equals(actionBy.getId())) {
+            throw new CustomException("Bạn không có quyền bổ sung thông tin cho phản ánh này.", HttpStatus.FORBIDDEN.value());
+        }
+
+        // 2. Validate current status: Must be WAITING_INFO
+        FeedbackStatus current = feedback.getStatus();
+        if (current != FeedbackStatus.WAITING_INFO) {
+            throw new CustomException("Chỉ có thể bổ sung thông tin khi phản ánh ở trạng thái Cần bổ sung thông tin.", HttpStatus.BAD_REQUEST.value());
+        }
+
+        FeedbackStatus newStatus = FeedbackStatus.IN_PROGRESS;
+        LocalDateTime now = LocalDateTime.now();
+
+        // 3. Update feedback status
+        feedback.setStatus(newStatus);
+        feedback.setUpdatedAt(now);
+        Feedback saved = feedbackRepository.save(feedback);
+
+        // 3.5 Save supplementary images if any
+        if (imageUrls != null && !imageUrls.isEmpty()) {
+            for (String url : imageUrls) {
+                Attachment attachment = new Attachment();
+                attachment.setFeedback(feedback);
+                attachment.setFileUrl(url);
+                attachment.setFileType("IMAGE");
+                attachment.setFileName("supplementary_image.jpg");
+                attachment.setUploadedBy(actionBy);
+                attachment.setUploadedAt(now);
+                attachment.setAttachmentPurpose("SUPPLEMENTARY_EVIDENCE");
+                attachmentRepository.save(attachment);
+            }
+        }
+
+        // 4. Create log
+        String note;
+        if (content != null && !content.trim().isEmpty()) {
+            if (imageUrls != null && !imageUrls.isEmpty()) {
+                note = "Công dân bổ sung thông tin và " + imageUrls.size() + " hình ảnh: " + content.trim();
+            } else {
+                note = "Công dân bổ sung thông tin: " + content.trim();
+            }
+        } else {
+            note = "Công dân bổ sung " + imageUrls.size() + " hình ảnh minh chứng.";
+        }
+
+        FeedbackLog log = new FeedbackLog(feedback, actionBy, current, newStatus, note);
+        log.setAction("PROVIDE_INFO");
+        feedbackLogRepository.save(log);
+
+        // 5. Send WebSocket notification for status change
+        webSocketNotificationService.notifyFeedbackStatusChange(
+                feedbackId, newStatus.name(),
+                "Feedback #" + feedback.getTrackingCode() + " → " + newStatus);
+
+        // 6. Notify assignee or staff about info supplemented
+        notificationService.createFeedbackInfoSupplementedNotification(feedback.getId(), content != null ? content.trim() : note);
+
+        return saved;
+    }
+
     private String translateStatusInJava(FeedbackStatus status) {
         if (status == null) return "-";
         switch (status) {
@@ -893,6 +963,9 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
     private String resolveTimelineTitle(FeedbackLog log) {
         if ("SUBMIT".equals(log.getAction())) {
             return "Đã gửi phản ánh";
+        }
+        if ("PROVIDE_INFO".equals(log.getAction())) {
+            return "Bổ sung thông tin";
         }
         if ("ASSIGN".equals(log.getAction())) {
             return "Đã chuyển đơn vị xử lý";

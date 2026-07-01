@@ -113,6 +113,7 @@ public class CitizenFeedbackMediaService {
         feedback.setSource("CITIZEN_APP");
         feedback.setCategory(category);
         feedback.setCitizen(citizen);
+        feedback.setPublicVisible(request.getPublicVisible() == null || request.getPublicVisible());
         feedback.setCreatedAt(now);
         feedback.setUpdatedAt(now);
         categoryRoutingService.applyAssignment(feedback, category, ward, now);
@@ -256,6 +257,7 @@ public class CitizenFeedbackMediaService {
                 .createdAt(feedback.getCreatedAt())
                 .updatedAt(feedback.getUpdatedAt())
                 .attachments(attachments.stream().map(this::toAttachmentResponse).toList())
+                .publicVisible(feedback.getPublicVisible())
                 .build();
     }
 

@@ -39,8 +39,8 @@ public class PoliceFeedbackController {
      * GET /api/police/feedbacks/hotspots - Lấy dữ liệu điểm nóng cho bản đồ nhiệt
      */
     @GetMapping("/hotspots")
-    public ResponseEntity<ApiResponse<List<HotspotResponse>>> getHotspots() {
-        List<HotspotResponse> hotspots = feedbackService.getHotspots();
+    public ResponseEntity<ApiResponse<List<HotspotResponse>>> getHotspots(Authentication authentication) {
+        List<HotspotResponse> hotspots = feedbackService.getHotspots(authentication.getName());
         return ResponseEntity.ok(ApiResponse.success("Lấy dữ liệu điểm nóng thành công", hotspots));
     }
 

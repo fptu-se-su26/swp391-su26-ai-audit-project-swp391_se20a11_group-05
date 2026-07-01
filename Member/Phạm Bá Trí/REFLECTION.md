@@ -481,6 +481,16 @@ Khi 2 đầu Frontend và Backend phát triển song song mà thiếu API contra
 - Kinh nghiệm: Đây là giải pháp kiến trúc kinh điển của hệ thống hướng dữ liệu (Database-centric) và phân tán. Việc dịch chuyển logic từ backend xử lý trực tiếp sang cơ sở dữ liệu giúp hệ thống có khả năng chịu lỗi cực kỳ cao (fault-tolerant) và đảm bảo tính nhất quán cuối cùng (eventual consistency). Ngoài ra, tối ưu hóa các hàm truy vấn trùng lặp địa lý bằng PostGIS `ST_DWithin` và cơ chế dọn dẹp vector ngữ nghĩa tự động `@Scheduled purge` giúp duy trì cơ sở dữ liệu luôn gọn gàng và có hiệu suất cao trên môi trường Production thực tế.
 ```
 
+### 9.20. Bài học về Kiểm tra Logic Nghiệp vụ trước khi Tích hợp (Google Firebase Sign-In)
+
+```text
+- Vấn đề: Sau khi code xong tính năng đăng nhập Google Firebase (bao gồm firebase.ts, LoginPage.tsx, api.ts), tôi nhận ra cần kiểm tra tính đúng đắn của toàn bộ luồng nghiệp vụ trước khi điền Firebase Config thực tế vào .env.local. Nếu code sai mà chạy thử luôn, sẽ rất khó debug vì không biết lỗi đến từ cấu hình Firebase hay từ code logic.
+- Giải pháp từ AI: AI đọc kỹ 4 thành phần chính (firebase.ts, LoginPage.tsx, api.ts, AuthService.java) và phát hiện bug âm thầm nguy hiểm: Frontend đọc field data.token nhưng Backend trả về data.accessToken trong TokenPairResponse. Đây là loại lỗi "type mismatch" không gây lỗi compile nhưng sẽ làm token bị undefined ở runtime, khiến người dùng bị đăng nhập thất bại mà không có thông báo lỗi rõ ràng.
+- Kinh nghiệm: "Kiểm tra logic nghiệp vụ trước, cấu hình sau" là nguyên tắc vàng khi tích hợp các dịch vụ bên thứ 3 (Third-party services). Việc dành thêm 15 phút để AI đọc và đối chiếu từng field Response DTO giữa Backend Java và Frontend TypeScript đã giúp tiết kiệm hàng giờ debug về sau. Đây là minh chứng cho giá trị của "Code Review tự động" bằng AI trước khi deploy.
+```
+
+---
+
 ## 17. Cam kết Reflection
 
 Em/nhóm cam kết rằng nội dung reflection này phản ánh trung thực quá trình sử dụng AI và quá trình học tập trong bài tập/project.
@@ -494,5 +504,6 @@ Sinh viên/nhóm hiểu rằng:
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-| Phạm Bá Trí | 2026-06-21 |
+| Phạm Bá Trí | 2026-06-27 |
+
 

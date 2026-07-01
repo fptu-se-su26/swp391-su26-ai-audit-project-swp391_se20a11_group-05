@@ -354,6 +354,8 @@ function CampaignCard({
 }) {
   const progressPercent = campaign.target > 0 ? Math.min(100, Math.round((campaign.participants / campaign.target) * 100)) : 0;
   const CategoryIcon = categoryIcon[campaign.category] ?? Leaf;
+  const hasJoined = campaign.currentUserJoinStatus &&
+    ["PENDING", "APPROVED", "WAITLIST", "PENDING_CONFIRM"].includes(campaign.currentUserJoinStatus);
 
   return (
     <article
@@ -423,14 +425,24 @@ function CampaignCard({
             Chi tiết
           </Link>
           {campaign.status !== "pending_review" && (
-            <button
-              type="button"
-              onClick={onJoin}
-              disabled={isJoining || !campaign.canJoin || (campaign.status !== "active" && campaign.status !== "recruiting")}
-              className="inline-flex h-11 items-center justify-center rounded-lg bg-[#7C3AED] text-sm font-black text-white shadow-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Tham gia
-            </button>
+            hasJoined ? (
+              <button
+                disabled
+                className="inline-flex h-11 items-center justify-center rounded-lg bg-slate-100 border border-slate-200 text-sm font-black text-slate-400 disabled:cursor-not-allowed cursor-not-allowed"
+              >
+                Đã yêu cầu tham gia
+              </button>
+            ) : (
+              <Link
+                to="/campaigns/$id"
+                params={{ id: campaign.id }}
+                search={{ join: true }}
+                disabled={!campaign.canJoin || campaign.status !== "recruiting"}
+                className="inline-flex h-11 items-center justify-center rounded-lg bg-[#7C3AED] text-sm font-black text-white shadow-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Tham gia
+              </Link>
+            )
           )}
         </div>
       </div>

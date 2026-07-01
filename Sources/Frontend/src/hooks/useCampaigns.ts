@@ -12,7 +12,6 @@ import {
 import {
   createCampaign as createLocalCampaign,
   getCampaignById,
-  getCampaigns,
   onCampaignsChanged,
   type Campaign,
   type CampaignCategory,
@@ -22,11 +21,11 @@ import { useFeedbackDetail } from "./index";
 function mapStatus(status: CampaignResponse["status"]): Campaign["status"] {
   const statusMap: Record<CampaignResponse["status"], Campaign["status"]> = {
     PENDING_APPROVAL: "pending_review",
-    RECRUITING: "active",
-    IN_PROGRESS: "active",
-    COMPLETED: "ended",
+    RECRUITING: "recruiting",
+    IN_PROGRESS: "inProgress",
+    COMPLETED: "completed",
     CANCELLED: "ended",
-    ACTIVE: "active",
+    ACTIVE: "inProgress",
     ENDED: "ended",
   };
   return statusMap[status] ?? "pending_review";
@@ -86,6 +85,7 @@ function mapResponseToCampaign(response: CampaignResponse): Campaign {
     currentUserJoinStatus: response.currentUserJoinStatus ?? undefined,
     privateDetailsVisible: response.privateDetailsVisible,
     canJoin: response.canJoin,
+    canLeave: response.canLeave,
     canManage: response.canManage,
     canComment: response.canComment,
     canFeedback: response.canFeedback,
@@ -100,29 +100,20 @@ function mapResponseToCampaign(response: CampaignResponse): Campaign {
 }
 
 export function useCampaignList(): Campaign[] {
-  const [localCampaigns, setLocalCampaigns] = useState<Campaign[]>([]);
-  const hasToken = Boolean(typeof window !== "undefined" && getToken());
-
-  useEffect(() => {
-    setLocalCampaigns(getCampaigns());
-    const unsub = onCampaignsChanged(() => setLocalCampaigns(getCampaigns()));
-    return unsub;
-  }, []);
-
   const { data: backendPage } = useQuery<PageResponse<CampaignResponse>>({
-    queryKey: ["campaigns", "list", hasToken],
+    queryKey: ["campaigns", "list"],
     queryFn: () => campaignApi.getAll(0, 50),
     staleTime: 30_000,
     retry: false,
   });
 
-  if (backendPage?.content?.length) {
-    const backendIds = new Set(backendPage.content.map((campaign) => String(campaign.id)));
-    const localOnly = localCampaigns.filter((campaign) => !backendIds.has(campaign.id));
-    return [...backendPage.content.map(mapResponseToCampaign), ...localOnly];
+  // Only return backend campaigns — no mock/seed data merge
+  if (backendPage?.content) {
+    return backendPage.content.map(mapResponseToCampaign);
   }
 
-  return localCampaigns;
+  // Return empty while backend query is loading
+  return [];
 }
 
 export function useCampaignDetail(id: string): Campaign | undefined {
@@ -140,20 +131,24 @@ export function useCampaignDetail(id: string): Campaign | undefined {
     queryKey: ["campaigns", id, "public", hasToken],
     queryFn: () => campaignApi.getById(id),
     enabled: isNumericId,
-    staleTime: 30_000,
+    staleTime: 5000,
+    refetchInterval: 5000,
     retry: false,
   });
 
-  const { data: privateCampaign } = useQuery<CampaignResponse>({
+  const { data: privateCampaign, isError: privateError } = useQuery<CampaignResponse>({
     queryKey: ["campaigns", id, "private", hasToken],
     queryFn: () => campaignApi.getPrivateDetail(id),
     enabled: isNumericId && hasToken,
-    staleTime: 30_000,
+    staleTime: 5000,
+    refetchInterval: 5000,
     retry: false,
   });
 
-  if (isNumericId && (privateCampaign || publicCampaign)) {
-    return mapResponseToCampaign(privateCampaign ?? publicCampaign!);
+  if (isNumericId && ((privateCampaign && !privateError) || publicCampaign)) {
+    return mapResponseToCampaign(
+      privateCampaign && !privateError ? privateCampaign : publicCampaign!,
+    );
   }
 
   return localCampaign;
@@ -187,6 +182,7 @@ export function useCreateCampaign() {
       linkedFeedbackCode?: string | null;
       linkedFeedbackTitle?: string | null;
       wardName?: string;
+      wardId?: number | null;
       latitude?: number;
       longitude?: number;
       boundaryGeojson?: string;
@@ -216,6 +212,7 @@ export function useCreateCampaign() {
             startTime: params.startTime || undefined,
             endTime: params.endTime || undefined,
             linkedFeedbackId: params.linkedFeedbackId ? Number(params.linkedFeedbackId) : undefined,
+            wardId: params.wardId ?? undefined,
             latitude: params.latitude,
             longitude: params.longitude,
             boundaryGeojson: params.boundaryGeojson,
@@ -243,11 +240,72 @@ export function useCreateCampaign() {
 
 export function useJoinCampaign() {
   const queryClient = useQueryClient();
-  return useMutation<CampaignResponse, Error, string | number>({
-    mutationFn: (id) => campaignApi.join(id),
+  return useMutation<
+    CampaignResponse,
+    Error,
+    {
+      id: string | number;
+      volunteerExperience?: string;
+      availabilityHours?: string;
+      otpCode: string;
+    }
+  >({
+    mutationFn: ({ id, ...data }) => campaignApi.join(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["campaigns"] });
     },
+  });
+}
+
+export function useLeaveCampaign() {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, { id: string | number; reason: string }>({
+    mutationFn: ({ id, reason }) => campaignApi.leave(id, reason),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+      // Remove stale private detail query data from React Query cache
+      queryClient.removeQueries({ queryKey: ["campaigns", String(variables.id), "private"] });
+      queryClient.removeQueries({ queryKey: ["campaigns", Number(variables.id), "private"] });
+    },
+  });
+}
+
+export function useConfirmWaitlist() {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, string | number>({
+    mutationFn: (id) => campaignApi.confirmWaitlist(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+    },
+  });
+}
+
+export function useBatchApproveParticipants(campaignId: string) {
+  const queryClient = useQueryClient();
+  return useMutation<CampaignParticipantResponse[], Error, (number | string)[]>({
+    mutationFn: (participantIds) =>
+      campaignApi.batchApproveParticipants(campaignId, participantIds),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["campaigns", campaignId, "participants"] });
+      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+    },
+  });
+}
+
+export function useMarkNoShow(campaignId: string) {
+  const queryClient = useQueryClient();
+  return useMutation<CampaignParticipantResponse, Error, number | string>({
+    mutationFn: (participantId) => campaignApi.markNoShow(campaignId, participantId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["campaigns", campaignId, "participants"] });
+      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+    },
+  });
+}
+
+export function useSendEmailOtp() {
+  return useMutation<string, Error, void>({
+    mutationFn: () => campaignApi.sendEmailOtp(),
   });
 }
 
@@ -265,7 +323,36 @@ export function useDeleteCampaign() {
   const queryClient = useQueryClient();
   return useMutation<void, Error, string | number>({
     mutationFn: (id) => campaignApi.delete(id),
-    onSuccess: () => {
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ["campaigns"] });
+      const previousCampaignQueries = queryClient.getQueriesData<PageResponse<CampaignResponse>>({
+        queryKey: ["campaigns"],
+      });
+
+      previousCampaignQueries.forEach(([queryKey, previousPage]) => {
+        if (!previousPage?.content) return;
+
+        const nextContent = previousPage.content.filter(
+          (campaign) => String(campaign.id) !== String(id),
+        );
+        if (nextContent.length === previousPage.content.length) return;
+
+        queryClient.setQueryData<PageResponse<CampaignResponse>>(queryKey, {
+          ...previousPage,
+          content: nextContent,
+          totalElements: Math.max(0, previousPage.totalElements - 1),
+          empty: nextContent.length === 0,
+        });
+      });
+
+      return { previousCampaignQueries };
+    },
+    onError: (_error, _id, context) => {
+      context?.previousCampaignQueries.forEach(([queryKey, previousPage]) => {
+        queryClient.setQueryData(queryKey, previousPage);
+      });
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["campaigns"] });
     },
   });
@@ -273,12 +360,14 @@ export function useDeleteCampaign() {
 
 export function useUpdateCampaign() {
   const queryClient = useQueryClient();
-  return useMutation<CampaignResponse, Error, { id: string | number; data: CampaignCreateRequest }>({
-    mutationFn: ({ id, data }) => campaignApi.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+  return useMutation<CampaignResponse, Error, { id: string | number; data: CampaignCreateRequest }>(
+    {
+      mutationFn: ({ id, data }) => campaignApi.update(id, data),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+      },
     },
-  });
+  );
 }
 
 export function useEndCampaign() {
@@ -297,6 +386,7 @@ export function useCampaignParticipants(campaignId: string, enabled = true) {
     queryFn: () => campaignApi.getParticipants(campaignId),
     enabled:
       enabled && /^\d+$/.test(campaignId) && Boolean(typeof window !== "undefined" && getToken()),
+    refetchInterval: 5000,
     retry: false,
   });
 }
@@ -404,7 +494,7 @@ export function useCampaignChat(campaignId: string) {
               });
             }
             if (message.pinned) {
-              return [...current.map(m => ({ ...m, pinned: false })), message];
+              return [...current.map((m) => ({ ...m, pinned: false })), message];
             }
             return [...current, message];
           },
@@ -461,7 +551,11 @@ export function useCampaignThumbnail(campaign?: Campaign): string {
   return useMemo(() => {
     if (!campaign) return DEFAULT_PLACEHOLDERS.default;
 
-    if (campaign.imageUrls && campaign.imageUrls.length > 0 && campaign.imageUrls[0]?.trim() !== "") {
+    if (
+      campaign.imageUrls &&
+      campaign.imageUrls.length > 0 &&
+      campaign.imageUrls[0]?.trim() !== ""
+    ) {
       return campaign.imageUrls[0];
     }
     if (campaign.coverImageUrl && campaign.coverImageUrl.trim() !== "") {

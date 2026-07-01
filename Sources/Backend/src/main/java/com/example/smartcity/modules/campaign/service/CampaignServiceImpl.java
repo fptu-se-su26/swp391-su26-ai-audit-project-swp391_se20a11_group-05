@@ -52,6 +52,8 @@ public class CampaignServiceImpl implements CampaignService {
     private static final String STATUS_PENDING_APPROVAL = "PENDING_APPROVAL";
     private static final String STATUS_RECRUITING = "RECRUITING";
     private static final String STATUS_COMPLETED = "COMPLETED";
+    private static final String STATUS_IN_PROGRESS = "IN_PROGRESS";
+    private static final String STATUS_CANCELLED_STR = "CANCELLED";
     private static final String JOIN_PENDING = "PENDING";
     private static final String JOIN_APPROVED = "APPROVED";
     private static final String JOIN_REJECTED = "REJECTED";
@@ -59,6 +61,9 @@ public class CampaignServiceImpl implements CampaignService {
     private static final String JOIN_WAITLIST = "WAITLIST";
     private static final String JOIN_PENDING_CONFIRM = "PENDING_CONFIRM";
     private static final String JOIN_NO_SHOW = "NO_SHOW";
+    private static final String JOIN_CONFIRMED = "CONFIRMED";
+    private static final String JOIN_MAYBE = "MAYBE";
+    private static final List<String> ATTENDING_STATUSES = List.of(JOIN_CONFIRMED, JOIN_MAYBE, JOIN_APPROVED);
 
     private final CampaignRepository campaignRepository;
     private final CampaignParticipantRepository participantRepository;
@@ -131,6 +136,7 @@ public class CampaignServiceImpl implements CampaignService {
                 .organizerContact(request.getOrganizerContact())
                 .latitude(request.getLatitude())
                 .longitude(request.getLongitude())
+                .minParticipants(request.getMinParticipants())
                 .maxParticipants(request.getMaxParticipants())
                 .startTime(request.getStartTime())
                 .endTime(request.getEndTime())
@@ -140,6 +146,8 @@ public class CampaignServiceImpl implements CampaignService {
                 .coverImageUrl(request.getCoverImageUrl())
                 .imageUrls(joinImageUrls(request.getImageUrls()))
                 .build();
+
+        validateMinMax(campaign.getMinParticipants(), campaign.getMaxParticipants());
 
         try {
             Campaign saved = campaignRepository.saveAndFlush(campaign);
@@ -227,6 +235,7 @@ public class CampaignServiceImpl implements CampaignService {
                     .joinStatus(targetStatus)
                     .volunteerExperience(request.getVolunteerExperience())
                     .availabilityHours(request.getAvailabilityHours())
+                    .approvedAt(null)
                     .build();
             participantRepository.save(participant);
         }
@@ -380,7 +389,7 @@ public class CampaignServiceImpl implements CampaignService {
     public List<CampaignChatMessageResponse> getChatMessages(Long campaignId, String username) {
         User currentUser = requireUser(username);
         Campaign campaign = getCampaign(campaignId);
-        assertCanViewPrivateDetails(campaign, currentUser);
+        assertCanAccessCampaignChat(campaign, currentUser);
 
         List<CampaignChatMessage> messages = new ArrayList<>(chatMessageRepository.findTop50ByCampaign_IdOrderByCreatedAtDesc(campaignId));
         java.util.Collections.reverse(messages);
@@ -392,7 +401,7 @@ public class CampaignServiceImpl implements CampaignService {
     public CampaignChatMessageResponse addChatMessage(Long campaignId, CampaignMessageRequest request, String username) {
         User sender = requireUser(username);
         Campaign campaign = getCampaign(campaignId);
-        assertCanViewPrivateDetails(campaign, sender);
+        assertCanAccessCampaignChat(campaign, sender);
 
         CampaignChatMessage message = CampaignChatMessage.builder()
                 .campaign(campaign)
@@ -500,12 +509,14 @@ public class CampaignServiceImpl implements CampaignService {
         campaign.setOrganizerContact(request.getOrganizerContact());
         campaign.setLatitude(request.getLatitude());
         campaign.setLongitude(request.getLongitude());
+        campaign.setMinParticipants(request.getMinParticipants());
         campaign.setMaxParticipants(request.getMaxParticipants());
         campaign.setStartTime(request.getStartTime());
         campaign.setEndTime(request.getEndTime());
         campaign.setBoundaryGeojson(request.getBoundaryGeojson());
         campaign.setCoverImageUrl(request.getCoverImageUrl());
         campaign.setImageUrls(joinImageUrls(request.getImageUrls()));
+        validateMinMax(campaign.getMinParticipants(), campaign.getMaxParticipants());
 
         Campaign saved = campaignRepository.save(campaign);
         campaignIngestionService.ingestCampaignAsync(saved);
@@ -590,6 +601,7 @@ public class CampaignServiceImpl implements CampaignService {
                 .organizerContact(privateDetailsVisible ? campaign.getOrganizerContact() : null)
                 .latitude(campaign.getLatitude())
                 .longitude(campaign.getLongitude())
+                .minParticipants(campaign.getMinParticipants())
                 .maxParticipants(campaign.getMaxParticipants())
                 .startTime(campaign.getStartTime())
                 .endTime(campaign.getEndTime())
@@ -638,6 +650,7 @@ public class CampaignServiceImpl implements CampaignService {
                 .approvedAt(participant.getApprovedAt())
                 .rejectedAt(participant.getRejectedAt())
                 .rejectionReason(participant.getRejectionReason())
+                .confirmedAt(participant.getConfirmedAt())
                 .build();
     }
 
@@ -767,12 +780,47 @@ public class CampaignServiceImpl implements CampaignService {
         return canManage(campaign, user)
                 || (user != null && participantRepository
                 .findByCampaign_IdAndCitizen_Id(campaign.getId(), user.getId())
-                .map(participant -> JOIN_APPROVED.equals(participant.getJoinStatus()))
+                .map(participant -> JOIN_APPROVED.equals(participant.getJoinStatus())
+                        || JOIN_CONFIRMED.equals(participant.getJoinStatus())
+                        || JOIN_MAYBE.equals(participant.getJoinStatus()))
                 .orElse(false));
     }
 
     private boolean canComment(Campaign campaign, User user) {
         return canViewPrivateDetails(campaign, user);
+    }
+
+    private boolean canAccessCampaignChat(Campaign campaign, User user) {
+        if (user == null) return false;
+        // Managers always have access
+        if (canManage(campaign, user)) return true;
+        // User must be a registered participant (any status)
+        boolean isRegistered = participantRepository
+                .findByCampaign_IdAndCitizen_Id(campaign.getId(), user.getId())
+                .isPresent();
+        if (!isRegistered) return false;
+        // Enforce slot cap: ceil(maxParticipants * 1.5)
+        if (campaign.getMaxParticipants() != null) {
+            int cap = (campaign.getMaxParticipants() * 3 + 1) / 2;
+            long totalRegistered = participantRepository.countByCampaign_IdAndJoinStatusIn(
+                campaign.getId(),
+                List.of(JOIN_APPROVED, JOIN_CONFIRMED, JOIN_MAYBE, JOIN_PENDING_CONFIRM)
+            );
+            if (totalRegistered > cap) return false;
+        }
+        return true;
+    }
+
+    private void assertCanAccessCampaignChat(Campaign campaign, User user) {
+        if (!canAccessCampaignChat(campaign, user)) {
+            throw new CustomException("Bạn không có quyền truy cập kênh chat của chiến dịch này.", HttpStatus.FORBIDDEN.value());
+        }
+    }
+
+    private void validateMinMax(Integer min, Integer max) {
+        if (min != null && max != null && min > max) {
+            throw new CustomException("Số người tối thiểu không được lớn hơn số người tối đa.", HttpStatus.BAD_REQUEST.value());
+        }
     }
 
     private String normalizeStatus(String status) {
@@ -906,6 +954,78 @@ public class CampaignServiceImpl implements CampaignService {
 
             promoteNextWaitlist(participant.getCampaign().getId());
         }
+    }
+
+    @Override
+    @Transactional
+    public CampaignParticipantResponse signalAttendance(Long campaignId, String username, String signal) {
+        if (!JOIN_CONFIRMED.equals(signal) && !JOIN_MAYBE.equals(signal)) {
+            throw new CustomException("Tín hiệu xác nhận không hợp lệ. Chỉ chấp nhận CONFIRMED hoặc MAYBE.", HttpStatus.BAD_REQUEST.value());
+        }
+        User citizen = requireUser(username);
+        if (citizen.getRole() != Role.CITIZEN) {
+            throw new CustomException("Chỉ công dân mới có thể gửi tín hiệu xác nhận.", HttpStatus.FORBIDDEN.value());
+        }
+        Campaign campaign = getCampaign(campaignId);
+        if (!STATUS_RECRUITING.equals(campaign.getStatus())) {
+            throw new CustomException("Chiến dịch không ở trạng thái tuyển quân.", HttpStatus.CONFLICT.value());
+        }
+        if (campaign.getStartTime() == null) {
+            throw new CustomException("Chiến dịch chưa có thời gian bắt đầu.", HttpStatus.BAD_REQUEST.value());
+        }
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isAfter(campaign.getStartTime()) || now.isBefore(campaign.getStartTime().minusHours(24))) {
+            throw new CustomException("Chỉ có thể xác nhận trong vòng 24 giờ trước khi chiến dịch bắt đầu.", HttpStatus.BAD_REQUEST.value());
+        }
+        CampaignParticipant participant = participantRepository
+                .findByCampaign_IdAndCitizen_Id(campaignId, citizen.getId())
+                .orElseThrow(() -> new CustomException("Bạn chưa đăng ký tham gia chiến dịch này.", HttpStatus.NOT_FOUND.value()));
+        if (!JOIN_APPROVED.equals(participant.getJoinStatus()) && !JOIN_PENDING.equals(participant.getJoinStatus()) && !JOIN_CONFIRMED.equals(participant.getJoinStatus()) && !JOIN_MAYBE.equals(participant.getJoinStatus())) {
+            throw new CustomException("Chỉ người tham gia đã đăng ký mới có thể gửi tín hiệu xác nhận.", HttpStatus.BAD_REQUEST.value());
+        }
+        participant.setJoinStatus(signal);
+        if (JOIN_CONFIRMED.equals(signal)) {
+            participant.setConfirmedAt(now);
+            participant.setApprovedAt(null); // Bắt chờ Ward duyệt
+        } else if (JOIN_MAYBE.equals(signal)) {
+            participant.setConfirmedAt(null);
+            participant.setApprovedAt(now); // MAYBE tự động được duyệt không cần Ward duyệt
+        }
+        return toParticipantResponse(participantRepository.save(participant));
+    }
+
+    @Override
+    @Transactional
+    public CampaignResponse finalizeCampaign(Long campaignId, String username) {
+        User manager = requireUser(username);
+        Campaign campaign = getCampaign(campaignId);
+        assertCanManage(campaign, manager);
+        if (!STATUS_RECRUITING.equals(campaign.getStatus())) {
+            throw new CustomException("Chiến dịch phải ở trạng thái RECRUITING mới có thể chốt.", HttpStatus.CONFLICT.value());
+        }
+        long attendingCount = participantRepository.countByCampaign_IdAndJoinStatusIn(campaignId, ATTENDING_STATUSES);
+        if (campaign.getMinParticipants() == null || attendingCount >= campaign.getMinParticipants()) {
+            campaign.setStatus(STATUS_IN_PROGRESS);
+            return toResponse(campaignRepository.save(campaign), manager);
+        }
+        // Not enough — cancel and notify
+        campaign.setStatus(STATUS_CANCELLED_STR);
+        campaignRepository.save(campaign);
+        String contactInfo = (campaign.getOrganizerContact() != null && !campaign.getOrganizerContact().isBlank())
+                ? " Liên hệ cán bộ tổ chức: " + campaign.getOrganizerContact()
+                : "";
+        String msg = "Chiến dịch '" + campaign.getTitle() + "' đã bị hủy vì không đủ số người tối thiểu (" +
+                attendingCount + "/" + campaign.getMinParticipants() + " người)." + contactInfo;
+        participantRepository.findByCampaign_IdAndJoinStatusIn(campaignId, ATTENDING_STATUSES).forEach(p ->
+                notificationService.createCampaignNotification(
+                        p.getCitizen(),
+                        campaignId,
+                        "Chiến dịch bị hủy",
+                        msg,
+                        "CAMPAIGN_CANCELLED_INSUFFICIENT"
+                )
+        );
+        return toResponse(campaign, manager);
     }
 }
 

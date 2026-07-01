@@ -14,6 +14,7 @@ public interface NotificationRepository extends BaseRepository<Notification, Lon
     long countByUserIdAndIsReadFalse(Long userId);
 
     boolean existsByUserIdAndFeedbackIdAndType(Long userId, Long feedbackId, String type);
+    boolean existsByUserIdAndReferenceIdAndType(Long userId, Long referenceId, String type);
 
     @org.springframework.data.jpa.repository.Modifying
     @org.springframework.data.jpa.repository.Query("UPDATE Notification n SET n.isRead = true WHERE n.user.id = :userId AND n.isRead = false")

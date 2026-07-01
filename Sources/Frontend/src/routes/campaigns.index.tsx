@@ -416,34 +416,14 @@ function CampaignCard({
           </div>
         )}
 
-        <div className="mt-5 grid grid-cols-2 gap-3">
+        <div className="mt-5">
           <Link
             to="/campaigns/$id"
             params={{ id: campaign.id }}
-            className={campaign.status === "pending_review" ? "col-span-2 inline-flex h-11 items-center justify-center rounded-lg border border-slate-200 text-sm font-black text-slate-700 transition hover:bg-slate-50" : "inline-flex h-11 items-center justify-center rounded-lg border border-slate-200 text-sm font-black text-slate-700 transition hover:bg-slate-50"}
+            className="flex h-11 w-full items-center justify-center rounded-lg bg-[#7C3AED] text-sm font-black text-white shadow-sm transition hover:brightness-110"
           >
             Chi tiết
           </Link>
-          {campaign.status !== "pending_review" && (
-            hasJoined ? (
-              <button
-                disabled
-                className="inline-flex h-11 items-center justify-center rounded-lg bg-slate-100 border border-slate-200 text-sm font-black text-slate-400 disabled:cursor-not-allowed cursor-not-allowed"
-              >
-                Đã yêu cầu tham gia
-              </button>
-            ) : (
-              <Link
-                to="/campaigns/$id"
-                params={{ id: campaign.id }}
-                search={{ join: true }}
-                disabled={!campaign.canJoin || campaign.status !== "recruiting"}
-                className="inline-flex h-11 items-center justify-center rounded-lg bg-[#7C3AED] text-sm font-black text-white shadow-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Tham gia
-              </Link>
-            )
-          )}
         </div>
       </div>
     </article>

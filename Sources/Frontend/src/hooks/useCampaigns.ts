@@ -599,3 +599,23 @@ export function useUnpinChatMessage(campaignId: string) {
     },
   });
 }
+
+export function useSignalAttendance(campaignId: string) {
+  const queryClient = useQueryClient();
+  return useMutation<CampaignParticipantResponse, Error, "CONFIRMED" | "MAYBE">({
+    mutationFn: (signal) => campaignApi.signalAttendance(campaignId, signal),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+    },
+  });
+}
+
+export function useFinalizeCampaign() {
+  const queryClient = useQueryClient();
+  return useMutation<CampaignResponse, Error, string | number>({
+    mutationFn: (id) => campaignApi.finalizeCampaign(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+    },
+  });
+}

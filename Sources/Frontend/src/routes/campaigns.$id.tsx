@@ -30,6 +30,12 @@ import {
   useLeaveCampaign,
   useConfirmWaitlist,
   useSendEmailOtp,
+  useBatchApproveParticipants,
+  useMarkNoShow,
+  useUpdateCampaign,
+  useEndCampaign,
+  useSignalAttendance,
+  useFinalizeCampaign,
 } from "@/hooks/useCampaigns";
 import { useAuth } from "@/lib/auth";
 import type { Campaign } from "@/lib/campaignStore";
@@ -57,7 +63,7 @@ export const Route = createFileRoute("/campaigns/$id")({
 const defaultHeroImage =
   "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&auto=format&fit=crop&q=85";
 
-function CampaignDetailPage() {
+export function CampaignDetailPage() {
   const { id } = Route.useParams();
   const { join } = Route.useSearch();
   return <CampaignDetailPageComponent campaignId={id} join={join} />;
@@ -97,10 +103,159 @@ export function CampaignDetailPageComponent({
   });
   const campaign = useCampaignDetail(campaignId);
   const { user, isAuthenticated } = useAuth();
+  const hasJoined = campaign && (
+    campaign.canManage ||
+    (campaign.currentUserJoinStatus && ["APPROVED", "CONFIRMED", "MAYBE", "PENDING_CONFIRM", "PENDING"].includes(campaign.currentUserJoinStatus))
+  );
   const joinCampaign = useJoinCampaign();
   const leaveCampaign = useLeaveCampaign();
   const confirmWaitlist = useConfirmWaitlist();
   const sendEmailOtp = useSendEmailOtp();
+
+  const updateCampaign = useUpdateCampaign();
+  const endCampaign = useEndCampaign();
+  const signalAttendance = useSignalAttendance(campaignId);
+  const finalizeCampaign = useFinalizeCampaign();
+
+  const [isEditing, setIsEditing] = useState(initialEditMode || false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editCategory, setEditCategory] = useState<any>("environment");
+  const [editTarget, setEditTarget] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editLocationText, setEditLocationText] = useState("");
+  const [editPrivateLocationText, setEditPrivateLocationText] = useState("");
+  const [editRequiredTools, setEditRequiredTools] = useState("");
+  const [editOrganizerContact, setEditOrganizerContact] = useState("");
+  const [editStartTime, setEditStartTime] = useState("");
+  const [editEndTime, setEditEndTime] = useState("");
+  const [editLatitude, setEditLatitude] = useState<number | null>(null);
+  const [editLongitude, setEditLongitude] = useState<number | null>(null);
+
+  const hasInitializedRef = useRef(false);
+
+  useEffect(() => {
+    hasInitializedRef.current = false;
+  }, [campaignId]);
+
+  useEffect(() => {
+    if (campaign && (!hasInitializedRef.current || !isEditing)) {
+      setEditTitle(campaign.name || "");
+      setEditCategory(campaign.category || "environment");
+      setEditTarget(String(campaign.target || 30));
+      setEditDescription(campaign.desc || "");
+      setEditLocationText(campaign.locationText || "");
+      setEditPrivateLocationText(campaign.privateLocationText || "");
+      setEditRequiredTools(campaign.requiredTools || "");
+      setEditOrganizerContact(campaign.organizerContact || "");
+      setEditStartTime(campaign.startTime ? campaign.startTime.slice(0, 16) : "");
+      setEditEndTime(campaign.endTime ? campaign.endTime.slice(0, 16) : "");
+      setEditLatitude(campaign.latitude ?? null);
+      setEditLongitude(campaign.longitude ?? null);
+      hasInitializedRef.current = true;
+    }
+  }, [campaign, isEditing]);
+
+  const handleSave = async () => {
+    if (!editTitle.trim()) {
+      toast.error("Vui lòng nhập tên chiến dịch.");
+      return;
+    }
+    if (!editLocationText.trim()) {
+      toast.error("Vui lòng nhập địa chỉ cụ thể.");
+      return;
+    }
+    if (!editDescription.trim()) {
+      toast.error("Vui lòng nhập mô tả chi tiết chiến dịch.");
+      return;
+    }
+    if (!editPrivateLocationText.trim()) {
+      toast.error("Vui lòng nhập điểm tập trung nội bộ.");
+      return;
+    }
+    if (!editRequiredTools.trim()) {
+      toast.error("Vui lòng nhập dụng cụ cần mang theo.");
+      return;
+    }
+    if (!editOrganizerContact.trim()) {
+      toast.error("Vui lòng nhập thông tin liên hệ ban tổ chức.");
+      return;
+    }
+    if (!editStartTime) {
+      toast.error("Vui lòng chọn thời gian bắt đầu.");
+      return;
+    }
+    if (!editEndTime) {
+      toast.error("Vui lòng chọn thời gian kết thúc.");
+      return;
+    }
+
+    const start = new Date(editStartTime);
+    const end = new Date(editEndTime);
+    if (end <= start) {
+      toast.error("Thời gian kết thúc phải diễn ra sau thời gian bắt đầu.");
+      return;
+    }
+
+    const maxPartNum = Number.parseInt(editTarget, 10);
+    if (Number.isNaN(maxPartNum) || maxPartNum <= 0) {
+      toast.error("Số lượng tình nguyện viên tối đa phải là số nguyên dương.");
+      return;
+    }
+
+    try {
+      await updateCampaign.mutateAsync({
+        id: campaignId,
+        data: {
+          title: editTitle.trim(),
+          category: editCategory,
+          description: editDescription.trim(),
+          locationText: editLocationText.trim(),
+          privateLocationText: editPrivateLocationText.trim(),
+          requiredTools: editRequiredTools.trim(),
+          organizerContact: editOrganizerContact.trim(),
+          maxParticipants: maxPartNum,
+          startTime: editStartTime || undefined,
+          endTime: editEndTime || undefined,
+          latitude: editLatitude ?? undefined,
+          longitude: editLongitude ?? undefined,
+          coverImageUrl: campaign.coverImageUrl ?? undefined,
+          imageUrls: campaign.imageUrls ?? undefined,
+        },
+      });
+      toast.success("Cập nhật chiến dịch thành công.");
+      setIsEditing(false);
+    } catch (err) {
+      toast.error("Lỗi khi cập nhật chiến dịch: " + (err instanceof Error ? err.message : "Lỗi hệ thống"));
+    }
+  };
+
+  const handleEndCampaign = async () => {
+    if (!window.confirm("Bạn có chắc chắn muốn kết thúc sớm chiến dịch này? Hành động này sẽ khóa đơn đăng ký và dừng tuyển quân.")) {
+      return;
+    }
+    try {
+      await endCampaign.mutateAsync(campaignId);
+      toast.success("Đã kết thúc chiến dịch thành công.");
+    } catch (err) {
+      toast.error("Lỗi khi kết thúc chiến dịch: " + (err instanceof Error ? err.message : "Lỗi hệ thống"));
+    }
+  };
+
+  const handleFinalizeCampaign = async () => {
+    if (!window.confirm("Bạn có chắc chắn muốn chốt chiến dịch? Hệ thống sẽ kiểm tra số người tham gia và chuyển trạng thái chiến dịch.")) {
+      return;
+    }
+    try {
+      const result = await finalizeCampaign.mutateAsync(campaignId);
+      if (result.status === "IN_PROGRESS") {
+        toast.success("Chiến dịch đã bắt đầu! Đủ số người tối thiểu.");
+      } else {
+        toast.error("Chiến dịch bị hủy do không đủ số người tối thiểu.");
+      }
+    } catch (err) {
+      toast.error("Lỗi khi chốt chiến dịch: " + (err instanceof Error ? err.message : "Lỗi hệ thống"));
+    }
+  };
 
   // Smart Join Modal states
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -202,7 +357,10 @@ export function CampaignDetailPageComponent({
     campaign.target > 0
       ? Math.min(100, Math.round((campaign.participants / campaign.target) * 100))
       : 0;
-  const approvedStatus = campaign.currentUserJoinStatus === "APPROVED";
+  const approvedStatus =
+    campaign.currentUserJoinStatus === "APPROVED" ||
+    campaign.currentUserJoinStatus === "CONFIRMED" ||
+    campaign.currentUserJoinStatus === "MAYBE";
 
   const handleSendOtp = async () => {
     try {
@@ -230,15 +388,15 @@ export function CampaignDetailPageComponent({
         availabilityHours: availabilityHours.trim() || undefined,
         otpCode: otpCode.trim(),
       });
-      toast.success("Đăng ký thành công! Hãy đợi cán bộ phường phê duyệt hoặc theo dõi hàng đợi.");
+      toast.success("Tham gia và kết nối chat chiến dịch thành công!");
       setShowJoinModal(false);
       setVolunteerExperience("");
       setAvailabilityHours("");
       setOtpCode("");
       setOtpSent(false);
       navigate({
-        search: (prev) => ({ ...prev, join: undefined }),
-        replace: true,
+        to: "/campaigns/$id/group-chat",
+        params: { id: campaign.id },
       });
     } catch (error) {
       const err = error as Error;
@@ -361,23 +519,27 @@ export function CampaignDetailPageComponent({
               </div>
             </section>
 
-            <Panel title="Về chiến dịch này" icon={ListIcon} theme={theme}>
-              <p className="text-sm leading-7 text-slate-600">
-                Chiến dịch được phát động nhằm kêu gọi cộng đồng chung tay dọn dẹp bãi biển Xuân
-                Thiều, một trong những bãi biển đẹp của Đà Nẵng. Hoạt động gồm thu gom rác thải
-                nhựa, phân loại rác tại chỗ, trồng cây ven biển và tuyên truyền bảo vệ môi trường.
-                Đây là cơ hội để người dân Đà Nẵng thể hiện tình yêu quê hương và ý thức bảo vệ
-                thiên nhiên.
-              </p>
-            </Panel>
+                <section className={`rounded-2xl border ${theme.lightBorder} bg-white p-7 shadow-md`}>
+                  <p className="text-base leading-8 text-slate-600">
+                    {campaign.desc || "Chưa có mô tả công khai."}
+                  </p>
 
-            {campaign.privateDetailsVisible ? (
-              <PrivateDetails campaign={campaign} theme={theme} />
-            ) : (
-              <section className="rounded-2xl border border-dashed border-amber-200 bg-[#FFFBF0] p-6 shadow-sm">
-                <div className="flex items-start gap-3">
-                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-700">
-                    <Lock size={20} />
+                  <div className="mt-6 grid gap-3 md:grid-cols-3">
+                    <InfoTile
+                      icon={MapPin}
+                      label="Khu vực"
+                      value={campaign.locationText || campaign.ward}
+                      theme={theme}
+                    />
+                    <InfoTile
+                      icon={Users}
+                      label="Người tham gia"
+                      value={`${campaign.participants}/${campaign.target}${
+                        (campaign as any).minParticipants ? ` (tối thiểu ${(campaign as any).minParticipants})` : ''
+                      }`}
+                      theme={theme}
+                    />
+                    <InfoTile icon={CalendarDays} label="Thời gian" value={dateRange(campaign)} theme={theme} />
                   </div>
                   <div>
                     <h2 className="font-black text-slate-900">Thông tin nội bộ được bảo mật</h2>
@@ -398,43 +560,60 @@ export function CampaignDetailPageComponent({
               <h2 className="mb-4 text-sm font-black uppercase tracking-wider text-slate-500">
                 Hành động
               </h2>
+              {campaign.canManage && campaign.status === "recruiting" && (
+                <button
+                  onClick={handleFinalizeCampaign}
+                  disabled={finalizeCampaign.isPending}
+                  className="mb-3 h-12 w-full rounded-xl bg-indigo-600 text-sm font-black text-white shadow-md transition hover:bg-indigo-700 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {finalizeCampaign.isPending ? "Đang xử lý..." : "Chốt chiến dịch"}
+                </button>
+              )}
+              {campaign.canManage && (campaign.status === "recruiting" || campaign.status === "inProgress") && (
+                <button
+                  onClick={handleEndCampaign}
+                  disabled={endCampaign.isPending}
+                  className="mb-3 h-12 w-full rounded-xl bg-red-600 text-sm font-black text-white shadow-md transition hover:bg-red-700 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {endCampaign.isPending ? "Đang xử lý..." : "Kết thúc chiến dịch"}
+                </button>
+              )}
               {(campaign.status === "recruiting" ||
                 campaign.status === "completed" ||
                 campaign.status === "ended" ||
                 campaign.status === "inProgress") && (
-                <div
-                  title={campaign.status !== "recruiting" ? "Chiến dịch đã đóng" : undefined}
-                  className="w-full"
-                >
-                  <button
-                    onClick={() => {
-                      if (!isAuthenticated) {
-                        toast.error("Vui lòng đăng nhập để tham gia chiến dịch.");
-                        return;
-                      }
-                      setShowJoinModal(true);
-                    }}
-                    disabled={
-                      campaign.status !== "recruiting" ||
-                      joinCampaign.isPending ||
-                      !campaign.canJoin
-                    }
-                    className={`h-12 w-full rounded-xl ${theme.primaryBg} text-sm font-black text-white shadow-md transition ${theme.primaryHover} active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50`}
+                  <div
+                    title={campaign.status !== "recruiting" ? "Chiến dịch đã đóng" : undefined}
+                    className="w-full"
                   >
-                    {campaign.currentUserJoinStatus === "PENDING"
-                      ? "Đang chờ duyệt"
-                      : campaign.currentUserJoinStatus === "APPROVED"
-                        ? "Đã tham gia"
-                        : campaign.currentUserJoinStatus === "WAITLIST"
-                          ? "Đang ở danh sách chờ"
-                          : campaign.currentUserJoinStatus === "PENDING_CONFIRM"
-                            ? "Chờ xác nhận"
-                            : campaign.status !== "recruiting"
-                              ? "Chiến dịch đã đóng"
-                              : "Đăng ký tham gia"}
-                  </button>
-                </div>
-              )}
+                    {hasJoined ? (
+                      <Link
+                        to="/campaigns/$id/group-chat"
+                        params={{ id: campaign.id }}
+                        className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#7C3AED] text-sm font-black text-white shadow-sm transition hover:brightness-110"
+                      >
+                        Vào nhóm chat
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          if (!isAuthenticated) {
+                            toast.error("Vui lòng đăng nhập để tham gia chiến dịch.");
+                            return;
+                          }
+                          setShowJoinModal(true);
+                        }}
+                        disabled={
+                          campaign.status !== "recruiting" ||
+                          joinCampaign.isPending
+                        }
+                        className="h-12 w-full rounded-xl bg-[#7C3AED] text-sm font-black text-white shadow-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Đăng ký & Vào Chat
+                      </button>
+                    )}
+                  </div>
+                )}
 
               {campaign.currentUserJoinStatus === "PENDING_CONFIRM" && (
                 <button
@@ -502,11 +681,7 @@ export function CampaignDetailPageComponent({
               </button>
             </section>
 
-            <GroupChatNavigationCard
-              campaign={campaign}
-              approvedStatus={approvedStatus}
-              theme={theme}
-            />
+            <GroupChatNavigationCard campaign={campaign} approvedStatus={approvedStatus} theme={theme} hasJoined={hasJoined} onJoinClick={() => setShowJoinModal(true)} isAuthenticated={isAuthenticated} />
             <ShareCard theme={theme} />
           </aside>
         </section>
@@ -621,23 +796,310 @@ export function CampaignDetailPageComponent({
                 </button>
               </div>
 
-              <form onSubmit={handleLeaveSubmit} className="space-y-4">
-                <p className="text-sm leading-6 text-slate-600">
-                  Bạn có chắc chắn muốn rút khỏi chiến dịch này? Lưu ý việc hủy tham gia sát ngày có
-                  thể ảnh hưởng đến điểm uy tín của bạn.
-                </p>
-                <div>
-                  <label className="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">
-                    Lý do hủy tham gia
-                  </label>
-                  <textarea
-                    value={leaveReason}
-                    onChange={(e) => setLeaveReason(e.target.value)}
-                    placeholder="Vui lòng cho biết lý do của bạn..."
-                    required
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-red-500 focus:ring focus:ring-red-100 min-h-[80px]"
-                  />
-                </div>
+  // Filter pending list
+  const filteredPending = pendingParticipants.filter((p) => {
+    if (p.pastCampaignCount < minPastCampaigns) return false;
+    if (p.averageRating < minRating) return false;
+    if (noShowOnly && p.noShowCount <= 2) return false;
+    return true;
+  });
+
+  const handleApprove = async (participant: CampaignParticipantResponse) => {
+    try {
+      await approveParticipant.mutateAsync(participant.id);
+      toast.success(`Đã duyệt ${participant.citizenName} vào chiến dịch.`);
+    } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toast.error((error as any)?.message || "Lỗi phê duyệt.");
+    }
+  };
+
+  const handleReject = async (participant: CampaignParticipantResponse) => {
+    const reason = window.prompt("Nhập lý do từ chối yêu cầu tham gia:", "");
+    if (reason === null) return;
+
+    try {
+      await rejectParticipant.mutateAsync({
+        participantId: participant.id,
+        reason: reason.trim() || undefined,
+      });
+      toast.success(`Đã từ chối yêu cầu của ${participant.citizenName}.`);
+    } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toast.error((error as any)?.message || "Lỗi từ chối.");
+    }
+  };
+
+  const handleMarkAbsent = async (participant: CampaignParticipantResponse) => {
+    if (
+      !window.confirm(
+        `Xác nhận đánh dấu vắng mặt (NO_SHOW) cho ${participant.citizenName}? Việc này sẽ làm giảm độ tin cậy của họ.`,
+      )
+    ) {
+      return;
+    }
+    try {
+      await markNoShow.mutateAsync(participant.id);
+      toast.success(`Đã đánh dấu vắng mặt cho ${participant.citizenName}.`);
+    } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toast.error((error as any)?.message || "Lỗi đánh dấu vắng mặt.");
+    }
+  };
+
+  const handleToggleSelect = (id: number) => {
+    setSelectedIds((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    const newSelections: Record<number, boolean> = {};
+    if (checked) {
+      filteredPending.forEach((p) => {
+        newSelections[p.id] = true;
+      });
+    }
+    setSelectedIds(newSelections);
+  };
+
+  const handleBatchApprove = async () => {
+    const idsToApprove = Object.keys(selectedIds)
+      .map(Number)
+      .filter((id) => selectedIds[id]);
+
+    if (idsToApprove.length === 0) {
+      toast.error("Vui lòng chọn ít nhất một tình nguyện viên để duyệt hàng loạt.");
+      return;
+    }
+
+    try {
+      await batchApprove.mutateAsync(idsToApprove);
+      toast.success(`Đã duyệt hàng loạt thành công ${idsToApprove.length} tình nguyện viên.`);
+      setSelectedIds({});
+    } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toast.error((error as any)?.message || "Lỗi khi duyệt hàng loạt.");
+    }
+  };
+
+  const isAllSelected =
+    filteredPending.length > 0 && filteredPending.every((p) => selectedIds[p.id]);
+
+  return (
+    <section className={`rounded-2xl border ${theme.lightBorder} bg-white p-5 shadow-lg space-y-4`}>
+      {/* Tabs */}
+      <div className="flex border-b border-slate-100">
+        <button
+          type="button"
+          onClick={() => setActiveTab("pending")}
+          className={`flex-1 pb-3 text-sm font-black transition-all ${activeTab === "pending"
+            ? "border-b-2 border-[#7C3AED] text-[#7C3AED]"
+            : "text-slate-500 hover:text-slate-800"
+            }`}
+        >
+          Đang chờ ({pendingParticipants.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("approved")}
+          className={`flex-1 pb-3 text-sm font-black transition-all ${activeTab === "approved"
+            ? "border-b-2 border-[#7C3AED] text-[#7C3AED]"
+            : "text-slate-500 hover:text-slate-800"
+            }`}
+        >
+          Đã duyệt ({approvedParticipants.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("cancelled")}
+          className={`flex-1 pb-3 text-sm font-black transition-all ${activeTab === "cancelled"
+            ? "border-b-2 border-[#7C3AED] text-[#7C3AED]"
+            : "text-slate-500 hover:text-slate-800"
+            }`}
+        >
+          Đã hủy & Từ chối ({cancelledParticipants.length})
+        </button>
+      </div>
+
+      {activeTab === "pending" && (
+        <div className="space-y-4">
+          {/* Filters Panel */}
+          <div className={`rounded-xl ${theme.mainBg} p-3.5 border ${theme.lightBorder} space-y-3`}>
+            <div className={`flex items-center gap-2 text-xs font-black uppercase ${theme.primaryText}`}>
+              <Filter size={14} />
+              Bộ lọc nâng cao
+            </div>
+            <div className="grid grid-cols-2 gap-2.5">
+              <div>
+                <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                  Đã tham gia tối thiểu
+                </label>
+                <select
+                  value={minPastCampaigns}
+                  onChange={(e) => setMinPastCampaigns(Number(e.target.value))}
+                  className={`w-full h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold ${theme.focusRing} outline-none`}
+                >
+                  <option value={0}>0 chiến dịch</option>
+                  <option value={1}>1 chiến dịch</option>
+                  <option value={3}>3 chiến dịch</option>
+                  <option value={5}>5 chiến dịch</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                  Đánh giá trung bình
+                </label>
+                <select
+                  value={minRating}
+                  onChange={(e) => setMinRating(Number(e.target.value))}
+                  className={`w-full h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold ${theme.focusRing} outline-none`}
+                >
+                  <option value={0}>Mọi đánh giá</option>
+                  <option value={3}>Từ 3.0 ★ trở lên</option>
+                  <option value={4}>Từ 4.0 ★ trở lên</option>
+                  <option value={4.5}>Từ 4.5 ★ trở lên</option>
+                </select>
+              </div>
+            </div>
+
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={noShowOnly}
+                onChange={(e) => setNoShowOnly(e.target.checked)}
+                className={`h-3.5 w-3.5 rounded border-slate-300 ${theme.primaryText} ${theme.focusRing}`}
+              />
+              <span className="text-xs font-semibold text-slate-600">
+                Chỉ hiện người có cảnh báo (No-show &gt; 2)
+              </span>
+            </label>
+          </div>
+
+          {/* Batch Approve Control */}
+          {filteredPending.length > 0 && (
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={isAllSelected}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  className={`h-3.5 w-3.5 rounded border-slate-300 ${theme.primaryText} ${theme.focusRing}`}
+                />
+                <span className="text-xs font-black text-slate-700">Chọn tất cả</span>
+              </label>
+
+              <button
+                type="button"
+                onClick={handleBatchApprove}
+                disabled={batchApprove.isPending}
+                className="h-8 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-xs font-black text-white disabled:opacity-50 flex items-center gap-1.5 transition"
+              >
+                <Check size={14} />
+                Duyệt hàng loạt
+              </button>
+            </div>
+          )}
+
+          {participantsQuery.isLoading ? (
+            <p className="rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-500">
+              Đang tải yêu cầu...
+            </p>
+          ) : filteredPending.length === 0 ? (
+            <p className="rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-500 text-center">
+              Không tìm thấy yêu cầu phù hợp với bộ lọc.
+            </p>
+          ) : (
+            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+              {filteredPending.map((p) => {
+                const isFlagged = p.noShowCount > 2;
+                return (
+                  <div
+                    key={p.id}
+                    className={`rounded-xl border p-3.5 transition space-y-3 ${isFlagged
+                      ? "border-red-200 bg-red-50/70 shadow-sm"
+                      : "border-slate-200 bg-white"
+                      }`}
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <input
+                        type="checkbox"
+                        checked={!!selectedIds[p.id]}
+                        onChange={() => handleToggleSelect(p.id)}
+                        className={`mt-1 h-3.5 w-3.5 rounded border-slate-300 ${theme.primaryText} ${theme.focusRing}`}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="font-black text-slate-900 truncate">{p.citizenName}</p>
+                          {isFlagged && (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-red-100 px-1.5 py-0.5 text-[9px] font-black text-red-700">
+                              <AlertTriangle size={10} />
+                              LỊCH SỬ XẤU ({p.noShowCount} vắng)
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] font-semibold text-slate-400 mt-0.5">
+                          Đăng ký lúc {formatDateTime(p.createdAt)}
+                        </p>
+
+                        {/* Additional stats */}
+                        <div className="mt-2 flex gap-3 text-[11px] font-semibold text-slate-500">
+                          <span className="flex items-center gap-1">
+                            <History size={12} />
+                            Đã tham gia: {p.pastCampaignCount}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Award size={12} />
+                            Đánh giá: {p.averageRating ? `${p.averageRating}★` : "Chưa có"}
+                          </span>
+                        </div>
+
+                        {/* Experience and Availability info */}
+                        {(p.volunteerExperience || p.availabilityHours) && (
+                          <div className="mt-2.5 pt-2 border-t border-slate-100 space-y-1 text-xs">
+                            {p.volunteerExperience && (
+                              <p className="text-slate-600 leading-relaxed">
+                                <span className="font-black text-slate-700">Kinh nghiệm:</span>{" "}
+                                {p.volunteerExperience}
+                              </p>
+                            )}
+                            {p.availabilityHours && (
+                              <p className="text-slate-600 leading-relaxed">
+                                <span className="font-black text-slate-700">Thời gian rảnh:</span>{" "}
+                                {p.availabilityHours}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleReject(p)}
+                        disabled={rejectParticipant.isPending || approveParticipant.isPending}
+                        className="h-8.5 rounded-lg border border-red-200 bg-red-50 text-xs font-black text-red-700 hover:bg-red-100 disabled:opacity-50 transition active:scale-[0.97]"
+                      >
+                        Từ chối
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleApprove(p)}
+                        disabled={approveParticipant.isPending || rejectParticipant.isPending}
+                        className="h-8.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-xs font-black text-white disabled:opacity-50 transition active:scale-[0.97]"
+                      >
+                        Duyệt
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
                 <div className="flex gap-3">
                   <button
@@ -652,10 +1114,61 @@ export function CampaignDetailPageComponent({
                     disabled={leaveCampaign.isPending}
                     className="h-10 flex-1 rounded-lg bg-red-600 text-xs font-black text-white hover:brightness-110 disabled:opacity-50"
                   >
-                    Xác nhận Hủy
-                  </button>
-                </div>
-              </form>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="font-black text-slate-900 truncate">{p.citizenName}</p>
+                          {isRejected ? (
+                            <span className="rounded-md bg-red-50 px-1.5 py-0.5 text-[9px] font-black text-red-700 border border-red-100">
+                              Bị từ chối
+                            </span>
+                          ) : (
+                            <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[9px] font-black text-slate-600 border border-slate-200">
+                              Đã hủy tham gia
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] font-semibold text-slate-400 mt-0.5">
+                          {isRejected ? (
+                            <>Từ chối lúc {p.rejectedAt ? formatDateTime(p.rejectedAt) : ""}</>
+                          ) : (
+                            <>
+                              Thời gian hủy:{" "}
+                              {p.cancelledAt
+                                ? formatDateTime(p.cancelledAt)
+                                : p.createdAt
+                                  ? formatDateTime(p.createdAt)
+                                  : ""}
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="pt-1.5 border-t border-slate-100 space-y-1 text-xs">
+                      {isRejected
+                        ? p.rejectionReason && (
+                          <p className="text-red-600 leading-relaxed">
+                            <span className="font-black text-red-700">Lý do từ chối:</span>{" "}
+                            {p.rejectionReason}
+                          </p>
+                        )
+                        : p.cancellationReason && (
+                          <p className="text-slate-600 leading-relaxed">
+                            <span className="font-black text-slate-700">Lý do hủy:</span>{" "}
+                            {p.cancellationReason}
+                          </p>
+                        )}
+                      {p.volunteerExperience && (
+                        <p className="text-slate-500 leading-relaxed text-[11px]">
+                          <span className="font-black text-slate-500">Kinh nghiệm ban đầu:</span>{" "}
+                          {p.volunteerExperience}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -803,18 +1316,48 @@ function GroupChatNavigationCard({
   campaign,
   approvedStatus,
   theme,
+  hasJoined,
+  onJoinClick,
+  isAuthenticated,
 }: {
   campaign: Campaign;
   approvedStatus: boolean;
-  theme: Record<string, string>;
+  theme: any;
+  hasJoined: boolean;
+  onJoinClick: () => void;
+  isAuthenticated: boolean;
 }) {
   const chat = useCampaignChat(campaign.id);
+  const signalAttendance = useSignalAttendance(campaign.id);
   const memberCount = Math.max(1, campaign.participants || 0);
   const latest = chat.data?.at(-1);
   const latestPreview = latest
     ? `${latest.senderName}: ${latest.message}`
     : "Cán Bộ Phường 1: Chiến dịch sẽ bắt đầu lúc 6h sáng 19/6.";
   const avatars = ["CB", "A", "B"];
+
+  // Check if within 24h window
+  const startTime = campaign.startTime ? new Date(campaign.startTime) : null;
+  const now = new Date();
+  const withinConfirmWindow =
+    startTime !== null &&
+    now < startTime &&
+    now >= new Date(startTime.getTime() - 24 * 60 * 60 * 1000);
+
+  const currentStatus = campaign.currentUserJoinStatus as string | undefined;
+
+  const handleSignal = async (signal: "CONFIRMED" | "MAYBE") => {
+    try {
+      await signalAttendance.mutateAsync(signal);
+      toast.success(
+        signal === "CONFIRMED"
+          ? "Đã xác nhận tham gia chiến dịch!"
+          : "Đã chọn 'Có thể tham gia'."
+      );
+    } catch (err: any) {
+      toast.error(err?.message || "Không thể gửi xác nhận.");
+    }
+  };
 
   return (
     <section className={`rounded-2xl border ${theme.lightBorder} bg-white p-6 shadow-lg`}>
@@ -843,14 +1386,71 @@ function GroupChatNavigationCard({
         {memberCount} thành viên đang trong nhóm
       </p>
       <p className="mt-1 truncate text-sm font-semibold text-slate-500">{latestPreview}</p>
-      <Link
-        to="/campaigns/$id/group-chat"
-        params={{ id: campaign.id }}
-        className={`mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl ${theme.primaryBg} px-4 text-sm font-black text-white shadow-sm transition ${theme.primaryHover} active:scale-[0.97]`}
-      >
-        Vào nhóm chat
-        <ArrowRight size={16} />
-      </Link>
+      {/* Attendance signal banner — shown 24h before startTime for APPROVED/PENDING participants */}
+      {withinConfirmWindow && (currentStatus === "APPROVED" || currentStatus === "PENDING") && (
+        <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 p-4 space-y-3 shadow-sm">
+          <div>
+            <p className="text-xs font-black text-slate-800 uppercase tracking-wider">
+              Xác nhận tham gia trước 24 giờ
+            </p>
+            <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+              Chiến dịch sắp khởi chạy. Vui lòng cập nhật khả năng tham gia của bạn để ban tổ chức chuẩn bị chu đáo.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              id="btn-confirm-attendance"
+              onClick={() => handleSignal("CONFIRMED")}
+              disabled={signalAttendance.isPending}
+              className="flex-1 h-10 rounded-lg bg-[#7C3AED] text-xs font-black text-white shadow-sm transition hover:bg-[#6D28D9] active:scale-[0.97] disabled:opacity-50 cursor-pointer"
+            >
+              Xác nhận tham gia
+            </button>
+            <button
+              id="btn-maybe-attendance"
+              onClick={() => handleSignal("MAYBE")}
+              disabled={signalAttendance.isPending}
+              className="flex-1 h-10 rounded-lg border border-slate-200 bg-white text-xs font-black text-slate-700 transition hover:bg-slate-50 active:scale-[0.97] disabled:opacity-50 cursor-pointer"
+            >
+              Có thể tham gia
+            </button>
+          </div>
+        </div>
+      )}
+      {withinConfirmWindow && currentStatus === "CONFIRMED" && (
+        <div className="mt-4 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3.5 text-xs font-bold text-emerald-800 leading-relaxed shadow-sm">
+          Bạn đã xác nhận tham gia. Vui lòng chờ cán bộ phường phê duyệt chính thức.
+        </div>
+      )}
+      {withinConfirmWindow && currentStatus === "MAYBE" && (
+        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-100 px-4 py-3.5 text-xs font-bold text-slate-700 leading-relaxed shadow-sm">
+          Bạn đã chọn khả năng Có thể tham gia chiến dịch (Không cần duyệt).
+        </div>
+      )}
+      {hasJoined ? (
+        <Link
+          to="/campaigns/$id/group-chat"
+          params={{ id: campaign.id }}
+          className={`mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl ${theme.primaryBg} px-4 text-sm font-black text-white shadow-sm transition ${theme.primaryHover} active:scale-[0.97]`}
+        >
+          Vào nhóm chat
+          <ArrowRight size={16} />
+        </Link>
+      ) : (
+        <button
+          onClick={() => {
+            if (!isAuthenticated) {
+              toast.error("Vui lòng đăng nhập để tham gia chat.");
+              return;
+            }
+            onJoinClick();
+          }}
+          className={`mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl ${theme.primaryBg} px-4 text-sm font-black text-white shadow-sm transition ${theme.primaryHover} active:scale-[0.97] cursor-pointer`}
+        >
+          Đăng ký & Vào Chat
+          <ArrowRight size={16} />
+        </button>
+      )}
     </section>
   );
 }
@@ -991,24 +1591,12 @@ function StatusBadge({
       className: "border-emerald-200 bg-emerald-50 text-emerald-700",
     },
     inProgress: { label: "Đang thực hiện", className: "border-blue-200 bg-blue-50 text-blue-700" },
-    active: { label: "Đang thực hiện", className: "border-blue-200 bg-blue-50 text-blue-700" },
-    completed: {
-      label: "Hoàn thành",
-      className:
-        theme && theme.primaryBorder && theme.lightBg && theme.primaryText
-          ? `${theme.primaryBorder} ${theme.lightBg} ${theme.primaryText}`
-          : "border-violet-200 bg-violet-50 text-[#7C3AED]",
-    },
-    ended: {
-      label: "Đã kết thúc",
-      className: "border-red-200 bg-red-50 text-red-700",
-    },
-  };
-
-  const currentMeta = meta[status] ?? {
-    label: "Đã kết thúc",
-    className: "border-red-200 bg-red-50 text-red-700",
-  };
+    completed: { label: "Hoàn thành", className: "border-violet-200 bg-violet-50 text-[#7C3AED]" },
+    active: { label: "Đang hoạt động", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+    ended: { label: "Đã kết thúc", className: "border-red-200 bg-red-50 text-red-700" },
+    CANCELLED: { label: "Đã hủy", className: "border-red-200 bg-red-50 text-red-700" },
+    IN_PROGRESS: { label: "Đang diễn ra", className: "border-blue-200 bg-blue-50 text-blue-700" },
+  }[status] ?? { label: status || "Không rõ", className: "border-slate-200 bg-slate-50 text-slate-600" };
 
   return (
     <span
@@ -1056,5 +1644,7 @@ function joinLabel(status: NonNullable<Campaign["currentUserJoinStatus"]>) {
   if (status === "WAITLIST") return "Đang trong danh sách chờ";
   if (status === "PENDING_CONFIRM") return "Chờ bạn xác nhận (2h)";
   if (status === "NO_SHOW") return "Vắng mặt không lý do";
+  if (status === "CONFIRMED") return "Đã xác nhận tham gia";
+  if (status === "MAYBE") return "Có thể tham gia";
   return "Đã hủy";
 }

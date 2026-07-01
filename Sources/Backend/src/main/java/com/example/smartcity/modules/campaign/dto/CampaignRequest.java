@@ -36,6 +36,9 @@ public class CampaignRequest {
 
     private Double longitude;
 
+    @Min(value = 1, message = "Số người tối thiểu phải lớn hơn 0")
+    private Integer minParticipants;
+
     @Min(value = 1, message = "Số lượng tham gia tối thiểu là 1")
     private Integer maxParticipants;
 

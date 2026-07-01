@@ -262,6 +262,26 @@ public class CampaignController {
         return ResponseEntity.ok(campaignService.endCampaign(id, authentication.getName()));
     }
 
+    @PostMapping("/{id}/signal-attendance")
+    @PreAuthorize("hasRole('CITIZEN')")
+    public ResponseEntity<CampaignParticipantResponse> signalAttendance(
+            @PathVariable Long id,
+            @RequestParam String signal,
+            Authentication authentication) {
+        if (!"CONFIRMED".equals(signal) && !"MAYBE".equals(signal)) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(campaignService.signalAttendance(id, authentication.getName(), signal));
+    }
+
+    @PostMapping("/{id}/finalize")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN')")
+    public ResponseEntity<CampaignResponse> finalizeCampaign(
+            @PathVariable Long id,
+            Authentication authentication) {
+        return ResponseEntity.ok(campaignService.finalizeCampaign(id, authentication.getName()));
+    }
+
     private String username(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             return null;

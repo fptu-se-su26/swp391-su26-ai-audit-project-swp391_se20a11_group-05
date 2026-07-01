@@ -381,13 +381,13 @@ function CampaignGroupChatPage() {
             </div>
           )}
 
-          {withinConfirmWindow && currentStatus === "CONFIRMED" && (
+          {withinConfirmWindow && (currentStatus as string) === "CONFIRMED" && (
             <div className="flex shrink-0 items-center justify-between border-b border-emerald-100 bg-emerald-50 px-4 py-3 text-xs font-bold text-emerald-800 shadow-sm md:px-6">
               Bạn đã xác nhận tham gia. Vui lòng chờ cán bộ phường phê duyệt chính thức.
             </div>
           )}
 
-          {withinConfirmWindow && currentStatus === "MAYBE" && (
+          {withinConfirmWindow && (currentStatus as string) === "MAYBE" && (
             <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-slate-100 px-4 py-3 text-xs font-bold text-slate-700 shadow-sm md:px-6">
               Bạn đã chọn khả năng Có thể tham gia chiến dịch (Không cần duyệt).
             </div>
@@ -403,7 +403,7 @@ function CampaignGroupChatPage() {
                 <ChatBubble
                   key={message.id}
                   message={message}
-                  canManage={campaign.canManage}
+                  canManage={!!campaign.canManage}
                   onPin={(msgId) => pinMutation.mutate(msgId)}
                   onUnpin={(msgId) => unpinMutation.mutate(msgId)}
                 />

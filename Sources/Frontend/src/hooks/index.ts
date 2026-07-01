@@ -112,11 +112,15 @@ export function usePublicFeedbacks(
   });
 }
 
-export function usePublicFeedbackStats(filters: FeedbackListFilters = {}) {
+export function usePublicFeedbackStats(
+  filters: FeedbackListFilters = {},
+  options?: { enabled?: boolean },
+) {
   return useQuery<FeedbackLookupStatsResponse>({
     queryKey: queryKeys.feedbacks.publicStats(filters),
     queryFn: () => feedbackApi.getPublicStats(filters),
     staleTime: 30_000,
+    ...options,
   });
 }
 

@@ -191,8 +191,8 @@ export function WardCampaignDetailPage({
           endTime: editEndTime || undefined,
           latitude: editLatitude ?? undefined,
           longitude: editLongitude ?? undefined,
-          coverImageUrl: campaign.coverImageUrl ?? undefined,
-          imageUrls: campaign.imageUrls ?? undefined,
+          coverImageUrl: campaign?.coverImageUrl ?? undefined,
+          imageUrls: campaign?.imageUrls ?? undefined,
         },
       });
       toast.success("Cập nhật chiến dịch thành công.");
@@ -1256,7 +1256,7 @@ function ParticipantReviewPanel({ campaignId, theme }: { campaignId: string; the
 }
 
 function StatusBadge({ status, theme }: { status: Campaign["status"]; theme?: any }) {
-  const meta = {
+  const meta: Record<string, { label: string; className: string }> = {
     pending_review: {
       label: "Chờ duyệt",
       className: "border-slate-200 bg-slate-100 text-slate-600",

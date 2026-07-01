@@ -21,7 +21,7 @@ import { CampaignMap } from "@/components/site/CampaignMap";
 import type { Campaign } from "@/lib/campaignStore";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
-import { CampaignDetailPageComponent } from "@/routes/campaigns.$id";
+import { CampaignDetailPage } from "@/routes/campaigns.$id";
 
 function formatDate(dateStr?: string) {
   if (!dateStr) return "Chưa cập nhật";
@@ -173,7 +173,7 @@ export function WardCampaignPage({ hideHeader = false }: WardCampaignPageProps) 
 
   if (selectedCampaignId) {
     return (
-      <CampaignDetailPageComponent
+      <CampaignDetailPage
         key={selectedCampaignId}
         campaignId={selectedCampaignId}
         initialEditMode={editModeOnOpen}

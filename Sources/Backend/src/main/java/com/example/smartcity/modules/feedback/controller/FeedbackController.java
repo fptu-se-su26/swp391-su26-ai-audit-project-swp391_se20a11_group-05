@@ -251,6 +251,14 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
     @GetMapping("/public/{id}")
     public ResponseEntity<FeedbackResponse> getPublicById(@PathVariable Long id) {
         Feedback feedback = feedbackService.findById(id);
+        if (Boolean.FALSE.equals(feedback.getPublicVisible())) {
+            org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            if (auth == null || !auth.isAuthenticated() || 
+                auth instanceof org.springframework.security.authentication.AnonymousAuthenticationToken ||
+                !feedbackService.canAccessFeedback(feedback, auth.getName())) {
+                throw new com.example.smartcity.common.exception.ResourceNotFoundException("Feedback", id);
+            }
+        }
         return ResponseEntity.ok(toDetailResponse(feedback));
     }
 

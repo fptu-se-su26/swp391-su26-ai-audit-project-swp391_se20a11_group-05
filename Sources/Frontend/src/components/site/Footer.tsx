@@ -42,7 +42,7 @@ export function Footer() {
             <div className="grid grid-cols-2 gap-2">
               {[
                 { href: "/", label: t("footer.navHome") },
-                { href: "/feedback-search", label: t("footer.navMyReports") },
+                { href: "/feedback-search?tab=my", label: t("footer.navMyReports") },
                 { href: "/feedback-search", label: t("footer.navSearch") },
                 { href: "/notifications", label: t("footer.navNotif") },
                 { href: "/feedback-search", label: t("footer.navGuide") },

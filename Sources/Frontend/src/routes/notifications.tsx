@@ -291,7 +291,7 @@ function iconForType(type?: string): ComponentType<{ size?: number; className?: 
     FEEDBACK_IN_PROGRESS: FileClock,
     FEEDBACK_COMPLETED: CheckCircle2,
     FEEDBACK_CLOSED: CheckCircle2,
-    NEED_MORE_INFO: MessageSquareWarning,
+    FEEDBACK_WAITING_INFO: MessageSquareWarning,
   };
   return icons[type || ""] || Clock3;
 }
@@ -305,7 +305,7 @@ function typeText(type: string | undefined, locale: string) {
     FEEDBACK_IN_PROGRESS: locale === "vi" ? "Đang xử lý" : "In progress",
     FEEDBACK_COMPLETED: locale === "vi" ? "Hoàn thành" : "Completed",
     FEEDBACK_CLOSED: locale === "vi" ? "Đã đóng" : "Closed",
-    NEED_MORE_INFO: locale === "vi" ? "Cần bổ sung thông tin" : "Need more info",
+    FEEDBACK_WAITING_INFO: locale === "vi" ? "Cần bổ sung thông tin" : "Need more info",
   };
   return labels[type || ""] || type || "SYSTEM";
 }

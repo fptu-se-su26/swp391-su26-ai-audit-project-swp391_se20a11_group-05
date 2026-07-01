@@ -1301,6 +1301,75 @@ Không có.
 
 ---
 
+### Prompt số 19
+
+| Nội dung            | Thông tin                                                          |
+| ------------------- | ------------------------------------------------------------------ |
+| Ngày sử dụng        | 27/06/2026                                                         |
+| Công cụ AI          | Antigravity                                                        |
+| Mục đích            | Kiểm tra logic nghiệp vụ và tích hợp Google Firebase Sign-In       |
+| Phần việc liên quan | Coding / Debug / Security / Integration                            |
+| Mức độ sử dụng      | Hỏi review / Hỏi debug / Hỏi sinh code                             |
+
+#### 5.1. Prompt nguyên văn
+
+```text
+trc khi thêm thêm vô env thì kiểm tra logic nghiệp vụ
+```
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Sau khi code xong tính năng đăng nhập Google Firebase (bao gồm firebase.ts, LoginPage.tsx, api.ts, register.tsx), trước khi điền Firebase Config thực tế vào file .env.local, tôi muốn AI kiểm tra lại toàn bộ luồng nghiệp vụ để chắc chắn Frontend gọi đúng API, đọc đúng field response, và xử lý đúng các trường hợp lỗi trước khi chạy thử thực tế.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI đọc toàn bộ 4 thành phần: firebase.ts (khởi tạo SDK), LoginPage.tsx (handler Google Login), api.ts (type và API call), AuthService.java (backend xác thực). Phát hiện bug nghiêm trọng: Frontend đọc field data.token nhưng Backend trả về data.accessToken trong TokenPairResponse. Sau đó AI sửa interface TokenPairResponse trong api.ts, cập nhật handleGoogleLogin để đọc đúng field accessToken, đồng thời xác nhận URL endpoint, request body, response mapping đều khớp 100% giữa Frontend và Backend.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Áp dụng toàn bộ: sửa bug data.token → data.accessToken, bổ sung interface TokenPairResponse vào api.ts với đầy đủ fields. Điền Firebase Config vào .env.local sau khi xác nhận logic đúng. Commit [DE191029] feat: Tích hợp đăng nhập Google Firebase vào nhánh tri.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Tôi tự mình thực hiện toàn bộ quy trình Firebase Console: Tạo project Citysystem, bật Google Sign-In provider, điền Public-facing name và Support email, đăng ký Web App, lấy config SDK. Những thao tác thực tế trên Firebase Console này AI không thể thay thế — tôi phải tự tay click và xử lý các bước xác nhận bypass GitHub Push Protection (do file .env.local.ps1 cũ có API keys).
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [x] Cần hỏi lại AI nhiều lần
+- [ ] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng   | Nội dung                                                                          |
+| ----------------- | --------------------------------------------------------------------------------- |
+| Link commit       | Commit `12c6eb4` — [DE191029] feat: Tích hợp đăng nhập Google Firebase vào Frontend |
+| File liên quan    | `Sources/Frontend/src/lib/firebase.ts`                                            |
+| File liên quan    | `Sources/Frontend/src/features/auth/LoginPage.tsx`                                |
+| File liên quan    | `Sources/Frontend/src/lib/api.ts`, `Sources/Frontend/src/routes/register.tsx`     |
+| Kết quả chạy/test | Git push lên nhánh tri thành công sau khi bypass GitHub Push Protection           |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Việc yêu cầu AI kiểm tra logic nghiệp vụ TRƯỚC khi chạy thực tế là thói quen tốt, giúp tiết kiệm rất nhiều thời gian debug. Trong trường hợp này, bug data.token vs data.accessToken là lỗi âm thầm — code không báo lỗi compile nhưng chức năng sẽ fail hoàn toàn ở runtime.
+```
+
+---
+
 ## 11. Cam kết sử dụng prompt minh bạch
 
 Sinh viên/nhóm cam kết rằng:
@@ -1313,5 +1382,5 @@ Sinh viên/nhóm cam kết rằng:
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 | ----------------------- | ------------- |
-| Phạm Bá Trí             | 2026-06-21    |
+| Phạm Bá Trí             | 2026-06-27    |
 

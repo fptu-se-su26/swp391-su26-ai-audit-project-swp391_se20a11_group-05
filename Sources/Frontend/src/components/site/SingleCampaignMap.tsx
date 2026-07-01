@@ -195,7 +195,7 @@ export function SingleCampaignMap({
   }
 
   return (
-    <div className="relative w-full overflow-hidden rounded-2xl border border-slate-100 bg-white" style={{ height }}>
+    <div className="relative z-0 w-full overflow-hidden rounded-2xl border border-slate-100 bg-white" style={{ height }}>
       {/* Floating Map Controls */}
       <div
         ref={dropdownRef}

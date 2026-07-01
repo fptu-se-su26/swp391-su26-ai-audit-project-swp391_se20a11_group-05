@@ -24,13 +24,21 @@ class NotificationServiceTest {
     @Mock
     private FeedbackRepository feedbackRepository;
 
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private com.example.smartcity.modules.notification.WebSocketNotificationService webSocketNotificationService;
+
     private NotificationService notificationService;
 
     @BeforeEach
     void setUp() {
         notificationService = new NotificationService(
                 notificationRepository,
-                feedbackRepository
+                feedbackRepository,
+                userRepository,
+                webSocketNotificationService
         );
     }
 

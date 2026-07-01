@@ -1846,6 +1846,7 @@ function StatusBadge({ status, theme }: { status: Campaign["status"]; theme?: an
     },
     inProgress: { label: "Đang thực hiện", className: "border-blue-200 bg-blue-50 text-blue-700" },
     completed: { label: "Hoàn thành", className: "border-violet-200 bg-violet-50 text-[#7C3AED]" },
+    active: { label: "Đang hoạt động", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
     ended: { label: "Đã kết thúc", className: "border-red-200 bg-red-50 text-red-700" },
   }[status] ?? { label: status || "Không rõ", className: "border-slate-200 bg-slate-50 text-slate-600" };
 

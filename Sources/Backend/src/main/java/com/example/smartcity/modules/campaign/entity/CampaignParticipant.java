@@ -65,6 +65,9 @@ public class CampaignParticipant {
     @Column(name = "confirmation_deadline")
     private LocalDateTime confirmationDeadline;
 
+    @Column(name = "confirmed_at")
+    private LocalDateTime confirmedAt;
+
     @Column(name = "created_at", updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();

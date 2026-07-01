@@ -67,4 +67,8 @@ public interface CampaignService {
     void delete(Long id, String username);
 
     CampaignResponse endCampaign(Long id, String username);
+
+    CampaignParticipantResponse signalAttendance(Long campaignId, String username, String signal);
+
+    CampaignResponse finalizeCampaign(Long campaignId, String username);
 }

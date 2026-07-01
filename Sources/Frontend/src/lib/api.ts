@@ -836,6 +836,7 @@ export interface CampaignResponse {
   latitude: number | null;
   longitude: number | null;
   maxParticipants: number | null;
+  minParticipants: number | null;
   startTime: string | null;
   endTime: string | null;
   status: "PENDING_APPROVAL" | "RECRUITING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "ACTIVE" | "ENDED";
@@ -870,6 +871,7 @@ export interface CampaignCreateRequest {
   latitude?: number;
   longitude?: number;
   maxParticipants?: number;
+  minParticipants?: number;
   startTime?: string;
   endTime?: string;
   wardId?: number;
@@ -884,7 +886,7 @@ export interface CampaignParticipantResponse {
   campaignId: number;
   citizenId: number;
   citizenName: string;
-  joinStatus: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "WAITLIST" | "PENDING_CONFIRM" | "NO_SHOW";
+  joinStatus: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "WAITLIST" | "PENDING_CONFIRM" | "NO_SHOW" | "CONFIRMED" | "MAYBE";
   volunteerExperience?: string;
   availabilityHours?: string;
   cancellationReason?: string | null;
@@ -896,6 +898,7 @@ export interface CampaignParticipantResponse {
   approvedAt: string | null;
   rejectedAt: string | null;
   rejectionReason: string | null;
+  confirmedAt: string | null;
 }
 
 export const campaignApi = {
@@ -1007,6 +1010,16 @@ export const campaignApi = {
 
   unpinMessage: (id: number | string, messageId: number | string) =>
     request<CampaignChatMessageResponse>(`/api/campaigns/${id}/chat/${messageId}/unpin`, {
+      method: "POST",
+    }),
+
+  signalAttendance: (id: number | string, signal: "CONFIRMED" | "MAYBE") =>
+    request<CampaignParticipantResponse>(`/api/campaigns/${id}/signal-attendance?signal=${signal}`, {
+      method: "POST",
+    }),
+
+  finalizeCampaign: (id: number | string) =>
+    request<CampaignResponse>(`/api/campaigns/${id}/finalize`, {
       method: "POST",
     }),
 };

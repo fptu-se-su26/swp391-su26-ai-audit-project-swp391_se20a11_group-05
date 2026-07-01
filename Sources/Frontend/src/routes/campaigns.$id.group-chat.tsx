@@ -21,8 +21,10 @@ import {
   useCampaignThumbnail,
   usePinChatMessage,
   useUnpinChatMessage,
+  useSignalAttendance,
 } from "@/hooks/useCampaigns";
 import { useAuth } from "@/lib/auth";
+import { toast } from "sonner";
 import type { Campaign } from "@/lib/campaignStore";
 
 export const Route = createFileRoute("/campaigns/$id/group-chat")({
@@ -142,7 +144,7 @@ function CampaignGroupChatPage() {
   const [draft, setDraft] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { data: chatMessages = [], sendMessage, isLoading: chatLoading } = useCampaignChat(id);
+  const { data: chatMessages = [], sendMessage, isLoading: chatLoading, error: chatError, isError: isChatError } = useCampaignChat(id);
   const pinMutation = usePinChatMessage(id);
   const unpinMutation = useUnpinChatMessage(id);
 
@@ -151,6 +153,29 @@ function CampaignGroupChatPage() {
   const memberCount = campaign?.participants ?? 0;
   const target = campaign?.target ?? 0;
   const progressPercent = target > 0 ? Math.min(100, Math.round((memberCount / target) * 100)) : 0;
+
+  const startTime = campaign?.startTime ? new Date(campaign.startTime) : null;
+  const now = new Date();
+  const withinConfirmWindow =
+    startTime !== null &&
+    now < startTime &&
+    now >= new Date(startTime.getTime() - 24 * 60 * 60 * 1000);
+
+  const signalAttendance = useSignalAttendance(id);
+  const currentStatus = campaign?.currentUserJoinStatus;
+
+  const handleSignal = async (signal: "CONFIRMED" | "MAYBE") => {
+    try {
+      await signalAttendance.mutateAsync(signal);
+      toast.success(
+        signal === "CONFIRMED"
+          ? "Đã xác nhận tham gia chiến dịch!"
+          : "Đã chọn 'Có thể tham gia'."
+      );
+    } catch (err: any) {
+      toast.error(err?.message || "Không thể gửi xác nhận.");
+    }
+  };
 
   const formattedMessages = useMemo(() => {
     return chatMessages.map((msg) => {
@@ -208,8 +233,10 @@ function CampaignGroupChatPage() {
     setDraft("");
   };
 
+  const isForbiddenError = isChatError && (chatError as any)?.status === 403;
+
   // If campaign details are loaded, check if user is authorized (manager or approved participant)
-  if (campaign && !campaign.privateDetailsVisible) {
+  if (isForbiddenError) {
     return (
       <main className="min-h-screen bg-[#F5F7FA] flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white/80 backdrop-blur-md border border-slate-200 shadow-xl rounded-2xl p-6 text-center">
@@ -218,8 +245,7 @@ function CampaignGroupChatPage() {
           </div>
           <h1 className="text-lg font-black text-slate-900 mb-2">Quyền truy cập bị từ chối</h1>
           <p className="text-sm font-semibold text-slate-500 mb-6 leading-relaxed">
-            Bạn không có quyền truy cập nhóm chat này. Chỉ quản trị viên và thành viên đã được duyệt
-            tham gia mới có quyền truy cập.
+            Bạn không có quyền truy cập nhóm chat này. Chỉ quản trị viên và thành viên đã tham gia mới có quyền truy cập.
           </p>
           <Link
             to="/campaigns/$id"
@@ -326,6 +352,44 @@ function CampaignGroupChatPage() {
               >
                 <X size={15} />
               </button>
+            </div>
+          )}
+
+          {withinConfirmWindow && (currentStatus === "APPROVED" || currentStatus === "PENDING") && (
+            <div className="flex shrink-0 flex-col gap-2 border-b border-indigo-100 bg-indigo-50 px-4 py-3 md:px-6 animate-[chatSlideUp_0.2s_ease] sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-xs sm:text-sm text-indigo-800 font-bold">
+                  Chiến dịch sắp khởi chạy. Vui lòng cập nhật khả năng tham gia của bạn.
+                </span>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <button
+                  onClick={() => handleSignal("CONFIRMED")}
+                  disabled={signalAttendance.isPending}
+                  className="text-white bg-[#7C3AED] hover:bg-[#6D28D9] px-3 py-1.5 rounded-lg text-xs font-black shadow-sm cursor-pointer transition active:scale-[0.97] disabled:opacity-50"
+                >
+                  Xác nhận tham gia
+                </button>
+                <button
+                  onClick={() => handleSignal("MAYBE")}
+                  disabled={signalAttendance.isPending}
+                  className="text-slate-700 border border-slate-200 bg-white hover:bg-slate-50 px-3 py-1.5 rounded-lg text-xs font-black shadow-sm cursor-pointer transition active:scale-[0.97] disabled:opacity-50"
+                >
+                  Có thể tham gia
+                </button>
+              </div>
+            </div>
+          )}
+
+          {withinConfirmWindow && currentStatus === "CONFIRMED" && (
+            <div className="flex shrink-0 items-center justify-between border-b border-emerald-100 bg-emerald-50 px-4 py-3 text-xs font-bold text-emerald-800 shadow-sm md:px-6">
+              Bạn đã xác nhận tham gia. Vui lòng chờ cán bộ phường phê duyệt chính thức.
+            </div>
+          )}
+
+          {withinConfirmWindow && currentStatus === "MAYBE" && (
+            <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-slate-100 px-4 py-3 text-xs font-bold text-slate-700 shadow-sm md:px-6">
+              Bạn đã chọn khả năng Có thể tham gia chiến dịch (Không cần duyệt).
             </div>
           )}
 

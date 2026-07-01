@@ -242,6 +242,7 @@ export interface FeedbackResponse {
   trackingCode: string;
   code?: string;
   title: string;
+  publicVisible?: boolean;
   description: string;
   content?: string;
   latitude: number | null;
@@ -299,6 +300,11 @@ export interface PoliceFeedbackResponse {
   updatedAt: string;
   resolutionNote?: string | null;
   rejectionReason?: string | null;
+  priority?: string;
+  citizenName?: string | null;
+  address?: string;
+  wardName?: string;
+  assigneeName?: string | null;
 }
 
 export interface FeedbackAttachmentResponse {
@@ -667,6 +673,12 @@ export const userApi = {
     request<UserProfile>(`/api/users/${id}/status?active=${active}`, {
       method: "PATCH",
     }),
+
+  // SUPER_ADMIN: xóa tài khoản
+  delete: (id: number) =>
+    request<void>(`/api/users/${id}`, {
+      method: "DELETE",
+    }),
 };
 
 export const notificationApi = {
@@ -886,6 +898,7 @@ export interface CampaignParticipantResponse {
   campaignId: number;
   citizenId: number;
   citizenName: string;
+  citizenEmail?: string;
   joinStatus: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "WAITLIST" | "PENDING_CONFIRM" | "NO_SHOW" | "CONFIRMED" | "MAYBE";
   volunteerExperience?: string;
   availabilityHours?: string;

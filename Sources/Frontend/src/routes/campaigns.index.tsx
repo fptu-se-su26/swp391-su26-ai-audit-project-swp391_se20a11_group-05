@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
   CheckCircle2,
@@ -75,6 +75,7 @@ const mockImages = [
 function CampaignList() {
   const campaigns = useCampaignList();
   const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const joinCampaign = useJoinCampaign();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -101,7 +102,7 @@ function CampaignList() {
 
   const canCreate = isAuthenticated && user?.role === Role.WARD_STAFF;
 
-  const handleJoin = async (campaign: Campaign) => {
+  const handleJoin = (campaign: Campaign) => {
     if (!isAuthenticated) {
       toast.error("Vui lòng đăng nhập để tham gia chiến dịch.");
       return;
@@ -110,8 +111,11 @@ function CampaignList() {
       toast.error("Chiến dịch hiện không mở đăng ký.");
       return;
     }
-    await joinCampaign.mutateAsync(campaign.id);
-    toast.success("Đã gửi yêu cầu tham gia, vui lòng chờ người quản lý duyệt.");
+    navigate({
+      to: "/campaigns/$id",
+      params: { id: campaign.id },
+      search: { join: true },
+    });
   };
 
   const stats = [

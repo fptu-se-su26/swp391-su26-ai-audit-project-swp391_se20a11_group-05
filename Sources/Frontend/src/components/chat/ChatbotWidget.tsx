@@ -125,8 +125,8 @@ export function ChatbotWidget() {
 
   if (messages.length > 0) {
     const lastMsg = messages[messages.length - 1];
-    if (lastMsg.role === "assistant" && lastMsg.intent?.emotion) {
-      const emotion = lastMsg.intent.emotion;
+    if (lastMsg.role === "assistant" && (lastMsg.intent as any)?.emotion) {
+      const emotion = (lastMsg.intent as any).emotion;
       if (emotion === "NEGATIVE") {
         chatBgColor = "bg-orange-50/95";
         headerBgColor = "bg-gradient-to-r from-amber-600 to-orange-500";

@@ -24,4 +24,5 @@ public class CampaignParticipantResponse {
     private LocalDateTime approvedAt;
     private LocalDateTime rejectedAt;
     private String rejectionReason;
+    private LocalDateTime confirmedAt;
 }

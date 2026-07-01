@@ -52,7 +52,7 @@ const categoryImages: Record<CampaignCategory, string> = {
 };
 
 const inputClass =
-  "w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/15";
+  "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900 outline-none transition focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/15 shadow-sm";
 
 interface CampaignCreateContentProps {
   onBack?: () => void;
@@ -330,7 +330,7 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
 
   if (!canCreate) {
     return (
-      <section className="mx-auto max-w-2xl rounded-2xl border border-violet-100 bg-white p-8 shadow-md text-left">
+      <section className="mx-auto max-w-2xl rounded-2xl border border-slate-100 bg-white p-8 shadow-md text-left">
         <div className="mb-4 grid h-12 w-12 place-items-center rounded-xl bg-red-50 text-red-600">
           <Lock size={22} />
         </div>
@@ -341,7 +341,7 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
         </p>
         <Link
           to="/campaigns"
-          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#7C3AED] px-4 py-2 text-sm font-bold text-white transition hover:brightness-110"
+          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-indigo-700 active:scale-[0.97]"
         >
           <ArrowLeft size={16} />
           Quay lại danh sách
@@ -353,32 +353,34 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
   return (
     <>
       <form onSubmit={handleSubmit} className="mx-auto max-w-[1280px]">
-      <header className="mb-8 text-left">
-        <div className="mb-3 flex flex-wrap items-center gap-2 text-sm font-bold text-slate-500">
+      <header className="mb-6 flex items-center justify-between border-b border-slate-100 pb-4 text-left">
+        <div className="flex items-center gap-3">
           {onBack ? (
             <button
               type="button"
               onClick={onBack}
-              className="transition hover:text-[#7C3AED] cursor-pointer"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-indigo-600 cursor-pointer shadow-sm"
             >
-              Chiến dịch
+              <ArrowLeft size={16} />
             </button>
           ) : (
-            <Link to="/campaigns" className="transition hover:text-[#7C3AED]">
-              Chiến dịch
+            <Link
+              to="/campaigns"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-indigo-600 shadow-sm"
+            >
+              <ArrowLeft size={16} />
             </Link>
           )}
-          <span>/</span>
-          <span className="text-[#7C3AED]">Tạo chiến dịch mới</span>
-      </div>
-      <h1 className="flex items-center gap-3 text-3xl font-black tracking-tight text-slate-950">
-        Tạo chiến dịch mới
-      </h1>
-    </header>
+          <div>
+            <h1 className="text-xl font-black tracking-tight text-slate-950">Tạo chiến dịch mới</h1>
+            <p className="text-xs font-semibold text-slate-500">Thiết lập các thông tin hoạt động cộng đồng</p>
+          </div>
+        </div>
+      </header>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,60fr)_minmax(320px,40fr)] text-left">
         <div className="space-y-6">
-          <section className="rounded-2xl border border-violet-100 bg-white p-7 shadow-md">
+          <section className="rounded-2xl border border-slate-100 bg-white p-7 shadow-md">
             <SectionTitle
               number="1"
               title="Thông tin chung"
@@ -387,7 +389,7 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
 
             <div className="mt-5">
               <span className="mb-2 flex items-center gap-2 text-sm font-black text-slate-800">
-                <Camera size={15} className="text-[#7C3AED]" />
+                <Camera size={15} className="text-indigo-600" />
                 Hình ảnh chiến dịch (Tối đa 5 ảnh, ảnh đầu tiên làm ảnh bìa)
               </span>
               
@@ -398,7 +400,7 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
                       <img src={preview} alt={`Preview ${index}`} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
                       
                       {index === 0 && (
-                        <span className="absolute left-2 top-2 rounded-lg bg-[#7C3AED] px-2 py-0.5 text-[10px] font-extrabold text-white shadow-md">
+                        <span className="absolute left-2 top-2 rounded-lg bg-indigo-600 px-2 py-0.5 text-[10px] font-extrabold text-white shadow-md">
                           Ảnh bìa
                         </span>
                       )}
@@ -414,7 +416,7 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
                   ))}
                   
                   {photoPreviews.length < 5 && (
-                    <label className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-violet-200 bg-[#F8F7FF] transition hover:border-[#7C3AED] hover:bg-[#F3F0FF]">
+                    <label className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50/20 transition hover:border-indigo-600 hover:bg-indigo-50/50">
                       <input
                         type="file"
                         accept="image/*"
@@ -422,14 +424,14 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
                         className="sr-only"
                         onChange={(event) => handlePhotosUpload(event.target.files)}
                       />
-                      <Camera size={20} className="text-[#7C3AED] mb-1" />
+                      <Camera size={20} className="text-indigo-600 mb-1" />
                       <span className="text-[11px] font-black text-slate-700">Thêm ảnh</span>
                     </label>
                   )}
                 </div>
               ) : (
                 <label
-                  className="block cursor-pointer rounded-2xl border-2 border-dashed border-violet-200 bg-[#F8F7FF] p-6 transition hover:border-[#7C3AED]"
+                  className="block cursor-pointer rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50/20 p-6 transition hover:border-indigo-600"
                   onDragOver={(event) => event.preventDefault()}
                   onDrop={(event) => {
                     event.preventDefault();
@@ -445,7 +447,7 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
                   />
                   <div className="grid aspect-[16/9] place-items-center rounded-xl bg-white text-center">
                     <div>
-                      <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-[#F3F0FF] text-[#7C3AED]">
+                      <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-indigo-50 text-indigo-600">
                         <Camera size={22} />
                       </div>
                       <p className="mt-3 text-sm font-black text-slate-800">
@@ -511,7 +513,7 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
             </div>
           </section>
 
-          <section className="rounded-2xl border border-violet-100 bg-white p-7 shadow-md">
+          <section className="rounded-2xl border border-slate-100 bg-white p-7 shadow-md">
             <SectionTitle
               number="2"
               title="Lịch và địa điểm"
@@ -666,7 +668,7 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
               </Field>
             </div>
 
-            <div className="mt-5 overflow-hidden rounded-2xl border border-violet-100">
+            <div className="mt-5 overflow-hidden rounded-2xl border border-slate-100">
               <CampaignLocationPicker
                 coordinates={selectedCoordinates}
                 radius={Number(radiusText) || 0}
@@ -717,11 +719,11 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
             </div>
           </section>
 
-          <footer className="flex rounded-2xl border border-violet-100 bg-white p-4 shadow-md justify-end">
+          <footer className="flex rounded-2xl border border-slate-100 bg-white p-4 shadow-md justify-end">
             <button
               type="submit"
               disabled={isLoading || isUploading || isDurationError}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#7C3AED] px-5 text-sm font-black text-white shadow-md transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 text-sm font-black text-white shadow-md transition hover:bg-indigo-700 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
             >
               <Send size={16} />
               {isLoading || isUploading ? "Đang tạo..." : "Tạo chiến dịch"}
@@ -736,7 +738,7 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
           <HelperCard title="Quy trình" icon={ShieldCheck}>
             <div className="space-y-3">
               <ProcessStep
-                color="bg-[#7C3AED]"
+                color="bg-indigo-600"
                 label="Tạo chiến dịch"
                 text="Hoàn thành biểu mẫu và tạo chiến dịch."
               />
@@ -758,7 +760,7 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
           </HelperCard>
 
           <HelperCard title="Xem trước" icon={Eye}>
-            <div className="overflow-hidden rounded-xl border border-violet-100 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm">
               <div className="relative aspect-video bg-slate-100">
                 <img
                   src={previewImage}
@@ -838,9 +840,9 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" 
             onClick={() => setShowConfirmDialog(false)}
           />
-          <div className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white p-6 shadow-2xl border border-violet-100 animate-in fade-in zoom-in-95 duration-200 text-left animate-fade-in">
+          <div className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-200 text-left animate-fade-in">
             <div className="flex flex-col items-center text-center">
-              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-violet-50 text-[#7C3AED] mb-4">
+              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-indigo-50 text-indigo-600 mb-4">
                 <HelpCircle size={28} />
               </div>
               <h3 className="text-lg font-black text-slate-900">Xác nhận tạo chiến dịch</h3>
@@ -861,7 +863,7 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
               <button
                 type="button"
                 onClick={performSubmit}
-                className="inline-flex h-11 items-center justify-center rounded-xl bg-[#7C3AED] px-5 text-sm font-black text-white shadow-md transition hover:brightness-110 cursor-pointer"
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-indigo-600 px-5 text-sm font-black text-white shadow-md transition hover:bg-indigo-700 active:scale-[0.97] cursor-pointer"
               >
                 Đồng ý xác nhận
               </button>
@@ -924,7 +926,7 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
                     }
                   }
                 }}
-                className="flex-1 inline-flex h-11 items-center justify-center rounded-xl bg-[#7C3AED] text-sm font-black text-white shadow-md transition hover:brightness-110 cursor-pointer order-1 sm:order-2"
+                className="flex-1 inline-flex h-11 items-center justify-center rounded-xl bg-indigo-600 text-sm font-black text-white shadow-md transition hover:bg-indigo-700 active:scale-[0.97] cursor-pointer order-1 sm:order-2"
               >
                 Xem chi tiết
               </button>
@@ -949,7 +951,7 @@ function SectionTitle({
 }) {
   return (
     <div className="flex items-start gap-3 border-b border-slate-100 pb-4">
-      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#F3F0FF] text-sm font-black text-[#7C3AED]">
+      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-indigo-50 text-sm font-black text-indigo-600">
         {Icon ? <Icon size={17} /> : number}
       </div>
       <div>
@@ -970,9 +972,9 @@ function HelperCard({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-violet-100 bg-white p-6 shadow-lg">
+    <section className="rounded-2xl border border-slate-100 bg-white p-6 shadow-lg">
       <h3 className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-wider text-slate-500">
-        <Icon size={17} className="text-[#7C3AED]" />
+        <Icon size={17} className="text-indigo-600" />
         {title}
       </h3>
       {children}
@@ -1007,7 +1009,7 @@ function Field({
   return (
     <label className="block">
       <span className="mb-2 flex items-center gap-2 text-sm font-black text-slate-800">
-        {Icon && <Icon size={15} className="text-[#7C3AED]" />}
+        {Icon && <Icon size={15} className="text-indigo-600" />}
         {label}
         {required && <span className="text-red-500">*</span>}
       </span>
@@ -1159,7 +1161,7 @@ function CampaignLocationPicker({
                 }}
                 className={`w-full text-left px-3 py-2 text-xs transition ${
                   mapLayerType === "osm"
-                    ? "bg-violet-50 text-[#7C3AED] font-extrabold"
+                    ? "bg-indigo-50 text-indigo-600 font-extrabold"
                     : "text-slate-700 hover:bg-slate-50 font-semibold"
                 }`}
               >
@@ -1173,7 +1175,7 @@ function CampaignLocationPicker({
                 }}
                 className={`w-full text-left px-3 py-2 text-xs transition ${
                   mapLayerType === "satellite"
-                    ? "bg-violet-50 text-[#7C3AED] font-extrabold"
+                    ? "bg-indigo-50 text-indigo-600 font-extrabold"
                     : "text-slate-700 hover:bg-slate-50 font-semibold"
                 }`}
               >
@@ -1216,9 +1218,9 @@ function CampaignLocationPicker({
             center={position}
             radius={radius}
             pathOptions={{
-              color: "#7C3AED",
+              color: "#4F46E5",
               weight: 2.5,
-              fillColor: "#7C3AED",
+              fillColor: "#4F46E5",
               fillOpacity: 0.12,
             }}
           />

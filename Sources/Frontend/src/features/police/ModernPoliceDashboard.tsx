@@ -32,8 +32,8 @@ import {
 import policeEmblemImg from "@/assets/police-emblem.png";
 
 const HeatmapMap = clientOnly(() =>
-  import("@/components/site/HeatmapMap").then((m) => ({ default: m.HeatmapMap })),
-);
+  import("@/components/site/HeatmapMap").then((m) => ({ default: m.HeatmapMap })) as any,
+) as any;
 
 // Design System Colors mapping to Tailwind arbitrary values
 const colors = {
@@ -175,7 +175,7 @@ export function ModernPoliceDashboard() {
       .filter((f) => f.status !== "RESOLVED" && f.status !== "REJECTED")
       .sort((a, b) => {
         const priorityScore = (p: string) => (p === "CRITICAL" ? 3 : p === "HIGH" ? 2 : 1);
-        const diff = priorityScore(b.priority) - priorityScore(a.priority);
+        const diff = priorityScore(b.priority || "") - priorityScore(a.priority || "");
         if (diff !== 0) return diff;
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       })

@@ -43,8 +43,8 @@ import {
 
 // Lazy load CivicMap to prevent SSR issues with Leaflet
 const CivicMap = clientOnly(() =>
-  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
-);
+  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
+) as any;
 
 function getInitials(name?: string | null) {
   if (!name) return "?";
@@ -1127,7 +1127,7 @@ export function FeedbackDetailPageComponent({
                                 {actorName}
                               </span>
                               <span className="px-2 py-0.5 text-[10px] font-extrabold tracking-wide uppercase rounded-md bg-slate-100 text-slate-500 border border-slate-200">
-                                {translateRole(log.actorRole || log.actionByRole)}
+                                {translateRole(log.actorRole || (log as any).actionByRole)}
                               </span>
                             </div>
                             <span className="text-[10px] font-medium text-slate-400 shrink-0">

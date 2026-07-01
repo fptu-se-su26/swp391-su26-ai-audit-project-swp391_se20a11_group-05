@@ -347,8 +347,8 @@ export function useDeleteCampaign() {
 
       return { previousCampaignQueries };
     },
-    onError: (_error, _id, context) => {
-      context?.previousCampaignQueries.forEach(([queryKey, previousPage]) => {
+    onError: (_error, _id, context: any) => {
+      context?.previousCampaignQueries?.forEach(([queryKey, previousPage]: [any, any]) => {
         queryClient.setQueryData(queryKey, previousPage);
       });
     },

@@ -51,8 +51,8 @@ import { WardProfileConfigPage } from "./WardProfileConfigPage";
 import { WardStatisticsPage } from "./WardStatisticsPage";
 
 const CivicMap = clientOnly(() =>
-  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
-);
+  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
+) as any;
 
 import { WARD_CENTERS } from "@/lib/geojson";
 
@@ -1150,10 +1150,10 @@ export function WardDashboard() {
                           activeMarkerId={selectedFeedbackId || undefined}
                           layerType={mapLayerType}
                           detailUrlTemplate="/ward?tab=feedback&detailId=:id"
-                          onMarkerClick={(id) => {
+                          onMarkerClick={(id: any) => {
                             setSelectedFeedbackId(Number(id));
                           }}
-                          onViewportChange={(center, zoom) => {
+                          onViewportChange={(center: any, zoom: any) => {
                             setMapCenterState(center);
                             setMapZoomState(zoom);
                           }}

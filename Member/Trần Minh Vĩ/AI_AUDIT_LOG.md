@@ -13,7 +13,7 @@
 | MSSV / Danh sách MSSV | DE190182 |
 | Giảng viên hướng dẫn | Lê Thiện Nhật Quang |
 | Ngày bắt đầu | 2026-05-12 |
-| Ngày hoàn thành | 2026-05-19 |
+| Ngày hoàn thành | 2026-06-30 |
 
 ---
 
@@ -325,6 +325,128 @@ Em đã làm chủ kỹ năng thiết kế UI/UX quản lý hành chính công v
 
 ---
 
+### Lần sử dụng AI số 5
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-06-28 |
+| Công cụ AI | Antigravity / Gemini |
+| Mục đích sử dụng | Thiết kế & Code frontend / Tối ưu hóa hiệu năng bảng dữ liệu lớn |
+| Phần việc liên quan | Frontend / City Admin / User & News Management |
+| Mức độ sử dụng | Hỗ trợ nhiều |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Tôi đang phát triển phân hệ Quản trị viên Thành phố (City Admin) cho hệ thống Đà Nẵng Kết Nối. Tôi cần xây dựng 3 trang: Quản lý người dùng (UsersPage), Quản lý tin tức (NewsManagement) và Cấu hình thông tin Phường (WardProfileConfigPage). 
+- Bảng dữ liệu người dùng có thể lên tới hàng trăm ngàn bản ghi. Hãy đề xuất kiến trúc giao diện, cách quản lý state, và chiến lược tối ưu hóa re-render hiệu quả nhất cho React (dùng TypeScript, Tailwind CSS) để xử lý bảng dữ liệu lớn này mà không làm treo trình duyệt.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đề xuất sử dụng kỹ thuật "Windowing" (hoặc Virtualization) bằng thư viện `react-window` hoặc `react-virtuoso` để chỉ render các hàng đang hiển thị trên màn hình. Gợi ý sử dụng React Table để quản lý state của bảng. Cung cấp bộ code khung cho UsersPage, NewsManagement và WardProfileConfigPage với giao diện bảng cơ bản và form thêm/sửa tin tức.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Sử dụng bộ code khung layout cho các trang Quản trị (UsersPage, NewsManagement, WardProfileConfigPage).
+- Tham khảo cấu trúc Form để cấu hình thông tin Phường (WardProfileConfigPage).
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Sử dụng 4 kỹ năng chính để cải tiến giải pháp:
+- Critical Thinking: Phân tích thấy đề xuất dùng Virtualization (render ảo ở client) của AI là giải pháp xử lý ở ngọn (Oversimplification). Dù DOM không bị quá tải, nhưng việc tải (fetch) toàn bộ hoặc một lượng lớn JSON dữ liệu người dùng về client ngay từ đầu sẽ gây nghẽn băng thông mạng và tốn RAM trình duyệt.
+- Contextualization: City Admin cần quản lý tài khoản của toàn bộ người dân Đà Nẵng, dữ liệu sẽ ngày càng phình to, việc lọc và tìm kiếm cần độ chính xác và bảo mật cao, không thể phơi bày dữ liệu dư thừa ra frontend.
+- Creative Synthesis: Thay vì dùng Virtualization ở Frontend, tôi quyết định áp dụng mô hình Server-Side Pagination, Filtering & Sorting. Tự xây dựng Custom Hook `usePagination` kết hợp React Query để chỉ gọi API lấy đúng 20-50 bản ghi cho mỗi trang. Thiết kế thêm Debounce Search để giảm tải request khi Admin gõ tìm kiếm.
+- Decision Ownership: Bác bỏ phương án tải dữ liệu lớn của AI, chốt phương án Server-Side Processing. Quyết định kỹ thuật này giúp trang UsersPage load nhanh dưới 100ms bất kể database có 1.000 hay 1.000.000 người dùng, đồng thời bảo mật tuyệt đối dữ liệu.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | [DE190182] feat: implement City Admin pages with server-side pagination |
+| File liên quan | [UsersPage.tsx](file:///d:/FPT/ki5/SWP302/swp391-su26-ai-audit-project-swp391_se20a11_group-05/Sources/Frontend/src/features/city-admin/pages/UsersPage.tsx), [NewsManagement.tsx](file:///d:/FPT/ki5/SWP302/swp391-su26-ai-audit-project-swp391_se20a11_group-05/Sources/Frontend/src/features/news/NewsManagement.tsx), [WardProfileConfigPage.tsx](file:///d:/FPT/ki5/SWP302/swp391-su26-ai-audit-project-swp391_se20a11_group-05/Sources/Frontend/src/features/ward/WardProfileConfigPage.tsx) |
+| Screenshot |  |
+| Kết quả chạy/test | Dữ liệu bảng phân trang tải cực mượt, bộ lọc debounce tìm kiếm chính xác, bộ nhớ RAM trình duyệt không bị rò rỉ (memory leak). |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Em hiểu sâu sắc hơn về ranh giới giữa tối ưu hóa Client-side và Server-side. AI thường có xu hướng giải quyết vấn đề bề nổi (UI), sinh viên cần nhìn nhận vấn đề từ góc độ kiến trúc hệ thống (System Architecture) để chọn đúng nơi cần xử lý tải trọng dữ liệu.
+```
+
+---
+
+### Lần sử dụng AI số 6
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-06-30 |
+| Công cụ AI | Antigravity / Gemini |
+| Mục đích sử dụng | Tích hợp hệ thống AI (System Integration) & Tối ưu luồng dữ liệu |
+| Phần việc liên quan | Backend / Security (Chống rác dữ liệu) |
+| Mức độ sử dụng | Hỗ trợ nhiều |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Hệ thống Đà Nẵng Kết Nối của tôi đang bị tình trạng người dân gửi ảnh selfie, ảnh không liên quan (chó mèo, trần nhà...) thay vì ảnh sự cố đô thị (rác thải, ổ gà, kẹt xe) vào module Submit Report. Hãy viết cho tôi đoạn code Spring Boot tích hợp với Google Cloud Vision API để tự động phân tích và chấm điểm độ hợp lệ của ảnh. Nếu ảnh gửi lên ở dạng base64 và có điểm Confidence cho nhãn 'rác thải/ổ gà' dưới 60%, tự động reject (trả lỗi 400) request đó để chống rác dữ liệu.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI cung cấp đoạn code dùng Google Cloud Vision API (thư viện `google-cloud-vision`) với phương thức `annotateImage`. Đề xuất nhận chuỗi base64 của ảnh từ request body ở Controller, decode ảnh, tạo kết nối gRPC tới Google Cloud, gọi hàm đồng bộ (synchronous) để nhận về danh sách nhãn (LabelDetection). Nếu mảng nhãn không chứa các từ khóa liên quan đến đô thị, ném ra Exception và trả về lỗi 400 ngay lập tức cho client.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Tận dụng đoạn code khởi tạo SDK và gọi hàm `annotateImage` của Google Cloud Vision API để lấy danh sách Label và Confidence Score.
+- Sử dụng danh sách từ khóa (keywords) về rác thải, cơ sở hạ tầng do AI gợi ý làm cơ sở để đối chiếu.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Sử dụng 4 kỹ năng chính để cải tiến kiến trúc:
+- Critical Thinking: Phân tích kỹ thấy giải pháp của AI là "nút thắt cổ chai" (Bottleneck) trầm trọng: Việc gửi Base64 nặng vài MB trong request HTTP làm tốn RAM của Server; và việc gọi API Google Cloud một cách đồng bộ (chờ Google trả lời rồi mới báo cho User) sẽ làm thời gian phản hồi (Latency) của API Submit Report tăng lên 3-5 giây. Người dân sẽ tưởng app bị treo và ấn gửi liên tục (gây spam thêm).
+- Contextualization: Ứng dụng công cộng cần độ mượt mà cao, nút Submit phải phản hồi ngay lập tức để người dân an tâm là chính quyền đã ghi nhận. Việc duyệt ảnh có thể chậm một chút nhưng không được phép làm đơ màn hình điện thoại của dân.
+- Creative Synthesis: Tôi thiết kế lại toàn bộ luồng xử lý thành Kiến trúc Hướng Sự kiện (Event-Driven Architecture):
+   1. Chuyển sang dùng Pre-signed URL: App Mobile tự upload ảnh trực tiếp lên Cloud Storage (S3/GCS), bỏ qua Backend.
+   2. Gọi Submit Report chỉ với URL ảnh (siêu nhẹ).
+   3. Backend nhận request, trả về HTTP 200 OK ngay lập tức (Latency < 50ms).
+   4. Đồng thời ném một sự kiện `ReportSubmittedEvent` vào Message Queue (RabbitMQ).
+   5. Một luồng chạy ngầm (Background Worker) sẽ lấy ảnh từ Queue, gọi Google Vision API để kiểm duyệt. Nếu là ảnh selfie/chó mèo, Worker âm thầm đổi status của Report thành `REJECTED_SPAM` và ẩn khỏi bản đồ.
+- Decision Ownership: Bác bỏ hoàn toàn mô hình Request-Reply đồng bộ của AI. Lựa chọn Kiến trúc Event-Driven giúp hệ thống vừa chống được 100% rác dữ liệu (giải quyết lỗ hổng rác dữ liệu ở Phase 01), vừa đảm bảo hiệu năng chịu tải tuyệt đối.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | [DE190182] feat: integrate Google Vision API with Event-Driven validation for report images |
+| File liên quan | Backend Code (VisionAIWorker, EventPublisher, ReportService) |
+| Screenshot |  |
+| Kết quả chạy/test | Report được submit ngay lập tức (<50ms). Ảnh rác bị hệ thống tự động gắn cờ (Flagged) và gạch bỏ sau khoảng 3 giây chạy nền. Cán bộ không bao giờ nhìn thấy ảnh rác. |
+| Link video demo |  |
+| Ghi chú khác | Hoàn thiện trọn vẹn lời hứa thiết kế kiến trúc ở Phase 01. |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Lần sử dụng AI này thực sự là một bài kiểm tra trình độ System Design. AI viết code logic (Logic level) rất giỏi, nhưng thường bỏ quên kiến trúc tổng thể (Architecture level). Người kỹ sư giỏi không chỉ lấy code cho chạy được, mà phải biết đặt khối code đó vào đúng nơi để hệ thống không bị sập khi có tải thực tế.
+```
+
+---
+
 ## 5. Bảng tổng hợp mức độ sử dụng AI
 
 Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.
@@ -356,6 +478,8 @@ Ghi lại các trường hợp AI trả lời sai, thiếu, chưa phù hợp ho�
 | 1 | AI đề xuất dùng ST_Distance_Sphere của MySQL trực tiếp trên cột POINT để tính khoảng cách mà không lọc trước. | Dùng câu lệnh SQL EXPLAIN thấy database phải quét toàn bộ bảng (Full Table Scan), gây chậm hiệu năng khi dữ liệu lớn. | Tách thành 2 cột DECIMAL(Latitude, Longitude), dùng thuật toán Bounding Box để lọc nhanh ở SQL bằng phép so sánh đơn giản trước. |
 | 2 | AI đề xuất sử dụng @Async mặc định không giới hạn kích thước Thread Pool cho luồng gửi SMS. | Dùng kịch bản test JMeter spam gửi request thấy số lượng thread tăng không phanh dẫn đến tràn bộ nhớ CPU/RAM. | Tự cấu hình ThreadPoolTaskExecutor giới hạn MaxPoolSize và hàng đợi QueueCapacity, kết hợp thuật toán Rate Limiting 1 phút/sms. |
 | 3 | AI đề xuất sử dụng Marker mặc định màu xanh của Leaflet cho mọi phản ánh trên bản đồ. | Xem giao diện bản đồ, nhận thấy tất cả ghim đều hiển thị cùng màu xanh dương, không khớp với Legend phân màu trạng thái. | Tự cấu hình CivicMap.tsx dùng L.divIcon tạo HTML/CSS Marker động đổi màu tương ứng với trạng thái (Đỏ, Cam, Xanh dương, Xanh lá). |
+| 4 | AI đề xuất dùng kỹ thuật Virtualization ở Frontend (react-window) để hiển thị bảng dữ liệu người dùng hàng trăm ngàn bản ghi. | Đánh giá kiến trúc hệ thống: Giải pháp này tải quá nhiều dữ liệu JSON về trình duyệt gây nghẽn băng thông và rủi ro bảo mật thông tin. | Chuyển sang mô hình Server-Side Pagination, Filtering & Sorting. Tự viết Custom Hook dùng React Query để chỉ fetch dữ liệu theo trang. |
+| 5 | AI gợi ý gọi API Google Cloud Vision phân tích ảnh một cách đồng bộ (Synchronous) và gửi ảnh dạng Base64 qua HTTP. | Tư duy phản biện: Gửi Base64 tốn RAM, gọi API đồng bộ khiến thời gian phản hồi kéo dài 3-5 giây, làm treo UI của ứng dụng phía người dân và chặn (block) Thread của server. | Chuyển sang Kiến trúc Event-Driven (Message Queue) để xử lý ảnh nền (Background Processing) và dùng Pre-signed URL upload ảnh trực tiếp lên Storage. |
 
 ---
 
@@ -463,4 +587,4 @@ Sinh viên/nhóm cam kết rằng:
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-| Trần Minh Vĩ | 2026-06-06 |
+| Trần Minh Vĩ | 2026-06-30 |

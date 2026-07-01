@@ -42,4 +42,6 @@ public class FeedbackRequest {
     private String categoryCode;
 
     private Long wardId;
+
+    private Boolean publicVisible;
 }

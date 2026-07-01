@@ -310,26 +310,7 @@ function ReportDetail() {
       position: mapCenter,
       title: report.title,
       description: report.description || report.content,
-      status: "inProgress" as const,
-    },
-    // Nearby reports to show "Nearby reports" on the map
-    {
-      position: [reportLat + 0.0012, reportLng + 0.0015] as [number, number],
-      title: isVi ? "Rác thải không được thu gom" : "Trash pile not collected",
-      description: isVi ? "Rác thải sinh hoạt ùn ứ lâu ngày" : "Household waste accumulated",
-      status: "pending" as const,
-    },
-    {
-      position: [reportLat - 0.0016, reportLng - 0.002] as [number, number],
-      title: isVi ? "Rác thải đổ tràn vỉa hè" : "Trash scattered on pavement",
-      description: isVi ? "Xà bần đổ tràn lan" : "Construction debris scattered",
-      status: "resolved" as const,
-    },
-    {
-      position: [reportLat + 0.0007, reportLng - 0.0018] as [number, number],
-      title: isVi ? "Mùi hôi từ rác thải" : "Foul smell from trash",
-      description: isVi ? "Mùi hôi bốc lên từ cống thoát nước" : "Odor from garbage dump",
-      status: "pending" as const,
+      status: report.status,
     },
   ];
 
@@ -604,7 +585,10 @@ function ReportDetail() {
       linkedFeedbackId: report?.id,
       linkedFeedbackCode: report?.trackingCode,
       linkedFeedbackTitle: report?.title,
+      wardId: user?.wardId ?? undefined,
       wardName: report?.wardName ?? undefined,
+      latitude: report?.latitude ?? undefined,
+      longitude: report?.longitude ?? undefined,
     }).then(() => {
       setShowCreateCampaignModal(false);
       // linkedCampaign sẽ tự cập nhật qua useEffect + onCampaignsChanged
@@ -925,7 +909,7 @@ function ReportDetail() {
                     {isVi ? "Bản đồ vị trí sự cố" : "Incident Map Location"}
                   </h3>
 
-                  <div className="relative rounded-xl overflow-hidden border border-slate-100 flex-1 h-[240px] md:h-[260px] shadow-sm">
+                  <div className="relative z-0 rounded-xl overflow-hidden border border-slate-100 flex-1 h-[240px] md:h-[260px] shadow-sm">
                     <Suspense
                       fallback={
                         <div className="w-full h-full bg-slate-50 animate-pulse flex items-center justify-center text-slate-400 text-xs font-semibold">
@@ -945,10 +929,7 @@ function ReportDetail() {
                   </div>
                 </div>
 
-                <div className="pt-3 flex items-center justify-between">
-                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
-                    {isVi ? "Khu vực giám sát" : "Surveillance Area"}
-                  </span>
+                <div className="pt-3 flex items-center justify-end">
                   <a
                     href={`https://www.google.com/maps/search/?api=1&query=${reportLat},${reportLng}`}
                     target="_blank"
@@ -1233,16 +1214,7 @@ function ReportDetail() {
                     (isVi ? "UBND phường Hòa Xuân" : "Hoa Xuan Ward People's Committee")
                   }
                 />
-                <DetailRow
-                  icon={UserRound}
-                  label={isVi ? "Cán bộ phụ trách" : "Assigned Officer"}
-                  value={
-                    report.assigneeName ||
-                    (isVi
-                      ? "Nguyễn Văn D - Tổ trưởng Tổ quản lý đô thị số 3"
-                      : "Nguyen Van D - Head of Urban Management Team 3")
-                  }
-                />
+
               </div>
             </div>
 

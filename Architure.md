@@ -8,7 +8,7 @@
 
 ## 1. Tong Quan Repo
 
-Ten du an: The Listening City / SmartCity
+Ten du an: The City Connection / SmartCity
 
 Muc tieu: nen tang tiep nhan phan anh do thi, phan quyen xu ly theo vai tro
 cong dan, can bo phuong, cong an va quan tri cap thanh pho. Du an co them cac

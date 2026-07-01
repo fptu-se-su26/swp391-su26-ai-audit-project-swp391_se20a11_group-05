@@ -35,9 +35,20 @@ function NotFoundComponent() {
             : "The page you're looking for doesn't exist or has been moved."}
         </p>
         <div className="flex flex-wrap justify-center gap-3">
-          <Link to="/" className="btn-civic btn-civic-primary">
+          <a
+            href={(() => {
+              if (typeof window !== "undefined") {
+                const path = window.location.pathname;
+                if (path.startsWith("/ward")) return "/ward";
+                if (path.startsWith("/city-admin")) return "/city-admin";
+                if (path.startsWith("/police")) return "/police";
+              }
+              return "/";
+            })()}
+            className="btn-civic btn-civic-primary"
+          >
             {locale === "vi" ? "Về trang chủ" : "Go home"}
-          </Link>
+          </a>
           <a href="/report" className="btn-civic btn-civic-ghost">
             {locale === "vi" ? "Gửi phản ánh" : "Submit report"}
           </a>
@@ -80,7 +91,18 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           >
             Thử lại
           </button>
-          <a href="/" className="btn-civic btn-civic-ghost">
+          <a
+            href={(() => {
+              if (typeof window !== "undefined") {
+                const path = window.location.pathname;
+                if (path.startsWith("/ward")) return "/ward";
+                if (path.startsWith("/city-admin")) return "/city-admin";
+                if (path.startsWith("/police")) return "/police";
+              }
+              return "/";
+            })()}
+            className="btn-civic btn-civic-ghost"
+          >
             Về trang chủ
           </a>
         </div>

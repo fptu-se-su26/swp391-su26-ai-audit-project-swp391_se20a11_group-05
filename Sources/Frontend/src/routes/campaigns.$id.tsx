@@ -221,8 +221,8 @@ export function CampaignDetailPageComponent({
           latitude: editLatitude ?? undefined,
           longitude: editLongitude ?? undefined,
           boundaryGeojson: campaign?.boundaryGeojson ?? undefined,
-          coverImageUrl: nextImageUrls[0] || undefined,
-          imageUrls: nextImageUrls,
+          coverImageUrl: campaign?.coverImageUrl || undefined,
+          imageUrls: campaign?.imageUrls || undefined,
         },
       });
       toast.success("Cập nhật chiến dịch thành công.");

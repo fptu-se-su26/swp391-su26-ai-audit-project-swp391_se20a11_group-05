@@ -38,6 +38,13 @@ import {
   Shield,
   Store,
   Grid,
+  Users,
+  LogIn,
+  FileText,
+  Image as ImageIcon,
+  SendHorizontal,
+  ClipboardCheck,
+  X,
   PenLine,
   Send,
   CheckCircle2,
@@ -50,7 +57,6 @@ import {
   Clock,
   HeartHandshake,
   Rocket,
-  Users,
 } from "lucide-react";
 import { lazy, Suspense, useState, useEffect } from "react";
 import { staticNews, staticFaqs } from "@/lib/static-content";
@@ -1143,7 +1149,7 @@ function HomePage() {
                   >
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[10px] font-bold uppercase tracking-wider font-sans">
-                        {campaign.category === "traffic" ? "Giao thông" : campaign.category === "fire_safety" ? "PCCC" : campaign.category === "public_safety" ? "An ninh" : "Cộng đồng"}
+                        {campaign.category === "infrastructure" ? "Hạ tầng" : campaign.category === "fire_safety" ? "PCCC" : campaign.category === "public_safety" ? "An ninh" : "Cộng đồng"}
                       </span>
                       <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 flex items-center gap-1">
                         <Users size={12} />
@@ -1612,7 +1618,7 @@ const GUIDE_STEPS: GuideStep[] = [
     bg: "#FFF7ED",
   },
   {
-    icon: Image,
+    icon: ImageIcon,
     title: { vi: "Bước 4: Đính kèm hình ảnh/video", en: "Step 4: Attach photos/videos" },
     desc: {
       vi: "Chụp ảnh hoặc quay video hiện trường để minh chứng. Hệ thống hỗ trợ tối đa 5 file ảnh/video cho mỗi phản ánh.",
@@ -1622,7 +1628,7 @@ const GUIDE_STEPS: GuideStep[] = [
     bg: "#FDF2F8",
   },
   {
-    icon: MapPinned,
+    icon: MapPin,
     title: { vi: "Bước 5: Xác định vị trí", en: "Step 5: Pin the location" },
     desc: {
       vi: "Nhấn vào bản đồ để đánh dấu vị trí xảy ra sự việc, hoặc nhập địa chỉ cụ thể. Vị trí chính xác giúp cơ quan chức năng xử lý nhanh hơn.",
@@ -1632,7 +1638,7 @@ const GUIDE_STEPS: GuideStep[] = [
     bg: "#F0FDF4",
   },
   {
-    icon: SendHorizonal,
+    icon: SendHorizontal,
     title: { vi: "Bước 6: Gửi phản ánh", en: "Step 6: Submit the report" },
     desc: {
       vi: "Kiểm tra lại thông tin và nhấn \"Gửi phản ánh\". Hệ thống sẽ cấp mã theo dõi để bạn tra cứu tình trạng xử lý.",

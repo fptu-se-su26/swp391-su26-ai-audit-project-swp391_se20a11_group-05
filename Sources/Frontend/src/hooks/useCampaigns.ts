@@ -679,7 +679,7 @@ export function useCampaignChat(campaignId: string) {
         imageUrls: imageUrls || [],
         pinned: false,
         createdAt: new Date().toISOString(),
-        status: "sending",
+        status: "sending" as const,
       };
 
       queryClient.setQueryData<InfiniteData<CampaignChatMessageResponse[]>>(
@@ -703,7 +703,7 @@ export function useCampaignChat(campaignId: string) {
           const newPages = old.pages.map((page) =>
             page.map((m) => {
               if (m.id === context?.tempId) {
-                return { ...m, status: "failed" };
+                return { ...m, status: "failed" as const };
               }
               return m;
             })

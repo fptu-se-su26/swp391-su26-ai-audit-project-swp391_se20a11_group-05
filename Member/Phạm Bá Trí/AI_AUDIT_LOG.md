@@ -299,6 +299,21 @@
 
 ---
 
+### Entry #: 020
+**Prompt Type:** REFACTORING & ARCHITECTURE-DESIGN
+**Stage/Component:** Coding / Tái cấu trúc module & làm mượt giao diện chatbot
+**Problem/Context:** Phần code chatbot ban đầu bị để lộn xộn, API nằm ở bên folder `rag` làm phá vỡ cấu trúc chia module (Modular Monolith) của nhóm. Giao diện chatbot cũ thì hơi đơ, không có gợi ý từ khóa, không dừng hay sửa tin nhắn được, lịch sử chat cũng bị lỗi không hiện đúng.
+**Prompt to AI:** "giải quyết mấy cái này đi . Đánh giá: Dự án có theo ĐÚNG chuẩn Modular Monolith không? ... và sửa đổi đồng bộ sessionId trong FloatingChatbot"
+**AI Response (Summary):** AI chỉ cách chuyển API chatbot sang một file Controller mới trong thư mục `modules/chatbot`, cấu hình lại file bảo mật SecurityConfig và file gọi API của Frontend. AI cũng code thêm chức năng gợi ý từ khóa Autocomplete, nút dừng stream tin nhắn, nút sửa câu hỏi khi di chuột vào, và lưu session ID của chatbot nổi vào bộ nhớ trình duyệt.
+
+**Human Delta & Reflection:**
+- **Critical Thinking:** Mình phát hiện ra câu lệnh SQL lấy lịch sử chat bị lỗi GROUP BY cả cột tên session nên danh sách sidebar bị tách thành nhiều dòng khác nhau. Mình đã yêu cầu AI sửa lại câu query chỉ gom nhóm theo cột ID session và lấy tên session cũ ra để hiển thị cho gọn.
+- **Contextualization:** Dự án của nhóm đang làm theo kiểu Modular Monolith (chia theo tính năng), việc để code chatbot dính vào folder RAG sẽ làm code bị chồng chéo, sau này rất khó sửa. Việc tách riêng API chatbot về đúng module của nó giúp code sạch sẽ hơn, sau này có nâng cấp hay tách service cũng dễ.
+- **Creative Synthesis:** Mình đã tự nghĩ ra cách lưu mã cuộc trò chuyện (`dn_active_session_id`) vào bộ nhớ `sessionStorage` của trình duyệt. Nhờ vậy, khi người dùng đang chat ở nút bong bóng góc phải màn hình mà bấm nút phóng to để sang trang chat lớn, cuộc trò chuyện cũ sẽ được tải lên tiếp tục mà không bị mất.
+- **Decision Ownership:** Quyết định dọn dẹp lại toàn bộ code theo hướng chia module này. Sau đó mình đã chạy lệnh biên dịch Java và kiểm tra TypeScript để chắc chắn dự án không bị lỗi đỏ sau khi gộp code từ nhánh chính của các bạn khác về.
+
+---
+
 ## V. Cam kết học thuật
 
 Sinh viên/nhóm cam kết rằng:
@@ -309,5 +324,6 @@ Sinh viên/nhóm cam kết rằng:
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-| Phạm Bá Trí | 2026-06-21 |
+| Phạm Bá Trí | 2026-07-01 |
+
 

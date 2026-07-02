@@ -1370,6 +1370,75 @@ Việc yêu cầu AI kiểm tra logic nghiệp vụ TRƯỚC khi chạy thực t
 
 ---
 
+### Prompt số 20
+
+| Nội dung            | Thông tin                                                          |
+| ------------------- | ------------------------------------------------------------------ |
+| Ngày sử dụng        | 01/07/2026                                                         |
+| Công cụ AI          | Antigravity                                                        |
+| Mục đích            | Tái cấu trúc Modular Monolith & Nâng cấp UX AI Chatbot             |
+| Phần việc liên quan | Coding / Architecture / Refactoring / UX                           |
+| Mức độ sử dụng      | Hỏi review / Hỏi tối ưu / Hỏi sinh code                            |
+
+#### 5.1. Prompt nguyên văn
+
+```text
+giải quyết mấy cái này đi . Đánh giá: Dự án có theo ĐÚNG chuẩn Modular Monolith không? ... và sửa đổi đồng bộ sessionId trong FloatingChatbot
+```
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Khi đang làm tính năng chatbot, mình thấy folder code chatbot chia hơi lộn xộn, API bị vứt ở folder RAG ngoài lề. Bong bóng chat ở góc màn hình và trang chat lớn thì hoạt động độc lập, không lưu chung lịch sử với nhau. Mình muốn AI đánh giá cấu trúc module của dự án và chỉ cách code để dọn dẹp lại Backend cũng như liên kết session ID giữa 2 giao diện chat.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI nhận xét cấu trúc chia module của dự án chưa chuẩn hoàn toàn và hướng dẫn cách chuyển API chatbot về Controller mới trong thư mục modules/chatbot. AI cũng viết code thêm tính năng gợi ý từ khóa Autocomplete, phím tắt, nút Dừng/Sửa tin nhắn và cách dùng sessionStorage để lưu chung session ID của chatbot nổi.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Áp dụng hết code sửa Backend, phân quyền lại trong file SecurityConfig. Ở Frontend, làm thêm thanh gợi ý từ khóa khi gõ, nút ngắt API khi dừng chat, nút sửa câu hỏi và lưu session ID để chat liên tục khi đổi màn hình.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Mình tự xem lại và sửa lỗi câu query SQL lấy session chat bị chia nhỏ. Sau đó mình tự đổi tên hàm gọi tạo chat mới cho nút bấm để không bị trùng lặp với hàm khởi tạo ban đầu, rồi chạy test không thấy báo lỗi compile nào mới commit lên Git.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung                                                                                           |
+| --------------- | -------------------------------------------------------------------------------------------------- |
+| File liên quan  | `ChatbotController.java`, `SecurityConfig.java`, `ChatHistoryRepository.java`                      |
+| File liên quan  | `AssistantPage.tsx`, `FloatingChatbot.tsx`                                                         |
+| Ghi chú khác    | Việc đồng bộ session ID mang lại trải nghiệm phóng to khung chat cực kỳ liền mạch và mượt mà.      |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Việc chia folder code theo tính năng (Package by Feature) giúp quản lý code dễ hơn nhiều khi làm việc nhóm lớn, không sợ sửa đè lên code của nhau.
+```
+
+---
+
+
+
 ## 11. Cam kết sử dụng prompt minh bạch
 
 Sinh viên/nhóm cam kết rằng:
@@ -1382,5 +1451,6 @@ Sinh viên/nhóm cam kết rằng:
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 | ----------------------- | ------------- |
-| Phạm Bá Trí             | 2026-06-27    |
+| Phạm Bá Trí             | 2026-07-01    |
+
 

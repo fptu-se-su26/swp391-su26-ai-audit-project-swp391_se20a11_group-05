@@ -215,6 +215,73 @@ const colors = {
   textSecondary: "#6B7280",
 };
 
+const getDynamicReminders = (currentTime: Date) => {
+  const hour = currentTime.getHours();
+  const minute = currentTime.getMinutes();
+  const reminders = [];
+
+  // Default reminder
+  reminders.push({
+    title: "Đồng bộ dữ liệu báo cáo",
+    desc: "Hệ thống sẽ tự động đồng bộ dữ liệu vào cuối ngày.",
+    time: "Cố định",
+    icon: RefreshCw,
+    isUrgent: false
+  });
+
+  if ((hour === 7) || (hour === 8 && minute <= 30)) {
+    reminders.unshift({
+      title: "Giờ làm việc buổi sáng",
+      desc: "Bắt đầu ca làm việc hành chính. Các đồng chí kiểm tra, giao nhận ca trực và trang thiết bị.",
+      time: "Sáng nay",
+      icon: Users,
+      isUrgent: true
+    });
+  }
+  
+  if ((hour === 11 && minute >= 30) || (hour === 12) || (hour === 13 && minute <= 0)) {
+    reminders.unshift({
+      title: "Giờ ăn trưa và nghỉ ngơi",
+      desc: "Đã đến giờ nghỉ trưa. Chúc các đồng chí ngon miệng. Đội trực ban chú ý vị trí.",
+      time: "Trưa nay",
+      icon: Clock,
+      isUrgent: false
+    });
+  }
+
+  if ((hour === 13 && minute >= 30) || (hour === 14 && minute <= 30)) {
+    reminders.unshift({
+      title: "Giờ làm việc buổi chiều",
+      desc: "Bắt đầu ca làm việc chiều. Vui lòng kiểm tra các phản ánh mới tiếp nhận từ công dân.",
+      time: "Chiều nay",
+      icon: ClipboardList,
+      isUrgent: true
+    });
+  }
+
+  if (hour === 17) {
+    reminders.unshift({
+      title: "Kết thúc ca hành chính",
+      desc: "Chuẩn bị bàn giao ca cho đội trực ban đêm. Kiểm tra lại hồ sơ chưa xử lý.",
+      time: "Cuối ngày",
+      icon: CheckCircle2,
+      isUrgent: true
+    });
+  }
+
+  if (hour >= 20 && hour <= 22) {
+    reminders.unshift({
+      title: "Tuần tra địa bàn ban đêm",
+      desc: "Đến giờ đi tuần tra kiểm soát ANTT. Yêu cầu bật định vị trên thiết bị.",
+      time: "Tối nay",
+      icon: AlertTriangle,
+      isUrgent: true
+    });
+  }
+
+  return reminders;
+};
+
 export function ModernPoliceDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -240,6 +307,9 @@ export function ModernPoliceDashboard() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMapFilterOpen, setIsMapFilterOpen] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const notificationRef = useRef<HTMLDivElement>(null);
 
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -265,6 +335,9 @@ export function ModernPoliceDashboard() {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
+      }
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setIsNotificationOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -582,7 +655,14 @@ export function ModernPoliceDashboard() {
               <input 
                 type="text" 
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  if (e.target.value.trim() !== "") {
+                    setActiveTab("manage");
+                    setFilterStatus("ALL");
+                    setSelectedFeedbackId(null);
+                  }
+                }}
                 placeholder="Tìm kiếm mã HS, tiêu đề, người gửi..." 
                 className="w-full h-10 pl-10 pr-4 rounded-[4px] border text-sm focus:outline-none focus:ring-1 bg-slate-50 transition-all"
                 style={{ borderColor: colors.border }}
@@ -597,10 +677,45 @@ export function ModernPoliceDashboard() {
               <div className="text-[14px]">{currentTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</div>
               <div>{currentTime.toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
             </div>
-            <button className="relative p-2 rounded hover:bg-slate-50 transition-colors shrink-0" style={{ color: colors.primaryNavy }}>
-              <Bell size={20} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full border border-white" style={{ backgroundColor: colors.criticalRed }}></span>
-            </button>
+            <div className="relative" ref={notificationRef}>
+              <button 
+                onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                className="relative p-2 rounded hover:bg-slate-50 transition-colors shrink-0" 
+                style={{ color: colors.primaryNavy }}
+              >
+                <Bell size={20} />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full border border-white animate-pulse" style={{ backgroundColor: colors.criticalRed }}></span>
+              </button>
+              
+              {isNotificationOpen && (
+                <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border z-50 overflow-hidden animate-in fade-in slide-in-from-top-2" style={{ borderColor: colors.border }}>
+                  <div className="p-3 border-b bg-slate-50 flex justify-between items-center" style={{ borderColor: colors.border }}>
+                    <h3 className="font-bold text-sm" style={{ color: colors.primaryNavy }}>Nhắc nhở nghiệp vụ</h3>
+                    <span className="text-xs text-blue-600 cursor-pointer hover:underline">Đánh dấu đã đọc</span>
+                  </div>
+                  <div className="max-h-[300px] overflow-y-auto">
+                    {getDynamicReminders(currentTime).map((reminder, idx) => {
+                      const IconComponent = reminder.icon;
+                      return (
+                        <div key={idx} className="p-3 border-b hover:bg-slate-50 transition-colors flex gap-3 cursor-pointer" style={{ borderColor: colors.border }}>
+                          <div className={`mt-0.5 rounded-full p-1.5 shrink-0 h-fit ${reminder.isUrgent ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                            <IconComponent size={14} />
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold mb-1" style={{ color: colors.primaryNavy }}>{reminder.title}</div>
+                            <div className="text-[11px] text-slate-600 leading-relaxed">{reminder.desc}</div>
+                            <div className="text-[10px] text-slate-400 mt-1 font-medium">{reminder.time}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="p-2 text-center border-t bg-slate-50 hover:bg-slate-100 cursor-pointer" style={{ borderColor: colors.border }}>
+                    <span className="text-xs font-semibold" style={{ color: colors.secondaryBlue }}>Xem tất cả thông báo</span>
+                  </div>
+                </div>
+              )}
+            </div>
             <div className="flex items-center pl-5 border-l shrink-0 relative" style={{ borderColor: colors.border }} ref={dropdownRef}>
               <button 
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}

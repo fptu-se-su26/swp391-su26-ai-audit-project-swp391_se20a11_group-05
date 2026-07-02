@@ -71,3 +71,6 @@
 
 ## prompt-24
 "Give me a few TailwindCSS utility combinations that add smooth micro-animations on hover states for interactive cards and buttons."
+
+## prompt-25
+"khi mình nhấn trực tiếp vào thì nó sẽ chuyển qau cái ni giờ mình muốn nó ở im bên công an chớ đừng có hiện ra cái nớ nữa á bạn bạn hiểu k nè giữ nguyên chức năng nhưng nó k còn chuyển qua cái khung trang chủ đồ nữa nhưng k được xóa cái trang chủ nớ nha bạn"

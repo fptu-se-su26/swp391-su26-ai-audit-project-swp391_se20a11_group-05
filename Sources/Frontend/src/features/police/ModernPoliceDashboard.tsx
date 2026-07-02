@@ -29,10 +29,12 @@ import {
   Key,
   Flag,
   Camera,
-  Calendar
+  Calendar,
+  ExternalLink
 } from "lucide-react";
 import policeEmblemImg from "@/assets/police-emblem.png";
 import { PoliceCampaignPage } from "./PoliceCampaignPage";
+import { FeedbackDetailPageComponent } from "@/routes/_auth.authority.feedback.$feedbackId";
 
 const HeatmapMap = clientOnly(() =>
   import("@/components/site/HeatmapMap").then((m) => ({ default: m.HeatmapMap })),
@@ -256,6 +258,8 @@ export function ModernPoliceDashboard() {
     new: "",
     confirm: ""
   });
+  
+  const [selectedFeedbackId, setSelectedFeedbackId] = useState<string | null>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -490,6 +494,7 @@ export function ModernPoliceDashboard() {
     { id: "schedule", name: "Lịch trực ban", icon: Calendar },
     { id: "reports", name: "Báo cáo thống kê", icon: BarChart2 },
     { id: "settings", name: "Cài đặt tài khoản", icon: Settings },
+    { id: "go_home", name: "Về trang chủ", icon: ExternalLink },
   ];
 
   return (
@@ -511,6 +516,11 @@ export function ModernPoliceDashboard() {
               <button
                 key={item.id}
                 onClick={() => {
+                  if (item.id === "go_home") {
+                    navigate({ to: "/" });
+                    return;
+                  }
+                  setSelectedFeedbackId(null);
                   setActiveTab(item.id);
                   if (item.id === "manage") {
                     setFilterStatus("ALL");
@@ -676,7 +686,14 @@ export function ModernPoliceDashboard() {
         </header>
 
         {/* PAGE CONTENT */}
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto bg-[#F5F7FA] relative">
+          {selectedFeedbackId ? (
+            <div className="absolute inset-0 bg-[#F8FAFC] z-10 overflow-y-auto pb-8">
+              <FeedbackDetailPageComponent feedbackId={selectedFeedbackId} onBack={() => setSelectedFeedbackId(null)} />
+            </div>
+          ) : null}
+          
+          <div className={`p-6 ${selectedFeedbackId ? 'hidden' : 'block'}`}>
           {activeTab === "overview" && (
             <div className="space-y-6 max-w-[1600px] mx-auto">
               
@@ -739,7 +756,7 @@ export function ModernPoliceDashboard() {
                                 
                                 return (
                                   <tr key={row.id} 
-                                    onClick={() => navigate({ to: "/authority/feedback/$feedbackId", params: { feedbackId: String(row.id) } })}
+                                    onClick={() => setSelectedFeedbackId(String(row.id))}
                                     className={`hover:bg-slate-50 cursor-pointer ${isUrgent ? 'bg-red-50/30' : ''}`}
                                   >
                                     <td className="px-4 py-3 font-medium" style={{ color: colors.primaryNavy }}>{row.trackingCode}</td>
@@ -958,7 +975,7 @@ export function ModernPoliceDashboard() {
                             return (
                               <tr 
                                 key={item.id} 
-                                onClick={() => navigate({ to: "/authority/feedback/$feedbackId", params: { feedbackId: String(item.id) } })}
+                                onClick={() => setSelectedFeedbackId(String(item.id))}
                                 className="hover:bg-slate-50 cursor-pointer transition-colors"
                               >
                                 <td className="px-4 py-3 font-bold" style={{ color: colors.secondaryBlue }}>{item.trackingCode}</td>
@@ -1037,6 +1054,7 @@ export function ModernPoliceDashboard() {
               Chức năng đang được cập nhật theo giao diện mới...
             </div>
           )}
+          </div>
         </main>
       </div>
 

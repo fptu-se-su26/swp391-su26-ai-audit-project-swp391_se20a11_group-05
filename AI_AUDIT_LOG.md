@@ -266,3 +266,14 @@ File này ghi lại toàn bộ quá trình sinh viên dùng ChatGPT, Gemini, Cop
 - Human Decision: Applied the classes to key CTA buttons and cards across the Police Dashboard.
 - Applied To: `PoliceDashboard.tsx`, `index.css`
 - Verification: UI feels smoother and more responsive.
+
+## Log #25
+- Date: 2026-07-02
+- Author: Trong (DE190357)
+- AI Tool: Antigravity
+- Purpose: Refactor Feedback Detail navigation to inline view & add return to home button
+- Prompt Reference: PROMPTS.md#prompt-25
+- AI Output Summary: Replaced React Router navigation with conditional rendering of FeedbackDetailPageComponent inside the dashboard layout to maintain user context. Added a 'Về trang chủ' link to the sidebar.
+- Human Decision: Approved inline rendering approach and verified tab switching behavior.
+- Applied To: `ModernPoliceDashboard.tsx`
+- Verification: Dashboard tab switching and inline detail rendering functions correctly without page reloads.

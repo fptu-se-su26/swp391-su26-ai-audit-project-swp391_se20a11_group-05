@@ -15,7 +15,7 @@ File này ghi lại toàn bộ quá trình sinh viên dùng ChatGPT, Gemini, Cop
 - Verification: Tested the layout responsiveness on Chrome DevTools.
 
 ## Log #02
-- Date: 2026-05-19
+- Date: 2026-05-18
 - Author: Trong (DE190357)
 - AI Tool: Copilot
 - Purpose: Create a reusable Sidebar component for police modules
@@ -26,7 +26,7 @@ File này ghi lại toàn bộ quá trình sinh viên dùng ChatGPT, Gemini, Cop
 - Verification: Hover states and active route highlighting worked as expected.
 
 ## Log #03
-- Date: 2026-05-22
+- Date: 2026-05-20
 - Author: Trong (DE190357)
 - AI Tool: Gemini
 - Purpose: Implement protected routing for Police Dashboard
@@ -37,7 +37,7 @@ File này ghi lại toàn bộ quá trình sinh viên dùng ChatGPT, Gemini, Cop
 - Verification: Successfully blocked CITIZEN accounts from accessing Police routes.
 
 ## Log #04
-- Date: 2026-05-25
+- Date: 2026-05-22
 - Author: Trong (DE190357)
 - AI Tool: ChatGPT
 - Purpose: Design Police Profile dropdown in the header
@@ -48,7 +48,7 @@ File này ghi lại toàn bộ quá trình sinh viên dùng ChatGPT, Gemini, Cop
 - Verification: Dropdown opened correctly and displayed accurate mock data.
 
 ## Log #05
-- Date: 2026-05-27
+- Date: 2026-05-24
 - Author: Trong (DE190357)
 - AI Tool: Copilot
 - Purpose: Build Statistics cards for Police Overview
@@ -59,7 +59,7 @@ File này ghi lại toàn bộ quá trình sinh viên dùng ChatGPT, Gemini, Cop
 - Verification: Cards rendered perfectly within the dashboard grid layout.
 
 ## Log #06
-- Date: 2026-05-30
+- Date: 2026-05-26
 - Author: Trong (DE190357)
 - AI Tool: Gemini
 - Purpose: Fetch police statistics from backend
@@ -70,7 +70,7 @@ File này ghi lại toàn bộ quá trình sinh viên dùng ChatGPT, Gemini, Cop
 - Verification: Skeleton loaders appeared, followed by actual data fetched from the API.
 
 ## Log #07
-- Date: 2026-06-02
+- Date: 2026-05-28
 - Author: Trong (DE190357)
 - AI Tool: Claude
 - Purpose: Setup basic Incident Map for Police
@@ -81,7 +81,7 @@ File này ghi lại toàn bộ quá trình sinh viên dùng ChatGPT, Gemini, Cop
 - Verification: Map tiles loaded and custom markers displayed at specific mock coordinates.
 
 ## Log #08
-- Date: 2026-06-05
+- Date: 2026-05-31
 - Author: Trong (DE190357)
 - AI Tool: ChatGPT
 - Purpose: Add heatmap layer to Incident Map
@@ -92,7 +92,7 @@ File này ghi lại toàn bộ quá trình sinh viên dùng ChatGPT, Gemini, Cop
 - Verification: Heatmap rendered correctly, highlighting clustered incident data.
 
 ## Log #09
-- Date: 2026-06-08
+- Date: 2026-06-02
 - Author: Trong (DE190357)
 - AI Tool: Copilot
 - Purpose: Design Police Feedback Management table
@@ -103,7 +103,7 @@ File này ghi lại toàn bộ quá trình sinh viên dùng ChatGPT, Gemini, Cop
 - Verification: Table rendered beautifully and scaled properly on smaller screens.
 
 ## Log #10
-- Date: 2026-06-10
+- Date: 2026-06-04
 - Author: Trong (DE190357)
 - AI Tool: Gemini
 - Purpose: Fetch and populate Feedback data
@@ -114,7 +114,7 @@ File này ghi lại toàn bộ quá trình sinh viên dùng ChatGPT, Gemini, Cop
 - Verification: Data successfully populated the table rows based on API responses.
 
 ## Log #11
-- Date: 2026-06-13
+- Date: 2026-06-07
 - Author: Trong (DE190357)
 - AI Tool: ChatGPT
 - Purpose: Feedback status update Modal
@@ -125,7 +125,7 @@ File này ghi lại toàn bộ quá trình sinh viên dùng ChatGPT, Gemini, Cop
 - Verification: Status changed successfully in the UI and persisted to the backend.
 
 ## Log #12
-- Date: 2026-06-16
+- Date: 2026-06-09
 - Author: Trong (DE190357)
 - AI Tool: Claude
 - Purpose: Police Campaign Grid UI
@@ -136,89 +136,133 @@ File này ghi lại toàn bộ quá trình sinh viên dùng ChatGPT, Gemini, Cop
 - Verification: Campaign cards displayed dynamically based on the mock array.
 
 ## Log #13
-- Date: 2026-06-19
+- Date: 2026-06-11
+- Author: Trong (DE190357)
+- AI Tool: Gemini
+- Purpose: Create Campaign Detail View
+- Prompt Reference: PROMPTS.md#prompt-13
+- AI Output Summary: Generated a comprehensive UI layout for campaign details and a modal component to confirm participation.
+- Human Decision: Refactored the modal to use Radix UI primitives for better accessibility.
+- Applied To: `CampaignDetail.tsx`
+- Verification: The detail view correctly loaded full campaign info.
+
+## Log #14
+- Date: 2026-06-14
+- Author: Trong (DE190357)
+- AI Tool: ChatGPT
+- Purpose: Connect Campaign Detail API
+- Prompt Reference: PROMPTS.md#prompt-14
+- AI Output Summary: Suggested a custom React Query hook to fetch detailed campaign data.
+- Human Decision: Added error boundaries and a toast alert in case the network request fails.
+- Applied To: `useCampaigns.ts`
+- Verification: Real API data populated the campaign detail fields successfully.
+
+## Log #15
+- Date: 2026-06-16
 - Author: Trong (DE190357)
 - AI Tool: Copilot
 - Purpose: Real-time WebSocket notifications setup
-- Prompt Reference: PROMPTS.md#prompt-19
+- Prompt Reference: PROMPTS.md#prompt-15
 - AI Output Summary: Provided a React context using STOMP client to listen for WebSocket events.
 - Human Decision: Added a toast notification library (`react-toastify`) to display the alerts globally.
 - Applied To: `WebSocketContext.tsx`, `App.tsx`
 - Verification: Toast notification appeared when a mock notification event was triggered.
 
-## Log #14
-- Date: 2026-06-24
+## Log #16
+- Date: 2026-06-18
 - Author: Trong (DE190357)
 - AI Tool: Gemini
 - Purpose: Modernize Police Dashboard UI
-- Prompt Reference: PROMPTS.md#prompt-13
+- Prompt Reference: PROMPTS.md#prompt-16
 - AI Output Summary: Suggested a 5-module sidebar layout and provided CSS for an animated waving Vietnamese flag.
 - Human Decision: Integrated the sidebar structure but adjusted the CSS animation timing and colors to better match the existing theme.
 - Applied To: `Sidebar.tsx`, `flag.css`
 - Verification: Tested responsiveness across different screen sizes and verified routing.
 
-## Log #15
-- Date: 2026-06-24
+## Log #17
+- Date: 2026-06-21
 - Author: Trong (DE190357)
 - AI Tool: Gemini
 - Purpose: Secure Map Provider Settings (Google Maps)
-- Prompt Reference: PROMPTS.md#prompt-14
+- Prompt Reference: PROMPTS.md#prompt-17
 - AI Output Summary: Provided React component code using `@react-google-maps/api` with secure API key loading.
 - Human Decision: Implemented the suggested code and added environment variable restrictions for the API key.
 - Applied To: `CampaignMap.tsx`, `.env`
 - Verification: Rendered the map successfully and confirmed markers/hotspots align with backend coordinates.
 
-## Log #16
-- Date: 2026-06-25
+## Log #18
+- Date: 2026-06-23
 - Author: Trong (DE190357)
 - AI Tool: Gemini
 - Purpose: Manage Feedback Dashboard UI display and sorting
-- Prompt Reference: PROMPTS.md#prompt-15
+- Prompt Reference: PROMPTS.md#prompt-18
 - AI Output Summary: Generated a UI layout for the feedback list with chronological sorting logic and conditional status badges.
 - Human Decision: Adopted the sorting logic but refactored the status badges to use the project's pre-defined Tailwind utility classes.
 - Applied To: `_auth.authority.feedback.tsx`, `FeedbackController.java`
 - Verification: Submitted new feedback and verified it appeared at the top of the list with the correct 'Pending' badge.
 
-## Log #17
-- Date: 2026-06-26
+## Log #19
+- Date: 2026-06-25
 - Author: Trong (DE190357)
 - AI Tool: Gemini
 - Purpose: Fix Map Initialization Error collision
-- Prompt Reference: PROMPTS.md#prompt-16
+- Prompt Reference: PROMPTS.md#prompt-19
 - AI Output Summary: Identified the naming collision between the Lucide-React `Map` icon and JS `Map` constructor, suggesting an alias import.
 - Human Decision: Applied the import alias and added a fallback connection error boundary as an extra precaution.
 - Applied To: `HeatmapMap.tsx`
 - Verification: Restarted the development server and confirmed the dashboard loads without map initialization errors.
 
-## Log #18
+## Log #20
 - Date: 2026-06-27
 - Author: Trong (DE190357)
 - AI Tool: Gemini
 - Purpose: Refine Police Campaign Management and Group Chat
-- Prompt Reference: PROMPTS.md#prompt-17
+- Prompt Reference: PROMPTS.md#prompt-20
 - AI Output Summary: Supplied React hooks for WebSockets chat updates for the campaign group chat feature.
 - Human Decision: Integrated the chat hook with the WebSocket context and ensured UI auto-scrolls to new messages.
 - Applied To: `campaigns.$id.tsx`, `campaigns.$id.group-chat.tsx`
 - Verification: Tested with two active user accounts joining a campaign and communicating successfully via chat.
 
-## Log #19
-- Date: 2026-06-29
+## Log #21
+- Date: 2026-06-28
 - Author: Trong (DE190357)
-- AI Tool: Gemini
+- AI Tool: Claude
 - Purpose: Build Police Duty Roster System
-- Prompt Reference: PROMPTS.md#prompt-18
+- Prompt Reference: PROMPTS.md#prompt-21
 - AI Output Summary: Suggested a weekly calendar grid component with inline editing and save-on-blur functionality.
 - Human Decision: Used the grid layout but changed the save behavior to require clicking a "Save Changes" button to prevent overwrites.
 - Applied To: `PoliceDashboard.tsx`
 - Verification: Modified roster assignments and verified data persistence after a page reload.
 
-## Log #20
+## Log #22
+- Date: 2026-06-29
+- Author: Trong (DE190357)
+- AI Tool: ChatGPT
+- Purpose: Fix TypeScript Compilation Errors
+- Prompt Reference: PROMPTS.md#prompt-22
+- AI Output Summary: Pointed out duplicate identifier names and invalid TS types in the merged branch.
+- Human Decision: Corrected the redundant properties and added appropriate TS optional properties to fix the build pipeline.
+- Applied To: `campaigns.$id.group-chat.tsx`
+- Verification: Successfully passed the CI build checks locally.
+
+## Log #23
 - Date: 2026-07-01
 - Author: Trong (DE190357)
-- AI Tool: Claude
+- AI Tool: Copilot
 - Purpose: Performance Optimization and Lazy Loading
-- Prompt Reference: PROMPTS.md#prompt-20
+- Prompt Reference: PROMPTS.md#prompt-23
 - AI Output Summary: Recommended using `React.lazy` and `Suspense` for heavy dashboard routes like the map and analytics.
 - Human Decision: Applied lazy loading to the Analytics and Heatmap modules, significantly reducing the initial JS bundle size.
 - Applied To: `App.tsx`, `DashboardRouter.tsx`
 - Verification: Ran Lighthouse performance audit and observed a major improvement in Time-to-Interactive.
+
+## Log #24
+- Date: 2026-07-02
+- Author: Trong (DE190357)
+- AI Tool: Claude
+- Purpose: Finalize UI Polishing and Layout Adjustments
+- Prompt Reference: PROMPTS.md#prompt-24
+- AI Output Summary: Provided some CSS utility combinations for micro-animations on hover states for Police cards.
+- Human Decision: Applied the classes to key CTA buttons and cards across the Police Dashboard.
+- Applied To: `PoliceDashboard.tsx`, `index.css`
+- Verification: UI feels smoother and more responsive.

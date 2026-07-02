@@ -36,7 +36,7 @@ import { PoliceCampaignPage } from "./PoliceCampaignPage";
 
 const HeatmapMap = clientOnly(() =>
   import("@/components/site/HeatmapMap").then((m) => ({ default: m.HeatmapMap })),
-);
+) as any;
 const initialSchedule = [
   { day: "Thứ 2", date: "29/06", morning: "Trực ban hành chính", mOfficer: "Đ/c Nguyễn Văn A", afternoon: "Xử lý hồ sơ", aOfficer: "Đ/c Lê Thị B", night: "-", nOfficer: "-" },
   { day: "Thứ 3", date: "30/06", morning: "Tuần tra địa bàn", mOfficer: "Đ/c Phạm Văn C, Đ/c Võ D", afternoon: "Tuần tra địa bàn", aOfficer: "Đ/c Phạm Văn C, Đ/c Võ D", night: "Trực chỉ huy", nOfficer: "Đ/c Hoàng Văn E" },

@@ -897,7 +897,7 @@ export function FeedbackDetailPageComponent({
                     </p>
                   </div>
                   <Link
-                    to="/authority/campaigns"
+                    to="/"
                     className="shrink-0 bg-white border border-emerald-200 hover:bg-emerald-50 text-emerald-700 text-xs font-bold px-4 py-2.5 rounded-xl transition-colors flex items-center gap-2"
                   >
                     <Eye size={16} /> Xem Danh Sách Chiến Dịch
@@ -1345,7 +1345,7 @@ export function FeedbackDetailPageComponent({
                 </div>
                 <div className="col-span-2 md:col-span-1">
                   <span className="text-slate-400 font-semibold block mb-0.5">Địa chỉ:</span>
-                  <span className="text-slate-800 font-bold truncate block" title={report.addressDetails || report.address}>
+                  <span className="text-slate-800 font-bold truncate block" title={report.addressDetails || report.address || undefined}>
                     {report.addressDetails || report.address}
                   </span>
                 </div>

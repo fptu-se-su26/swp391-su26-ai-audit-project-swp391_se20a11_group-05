@@ -14,7 +14,7 @@ import {
   Pin,
 } from "lucide-react";
 import logoImg from "@/assets/logo.png";
-import { useCampaignDetail, useCampaignChat, usePinChatMessage, useUnpinChatMessage, useCampaignParticipants } from "@/hooks/useCampaigns";
+import { useCampaignDetail, useCampaignChat, usePinChatMessage, useUnpinChatMessage, useCampaignParticipants, useCampaignThumbnail } from "@/hooks/useCampaigns";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import type { Campaign } from "@/lib/campaignStore";
@@ -176,7 +176,6 @@ function CampaignGroupChatPage() {
         target={target}
         memberCount={memberCount}
         progressPercent={progressPercent}
-        hostName={hostName}
         hostWard={campaign?.ward || "Chưa cập nhật"}
         members={members}
       />
@@ -313,43 +312,7 @@ function CampaignGroupChatPage() {
             </div>
           )}
 
-          {withinConfirmWindow && (currentStatus === "APPROVED" || currentStatus === "PENDING") && (
-            <div className="flex shrink-0 flex-col gap-2 border-b border-indigo-100 bg-indigo-50 px-4 py-3 md:px-6 animate-[chatSlideUp_0.2s_ease] sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-xs sm:text-sm text-indigo-800 font-bold">
-                  Chiến dịch sắp khởi chạy. Vui lòng cập nhật khả năng tham gia của bạn.
-                </span>
-              </div>
-              <div className="flex gap-2 shrink-0">
-                <button
-                  onClick={() => handleSignal("CONFIRMED")}
-                  disabled={signalAttendance.isPending}
-                  className="text-white bg-[#7C3AED] hover:bg-[#6D28D9] px-3 py-1.5 rounded-lg text-xs font-black shadow-sm cursor-pointer transition active:scale-[0.97] disabled:opacity-50"
-                >
-                  Xác nhận tham gia
-                </button>
-                <button
-                  onClick={() => handleSignal("MAYBE")}
-                  disabled={signalAttendance.isPending}
-                  className="text-slate-700 border border-slate-200 bg-white hover:bg-slate-50 px-3 py-1.5 rounded-lg text-xs font-black shadow-sm cursor-pointer transition active:scale-[0.97] disabled:opacity-50"
-                >
-                  Có thể tham gia
-                </button>
-              </div>
-            </div>
-          )}
-
-          {withinConfirmWindow && (currentStatus as string) === "CONFIRMED" && (
-            <div className="flex shrink-0 items-center justify-between border-b border-emerald-100 bg-emerald-50 px-4 py-3 text-xs font-bold text-emerald-800 shadow-sm md:px-6">
-              Bạn đã xác nhận tham gia. Vui lòng chờ cán bộ phường phê duyệt chính thức.
-            </div>
-          )}
-
-          {withinConfirmWindow && (currentStatus as string) === "MAYBE" && (
-            <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-slate-100 px-4 py-3 text-xs font-bold text-slate-700 shadow-sm md:px-6">
-              Bạn đã chọn khả năng Có thể tham gia chiến dịch (Không cần duyệt).
-            </div>
-          )}
+          {/* Notice for withinConfirmWindow removed */}
 
           <div className="flex-1 overflow-y-auto bg-[#F5F7FA] px-4 py-5 md:px-8">
             <div className="mx-auto flex max-w-3xl flex-col gap-4">
@@ -437,7 +400,6 @@ function GroupSidebar({
   target,
   memberCount,
   progressPercent,
-  hostName,
   hostWard,
   members,
 }: {
@@ -448,10 +410,29 @@ function GroupSidebar({
   target: number;
   memberCount: number;
   progressPercent: number;
-  hostName: string;
   hostWard: string;
   members: any[];
 }) {
+  const getStatusInfo = (status?: string) => {
+    switch (status) {
+      case "recruiting": return { label: "Đang tuyển", className: "border-[#10B981] bg-[#10B981]/10 text-[#10B981]" };
+      case "inProgress": return { label: "Đang diễn ra", className: "border-[#3B82F6] bg-[#3B82F6]/10 text-[#3B82F6]" };
+      case "completed": return { label: "Hoàn thành", className: "border-[#8B5CF6] bg-[#8B5CF6]/10 text-[#8B5CF6]" };
+      case "ended": return { label: "Đã kết thúc", className: "border-slate-500 bg-slate-500/10 text-slate-500" };
+      default: return { label: "Chờ duyệt", className: "border-amber-500 bg-amber-500/10 text-amber-500" };
+    }
+  };
+  const getCategoryLabel = (category?: string) => {
+    switch (category) {
+      case "environment": return "Môi trường";
+      case "infrastructure": return "Hạ tầng";
+      case "public_safety": return "An ninh";
+      case "construction": return "Xây dựng";
+      case "fire_safety": return "PCCC";
+      default: return "Cộng đồng";
+    }
+  };
+
   const thumbnail = useCampaignThumbnail(campaign);
   const statusInfo = getStatusInfo(campaign?.status);
   const categoryLabel = getCategoryLabel(campaign?.category);
@@ -566,8 +547,8 @@ function GroupSidebar({
                   {approvedParticipants.length}
                 </span>
               </div>
-            ))}
-          </div>
+            </div>
+          )}
           {members.length > 8 && (
             <p className="mt-3 text-xs font-bold text-slate-400">+ {members.length - 8} người khác</p>
           )}

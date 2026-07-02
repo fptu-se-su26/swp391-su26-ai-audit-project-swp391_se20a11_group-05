@@ -215,71 +215,31 @@ const colors = {
   textSecondary: "#6B7280",
 };
 
-const getDynamicReminders = (currentTime: Date) => {
-  const hour = currentTime.getHours();
-  const minute = currentTime.getMinutes();
-  const reminders = [];
+export type Reminder = {
+  id: string;
+  title: string;
+  desc: string;
+  startHour: number;
+  endHour: number;
+  iconName: "Users" | "Clock" | "ClipboardList" | "CheckCircle2" | "AlertTriangle" | "RefreshCw";
+  isUrgent: boolean;
+};
 
-  // Default reminder
-  reminders.push({
-    title: "Đồng bộ dữ liệu báo cáo",
-    desc: "Hệ thống sẽ tự động đồng bộ dữ liệu vào cuối ngày.",
-    time: "Cố định",
-    icon: RefreshCw,
-    isUrgent: false
-  });
+const DEFAULT_REMINDERS: Reminder[] = [
+  { id: '1', title: "Giờ làm việc buổi sáng", desc: "Bắt đầu ca làm việc hành chính. Các đồng chí kiểm tra, giao nhận ca trực và trang thiết bị.", startHour: 7, endHour: 8, iconName: "Users", isUrgent: true },
+  { id: '2', title: "Giờ ăn trưa và nghỉ ngơi", desc: "Đã đến giờ nghỉ trưa. Chúc các đồng chí ngon miệng. Đội trực ban chú ý vị trí.", startHour: 11, endHour: 13, iconName: "Clock", isUrgent: false },
+  { id: '3', title: "Giờ làm việc buổi chiều", desc: "Bắt đầu ca làm việc chiều. Vui lòng kiểm tra các phản ánh mới.", startHour: 13, endHour: 14, iconName: "ClipboardList", isUrgent: true },
+  { id: '4', title: "Kết thúc ca hành chính", desc: "Chuẩn bị bàn giao ca cho đội trực ban đêm. Kiểm tra lại hồ sơ.", startHour: 17, endHour: 18, iconName: "CheckCircle2", isUrgent: true },
+  { id: '5', title: "Tuần tra địa bàn ban đêm", desc: "Đến giờ đi tuần tra kiểm soát ANTT. Yêu cầu bật định vị trên thiết bị.", startHour: 20, endHour: 22, iconName: "AlertTriangle", isUrgent: true }
+];
 
-  if ((hour === 7) || (hour === 8 && minute <= 30)) {
-    reminders.unshift({
-      title: "Giờ làm việc buổi sáng",
-      desc: "Bắt đầu ca làm việc hành chính. Các đồng chí kiểm tra, giao nhận ca trực và trang thiết bị.",
-      time: "Sáng nay",
-      icon: Users,
-      isUrgent: true
-    });
-  }
-  
-  if ((hour === 11 && minute >= 30) || (hour === 12) || (hour === 13 && minute <= 0)) {
-    reminders.unshift({
-      title: "Giờ ăn trưa và nghỉ ngơi",
-      desc: "Đã đến giờ nghỉ trưa. Chúc các đồng chí ngon miệng. Đội trực ban chú ý vị trí.",
-      time: "Trưa nay",
-      icon: Clock,
-      isUrgent: false
-    });
-  }
-
-  if ((hour === 13 && minute >= 30) || (hour === 14 && minute <= 30)) {
-    reminders.unshift({
-      title: "Giờ làm việc buổi chiều",
-      desc: "Bắt đầu ca làm việc chiều. Vui lòng kiểm tra các phản ánh mới tiếp nhận từ công dân.",
-      time: "Chiều nay",
-      icon: ClipboardList,
-      isUrgent: true
-    });
-  }
-
-  if (hour === 17) {
-    reminders.unshift({
-      title: "Kết thúc ca hành chính",
-      desc: "Chuẩn bị bàn giao ca cho đội trực ban đêm. Kiểm tra lại hồ sơ chưa xử lý.",
-      time: "Cuối ngày",
-      icon: CheckCircle2,
-      isUrgent: true
-    });
-  }
-
-  if (hour >= 20 && hour <= 22) {
-    reminders.unshift({
-      title: "Tuần tra địa bàn ban đêm",
-      desc: "Đến giờ đi tuần tra kiểm soát ANTT. Yêu cầu bật định vị trên thiết bị.",
-      time: "Tối nay",
-      icon: AlertTriangle,
-      isUrgent: true
-    });
-  }
-
-  return reminders;
+const iconMap = {
+  Users,
+  Clock,
+  ClipboardList,
+  CheckCircle2,
+  AlertTriangle,
+  RefreshCw
 };
 
 export function ModernPoliceDashboard() {
@@ -310,6 +270,9 @@ export function ModernPoliceDashboard() {
   
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
+  const [customReminders, setCustomReminders] = useState<Reminder[]>(DEFAULT_REMINDERS);
+  const [isReminderSettingsOpen, setIsReminderSettingsOpen] = useState(false);
+  const [newReminder, setNewReminder] = useState<Partial<Reminder>>({ title: "", desc: "", startHour: 8, endHour: 10, iconName: "Users", isUrgent: false });
 
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -694,24 +657,32 @@ export function ModernPoliceDashboard() {
                     <span className="text-xs text-blue-600 cursor-pointer hover:underline">Đánh dấu đã đọc</span>
                   </div>
                   <div className="max-h-[300px] overflow-y-auto">
-                    {getDynamicReminders(currentTime).map((reminder, idx) => {
-                      const IconComponent = reminder.icon;
-                      return (
-                        <div key={idx} className="p-3 border-b hover:bg-slate-50 transition-colors flex gap-3 cursor-pointer" style={{ borderColor: colors.border }}>
-                          <div className={`mt-0.5 rounded-full p-1.5 shrink-0 h-fit ${reminder.isUrgent ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
-                            <IconComponent size={14} />
+                    {(() => {
+                      const currentHour = currentTime.getHours();
+                      const activeReminders = customReminders.filter(r => currentHour >= r.startHour && currentHour <= r.endHour);
+                      if (activeReminders.length === 0) {
+                        return <div className="p-6 text-center text-[13px] text-slate-500 font-medium">Không có nhắc nhở nào trong khung giờ hiện tại.</div>;
+                      }
+                      return activeReminders.map((reminder) => {
+                        const IconComponent = iconMap[reminder.iconName];
+                        return (
+                          <div key={reminder.id} className="p-3 border-b hover:bg-slate-50 transition-colors flex gap-3 cursor-pointer" style={{ borderColor: colors.border }}>
+                            <div className={`mt-0.5 rounded-full p-1.5 shrink-0 h-fit ${reminder.isUrgent ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                              <IconComponent size={14} />
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold mb-1" style={{ color: colors.primaryNavy }}>{reminder.title}</div>
+                              <div className="text-[11px] text-slate-600 leading-relaxed">{reminder.desc}</div>
+                              <div className="text-[10px] text-slate-400 mt-1 font-medium">{String(reminder.startHour).padStart(2, '0')}:00 - {String(reminder.endHour).padStart(2, '0')}:59</div>
+                            </div>
                           </div>
-                          <div>
-                            <div className="text-xs font-bold mb-1" style={{ color: colors.primaryNavy }}>{reminder.title}</div>
-                            <div className="text-[11px] text-slate-600 leading-relaxed">{reminder.desc}</div>
-                            <div className="text-[10px] text-slate-400 mt-1 font-medium">{reminder.time}</div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      });
+                    })()}
                   </div>
-                  <div className="p-2 text-center border-t bg-slate-50 hover:bg-slate-100 cursor-pointer" style={{ borderColor: colors.border }}>
-                    <span className="text-xs font-semibold" style={{ color: colors.secondaryBlue }}>Xem tất cả thông báo</span>
+                  <div className="grid grid-cols-2 text-center border-t bg-slate-50 text-xs font-semibold" style={{ borderColor: colors.border }}>
+                    <div className="p-2.5 border-r hover:bg-slate-100 cursor-pointer" style={{ borderColor: colors.border, color: colors.secondaryBlue }}>Xem tất cả</div>
+                    <div className="p-2.5 hover:bg-slate-100 cursor-pointer" style={{ color: colors.secondaryBlue }} onClick={() => { setIsNotificationOpen(false); setIsReminderSettingsOpen(true); }}>Cài đặt nhắc nhở</div>
                   </div>
                 </div>
               )}
@@ -1379,6 +1350,116 @@ export function ModernPoliceDashboard() {
               Xác nhận đổi
             </button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reminder Settings Dialog */}
+      <Dialog open={isReminderSettingsOpen} onOpenChange={setIsReminderSettingsOpen}>
+        <DialogContent className="bg-white rounded-[8px] p-6 max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold flex items-center gap-2" style={{ color: colors.primaryNavy }}>
+              <Bell size={20} /> Cài đặt nhắc nhở nghiệp vụ
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-6">
+            <div>
+              <h4 className="font-bold text-sm mb-3" style={{ color: colors.secondaryBlue }}>Danh sách khung giờ đã cài đặt</h4>
+              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                {customReminders.length === 0 ? (
+                  <div className="text-center p-4 text-sm text-slate-500 border rounded border-dashed">Chưa có nhắc nhở nào</div>
+                ) : (
+                  customReminders.map(r => {
+                    const IconComp = iconMap[r.iconName];
+                    return (
+                      <div key={r.id} className="flex items-start justify-between p-3 border rounded-[4px] bg-slate-50" style={{ borderColor: colors.border }}>
+                        <div className="flex gap-3">
+                          <div className={`mt-0.5 rounded-full p-1.5 shrink-0 h-fit ${r.isUrgent ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                            <IconComp size={14} />
+                          </div>
+                          <div>
+                            <div className="font-bold text-sm" style={{ color: colors.primaryNavy }}>{r.title}</div>
+                            <div className="text-xs text-slate-600 mt-0.5">{r.desc}</div>
+                            <div className="text-xs font-semibold mt-1" style={{ color: colors.secondaryBlue }}>Từ {String(r.startHour).padStart(2, '0')}:00 đến {String(r.endHour).padStart(2, '0')}:59</div>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => setCustomReminders(customReminders.filter(rem => rem.id !== r.id))}
+                          className="text-xs text-red-500 hover:underline font-medium p-1 shrink-0"
+                        >Xóa</button>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </div>
+            
+            <div className="pt-4 border-t" style={{ borderColor: colors.border }}>
+              <h4 className="font-bold text-sm mb-3" style={{ color: colors.secondaryBlue }}>Thêm nhắc nhở mới</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="block text-[12px] font-semibold text-slate-700 mb-1">Tiêu đề nhắc nhở</label>
+                  <input type="text" value={newReminder.title} onChange={e => setNewReminder({...newReminder, title: e.target.value})} placeholder="VD: Giao ban buổi sáng..." className="w-full h-9 px-3 border rounded-[4px] text-sm focus:outline-none focus:ring-1 bg-slate-50 text-slate-700" style={{ borderColor: colors.border }} />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-[12px] font-semibold text-slate-700 mb-1">Nội dung chi tiết</label>
+                  <input type="text" value={newReminder.desc} onChange={e => setNewReminder({...newReminder, desc: e.target.value})} placeholder="Mô tả công việc cần làm..." className="w-full h-9 px-3 border rounded-[4px] text-sm focus:outline-none focus:ring-1 bg-slate-50 text-slate-700" style={{ borderColor: colors.border }} />
+                </div>
+                <div>
+                  <label className="block text-[12px] font-semibold text-slate-700 mb-1">Giờ bắt đầu (0-23)</label>
+                  <input type="number" min={0} max={23} value={newReminder.startHour} onChange={e => setNewReminder({...newReminder, startHour: parseInt(e.target.value) || 0})} className="w-full h-9 px-3 border rounded-[4px] text-sm focus:outline-none focus:ring-1 bg-slate-50 text-slate-700" style={{ borderColor: colors.border }} />
+                </div>
+                <div>
+                  <label className="block text-[12px] font-semibold text-slate-700 mb-1">Giờ kết thúc (0-23)</label>
+                  <input type="number" min={0} max={23} value={newReminder.endHour} onChange={e => setNewReminder({...newReminder, endHour: parseInt(e.target.value) || 0})} className="w-full h-9 px-3 border rounded-[4px] text-sm focus:outline-none focus:ring-1 bg-slate-50 text-slate-700" style={{ borderColor: colors.border }} />
+                </div>
+                <div>
+                  <label className="block text-[12px] font-semibold text-slate-700 mb-1">Biểu tượng</label>
+                  <select value={newReminder.iconName} onChange={e => setNewReminder({...newReminder, iconName: e.target.value as any})} className="w-full h-9 px-3 border rounded-[4px] text-sm focus:outline-none focus:ring-1 bg-slate-50 text-slate-700" style={{ borderColor: colors.border }}>
+                    <option value="Users">Nhóm / Cán bộ</option>
+                    <option value="Clock">Đồng hồ</option>
+                    <option value="ClipboardList">Hồ sơ</option>
+                    <option value="CheckCircle2">Hoàn thành</option>
+                    <option value="AlertTriangle">Cảnh báo</option>
+                    <option value="RefreshCw">Đồng bộ</option>
+                  </select>
+                </div>
+                <div className="flex items-center pt-5">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-slate-700">
+                    <input type="checkbox" checked={newReminder.isUrgent} onChange={e => setNewReminder({...newReminder, isUrgent: e.target.checked})} className="rounded-sm" /> 
+                    Đánh dấu quan trọng (Màu đỏ)
+                  </label>
+                </div>
+              </div>
+              <button 
+                onClick={() => {
+                  if (!newReminder.title) {
+                    toast.error("Vui lòng nhập tiêu đề nhắc nhở");
+                    return;
+                  }
+                  if (newReminder.startHour! > newReminder.endHour!) {
+                    toast.error("Giờ kết thúc phải lớn hơn hoặc bằng giờ bắt đầu");
+                    return;
+                  }
+                  const newRem: Reminder = {
+                    id: Date.now().toString(),
+                    title: newReminder.title!,
+                    desc: newReminder.desc!,
+                    startHour: newReminder.startHour!,
+                    endHour: newReminder.endHour!,
+                    iconName: newReminder.iconName as any,
+                    isUrgent: newReminder.isUrgent || false
+                  };
+                  setCustomReminders([...customReminders, newRem]);
+                  setNewReminder({ title: "", desc: "", startHour: 8, endHour: 10, iconName: "Users", isUrgent: false });
+                  toast.success("Đã thêm nhắc nhở mới!");
+                }}
+                className="w-full mt-4 py-2 text-sm font-bold text-white rounded-[4px] hover:opacity-90"
+                style={{ backgroundColor: colors.secondaryBlue }}
+              >
+                + Thêm vào danh sách
+              </button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

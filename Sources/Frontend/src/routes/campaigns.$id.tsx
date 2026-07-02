@@ -988,7 +988,11 @@ function GroupChatNavigationCard({
   const chat = useCampaignChat(campaign.id);
   const signalAttendance = useSignalAttendance(campaign.id);
   const memberCount = Math.max(1, campaign.participants || 0);
-  const latest = chat.data?.at(-1);
+  const allMessages = chat.data?.pages.flat() || [];
+  const latest = allMessages.reduce<any>((latestMsg, currentMsg) => {
+    if (!latestMsg) return currentMsg;
+    return new Date(currentMsg.createdAt) > new Date(latestMsg.createdAt) ? currentMsg : latestMsg;
+  }, null);
   const latestPreview = latest
     ? `${latest.senderName}: ${latest.message}`
     : "Cán Bộ Phường 1: Chiến dịch sẽ bắt đầu lúc 6h sáng 19/6.";

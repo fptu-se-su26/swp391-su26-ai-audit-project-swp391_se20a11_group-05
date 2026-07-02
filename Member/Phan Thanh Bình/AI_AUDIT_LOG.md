@@ -389,6 +389,149 @@ Qua quá trình tự tìm tòi và phản biện giải pháp này:
 
 ---
 
+### Lần sử dụng AI số 5
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 02/07/2026 |
+| Công cụ AI | Antigravity / Claude |
+| Mục đích sử dụng | Tham khảo ý kiến và nhờ sinh khung code mẫu để hiện thực hóa ý tưởng thiết kế "Chế độ thông báo" (Announcement Mode) và Menu tùy chọn chat |
+| Phần việc liên quan | Backend / Frontend / UI Design |
+| Mức độ sử dụng | Hỗ trợ một phần |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+Tôi đang tự thiết kế tính năng hạn chế gửi tin nhắn cho người dân trong nhóm chat chiến dịch khi có thông báo quan trọng từ chính quyền (gọi là Announcement Mode).
+Ý tưởng của tôi như sau:
+1. Ban quản trị sẽ có một menu CampaignChatMenu (chứa Quản lý thông báo, Thư viện, Tin nhắn ghim) và một nút toggle bật/tắt chế độ thông báo này.
+2. Khi bật, người dân thường sẽ bị ẩn ô nhập chat, thay vào đó hiển thị một banner thông báo màu sắc nổi bật giống kiểu của Zalo để họ biết họ đang bị chặn chat.
+3. Trạng thái bật/tắt này phải được lưu trong DB backend để khi người dùng F5 hoặc vào lại nhóm chat vẫn không bị mất trạng thái.
+
+Hãy gợi ý cho tôi cấu trúc code React hợp lý cho component CampaignChatMenu, và cách tổ chức luồng dữ liệu (data flow) từ thực thể Campaign (Backend) thông qua DTO để đồng bộ trực tiếp lên giao diện Frontend.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đánh giá cao ý tưởng thiết kế trải nghiệm người dùng (UX) và đề xuất:
+- Cung cấp khung code React (boilerplate) cho dropdown menu CampaignChatMenu.
+- Gợi ý bổ sung thuộc tính boolean `announcementMode` vào Campaign Entity ở Backend, và truyền qua DTO CampaignResponse để Frontend dễ dàng bắt được trạng thái thực tế của phòng chat.
+- Đưa ra đoạn code mẫu điều kiện render ở route `campaigns.$id.group-chat.tsx` để chuyển đổi giữa ô ChatInput và Banner thông báo.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Sử dụng khung cấu trúc code dropdown menu do AI sinh ra để tiết kiệm thời gian code giao diện thô.
+- Áp dụng cấu trúc truyền dữ liệu thông qua DTO từ Backend lên Frontend để đồng bộ cờ `announcementMode`.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Critical Thinking:
+- AI gợi ý chỉ cần ẩn nút gửi tin nhắn hoặc hiển thị một đoạn text đơn giản. Tôi thấy thiết kế đó chưa đủ rõ ràng và có thể khiến người dân nghĩ ứng dụng bị lỗi. Do đó, tôi đã tự thiết kế một Banner thông báo bo góc, đổ bóng (style Premium) cùng với một nút "Tìm hiểu thêm". Khi bấm vào nút này sẽ kích hoạt Toast thông báo giải thích rõ ràng lý do phòng chat bị khóa.
+
+Contextualization:
+- Tránh việc cán bộ vô tình click nhầm nút toggle làm gián đoạn cuộc hội thoại của hàng ngàn người dân. Tôi đã tự viết thêm một Confirmation Dialog (hộp thoại xác nhận) ở Frontend trước khi gửi API yêu cầu bật/tắt chế độ thông báo lên Server.
+
+Creative Synthesis & Decision Ownership:
+- Tự thiết kế và viết CSS hoàn chỉnh cho component CampaignChatMenu và Banner thông báo để đồng bộ với ngôn ngữ thiết kế chung của dự án (màu sắc, khoảng cách, font chữ).
+- Viết logic xử lý lỗi kết nối: nếu API toggle thất bại, giao diện Frontend sẽ tự động quay về trạng thái cũ và hiển thị thông báo lỗi cho cán bộ.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | |
+| File liên quan | Sources/Frontend/src/components/chat/CampaignChatMenu.tsx;<br>Sources/Frontend/src/routes/campaigns.$id.group-chat.tsx;<br>Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/service/CampaignServiceImpl.java;<br>Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/entity/Campaign.java |
+| Screenshot | |
+| Kết quả chạy/test | Đã chạy thử thực tế và build thành công. Khi tài khoản người dân vào nhóm chat đang bật Announcement Mode, thanh chat lập tức chuyển sang banner thông báo chặn gửi tin nhắn, bấm "Tìm hiểu thêm" hiển thị Toast chuẩn xác. |
+| Link video demo | |
+| Ghi chú khác | Hoàn toàn tự chủ động thiết kế luồng UI/UX và logic phân quyền. |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+1) Việc tự nghiên cứu và lên thiết kế chi tiết trước khi hỏi AI giúp tôi làm chủ được mã nguồn, AI chỉ đóng vai trò là một người trợ lý viết code mẫu giúp tăng tốc tiến độ.
+2) Thiết kế giao diện hướng đến trải nghiệm người dùng (UX) tốt luôn đòi hỏi sự tỉ mỉ và tư duy thực tế của lập trình viên, điều mà AI khó tự động tối ưu hoàn hảo được.
+```
+
+---
+
+### Lần sử dụng AI số 6
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 02/07/2026 |
+| Công cụ AI | Antigravity / Gemini |
+| Mục đích sử dụng | Tối ưu hóa hiệu năng gửi tin nhắn/ảnh bằng kỹ thuật Optimistic UI Updates và cơ chế upload nhiều ảnh song song (parallel multi-image upload) |
+| Phần việc liên quan | Frontend / Hook Logic / API Integration |
+| Mức độ sử dụng | Hỗ trợ nhiều |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+Tôi đang viết tính năng gửi nhiều ảnh đính kèm (multi-image upload) trong chat chiến dịch. Để tối ưu trải nghiệm, tôi muốn tin nhắn và ảnh hiển thị ngay lập tức lên khung chat dưới trạng thái "đang gửi" (loading) mà không cần đợi API tải ảnh và API gửi tin nhắn hoàn tất (áp dụng Optimistic UI). 
+Hãy hướng dẫn tôi cách thiết lập state trong hook useCampaigns.ts để:
+1. Chèn ngay tin nhắn tạm thời kèm ảnh tạm (dùng local blob URL) vào danh sách tin nhắn hiện tại.
+2. Thực hiện upload đồng thời nhiều file ảnh bằng Promise.all.
+3. Khi API phản hồi thành công, thay thế tin nhắn tạm bằng dữ liệu thực tế từ database. Nếu thất bại, tự động rollback (xóa tin nhắn tạm) và báo lỗi cho người dùng.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đề xuất giải pháp chi tiết:
+- Sử dụng UUID tạm thời (Client-side generated ID) cho tin nhắn gửi đi để quản lý trạng thái hiển thị.
+- Tạo danh sách URL ảnh tạm thời bằng `URL.createObjectURL(file)` để preview lập tức trên khung chat.
+- Cách viết `Promise.all` gom các request upload ảnh song song để rút ngắn thời gian phản hồi từ server.
+- Sử dụng cấu trúc `try-catch-finally` để nếu phát sinh bất kỳ lỗi upload nào, sẽ thực hiện cập nhật lại state của hook để loại bỏ tin nhắn tạm đó (Rollback state).
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Sử dụng mô hình quản lý local state với UUID tạm thời để cập nhật tức thì (Optimistic UI) trong useCampaigns.ts.
+- Sử dụng giải pháp `Promise.all` để tối ưu hóa việc upload file song song lên Supabase Storage/Server.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Critical Thinking:
+- AI đề xuất một giải pháp rollback đơn giản là xóa sạch tin nhắn tạm khi có lỗi. Tuy nhiên, trong thực tế, nếu người dùng gửi 3 ảnh mà chỉ lỗi 1 ảnh, việc xóa sạch cả tin nhắn và các ảnh còn lại rất gây ức chế. Tôi đã tự cải tiến cấu trúc tin nhắn tạm bằng cách theo dõi trạng thái của từng ảnh riêng biệt (`AttachmentStatus`). Ảnh nào lỗi sẽ hiển thị nút "Gửi lại" (Retry), ảnh nào thành công sẽ giữ nguyên.
+
+Contextualization:
+- Tránh rò rỉ bộ nhớ (Memory Leak) do các URL tạm thời (`URL.createObjectURL`). Tôi tự viết thêm hàm dọn dẹp (clean-up) bằng `URL.revokeObjectURL` trong hook useEffect/finally block ngay sau khi quá trình upload hoàn tất hoặc bị hủy.
+
+Creative Synthesis & Decision Ownership:
+- Tự thiết kế Responsive Grid Layout tại component ChatBubble để hiển thị ảnh đính kèm: tự động điều chỉnh bố cục đẹp mắt tùy thuộc vào số lượng ảnh gửi lên (1 ảnh chiếm toàn bộ, 2 ảnh chia đôi, 3-4 ảnh dạng grid 2x2).
+- Tích hợp thêm AbortController để cho phép người dùng bấm hủy (Cancel) tiến trình upload ảnh nếu tệp quá nặng hoặc gửi nhầm.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | |
+| File liên quan | Sources/Frontend/src/hooks/useCampaigns.ts;<br>Sources/Frontend/src/routes/campaigns.$id.group-chat.tsx;<br>Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/service/CampaignServiceImpl.java |
+| Screenshot | |
+| Kết quả chạy/test | Đã chạy kiểm thử gửi đồng thời 4 ảnh dung lượng lớn: ảnh hiển thị dạng mờ kèm icon loading ngay lập tức trên UI, sau khi server phản hồi thành công, ảnh chuyển sang trạng thái hiển thị rõ nét mà không làm giật khung chat. |
+| Link video demo | |
+| Ghi chú khác | Nâng cao trải nghiệm người dùng bằng xử lý bất đồng bộ phức tạp ở Client. |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+1) Kỹ thuật Optimistic UI Updates giúp cảm giác ứng dụng phản hồi nhanh hơn gấp nhiều lần, rất quan trọng đối với các tính năng mang tính tương tác thời gian thực như Group Chat.
+2) Việc tự xử lý rollback chi tiết tới từng tệp đính kèm thay vì toàn bộ tin nhắn giúp tăng độ tin cậy và sự hài lòng từ phía người dùng cuối.
+```
+
+---
+
 ## 5. Bảng tổng hợp mức độ sử dụng AI
 
 Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.

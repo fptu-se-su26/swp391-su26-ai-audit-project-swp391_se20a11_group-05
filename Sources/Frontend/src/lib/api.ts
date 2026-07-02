@@ -178,6 +178,23 @@ export interface TokenResponse {
   org?: string;
 }
 
+/**
+ * TokenPairResponse — Backend trả về sau firebase-login, mfa/verify, và refresh
+ * Có cả accessToken (ngắn hạn) lẫn refreshToken (dài hạn)
+ */
+export interface TokenPairResponse {
+  accessToken: string;
+  refreshToken: string;
+  tokenType: string;
+  expiresIn: number;
+  username: string;
+  role: BackendRole;
+  wardName?: string | null;
+  wardType?: string | null;
+  wardId?: number | null;
+  org?: string;
+}
+
 export interface MfaRequiredResponse {
   username: string;
   mfaRequired: true;
@@ -225,6 +242,7 @@ export interface FeedbackResponse {
   trackingCode: string;
   code?: string;
   title: string;
+  publicVisible?: boolean;
   description: string;
   content?: string;
   latitude: number | null;
@@ -282,6 +300,11 @@ export interface PoliceFeedbackResponse {
   updatedAt: string;
   resolutionNote?: string | null;
   rejectionReason?: string | null;
+  priority?: string;
+  citizenName?: string | null;
+  address?: string;
+  wardName?: string;
+  assigneeName?: string | null;
 }
 
 export interface FeedbackAttachmentResponse {
@@ -327,6 +350,7 @@ export interface FeedbackRequest {
   categoryId?: number;
   categoryCode: string;
   wardId?: number;
+  publicVisible?: boolean;
 }
 
 export interface NotificationResponse {
@@ -475,7 +499,7 @@ export const authApi = {
     }),
 
   firebaseLogin: (firebaseToken: string) =>
-    request<TokenResponse>("/api/auth/firebase-login", {
+    request<TokenPairResponse>("/api/auth/firebase-login", {
       method: "POST",
       body: JSON.stringify({ firebaseToken }),
       skipAuth: true,
@@ -577,7 +601,7 @@ export const feedbackApi = {
     feedbackApi.getPublic(0, limit, filters),
 
   getPublicById: (id: string | number) =>
-    request<FeedbackResponse>(`/api/feedbacks/public/${id}`, { skipAuth: true }),
+    request<FeedbackResponse>(`/api/feedbacks/public/${id}`, { skipAuth: !getToken() }),
 
   getStatuses: () => request<FeedbackStatusOption[]>("/api/feedbacks/statuses", { skipAuth: true }),
 
@@ -617,6 +641,12 @@ export const feedbackApi = {
     }),
 
   getLogs: (id: number | string) => request<unknown[]>(`/api/feedbacks/${id}/logs`),
+
+  supplementInfo: (id: number | string, content?: string, imageUrls?: string[]) =>
+    request<FeedbackResponse>(`/api/feedbacks/${id}/supplement`, {
+      method: "POST",
+      body: JSON.stringify({ content, imageUrls }),
+    }),
 };
 
 export const userApi = {
@@ -642,6 +672,12 @@ export const userApi = {
   changeStatus: (id: number, active: boolean) =>
     request<UserProfile>(`/api/users/${id}/status?active=${active}`, {
       method: "PATCH",
+    }),
+
+  // SUPER_ADMIN: xóa tài khoản
+  delete: (id: number) =>
+    request<void>(`/api/users/${id}`, {
+      method: "DELETE",
     }),
 };
 
@@ -812,6 +848,7 @@ export interface CampaignResponse {
   latitude: number | null;
   longitude: number | null;
   maxParticipants: number | null;
+  minParticipants: number | null;
   startTime: string | null;
   endTime: string | null;
   status: "PENDING_APPROVAL" | "RECRUITING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "ACTIVE" | "ENDED";
@@ -820,9 +857,10 @@ export interface CampaignResponse {
   createdByUserId: number;
   createdByName: string | null;
   participantCount: number;
-  currentUserJoinStatus: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | null;
+  currentUserJoinStatus: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "WAITLIST" | "PENDING_CONFIRM" | "NO_SHOW" | null;
   privateDetailsVisible: boolean;
   canJoin: boolean;
+  canLeave: boolean;
   canManage: boolean;
   canComment: boolean;
   canFeedback: boolean;
@@ -845,6 +883,7 @@ export interface CampaignCreateRequest {
   latitude?: number;
   longitude?: number;
   maxParticipants?: number;
+  minParticipants?: number;
   startTime?: string;
   endTime?: string;
   wardId?: number;
@@ -859,11 +898,20 @@ export interface CampaignParticipantResponse {
   campaignId: number;
   citizenId: number;
   citizenName: string;
-  joinStatus: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+  citizenEmail?: string;
+  joinStatus: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "WAITLIST" | "PENDING_CONFIRM" | "NO_SHOW" | "CONFIRMED" | "MAYBE";
+  volunteerExperience?: string;
+  availabilityHours?: string;
+  cancellationReason?: string | null;
+  confirmationDeadline?: string | null;
+  pastCampaignCount: number;
+  averageRating: number;
+  noShowCount: number;
   createdAt: string;
   approvedAt: string | null;
   rejectedAt: string | null;
   rejectionReason: string | null;
+  confirmedAt: string | null;
 }
 
 export const campaignApi = {
@@ -901,10 +949,34 @@ export const campaignApi = {
   end: (id: number | string) =>
     request<CampaignResponse>(`/api/campaigns/${id}/end`, { method: "POST" }),
 
-  join: (id: number | string) =>
-    request<CampaignResponse>(`/api/campaigns/${id}/join`, { method: "POST" }),
+  join: (id: number | string, data: { volunteerExperience?: string; availabilityHours?: string; otpCode: string }) =>
+    request<CampaignResponse>(`/api/campaigns/${id}/join`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 
-  leave: (id: number | string) => request<void>(`/api/campaigns/${id}/leave`, { method: "DELETE" }),
+  leave: (id: number | string, reason: string) =>
+    request<void>(`/api/campaigns/${id}/leave`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
+
+  confirmWaitlist: (id: number | string) =>
+    request<void>(`/api/campaigns/${id}/confirm`, { method: "POST" }),
+
+  batchApproveParticipants: (id: number | string, participantIds: (number | string)[]) =>
+    request<CampaignParticipantResponse[]>(`/api/campaigns/${id}/participants/batch-approve`, {
+      method: "POST",
+      body: JSON.stringify({ participantIds }),
+    }),
+
+  markNoShow: (id: number | string, participantId: number | string) =>
+    request<CampaignParticipantResponse>(`/api/campaigns/${id}/participants/${participantId}/no-show`, {
+      method: "POST",
+    }),
+
+  sendEmailOtp: () =>
+    request<string>("/api/campaigns/email-otp/send", { method: "POST" }),
 
   getParticipants: (id: number | string) =>
     request<CampaignParticipantResponse[]>(`/api/campaigns/${id}/participants`),
@@ -951,6 +1023,16 @@ export const campaignApi = {
 
   unpinMessage: (id: number | string, messageId: number | string) =>
     request<CampaignChatMessageResponse>(`/api/campaigns/${id}/chat/${messageId}/unpin`, {
+      method: "POST",
+    }),
+
+  signalAttendance: (id: number | string, signal: "CONFIRMED" | "MAYBE") =>
+    request<CampaignParticipantResponse>(`/api/campaigns/${id}/signal-attendance?signal=${signal}`, {
+      method: "POST",
+    }),
+
+  finalizeCampaign: (id: number | string) =>
+    request<CampaignResponse>(`/api/campaigns/${id}/finalize`, {
       method: "POST",
     }),
 };

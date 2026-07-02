@@ -50,6 +50,9 @@ public class Campaign extends BaseEntity {
 
     private Double longitude;
 
+    @Column(name = "min_participants")
+    private Integer minParticipants;
+
     @Column(name = "max_participants")
     private Integer maxParticipants;
 

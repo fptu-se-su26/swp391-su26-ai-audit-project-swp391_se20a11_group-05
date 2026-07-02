@@ -43,6 +43,8 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   Lock,
   ShieldCheck,
   Clock,
@@ -54,8 +56,8 @@ import { lazy, Suspense, useState, useEffect } from "react";
 import { staticNews, staticFaqs } from "@/lib/static-content";
 
 const CivicMap = clientOnly(() =>
-  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
-);
+  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
+) as any;
 
 // ── Da Nang city slideshow images (Unsplash)
 const DA_NANG_SLIDES = [
@@ -200,6 +202,8 @@ function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
   const [openFaq, setOpenFaq] = useState<string | null>(null);
+  const [showGuide, setShowGuide] = useState(false);
+  const [guideStep, setGuideStep] = useState(0);
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
@@ -673,14 +677,14 @@ function HomePage() {
                 {t("home.cta.report")}
               </Link>
 
-              <Link
-                to="/my-reports"
-                search={{ q: "" } as any}
-                className="px-5 py-3 bg-white text-[#0B4FC4] border border-[#0B4FC4] rounded-lg text-sm font-semibold hover:bg-blue-50 transition flex items-center gap-2 shadow-sm font-sans"
+              <button
+                type="button"
+                onClick={() => { setGuideStep(0); setShowGuide(true); }}
+                className="px-5 py-3 bg-white text-[#0B4FC4] border border-[#0B4FC4] rounded-lg text-sm font-semibold hover:bg-blue-50 transition flex items-center gap-2 shadow-sm font-sans cursor-pointer"
               >
                 <PlayCircle size={18} />
                 {t("home.cta.guide")}
-              </Link>
+              </button>
             </div>
           </div>
 
@@ -1550,6 +1554,228 @@ function HomePage() {
             </div>
           </div>
         </section>
+      </div>
+
+      {/* Guide Modal */}
+      <GuideModal
+        open={showGuide}
+        onClose={() => setShowGuide(false)}
+        step={guideStep}
+        setStep={setGuideStep}
+        locale={locale}
+      />
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────
+   Guide Modal — step-by-step walkthrough for submitting feedback
+   ──────────────────────────────────────────────────────────────── */
+
+interface GuideStep {
+  icon: typeof Camera;
+  title: { vi: string; en: string };
+  desc: { vi: string; en: string };
+  color: string;
+  bg: string;
+}
+
+const GUIDE_STEPS: GuideStep[] = [
+  {
+    icon: LogIn,
+    title: { vi: "Bước 1: Đăng nhập tài khoản", en: "Step 1: Log in to your account" },
+    desc: {
+      vi: "Truy cập hệ thống và đăng nhập bằng tài khoản công dân đã đăng ký. Nếu chưa có tài khoản, hãy nhấn Đăng ký để tạo mới.",
+      en: "Access the system and log in with your registered citizen account. If you don't have one, click Register to create a new account.",
+    },
+    color: "#0B4FC4",
+    bg: "#F5F9FF",
+  },
+  {
+    icon: Camera,
+    title: { vi: "Bước 2: Nhấn \"Gửi phản ánh ngay\"", en: 'Step 2: Click "Submit Report"' },
+    desc: {
+      vi: "Trên trang chủ, nhấn nút \"Gửi phản ánh ngay\" hoặc vào menu \"Gửi phản ánh\" để bắt đầu tạo phản ánh mới.",
+      en: 'On the homepage, click the "Submit Report" button or go to the "Submit Report" menu to start creating a new report.',
+    },
+    color: "#7C3AED",
+    bg: "#F5F3FF",
+  },
+  {
+    icon: FileText,
+    title: { vi: "Bước 3: Chọn lĩnh vực & mô tả", en: "Step 3: Select category & describe" },
+    desc: {
+      vi: "Chọn lĩnh vực phản ánh (Giao thông, Môi trường, An ninh...). Nhập tiêu đề ngắn gọn và mô tả chi tiết vấn đề bạn gặp phải.",
+      en: "Select the report category (Traffic, Environment, Security...). Enter a brief title and describe the issue you encountered in detail.",
+    },
+    color: "#F97316",
+    bg: "#FFF7ED",
+  },
+  {
+    icon: Image,
+    title: { vi: "Bước 4: Đính kèm hình ảnh/video", en: "Step 4: Attach photos/videos" },
+    desc: {
+      vi: "Chụp ảnh hoặc quay video hiện trường để minh chứng. Hệ thống hỗ trợ tối đa 5 file ảnh/video cho mỗi phản ánh.",
+      en: "Take photos or record videos of the scene as evidence. The system supports up to 5 image/video files per report.",
+    },
+    color: "#EC4899",
+    bg: "#FDF2F8",
+  },
+  {
+    icon: MapPinned,
+    title: { vi: "Bước 5: Xác định vị trí", en: "Step 5: Pin the location" },
+    desc: {
+      vi: "Nhấn vào bản đồ để đánh dấu vị trí xảy ra sự việc, hoặc nhập địa chỉ cụ thể. Vị trí chính xác giúp cơ quan chức năng xử lý nhanh hơn.",
+      en: "Tap on the map to pin the exact location, or enter a specific address. An accurate location helps authorities respond faster.",
+    },
+    color: "#16A34A",
+    bg: "#F0FDF4",
+  },
+  {
+    icon: SendHorizonal,
+    title: { vi: "Bước 6: Gửi phản ánh", en: "Step 6: Submit the report" },
+    desc: {
+      vi: "Kiểm tra lại thông tin và nhấn \"Gửi phản ánh\". Hệ thống sẽ cấp mã theo dõi để bạn tra cứu tình trạng xử lý.",
+      en: 'Review your information and click "Submit Report". The system will issue a tracking code so you can check the processing status.',
+    },
+    color: "#0B4FC4",
+    bg: "#F5F9FF",
+  },
+  {
+    icon: ClipboardCheck,
+    title: { vi: "Bước 7: Theo dõi kết quả", en: "Step 7: Track the result" },
+    desc: {
+      vi: "Vào \"Tra cứu phản ánh\" để theo dõi tình trạng xử lý. Bạn sẽ nhận thông báo khi phản ánh được tiếp nhận, đang xử lý hoặc đã hoàn thành.",
+      en: 'Go to "Track Reports" to monitor the processing status. You will receive notifications when your report is received, being processed, or completed.',
+    },
+    color: "#16A34A",
+    bg: "#F0FDF4",
+  },
+];
+
+function GuideModal({
+  open,
+  onClose,
+  step,
+  setStep,
+  locale,
+}: {
+  open: boolean;
+  onClose: () => void;
+  step: number;
+  setStep: (s: number) => void;
+  locale: "vi" | "en";
+}) {
+  if (!open) return null;
+
+  const current = GUIDE_STEPS[step];
+  const StepIcon = current.icon;
+  const totalSteps = GUIDE_STEPS.length;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <div className="relative w-full max-w-[640px] bg-white rounded-2xl shadow-2xl border border-[#E4EAF2] overflow-hidden animate-fade-in">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E4EAF2] bg-gradient-to-r from-[#F5F9FF] to-white">
+          <div className="flex items-center gap-2">
+            <PlayCircle size={20} className="text-[#0B4FC4]" />
+            <h2 className="text-base font-bold text-[#123E8A] font-sans">
+              {locale === "vi" ? "Hướng dẫn gửi phản ánh" : "How to submit a report"}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-[#667085] hover:bg-slate-100 hover:text-slate-900 transition cursor-pointer"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Step indicator */}
+        <div className="px-6 pt-5 pb-2">
+          <div className="flex items-center gap-1">
+            {GUIDE_STEPS.map((s, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setStep(i)}
+                className={`h-1.5 flex-1 rounded-full transition-all duration-300 cursor-pointer ${
+                  i === step
+                    ? "bg-[#0B4FC4]"
+                    : i < step
+                      ? "bg-[#0B4FC4]/30"
+                      : "bg-slate-200"
+                }`}
+              />
+            ))}
+          </div>
+          <p className="text-[11px] font-bold text-[#667085] uppercase tracking-wider mt-2 font-sans">
+            {step + 1} / {totalSteps}
+          </p>
+        </div>
+
+        {/* Step content */}
+        <div className="px-6 pb-6 pt-2">
+          <div className="flex items-start gap-5">
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-300"
+              style={{ backgroundColor: current.bg }}
+            >
+              <StepIcon size={28} style={{ color: current.color }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-bold text-[#123E8A] font-sans mb-2 leading-snug">
+                {current.title[locale]}
+              </h3>
+              <p className="text-sm text-[#667085] leading-relaxed font-sans">
+                {current.desc[locale]}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer navigation */}
+        <div className="flex items-center justify-between px-6 py-4 border-t border-[#E4EAF2] bg-[#FAFBFC]">
+          <button
+            type="button"
+            onClick={() => setStep(Math.max(0, step - 1))}
+            disabled={step === 0}
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-[#667085] hover:text-[#123E8A] disabled:opacity-30 disabled:cursor-not-allowed transition font-sans rounded-lg hover:bg-white cursor-pointer"
+          >
+            <ChevronLeft size={16} />
+            {locale === "vi" ? "Quay lại" : "Back"}
+          </button>
+
+          <div className="flex items-center gap-2">
+            {step < totalSteps - 1 ? (
+              <button
+                type="button"
+                onClick={() => setStep(step + 1)}
+                className="inline-flex items-center gap-1.5 px-5 py-2 bg-[#0B4FC4] text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition font-sans shadow-sm cursor-pointer"
+              >
+                {locale === "vi" ? "Tiếp theo" : "Next"}
+                <ChevronRight size={16} />
+              </button>
+            ) : (
+              <Link
+                to="/report"
+                onClick={onClose}
+                className="inline-flex items-center gap-1.5 px-5 py-2 bg-[#16A34A] text-white rounded-lg text-sm font-bold hover:bg-green-700 transition font-sans shadow-sm"
+              >
+                <Camera size={16} />
+                {locale === "vi" ? "Gửi phản ánh ngay" : "Submit Report Now"}
+              </Link>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

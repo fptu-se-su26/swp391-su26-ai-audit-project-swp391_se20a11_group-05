@@ -147,13 +147,13 @@ export function WardProfileConfigPage({
 
   return (
     <form className="space-y-6" onSubmit={handleSubmit}>
-      <section className="rounded-2xl border border-[#E4EAF2] bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#0F5BD8]">
+            <p className="text-xs font-bold uppercase tracking-widest text-indigo-600 font-mono">
               Thiết lập tài khoản
             </p>
-            <h1 className="mt-2 text-2xl font-extrabold text-[#0B2545]">
+            <h1 className="mt-2 text-2xl font-extrabold text-slate-800 tracking-tight">
               Cấu hình cá nhân
             </h1>
             <p className="mt-1 text-sm font-medium text-slate-500">
@@ -165,14 +165,14 @@ export function WardProfileConfigPage({
               type="button"
               onClick={handleReset}
               disabled={!isDirty || isSaving}
-              className="h-10 rounded-xl border border-[#E4EAF2] bg-white px-4 text-xs font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="h-10 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-600 transition hover:bg-slate-50 active:scale-[0.97] cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
             >
               Hủy
             </button>
             <button
               type="submit"
               disabled={!isDirty || isSaving || isLoading}
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#0F5BD8] px-4 text-xs font-bold text-white shadow-sm transition hover:bg-[#0B4BB8] disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-xs font-bold text-white shadow-sm transition hover:bg-indigo-700 active:scale-[0.97] cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSaving ? <RefreshCw size={15} className="animate-spin" /> : <Save size={15} />}
               Lưu thay đổi
@@ -183,33 +183,33 @@ export function WardProfileConfigPage({
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
         <aside className="space-y-4">
-          <div className="rounded-2xl border border-[#E4EAF2] bg-white p-6 shadow-sm">
+          <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
             <div className="flex flex-col items-center text-center">
               <div className="relative">
-                <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-blue-50 bg-[#0F5BD8] text-2xl font-extrabold text-white shadow-sm">
+                <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-indigo-50/50 bg-indigo-600 text-2xl font-extrabold text-white shadow-sm">
                   {initials || "CB"}
                 </div>
                 <button
                   type="button"
                   aria-label="Đổi ảnh đại diện"
-                  className="absolute bottom-0 right-0 flex h-9 w-9 items-center justify-center rounded-full border border-[#E4EAF2] bg-white text-[#0F5BD8] shadow-sm transition hover:bg-blue-50"
+                  className="absolute bottom-0 right-0 flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-indigo-600 shadow-sm transition hover:bg-indigo-50/50 hover:border-indigo-200 active:scale-[0.95] cursor-pointer"
                 >
                   <Camera size={16} />
                 </button>
               </div>
-              <h2 className="mt-4 text-base font-extrabold text-[#0B2545]">{userName}</h2>
+              <h2 className="mt-4 text-base font-extrabold text-slate-800">{userName}</h2>
               <p className="mt-1 text-xs font-bold uppercase tracking-wider text-slate-400">
                 {authorityUnitLabel}
               </p>
-              <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-bold text-[#0F5BD8]">
+              <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50/50 px-3 py-1 text-xs font-bold text-indigo-700">
                 <Shield size={14} />
                 {roleLabel}
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-[#E4EAF2] bg-white p-5 shadow-sm">
-            <h3 className="text-sm font-extrabold text-[#0B2545]">Trạng thái tài khoản</h3>
+          <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+            <h3 className="text-sm font-extrabold text-slate-800">Trạng thái tài khoản</h3>
             <div className="mt-4 space-y-3">
               <StatusRow
                 label="Hồ sơ"
@@ -221,23 +221,27 @@ export function WardProfileConfigPage({
                 value={profile?.mfaEnabled ? "Đã bật MFA" : "Chưa bật MFA"}
                 tone={profile?.mfaEnabled ? "blue" : "slate"}
               />
-              <StatusRow label="Đồng bộ" value={profileQuery.isFetching ? "Đang tải" : "Đã cập nhật"} tone="blue" />
+              <StatusRow
+                label="Đồng bộ"
+                value={profileQuery.isFetching ? "Đang tải" : "Đã cập nhật"}
+                tone="blue"
+              />
             </div>
           </div>
         </aside>
 
         <div className="space-y-6">
-          <div className="rounded-2xl border border-[#E4EAF2] bg-white shadow-sm">
-            <div className="flex flex-wrap gap-2 border-b border-[#E4EAF2] px-5 py-4">
+          <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+            <div className="flex flex-wrap gap-1.5 border-b border-slate-100 px-5 py-4 bg-slate-50/30">
               {["Thông tin tài khoản", "Thông tin đơn vị", "Liên hệ", "Bảo mật", "Thông báo"].map(
                 (tab, index) => (
                   <button
                     key={tab}
                     type="button"
-                    className={`rounded-xl px-3 py-2 text-xs font-bold transition ${
+                    className={`rounded-xl px-3.5 py-2 text-xs font-bold transition-all duration-200 active:scale-[0.97] cursor-pointer ${
                       index === 0
-                        ? "bg-[#0F5BD8] text-white shadow-sm"
-                        : "text-slate-500 hover:bg-slate-50 hover:text-[#0B2545]"
+                        ? "bg-indigo-600 text-white shadow-sm shadow-indigo-100"
+                        : "text-slate-500 hover:bg-slate-100/80 hover:text-slate-800"
                     }`}
                   >
                     {tab}
@@ -302,7 +306,7 @@ export function WardProfileConfigPage({
               />
               <button
                 type="button"
-                className="mt-1 inline-flex h-9 items-center justify-center rounded-xl border border-[#E4EAF2] px-3 text-xs font-bold text-[#0F5BD8] transition hover:bg-blue-50"
+                className="mt-1 inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 px-3 text-xs font-bold text-indigo-600 transition hover:bg-indigo-50/50 active:scale-[0.97] cursor-pointer"
               >
                 Cập nhật bảo mật
               </button>
@@ -315,7 +319,11 @@ export function WardProfileConfigPage({
             >
               <ToggleRow icon={Bell} label="Thông báo trên hệ thống" enabled />
               <ToggleRow icon={Mail} label="Thông báo qua email" enabled={Boolean(form.email)} />
-              <ToggleRow icon={Smartphone} label="Thông báo qua SMS" enabled={Boolean(form.phoneNumber)} />
+              <ToggleRow
+                icon={Smartphone}
+                label="Thông báo qua SMS"
+                enabled={Boolean(form.phoneNumber)}
+              />
             </ConfigPanel>
           </div>
 
@@ -347,13 +355,13 @@ function ConfigPanel({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-[#E4EAF2] bg-white p-5 shadow-sm">
+    <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
       <div className="mb-4 flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#0F5BD8]">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
           <Icon size={18} />
         </div>
         <div>
-          <h3 className="text-sm font-extrabold text-[#0B2545]">{title}</h3>
+          <h3 className="text-sm font-extrabold text-slate-800">{title}</h3>
           <p className="mt-1 text-xs font-medium leading-relaxed text-slate-500">{description}</p>
         </div>
       </div>
@@ -385,13 +393,17 @@ function ConfigField({
 }) {
   return (
     <label className={`block ${className}`}>
-      <span className="mb-2 block text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+      <span className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-slate-400 font-mono">
         {label}
       </span>
       <div
-        className={`flex items-center gap-3 rounded-xl border border-[#E4EAF2] bg-slate-50/70 px-3 ${
+        className={`flex items-center gap-3 rounded-xl border px-3 transition-all duration-200 ${
           compact ? "h-10" : "h-12"
-        } ${readOnly ? "" : "focus-within:border-[#0F5BD8] focus-within:bg-white"}`}
+        } ${
+          readOnly
+            ? "border-slate-100 bg-slate-50/40"
+            : "border-slate-200 bg-slate-50/50 focus-within:border-indigo-600 focus-within:ring-2 focus-within:ring-indigo-100/50 focus-within:bg-white"
+        }`}
       >
         {Icon && <Icon size={16} className="shrink-0 text-slate-400" />}
         {loading ? (
@@ -402,7 +414,11 @@ function ConfigField({
             value={value}
             readOnly={readOnly}
             onChange={(event) => onChange?.(event.target.value)}
-            className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-[#0B2545] outline-none read-only:cursor-default"
+            className={`min-w-0 flex-1 bg-transparent text-sm outline-none ${
+              readOnly
+                ? "font-semibold text-slate-500 cursor-default select-none"
+                : "font-bold text-slate-800"
+            }`}
           />
         )}
       </div>
@@ -420,18 +436,18 @@ function ToggleRow({
   enabled?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-[#E4EAF2] bg-slate-50/70 px-3 py-2.5">
+    <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/50 px-3 py-2.5">
       <span className="flex items-center gap-2 text-xs font-bold text-slate-600">
         <Icon size={15} className="text-slate-400" />
         {label}
       </span>
       <span
-        className={`relative h-5 w-9 rounded-full transition ${
-          enabled ? "bg-[#0F5BD8]" : "bg-slate-300"
+        className={`relative h-5 w-9 rounded-full transition-colors cursor-pointer ${
+          enabled ? "bg-indigo-600" : "bg-slate-300"
         }`}
       >
         <span
-          className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition ${
+          className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${
             enabled ? "left-4" : "left-0.5"
           }`}
         />
@@ -451,15 +467,19 @@ function StatusRow({
 }) {
   const toneClass =
     tone === "green"
-      ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+      ? "bg-emerald-50/50 text-emerald-700 border-emerald-100"
       : tone === "blue"
-        ? "bg-blue-50 text-blue-700 border-blue-100"
+        ? "bg-indigo-50/50 text-indigo-700 border-indigo-100"
         : "bg-slate-50 text-slate-600 border-slate-200";
 
   return (
     <div className="flex items-center justify-between gap-3 text-xs">
       <span className="font-semibold text-slate-500">{label}</span>
-      <span className={`rounded-full border px-2.5 py-1 font-bold ${toneClass}`}>{value}</span>
+      <span
+        className={`rounded-lg border px-2.5 py-0.5 font-bold uppercase tracking-wider text-[10px] ${toneClass}`}
+      >
+        {value}
+      </span>
     </div>
   );
 }

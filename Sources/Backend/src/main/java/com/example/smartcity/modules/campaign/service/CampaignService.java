@@ -9,6 +9,8 @@ import com.example.smartcity.modules.campaign.dto.CampaignMessageRequest;
 import com.example.smartcity.modules.campaign.dto.CampaignParticipantResponse;
 import com.example.smartcity.modules.campaign.dto.CampaignRequest;
 import com.example.smartcity.modules.campaign.dto.CampaignResponse;
+import com.example.smartcity.modules.campaign.dto.CampaignJoinRequest;
+import com.example.smartcity.modules.campaign.dto.CampaignBatchApproveRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -26,9 +28,17 @@ public interface CampaignService {
 
     CampaignResponse approveCampaign(Long campaignId, String username);
 
-    CampaignResponse join(Long campaignId, String username);
+    CampaignResponse join(Long campaignId, CampaignJoinRequest request, String username);
 
-    void leave(Long campaignId, String username);
+    void leave(Long campaignId, CampaignActionRequest request, String username);
+
+    void confirmWaitlist(Long campaignId, String username);
+
+    List<CampaignParticipantResponse> batchApproveParticipants(Long campaignId, CampaignBatchApproveRequest request, String username);
+
+    CampaignParticipantResponse markNoShow(Long campaignId, Long participantId, String username);
+
+    String sendEmailOtp(String username);
 
     List<CampaignParticipantResponse> getParticipants(Long campaignId, String username);
 
@@ -57,4 +67,8 @@ public interface CampaignService {
     void delete(Long id, String username);
 
     CampaignResponse endCampaign(Long id, String username);
+
+    CampaignParticipantResponse signalAttendance(Long campaignId, String username, String signal);
+
+    CampaignResponse finalizeCampaign(Long campaignId, String username);
 }

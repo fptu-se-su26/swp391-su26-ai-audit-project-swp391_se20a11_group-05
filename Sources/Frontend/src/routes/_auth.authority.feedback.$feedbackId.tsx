@@ -43,8 +43,8 @@ import {
 
 // Lazy load CivicMap to prevent SSR issues with Leaflet
 const CivicMap = clientOnly(() =>
-  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
-);
+  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
+) as any;
 
 function getInitials(name?: string | null) {
   if (!name) return "?";
@@ -351,6 +351,7 @@ export function FeedbackDetailPageComponent({
   const activeMedia = mediaList[activeMediaIndex];
 
   const [, setIsPlaying] = useState(false);
+  const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
 
   const handleUpdateStatus = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -485,6 +486,7 @@ export function FeedbackDetailPageComponent({
         linkedFeedbackId: report.id,
         linkedFeedbackCode: report.trackingCode || report.code || String(report.id),
         linkedFeedbackTitle: report.title,
+        wardId: user?.wardId ?? undefined,
         wardName: report.wardName || user?.wardName || undefined,
         latitude: report.latitude ?? undefined,
         longitude: report.longitude ?? undefined,
@@ -782,13 +784,19 @@ export function FeedbackDetailPageComponent({
                 Thông tin phản ánh
               </h2>
               <div className="grid grid-cols-2 gap-3 text-xs md:grid-cols-3">
-                <DetailField label="Mã phản ánh" value={String(report.id)} />
                 <DetailField label="Mã tra cứu" value={report.trackingCode || report.code || "-"} />
                 <DetailField
                   label="Trạng thái hiện tại"
                   value={getOfficerStatusInfo(report.status).label}
                 />
                 <DetailField label="Mức độ ưu tiên" value={translatePriority(report.priority)} />
+                <DetailField
+                  label="Lĩnh vực"
+                  value={
+                    report.categoryName ||
+                    officialCategoryName(report.categoryCode || report.category || "")
+                  }
+                />
                 <DetailField
                   label="Thời gian tạo"
                   value={formatDateTime(report.submittedAt || report.createdAt)}
@@ -805,15 +813,6 @@ export function FeedbackDetailPageComponent({
                     Tiêu đề
                   </p>
                   <p className="text-sm font-bold text-slate-800 mt-1">{report.title}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">
-                    Lĩnh vực
-                  </p>
-                  <p className="text-sm font-bold text-slate-800 mt-1">
-                    {report.categoryName ||
-                      officialCategoryName(report.categoryCode || report.category || "")}
-                  </p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">
@@ -1166,8 +1165,14 @@ export function FeedbackDetailPageComponent({
                   {/* Timeline vertical line connector */}
                   <div className="absolute left-[20px] top-6 bottom-6 w-0.5 bg-slate-100" />
 
-                  {sortedLogs.map((log) => {
-                    const statusInfo = getOfficerStatusInfo(log.newStatus || log.status || "");
+                  {sortedLogs.slice(0, isHistoryExpanded ? sortedLogs.length : 3).map((log) => {
+                    let statusInfo = getOfficerStatusInfo(log.newStatus || log.status || "");
+                    if (log.action === "PROVIDE_INFO") {
+                      statusInfo = {
+                        label: "Đã bổ sung thông tin",
+                        className: "bg-blue-50 text-blue-700 border-blue-200"
+                      };
+                    }
                     const actorName = log.actorName || log.actionByName || "Hệ thống";
 
                     return (
@@ -1184,67 +1189,120 @@ export function FeedbackDetailPageComponent({
                               <span className="text-sm font-bold text-slate-800 truncate max-w-[150px] md:max-w-none">
                                 {actorName}
                               </span>
-                              {log.actorRole && (
-                                <span className="text-[9px] font-bold text-slate-400 border border-slate-200 px-1 py-0.2 rounded bg-slate-50 uppercase tracking-wider">
-                                  {translateRole(log.actorRole)}
-                                </span>
-                              )}
+                              <span className="px-2 py-0.5 text-[10px] font-extrabold tracking-wide uppercase rounded-md bg-slate-100 text-slate-500 border border-slate-200">
+                                {translateRole(log.actorRole || (log as any).actionByRole)}
+                              </span>
                             </div>
-                            <span className="text-[10px] text-slate-400 font-bold whitespace-nowrap">
+                            <span className="text-[10px] font-medium text-slate-400 shrink-0">
                               {formatDateTime(log.createdAt)}
                             </span>
                           </div>
 
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            {log.newStatus && (
-                              <span
-                                className={`text-[9px] font-bold rounded px-1.5 py-0.5 tracking-wide border ${statusInfo.className}`}
-                              >
-                                {statusInfo.label}
-                              </span>
-                            )}
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusInfo.className}`}>
+                              {statusInfo.label}
+                            </span>
                             {log.action && (
-                              <span className="text-[10px] text-slate-500 font-semibold italic">
+                              <span className="text-[10px] font-medium text-slate-400 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-md">
                                 Hành động: {translateAction(log.action)}
                               </span>
                             )}
                           </div>
 
-                           {log.note && (
-                            <div className="mt-1.5 p-2.5 bg-slate-50 border border-slate-150 rounded-lg text-xs font-medium text-slate-600 whitespace-pre-wrap leading-relaxed shadow-sm">
-                              {log.note}
-                              {((log.newStatus === "RESOLVED") || (log.action === "RESOLVE")) && resolutionAttachments.length > 0 && (
-                                <div className="mt-3 space-y-2 border-t border-slate-200/60 pt-2.5">
-                                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                    📸 Bằng chứng xử lý từ cán bộ:
-                                  </p>
-                                  <div className="flex flex-wrap gap-2 pt-1">
-                                    {resolutionAttachments.map((att) => {
-                                      const isVideo = att.fileType?.startsWith("video/") || att.fileUrl.endsWith(".mp4");
-                                      return (
-                                        <div key={att.id} className="relative h-16 w-20 shrink-0 rounded-lg overflow-hidden border border-slate-200 bg-slate-950 shadow-sm">
-                                          {isVideo ? (
-                                            <video src={att.fileUrl} className="w-full h-full object-cover" controls />
-                                          ) : (
-                                            <img
-                                              src={att.fileUrl}
-                                              alt=""
-                                              className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
-                                              onClick={() => window.open(att.fileUrl, "_blank")}
-                                            />
-                                          )}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
+                            {log.note && (
+                             <div className="mt-1.5 p-2.5 bg-slate-50 border border-slate-150 rounded-lg text-xs font-medium text-slate-600 whitespace-pre-wrap leading-relaxed shadow-sm">
+                               {log.note}
+                               {((log.newStatus === "RESOLVED") || (log.action === "RESOLVE")) && resolutionAttachments.length > 0 && (
+                                 <div className="mt-3 space-y-2 border-t border-slate-200/60 pt-2.5">
+                                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                     📸 Bằng chứng xử lý từ cán bộ:
+                                   </p>
+                                   <div className="flex flex-wrap gap-2 pt-1">
+                                     {resolutionAttachments.map((att) => {
+                                       const isVideo = att.fileType?.startsWith("video/") || att.fileUrl.endsWith(".mp4");
+                                       return (
+                                         <div key={att.id} className="relative h-16 w-20 shrink-0 rounded-lg overflow-hidden border border-slate-200 bg-slate-950 shadow-sm">
+                                           {isVideo ? (
+                                             <video src={att.fileUrl} className="w-full h-full object-cover" controls />
+                                           ) : (
+                                             <img
+                                               src={att.fileUrl}
+                                               alt=""
+                                               className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
+                                               onClick={() => window.open(att.fileUrl, "_blank")}
+                                             />
+                                           )}
+                                         </div>
+                                       );
+                                     })}
+                                   </div>
+                                 </div>
+                               )}
+
+                               {(() => {
+                                 if (log.action !== "PROVIDE_INFO" || !report.attachments) return null;
+                                 const suppAtts = report.attachments.filter((att) => {
+                                   if (att.attachmentPurpose !== "SUPPLEMENTARY_EVIDENCE") return false;
+                                   const logTime = new Date(log.createdAt).getTime();
+                                   const uploadTime = new Date(att.uploadedAt || "").getTime();
+                                   return Math.abs(uploadTime - logTime) < 60000;
+                                 });
+                                 if (suppAtts.length === 0) return null;
+                                 return (
+                                   <div className="mt-3 space-y-2 border-t border-slate-200/60 pt-2.5">
+                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                       📸 Hình ảnh bổ sung từ người dân:
+                                     </p>
+                                     <div className="flex flex-wrap gap-2 pt-1">
+                                       {suppAtts.map((att) => {
+                                         const isVideo = att.fileType?.startsWith("video/") || att.fileUrl.endsWith(".mp4");
+                                         return (
+                                           <div key={att.id} className="relative h-16 w-20 shrink-0 rounded-lg overflow-hidden border border-slate-200 bg-slate-950 shadow-sm">
+                                             {isVideo ? (
+                                               <video src={att.fileUrl} className="w-full h-full object-cover" controls />
+                                             ) : (
+                                               <img
+                                                 src={att.fileUrl}
+                                                 alt=""
+                                                 className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
+                                                 onClick={() => window.open(att.fileUrl, "_blank")}
+                                               />
+                                             )}
+                                           </div>
+                                         );
+                                       })}
+                                     </div>
+                                   </div>
+                                 );
+                               })()}
+                             </div>
+                           )}
                         </div>
                       </div>
                     );
                   })}
+                  
+                  {sortedLogs.length > 3 && (
+                    <div className="flex justify-center pt-2 border-t border-slate-100 -mx-5 px-5">
+                      <button
+                        type="button"
+                        onClick={() => setIsHistoryExpanded(!isHistoryExpanded)}
+                        className="inline-flex items-center justify-center gap-1.5 w-full py-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors"
+                      >
+                        {isHistoryExpanded ? (
+                          <>
+                            <ChevronUp size={14} />
+                            Thu gọn lịch sử
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown size={14} />
+                            Xem thêm lịch sử ({sortedLogs.length - 3} mục khác)
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1511,20 +1569,20 @@ function PriorityBadge({ value }: { value?: string | null }) {
   const normalized = (value || "MEDIUM").toUpperCase();
   const info =
     normalized === "URGENT" || normalized === "CRITICAL"
-      ? { label: "Khẩn cấp", className: "bg-red-50 text-red-700 border border-red-200" }
+      ? { label: "Mức độ: Khẩn cấp", className: "bg-rose-50 text-rose-700 border border-rose-200" }
       : normalized === "HIGH"
         ? {
             label: "Mức độ: Cao",
-            className: "bg-orange-50 text-orange-700 border border-orange-200",
+            className: "bg-rose-50 text-rose-700 border border-rose-200",
           }
         : normalized === "LOW"
           ? {
               label: "Mức độ: Thấp",
-              className: "bg-green-50 text-green-700 border border-green-200",
+              className: "bg-emerald-50 text-emerald-700 border border-emerald-200",
             }
           : {
               label: "Mức độ: Trung bình",
-              className: "bg-blue-50 text-blue-700 border border-blue-200",
+              className: "bg-amber-50 text-amber-700 border border-amber-200",
             };
   return (
     <span className={`inline-flex px-2 py-0.5 text-[10px] font-bold rounded-md ${info.className}`}>
@@ -1660,6 +1718,8 @@ function translateAction(action?: string | null): string {
       return "Yêu cầu bổ sung thông tin";
     case "REJECT":
       return "Từ chối xử lý";
+    case "PROVIDE_INFO":
+      return "Bổ sung thông tin";
     default:
       return action;
   }

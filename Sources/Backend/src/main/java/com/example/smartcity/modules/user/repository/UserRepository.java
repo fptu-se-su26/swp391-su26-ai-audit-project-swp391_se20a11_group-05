@@ -23,6 +23,8 @@ public interface UserRepository extends BaseRepository<User, Long> {
 
     Optional<User> findByEmailIgnoreCase(String email);
 
+    java.util.List<User> findByRoleAndWardId(com.example.smartcity.modules.user.entity.Role role, Long wardId);
+
     Optional<User> findByPhoneNumber(String phoneNumber);
 
     /** Hard delete kể cả soft-deleted rows — chỉ dùng cho dev seed */

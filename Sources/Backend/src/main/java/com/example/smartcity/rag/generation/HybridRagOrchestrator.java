@@ -62,6 +62,10 @@ public class HybridRagOrchestrator {
      * @return Câu trả lời + nguồn trích dẫn + metadata kỹ thuật
      */
     public RagResponse query(RagRequest request) {
+        return query(request, null);
+    }
+
+    public RagResponse query(RagRequest request, String systemPromptOverride) {
         MDC.put("traceId", UUID.randomUUID().toString());
         metrics.recordQuery();
         long pipelineStart = System.currentTimeMillis();
@@ -163,9 +167,16 @@ public class HybridRagOrchestrator {
         // BƯỚC 6: LLM Call — Sinh câu trả lời
         // ──────────────────────────────────────────────────────────
         long llmStart = System.currentTimeMillis();
-        LlmExecutionService.LlmCallResult llmResult = hasContext
-                ? llmExecutionService.callLLM(request.question(), compressedContext)
-                : llmExecutionService.callGeneralLLM(request.question());
+        LlmExecutionService.LlmCallResult llmResult;
+        if (hasContext) {
+            if (systemPromptOverride != null) {
+                llmResult = llmExecutionService.callLLM(systemPromptOverride, request.question(), compressedContext);
+            } else {
+                llmResult = llmExecutionService.callLLM(request.question(), compressedContext);
+            }
+        } else {
+            llmResult = llmExecutionService.callGeneralLLM(request.question());
+        }
         metrics.recordLLMLatency(System.currentTimeMillis() - llmStart);
         
         String answer = llmResult.answer();

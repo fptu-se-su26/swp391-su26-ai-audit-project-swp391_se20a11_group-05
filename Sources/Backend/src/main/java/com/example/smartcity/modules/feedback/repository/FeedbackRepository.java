@@ -89,7 +89,8 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
             LEFT JOIN f.ward w
             LEFT JOIN f.category c
             LEFT JOIN f.citizen u
-            WHERE (:hasStatuses = false OR f.status IN :statuses)
+            WHERE f.publicVisible = true
+              AND (:hasStatuses = false OR f.status IN :statuses)
               AND (:priority IS NULL OR :priority = '' OR f.priority = :priority)
               AND f.createdAt >= :fromDate
               AND f.createdAt <= :toDate
@@ -126,7 +127,8 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
             LEFT JOIN f.ward w
             LEFT JOIN f.category c
             LEFT JOIN f.citizen u
-            WHERE (:hasStatuses = false OR f.status IN :statuses)
+            WHERE f.publicVisible = true
+              AND (:hasStatuses = false OR f.status IN :statuses)
               AND (:priority IS NULL OR :priority = '' OR f.priority = :priority)
               AND f.createdAt >= :fromDate
               AND f.createdAt <= :toDate

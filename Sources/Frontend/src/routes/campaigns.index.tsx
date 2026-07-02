@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
   CheckCircle2,
@@ -75,6 +75,7 @@ const mockImages = [
 function CampaignList() {
   const campaigns = useCampaignList();
   const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const joinCampaign = useJoinCampaign();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -101,7 +102,7 @@ function CampaignList() {
 
   const canCreate = isAuthenticated && user?.role === Role.WARD_STAFF;
 
-  const handleJoin = async (campaign: Campaign) => {
+  const handleJoin = (campaign: Campaign) => {
     if (!isAuthenticated) {
       toast.error("Vui lòng đăng nhập để tham gia chiến dịch.");
       return;
@@ -110,8 +111,11 @@ function CampaignList() {
       toast.error("Chiến dịch hiện không mở đăng ký.");
       return;
     }
-    await joinCampaign.mutateAsync(campaign.id);
-    toast.success("Đã gửi yêu cầu tham gia, vui lòng chờ người quản lý duyệt.");
+    navigate({
+      to: "/campaigns/$id",
+      params: { id: campaign.id },
+      search: { join: true },
+    });
   };
 
   const stats = [
@@ -354,6 +358,8 @@ function CampaignCard({
 }) {
   const progressPercent = campaign.target > 0 ? Math.min(100, Math.round((campaign.participants / campaign.target) * 100)) : 0;
   const CategoryIcon = categoryIcon[campaign.category] ?? Leaf;
+  const hasJoined = campaign.currentUserJoinStatus &&
+    ["PENDING", "APPROVED", "WAITLIST", "PENDING_CONFIRM"].includes(campaign.currentUserJoinStatus);
 
   return (
     <article
@@ -414,24 +420,14 @@ function CampaignCard({
           </div>
         )}
 
-        <div className="mt-5 grid grid-cols-2 gap-3">
+        <div className="mt-5">
           <Link
             to="/campaigns/$id"
             params={{ id: campaign.id }}
-            className={campaign.status === "pending_review" ? "col-span-2 inline-flex h-11 items-center justify-center rounded-lg border border-slate-200 text-sm font-black text-slate-700 transition hover:bg-slate-50" : "inline-flex h-11 items-center justify-center rounded-lg border border-slate-200 text-sm font-black text-slate-700 transition hover:bg-slate-50"}
+            className="flex h-11 w-full items-center justify-center rounded-lg bg-[#7C3AED] text-sm font-black text-white shadow-sm transition hover:brightness-110"
           >
             Chi tiết
           </Link>
-          {campaign.status !== "pending_review" && (
-            <button
-              type="button"
-              onClick={onJoin}
-              disabled={isJoining || !campaign.canJoin || (campaign.status !== "active" && campaign.status !== "recruiting")}
-              className="inline-flex h-11 items-center justify-center rounded-lg bg-[#7C3AED] text-sm font-black text-white shadow-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Tham gia
-            </button>
-          )}
         </div>
       </div>
     </article>

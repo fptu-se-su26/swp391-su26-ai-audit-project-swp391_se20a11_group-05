@@ -66,6 +66,6 @@ public interface CampaignRepository extends JpaRepository<Campaign, Long> {
             @Param("now") java.time.LocalDateTime now,
             Pageable pageable);
 
-    @Query("SELECT COUNT(p) FROM CampaignParticipant p WHERE p.campaign.id = :campaignId AND p.joinStatus = 'APPROVED'")
+    @Query("SELECT COUNT(p) FROM CampaignParticipant p WHERE p.campaign.id = :campaignId AND p.joinStatus IN ('APPROVED', 'MAYBE')")
     long countActiveParticipants(@Param("campaignId") Long campaignId);
 }

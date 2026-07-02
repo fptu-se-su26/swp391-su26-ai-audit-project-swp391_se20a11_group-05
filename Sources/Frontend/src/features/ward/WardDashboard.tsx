@@ -38,6 +38,7 @@ import {
   BarChart3,
   Settings,
   Plus,
+  ShieldAlert,
 } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { toast } from "sonner";
@@ -49,6 +50,7 @@ import { WardFeedbackManagementPage } from "./WardFeedbackManagementPage";
 import { WardCampaignPage } from "./WardCampaignPage";
 import { WardProfileConfigPage } from "./WardProfileConfigPage";
 import { WardStatisticsPage } from "./WardStatisticsPage";
+import WardBlacklistPage from "./WardBlacklistPage";
 
 const CivicMap = clientOnly(() =>
   import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
@@ -56,7 +58,7 @@ const CivicMap = clientOnly(() =>
 
 import { WARD_CENTERS } from "@/lib/geojson";
 
-type WardSection = "overview" | "feedback" | "campaign" | "statistics" | "schedule" | "config";
+type WardSection = "overview" | "feedback" | "campaign" | "statistics" | "schedule" | "config" | "blacklist";
 
 // Date formatting helper
 function formatDate(dateStr: string, includeTime = true): string {
@@ -117,7 +119,7 @@ export function WardDashboard() {
   const [userOpen, setUserOpen] = useState(false);
   const { tab, detailId } = Route.useSearch();
   const activeSection = (
-    tab && (["overview", "feedback", "campaign", "statistics", "schedule", "config"].includes(tab) || tab.startsWith("campaign/"))
+    tab && (["overview", "feedback", "campaign", "statistics", "schedule", "config", "blacklist"].includes(tab) || tab.startsWith("campaign/"))
       ? (tab.startsWith("campaign/") ? "campaign" : tab)
       : "overview"
   ) as WardSection;
@@ -590,6 +592,7 @@ export function WardDashboard() {
     { name: "Phản ánh", section: "feedback" as const, icon: FileText },
     { name: "Chiến dịch", section: "campaign" as const, icon: Activity },
     { name: "Thống kê", section: "statistics" as const, icon: BarChart3 },
+    { name: "Danh sách chặn", section: "blacklist" as const, icon: ShieldAlert },
     { name: "Cấu hình", section: "config" as const, icon: Settings },
   ];
 
@@ -1907,6 +1910,8 @@ export function WardDashboard() {
             <WardCampaignPage hideHeader={true} />
           ) : activeSection === "statistics" ? (
             <WardStatisticsPage range={statsRange} setRange={setStatsRange} hideHeader={true} />
+          ) : activeSection === "blacklist" ? (
+            <WardBlacklistPage />
           ) : activeSection === "config" ? (
             <WardProfileConfigPage
               user={user}

@@ -144,6 +144,10 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         User citizen = userRepository.findByUsername(username)
                 .orElseThrow(() -> new com.example.smartcity.common.exception.ResourceNotFoundException("User: " + username));
 
+        if ("BANNED".equalsIgnoreCase(citizen.getStatus())) {
+            throw new CustomException("Tài khoản của bạn đã bị khóa.", HttpStatus.FORBIDDEN.value());
+        }
+
         if (citizen.getRole() != Role.CITIZEN) {
             throw new CustomException("Chi cong dan moi duoc gui vi tri GPS khi tao phan anh", HttpStatus.FORBIDDEN.value());
         }
@@ -801,6 +805,10 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
 
         User actionBy = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User: " + username));
+
+        if ("BANNED".equalsIgnoreCase(actionBy.getStatus())) {
+            throw new CustomException("Tài khoản của bạn đã bị khóa.", HttpStatus.FORBIDDEN.value());
+        }
 
         // 1. Security check: Only the citizen who submitted the feedback can supplement info
         if (feedback.getCitizen() == null || !feedback.getCitizen().getId().equals(actionBy.getId())) {

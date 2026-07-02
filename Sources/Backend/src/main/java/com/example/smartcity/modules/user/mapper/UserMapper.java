@@ -10,5 +10,7 @@ import org.mapstruct.Mapping;
 public interface UserMapper extends BaseMapper<User, UserDTO> {
     @Override
     @Mapping(target = "wardId", source = "ward.id")
+    @Mapping(target = "isActive", source = "active")
+    @Mapping(target = "isMfaEnabled", source = "mfaEnabled")
     UserDTO toDto(User entity);
 }

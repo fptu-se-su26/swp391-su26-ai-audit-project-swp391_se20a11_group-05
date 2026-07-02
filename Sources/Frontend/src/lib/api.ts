@@ -8,7 +8,7 @@
  *  - Error handling tập trung với ApiError
  */
 
-const API_BASE: string =
+export const API_BASE: string =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) || "";
 
 // ─── JWT Token Management ─────────────────────────────────────
@@ -215,6 +215,7 @@ export interface UserProfile {
   wardName?: string | null;
   wardType?: string | null;
   wardId?: number | null;
+  warningCount?: number;
 }
 
 export interface UpdateProfileRequest {
@@ -679,6 +680,25 @@ export const userApi = {
     request<void>(`/api/users/${id}`, {
       method: "DELETE",
     }),
+
+  getById: (id: number) => request<UserProfile>(`/api/users/${id}`),
+
+  warn: (id: number, reason: string) =>
+    request<UserProfile>(`/api/users/${id}/warn?reason=${encodeURIComponent(reason)}`, {
+      method: "POST",
+    }),
+
+  getBlacklist: () => request<UserProfile[]>("/api/users/blacklist"),
+
+  unban: (id: number) =>
+    request<UserProfile>(`/api/users/${id}/unban`, {
+      method: "POST",
+    }),
+
+  ban: (id: number, reason: string) =>
+    request<UserProfile>(`/api/users/${id}/ban?reason=${encodeURIComponent(reason)}`, {
+      method: "POST",
+    }),
 };
 
 export const notificationApi = {
@@ -864,6 +884,7 @@ export interface CampaignResponse {
   canManage: boolean;
   canComment: boolean;
   canFeedback: boolean;
+  announcementMode: boolean;
   createdAt: string;
   updatedAt: string;
   linkedFeedbackId?: number | null;
@@ -1007,13 +1028,17 @@ export const campaignApi = {
       body: JSON.stringify({ content }),
     }),
 
-  getChatMessages: (id: number | string) =>
-    request<CampaignChatMessageResponse[]>(`/api/campaigns/${id}/chat`),
+  getChatMessages: (id: number | string, beforeId?: number | string) => {
+    const url = beforeId
+      ? `/api/campaigns/${id}/chat?beforeId=${beforeId}`
+      : `/api/campaigns/${id}/chat`;
+    return request<CampaignChatMessageResponse[]>(url);
+  },
 
-  addChatMessage: (id: number | string, content: string) =>
+  addChatMessage: (id: number | string, content: string, imageUrls?: string[]) =>
     request<CampaignChatMessageResponse>(`/api/campaigns/${id}/chat`, {
       method: "POST",
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ content, imageUrls }),
     }),
 
   pinMessage: (id: number | string, messageId: number | string) =>
@@ -1026,6 +1051,11 @@ export const campaignApi = {
       method: "POST",
     }),
 
+  deleteChatMessage: (id: number | string, messageId: number | string) =>
+    request<void>(`/api/campaigns/${id}/chat/${messageId}`, {
+      method: "DELETE",
+    }),
+
   signalAttendance: (id: number | string, signal: "CONFIRMED" | "MAYBE") =>
     request<CampaignParticipantResponse>(`/api/campaigns/${id}/signal-attendance?signal=${signal}`, {
       method: "POST",
@@ -1034,6 +1064,11 @@ export const campaignApi = {
   finalizeCampaign: (id: number | string) =>
     request<CampaignResponse>(`/api/campaigns/${id}/finalize`, {
       method: "POST",
+    }),
+
+  setAnnouncementMode: (id: number | string, enabled: boolean) =>
+    request<CampaignResponse>(`/api/campaigns/${id}/announcement-mode?enabled=${enabled}`, {
+      method: "PUT",
     }),
 };
 
@@ -1052,6 +1087,8 @@ export interface CampaignChatMessageResponse {
   senderName: string;
   senderRole: BackendRole;
   message: string;
+  imageUrls?: string[];
   pinned: boolean;
   createdAt: string;
+  status?: "sending" | "failed" | "sent" | "seen";
 }

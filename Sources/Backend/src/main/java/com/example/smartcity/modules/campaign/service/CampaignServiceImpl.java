@@ -182,6 +182,9 @@ public class CampaignServiceImpl implements CampaignService {
     @Transactional
     public CampaignResponse join(Long campaignId, CampaignJoinRequest request, String username) {
         User citizen = requireUser(username);
+        if ("BANNED".equalsIgnoreCase(citizen.getStatus())) {
+            throw new CustomException("Tài khoản của bạn đã bị khóa.", HttpStatus.FORBIDDEN.value());
+        }
         if (citizen.getRole() != Role.CITIZEN) {
             throw new CustomException("Only citizens can join campaigns", HttpStatus.FORBIDDEN.value());
         }
@@ -386,13 +389,32 @@ public class CampaignServiceImpl implements CampaignService {
     }
 
     @Override
-    public List<CampaignChatMessageResponse> getChatMessages(Long campaignId, String username) {
+    public List<CampaignChatMessageResponse> getChatMessages(Long campaignId, Long beforeId, String username) {
         User currentUser = requireUser(username);
         Campaign campaign = getCampaign(campaignId);
         assertCanAccessCampaignChat(campaign, currentUser);
 
-        List<CampaignChatMessage> messages = new ArrayList<>(chatMessageRepository.findTop50ByCampaign_IdOrderByCreatedAtDesc(campaignId));
-        java.util.Collections.reverse(messages);
+        List<CampaignChatMessage> messages;
+        if (beforeId == null) {
+            messages = new ArrayList<>(chatMessageRepository.findTop15ByCampaign_IdOrderByCreatedAtDesc(campaignId));
+
+            // Luôn kèm tất cả tin nhắn đang ghim, kể cả những tin cũ ngoài top 15 vào trang đầu tiên
+            List<CampaignChatMessage> pinnedMessages = chatMessageRepository.findByCampaign_IdAndPinnedTrue(campaignId);
+            for (CampaignChatMessage pinned : pinnedMessages) {
+                if (messages.stream().noneMatch(m -> m.getId().equals(pinned.getId()))) {
+                    messages.add(pinned);
+                }
+            }
+        } else {
+            messages = new ArrayList<>(chatMessageRepository.findPageBefore(
+                campaignId,
+                beforeId,
+                org.springframework.data.domain.PageRequest.of(0, 15)
+            ));
+        }
+
+        // Sắp xếp lại theo thời gian tăng dần
+        messages.sort(java.util.Comparator.comparing(CampaignChatMessage::getCreatedAt));
         return messages.stream().map(this::toChatResponse).toList();
     }
 
@@ -402,6 +424,10 @@ public class CampaignServiceImpl implements CampaignService {
         User sender = requireUser(username);
         Campaign campaign = getCampaign(campaignId);
         assertCanAccessCampaignChat(campaign, sender);
+
+        if (campaign.isAnnouncementMode() && !canManage(campaign, sender)) {
+            throw new CustomException("Chế độ thông báo đang bật. Chỉ cán bộ mới được nhắn tin.", HttpStatus.FORBIDDEN.value());
+        }
 
         CampaignChatMessage message = CampaignChatMessage.builder()
                 .campaign(campaign)
@@ -455,8 +481,14 @@ public class CampaignServiceImpl implements CampaignService {
             throw new CustomException("Message does not belong to this campaign", HttpStatus.BAD_REQUEST.value());
         }
 
-        // Unpin all other messages for this campaign (only one pinned message at a time)
-        chatMessageRepository.unpinAllForCampaign(campaignId);
+        if (message.isPinned()) {
+            return toChatResponse(message);
+        }
+
+        long pinnedCount = chatMessageRepository.countByCampaign_IdAndPinnedTrue(campaignId);
+        if (pinnedCount >= 3) {
+            throw new CustomException("Chiến dịch chỉ được ghim tối đa 3 tin nhắn. Vui lòng bỏ ghim bớt tin nhắn cũ trước.", HttpStatus.BAD_REQUEST.value());
+        }
 
         message.setPinned(true);
         return toChatResponse(chatMessageRepository.save(message));
@@ -477,6 +509,22 @@ public class CampaignServiceImpl implements CampaignService {
 
         message.setPinned(false);
         return toChatResponse(chatMessageRepository.save(message));
+    }
+
+    @Override
+    @Transactional
+    public void deleteChatMessage(Long campaignId, Long messageId, String username) {
+        User manager = requireUser(username);
+        Campaign campaign = getCampaign(campaignId);
+        assertCanManage(campaign, manager);
+
+        CampaignChatMessage message = chatMessageRepository.findById(messageId)
+                .orElseThrow(() -> new CustomException("Message not found", HttpStatus.NOT_FOUND.value()));
+        if (!message.getCampaign().getId().equals(campaignId)) {
+            throw new CustomException("Message does not belong to this campaign", HttpStatus.BAD_REQUEST.value());
+        }
+
+        chatMessageRepository.delete(message);
     }
 
     @Override
@@ -618,6 +666,7 @@ public class CampaignServiceImpl implements CampaignService {
                 .canManage(canManage)
                 .canComment(canComment)
                 .canFeedback(canFeedback)
+                .announcementMode(campaign.isAnnouncementMode())
                 .createdAt(campaign.getCreatedAt())
                 .updatedAt(campaign.getUpdatedAt())
                 .linkedFeedbackId(campaign.getLinkedFeedbackId())
@@ -762,6 +811,9 @@ public class CampaignServiceImpl implements CampaignService {
     }
 
     private void assertCanComment(Campaign campaign, User user) {
+        if (user != null && "BANNED".equalsIgnoreCase(user.getStatus())) {
+            throw new CustomException("Tài khoản của bạn đã bị khóa.", HttpStatus.FORBIDDEN.value());
+        }
         if (!canComment(campaign, user)) {
             throw new CustomException("Only campaign managers and approved participants can comment", HttpStatus.FORBIDDEN.value());
         }
@@ -812,6 +864,9 @@ public class CampaignServiceImpl implements CampaignService {
     }
 
     private void assertCanAccessCampaignChat(Campaign campaign, User user) {
+        if (user != null && "BANNED".equalsIgnoreCase(user.getStatus())) {
+            throw new CustomException("Tài khoản của bạn đã bị khóa.", HttpStatus.FORBIDDEN.value());
+        }
         if (!canAccessCampaignChat(campaign, user)) {
             throw new CustomException("Bạn không có quyền truy cập kênh chat của chiến dịch này.", HttpStatus.FORBIDDEN.value());
         }
@@ -1026,6 +1081,16 @@ public class CampaignServiceImpl implements CampaignService {
                 )
         );
         return toResponse(campaign, manager);
+    }
+
+    @Override
+    @Transactional
+    public CampaignResponse setAnnouncementMode(Long campaignId, boolean enabled, String username) {
+        User manager = requireUser(username);
+        Campaign campaign = getCampaign(campaignId);
+        assertCanManage(campaign, manager);
+        campaign.setAnnouncementMode(enabled);
+        return toResponse(campaignRepository.save(campaign), manager);
     }
 }
 

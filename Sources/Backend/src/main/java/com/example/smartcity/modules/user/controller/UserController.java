@@ -58,9 +58,13 @@ public class UserController extends BaseGenericController<User, UserDTO, Long> {
         String currentUsername = auth.getName();
 
         User user = userService.findById(id);
-        boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+        boolean isStaff = auth.getAuthorities().stream().anyMatch(a -> 
+            a.getAuthority().equals("ROLE_SUPER_ADMIN") || 
+            a.getAuthority().equals("ROLE_WARD_STAFF") || 
+            a.getAuthority().equals("ROLE_POLICE")
+        );
 
-        if (!isAdmin && !user.getUsername().equals(currentUsername)) {
+        if (!isStaff && !user.getUsername().equals(currentUsername)) {
             throw new CustomException("Bạn không có quyền truy cập thông tin của tài khoản này.", 403);
         }
         return ResponseEntity.ok(userMapper.toDto(user));
@@ -145,5 +149,39 @@ public class UserController extends BaseGenericController<User, UserDTO, Long> {
         user.setRole(newRole);
         User updated = userService.save(user);
         return ResponseEntity.ok(ApiResponse.success("Đổi vai trò thành công", userMapper.toDto(updated)));
+    }
+
+    @PostMapping("/{id}/warn")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'WARD_STAFF', 'POLICE')")
+    public ResponseEntity<ApiResponse<UserDTO>> warnUser(
+            @PathVariable Long id,
+            @RequestParam(name = "reason") String reason) {
+        String actorUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        User updated = userService.warnUser(id, reason, actorUsername);
+        return ResponseEntity.ok(ApiResponse.success("Cảnh cáo thành viên thành công", userMapper.toDto(updated)));
+    }
+
+    @GetMapping("/blacklist")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'WARD_STAFF', 'POLICE')")
+    public ResponseEntity<ApiResponse<List<UserDTO>>> getBlacklist() {
+        List<User> banned = userService.getBannedUsers();
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách chặn thành công", userMapper.toDtoList(banned)));
+    }
+
+    @PostMapping("/{id}/ban")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'WARD_STAFF', 'POLICE')")
+    public ResponseEntity<ApiResponse<UserDTO>> banUser(
+            @PathVariable Long id,
+            @RequestParam(name = "reason") String reason) {
+        String actorUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        User updated = userService.banUser(id, reason, actorUsername);
+        return ResponseEntity.ok(ApiResponse.success("Chặn tài khoản thành công", userMapper.toDto(updated)));
+    }
+
+    @PostMapping("/{id}/unban")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'WARD_STAFF', 'POLICE')")
+    public ResponseEntity<ApiResponse<UserDTO>> unbanUser(@PathVariable Long id) {
+        User updated = userService.unbanUser(id);
+        return ResponseEntity.ok(ApiResponse.success("Mở khóa tài khoản thành công", userMapper.toDto(updated)));
     }
 }

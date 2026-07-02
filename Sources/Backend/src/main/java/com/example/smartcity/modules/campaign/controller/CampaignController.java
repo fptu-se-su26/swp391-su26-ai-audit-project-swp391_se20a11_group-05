@@ -178,8 +178,9 @@ public class CampaignController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<CampaignChatMessageResponse>> getChatMessages(
             @PathVariable Long id,
+            @RequestParam(required = false) Long beforeId,
             Authentication authentication) {
-        return ResponseEntity.ok(campaignService.getChatMessages(id, authentication.getName()));
+        return ResponseEntity.ok(campaignService.getChatMessages(id, beforeId, authentication.getName()));
     }
 
     @PostMapping("/{id}/chat")
@@ -215,6 +216,23 @@ public class CampaignController {
         return ResponseEntity.ok(response);
     }
 
+    @DeleteMapping("/{id}/chat/{messageId}")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN')")
+    public ResponseEntity<Void> deleteMessage(
+            @PathVariable Long id,
+            @PathVariable Long messageId,
+            Authentication authentication) {
+        campaignService.deleteChatMessage(id, messageId, authentication.getName());
+        CampaignChatMessageResponse deleteEvent = CampaignChatMessageResponse.builder()
+                .id(messageId)
+                .message("")
+                .senderName("")
+                .senderRole("")
+                .build();
+        messagingTemplate.convertAndSend("/topic/campaigns/" + id + "/chat", deleteEvent);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/{id}/feedback")
     @PreAuthorize("hasRole('CITIZEN')")
     public ResponseEntity<CampaignFeedbackResponse> addFeedback(
@@ -243,6 +261,17 @@ public class CampaignController {
             @Valid @RequestBody CampaignRequest request,
             Authentication authentication) {
         return ResponseEntity.ok(campaignService.update(id, request, authentication.getName()));
+    }
+
+    @PutMapping("/{id}/announcement-mode")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN')")
+    public ResponseEntity<CampaignResponse> setAnnouncementMode(
+            @PathVariable Long id,
+            @RequestParam boolean enabled,
+            Authentication authentication) {
+        CampaignResponse response = campaignService.setAnnouncementMode(id, enabled, authentication.getName());
+        messagingTemplate.convertAndSend("/topic/campaigns/" + id + "/announcement-mode", (Object) java.util.Map.of("announcementMode", enabled));
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")

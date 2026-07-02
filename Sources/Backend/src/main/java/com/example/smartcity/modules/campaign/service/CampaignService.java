@@ -50,13 +50,15 @@ public interface CampaignService {
 
     CampaignCommentResponse addComment(Long campaignId, CampaignMessageRequest request, String username);
 
-    List<CampaignChatMessageResponse> getChatMessages(Long campaignId, String username);
+    List<CampaignChatMessageResponse> getChatMessages(Long campaignId, Long beforeId, String username);
 
     CampaignChatMessageResponse addChatMessage(Long campaignId, CampaignMessageRequest request, String username);
 
     CampaignChatMessageResponse pinMessage(Long campaignId, Long messageId, String username);
 
     CampaignChatMessageResponse unpinMessage(Long campaignId, Long messageId, String username);
+
+    void deleteChatMessage(Long campaignId, Long messageId, String username);
 
     CampaignFeedbackResponse addFeedback(Long campaignId, CampaignFeedbackRequest request, String username);
 
@@ -71,4 +73,6 @@ public interface CampaignService {
     CampaignParticipantResponse signalAttendance(Long campaignId, String username, String signal);
 
     CampaignResponse finalizeCampaign(Long campaignId, String username);
+
+    CampaignResponse setAnnouncementMode(Long campaignId, boolean enabled, String username);
 }

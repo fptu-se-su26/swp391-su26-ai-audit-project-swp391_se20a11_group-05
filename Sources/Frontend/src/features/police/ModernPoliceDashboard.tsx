@@ -723,7 +723,7 @@ export function ModernPoliceDashboard() {
               </div>
 
               {/* SECOND SECTION: Split Layout */}
-              <div className="flex gap-6 h-[400px]">
+              <div className="flex gap-6 min-h-[500px] h-[calc(100vh-250px)]">
                 {/* 40% LEFT PANEL: PRIORITY INCIDENTS */}
                 <div className="w-[40%] bg-white rounded-[8px] border flex flex-col" style={{ borderColor: colors.border }}>
                   <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: colors.border }}>
@@ -830,65 +830,7 @@ export function ModernPoliceDashboard() {
                 </div>
               </div>
 
-              {/* THIRD SECTION: URGENT WORKBOARD */}
-              <div>
-                <h3 className="font-bold text-sm uppercase mb-4" style={{ color: colors.primaryNavy }}>Bảng việc khẩn cấp</h3>
-                <div className="grid grid-cols-3 gap-6">
-                  {/* Overdue */}
-                  <div className="bg-white rounded-[8px] border p-4 border-t-4" style={{ borderColor: colors.border, borderTopColor: colors.criticalRed }}>
-                    <div className="flex items-center gap-2 mb-3">
-                      <AlertTriangle size={16} style={{ color: colors.criticalRed }} />
-                      <h4 className="font-bold text-sm" style={{ color: colors.criticalRed }}>Quá hạn xử lý (3)</h4>
-                    </div>
-                    <div className="space-y-3">
-                      <div className="p-3 bg-slate-50 rounded-[4px] border" style={{ borderColor: colors.border }}>
-                        <div className="flex justify-between items-start mb-1">
-                          <span className="text-xs font-bold" style={{ color: colors.primaryNavy }}>PA-0998</span>
-                          <span className="text-[10px] text-red-600 font-bold">Trễ 2 ngày</span>
-                        </div>
-                        <div className="text-xs text-slate-600 mb-2 truncate">Xả rác thải trái phép tại ngõ 24...</div>
-                        <button className="w-full py-1.5 text-xs font-bold text-white rounded-[4px]" style={{ backgroundColor: colors.criticalRed }}>Xử lý ngay</button>
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Critical */}
-                  <div className="bg-white rounded-[8px] border p-4 border-t-4" style={{ borderColor: colors.border, borderTopColor: colors.policeGold }}>
-                    <div className="flex items-center gap-2 mb-3">
-                      <AlertTriangle size={16} style={{ color: colors.policeGold }} />
-                      <h4 className="font-bold text-sm" style={{ color: colors.policeGold }}>Nghiêm trọng (2)</h4>
-                    </div>
-                    <div className="space-y-3">
-                      <div className="p-3 bg-slate-50 rounded-[4px] border" style={{ borderColor: colors.border }}>
-                        <div className="flex justify-between items-start mb-1">
-                          <span className="text-xs font-bold" style={{ color: colors.primaryNavy }}>PA-1042</span>
-                          <span className="text-[10px] text-amber-600 font-bold">Mới</span>
-                        </div>
-                        <div className="text-xs text-slate-600 mb-2 truncate">Gây rối trật tự công cộng...</div>
-                        <button className="w-full py-1.5 text-xs font-bold text-white rounded-[4px]" style={{ backgroundColor: colors.primaryNavy }}>Phân công</button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Due Today */}
-                  <div className="bg-white rounded-[8px] border p-4 border-t-4" style={{ borderColor: colors.border, borderTopColor: colors.secondaryBlue }}>
-                    <div className="flex items-center gap-2 mb-3">
-                      <Clock size={16} style={{ color: colors.secondaryBlue }} />
-                      <h4 className="font-bold text-sm" style={{ color: colors.secondaryBlue }}>Đến hạn hôm nay (5)</h4>
-                    </div>
-                    <div className="space-y-3">
-                      <div className="p-3 bg-slate-50 rounded-[4px] border" style={{ borderColor: colors.border }}>
-                        <div className="flex justify-between items-start mb-1">
-                          <span className="text-xs font-bold" style={{ color: colors.primaryNavy }}>PA-1015</span>
-                          <span className="text-[10px] text-blue-600 font-bold">16:00 hôm nay</span>
-                        </div>
-                        <div className="text-xs text-slate-600 mb-2 truncate">Lấn chiếm vỉa hè...</div>
-                        <button className="w-full py-1.5 text-xs font-bold bg-white border rounded-[4px]" style={{ color: colors.primaryNavy, borderColor: colors.border }}>Cập nhật tiến độ</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
             </div>
           )}

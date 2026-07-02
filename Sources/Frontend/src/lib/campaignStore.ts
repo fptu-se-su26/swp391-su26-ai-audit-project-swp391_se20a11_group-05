@@ -50,6 +50,7 @@ export interface Campaign {
   canManage?: boolean;
   canComment?: boolean;
   canFeedback?: boolean;
+  announcementMode?: boolean;
   createdAt: string;
   boundaryGeojson?: string | null;
   coverImageUrl?: string | null;

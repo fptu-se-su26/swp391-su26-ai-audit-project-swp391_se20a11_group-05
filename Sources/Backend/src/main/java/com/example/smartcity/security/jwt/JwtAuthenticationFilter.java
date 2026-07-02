@@ -43,6 +43,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     String username = tokenProvider.getUsernameFromJWT(jwt);
 
                     UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
+                    if (!userDetails.isEnabled()) {
+                        String method = request.getMethod();
+                        String uri = request.getRequestURI();
+                        boolean isAllowedPost = uri.contains("/auth/logout") || uri.contains("/auth/refresh");
+                        if (!"GET".equalsIgnoreCase(method) && !isAllowedPost) {
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.setContentType("application/json");
+                            response.setCharacterEncoding("UTF-8");
+                            response.getWriter().write("{\"status\": 403, \"message\": \"Tài khoản của bạn đã bị khóa.\", \"data\": null}");
+                            return;
+                        }
+                    }
+
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                             userDetails, null, userDetails.getAuthorities());
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

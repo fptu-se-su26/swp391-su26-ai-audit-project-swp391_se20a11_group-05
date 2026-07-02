@@ -77,4 +77,8 @@ public class Campaign extends BaseEntity {
 
     @Column(name = "image_urls", columnDefinition = "TEXT")
     private String imageUrls;
+
+    @Column(name = "announcement_mode", nullable = false)
+    @Builder.Default
+    private boolean announcementMode = false;
 }

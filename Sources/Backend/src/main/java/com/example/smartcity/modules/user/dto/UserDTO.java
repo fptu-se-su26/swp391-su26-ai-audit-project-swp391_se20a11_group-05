@@ -20,4 +20,5 @@ public class UserDTO {
     private boolean isActive;
     private boolean isMfaEnabled;
     private Long wardId;
+    private int warningCount;
 }

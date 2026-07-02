@@ -707,6 +707,48 @@ Antigravity đóng vai trò Enterprise Solution Architect hỗ trợ thiết k�
 
 ---
 
+---
+
+# [Phase 19] Tích hợp Đăng nhập Google Firebase (Google Sign-In)
+
+## Ngày thực hiện
+
+```text
+27/06/2026
+```
+
+## Đã hoàn thành
+
+- [x] **Cài đặt Firebase SDK**: Thêm thư viện `firebase` vào `package.json` của Frontend.
+- [x] **Tạo module `firebase.ts`**: Khởi tạo Firebase App singleton, cài đặt hàm `signInWithGoogle()` (dùng Popup) và `signOutFirebase()`.
+- [x] **Tích hợp UI**: Thêm nút "Tiếp tục với Google" vào trang Đăng nhập (`LoginPage.tsx`). Xử lý đầy đủ 3 trường hợp: (1) Đăng nhập thành công, (2) Email chưa có tài khoản → redirect sang Register, (3) Tài khoản bị khóa → hiện thông báo lỗi.
+- [x] **Fix Bug type mismatch**: Phát hiện và sửa bug Frontend đọc sai field `token` trong khi Backend trả về `accessToken` qua `TokenPairResponse`.
+- [x] **Cấu hình môi trường**: Tạo file `.env.local.example` mẫu và điền Firebase config thực tế vào `.env.local`.
+- [x] **Kiểm tra tích hợp**: Xác nhận toàn bộ luồng Frontend ↔ Backend khớp 100% (URL endpoint, request body, response fields).
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi                                                   | Người thực hiện | File/Module liên quan                            |
+| --: | ------------------------------------------------------------------- | --------------- | ------------------------------------------------ |
+|   1 | Tạo module khởi tạo Firebase SDK và hàm Google Sign-In              | Phạm Bá Trí     | `Sources/Frontend/src/lib/firebase.ts`           |
+|   2 | Thêm nút đăng nhập Google và xử lý đầy đủ 3 trường hợp kết quả     | Phạm Bá Trí     | `Sources/Frontend/src/features/auth/LoginPage.tsx` |
+|   3 | Bổ sung type `TokenPairResponse`, fix field `accessToken`           | Phạm Bá Trí     | `Sources/Frontend/src/lib/api.ts`                |
+|   4 | Nhận `googleEmail`/`googleName` từ URL để pre-fill form đăng ký     | Phạm Bá Trí     | `Sources/Frontend/src/routes/register.tsx`       |
+|   5 | Tạo file mẫu cấu hình Firebase env vars                             | Phạm Bá Trí     | `Sources/Frontend/.env.local.example`            |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Mô tả AI đã hỗ trợ phần nào:
+
+```text
+Antigravity đọc toàn bộ mã nguồn Frontend và Backend, kiểm tra logic nghiệp vụ của luồng đăng nhập Google và phát hiện bug type mismatch (data.token vs data.accessToken). AI cũng hướng dẫn cách cài đặt Firebase Console, bật Google Sign-In provider, đăng ký Web App và lấy config SDK để điền vào biến môi trường.
+```
+
+---
+
 # 5. Cam kết cập nhật Changelog
 
 Sinh viên/nhóm cam kết rằng nội dung changelog phản ánh đúng các thay đổi đã
@@ -714,4 +756,5 @@ thực hiện trong quá trình làm bài tập/project.
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 | ----------------------- | ------------- |
-| Phạm Bá Trí             | 2026-06-21    |
+| Phạm Bá Trí             | 2026-06-27    |
+

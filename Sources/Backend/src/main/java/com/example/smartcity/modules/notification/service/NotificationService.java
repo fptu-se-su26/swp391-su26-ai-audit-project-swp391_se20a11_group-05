@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import com.example.smartcity.modules.user.entity.User;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +31,8 @@ public class NotificationService extends BaseServiceImpl<Notification, Long> {
 
     private final NotificationRepository notificationRepository;
     private final FeedbackRepository feedbackRepository;
+    private final com.example.smartcity.modules.user.repository.UserRepository userRepository;
+    private final com.example.smartcity.modules.notification.WebSocketNotificationService webSocketNotificationService;
 
     @Override
     protected BaseRepository<Notification, Long> getRepository() {
@@ -95,6 +98,22 @@ public class NotificationService extends BaseServiceImpl<Notification, Long> {
                 savedFeedback.getCitizen().getId(),
                 saved.getId());
         return saved;
+    }
+
+    @Transactional
+    public void createCampaignNotification(User user, Long campaignId, String title, String content, String type) {
+        Notification notification = Notification.builder()
+                .user(user)
+                .referenceId(campaignId)
+                .title(title)
+                .content(content)
+                .type(type)
+                .isRead(false)
+                .build();
+        LocalDateTime now = LocalDateTime.now();
+        notification.setCreatedAt(now);
+        notification.setUpdatedAt(now);
+        notificationRepository.save(notification);
     }
 
     /**
@@ -167,6 +186,70 @@ public class NotificationService extends BaseServiceImpl<Notification, Long> {
         notificationRepository.save(notification);
     }
 
+    @Async("aiTaskExecutor")
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void createFeedbackInfoSupplementedNotification(Long feedbackId, String supplementContent) {
+        Feedback feedback = feedbackRepository.findById(feedbackId).orElse(null);
+        if (feedback == null || feedback.getWard() == null) {
+            log.warn("[Notification] Feedback or ward not found. feedbackId={}", feedbackId);
+            return;
+        }
+
+        String title = "Công dân đã bổ sung thông tin";
+        String trackingCode = feedback.getTrackingCode();
+        String summary = supplementContent.length() > 60 ? supplementContent.substring(0, 60) + "..." : supplementContent;
+        String content = String.format("Phản ánh %s đã được người dân bổ sung thông tin: %s", 
+                trackingCode, 
+                summary);
+
+        LocalDateTime now = LocalDateTime.now();
+
+        // 1. Notify Assignee first if exists
+        if (feedback.getAssignee() != null) {
+            Notification notification = Notification.builder()
+                    .user(feedback.getAssignee())
+                    .referenceId(feedbackId)
+                    .feedbackId(feedbackId)
+                    .title(title)
+                    .content(content)
+                    .type("FEEDBACK_INFO_SUPPLEMENTED")
+                    .isRead(false)
+                    .build();
+            notification.setCreatedAt(now);
+            notification.setUpdatedAt(now);
+            notificationRepository.save(notification);
+            
+            webSocketNotificationService.broadcastToStaff("FEEDBACK_INFO_SUPPLEMENTED", title, content);
+            return;
+        }
+
+        // 2. Otherwise notify all staff managing it
+        com.example.smartcity.modules.user.entity.Role role = 
+                "POLICE".equals(feedback.getManagedByRole()) 
+                ? com.example.smartcity.modules.user.entity.Role.POLICE 
+                : com.example.smartcity.modules.user.entity.Role.WARD_STAFF;
+
+        List<User> managers = userRepository.findByRoleAndWardId(role, feedback.getWard().getId());
+        for (User manager : managers) {
+            Notification notification = Notification.builder()
+                    .user(manager)
+                    .referenceId(feedbackId)
+                    .feedbackId(feedbackId)
+                    .title(title)
+                    .content(content)
+                    .type("FEEDBACK_INFO_SUPPLEMENTED")
+                    .isRead(false)
+                    .build();
+            notification.setCreatedAt(now);
+            notification.setUpdatedAt(now);
+            notificationRepository.save(notification);
+        }
+
+        if (!managers.isEmpty()) {
+            webSocketNotificationService.broadcastToStaff("FEEDBACK_INFO_SUPPLEMENTED", title, content);
+        }
+    }
+
     @Transactional
     public Notification markAsRead(Long notificationId, String currentUsername) {
         Notification notification = findById(notificationId);
@@ -205,5 +288,54 @@ public class NotificationService extends BaseServiceImpl<Notification, Long> {
                 .isRead(notification.isRead())
                 .createdAt(notification.getCreatedAt())
                 .build();
+    }
+
+    @Async("aiTaskExecutor")
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void createFeedbackAssignedToWardNotification(Long feedbackId) {
+        Feedback feedback = feedbackRepository.findById(feedbackId).orElse(null);
+        if (feedback == null || feedback.getWard() == null || !"WARD_STAFF".equals(feedback.getManagedByRole())) {
+            log.warn("[Notification] Feedback is null or does not have ward or is not assigned to WARD_STAFF. feedbackId={}", feedbackId);
+            return;
+        }
+
+        // Fetch WARD_STAFF users belonging to feedback's ward
+        List<User> wardStaffs = userRepository.findByRoleAndWardId(com.example.smartcity.modules.user.entity.Role.WARD_STAFF, feedback.getWard().getId());
+        
+        String title = "Có phản ánh mới cần xử lý";
+        String trackingCode = feedback.getTrackingCode();
+        String wardName = feedback.getWardName() != null ? feedback.getWardName() : feedback.getWard().getName();
+        String content = String.format("Phản ánh %s đã được phân về %s. Vui lòng kiểm tra và tiếp nhận xử lý.", 
+                trackingCode, 
+                wardName);
+
+        LocalDateTime now = LocalDateTime.now();
+
+        for (User staff : wardStaffs) {
+            boolean exists = notificationRepository.existsByUserIdAndFeedbackIdAndType(staff.getId(), feedbackId, "FEEDBACK_ASSIGNED_TO_WARD");
+            if (exists) {
+                continue;
+            }
+
+            Notification notification = Notification.builder()
+                    .user(staff)
+                    .referenceId(feedbackId)
+                    .feedbackId(feedbackId)
+                    .title(title)
+                    .content(content)
+                    .type("FEEDBACK_ASSIGNED_TO_WARD")
+                    .isRead(false)
+                    .build();
+            notification.setCreatedAt(now);
+            notification.setUpdatedAt(now);
+            notificationRepository.save(notification);
+            
+            log.info("[Notification] Created FEEDBACK_ASSIGNED_TO_WARD notification for user={}, feedbackId={}", staff.getUsername(), feedbackId);
+        }
+
+        // Broadcast via WebSocket to staff so that they get it in real-time
+        if (!wardStaffs.isEmpty()) {
+            webSocketNotificationService.broadcastToStaff("FEEDBACK_ASSIGNED_TO_WARD", title, content);
+        }
     }
 }

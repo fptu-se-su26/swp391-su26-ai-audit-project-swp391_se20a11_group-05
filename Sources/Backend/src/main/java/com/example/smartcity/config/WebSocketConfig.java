@@ -23,12 +23,21 @@ import java.security.Principal;
 
 @Configuration
 @EnableWebSocketMessageBroker
-@RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final CustomUserDetailsService userDetailsService;
     private final CampaignService campaignService;
+
+    public WebSocketConfig(
+            JwtTokenProvider jwtTokenProvider,
+            CustomUserDetailsService userDetailsService,
+            @org.springframework.context.annotation.Lazy CampaignService campaignService
+    ) {
+        this.jwtTokenProvider = jwtTokenProvider;
+        this.userDetailsService = userDetailsService;
+        this.campaignService = campaignService;
+    }
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {

@@ -12,11 +12,12 @@ import {
   X,
   Lock,
   Pin,
-  PinOff,
 } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { useCampaignDetail, useCampaignChat, usePinChatMessage, useUnpinChatMessage, useCampaignParticipants } from "@/hooks/useCampaigns";
 import { useAuth } from "@/lib/auth";
+import { toast } from "sonner";
+import type { Campaign } from "@/lib/campaignStore";
 
 export const Route = createFileRoute("/campaigns/$id/group-chat")({
   head: () => ({
@@ -97,7 +98,7 @@ function CampaignGroupChatPage() {
   const [draft, setDraft] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { data: chatMessages = [], sendMessage, isLoading: chatLoading } = useCampaignChat(id);
+  const { data: chatMessages = [], sendMessage, isLoading: chatLoading, error: chatError, isError: isChatError } = useCampaignChat(id);
   const pinMutation = usePinChatMessage(id);
   const unpinMutation = useUnpinChatMessage(id);
   const participantsQuery = useCampaignParticipants(id);
@@ -135,7 +136,7 @@ function CampaignGroupChatPage() {
     return chatMessages.map((msg) => {
       const isMe = user && user.name === msg.senderName;
       const isHost = msg.senderRole === "WARD_STAFF" || msg.senderRole === "SUPER_ADMIN";
-      
+
       let timeStr = "";
       try {
         const date = new Date(msg.createdAt);
@@ -149,7 +150,7 @@ function CampaignGroupChatPage() {
       return {
         id: String(msg.id),
         sender: msg.senderName,
-        role: isMe ? "me" : (isHost ? "host" : "member"),
+        role: isMe ? "me" : isHost ? "host" : "member",
         text: msg.message,
         time: timeStr,
         pinned: msg.pinned || false,
@@ -170,6 +171,8 @@ function CampaignGroupChatPage() {
       <GroupSidebar
         campaignId={id}
         campaignName={campaignName}
+        campaign={campaign}
+        hostName={hostName}
         target={target}
         memberCount={memberCount}
         progressPercent={progressPercent}
@@ -188,8 +191,10 @@ function CampaignGroupChatPage() {
     setDraft("");
   };
 
+  const isForbiddenError = isChatError && (chatError as any)?.status === 403;
+
   // If campaign details are loaded, check if user is authorized (manager or approved participant)
-  if (campaign && !campaign.privateDetailsVisible) {
+  if (isForbiddenError) {
     return (
       <main className="min-h-screen bg-[#F5F7FA] flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white/80 backdrop-blur-md border border-slate-200 shadow-xl rounded-2xl p-6 text-center">
@@ -198,7 +203,7 @@ function CampaignGroupChatPage() {
           </div>
           <h1 className="text-lg font-black text-slate-900 mb-2">Quyền truy cập bị từ chối</h1>
           <p className="text-sm font-semibold text-slate-500 mb-6 leading-relaxed">
-            Bạn không có quyền truy cập nhóm chat này. Chỉ quản trị viên và thành viên đã được duyệt tham gia mới có quyền truy cập.
+            Bạn không có quyền truy cập nhóm chat này. Chỉ quản trị viên và thành viên đã tham gia mới có quyền truy cập.
           </p>
           <Link
             to="/campaigns/$id"
@@ -257,7 +262,7 @@ function CampaignGroupChatPage() {
                   {campaignName}
                 </h1>
                 <p className="text-xs font-semibold text-slate-500">
-                  {memberCount} thành viên · {onlineCount} đang online
+                  {memberCount}/{target || "?"} thành viên
                 </p>
               </div>
             </div>
@@ -305,6 +310,44 @@ function CampaignGroupChatPage() {
               >
                 <X size={15} />
               </button>
+            </div>
+          )}
+
+          {withinConfirmWindow && (currentStatus === "APPROVED" || currentStatus === "PENDING") && (
+            <div className="flex shrink-0 flex-col gap-2 border-b border-indigo-100 bg-indigo-50 px-4 py-3 md:px-6 animate-[chatSlideUp_0.2s_ease] sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-xs sm:text-sm text-indigo-800 font-bold">
+                  Chiến dịch sắp khởi chạy. Vui lòng cập nhật khả năng tham gia của bạn.
+                </span>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <button
+                  onClick={() => handleSignal("CONFIRMED")}
+                  disabled={signalAttendance.isPending}
+                  className="text-white bg-[#7C3AED] hover:bg-[#6D28D9] px-3 py-1.5 rounded-lg text-xs font-black shadow-sm cursor-pointer transition active:scale-[0.97] disabled:opacity-50"
+                >
+                  Xác nhận tham gia
+                </button>
+                <button
+                  onClick={() => handleSignal("MAYBE")}
+                  disabled={signalAttendance.isPending}
+                  className="text-slate-700 border border-slate-200 bg-white hover:bg-slate-50 px-3 py-1.5 rounded-lg text-xs font-black shadow-sm cursor-pointer transition active:scale-[0.97] disabled:opacity-50"
+                >
+                  Có thể tham gia
+                </button>
+              </div>
+            </div>
+          )}
+
+          {withinConfirmWindow && (currentStatus as string) === "CONFIRMED" && (
+            <div className="flex shrink-0 items-center justify-between border-b border-emerald-100 bg-emerald-50 px-4 py-3 text-xs font-bold text-emerald-800 shadow-sm md:px-6">
+              Bạn đã xác nhận tham gia. Vui lòng chờ cán bộ phường phê duyệt chính thức.
+            </div>
+          )}
+
+          {withinConfirmWindow && (currentStatus as string) === "MAYBE" && (
+            <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-slate-100 px-4 py-3 text-xs font-bold text-slate-700 shadow-sm md:px-6">
+              Bạn đã chọn khả năng Có thể tham gia chiến dịch (Không cần duyệt).
             </div>
           )}
 
@@ -389,6 +432,8 @@ function CampaignGroupChatPage() {
 function GroupSidebar({
   campaignId,
   campaignName,
+  campaign,
+  hostName,
   target,
   memberCount,
   progressPercent,
@@ -398,6 +443,8 @@ function GroupSidebar({
 }: {
   campaignId: string;
   campaignName: string;
+  campaign?: Campaign;
+  hostName: string;
   target: number;
   memberCount: number;
   progressPercent: number;
@@ -405,6 +452,20 @@ function GroupSidebar({
   hostWard: string;
   members: any[];
 }) {
+  const thumbnail = useCampaignThumbnail(campaign);
+  const statusInfo = getStatusInfo(campaign?.status);
+  const categoryLabel = getCategoryLabel(campaign?.category);
+  const wardName = campaign?.ward || "Chưa cập nhật địa bàn";
+  const memberRatio = target > 0 ? `${memberCount}/${target}` : String(memberCount);
+  const canViewParticipants = Boolean(campaign?.canManage);
+  const { data: participants = [], isLoading: participantsLoading } = useCampaignParticipants(
+    campaignId,
+    canViewParticipants,
+  );
+  const approvedParticipants = participants.filter(
+    (participant) => participant.joinStatus === "APPROVED",
+  );
+
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-white">
       <div className="space-y-4 border-b border-slate-100 p-4">
@@ -427,10 +488,11 @@ function GroupSidebar({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
-        <div className="aspect-video overflow-hidden rounded-lg bg-gradient-to-br from-blue-100 via-sky-50 to-emerald-100">
-          <div className="flex h-full items-end p-4">
+        <div className="relative aspect-video overflow-hidden rounded-lg bg-slate-100">
+          <img src={thumbnail} alt={campaignName} className="h-full w-full object-cover" />
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/55 to-transparent p-4">
             <span className="rounded-md bg-white/90 px-2 py-1 text-xs font-black text-[#0B4FC4] shadow-sm">
-              Mùa Hè Xanh
+              {categoryLabel}
             </span>
           </div>
         </div>
@@ -438,8 +500,10 @@ function GroupSidebar({
         <h2 className="mt-3 line-clamp-2 text-base font-black leading-6 text-slate-950">
           {campaignName}
         </h2>
-        <span className="mt-3 inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700">
-          Đang tuyển
+        <span
+          className={`mt-3 inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${statusInfo.className}`}
+        >
+          {statusInfo.label}
         </span>
 
         <div className="my-5 h-px bg-slate-100" />
@@ -454,7 +518,6 @@ function GroupSidebar({
                 <span className="grid h-10 w-10 place-items-center rounded-full bg-amber-100 text-sm font-black text-amber-700 uppercase">
                   {hostName.split(" ").at(-1)?.[0] || "H"}
                 </span>
-                <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
               </div>
               <div className="min-w-0">
                 <p className="truncate text-sm font-black text-slate-900">{hostName}</p>
@@ -471,7 +534,7 @@ function GroupSidebar({
         <section className="mt-5">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-              Thành viên ({memberCount}/{target})
+              Thành viên ({memberRatio})
             </p>
             <span className="text-[10px] font-black text-slate-400">{progressPercent}%</span>
           </div>
@@ -482,21 +545,25 @@ function GroupSidebar({
             />
           </div>
 
-          <div className="space-y-2">
-            {members.slice(0, 8).map((member) => (
-              <div key={member.name} className="flex items-center gap-2 rounded-lg px-1 py-1.5">
-                <div className="relative">
-                  <span className="grid h-8 w-8 place-items-center rounded-full bg-slate-100 text-xs font-black text-slate-600">
-                    {member.initials}
-                  </span>
-                  <span
-                    className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white ${
-                      member.online ? "bg-emerald-500" : "bg-slate-300"
-                    }`}
-                  />
-                </div>
-                <span className="min-w-0 truncate text-sm font-bold text-slate-700">
-                  {member.name}
+          <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-3">
+            <div className="flex items-center justify-between gap-3 text-xs font-bold text-slate-600">
+              <span>Đã được duyệt tham gia</span>
+              <span className="text-slate-900">{memberCount}</span>
+            </div>
+            <div className="mt-2 flex items-center justify-between gap-3 text-xs font-bold text-slate-600">
+              <span>Sức chứa tối đa</span>
+              <span className="text-slate-900">{target || "Chưa giới hạn"}</span>
+            </div>
+          </div>
+
+          {canViewParticipants && (
+            <div className="mt-4 space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                  Danh sách đã duyệt
+                </p>
+                <span className="text-[10px] font-black text-slate-400">
+                  {approvedParticipants.length}
                 </span>
               </div>
             ))}
@@ -510,32 +577,40 @@ function GroupSidebar({
   );
 }
 
-function ChatBubble({ 
-  message, 
-  canManage, 
-  onPin, 
-  onUnpin 
-}: { 
-  message: ChatMessage; 
-  canManage: boolean; 
-  onPin: (id: string) => void; 
-  onUnpin: (id: string) => void; 
+function ChatBubble({
+  message,
+  canManage,
+  onPin,
+  onUnpin,
+}: {
+  message: ChatMessage;
+  canManage: boolean;
+  onPin: (id: string) => void;
+  onUnpin: (id: string) => void;
 }) {
   if (message.role === "me") {
     return (
-      <div className="flex justify-end items-center gap-2 group" style={{ animation: "chatSlideUp 0.2s ease" }}>
+      <div
+        className="flex justify-end items-center gap-2 group"
+        style={{ animation: "chatSlideUp 0.2s ease" }}
+      >
         {canManage && (
           <button
-            onClick={() => message.pinned ? onUnpin(message.id) : onPin(message.id)}
+            onClick={() => (message.pinned ? onUnpin(message.id) : onPin(message.id))}
             className="opacity-0 group-hover:opacity-100 p-1.5 rounded-full hover:bg-slate-250/80 bg-slate-100/50 text-slate-400 hover:text-amber-500 transition-all duration-200 shrink-0 shadow-sm border border-slate-200/50 cursor-pointer"
             title={message.pinned ? "Bỏ ghim tin nhắn" : "Ghim tin nhắn"}
           >
             <Pin size={13} className={message.pinned ? "fill-amber-500 text-amber-500" : ""} />
           </button>
         )}
-        <div className={`max-w-[78%] rounded-[12px_0_12px_12px] bg-[#3B82F6] px-4 py-2.5 text-white shadow-sm relative ${message.pinned ? "border-t-[3px] border-t-amber-400" : ""}`}>
+        <div
+          className={`max-w-[78%] rounded-[12px_0_12px_12px] bg-[#3B82F6] px-4 py-2.5 text-white shadow-sm relative ${message.pinned ? "border-t-[3px] border-t-amber-400" : ""}`}
+        >
           {message.pinned && (
-            <div className="absolute -top-2 -right-1 bg-amber-400 text-white rounded-full p-0.5 shadow-sm" title="Đã ghim">
+            <div
+              className="absolute -top-2 -right-1 bg-amber-400 text-white rounded-full p-0.5 shadow-sm"
+              title="Đã ghim"
+            >
               <Pin size={9} className="fill-current" />
             </div>
           )}
@@ -564,7 +639,10 @@ function ChatBubble({
         } ${message.pinned ? "border-t-[3px] border-t-amber-400" : ""}`}
       >
         {message.pinned && (
-          <div className="absolute -top-2 -right-1 bg-amber-400 text-white rounded-full p-0.5 shadow-sm" title="Đã ghim">
+          <div
+            className="absolute -top-2 -right-1 bg-amber-400 text-white rounded-full p-0.5 shadow-sm"
+            title="Đã ghim"
+          >
             <Pin size={9} className="fill-current" />
           </div>
         )}
@@ -577,7 +655,7 @@ function ChatBubble({
       </div>
       {canManage && (
         <button
-          onClick={() => message.pinned ? onUnpin(message.id) : onPin(message.id)}
+          onClick={() => (message.pinned ? onUnpin(message.id) : onPin(message.id))}
           className="opacity-0 group-hover:opacity-100 p-1.5 rounded-full hover:bg-slate-250/80 bg-slate-100/50 text-slate-400 hover:text-amber-500 transition-all duration-200 self-center shrink-0 shadow-sm border border-slate-200/50 cursor-pointer"
           title={message.pinned ? "Bỏ ghim tin nhắn" : "Ghim tin nhắn"}
         >

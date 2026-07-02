@@ -8,6 +8,10 @@ export interface ChatMessage {
   intent?: ChatIntent;
   latency?: number;
   isError?: boolean;
+  suggestedFollowUps?: string[]; // [NEW] Câu hỏi gợi ý từ backend
+  action?: string;               // [NEW] NAVIGATE | OPEN_FEEDBACK_FORM
+  navigateTo?: string;           // [NEW] /feedback/create etc.
+  messageId?: string;            // [NEW] UUID để rating
 }
 
 export function useChatbot() {
@@ -157,6 +161,22 @@ export function useChatbot() {
                     botSpeak(fullText);
                   } else {
                     setPetState("idle");
+                  }
+                  // [NEW] Cập nhật suggestedFollowUps + action + messageId từ finalIntent
+                  if (finalIntent) {
+                    setMessages((prev) =>
+                      prev.map((m) =>
+                        m.id === newAssistantMsg.id
+                          ? {
+                              ...m,
+                              suggestedFollowUps: finalIntent.suggestedFollowUps,
+                              action: finalIntent.action,
+                              navigateTo: finalIntent.navigateTo,
+                              messageId: finalIntent.messageId,
+                            }
+                          : m,
+                      ),
+                    );
                   }
                 } else if (data.chunk) {
                   fullText += data.chunk;

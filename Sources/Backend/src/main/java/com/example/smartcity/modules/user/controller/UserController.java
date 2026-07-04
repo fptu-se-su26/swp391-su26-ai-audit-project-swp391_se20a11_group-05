@@ -22,11 +22,15 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
-@RequiredArgsConstructor
 public class UserController extends BaseGenericController<User, UserDTO, Long> {
 
     private final UserService userService;
     private final UserMapper userMapper;
+
+    public UserController(UserService userService, UserMapper userMapper) {
+        this.userService = userService;
+        this.userMapper = userMapper;
+    }
 
     @Override
     protected BaseService<User, Long> getService() {
@@ -58,17 +62,27 @@ public class UserController extends BaseGenericController<User, UserDTO, Long> {
         String currentUsername = auth.getName();
 
         User user = userService.findById(id);
+        boolean isSuperAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
         boolean isStaff = auth.getAuthorities().stream().anyMatch(a -> 
-            a.getAuthority().equals("ROLE_SUPER_ADMIN") || 
             a.getAuthority().equals("ROLE_WARD_STAFF") || 
             a.getAuthority().equals("ROLE_POLICE")
         );
 
-        if (!isStaff && !user.getUsername().equals(currentUsername)) {
-            throw new CustomException("Bạn không có quyền truy cập thông tin của tài khoản này.", 403);
+        boolean isSelf = user.getUsername().equals(currentUsername);
+
+        if (!isSelf && !isSuperAdmin) {
+            if (isStaff) {
+                boolean isParticipant = userService.isParticipantInStaffCampaigns(id, currentUsername);
+                if (!isParticipant) {
+                    throw new CustomException("Bạn không có quyền truy cập thông tin của tài khoản này.", 403);
+                }
+            } else {
+                throw new CustomException("Bạn không có quyền truy cập thông tin của tài khoản này.", 403);
+            }
         }
         return ResponseEntity.ok(userMapper.toDto(user));
     }
+
 
     @Override
     public ResponseEntity<UserDTO> update(@PathVariable Long id, @RequestBody UserDTO dto) {

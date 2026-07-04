@@ -438,12 +438,34 @@ export interface RagResponse {
 }
 
 export interface ChatbotResponse {
+  // Legacy fields
   answer: string;
-  citations: Citation[];
+  citations?: Citation[];
   latencyMs: number;
   provider: string;
-  userId: number;
-  chatId: string;
+  userId?: number;
+  chatId?: string;
+  // Enhanced fields
+  reply?: string;         // Primary reply text (same as answer but from new format)
+  intent?: string;        // LOOKUP_FEEDBACK | CREATE_FEEDBACK | QA_LEGAL | STATISTICS | REPORT_COPILOT | DISCOVER_CAMPAIGN | NAVIGATION_GUIDE | GENERAL
+  emotion?: string;       // POSITIVE | NEGATIVE | NEUTRAL
+  action?: string;        // OPEN_FEEDBACK_FORM | NAVIGATE
+  navigateTo?: string;    // e.g. /feedback/create
+  messageId?: string;     // UUID for rating
+  suggestedFollowUps?: string[];
+  // Feedback lookup fields
+  trackingCode?: string;
+  feedbackStatus?: string;
+  feedbackCategory?: string;
+  feedbackAddress?: string;
+  feedbackDescription?: string;
+  feedbackCreatedAt?: string;
+  feedbackUpdatedAt?: string;
+  // Create feedback fields
+  location?: string;
+  category?: string;
+  description?: string;
+  needsMoreInfo?: string[];
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -786,13 +808,50 @@ export const ragApi = {
       }),
     }),
 
-  chatbot: (question: string, userId: string | number) =>
-    request<ChatbotResponse>(`/api/rag/chatbot?q=${encodeURIComponent(question)}&userId=${userId}`),
+  chatbot: (question: string, userId: string | number, sessionId?: string) =>
+    request<ChatbotResponse>(`/api/chatbot/query?q=${encodeURIComponent(question)}&userId=${userId}${sessionId ? `&sessionId=${encodeURIComponent(sessionId)}` : ""}`),
 
   chatHistory: (userId: string | number) =>
-    request<unknown[]>(`/api/rag/chat-history?userId=${userId}`),
+    request<unknown[]>(`/api/chatbot/chat-history?userId=${userId}`),
 
-  stats: () => request<Record<string, unknown>>("/api/rag/stats"),
+  stats: () => request<Record<string, unknown>>("/api/chatbot/chat-stats"),
+
+  /**
+   * Đánh giá chất lượng câu trả lời của bot.
+   * @param messageId UUID của ChatHistory
+   * @param rating 1 = helpful, -1 = not helpful
+   */
+  rateMessage: (messageId: string, rating: 1 | -1) =>
+    request<{ success: boolean; message: string }>(
+      `/api/chatbot/rate?messageId=${encodeURIComponent(messageId)}&rating=${rating}`,
+      { method: "POST" }
+    ),
+
+  /**
+   * [Feature 4] Lấy danh sách sessions của user.
+   */
+  getSessions: (userId: string | number) =>
+    request<Array<{
+      sessionId: string;
+      sessionName: string;
+      lastMessage: string;
+      messageCount: number;
+    }>>(`/api/chatbot/chat-sessions?userId=${userId}`),
+
+  /**
+   * [Feature 4] Lấy toàn bộ tin nhắn trong một session.
+   */
+  getSessionMessages: (sessionId: string, userId: string | number) =>
+    request<Array<{
+      messageId: string;
+      question: string;
+      answer: string;
+      intent: string;
+      createdAt: string;
+      latencyMs: number;
+      provider: string;
+      userRating: number | null;
+    }>>(`/api/chatbot/chat-sessions/${encodeURIComponent(sessionId)}?userId=${userId}`),
 };
 
 export const aiApi = {

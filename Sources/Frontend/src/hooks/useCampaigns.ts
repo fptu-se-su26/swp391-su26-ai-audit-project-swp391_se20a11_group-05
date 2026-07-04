@@ -679,7 +679,7 @@ export function useCampaignChat(campaignId: string) {
         imageUrls: imageUrls || [],
         pinned: false,
         createdAt: new Date().toISOString(),
-        status: "sending",
+        status: "sending" as const,
       };
 
       queryClient.setQueryData<InfiniteData<CampaignChatMessageResponse[]>>(

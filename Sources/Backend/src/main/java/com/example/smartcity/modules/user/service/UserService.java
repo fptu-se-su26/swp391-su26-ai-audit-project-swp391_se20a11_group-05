@@ -10,16 +10,33 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
-@RequiredArgsConstructor
 public class UserService extends BaseServiceImpl<User, Long> {
 
     private final UserRepository userRepository;
     private final UserWarningRepository userWarningRepository;
+    private final com.example.smartcity.modules.campaign.repository.CampaignParticipantRepository campaignParticipantRepository;
+
+    public UserService(UserRepository userRepository,
+                       UserWarningRepository userWarningRepository,
+                       com.example.smartcity.modules.campaign.repository.CampaignParticipantRepository campaignParticipantRepository) {
+        this.userRepository = userRepository;
+        this.userWarningRepository = userWarningRepository;
+        this.campaignParticipantRepository = campaignParticipantRepository;
+    }
 
     @Override
     protected BaseRepository<User, Long> getRepository() {
         return userRepository;
     }
+
+    public boolean isParticipantInStaffCampaigns(Long citizenId, String staffUsername) {
+        User staff = findByUsername(staffUsername);
+        if (staff.getWard() == null) {
+            return false;
+        }
+        return campaignParticipantRepository.existsByCitizenIdAndWardId(citizenId, staff.getWard().getId());
+    }
+
 
     @Override
     protected String getResourceName() {

@@ -3,7 +3,6 @@ package com.example.smartcity.config;
 import com.example.smartcity.modules.campaign.service.CampaignService;
 import com.example.smartcity.security.CustomUserDetailsService;
 import com.example.smartcity.security.jwt.JwtTokenProvider;
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -69,6 +68,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                     authorizeSubscription(accessor);
                 }
 
+                if (StompCommand.SEND.equals(accessor.getCommand())) {
+                    throw new AccessDeniedException("Client-side publishing is not allowed");
+                }
+
                 return message;
             }
         });
@@ -112,7 +115,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         String prefix = "/topic/campaigns/";
         String idPart = destination.substring(prefix.length(), destination.length() - "/chat".length());
         try {
-            return Long.parseLong(idPart);
+            return Long.valueOf(idPart);
         } catch (NumberFormatException ex) {
             throw new AccessDeniedException("Invalid campaign chat destination");
         }

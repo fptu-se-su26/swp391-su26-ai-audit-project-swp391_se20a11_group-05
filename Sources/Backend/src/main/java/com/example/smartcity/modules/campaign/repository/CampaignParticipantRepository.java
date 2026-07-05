@@ -31,4 +31,11 @@ public interface CampaignParticipantRepository extends JpaRepository<CampaignPar
     java.util.List<CampaignParticipant> findByCampaign_IdAndJoinStatusIn(Long campaignId, java.util.List<String> statuses);
 
     long countByCampaign_Id(Long campaignId);
+
+    @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) > 0 FROM CampaignParticipant p " +
+            "WHERE p.citizen.id = :citizenId AND p.campaign.ward.id = :wardId")
+    boolean existsByCitizenIdAndWardId(
+            @org.springframework.data.repository.query.Param("citizenId") Long citizenId,
+            @org.springframework.data.repository.query.Param("wardId") Long wardId);
 }
+

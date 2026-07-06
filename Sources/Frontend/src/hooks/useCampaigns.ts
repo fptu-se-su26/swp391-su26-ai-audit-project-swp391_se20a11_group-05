@@ -17,21 +17,20 @@ import {
   type Campaign,
   type CampaignCategory,
 } from "@/lib/campaignStore";
-import { useFeedbackDetail } from "./index";
+import { useFeedbackDetail, usePublicFeedbackDetail } from "./index";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 
 function mapStatus(status: CampaignResponse["status"]): Campaign["status"] {
   const statusMap: Record<CampaignResponse["status"], Campaign["status"]> = {
-    PENDING_APPROVAL: "pending_review",
     RECRUITING: "recruiting",
     IN_PROGRESS: "inProgress",
-    COMPLETED: "completed",
-    CANCELLED: "ended",
+    COMPLETED: "ended",
+    CANCELLED: "cancelled",
     ACTIVE: "inProgress",
     ENDED: "ended",
   };
-  return statusMap[status] ?? "pending_review";
+  return statusMap[status] ?? "recruiting";
 }
 
 function mapCategory(category?: string | null): CampaignCategory {
@@ -93,6 +92,7 @@ function mapResponseToCampaign(response: CampaignResponse): Campaign {
     canComment: response.canComment,
     canFeedback: response.canFeedback,
     announcementMode: response.announcementMode,
+    cancellationReason: response.cancellationReason ?? undefined,
     linkedFeedbackId: response.linkedFeedbackId ?? undefined,
     boundaryGeojson: response.boundaryGeojson ?? undefined,
     coverImageUrl: response.coverImageUrl ?? undefined,
@@ -100,7 +100,9 @@ function mapResponseToCampaign(response: CampaignResponse): Campaign {
     latitude: response.latitude ?? null,
     longitude: response.longitude ?? null,
     wardId: response.wardId,
+    minParticipants: response.minParticipants ?? null,
   } as Campaign;
+
 }
 
 export function useCampaignList(): Campaign[] {
@@ -180,6 +182,7 @@ export function useCreateCampaign() {
       requiredTools?: string;
       organizerContact?: string;
       maxParticipants?: string;
+      minParticipants?: string;
       startTime?: string;
       endTime?: string;
       linkedFeedbackId?: string | number | null;
@@ -212,6 +215,9 @@ export function useCreateCampaign() {
             organizerContact: fallbackContact,
             maxParticipants: params.maxParticipants
               ? Number.parseInt(params.maxParticipants, 10)
+              : undefined,
+            minParticipants: params.minParticipants
+              ? Number.parseInt(params.minParticipants, 10)
               : undefined,
             startTime: params.startTime || undefined,
             endTime: params.endTime || undefined,
@@ -313,16 +319,6 @@ export function useSendEmailOtp() {
   });
 }
 
-export function useApproveCampaign() {
-  const queryClient = useQueryClient();
-  return useMutation<CampaignResponse, Error, string | number>({
-    mutationFn: (id) => campaignApi.approve(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
-    },
-  });
-}
-
 export function useDeleteCampaign() {
   const queryClient = useQueryClient();
   return useMutation<void, Error, string | number>({
@@ -376,8 +372,8 @@ export function useUpdateCampaign() {
 
 export function useEndCampaign() {
   const queryClient = useQueryClient();
-  return useMutation<CampaignResponse, Error, string | number>({
-    mutationFn: (id) => campaignApi.end(id),
+  return useMutation<CampaignResponse, Error, { id: string | number; reason?: string }>({
+    mutationFn: ({ id, reason }) => campaignApi.end(id, reason),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["campaigns"] });
     },
@@ -650,8 +646,18 @@ export function useCampaignChat(campaignId: string) {
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
-      if (socketRef.current) {
-        socketRef.current.close();
+      const socket = socketRef.current;
+      if (socket) {
+        socket.onclose = null;
+        socket.onerror = null;
+        socket.onmessage = null;
+        if (socket.readyState === WebSocket.CONNECTING) {
+          socket.onopen = () => {
+            socket.close();
+          };
+        } else {
+          socket.close();
+        }
         socketRef.current = null;
       }
       setIsWsConnected(false);
@@ -780,7 +786,21 @@ const DEFAULT_PLACEHOLDERS: Record<string, string> = {
 
 export function useCampaignThumbnail(campaign?: Campaign): string {
   const feedbackId = campaign?.linkedFeedbackId;
-  const { data: feedback } = useFeedbackDetail(feedbackId ? String(feedbackId) : "");
+
+  // Nếu campaign đã có cover/thumbnail riêng thì không cần fetch feedback
+  const hasLocalThumbnail = !!(
+    campaign && (
+      (campaign.imageUrls && campaign.imageUrls.length > 0 && campaign.imageUrls[0]?.trim() !== "") ||
+      (campaign.coverImageUrl && campaign.coverImageUrl.trim() !== "") ||
+      (campaign.cover && !campaign.cover.includes("photo-1542601906990-b4d3fb778b09"))
+    )
+  );
+
+  // Sử dụng endpoint public để tránh lỗi 403 Forbidden phân quyền quản lý và chỉ chạy khi thực sự cần thiết
+  const { data: feedback } = usePublicFeedbackDetail(
+    !hasLocalThumbnail && feedbackId ? String(feedbackId) : "",
+    { enabled: !hasLocalThumbnail && !!feedbackId }
+  );
 
   return useMemo(() => {
     if (!campaign) return DEFAULT_PLACEHOLDERS.default;
@@ -997,4 +1017,22 @@ export function useBanUserMutation() {
     },
   });
 }
+
+export function useLookupParticipantByPhone(campaignId: string | number) {
+  return useMutation({
+    mutationFn: (phone: string) => campaignApi.lookupParticipantByPhone(campaignId, phone),
+  });
+}
+
+export function useBulkSaveAttendance(campaignId: string | number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { attendances: { participantId: number; attended: boolean }[] }) =>
+      campaignApi.bulkSaveAttendance(campaignId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["campaigns", String(campaignId), "participants"] });
+    },
+  });
+}
+
 

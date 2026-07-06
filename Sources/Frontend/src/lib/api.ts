@@ -216,6 +216,9 @@ export interface UserProfile {
   wardType?: string | null;
   wardId?: number | null;
   warningCount?: number;
+  completedCampaignCount?: number;
+  noShowCampaignCount?: number;
+  reputationBadge?: string;
 }
 
 export interface UpdateProfileRequest {
@@ -446,12 +449,12 @@ export interface ChatbotResponse {
   userId?: number;
   chatId?: string;
   // Enhanced fields
-  reply?: string;         // Primary reply text (same as answer but from new format)
-  intent?: string;        // LOOKUP_FEEDBACK | CREATE_FEEDBACK | QA_LEGAL | STATISTICS | REPORT_COPILOT | DISCOVER_CAMPAIGN | NAVIGATION_GUIDE | GENERAL
-  emotion?: string;       // POSITIVE | NEGATIVE | NEUTRAL
-  action?: string;        // OPEN_FEEDBACK_FORM | NAVIGATE
-  navigateTo?: string;    // e.g. /feedback/create
-  messageId?: string;     // UUID for rating
+  reply?: string; // Primary reply text (same as answer but from new format)
+  intent?: string; // LOOKUP_FEEDBACK | CREATE_FEEDBACK | QA_LEGAL | STATISTICS | REPORT_COPILOT | DISCOVER_CAMPAIGN | NAVIGATION_GUIDE | GENERAL
+  emotion?: string; // POSITIVE | NEGATIVE | NEUTRAL
+  action?: string; // OPEN_FEEDBACK_FORM | NAVIGATE
+  navigateTo?: string; // e.g. /feedback/create
+  messageId?: string; // UUID for rating
   suggestedFollowUps?: string[];
   // Feedback lookup fields
   trackingCode?: string;
@@ -809,7 +812,9 @@ export const ragApi = {
     }),
 
   chatbot: (question: string, userId: string | number, sessionId?: string) =>
-    request<ChatbotResponse>(`/api/chatbot/query?q=${encodeURIComponent(question)}&userId=${userId}${sessionId ? `&sessionId=${encodeURIComponent(sessionId)}` : ""}`),
+    request<ChatbotResponse>(
+      `/api/chatbot/query?q=${encodeURIComponent(question)}&userId=${userId}${sessionId ? `&sessionId=${encodeURIComponent(sessionId)}` : ""}`,
+    ),
 
   chatHistory: (userId: string | number) =>
     request<unknown[]>(`/api/chatbot/chat-history?userId=${userId}`),
@@ -824,34 +829,38 @@ export const ragApi = {
   rateMessage: (messageId: string, rating: 1 | -1) =>
     request<{ success: boolean; message: string }>(
       `/api/chatbot/rate?messageId=${encodeURIComponent(messageId)}&rating=${rating}`,
-      { method: "POST" }
+      { method: "POST" },
     ),
 
   /**
    * [Feature 4] Lấy danh sách sessions của user.
    */
   getSessions: (userId: string | number) =>
-    request<Array<{
-      sessionId: string;
-      sessionName: string;
-      lastMessage: string;
-      messageCount: number;
-    }>>(`/api/chatbot/chat-sessions?userId=${userId}`),
+    request<
+      Array<{
+        sessionId: string;
+        sessionName: string;
+        lastMessage: string;
+        messageCount: number;
+      }>
+    >(`/api/chatbot/chat-sessions?userId=${userId}`),
 
   /**
    * [Feature 4] Lấy toàn bộ tin nhắn trong một session.
    */
   getSessionMessages: (sessionId: string, userId: string | number) =>
-    request<Array<{
-      messageId: string;
-      question: string;
-      answer: string;
-      intent: string;
-      createdAt: string;
-      latencyMs: number;
-      provider: string;
-      userRating: number | null;
-    }>>(`/api/chatbot/chat-sessions/${encodeURIComponent(sessionId)}?userId=${userId}`),
+    request<
+      Array<{
+        messageId: string;
+        question: string;
+        answer: string;
+        intent: string;
+        createdAt: string;
+        latencyMs: number;
+        provider: string;
+        userRating: number | null;
+      }>
+    >(`/api/chatbot/chat-sessions/${encodeURIComponent(sessionId)}?userId=${userId}`),
 };
 
 export const aiApi = {
@@ -930,13 +939,23 @@ export interface CampaignResponse {
   minParticipants: number | null;
   startTime: string | null;
   endTime: string | null;
-  status: "PENDING_APPROVAL" | "RECRUITING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "ACTIVE" | "ENDED";
+  status: "RECRUITING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "ACTIVE" | "ENDED";
   wardId: number | null;
   wardName: string | null;
   createdByUserId: number;
   createdByName: string | null;
   participantCount: number;
-  currentUserJoinStatus: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "WAITLIST" | "PENDING_CONFIRM" | "NO_SHOW" | null;
+  currentUserJoinStatus:
+    | "PENDING"
+    | "APPROVED"
+    | "REJECTED"
+    | "CANCELLED"
+    | "WAITLIST"
+    | "PENDING_CONFIRM"
+    | "NO_SHOW"
+    | "CONFIRMED"
+    | "MAYBE"
+    | null;
   privateDetailsVisible: boolean;
   canJoin: boolean;
   canLeave: boolean;
@@ -944,6 +963,7 @@ export interface CampaignResponse {
   canComment: boolean;
   canFeedback: boolean;
   announcementMode: boolean;
+  cancellationReason?: string | null;
   createdAt: string;
   updatedAt: string;
   linkedFeedbackId?: number | null;
@@ -979,7 +999,16 @@ export interface CampaignParticipantResponse {
   citizenId: number;
   citizenName: string;
   citizenEmail?: string;
-  joinStatus: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "WAITLIST" | "PENDING_CONFIRM" | "NO_SHOW" | "CONFIRMED" | "MAYBE";
+  joinStatus:
+    | "PENDING"
+    | "APPROVED"
+    | "REJECTED"
+    | "CANCELLED"
+    | "WAITLIST"
+    | "PENDING_CONFIRM"
+    | "NO_SHOW"
+    | "CONFIRMED"
+    | "MAYBE";
   volunteerExperience?: string;
   availabilityHours?: string;
   cancellationReason?: string | null;
@@ -992,6 +1021,10 @@ export interface CampaignParticipantResponse {
   rejectedAt: string | null;
   rejectionReason: string | null;
   confirmedAt: string | null;
+  attended?: boolean | null;
+  attendedAt?: string | null;
+  citizenPhone?: string | null;
+  campaignTitle?: string | null;
 }
 
 export const campaignApi = {
@@ -1023,13 +1056,17 @@ export const campaignApi = {
       method: "DELETE",
     }),
 
-  approve: (id: number | string) =>
-    request<CampaignResponse>(`/api/campaigns/${id}/approve`, { method: "POST" }),
+  end: (id: number | string, reason?: string) => {
+    const url = reason
+      ? `/api/campaigns/${id}/end?reason=${encodeURIComponent(reason)}`
+      : `/api/campaigns/${id}/end`;
+    return request<CampaignResponse>(url, { method: "POST" });
+  },
 
-  end: (id: number | string) =>
-    request<CampaignResponse>(`/api/campaigns/${id}/end`, { method: "POST" }),
-
-  join: (id: number | string, data: { volunteerExperience?: string; availabilityHours?: string; otpCode: string }) =>
+  join: (
+    id: number | string,
+    data: { volunteerExperience?: string; availabilityHours?: string; otpCode: string },
+  ) =>
     request<CampaignResponse>(`/api/campaigns/${id}/join`, {
       method: "POST",
       body: JSON.stringify(data),
@@ -1051,12 +1088,14 @@ export const campaignApi = {
     }),
 
   markNoShow: (id: number | string, participantId: number | string) =>
-    request<CampaignParticipantResponse>(`/api/campaigns/${id}/participants/${participantId}/no-show`, {
-      method: "POST",
-    }),
+    request<CampaignParticipantResponse>(
+      `/api/campaigns/${id}/participants/${participantId}/no-show`,
+      {
+        method: "POST",
+      },
+    ),
 
-  sendEmailOtp: () =>
-    request<string>("/api/campaigns/email-otp/send", { method: "POST" }),
+  sendEmailOtp: () => request<string>("/api/campaigns/email-otp/send", { method: "POST" }),
 
   getParticipants: (id: number | string) =>
     request<CampaignParticipantResponse[]>(`/api/campaigns/${id}/participants`),
@@ -1116,9 +1155,12 @@ export const campaignApi = {
     }),
 
   signalAttendance: (id: number | string, signal: "CONFIRMED" | "MAYBE") =>
-    request<CampaignParticipantResponse>(`/api/campaigns/${id}/signal-attendance?signal=${signal}`, {
-      method: "POST",
-    }),
+    request<CampaignParticipantResponse>(
+      `/api/campaigns/${id}/signal-attendance?signal=${signal}`,
+      {
+        method: "POST",
+      },
+    ),
 
   finalizeCampaign: (id: number | string) =>
     request<CampaignResponse>(`/api/campaigns/${id}/finalize`, {
@@ -1129,6 +1171,23 @@ export const campaignApi = {
     request<CampaignResponse>(`/api/campaigns/${id}/announcement-mode?enabled=${enabled}`, {
       method: "PUT",
     }),
+
+  lookupParticipantByPhone: (id: number | string, phone: string) =>
+    request<CampaignParticipantResponse>(
+      `/api/campaigns/${id}/participants/lookup?phone=${encodeURIComponent(phone)}`,
+    ),
+
+  bulkSaveAttendance: (
+    id: number | string,
+    data: { attendances: { participantId: number; attended: boolean }[] },
+  ) =>
+    request<CampaignParticipantResponse[]>(`/api/campaigns/${id}/attendance/bulk`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  getCitizenParticipationHistory: (userId: number | string) =>
+    request<CampaignParticipantResponse[]>(`/api/campaigns/participants/user/${userId}`),
 };
 
 export interface CampaignCommentResponse {

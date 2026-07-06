@@ -9,6 +9,8 @@ import {
   getInitials,
   getJoinStatusLabel,
 } from "./CampaignChatHelpers";
+import { useAuth } from "@/lib/auth";
+import { Role } from "@/lib/roles";
 
 export function CampaignGroupSidebar({
   campaignId,
@@ -27,6 +29,7 @@ export function CampaignGroupSidebar({
   memberCount: number;
   progressPercent: number;
 }) {
+  const { user } = useAuth();
   const thumbnail = useCampaignThumbnail(campaign);
   const statusInfo = getStatusInfo(campaign?.status);
   const categoryLabel = getCategoryLabel(campaign?.category);
@@ -52,14 +55,25 @@ export function CampaignGroupSidebar({
           </div>
         </div>
 
-        <Link
-          to="/campaigns/$id"
-          params={{ id: campaignId }}
-          className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-black text-slate-700 transition hover:bg-slate-50"
-        >
-          <ArrowLeft size={15} />
-          Quay lại chiến dịch
-        </Link>
+        {user?.role === Role.WARD_STAFF ? (
+          <Link
+            to="/ward"
+            search={{ tab: "campaign", detailId: campaignId }}
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+          >
+            <ArrowLeft size={15} />
+            Quay lại chiến dịch
+          </Link>
+        ) : (
+          <Link
+            to="/campaigns/$id"
+            params={{ id: campaignId }}
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+          >
+            <ArrowLeft size={15} />
+            Quay lại chiến dịch
+          </Link>
+        )}
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
@@ -75,11 +89,18 @@ export function CampaignGroupSidebar({
         <h2 className="mt-3 line-clamp-2 text-base font-black leading-6 text-slate-950">
           {campaignName}
         </h2>
-        <span
-          className={`mt-3 inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${statusInfo.className}`}
-        >
-          {statusInfo.label}
-        </span>
+        <div className="mt-3 flex flex-wrap gap-2 items-center">
+          <span
+            className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${statusInfo.className}`}
+          >
+            {statusInfo.label}
+          </span>
+        </div>
+        {campaign?.status === "cancelled" && campaign?.cancellationReason && (
+          <div className="mt-2.5 text-[11px] font-semibold text-rose-600 italic bg-rose-50 border border-rose-100 p-2 rounded-lg leading-relaxed">
+            Lý do hủy: {campaign.cancellationReason}
+          </div>
+        )}
 
         <div className="my-5 h-px bg-slate-100" />
 

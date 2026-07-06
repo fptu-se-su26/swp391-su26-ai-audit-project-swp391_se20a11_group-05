@@ -51,6 +51,7 @@ export interface Campaign {
   canComment?: boolean;
   canFeedback?: boolean;
   announcementMode?: boolean;
+  cancellationReason?: string | null;
   createdAt: string;
   boundaryGeojson?: string | null;
   coverImageUrl?: string | null;
@@ -58,6 +59,7 @@ export interface Campaign {
   latitude?: number | null;
   longitude?: number | null;
   wardId?: number | null;
+  minParticipants?: number | null;
 }
 
 const COVER_BY_CATEGORY: Record<CampaignCategory, string> = {

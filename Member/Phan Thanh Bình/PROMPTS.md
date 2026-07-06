@@ -58,7 +58,8 @@ Sinh viên/nhóm cần ghi lại:
 | 4 | 06/07/2026 | Antigravity | Tích hợp xem tóm tắt lịch sử hoạt động của Tình nguyện viên | Thiết kế API lấy lịch sử và UI click-to-expand xem chi tiết vắng mặt | Thêm endpoint GET /user/{userId} và toggle hiển thị lịch sử ở frontend | Có | |
 | 5 | 06/07/2026 | Antigravity | Tái cấu trúc logic điểm danh chiến dịch (Decouple Attendance) | Giữ status APPROVED của người vắng và dùng attended = false | Cập nhật logic điểm danh tay & tự động, viết query count tương thích ngược | Có | |
 | 6 | 06/07/2026 | Antigravity | Sửa lỗi lệch trạng thái chiến dịch theo thời gian | Giải pháp khắc phục lệch trạng thái temporal do timezone | Đồng bộ so sánh thời gian dạng Date milliseconds ở cả 2 phía | Có | |
-| 10 |  |  |  |  |  | Có / Không |  |
+| 7 | 07/07/2026 | Antigravity | Cải thiện bố cục giao diện khung chat nhóm | Nới rộng khung chat, thanh nhập liệu, tăng font header & dọn 'any' | Mở rộng container lên max-w-5xl, nâng input h-11, clean linter warnings | Có | |
+
 
 ---
 
@@ -594,6 +595,78 @@ Do khác biệt về timezone của môi trường trình duyệt client và má
 
 ```text
 Nhóm chủ động sửa toàn diện từ database/entity cho đến store của client thay vì chỉ sửa phần hiển thị UI thô sơ theo gợi ý của AI.
+```
+
+---
+
+### Prompt số 7
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 07/07/2026 |
+| Công cụ AI | Antigravity / Gemini |
+| Mục đích | Cải thiện bố cục giao diện khung chat nhóm chiến dịch |
+| Phần việc liên quan | Coding / UI Design / Code Quality |
+| Mức độ sử dụng | Hỏi ý tưởng / Hỏi tối ưu / Hỏi sửa lỗi |
+
+#### 5.1. Prompt nguyên văn
+
+```text
+mình muốn cải thiện lại tại mình thấy hơi bị nhỏ ấy với lại 2 bên tin nhắn tháy còn dư ra nhièu
+```
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Khung chat nhóm của cả người dân và cán bộ đang bị giới hạn bởi max-w-2xl và max-w-3xl, tạo ra nhiều khoảng trống dư thừa ở hai bên trên màn hình máy tính Desktop. Các nút, thanh input và chữ tiêu đề cũng bị nhỏ, gây khó chịu khi tương tác lâu.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+Gợi ý tăng chiều rộng tối đa lên max-w-5xl, nâng độ cao của thanh nhập liệu lên h-11 cùng font chữ text-sm để hài hòa với giao diện rộng.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Cập nhật thuộc tính Tailwind CSS tại WardChatDashboardPage.tsx và campaigns.$id.group-chat.tsx để giãn chiều ngang khung chat và nâng chiều cao của ô nhập tin nhắn cùng các nút đi kèm.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+- Nhóm chủ động mở rộng font chữ tiêu đề nhóm chat và mô tả thành viên tại header để tỷ lệ hiển thị được cân đối với khung tin nhắn mở rộng.
+- Chủ động rà soát và khử toàn bộ cảnh báo ép kiểu TypeScript thô ('any') trong file chat để mã nguồn sạch và an toàn hơn, thay thế bằng kiểu dữ liệu an toàn (unknown và gán type block cụ thể).
+- Thực hiện chạy npx tsc --noEmit và eslint để verify chất lượng code.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | |
+| File liên quan | Sources/Frontend/src/features/ward/WardChatDashboardPage.tsx;<br>Sources/Frontend/src/routes/campaigns.$id.group-chat.tsx |
+| Screenshot | |
+| Kết quả chạy/test | npx tsc --noEmit: PASS; npx eslint: PASS |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Prompt ngắn gọn nhưng phản ánh đúng nhu cầu thiết kế UX. Kết quả đạt được rất khả quan nhờ sự chủ động căn chỉnh tỷ lệ các phần tử liên quan thay vì chỉ copy-paste thuộc tính CSS.
 ```
 
 ---

@@ -315,6 +315,53 @@ Mọi thay đổi đã được compile và test cục bộ thành công. Sẵn 
 
 ---
 
+# [Phase 04 - Tiếp tục] Cải thiện Bố cục Giao diện Khung chat (Chat UI Layout Improvement)
+
+## Ngày thực hiện
+
+```text
+07/07/2026
+```
+
+## Đã hoàn thành
+
+- [x] Tăng giới hạn độ rộng container tin nhắn và thanh nhập liệu từ `max-w-2xl` / `max-w-3xl` lên `max-w-5xl` để giảm khoảng trống 2 bên.
+- [x] Mở rộng thanh chat input (từ `h-9` lên `h-11`) và tăng kích thước chữ, icon để cân đối tỷ lệ trên các màn hình rộng.
+- [x] Nâng font-size của tiêu đề nhóm chat và thông tin số lượng thành viên ở header để có bố cục hài hòa hơn.
+- [x] Loại bỏ hoàn toàn các cảnh báo linter liên quan đến kiểu `any` trong file `campaigns.$id.group-chat.tsx` để tối ưu chất lượng code.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Căn chỉnh `max-w-5xl`, tăng chiều cao input/button lên `h-11`, tăng cỡ font header, item chat | Phan Thanh Bình | WardChatDashboardPage.tsx; campaigns.$id.group-chat.tsx | |
+| 2 | Thay đổi kiểu dữ liệu từ `any` sang các kiểu tường minh (`unknown`, object type định dạng sẵn) để làm sạch code | Phan Thanh Bình | campaigns.$id.group-chat.tsx | |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI phân tích các class hạn chế chiều ngang (max-w) của Tailwind và gợi ý giải pháp tăng container. Sinh viên tự rà soát, căn chỉnh lại các tỷ lệ font chữ xung quanh (header, badges) để giữ giao diện cân đối và thực hiện refactor ép kiểu TypeScript thô ('any') thành kiểu dữ liệu an toàn.
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+npx tsc --noEmit: PASS; npx eslint: PASS.
+```
+
+## Ghi chú
+
+```text
+Giao diện chat sau khi mở rộng trông thoáng và dễ đọc hơn rất nhiều trên màn hình Desktop mà vẫn giữ responsive tốt trên Mobile. Việc dọn linter giúp nhánh code an toàn để chuẩn bị merge.
+```
+
+---
+
 # [Phase 05] Testing & Debug
 
 ## Ngày thực hiện

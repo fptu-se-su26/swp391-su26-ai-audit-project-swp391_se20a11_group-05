@@ -688,6 +688,58 @@ Việc xử lý đồng bộ thời gian trên cả 2 phía Client và Server gi
 
 ---
 
+### Lần sử dụng AI số 10
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 07/07/2026 |
+| Công cụ AI | Antigravity / Gemini |
+| Mục đích sử dụng | Cải thiện bố cục giao diện và tận dụng không gian hiển thị của khung chat nhóm chiến dịch |
+| Phần việc liên quan | Frontend / UI Design / Code Quality |
+| Mức độ sử dụng | Hỗ trợ một phần |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+mình muốn cải thiện lại tại mình thấy hơi bị nhỏ ấy với lại 2 bên tin nhắn tháy còn dư ra nhièu
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+- Nhận diện các lớp giới hạn chiều ngang của khung chat là `max-w-2xl` và `max-w-3xl` đang thu hẹp giao diện và tạo khoảng trống thừa ở 2 bên.
+- Đề xuất tăng giới hạn chiều ngang của khung chat và thanh nhập liệu lên `max-w-5xl`.
+- Gợi ý nâng kích thước thanh chat input từ `h-9` lên `h-11` kèm kích thước font chữ và icon tương ứng để cân đối với giao diện rộng hơn.
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+- Áp dụng thay đổi từ `max-w-3xl` / `max-w-2xl` sang `max-w-5xl` cho khung tin nhắn và footer tại cả route của người dân (`campaigns.$id.group-chat.tsx`) và dashboard của cán bộ phường (`WardChatDashboardPage.tsx`).
+- Áp dụng tăng chiều cao input từ `h-9` lên `h-11` và cỡ font chữ lên `text-sm`.
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+- **Critical Thinking & Refactoring:** Khi thay đổi kích thước khung chat, sinh viên nhận thấy tiêu đề nhóm chat và mô tả số lượng thành viên ở header cũng bị nhỏ bất đối xứng so với khung chat mới. Sinh viên đã chủ động tăng kích thước font chữ tiêu đề từ `text-xs` lên `text-sm`/`text-base` và thành viên từ `text-[10px]` lên `text-xs` để đồng bộ tỷ lệ.
+- **Code Quality Guard:** Sinh viên chủ động rà soát toàn bộ các cảnh báo linter trong file `campaigns.$id.group-chat.tsx` liên quan đến ép kiểu `any` (quy tắc `@typescript-eslint/no-explicit-any`), tự viết lại kiểu dữ liệu chặt chẽ cho catch error block (`err: unknown`) và `chatError` state.
+- **Verification:** Chạy linter (`eslint`) và typecheck (`tsc --noEmit`) thủ công để đảm bảo các thay đổi sạch 100% trước khi merge.
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | |
+| File liên quan | Sources/Frontend/src/features/ward/WardChatDashboardPage.tsx;<br>Sources/Frontend/src/routes/campaigns.$id.group-chat.tsx |
+| Screenshot | |
+| Kết quả chạy/test | npx tsc --noEmit: PASS; npx eslint: PASS |
+| Link video demo | |
+| Ghi chú khác | |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Việc căn chỉnh giao diện không chỉ đơn thuần là thay đổi một thuộc tính width mà cần rà soát lại sự cân đối của tất cả các phần tử xung quanh (như font-size, line-height, icon-size). Đồng thời, việc tận dụng cơ hội refactor để dọn dẹp cảnh báo ép kiểu 'any' giúp nâng cao độ tin cậy của mã nguồn TypeScript.
+```
+
+---
+
 ## 5. Bảng tổng hợp mức độ sử dụng AI
 
 Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.

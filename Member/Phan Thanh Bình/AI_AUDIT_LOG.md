@@ -528,6 +528,162 @@ Creative Synthesis & Decision Ownership:
 ```text
 1) Kỹ thuật Optimistic UI Updates giúp cảm giác ứng dụng phản hồi nhanh hơn gấp nhiều lần, rất quan trọng đối với các tính năng mang tính tương tác thời gian thực như Group Chat.
 2) Việc tự xử lý rollback chi tiết tới từng tệp đính kèm thay vì toàn bộ tin nhắn giúp tăng độ tin cậy và sự hài lòng từ phía người dùng cuối.
+
+---
+
+### Lần sử dụng AI số 7
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 06/07/2026 |
+| Công cụ AI | Antigravity / Gemini |
+| Mục đích sử dụng | Tái cấu trúc logic điểm danh chiến dịch (Decouple Attendance from Status) |
+| Phần việc liên quan | Backend / Frontend / API Design / Refactoring |
+| Mức độ sử dụng | Hỗ trợ một phần |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+Tôi đang tối ưu lại hệ thống điểm danh chiến dịch. Hiện tại, khi đánh dấu vắng mặt, hệ thống đang cập nhật joinStatus = 'NO_SHOW'. Điều này dẫn đến việc tình nguyện viên bị mất trạng thái APPROVED ban đầu (ảnh hưởng đến quyền tham gia chat nhóm hoặc xem chi tiết chiến dịch). 
+Tôi muốn chuyển sang phương án: giữ nguyên joinStatus = 'APPROVED' nhưng dùng cờ attended = false và ghi nhận thời điểm attendedAt.
+1. Hãy giúp tôi rà soát các hàm markNoShow, bulkSaveAttendance trong CampaignServiceImpl và autoEndExpiredCampaigns trong scheduler xem cần sửa đổi gì.
+2. Để đếm số lần vắng mặt tương thích ngược với dữ liệu cũ (vẫn có bản ghi joinStatus = 'NO_SHOW'), tôi nên viết câu query JPA như thế nào để tối ưu hiệu năng?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+- Gợi ý sửa đổi logic trong `CampaignServiceImpl` và `CampaignScheduler`: thay vì đổi `joinStatus` sang `NO_SHOW`, giữ nguyên `APPROVED`, chỉ gán `attended = false` và lưu thời gian `attendedAt`.
+- Đề xuất câu truy vấn JPA sử dụng `@Query` lồng toán tử logic `OR` để đếm chính xác số lần vắng mặt của tình nguyện viên cho cả hai trường hợp (cũ và mới).
+- Gợi ý điều chỉnh logic render tab ở React frontend để kiểm tra cả hai điều kiện trên.
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+- Áp dụng cấu trúc câu truy vấn JPA `@Query` lồng logic `OR` vào `CampaignParticipantRepository.java`.
+- Sử dụng khung logic được đề xuất cho việc cập nhật logic ở `CampaignServiceImpl.java` và `CampaignScheduler.java`.
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+- **Critical Thinking & Decision Ownership:** Nhóm nhận định việc xóa thông tin người duyệt (`approvedBy`, `approvedAt`) khi tình nguyện viên vắng mặt (như AI ban đầu đề xuất) là không hợp lý, vì họ vẫn được duyệt tham gia trước đó. Nhóm quyết định giữ lại các thông tin này để phục vụ mục đích kiểm toán sau này.
+- **Contextualization:** Chỉnh sửa thêm bộ lọc danh sách trong `CitizenProfileModal.tsx` và badge hiển thị trong `WardCampaignDetailPage.tsx` để đồng bộ hoàn chỉnh giao diện, tránh tình trạng giao diện hiển thị sai lệch thông tin điểm danh.
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | |
+| File liên quan | Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/repository/CampaignParticipantRepository.java;<br>Sources/Backend/src/main/java/com/example/smartcity/modules/user/mapper/UserMapper.java;<br>Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/service/CampaignServiceImpl.java;<br>Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/job/CampaignScheduler.java;<br>Sources/Frontend/src/components/chat/CitizenProfileModal.tsx;<br>Sources/Frontend/src/features/ward/WardCampaignDetailPage.tsx |
+| Screenshot | |
+| Kết quả chạy/test | mvn compile: PASS; npx tsc --noEmit: PASS |
+| Link video demo | |
+| Ghi chú khác | |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Nhóm nhận thức rõ tầm quan trọng của việc tách biệt cấu trúc nghiệp vụ (trạng thái đăng ký và kết quả thực tế) để dữ liệu không bị xung đột, đồng thời luôn chủ động phản biện các đề xuất của AI để giữ lại các thông tin lưu trữ cần thiết cho hệ thống kiểm toán sau này.
+```
+---
+
+### Lần sử dụng AI số 8
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 06/07/2026 |
+| Công cụ AI | Antigravity / Gemini |
+| Mục đích sử dụng | Chức năng Xem lịch sử hoạt động của Tình nguyện viên (Volunteer Activity Summary) |
+| Phần việc liên quan | Frontend / Backend / UI Design / Security |
+| Mức độ sử dụng | Hỗ trợ nhiều |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+Tôi muốn tích hợp thêm tính năng xem tóm tắt lịch sử hoạt động và số lần vắng mặt của Tình nguyện viên ngay trong Citizen Profile Modal dành cho Cán bộ.
+1. Ở Backend, tôi nên bổ sung những API và Query Method nào để lấy được lịch sử tham gia sắp xếp theo thời gian mới nhất?
+2. Ở Frontend, làm thế nào để hiển thị danh sách này trực quan, hỗ trợ click-to-expand để xem chi tiết lý do vắng mặt khi click vào thẻ thống kê?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+- Đề xuất tạo API GET `/api/participants/user/{userId}` được phân quyền cho cán bộ và query sắp xếp theo thời gian chiến dịch bắt đầu giảm dần (`orderByCampaign_StartTimeDesc`).
+- Gợi ý cấu trúc React component hiển thị thống kê dạng thẻ (Cards) đi kèm danh sách chi tiết chiến dịch có phân chia tab "Tham gia" và "Vắng mặt".
+- Đưa ra mẫu code kiểm tra trạng thái vắng mặt và hiển thị lý do nếu có.
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+- Áp dụng các DTO và endpoint API mới ở Backend.
+- Sử dụng cấu trúc hiển thị danh sách hoạt động và toggle click-to-expand trong `CitizenProfileModal.tsx`.
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+- **Critical Thinking & Security:** Nhóm chủ động viết thêm tầng kiểm tra phân quyền dữ liệu (`existsByCitizenIdAndWardId`) ở Backend Service. Điều này đảm bảo cán bộ phường chỉ được phép xem thông tin lịch sử của công dân thuộc khu vực phường đó quản lý, ngăn chặn lỗ hổng IDOR/BOLA.
+- **Contextualization:** Chỉnh sửa hiển thị định dạng ngày giờ bằng JS Date API tiếng Việt đơn giản không cần Moment.js hay Day.js để tối ưu hóa bundle size của Frontend.
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | |
+| File liên quan | Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/dto/CampaignParticipantResponse.java;<br>Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/repository/CampaignParticipantRepository.java;<br>Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/service/CampaignServiceImpl.java;<br>Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/controller/CampaignController.java;<br>Sources/Frontend/src/lib/api.ts;<br>Sources/Frontend/src/components/chat/CitizenProfileModal.tsx |
+| Screenshot | |
+| Kết quả chạy/test | mvn compile: PASS; npx tsc --noEmit: PASS |
+| Link video demo | |
+| Ghi chú khác | |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Việc thiết kế trải nghiệm người dùng drill-down kết hợp bảo mật dữ liệu ở cấp độ Service layer (Data-level authorization) giúp bảo vệ thông tin cá nhân của người dân một cách tuyệt đối, đồng thời cán bộ vẫn nắm bắt hồ sơ một cách khoa học.
+```
+
+---
+
+### Lần sử dụng AI số 9
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 06/07/2026 |
+| Công cụ AI | Antigravity / Gemini |
+| Mục đích sử dụng | Khắc phục lỗi hiển thị sai lệch trạng thái chiến dịch theo thời gian (Campaign Status Mismatch Fix) |
+| Phần việc liên quan | Backend / Frontend / Timezone Alignment / Bug Fix |
+| Mức độ sử dụng | Hỗ trợ một phần |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+Tôi nhận thấy trạng thái chiến dịch hiển thị không chính xác. Mặc dù chiến dịch chưa đến giờ bắt đầu trên thực tế, hệ thống vẫn hiển thị trạng thái là "Đang diễn ra" (IN_PROGRESS) thay vì "Chưa diễn ra". 
+Hãy giúp tôi rà soát cơ chế tính toán trạng thái temporal của chiến dịch trên frontend (campaignStore.ts) và backend (CampaignServiceImpl.java), tìm nguyên nhân lệch múi giờ giữa UTC và giờ địa phương và đề xuất cách so sánh thời gian chuẩn xác nhất.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+- Chỉ ra nguyên nhân do sự lệch múi giờ khi so sánh chuỗi ISO String ở client (sử dụng thời gian cục bộ của trình duyệt) và server (sử dụng thời gian hệ thống UTC/UTC+7).
+- Đề xuất chuyển đổi thời gian về đối tượng `Date` chuẩn và thực hiện so sánh số miligiây (milliseconds) thay vì so sánh chuỗi thô.
+- Cung cấp đoạn mã tối ưu hóa hàm kiểm tra trạng thái trong `campaignStore.ts`.
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+- Áp dụng phương thức so sánh thời gian qua việc đưa về cùng múi giờ cục bộ của Việt Nam ở frontend và backend.
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+- **Critical Thinking:** Nhóm tự nhận thấy nếu chỉ sửa ở Frontend thì API trả về từ Backend vẫn hiển thị trạng thái không nhất quán khi gọi API lấy danh sách. Vì thế nhóm chủ động đồng bộ hàm lấy trạng thái `status` tại lớp Entity/Service ở Backend để đảm bảo dữ liệu trả về luôn trùng khớp 100% với Frontend.
+- **Contextualization:** Cập nhật lại các bộ lọc lọc chiến dịch theo trạng thái ở trang quản lý WardDashboard để đồng bộ tuyệt đối trạng thái temporal.
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | |
+| File liên quan | Sources/Frontend/src/lib/campaignStore.ts;<br>Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/service/CampaignServiceImpl.java;<br>Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/entity/Campaign.java |
+| Screenshot | |
+| Kết quả chạy/test | mvn compile: PASS; npx tsc --noEmit: PASS |
+| Link video demo | |
+| Ghi chú khác | |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Việc xử lý đồng bộ thời gian trên cả 2 phía Client và Server giúp loại bỏ hoàn toàn các lỗi hiển thị do lệch múi giờ của người dùng, mang lại trải nghiệm chính xác tuyệt đối về tiến độ chiến dịch.
 ```
 
 ---

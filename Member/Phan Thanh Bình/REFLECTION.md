@@ -470,3 +470,35 @@ Rủi ro còn lại:
 - Cần kiểm tra thủ công frontend countdown để đảm bảo message backend được parse đúng.
 - Cần đảm bảo migration V7 chạy ổn trên database đã có dữ liệu cũ.
 ```
+
+## Bổ sung reflection cho lần sử dụng AI số 7 và số 8
+
+```text
+Tại các lần sử dụng AI số 7 và số 8, nhóm tập trung giải quyết các cải tiến nghiệp vụ quan trọng liên quan đến Hệ thống Điểm danh (Tách biệt trạng thái duyệt và kết quả điểm danh) và Hồ sơ tham gia của Tình nguyện viên.
+
+AI đóng vai trò gợi ý và phản biện đắc lực:
+- Đề xuất câu truy vấn JPA có toán tử OR để tự động gom nhóm cả dữ liệu vắng mặt lịch sử (trạng thái NO_SHOW) và dữ liệu mới (APPROVED + attended = false).
+- Đề xuất cấu trúc hiển thị dạng drill-down, click-to-expand để xem chi tiết lý do vắng mặt mà không làm giao diện bị rối.
+
+Nhóm đã chủ động phản biện và thực hiện cải tiến bảo mật sâu sắc:
+- Giữ lại thông tin lịch sử cán bộ duyệt (approvedBy, approvedAt) của các chiến dịch đã vắng mặt thay vì xóa trắng, đảm bảo tính năng kiểm toán hệ thống (Audit) hoạt động chính xác.
+- Triển khai phân quyền truy cập dữ liệu ở tầng Service (existsByCitizenIdAndWardId), đảm bảo cán bộ phường chỉ xem được hồ sơ hoạt động của công dân thuộc phạm vi địa bàn quản lý, chặn đứng hoàn toàn rủi ro IDOR/BOLA.
+- Tối ưu hóa UI React: tự code logic so sánh định dạng ngày giờ chuẩn tiếng Việt, bỏ qua các thư viện trung gian để giảm dung lượng bundle size.
+```
+
+### Cập nhật mục kiểm chứng kết quả AI (Lần 7 & 8)
+
+```text
+Kiểm chứng tính đúng đắn qua các bước:
+- Chạy biên dịch toàn bộ backend (mvn compile), xác nhận các Mapper và Repository JPA không gặp lỗi cú pháp.
+- Chạy type-check frontend (npx tsc --noEmit) xác nhận các kiểu dữ liệu DTO/API mới được đồng bộ 100%.
+- Kiểm tra tính tương thích ngược của tab lọc tại màn hình chi tiết chiến dịch trên frontend đối với cả hai trạng thái vắng mặt cũ và mới.
+```
+
+### Cập nhật mục hạn chế/rủi ro (Lần 7 & 8)
+
+```text
+Hạn chế & Rủi ro:
+- Dữ liệu lịch sử cũ (trước khi decouple) thiếu trường attended = false và attendedAt nên việc thống kê đếm số lần vắng mặt phải phụ thuộc hoàn toàn vào query tương thích ngược. Cần đảm bảo không có bản ghi nào bị tính lặp hoặc sót.
+- Việc kiểm tra bảo mật ở lớp service cần được bổ sung Integration Test để tự động phát hiện nếu có sự thay đổi phân quyền ở tương lai.
+```

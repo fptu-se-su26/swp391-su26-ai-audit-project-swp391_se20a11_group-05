@@ -502,3 +502,33 @@ Hạn chế & Rủi ro:
 - Dữ liệu lịch sử cũ (trước khi decouple) thiếu trường attended = false và attendedAt nên việc thống kê đếm số lần vắng mặt phải phụ thuộc hoàn toàn vào query tương thích ngược. Cần đảm bảo không có bản ghi nào bị tính lặp hoặc sót.
 - Việc kiểm tra bảo mật ở lớp service cần được bổ sung Integration Test để tự động phát hiện nếu có sự thay đổi phân quyền ở tương lai.
 ```
+
+## Bổ sung reflection cho lần sử dụng AI số 10
+
+```text
+Ở lần sử dụng AI số 10, nhóm sử dụng AI để hỗ trợ giải quyết vấn đề phản hồi của người dùng về bố cục khung chat quá hẹp trên màn hình lớn.
+
+AI đã phân tích và chỉ ra giải pháp điều chỉnh giới hạn chiều rộng tối đa (max-w) của các thẻ container bao ngoài.
+
+Tuy nhiên, nhóm đã có sự phản biện và tự cải tiến các điểm quan trọng:
+- Nhận thấy việc chỉ thay đổi width của khung chat sẽ làm mất cân đối với header (vốn chứa font chữ tiêu đề nhóm rất nhỏ và tag số lượng thành viên bé), nhóm đã chủ động tinh chỉnh lại size chữ và padding của header tương ứng.
+- Tận dụng cơ hội chỉnh sửa file frontend này, sinh viên đã tự rà soát và sửa đổi toàn bộ các biến ép kiểu thô dạng 'any' sang các type an toàn của TypeScript (unknown kèm validate instanceof Error), giúp cải thiện chất lượng mã nguồn tổng thể, tránh bỏ lọt lỗi khi runtime.
+- Sử dụng các lệnh check build npx tsc --noEmit và eslint để cam kết kết quả an toàn trước khi tích hợp.
+
+Qua đây nhóm rút ra bài học: khi thực hiện chỉnh sửa giao diện (UI) theo đề xuất của AI, luôn cần có con mắt thẩm mỹ tổng thể để cân chỉnh lại các thành phần xung quanh, tránh việc áp dụng máy móc dẫn đến bố cục không hài hòa.
+```
+
+### Cập nhật mục kiểm chứng kết quả AI (Lần 10)
+
+```text
+Kiểm chứng tính đúng đắn qua các bước:
+- Chạy kiểm tra kiểu tĩnh của TypeScript: npx tsc --noEmit (Kết quả: PASS, không lỗi).
+- Chạy kiểm tra coding convention bằng ESLint: npx eslint (Kết quả: PASS, sạch bóng lỗi any).
+```
+
+### Cập nhật mục hạn chế/rủi ro (Lần 10)
+
+```text
+Hạn chế & Rủi ro:
+- Cần chạy kiểm thử hiển thị thực tế trên nhiều thiết bị có độ phân giải màn hình khác nhau (responsive layout check) để đảm bảo chiều cao input h-11 không che khuất phần nội dung chính trên màn hình điện thoại hoặc máy tính bảng.
+```

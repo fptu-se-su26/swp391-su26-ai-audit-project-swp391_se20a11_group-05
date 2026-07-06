@@ -448,7 +448,8 @@ public class CampaignServiceImpl implements CampaignService {
         CampaignChatMessage message = CampaignChatMessage.builder()
                 .campaign(campaign)
                 .sender(sender)
-                .message(request.getContent().trim())
+                .message(request.getContent() != null ? request.getContent().trim() : "")
+                .imageUrl(joinImageUrls(request.getImageUrls()))
                 .build();
         return toChatResponse(chatMessageRepository.save(message));
     }
@@ -780,6 +781,7 @@ public class CampaignServiceImpl implements CampaignService {
                 .senderName(message.getSender().getFullName())
                 .senderRole(message.getSender().getRole().name())
                 .message(message.getMessage())
+                .imageUrls(parseImageUrls(message.getImageUrl()))
                 .pinned(message.isPinned())
                 .createdAt(message.getCreatedAt())
                 .build();

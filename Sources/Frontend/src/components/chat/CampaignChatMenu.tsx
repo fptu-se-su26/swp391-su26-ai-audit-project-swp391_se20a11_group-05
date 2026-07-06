@@ -10,6 +10,7 @@ import {
   LogOut,
   X,
   FileText,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { ChatMessage } from "./CampaignChatHelpers";
@@ -21,6 +22,7 @@ interface CampaignChatMenuProps {
   announcementMode: boolean;
   setAnnouncementMode: (val: boolean) => void;
   onUnpin?: (id: string) => void;
+  onShowMembers?: () => void;
 }
 
 export function CampaignChatMenu({
@@ -30,6 +32,7 @@ export function CampaignChatMenu({
   announcementMode,
   setAnnouncementMode,
   onUnpin,
+  onShowMembers,
 }: CampaignChatMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -83,8 +86,6 @@ export function CampaignChatMenu({
       toast.info("Yêu cầu rời nhóm đã được gửi lên hệ thống.");
     }
   };
-
-
 
   const pinnedMessages = chatMessages.filter((msg) => msg.pinned);
   const mediaUrls = chatMessages.flatMap((msg) => msg.imageUrls || []).filter(Boolean);
@@ -162,6 +163,18 @@ export function CampaignChatMenu({
               )}
             </button>
 
+            {/* Group Members List */}
+            <button
+              onClick={() => {
+                onShowMembers?.();
+                setIsOpen(false);
+              }}
+              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition duration-150 cursor-pointer"
+            >
+              <Users size={15} className="text-slate-400" />
+              Thành viên nhóm
+            </button>
+
             {/* Admin section divider */}
             {canManage && <div className="my-1.5 h-px bg-slate-100" />}
 
@@ -184,8 +197,6 @@ export function CampaignChatMenu({
                 )}
               </button>
             )}
-
-
 
             {/* Danger zone divider & Leave group - Citizens only */}
             {!canManage && (

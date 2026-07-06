@@ -34,6 +34,7 @@ import { CitizenProfileModal } from "@/components/chat/CitizenProfileModal";
 import type { ChatMessage } from "@/components/chat/CampaignChatHelpers";
 import type { Campaign } from "@/lib/campaignStore";
 import { PinnedMessagesDropdown } from "@/components/chat/PinnedMessagesDropdown";
+import { EmojiPicker } from "@/components/chat/EmojiPicker";
 
 export const Route = createFileRoute("/campaigns/$id/group-chat")({
   head: () => ({
@@ -135,14 +136,18 @@ function CampaignGroupChatPage() {
       toast.success(
         signal === "CONFIRMED" ? "Đã xác nhận tham gia chiến dịch!" : "Đã chọn 'Có thể tham gia'.",
       );
-    } catch (err: any) {
-      toast.error(err?.message || "Không thể gửi xác nhận.");
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "Không thể gửi xác nhận.";
+      toast.error(errorMsg);
     }
   };
 
   const formattedMessages = useMemo(() => {
     return chatMessages
-      .filter((msg) => msg.message && msg.message.trim() !== "")
+      .filter(
+        (msg) =>
+          (msg.message && msg.message.trim() !== "") || (msg.imageUrls && msg.imageUrls.length > 0),
+      )
       .map((msg) => {
         const isMe = user && user.name === msg.senderName;
         const isHost = msg.senderRole === "WARD_STAFF" || msg.senderRole === "SUPER_ADMIN";
@@ -329,12 +334,13 @@ function CampaignGroupChatPage() {
             item.id === att.id ? { ...item, url: data.fileUrl, isUploading: false } : item,
           ),
         );
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
         console.error(err);
-        toast.error(`Không thể tải ảnh "${att.file.name}" lên server: ${err.message}`);
+        toast.error(`Không thể tải ảnh "${att.file.name}" lên server: ${errorMsg}`);
         setAttachments((prev) =>
           prev.map((item) =>
-            item.id === att.id ? { ...item, isUploading: false, error: err.message } : item,
+            item.id === att.id ? { ...item, isUploading: false, error: errorMsg } : item,
           ),
         );
       }
@@ -357,8 +363,9 @@ function CampaignGroupChatPage() {
     fileInputRef.current?.click();
   };
 
-  const isForbiddenError = isChatError && (chatError as any)?.status === 403;
-  const isBanned = isForbiddenError && (chatError as any)?.message?.includes("khóa");
+  const isForbiddenError = isChatError && (chatError as { status?: number })?.status === 403;
+  const isBanned =
+    isForbiddenError && (chatError as { message?: string })?.message?.includes("khóa");
 
   // If campaign details are loaded, check if user is authorized (manager or approved participant)
   if (isForbiddenError) {
@@ -540,7 +547,7 @@ function CampaignGroupChatPage() {
             className="flex-1 overflow-y-auto bg-[#F5F7FA] px-4 py-5 md:px-8"
             ref={scrollContainerRef}
           >
-            <div className="mx-auto flex max-w-3xl flex-col gap-4">
+            <div className="mx-auto flex max-w-5xl flex-col gap-4">
               {hasNextPage && (
                 <div ref={loaderRef} className="flex justify-center py-2 shrink-0">
                   {isFetchingNextPage ? (
@@ -584,7 +591,7 @@ function CampaignGroupChatPage() {
 
           <footer className="shrink-0 border-t border-slate-200 bg-white px-4 py-3 md:px-6">
             {attachments.length > 0 && (
-              <div className="mx-auto max-w-3xl mb-3 flex flex-wrap gap-3 bg-slate-50 border border-slate-200/60 p-2.5 rounded-xl animate-fade-in animate-[chatSlideUp_0.15s_ease]">
+              <div className="mx-auto max-w-5xl mb-3 flex flex-wrap gap-3 bg-slate-50 border border-slate-200/60 p-2.5 rounded-xl animate-fade-in animate-[chatSlideUp_0.15s_ease]">
                 {attachments.map((att) => (
                   <div
                     key={att.id}
@@ -624,7 +631,7 @@ function CampaignGroupChatPage() {
             )}
 
             {isCampaignEndedOrCancelled && !campaign?.canManage ? (
-              <div className="mx-auto max-w-3xl flex flex-col gap-2 py-3.5 px-5 rounded-xl bg-slate-100 border border-slate-200 text-sm text-slate-650 shadow-sm animate-fade-in">
+              <div className="mx-auto max-w-5xl flex flex-col gap-2 py-3.5 px-5 rounded-xl bg-slate-100 border border-slate-200 text-sm text-slate-650 shadow-sm animate-fade-in">
                 <div className="flex items-center gap-3">
                   <Info className="h-5 w-5 text-slate-500 shrink-0" />
                   <span className="leading-relaxed font-medium text-slate-700">
@@ -639,7 +646,7 @@ function CampaignGroupChatPage() {
                 )}
               </div>
             ) : isInputDisabled ? (
-              <div className="mx-auto max-w-3xl flex items-center gap-3 py-3.5 px-5 rounded-xl bg-[#F0F7FF] border border-[#D0E7FF] text-sm text-slate-650 shadow-sm animate-fade-in">
+              <div className="mx-auto max-w-5xl flex items-center gap-3 py-3.5 px-5 rounded-xl bg-[#F0F7FF] border border-[#D0E7FF] text-sm text-slate-650 shadow-sm animate-fade-in">
                 <Info className="h-5 w-5 text-[#007AFF] shrink-0" />
                 <span className="leading-relaxed font-medium text-slate-700">
                   Chỉ <span className="text-[#007AFF] font-bold">quản trị viên cộng đồng</span> được
@@ -659,7 +666,7 @@ function CampaignGroupChatPage() {
                 </span>
               </div>
             ) : (
-              <div className="mx-auto flex max-w-3xl items-center gap-2">
+              <div className="mx-auto flex max-w-5xl items-center gap-2">
                 <IconButton
                   label="Đính kèm"
                   icon={<Paperclip size={19} />}
@@ -675,7 +682,10 @@ function CampaignGroupChatPage() {
                   onChange={handleImageSelect}
                   disabled={isInputDisabled}
                 />
-                <IconButton label="Emoji" icon={<Smile size={19} />} disabled={isInputDisabled} />
+                <EmojiPicker
+                  onSelectEmoji={(emoji) => setDraft((prev) => prev + emoji)}
+                  disabled={isInputDisabled}
+                />
                 <input
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}

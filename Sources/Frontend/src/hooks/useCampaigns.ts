@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useMutation, useQuery, useQueryClient, useInfiniteQuery, type InfiniteData } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  useInfiniteQuery,
+  type InfiniteData,
+} from "@tanstack/react-query";
 import {
   campaignApi,
   userApi,
@@ -102,7 +108,6 @@ function mapResponseToCampaign(response: CampaignResponse): Campaign {
     wardId: response.wardId,
     minParticipants: response.minParticipants ?? null,
   } as Campaign;
-
 }
 
 export function useCampaignList(): Campaign[] {
@@ -440,7 +445,7 @@ export function useCampaignComments(campaignId: string) {
 // Helper functions to manage infinite query chat cache
 function appendMessageToInfiniteData(
   old: InfiniteData<CampaignChatMessageResponse[]> | undefined,
-  message: CampaignChatMessageResponse
+  message: CampaignChatMessageResponse,
 ): InfiniteData<CampaignChatMessageResponse[]> {
   if (!old) return { pages: [[message]], pageParams: [undefined] };
   const newPages = [...old.pages];
@@ -454,29 +459,25 @@ function appendMessageToInfiniteData(
 
 function updateMessageInInfiniteData(
   old: InfiniteData<CampaignChatMessageResponse[]> | undefined,
-  message: CampaignChatMessageResponse
+  message: CampaignChatMessageResponse,
 ): InfiniteData<CampaignChatMessageResponse[]> {
   if (!old) return { pages: [], pageParams: [] };
-  const newPages = old.pages.map((page) =>
-    page.map((m) => (m.id === message.id ? message : m))
-  );
+  const newPages = old.pages.map((page) => page.map((m) => (m.id === message.id ? message : m)));
   return { ...old, pages: newPages };
 }
 
 function deleteMessageFromInfiniteData(
   old: InfiniteData<CampaignChatMessageResponse[]> | undefined,
-  messageId: number | string
+  messageId: number | string,
 ): InfiniteData<CampaignChatMessageResponse[]> {
   if (!old) return { pages: [], pageParams: [] };
-  const newPages = old.pages.map((page) =>
-    page.filter((m) => String(m.id) !== String(messageId))
-  );
+  const newPages = old.pages.map((page) => page.filter((m) => String(m.id) !== String(messageId)));
   return { ...old, pages: newPages };
 }
 
 function existsInInfiniteData(
   old: InfiniteData<CampaignChatMessageResponse[]> | undefined,
-  messageId: number | string
+  messageId: number | string,
 ): boolean {
   if (!old) return false;
   return old.pages.some((page) => page.some((m) => String(m.id) === String(messageId)));
@@ -493,7 +494,13 @@ export function useCampaignChat(campaignId: string) {
   const token = typeof window !== "undefined" ? getToken() : null;
   const enabled = /^\d+$/.test(campaignId) && Boolean(token);
 
-  const query = useInfiniteQuery<CampaignChatMessageResponse[], Error, InfiniteData<CampaignChatMessageResponse[]>, (string | number)[], number | undefined>({
+  const query = useInfiniteQuery<
+    CampaignChatMessageResponse[],
+    Error,
+    InfiniteData<CampaignChatMessageResponse[]>,
+    (string | number)[],
+    number | undefined
+  >({
     queryKey: ["campaigns", campaignId, "chat"],
     queryFn: ({ pageParam }) => campaignApi.getChatMessages(campaignId, pageParam),
     initialPageParam: undefined,
@@ -558,11 +565,11 @@ export function useCampaignChat(campaignId: string) {
             const data = JSON.parse(body) as { announcementMode: boolean };
             queryClient.setQueryData<CampaignResponse>(
               ["campaigns", String(campaignId), "private", true],
-              (old) => old ? { ...old, announcementMode: data.announcementMode } : old
+              (old) => (old ? { ...old, announcementMode: data.announcementMode } : old),
             );
             queryClient.setQueryData<CampaignResponse>(
               ["campaigns", String(campaignId), "private", false],
-              (old) => old ? { ...old, announcementMode: data.announcementMode } : old
+              (old) => (old ? { ...old, announcementMode: data.announcementMode } : old),
             );
             queryClient.invalidateQueries({ queryKey: ["campaigns", String(campaignId)] });
           } catch (e) {
@@ -578,7 +585,10 @@ export function useCampaignChat(campaignId: string) {
           queryClient.setQueryData<InfiniteData<CampaignChatMessageResponse[]>>(
             ["campaigns", campaignId, "chat"],
             (old) => {
-              if (!message.message || message.message.trim() === "") {
+              if (
+                (!message.message || message.message.trim() === "") &&
+                (!message.imageUrls || message.imageUrls.length === 0)
+              ) {
                 return deleteMessageFromInfiniteData(old, message.id);
               }
 
@@ -593,8 +603,11 @@ export function useCampaignChat(campaignId: string) {
                     (m) =>
                       m.id < 0 &&
                       m.message === message.message &&
-                      JSON.stringify(m.imageUrls || []) === JSON.stringify(message.imageUrls || []) &&
-                      (m.senderName === message.senderName || m.senderName === "Tôi" || message.senderName === user?.name)
+                      JSON.stringify(m.imageUrls || []) ===
+                        JSON.stringify(message.imageUrls || []) &&
+                      (m.senderName === message.senderName ||
+                        m.senderName === "Tôi" ||
+                        message.senderName === user?.name),
                   );
                   if (optimisticIndex !== -1) {
                     const next = [...page];
@@ -625,7 +638,7 @@ export function useCampaignChat(campaignId: string) {
         if (!isDestroyed) {
           const delay = reconnectDelayRef.current;
           reconnectDelayRef.current = Math.min(delay * 2, 30000);
-          
+
           if (reconnectTimeoutRef.current) {
             clearTimeout(reconnectTimeoutRef.current);
           }
@@ -665,16 +678,29 @@ export function useCampaignChat(campaignId: string) {
   }, [campaignId, enabled, queryClient, token, user?.name]);
 
   const sendMessage = useMutation({
-    mutationFn: ({ content, imageUrls }: { content: string; imageUrls?: string[]; resendId?: number }) => {
+    mutationFn: ({
+      content,
+      imageUrls,
+    }: {
+      content: string;
+      imageUrls?: string[];
+      resendId?: number;
+    }) => {
       return campaignApi.addChatMessage(campaignId, content, imageUrls);
     },
-    onMutate: async ({ content, imageUrls, resendId }: { content: string; imageUrls?: string[]; resendId?: number }) => {
+    onMutate: async ({
+      content,
+      imageUrls,
+      resendId,
+    }: {
+      content: string;
+      imageUrls?: string[];
+      resendId?: number;
+    }) => {
       await queryClient.cancelQueries({ queryKey: ["campaigns", campaignId, "chat"] });
-      const previousMessages = queryClient.getQueryData<InfiniteData<CampaignChatMessageResponse[]>>([
-        "campaigns",
-        campaignId,
-        "chat",
-      ]);
+      const previousMessages = queryClient.getQueryData<
+        InfiniteData<CampaignChatMessageResponse[]>
+      >(["campaigns", campaignId, "chat"]);
 
       const optimisticMessage: CampaignChatMessageResponse = {
         id: -Date.now(),
@@ -712,10 +738,10 @@ export function useCampaignChat(campaignId: string) {
                 return { ...m, status: "failed" as const };
               }
               return m;
-            })
+            }),
           );
           return { ...old, pages: newPages };
-        }
+        },
       );
     },
     onSuccess: (savedMessage) => {
@@ -730,9 +756,10 @@ export function useCampaignChat(campaignId: string) {
                   !(
                     m.id < 0 &&
                     m.message === savedMessage.message &&
-                    JSON.stringify(m.imageUrls || []) === JSON.stringify(savedMessage.imageUrls || [])
-                  )
-              )
+                    JSON.stringify(m.imageUrls || []) ===
+                      JSON.stringify(savedMessage.imageUrls || [])
+                  ),
+              ),
             );
             return { ...old, pages: newPages };
           }
@@ -744,8 +771,11 @@ export function useCampaignChat(campaignId: string) {
               (m) =>
                 m.id < 0 &&
                 m.message === savedMessage.message &&
-                JSON.stringify(m.imageUrls || []) === JSON.stringify(savedMessage.imageUrls || []) &&
-                (m.senderName === savedMessage.senderName || m.senderName === "Tôi" || savedMessage.senderName === user?.name)
+                JSON.stringify(m.imageUrls || []) ===
+                  JSON.stringify(savedMessage.imageUrls || []) &&
+                (m.senderName === savedMessage.senderName ||
+                  m.senderName === "Tôi" ||
+                  savedMessage.senderName === user?.name),
             );
             if (optimisticIndex !== -1) {
               const next = [...page];
@@ -761,12 +791,15 @@ export function useCampaignChat(campaignId: string) {
           }
 
           return appendMessageToInfiniteData(old, savedMessage);
-        }
+        },
       );
     },
   });
 
-  return useMemo(() => ({ ...query, sendMessage, isWsConnected }), [query, sendMessage, isWsConnected]);
+  return useMemo(
+    () => ({ ...query, sendMessage, isWsConnected }),
+    [query, sendMessage, isWsConnected],
+  );
 }
 
 const DEFAULT_PLACEHOLDERS: Record<string, string> = {
@@ -789,17 +822,18 @@ export function useCampaignThumbnail(campaign?: Campaign): string {
 
   // Nếu campaign đã có cover/thumbnail riêng thì không cần fetch feedback
   const hasLocalThumbnail = !!(
-    campaign && (
-      (campaign.imageUrls && campaign.imageUrls.length > 0 && campaign.imageUrls[0]?.trim() !== "") ||
+    campaign &&
+    ((campaign.imageUrls &&
+      campaign.imageUrls.length > 0 &&
+      campaign.imageUrls[0]?.trim() !== "") ||
       (campaign.coverImageUrl && campaign.coverImageUrl.trim() !== "") ||
-      (campaign.cover && !campaign.cover.includes("photo-1542601906990-b4d3fb778b09"))
-    )
+      (campaign.cover && !campaign.cover.includes("photo-1542601906990-b4d3fb778b09")))
   );
 
   // Sử dụng endpoint public để tránh lỗi 403 Forbidden phân quyền quản lý và chỉ chạy khi thực sự cần thiết
   const { data: feedback } = usePublicFeedbackDetail(
     !hasLocalThumbnail && feedbackId ? String(feedbackId) : "",
-    { enabled: !hasLocalThumbnail && !!feedbackId }
+    { enabled: !hasLocalThumbnail && !!feedbackId },
   );
 
   return useMemo(() => {
@@ -844,12 +878,13 @@ export function usePinChatMessage(campaignId: string) {
     // Optimistic update: cập nhật UI ngay lập tức, không chờ server
     onMutate: async (messageId) => {
       await queryClient.cancelQueries({ queryKey: chatKey });
-      const snapshot = queryClient.getQueryData<InfiniteData<CampaignChatMessageResponse[]>>(chatKey);
+      const snapshot =
+        queryClient.getQueryData<InfiniteData<CampaignChatMessageResponse[]>>(chatKey);
 
       queryClient.setQueryData<InfiniteData<CampaignChatMessageResponse[]>>(chatKey, (old) => {
         if (!old) return old;
         const newPages = old.pages.map((page) =>
-          page.map((m) => (String(m.id) === String(messageId) ? { ...m, pinned: true } : m))
+          page.map((m) => (String(m.id) === String(messageId) ? { ...m, pinned: true } : m)),
         );
         return { ...old, pages: newPages };
       });
@@ -882,12 +917,13 @@ export function useUnpinChatMessage(campaignId: string) {
     // Optimistic update: bỏ ghim ngay lập tức
     onMutate: async (messageId) => {
       await queryClient.cancelQueries({ queryKey: chatKey });
-      const snapshot = queryClient.getQueryData<InfiniteData<CampaignChatMessageResponse[]>>(chatKey);
+      const snapshot =
+        queryClient.getQueryData<InfiniteData<CampaignChatMessageResponse[]>>(chatKey);
 
       queryClient.setQueryData<InfiniteData<CampaignChatMessageResponse[]>>(chatKey, (old) => {
         if (!old) return old;
         const newPages = old.pages.map((page) =>
-          page.map((m) => (String(m.id) === String(messageId) ? { ...m, pinned: false } : m))
+          page.map((m) => (String(m.id) === String(messageId) ? { ...m, pinned: false } : m)),
         );
         return { ...old, pages: newPages };
       });
@@ -938,10 +974,11 @@ export function useDeleteChatMessageMutation(campaignId: string | number) {
     mutationFn: (messageId) => campaignApi.deleteChatMessage(campaignId, messageId),
     onMutate: async (messageId) => {
       await queryClient.cancelQueries({ queryKey: chatKey });
-      const snapshot = queryClient.getQueryData<InfiniteData<CampaignChatMessageResponse[]>>(chatKey);
+      const snapshot =
+        queryClient.getQueryData<InfiniteData<CampaignChatMessageResponse[]>>(chatKey);
 
       queryClient.setQueryData<InfiniteData<CampaignChatMessageResponse[]>>(chatKey, (old) =>
-        deleteMessageFromInfiniteData(old, messageId)
+        deleteMessageFromInfiniteData(old, messageId),
       );
 
       return { snapshot };
@@ -965,11 +1002,11 @@ export function useSetAnnouncementMode(campaignId: string | number) {
     onSuccess: (updatedCampaign) => {
       queryClient.setQueryData<CampaignResponse>(
         ["campaigns", String(campaignId), "private", true],
-        updatedCampaign
+        updatedCampaign,
       );
       queryClient.setQueryData<CampaignResponse>(
         ["campaigns", String(campaignId), "private", false],
-        updatedCampaign
+        updatedCampaign,
       );
       queryClient.invalidateQueries({ queryKey: ["campaigns", String(campaignId)] });
     },
@@ -1030,9 +1067,9 @@ export function useBulkSaveAttendance(campaignId: string | number) {
     mutationFn: (data: { attendances: { participantId: number; attended: boolean }[] }) =>
       campaignApi.bulkSaveAttendance(campaignId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["campaigns", String(campaignId), "participants"] });
+      queryClient.invalidateQueries({
+        queryKey: ["campaigns", String(campaignId), "participants"],
+      });
     },
   });
 }
-
-

@@ -89,11 +89,18 @@ export function CampaignGroupSidebar({
         <h2 className="mt-3 line-clamp-2 text-base font-black leading-6 text-slate-950">
           {campaignName}
         </h2>
-        <span
-          className={`mt-3 inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${statusInfo.className}`}
-        >
-          {statusInfo.label}
-        </span>
+        <div className="mt-3 flex flex-wrap gap-2 items-center">
+          <span
+            className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${statusInfo.className}`}
+          >
+            {statusInfo.label}
+          </span>
+        </div>
+        {campaign?.status === "cancelled" && campaign?.cancellationReason && (
+          <div className="mt-2.5 text-[11px] font-semibold text-rose-600 italic bg-rose-50 border border-rose-100 p-2 rounded-lg leading-relaxed">
+            Lý do hủy: {campaign.cancellationReason}
+          </div>
+        )}
 
         <div className="my-5 h-px bg-slate-100" />
 

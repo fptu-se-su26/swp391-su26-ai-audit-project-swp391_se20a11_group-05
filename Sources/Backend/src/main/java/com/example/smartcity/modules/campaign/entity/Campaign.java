@@ -81,4 +81,7 @@ public class Campaign extends BaseEntity {
     @Column(name = "announcement_mode", nullable = false)
     @Builder.Default
     private boolean announcementMode = false;
+
+    @Column(name = "cancellation_reason", length = 500)
+    private String cancellationReason;
 }

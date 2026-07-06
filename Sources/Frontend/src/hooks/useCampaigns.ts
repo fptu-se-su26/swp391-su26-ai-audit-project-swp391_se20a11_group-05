@@ -92,6 +92,7 @@ function mapResponseToCampaign(response: CampaignResponse): Campaign {
     canComment: response.canComment,
     canFeedback: response.canFeedback,
     announcementMode: response.announcementMode,
+    cancellationReason: response.cancellationReason ?? undefined,
     linkedFeedbackId: response.linkedFeedbackId ?? undefined,
     boundaryGeojson: response.boundaryGeojson ?? undefined,
     coverImageUrl: response.coverImageUrl ?? undefined,
@@ -99,7 +100,9 @@ function mapResponseToCampaign(response: CampaignResponse): Campaign {
     latitude: response.latitude ?? null,
     longitude: response.longitude ?? null,
     wardId: response.wardId,
+    minParticipants: response.minParticipants ?? null,
   } as Campaign;
+
 }
 
 export function useCampaignList(): Campaign[] {
@@ -179,6 +182,7 @@ export function useCreateCampaign() {
       requiredTools?: string;
       organizerContact?: string;
       maxParticipants?: string;
+      minParticipants?: string;
       startTime?: string;
       endTime?: string;
       linkedFeedbackId?: string | number | null;
@@ -211,6 +215,9 @@ export function useCreateCampaign() {
             organizerContact: fallbackContact,
             maxParticipants: params.maxParticipants
               ? Number.parseInt(params.maxParticipants, 10)
+              : undefined,
+            minParticipants: params.minParticipants
+              ? Number.parseInt(params.minParticipants, 10)
               : undefined,
             startTime: params.startTime || undefined,
             endTime: params.endTime || undefined,
@@ -365,8 +372,8 @@ export function useUpdateCampaign() {
 
 export function useEndCampaign() {
   const queryClient = useQueryClient();
-  return useMutation<CampaignResponse, Error, string | number>({
-    mutationFn: (id) => campaignApi.end(id),
+  return useMutation<CampaignResponse, Error, { id: string | number; reason?: string }>({
+    mutationFn: ({ id, reason }) => campaignApi.end(id, reason),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["campaigns"] });
     },

@@ -63,7 +63,7 @@ export const Route = createFileRoute("/campaigns/$id")({
 const defaultHeroImage =
   "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&auto=format&fit=crop&q=85";
 
-export function CampaignDetailPage() {
+function CampaignDetailPage() {
   const { id } = Route.useParams();
   const { join } = Route.useSearch();
   return <CampaignDetailPageComponent campaignId={id} join={join} />;
@@ -76,7 +76,7 @@ type CampaignDetailPageComponentProps = {
   initialEditMode?: boolean;
 };
 
-export function CampaignDetailPageComponent({
+function CampaignDetailPageComponent({
   campaignId,
   join = false,
   onBack,
@@ -570,6 +570,7 @@ export function CampaignDetailPageComponent({
               {(campaign.status === "recruiting" ||
                 campaign.status === "completed" ||
                 campaign.status === "ended" ||
+                campaign.status === "cancelled" ||
                 campaign.status === "inProgress") && (
                   <div
                     title={campaign.status !== "recruiting" ? "Chiến dịch đã đóng" : undefined}
@@ -1244,21 +1245,16 @@ function StatusBadge({
   theme?: Record<string, string>;
 }) {
   const currentMeta = {
-    pending_review: {
-      label: "Chờ duyệt",
-      className: "border-slate-200 bg-slate-100 text-slate-600",
-    },
     recruiting: {
-      label: "Đang tuyển",
-      className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      label: "Chưa diễn ra",
+      className: "border-amber-200 bg-amber-50 text-amber-700",
     },
-    inProgress: { label: "Đang thực hiện", className: "border-blue-200 bg-blue-50 text-blue-700" },
-    completed: { label: "Hoàn thành", className: "border-violet-200 bg-violet-50 text-[#7C3AED]" },
-    active: { label: "Đang hoạt động", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+    inProgress: { label: "Đang diễn ra", className: "border-blue-200 bg-blue-50 text-blue-700" },
+    completed: { label: "Đã kết thúc", className: "border-red-200 bg-red-50 text-red-700" },
+    active: { label: "Đang diễn ra", className: "border-blue-200 bg-blue-50 text-blue-700" },
     ended: { label: "Đã kết thúc", className: "border-red-200 bg-red-50 text-red-700" },
-    CANCELLED: { label: "Đã hủy", className: "border-red-200 bg-red-50 text-red-700" },
-    IN_PROGRESS: { label: "Đang diễn ra", className: "border-blue-200 bg-blue-50 text-blue-700" },
-  }[status] ?? { label: status || "Không rõ", className: "border-slate-200 bg-slate-50 text-slate-600" };
+    cancelled: { label: "Đã bị hủy", className: "border-slate-300 bg-slate-100 text-slate-700" },
+  }[status] ?? { label: "Chưa diễn ra", className: "border-amber-200 bg-amber-50 text-amber-700" };
 
   return (
     <span

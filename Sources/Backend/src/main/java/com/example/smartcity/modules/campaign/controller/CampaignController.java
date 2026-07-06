@@ -11,6 +11,7 @@ import com.example.smartcity.modules.campaign.dto.CampaignRequest;
 import com.example.smartcity.modules.campaign.dto.CampaignResponse;
 import com.example.smartcity.modules.campaign.dto.CampaignJoinRequest;
 import com.example.smartcity.modules.campaign.dto.CampaignBatchApproveRequest;
+import com.example.smartcity.modules.campaign.dto.AttendanceBulkRequest;
 import com.example.smartcity.modules.campaign.service.CampaignService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -70,14 +71,6 @@ public class CampaignController {
             @Valid @RequestBody CampaignRequest request,
             Authentication authentication) {
         return ResponseEntity.ok(campaignService.create(request, authentication.getName()));
-    }
-
-    @PostMapping("/{id}/approve")
-    @Deprecated
-    public ResponseEntity<CampaignResponse> approveCampaign(
-            @PathVariable Long id,
-            Authentication authentication) {
-        throw new UnsupportedOperationException("Approval flow is deprecated; campaigns are active upon creation.");
     }
 
     @PostMapping("/{id}/join")
@@ -287,8 +280,9 @@ public class CampaignController {
     @PreAuthorize("hasRole('WARD_STAFF')")
     public ResponseEntity<CampaignResponse> endCampaign(
             @PathVariable Long id,
+            @RequestParam(required = false) String reason,
             Authentication authentication) {
-        return ResponseEntity.ok(campaignService.endCampaign(id, authentication.getName()));
+        return ResponseEntity.ok(campaignService.endCampaign(id, reason, username(authentication)));
     }
 
     @PostMapping("/{id}/signal-attendance")
@@ -309,6 +303,32 @@ public class CampaignController {
             @PathVariable Long id,
             Authentication authentication) {
         return ResponseEntity.ok(campaignService.finalizeCampaign(id, authentication.getName()));
+    }
+
+    @GetMapping("/{id}/participants/lookup")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN')")
+    public ResponseEntity<CampaignParticipantResponse> lookupParticipantByPhone(
+            @PathVariable Long id,
+            @RequestParam String phone,
+            Authentication authentication) {
+        return ResponseEntity.ok(campaignService.lookupParticipantByPhone(id, phone, authentication.getName()));
+    }
+
+    @PostMapping("/{id}/attendance/bulk")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN')")
+    public ResponseEntity<List<CampaignParticipantResponse>> bulkSaveAttendance(
+            @PathVariable Long id,
+            @Valid @RequestBody AttendanceBulkRequest request,
+            Authentication authentication) {
+        return ResponseEntity.ok(campaignService.bulkSaveAttendance(id, request, authentication.getName()));
+    }
+    
+    @GetMapping("/participants/user/{userId}")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN', 'POLICE')")
+    public ResponseEntity<List<CampaignParticipantResponse>> getCitizenParticipationHistory(
+            @PathVariable Long userId,
+            Authentication authentication) {
+        return ResponseEntity.ok(campaignService.getCitizenParticipationHistory(userId, username(authentication)));
     }
 
     private String username(Authentication authentication) {

@@ -556,14 +556,25 @@ export function FeedbackDetailPageComponent({
           <PriorityBadge value={report.priority} />
           <StatusBadge status={report.status} />
           {linkedCampaign ? (
-            <Link
-              to="/campaigns/$id"
-              params={{ id: String(linkedCampaign.id) }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shadow-sm"
-            >
-              <Eye size={14} />
-              Xem chiến dịch
-            </Link>
+            user?.role === Role.WARD_STAFF ? (
+              <Link
+                to="/ward"
+                search={{ tab: "campaign", detailId: String(linkedCampaign.id) }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shadow-sm"
+              >
+                <Eye size={14} />
+                Xem chiến dịch
+              </Link>
+            ) : (
+              <Link
+                to="/campaigns/$id"
+                params={{ id: String(linkedCampaign.id) }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shadow-sm"
+              >
+                <Eye size={14} />
+                Xem chiến dịch
+              </Link>
+            )
           ) : (
             canCreateCampaign && (
               <button

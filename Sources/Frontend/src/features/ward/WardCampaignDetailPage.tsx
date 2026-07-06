@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { WardAttendancePage } from "./WardAttendancePage";
 import type { ElementType, ReactNode } from "react";
 import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
@@ -27,7 +28,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import {
-  useApproveCampaign,
   useCampaignDetail,
   useCampaignParticipants,
   useJoinCampaign,
@@ -41,6 +41,7 @@ import {
   useEndCampaign,
   useApproveCampaignParticipant,
   useCampaignChat,
+  useFinalizeCampaign,
 } from "@/hooks/useCampaigns";
 import type { CampaignParticipantResponse } from "@/lib/api";
 import { Role, useAuth } from "@/lib/auth";
@@ -85,12 +86,14 @@ export function WardCampaignDetailPage({
 
   const campaign = useCampaignDetail(campaignId);
   const { user, isAuthenticated } = useAuth();
-  const approveCampaign = useApproveCampaign();
 
   const updateCampaign = useUpdateCampaign();
   const endCampaign = useEndCampaign();
+  const finalizeCampaign = useFinalizeCampaign();
+  const participantsQuery = useCampaignParticipants(campaignId);
 
   const [isEditing, setIsEditing] = useState(initialEditMode);
+  const [isAttending, setIsAttending] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editCategory, setEditCategory] = useState<any>("environment");
   const [editTarget, setEditTarget] = useState("");
@@ -214,12 +217,15 @@ export function WardCampaignDetailPage({
     }
   };
 
-  const handleApprove = async () => {
+  const handleFinalize = async () => {
+    if (!window.confirm("Bạn có chắc chắn muốn chốt chiến dịch này? Hệ thống sẽ chốt danh sách người tham gia và bắt đầu chiến dịch (nếu đủ số người tối thiểu).")) {
+      return;
+    }
     try {
-      await approveCampaign.mutateAsync(campaignId);
-      toast.success("Đã phê duyệt chiến dịch và mở đăng ký.");
-    } catch (err) {
-      toast.error("Lỗi khi phê duyệt chiến dịch.");
+      await finalizeCampaign.mutateAsync(campaignId);
+      toast.success("Chốt chiến dịch thành công.");
+    } catch (err: any) {
+      toast.error(err.message || "Lỗi khi chốt chiến dịch.");
     }
   };
 
@@ -246,58 +252,67 @@ export function WardCampaignDetailPage({
       : 0;
 
   return (
-    <main className="min-h-screen bg-slate-50/50 pb-16 text-slate-950">
-      <div className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6 lg:px-8">
+    <div className="pb-16 text-slate-950">
+      <div className="mx-auto max-w-[1400px] pt-1">
         {/* Navigation & Header Actions */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <button
-            onClick={onBack}
-            className="inline-flex items-center gap-2 text-sm font-black text-slate-600 transition hover:text-indigo-600"
-          >
-            <ArrowLeft size={16} />
-            Danh sách chiến dịch
-          </button>
-          <div className="flex items-center gap-2">
-            {!campaign.canManage && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-black text-slate-500 shadow-sm uppercase tracking-wide">
-                Chỉ xem
-              </span>
-            )}
-            {campaign.canManage && (
-              <>
-                {isEditing ? (
-                  <>
+        {!isAttending && (
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+            <button
+              onClick={onBack}
+              className="inline-flex items-center gap-2 text-sm font-black text-slate-600 transition hover:text-indigo-600"
+            >
+              <ArrowLeft size={16} />
+              Danh sách chiến dịch
+            </button>
+            <div className="flex items-center gap-2">
+              {!campaign.canManage && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-black text-slate-500 shadow-sm uppercase tracking-wide">
+                  Chỉ xem
+                </span>
+              )}
+              {campaign.canManage && (
+                <>
+                  {isEditing ? (
+                    <>
+                      <button
+                        onClick={handleSave}
+                        disabled={updateCampaign.isPending}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-black text-white hover:bg-emerald-700 transition active:scale-[0.97] disabled:opacity-50"
+                      >
+                        <CheckCircle2 size={14} />
+                        Lưu thay đổi
+                      </button>
+                      <button
+                        onClick={() => setIsEditing(false)}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-slate-200 px-3.5 py-1.5 text-xs font-black text-slate-700 hover:bg-slate-300 transition active:scale-[0.97]"
+                      >
+                        Hủy bỏ
+                      </button>
+                    </>
+                  ) : (
                     <button
-                      onClick={handleSave}
-                      disabled={updateCampaign.isPending}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-black text-white hover:bg-emerald-700 transition active:scale-[0.97] disabled:opacity-50"
+                      onClick={() => setIsEditing(true)}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-1.5 text-xs font-black text-white shadow-sm hover:bg-indigo-700 transition active:scale-[0.97]"
                     >
-                      <CheckCircle2 size={14} />
-                      Lưu thay đổi
+                      <Pencil size={13} />
+                      Chỉnh sửa chiến dịch
                     </button>
-                    <button
-                      onClick={() => setIsEditing(false)}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-slate-200 px-3.5 py-1.5 text-xs font-black text-slate-700 hover:bg-slate-300 transition active:scale-[0.97]"
-                    >
-                      Hủy bỏ
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-1.5 text-xs font-black text-white shadow-sm hover:bg-indigo-700 transition active:scale-[0.97]"
-                  >
-                    <Pencil size={13} />
-                    Chỉnh sửa chiến dịch
-                  </button>
-                )}
-              </>
-            )}
-            <StatusBadge status={campaign.status} theme={theme} />
+                  )}
+                </>
+              )}
+              <StatusBadge status={campaign.status} theme={theme} />
+            </div>
           </div>
-        </div>
+        )}
 
-        {isEditing ? (
+        {isAttending ? (
+          <WardAttendancePage
+            campaign={campaign}
+            participants={participantsQuery.data || []}
+            onBack={() => setIsAttending(false)}
+            theme={theme}
+          />
+        ) : isEditing ? (
           /* Editing Form Layout */
           <div className="space-y-6 max-w-4xl mx-auto">
             <section className="rounded-2xl border border-slate-100 bg-white p-7 shadow-md">
@@ -551,13 +566,23 @@ export function WardCampaignDetailPage({
 
                 {campaign.canManage ? (
                   <>
-                    {campaign.status === "pending_review" && user?.role === Role.SUPER_ADMIN && (
+
+                    {campaign.status === "recruiting" && (
                       <button
-                        onClick={handleApprove}
-                        disabled={approveCampaign.isPending}
+                        onClick={handleFinalize}
+                        disabled={finalizeCampaign.isPending}
                         className="w-full h-11 rounded-xl bg-amber-600 hover:bg-amber-700 text-xs font-black text-white shadow-sm transition active:scale-[0.97]"
                       >
-                        Phê duyệt chiến dịch
+                        {finalizeCampaign.isPending ? "Đang xử lý..." : "Chốt chiến dịch"}
+                      </button>
+                    )}
+
+                    {campaign.status === "inProgress" && (
+                      <button
+                        onClick={() => setIsAttending(true)}
+                        className="w-full h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-xs font-black text-white shadow-sm transition active:scale-[0.97] flex items-center justify-center gap-2"
+                      >
+                        Điểm danh
                       </button>
                     )}
 
@@ -580,6 +605,12 @@ export function WardCampaignDetailPage({
                     {campaign.status === "ended" && (
                       <div className="rounded-xl bg-slate-50 p-3 text-center text-xs font-black text-slate-500">
                         Chiến dịch đã kết thúc
+                      </div>
+                    )}
+
+                    {campaign.status === "cancelled" && (
+                      <div className="rounded-xl bg-rose-50 p-3 text-center text-xs font-black text-rose-600">
+                        Chiến dịch đã bị hủy
                       </div>
                     )}
 
@@ -609,13 +640,7 @@ export function WardCampaignDetailPage({
                     <p className="text-xs font-semibold text-slate-500">{campaign.ward}</p>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-slate-100 bg-slate-50 hover:bg-slate-100 text-sm font-black text-indigo-600 transition active:scale-[0.97]"
-                >
-                  <MessageCircle size={16} />
-                  Nhắn tin liên hệ
-                </button>
+
               </div>
 
               <GroupChatNavigationCard
@@ -635,7 +660,7 @@ export function WardCampaignDetailPage({
           </div>
         )}
       </div>
-    </main>
+    </div>
   );
 }
 
@@ -648,35 +673,25 @@ function ParticipantReviewPanel({ campaignId, theme }: { campaignId: string; the
 
   const participants = participantsQuery.data ?? [];
   const pendingParticipants = participants.filter((p) => p.joinStatus === "PENDING");
-  const approvedParticipants = participants.filter(
-    (p) => p.joinStatus === "APPROVED" || p.joinStatus === "PENDING_CONFIRM",
-  );
-  const waitlistParticipants = participants.filter((p) => p.joinStatus === "WAITLIST");
+  const confirmedParticipants = participants.filter((p) => p.joinStatus === "CONFIRMED");
+  const approvedParticipants = participants.filter((p) => p.joinStatus === "APPROVED");
   const cancelledParticipants = participants.filter(
     (p) => p.joinStatus === "CANCELLED" || p.joinStatus === "REJECTED" || p.joinStatus === "NO_SHOW",
   );
 
-  const [activeTab, setActiveTab] = useState<"pending" | "approved" | "waitlist" | "cancelled">("pending");
+  const [activeTab, setActiveTab] = useState<"pending" | "confirmed" | "approved" | "cancelled">("confirmed");
   const [expandedApprovedId, setExpandedApprovedId] = useState<number | null>(null);
 
-  // Filters state
+  // Filters state (only used in confirmed tab)
   const [minPastCampaigns, setMinPastCampaigns] = useState<number>(0);
   const [minRating, setMinRating] = useState<number>(0);
   const [noShowOnly, setNoShowOnly] = useState<boolean>(false);
 
-  // Selection state for batch approval
+  // Selection state for batch approval (only used in confirmed tab)
   const [selectedIds, setSelectedIds] = useState<Record<number, boolean>>({});
 
-  // Filter pending list
-  const filteredPending = pendingParticipants.filter((p) => {
-    if (p.pastCampaignCount < minPastCampaigns) return false;
-    if (p.averageRating < minRating) return false;
-    if (noShowOnly && p.noShowCount <= 2) return false;
-    return true;
-  });
-
-  // Filter waitlist list
-  const filteredWaitlist = waitlistParticipants.filter((p) => {
+  // Filter confirmed list
+  const filteredConfirmed = confirmedParticipants.filter((p) => {
     if (p.pastCampaignCount < minPastCampaigns) return false;
     if (p.averageRating < minRating) return false;
     if (noShowOnly && p.noShowCount <= 2) return false;
@@ -733,7 +748,7 @@ function ParticipantReviewPanel({ campaignId, theme }: { campaignId: string; the
   const handleSelectAll = (checked: boolean) => {
     const newSelections: Record<number, boolean> = {};
     if (checked) {
-      filteredPending.forEach((p) => {
+      filteredConfirmed.forEach((p) => {
         newSelections[p.id] = true;
       });
     }
@@ -760,7 +775,7 @@ function ParticipantReviewPanel({ campaignId, theme }: { campaignId: string; the
   };
 
   const isAllSelected =
-    filteredPending.length > 0 && filteredPending.every((p) => selectedIds[p.id]);
+    filteredConfirmed.length > 0 && filteredConfirmed.every((p) => selectedIds[p.id]);
 
   return (
     <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-lg space-y-4">
@@ -769,44 +784,40 @@ function ParticipantReviewPanel({ campaignId, theme }: { campaignId: string; the
         <button
           type="button"
           onClick={() => setActiveTab("pending")}
-          className={`flex-1 pb-3 text-sm font-black transition-all ${
-            activeTab === "pending"
-              ? `border-b-2 ${theme.tabActive}`
-              : "text-slate-500 hover:text-slate-800"
-          }`}
+          className={`flex-1 pb-3 text-xs md:text-sm font-black transition-all ${activeTab === "pending"
+            ? `border-b-2 ${theme.tabActive}`
+            : "text-slate-500 hover:text-slate-800"
+            }`}
         >
-          Đang chờ ({pendingParticipants.length})
+          Chưa xác nhận ({pendingParticipants.length})
         </button>
         <button
           type="button"
-          onClick={() => setActiveTab("waitlist")}
-          className={`flex-1 pb-3 text-sm font-black transition-all ${
-            activeTab === "waitlist"
-              ? `border-b-2 ${theme.tabActive}`
-              : "text-slate-500 hover:text-slate-800"
-          }`}
+          onClick={() => setActiveTab("confirmed")}
+          className={`flex-1 pb-3 text-xs md:text-sm font-black transition-all ${activeTab === "confirmed"
+            ? `border-b-2 ${theme.tabActive}`
+            : "text-slate-500 hover:text-slate-800"
+            }`}
         >
-          Danh sách chờ ({waitlistParticipants.length})
+          Chờ duyệt ({confirmedParticipants.length})
         </button>
         <button
           type="button"
           onClick={() => setActiveTab("approved")}
-          className={`flex-1 pb-3 text-sm font-black transition-all ${
-            activeTab === "approved"
-              ? `border-b-2 ${theme.tabActive}`
-              : "text-slate-500 hover:text-slate-800"
-          }`}
+          className={`flex-1 pb-3 text-xs md:text-sm font-black transition-all ${activeTab === "approved"
+            ? `border-b-2 ${theme.tabActive}`
+            : "text-slate-500 hover:text-slate-800"
+            }`}
         >
-          Đã duyệt ({approvedParticipants.length})
+          Danh sách tham gia ({approvedParticipants.length})
         </button>
         <button
           type="button"
           onClick={() => setActiveTab("cancelled")}
-          className={`flex-1 pb-3 text-sm font-black transition-all ${
-            activeTab === "cancelled"
-              ? `border-b-2 ${theme.tabActive}`
-              : "text-slate-500 hover:text-slate-800"
-          }`}
+          className={`flex-1 pb-3 text-xs md:text-sm font-black transition-all ${activeTab === "cancelled"
+            ? `border-b-2 ${theme.tabActive}`
+            : "text-slate-500 hover:text-slate-800"
+            }`}
         >
           Đã từ chối ({cancelledParticipants.length})
         </button>
@@ -814,11 +825,56 @@ function ParticipantReviewPanel({ campaignId, theme }: { campaignId: string; the
 
       {activeTab === "pending" && (
         <div className="space-y-4">
+          {/* List pending */}
+          <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+            {pendingParticipants.length === 0 ? (
+              <p className="text-center py-6 text-xs text-slate-400 font-bold">
+                Không tìm thấy tình nguyện viên nào chưa xác nhận.
+              </p>
+            ) : (
+              pendingParticipants.map((p) => {
+                const hasNoShowWarning = p.noShowCount > 2;
+
+                return (
+                  <div
+                    key={p.id}
+                    className="rounded-xl border border-slate-100 bg-white p-4 hover:border-slate-200 transition-all duration-200"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-black text-slate-900">{p.citizenName}</span>
+                          <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black text-slate-600">
+                            Chưa xác nhận
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-400 font-semibold mt-0.5">{p.citizenEmail}</p>
+
+                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                          <span className="text-xs font-semibold text-slate-500">
+                            Số chiến dịch: <strong className="text-slate-700">{p.pastCampaignCount}</strong>
+                          </span>
+                          <span className="text-xs font-black text-amber-600">
+                            ★ {p.averageRating.toFixed(1)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === "confirmed" && (
+        <div className="space-y-4">
           {/* Filters Panel */}
           <div className="rounded-xl bg-slate-50 p-3.5 border border-slate-100 space-y-3">
             <div className="flex items-center gap-2 text-xs font-black uppercase text-indigo-600">
               <Filter size={14} />
-              Bộ lọc tình nguyện viên
+              Bộ lọc tình nguyện viên chờ duyệt
             </div>
             <div className="grid grid-cols-2 gap-2.5">
               <div>
@@ -867,7 +923,7 @@ function ParticipantReviewPanel({ campaignId, theme }: { campaignId: string; the
           </div>
 
           {/* Batch Approve Control */}
-          {filteredPending.length > 0 && (
+          {filteredConfirmed.length > 0 && (
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
@@ -891,25 +947,24 @@ function ParticipantReviewPanel({ campaignId, theme }: { campaignId: string; the
             </div>
           )}
 
-          {/* List pending */}
+          {/* List confirmed */}
           <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
-            {filteredPending.length === 0 ? (
+            {filteredConfirmed.length === 0 ? (
               <p className="text-center py-6 text-xs text-slate-400 font-bold">
-                Không tìm thấy tình nguyện viên nào đang chờ duyệt.
+                Không tìm thấy tình nguyện viên nào đã xác nhận.
               </p>
             ) : (
-              filteredPending.map((p) => {
+              filteredConfirmed.map((p) => {
                 const isSelected = !!selectedIds[p.id];
                 const hasNoShowWarning = p.noShowCount > 2;
 
                 return (
                   <div
                     key={p.id}
-                    className={`rounded-xl border p-4 transition-all duration-200 ${
-                      isSelected
-                        ? "border-indigo-200 bg-indigo-50/20 shadow-sm"
-                        : "border-slate-100 bg-white hover:border-slate-200"
-                    }`}
+                    className={`rounded-xl border p-4 transition-all duration-200 ${isSelected
+                      ? "border-indigo-200 bg-indigo-50/20 shadow-sm"
+                      : "border-slate-100 bg-white hover:border-slate-200"
+                      }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-2.5">
@@ -934,151 +989,10 @@ function ParticipantReviewPanel({ campaignId, theme }: { campaignId: string; the
                               ★ {p.averageRating.toFixed(1)}
                             </span>
                             <span
-                              className={`text-[10px] font-black ${
-                                hasNoShowWarning
-                                  ? "text-red-600 bg-red-50 px-2 py-0.5 rounded-full flex items-center gap-1 border border-red-100 animate-pulse"
-                                  : "text-slate-500"
-                              }`}
-                            >
-                              {hasNoShowWarning && <AlertTriangle size={10} />}
-                              Bỏ buổi (No-Show): {p.noShowCount}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {p.volunteerExperience && (
-                      <div className="mt-3 rounded-lg bg-slate-50 p-2.5 text-xs text-slate-600 leading-relaxed font-semibold">
-                        <span className="font-black text-slate-500 block mb-1">Kinh nghiệm:</span>
-                        {p.volunteerExperience}
-                      </div>
-                    )}
-
-                    {p.availabilityHours && (
-                      <p className="mt-2 text-[11px] font-black text-indigo-600">
-                        Rảnh: {p.availabilityHours}
-                      </p>
-                    )}
-
-                    <div className="mt-4 flex gap-2 border-t border-slate-100 pt-3">
-                      <button
-                        type="button"
-                        onClick={() => handleApprove(p)}
-                        className="flex-1 h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-xs font-black text-white active:scale-[0.98] transition"
-                      >
-                        Duyệt tham gia
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleReject(p)}
-                        className="h-8 px-3 rounded-lg border border-red-100 bg-red-50 text-xs font-black text-red-600 hover:bg-red-100 active:scale-[0.98] transition"
-                      >
-                        Từ chối
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      )}
-
-      {activeTab === "waitlist" && (
-        <div className="space-y-4">
-          {/* Filters Panel */}
-          <div className="rounded-xl bg-slate-50 p-3.5 border border-slate-100 space-y-3">
-            <div className="flex items-center gap-2 text-xs font-black uppercase text-indigo-600">
-              <Filter size={14} />
-              Bộ lọc tình nguyện viên hàng chờ
-            </div>
-            <div className="grid grid-cols-2 gap-2.5">
-              <div>
-                <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
-                  Số chiến dịch tham gia
-                </label>
-                <select
-                  value={minPastCampaigns}
-                  onChange={(e) => setMinPastCampaigns(Number(e.target.value))}
-                  className="w-full h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold outline-none"
-                >
-                  <option value={0}>0 chiến dịch</option>
-                  <option value={1}>1 chiến dịch</option>
-                  <option value={3}>3 chiến dịch</option>
-                  <option value={5}>5 chiến dịch</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
-                  Đánh giá tối thiểu
-                </label>
-                <select
-                  value={minRating}
-                  onChange={(e) => setMinRating(Number(e.target.value))}
-                  className="w-full h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold outline-none"
-                >
-                  <option value={0}>Mọi đánh giá</option>
-                  <option value={3}>Từ 3.0 ★ trở lên</option>
-                  <option value={4}>Từ 4.0 ★ trở lên</option>
-                  <option value={4.5}>Từ 4.5 ★ trở lên</option>
-                </select>
-              </div>
-            </div>
-
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={noShowOnly}
-                onChange={(e) => setNoShowOnly(e.target.checked)}
-                className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-              />
-              <span className="text-xs font-semibold text-slate-600">
-                Chỉ hiện người có cảnh báo (No-show &gt; 2)
-              </span>
-            </label>
-          </div>
-
-          {/* List waitlist */}
-          <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
-            {filteredWaitlist.length === 0 ? (
-              <p className="text-center py-6 text-xs text-slate-400 font-bold">
-                Không tìm thấy tình nguyện viên nào trong danh sách chờ.
-              </p>
-            ) : (
-              filteredWaitlist.map((p) => {
-                const hasNoShowWarning = p.noShowCount > 2;
-
-                return (
-                  <div
-                    key={p.id}
-                    className="rounded-xl border border-slate-100 bg-white p-4 hover:border-slate-200 transition-all duration-200"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-2.5">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-black text-slate-900">{p.citizenName}</span>
-                            <span className="inline-flex items-center rounded-full bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider">
-                              Hàng chờ
-                            </span>
-                            <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black text-slate-600">
-                              {p.pastCampaignCount} chiến dịch
-                            </span>
-                          </div>
-                          <p className="text-xs text-slate-400 font-semibold mt-0.5">{p.citizenEmail}</p>
-
-                          {/* Ratings and No-show counts */}
-                          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-                            <span className="text-xs font-black text-amber-600 flex items-center gap-0.5">
-                              ★ {p.averageRating.toFixed(1)}
-                            </span>
-                            <span
-                              className={`text-[10px] font-black ${
-                                hasNoShowWarning
-                                  ? "text-red-600 bg-red-50 px-2 py-0.5 rounded-full flex items-center gap-1 border border-red-100 animate-pulse"
-                                  : "text-slate-500"
-                              }`}
+                              className={`text-[10px] font-black ${hasNoShowWarning
+                                ? "text-red-600 bg-red-50 px-2 py-0.5 rounded-full flex items-center gap-1 border border-red-100 animate-pulse"
+                                : "text-slate-500"
+                                }`}
                             >
                               {hasNoShowWarning && <AlertTriangle size={10} />}
                               Bỏ buổi (No-Show): {p.noShowCount}
@@ -1145,14 +1059,8 @@ function ParticipantReviewPanel({ campaignId, theme }: { campaignId: string; the
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-black text-slate-900">{p.citizenName}</span>
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${
-                            p.joinStatus === "APPROVED"
-                              ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                              : "bg-amber-50 text-amber-700 border border-amber-100"
-                          }`}
-                        >
-                          {p.joinStatus === "APPROVED" ? "Chính thức" : "Chờ xác nhận"}
+                        <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
+                          Chính thức
                         </span>
                       </div>
                       <p className="text-xs text-slate-400 font-semibold mt-0.5">{p.citizenEmail}</p>
@@ -1177,9 +1085,8 @@ function ParticipantReviewPanel({ campaignId, theme }: { campaignId: string; the
                           Đã tham gia: <strong className="text-slate-800">{p.pastCampaignCount}</strong>
                         </span>
                         <span
-                          className={`font-semibold ${
-                            hasNoShowWarning ? "text-red-600" : "text-slate-500"
-                          }`}
+                          className={`font-semibold ${hasNoShowWarning ? "text-red-600" : "text-slate-500"
+                            }`}
                         >
                           Số lần bùng: <strong>{p.noShowCount}</strong>
                         </span>
@@ -1233,8 +1140,8 @@ function ParticipantReviewPanel({ campaignId, theme }: { campaignId: string; the
                       {p.joinStatus === "CANCELLED"
                         ? "Hủy đăng ký"
                         : p.joinStatus === "NO_SHOW"
-                        ? "Vắng mặt"
-                        : "Từ chối"}
+                          ? "Vắng mặt"
+                          : "Từ chối"}
                     </span>
                   </div>
                   <p className="text-xs text-slate-400 font-semibold mt-0.5">{p.citizenEmail}</p>
@@ -1257,28 +1164,29 @@ function ParticipantReviewPanel({ campaignId, theme }: { campaignId: string; the
 
 function StatusBadge({ status, theme }: { status: Campaign["status"]; theme?: any }) {
   const meta: Record<string, { label: string; className: string }> = {
-    pending_review: {
-      label: "Chờ duyệt",
-      className: "border-slate-200 bg-slate-100 text-slate-600",
-    },
     recruiting: {
-      label: "Đang tuyển",
-      className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      label: "Chưa diễn ra",
+      className: "border-amber-200 bg-amber-50 text-amber-700",
     },
-    inProgress: { label: "Đang thực hiện", className: "border-blue-200 bg-blue-50 text-blue-700" },
+    inProgress: { label: "Đang diễn ra", className: "border-blue-200 bg-blue-50 text-blue-700" },
+    active: { label: "Đang diễn ra", className: "border-blue-200 bg-blue-50 text-blue-700" },
     completed: {
-      label: "Hoàn thành",
-      className: "border-indigo-200 bg-indigo-50 text-indigo-700",
+      label: "Đã kết thúc",
+      className: "border-red-200 bg-red-50 text-red-700",
     },
     ended: {
       label: "Đã kết thúc",
       className: "border-red-200 bg-red-50 text-red-700",
     },
+    cancelled: {
+      label: "Đã bị hủy",
+      className: "border-slate-300 bg-slate-100 text-slate-700",
+    },
   };
 
   const current = meta[status] || {
-    label: status,
-    className: "border-slate-200 bg-slate-100 text-slate-600",
+    label: "Chưa diễn ra",
+    className: "border-amber-200 bg-amber-50 text-amber-700",
   };
 
   return (

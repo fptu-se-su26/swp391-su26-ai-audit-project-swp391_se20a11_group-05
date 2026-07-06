@@ -216,6 +216,9 @@ export interface UserProfile {
   wardType?: string | null;
   wardId?: number | null;
   warningCount?: number;
+  completedCampaignCount?: number;
+  noShowCampaignCount?: number;
+  reputationBadge?: string;
 }
 
 export interface UpdateProfileRequest {
@@ -930,13 +933,13 @@ export interface CampaignResponse {
   minParticipants: number | null;
   startTime: string | null;
   endTime: string | null;
-  status: "PENDING_APPROVAL" | "RECRUITING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "ACTIVE" | "ENDED";
+  status: "RECRUITING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "ACTIVE" | "ENDED";
   wardId: number | null;
   wardName: string | null;
   createdByUserId: number;
   createdByName: string | null;
   participantCount: number;
-  currentUserJoinStatus: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "WAITLIST" | "PENDING_CONFIRM" | "NO_SHOW" | null;
+  currentUserJoinStatus: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "WAITLIST" | "PENDING_CONFIRM" | "NO_SHOW" | "CONFIRMED" | "MAYBE" | null;
   privateDetailsVisible: boolean;
   canJoin: boolean;
   canLeave: boolean;
@@ -992,6 +995,9 @@ export interface CampaignParticipantResponse {
   rejectedAt: string | null;
   rejectionReason: string | null;
   confirmedAt: string | null;
+  attended?: boolean | null;
+  attendedAt?: string | null;
+  citizenPhone?: string | null;
 }
 
 export const campaignApi = {
@@ -1022,9 +1028,6 @@ export const campaignApi = {
     request<void>(`/api/campaigns/${id}`, {
       method: "DELETE",
     }),
-
-  approve: (id: number | string) =>
-    request<CampaignResponse>(`/api/campaigns/${id}/approve`, { method: "POST" }),
 
   end: (id: number | string) =>
     request<CampaignResponse>(`/api/campaigns/${id}/end`, { method: "POST" }),
@@ -1128,6 +1131,15 @@ export const campaignApi = {
   setAnnouncementMode: (id: number | string, enabled: boolean) =>
     request<CampaignResponse>(`/api/campaigns/${id}/announcement-mode?enabled=${enabled}`, {
       method: "PUT",
+    }),
+
+  lookupParticipantByPhone: (id: number | string, phone: string) =>
+    request<CampaignParticipantResponse>(`/api/campaigns/${id}/participants/lookup?phone=${encodeURIComponent(phone)}`),
+
+  bulkSaveAttendance: (id: number | string, data: { attendances: { participantId: number; attended: boolean }[] }) =>
+    request<CampaignParticipantResponse[]>(`/api/campaigns/${id}/attendance/bulk`, {
+      method: "POST",
+      body: JSON.stringify(data),
     }),
 };
 

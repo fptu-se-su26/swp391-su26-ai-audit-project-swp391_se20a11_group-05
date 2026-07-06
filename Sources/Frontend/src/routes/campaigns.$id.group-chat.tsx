@@ -133,15 +133,12 @@ function CampaignGroupChatPage() {
     try {
       await signalAttendance.mutateAsync(signal);
       toast.success(
-        signal === "CONFIRMED"
-          ? "Đã xác nhận tham gia chiến dịch!"
-          : "Đã chọn 'Có thể tham gia'."
+        signal === "CONFIRMED" ? "Đã xác nhận tham gia chiến dịch!" : "Đã chọn 'Có thể tham gia'.",
       );
     } catch (err: any) {
       toast.error(err?.message || "Không thể gửi xác nhận.");
     }
   };
-
 
   const formattedMessages = useMemo(() => {
     return chatMessages
@@ -184,12 +181,14 @@ function CampaignGroupChatPage() {
 
     const lastMsg = formattedMessages[formattedMessages.length - 1];
     const isNewMessage = lastMsg.id !== lastMessageIdRef.current;
-    
+
     if (isInitialLoadRef.current || isNewMessage) {
-      messagesEndRef.current?.scrollIntoView({ behavior: isInitialLoadRef.current ? "auto" : "smooth" });
+      messagesEndRef.current?.scrollIntoView({
+        behavior: isInitialLoadRef.current ? "auto" : "smooth",
+      });
       isInitialLoadRef.current = false;
     }
-    
+
     lastMessageIdRef.current = lastMsg.id;
   }, [formattedMessages]);
 
@@ -211,7 +210,7 @@ function CampaignGroupChatPage() {
           }
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     const currentLoader = loaderRef.current;
@@ -327,20 +326,16 @@ function CampaignGroupChatPage() {
 
         setAttachments((prev) =>
           prev.map((item) =>
-            item.id === att.id
-              ? { ...item, url: data.fileUrl, isUploading: false }
-              : item
-          )
+            item.id === att.id ? { ...item, url: data.fileUrl, isUploading: false } : item,
+          ),
         );
       } catch (err: any) {
         console.error(err);
         toast.error(`Không thể tải ảnh "${att.file.name}" lên server: ${err.message}`);
         setAttachments((prev) =>
           prev.map((item) =>
-            item.id === att.id
-              ? { ...item, isUploading: false, error: err.message }
-              : item
-          )
+            item.id === att.id ? { ...item, isUploading: false, error: err.message } : item,
+          ),
         );
       }
     });
@@ -405,8 +400,13 @@ function CampaignGroupChatPage() {
     );
   }
 
-  const isCampaignEndedOrCancelled = campaign?.status === "ended" || campaign?.status === "completed" || campaign?.status === "cancelled";
-  const isInputDisabled = (announcementMode && !campaign?.canManage) || isCampaignEndedOrCancelled;
+  const isCampaignEndedOrCancelled =
+    campaign?.status === "ended" ||
+    campaign?.status === "completed" ||
+    campaign?.status === "cancelled";
+  const isInputDisabled =
+    (announcementMode && !campaign?.canManage) ||
+    (isCampaignEndedOrCancelled && !campaign?.canManage);
 
   return (
     <main className="min-h-screen bg-[#F5F7FA] font-sans text-slate-900">
@@ -441,7 +441,9 @@ function CampaignGroupChatPage() {
                   {campaignName}
                 </h1>
                 <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-                  <span>{memberCount}/{target || "?"} thành viên</span>
+                  <span>
+                    {memberCount}/{target || "?"} thành viên
+                  </span>
                 </div>
               </div>
             </div>
@@ -534,7 +536,10 @@ function CampaignGroupChatPage() {
             </div>
           )}
 
-          <div className="flex-1 overflow-y-auto bg-[#F5F7FA] px-4 py-5 md:px-8" ref={scrollContainerRef}>
+          <div
+            className="flex-1 overflow-y-auto bg-[#F5F7FA] px-4 py-5 md:px-8"
+            ref={scrollContainerRef}
+          >
             <div className="mx-auto flex max-w-3xl flex-col gap-4">
               {hasNextPage && (
                 <div ref={loaderRef} className="flex justify-center py-2 shrink-0">
@@ -581,8 +586,15 @@ function CampaignGroupChatPage() {
             {attachments.length > 0 && (
               <div className="mx-auto max-w-3xl mb-3 flex flex-wrap gap-3 bg-slate-50 border border-slate-200/60 p-2.5 rounded-xl animate-fade-in animate-[chatSlideUp_0.15s_ease]">
                 {attachments.map((att) => (
-                  <div key={att.id} className="relative h-16 w-16 overflow-hidden rounded-lg border border-slate-250/80 shadow-sm bg-white shrink-0 group">
-                    <img src={att.preview} alt="Xem trước ảnh" className="h-full w-full object-cover" />
+                  <div
+                    key={att.id}
+                    className="relative h-16 w-16 overflow-hidden rounded-lg border border-slate-250/80 shadow-sm bg-white shrink-0 group"
+                  >
+                    <img
+                      src={att.preview}
+                      alt="Xem trước ảnh"
+                      className="h-full w-full object-cover"
+                    />
                     {att.isUploading && (
                       <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center">
                         <Loader2 className="animate-spin text-white h-5 w-5" />
@@ -597,8 +609,13 @@ function CampaignGroupChatPage() {
                       <X size={10} />
                     </button>
                     {att.error && (
-                      <div className="absolute inset-0 bg-rose-500/20 flex items-center justify-center" title={att.error}>
-                        <span className="text-[9px] font-black text-rose-700 bg-white/90 px-1 rounded">Lỗi</span>
+                      <div
+                        className="absolute inset-0 bg-rose-500/20 flex items-center justify-center"
+                        title={att.error}
+                      >
+                        <span className="text-[9px] font-black text-rose-700 bg-white/90 px-1 rounded">
+                          Lỗi
+                        </span>
                       </div>
                     )}
                   </div>
@@ -606,23 +623,33 @@ function CampaignGroupChatPage() {
               </div>
             )}
 
-            {isCampaignEndedOrCancelled ? (
-              <div className="mx-auto max-w-3xl flex items-center gap-3 py-3.5 px-5 rounded-xl bg-slate-100 border border-slate-200 text-sm text-slate-650 shadow-sm animate-fade-in">
-                <Info className="h-5 w-5 text-slate-500 shrink-0" />
-                <span className="leading-relaxed font-medium text-slate-700">
-                  Chiến dịch này đã {campaign?.status === "cancelled" ? "bị hủy" : "kết thúc"}. Nhóm chat hiện ở chế độ chỉ đọc.
-                </span>
+            {isCampaignEndedOrCancelled && !campaign?.canManage ? (
+              <div className="mx-auto max-w-3xl flex flex-col gap-2 py-3.5 px-5 rounded-xl bg-slate-100 border border-slate-200 text-sm text-slate-650 shadow-sm animate-fade-in">
+                <div className="flex items-center gap-3">
+                  <Info className="h-5 w-5 text-slate-500 shrink-0" />
+                  <span className="leading-relaxed font-medium text-slate-700">
+                    Chiến dịch này đã {campaign?.status === "cancelled" ? "bị hủy" : "kết thúc"}.
+                    Nhóm chat hiện ở chế độ chỉ đọc.
+                  </span>
+                </div>
+                {campaign?.status === "cancelled" && campaign?.cancellationReason && (
+                  <div className="text-[11px] font-semibold text-rose-500 italic bg-rose-50/50 p-2 rounded-lg border border-rose-100 leading-relaxed text-left ml-8">
+                    Lý do hủy: {campaign.cancellationReason}
+                  </div>
+                )}
               </div>
             ) : isInputDisabled ? (
               <div className="mx-auto max-w-3xl flex items-center gap-3 py-3.5 px-5 rounded-xl bg-[#F0F7FF] border border-[#D0E7FF] text-sm text-slate-650 shadow-sm animate-fade-in">
                 <Info className="h-5 w-5 text-[#007AFF] shrink-0" />
                 <span className="leading-relaxed font-medium text-slate-700">
-                  Chỉ <span className="text-[#007AFF] font-bold">quản trị viên cộng đồng</span> được gửi tin nhắn vào cộng đồng.{" "}
+                  Chỉ <span className="text-[#007AFF] font-bold">quản trị viên cộng đồng</span> được
+                  gửi tin nhắn vào cộng đồng.{" "}
                   <button
                     type="button"
                     onClick={() => {
                       toast.info("Chế độ chỉ quản trị viên", {
-                        description: "Chỉ trưởng nhóm và cán bộ phụ trách mới có quyền gửi tin nhắn trong chế độ này để hạn chế trôi tin quan trọng.",
+                        description:
+                          "Chỉ trưởng nhóm và cán bộ phụ trách mới có quyền gửi tin nhắn trong chế độ này để hạn chế trôi tin quan trọng.",
                       });
                     }}
                     className="text-[#007AFF] font-bold hover:underline inline-block focus:outline-none"
@@ -648,11 +675,7 @@ function CampaignGroupChatPage() {
                   onChange={handleImageSelect}
                   disabled={isInputDisabled}
                 />
-                <IconButton
-                  label="Emoji"
-                  icon={<Smile size={19} />}
-                  disabled={isInputDisabled}
-                />
+                <IconButton label="Emoji" icon={<Smile size={19} />} disabled={isInputDisabled} />
                 <input
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
@@ -715,10 +738,7 @@ function CampaignGroupChatPage() {
       )}
 
       {selectedUserId && (
-        <CitizenProfileModal
-          userId={selectedUserId}
-          onClose={() => setSelectedUserId(null)}
-        />
+        <CitizenProfileModal userId={selectedUserId} onClose={() => setSelectedUserId(null)} />
       )}
     </main>
   );

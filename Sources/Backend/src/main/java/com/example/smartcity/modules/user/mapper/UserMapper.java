@@ -30,7 +30,7 @@ public abstract class UserMapper implements BaseMapper<User, UserDTO> {
 
     protected int countNoShowCampaigns(User entity) {
         if (entity == null || entity.getId() == null) return 0;
-        return (int) campaignParticipantRepository.countByCitizen_IdAndJoinStatus(entity.getId(), "NO_SHOW");
+        return (int) campaignParticipantRepository.countNoShowCampaigns(entity.getId());
     }
 
     protected String determineReputationBadge(int completedCampaigns) {

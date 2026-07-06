@@ -1,9 +1,27 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { userApi } from "@/lib/api";
-import { useWarnUserMutation, useBanUserMutation, useUnbanUserMutation } from "@/hooks/useCampaigns";
+import { userApi, campaignApi } from "@/lib/api";
+import {
+  useWarnUserMutation,
+  useBanUserMutation,
+  useUnbanUserMutation,
+} from "@/hooks/useCampaigns";
 import { useAuth, Role } from "@/lib/auth";
-import { X, ShieldAlert, AlertTriangle, User, Mail, Phone, MapPin, UserX, CheckCircle, Clock, Award, Frown } from "lucide-react";
+import {
+  X,
+  ShieldAlert,
+  AlertTriangle,
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  UserX,
+  CheckCircle,
+  Clock,
+  Award,
+  Frown,
+  Calendar,
+} from "lucide-react";
 
 const getRoleBadge = (role: string) => {
   switch (role) {
@@ -15,22 +33,26 @@ const getRoleBadge = (role: string) => {
     case "WARD_STAFF":
       return {
         label: "Cán bộ Phường",
-        className: "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/30 dark:text-blue-400",
+        className:
+          "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/30 dark:text-blue-400",
       };
     case "POLICE":
       return {
         label: "Công an địa phương",
-        className: "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/30 dark:text-rose-400",
+        className:
+          "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/30 dark:text-rose-400",
       };
     case "CITY_ADMIN":
       return {
         label: "Quản trị viên Thành phố",
-        className: "bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/30 dark:text-amber-400",
+        className:
+          "bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/30 dark:text-amber-400",
       };
     case "SUPER_ADMIN":
       return {
         label: "Quản trị viên cấp cao",
-        className: "bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/30 dark:text-purple-400",
+        className:
+          "bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/30 dark:text-purple-400",
       };
     default:
       return {
@@ -109,17 +131,48 @@ export function CitizenProfileModal({
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
-  const canModerate = currentUser && (
-    currentUser.role === Role.WARD_STAFF ||
-    currentUser.role === Role.POLICE ||
-    currentUser.role === Role.SUPER_ADMIN
-  );
+  const canModerate =
+    currentUser &&
+    (currentUser.role === Role.WARD_STAFF ||
+      currentUser.role === Role.POLICE ||
+      currentUser.role === Role.SUPER_ADMIN);
 
-  const { data: profile, isLoading, error, refetch } = useQuery({
+  const {
+    data: profile,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ["user", userId],
     queryFn: () => userApi.getById(userId),
     enabled: !!userId,
   });
+
+  const [selectedHistoryTab, setSelectedHistoryTab] = useState<"completed" | "noshow" | null>(null);
+
+  const canViewHistory =
+    currentUser &&
+    (currentUser.role === Role.WARD_STAFF ||
+      currentUser.role === Role.POLICE ||
+      currentUser.role === Role.SUPER_ADMIN);
+
+  const { data: historyList, isLoading: isHistoryLoading } = useQuery({
+    queryKey: ["user-campaign-history", userId],
+    queryFn: () => campaignApi.getCitizenParticipationHistory(userId),
+    enabled: !!userId && !!canViewHistory,
+  });
+
+  const formatDate = (dateStr?: string | null) => {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "";
+    const hrs = String(d.getHours()).padStart(2, "0");
+    const mins = String(d.getMinutes()).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const yr = d.getFullYear();
+    return `${hrs}:${mins} ${day}/${month}/${yr}`;
+  };
 
   const warnMutation = useWarnUserMutation();
   const banMutation = useBanUserMutation();
@@ -176,7 +229,9 @@ export function CitizenProfileModal({
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
           <div className="flex items-center gap-2">
             <User className="h-5 w-5 text-indigo-600" />
-            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Thông tin cá nhân</h3>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+              Thông tin cá nhân
+            </h3>
           </div>
           <button
             onClick={onClose}
@@ -197,28 +252,38 @@ export function CitizenProfileModal({
             <div className="text-center py-8">
               <AlertTriangle className="h-10 w-10 text-rose-500 mx-auto mb-2" />
               <p className="text-sm font-semibold text-rose-600">Đã xảy ra lỗi khi lấy thông tin</p>
-              <p className="text-xs text-slate-400 mt-1">{(error as any)?.message || "Vui lòng thử lại sau"}</p>
+              <p className="text-xs text-slate-400 mt-1">
+                {(error as any)?.message || "Vui lòng thử lại sau"}
+              </p>
             </div>
           ) : profile ? (
             <div className="space-y-5">
               {/* Profile card summary */}
               <div className="flex items-center gap-5 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
-                <div className={`grid h-12 w-12 place-items-center rounded-full text-lg font-black transition-all duration-300 ${getAvatarStyle(profile.role)} ${profile.role === "CITIZEN" ? getAvatarAuraClass(profile.reputationBadge) : ""
-                  }`}>
+                <div
+                  className={`grid h-12 w-12 place-items-center rounded-full text-lg font-black transition-all duration-300 ${getAvatarStyle(profile.role)} ${
+                    profile.role === "CITIZEN" ? getAvatarAuraClass(profile.reputationBadge) : ""
+                  }`}
+                >
                   {profile.fullName.split(" ").at(-1)?.[0] || "U"}
                 </div>
                 <div>
-                  <h4 className="text-base font-bold text-slate-800 dark:text-slate-100">{profile.fullName}</h4>
+                  <h4 className="text-base font-bold text-slate-800 dark:text-slate-100">
+                    {profile.fullName}
+                  </h4>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${getRoleBadge(profile.role).className}`}>
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${getRoleBadge(profile.role).className}`}
+                    >
                       {getRoleBadge(profile.role).label}
                     </span>
                     {profile.role === "CITIZEN" && (
                       <span
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${profile.active
-                          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400"
-                          : "bg-rose-50 text-rose-700 dark:bg-rose-950/20 dark:text-rose-400"
-                          }`}
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          profile.active
+                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400"
+                            : "bg-rose-50 text-rose-700 dark:bg-rose-950/20 dark:text-rose-400"
+                        }`}
                       >
                         {profile.active ? (
                           <>
@@ -234,7 +299,9 @@ export function CitizenProfileModal({
                   </div>
                   {profile.role === "CITIZEN" && profile.reputationBadge && (
                     <div className="flex items-center gap-1 mt-2 animate-fade-in">
-                      <span className={`inline-flex items-center rounded-full transition-all duration-300 hover:scale-105 cursor-default ${getReputationBadgeStyle(profile.reputationBadge)}`}>
+                      <span
+                        className={`inline-flex items-center rounded-full transition-all duration-300 hover:scale-105 cursor-default ${getReputationBadgeStyle(profile.reputationBadge)}`}
+                      >
                         {getReputationBadgeLabel(profile.reputationBadge)}
                       </span>
                     </div>
@@ -243,27 +310,37 @@ export function CitizenProfileModal({
               </div>
 
               {/* Status / Warnings alert */}
-              {profile.role === "CITIZEN" && profile.warningCount !== undefined && profile.warningCount > 0 && (
-                <div className="flex items-start gap-3 p-3.5 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 dark:bg-amber-950/10 dark:border-amber-900/50 dark:text-amber-300">
-                  <ShieldAlert className="h-5 w-5 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
-                  <div>
-                    <h5 className="text-sm font-bold">Lịch sử cảnh cáo</h5>
-                    <p className="text-xs mt-0.5 font-medium">
-                      Tài khoản này đã bị cảnh cáo <strong className="text-amber-600 dark:text-amber-400">{profile.warningCount}/3</strong> lần. Đạt 3 lần sẽ bị tự động chặn vĩnh viễn khỏi hệ thống.
-                    </p>
+              {profile.role === "CITIZEN" &&
+                profile.warningCount !== undefined &&
+                profile.warningCount > 0 && (
+                  <div className="flex items-start gap-3 p-3.5 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 dark:bg-amber-950/10 dark:border-amber-900/50 dark:text-amber-300">
+                    <ShieldAlert className="h-5 w-5 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
+                    <div>
+                      <h5 className="text-sm font-bold">Lịch sử cảnh cáo</h5>
+                      <p className="text-xs mt-0.5 font-medium">
+                        Tài khoản này đã bị cảnh cáo{" "}
+                        <strong className="text-amber-600 dark:text-amber-400">
+                          {profile.warningCount}/3
+                        </strong>{" "}
+                        lần. Đạt 3 lần sẽ bị tự động chặn vĩnh viễn khỏi hệ thống.
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {/* Contact info list */}
               <div className="space-y-3.5">
                 <div className="flex items-center gap-3 text-slate-655 dark:text-slate-400 text-sm">
                   <Mail className="h-4.5 w-4.5 text-slate-400 shrink-0" />
-                  <span className="font-medium truncate">{profile.email || "Chưa cập nhật email"}</span>
+                  <span className="font-medium truncate">
+                    {profile.email || "Chưa cập nhật email"}
+                  </span>
                 </div>
                 <div className="flex items-center gap-3 text-slate-655 dark:text-slate-400 text-sm">
                   <Phone className="h-4.5 w-4.5 text-slate-400 shrink-0" />
-                  <span className="font-medium">{profile.phoneNumber || "Chưa cập nhật số điện thoại"}</span>
+                  <span className="font-medium">
+                    {profile.phoneNumber || "Chưa cập nhật số điện thoại"}
+                  </span>
                 </div>
                 {profile.wardName && (
                   <div className="flex items-center gap-3 text-slate-655 dark:text-slate-400 text-sm">
@@ -283,40 +360,166 @@ export function CitizenProfileModal({
                   </h5>
                   <div className="grid grid-cols-2 gap-3">
                     {/* Attended Campaigns */}
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/30">
+                    <div
+                      onClick={() => {
+                        if (canViewHistory) {
+                          setSelectedHistoryTab(
+                            selectedHistoryTab === "completed" ? null : "completed",
+                          );
+                        }
+                      }}
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 select-none ${
+                        canViewHistory
+                          ? "cursor-pointer hover:border-emerald-300 dark:hover:border-emerald-700 active:scale-95"
+                          : ""
+                      } ${
+                        selectedHistoryTab === "completed"
+                          ? "ring-2 ring-emerald-500/50 bg-emerald-50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-700"
+                          : "bg-emerald-50/50 dark:bg-emerald-950/10 border-emerald-100 dark:border-emerald-900/30"
+                      }`}
+                    >
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400">
                         <Award size={20} />
                       </div>
                       <div>
-                        <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 leading-none">Tham gia</div>
-                        <div className="text-lg font-black text-emerald-705 dark:text-emerald-400 mt-1">
+                        <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 leading-none">
+                          Tham gia
+                        </div>
+                        <div className="text-lg font-black text-emerald-700 dark:text-emerald-400 mt-1">
                           {profile.completedCampaignCount ?? 0}
                         </div>
                       </div>
                     </div>
 
                     {/* No-Shows */}
-                    <div className={`flex items-center gap-3 p-3 rounded-xl border ${(profile.noShowCampaignCount ?? 0) > 0
-                      ? "bg-rose-50/50 dark:bg-rose-950/10 border-rose-100 dark:border-rose-900/30"
-                      : "bg-slate-50 dark:bg-slate-800/20 border-slate-100 dark:border-slate-800"
-                      }`}>
-                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${(profile.noShowCampaignCount ?? 0) > 0
-                        ? "bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400"
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
-                        }`}>
+                    <div
+                      onClick={() => {
+                        if (canViewHistory) {
+                          setSelectedHistoryTab(selectedHistoryTab === "noshow" ? null : "noshow");
+                        }
+                      }}
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 select-none ${
+                        canViewHistory
+                          ? "cursor-pointer hover:border-rose-300 dark:hover:border-rose-700 active:scale-95"
+                          : ""
+                      } ${
+                        selectedHistoryTab === "noshow"
+                          ? "ring-2 ring-rose-500/50 bg-rose-50 dark:bg-rose-950/20 border-rose-300 dark:border-rose-700"
+                          : (profile.noShowCampaignCount ?? 0) > 0
+                            ? "bg-rose-50/50 dark:bg-rose-950/10 border-rose-100 dark:border-rose-900/30"
+                            : "bg-slate-50 dark:bg-slate-800/20 border-slate-100 dark:border-slate-800"
+                      }`}
+                    >
+                      <div
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                          (profile.noShowCampaignCount ?? 0) > 0
+                            ? "bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                        }`}
+                      >
                         <Frown size={20} />
                       </div>
                       <div>
-                        <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 leading-none">Vắng mặt (Bùng)</div>
-                        <div className={`text-lg font-black mt-1 ${(profile.noShowCampaignCount ?? 0) > 0
-                          ? "text-rose-700 dark:text-rose-400"
-                          : "text-slate-700 dark:text-slate-300"
-                          }`}>
+                        <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 leading-none">
+                          Vắng mặt (Bùng)
+                        </div>
+                        <div
+                          className={`text-lg font-black mt-1 ${
+                            (profile.noShowCampaignCount ?? 0) > 0
+                              ? "text-rose-700 dark:text-rose-400"
+                              : "text-slate-700 dark:text-slate-300"
+                          }`}
+                        >
                           {profile.noShowCampaignCount ?? 0}
                         </div>
                       </div>
                     </div>
                   </div>
+
+                  {/* Collapsible Campaign History Section */}
+                  {selectedHistoryTab && (
+                    <div className="mt-3 p-3 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-extrabold tracking-wider uppercase text-slate-400">
+                          {selectedHistoryTab === "completed"
+                            ? "Danh sách đã tham gia"
+                            : "Danh sách vắng mặt (Bùng)"}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedHistoryTab(null)}
+                          className="text-[10px] font-bold text-slate-400 hover:text-slate-655 dark:hover:text-slate-350 cursor-pointer"
+                        >
+                          Thu gọn
+                        </button>
+                      </div>
+
+                      {isHistoryLoading ? (
+                        <div className="flex justify-center items-center py-4 gap-2">
+                          <div className="h-4 w-4 border-2 border-indigo-650 border-t-transparent rounded-full animate-spin"></div>
+                          <span className="text-xs text-slate-400 font-medium">
+                            Đang tải lịch sử...
+                          </span>
+                        </div>
+                      ) : (
+                        (() => {
+                          const filtered = (historyList || []).filter((item) =>
+                            selectedHistoryTab === "completed"
+                              ? item.attended === true
+                              : item.joinStatus === "NO_SHOW" ||
+                                  (item.joinStatus === "APPROVED" && item.attended === false),
+                          );
+
+                          if (filtered.length === 0) {
+                            return (
+                              <p className="text-xs font-semibold text-slate-400 text-center py-3">
+                                Không có dữ liệu chiến dịch nào.
+                              </p>
+                            );
+                          }
+
+                          return (
+                            <div className="max-h-48 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                              {filtered.map((item) => (
+                                <div
+                                  key={item.id}
+                                  className="p-2.5 rounded-lg border border-slate-200/60 dark:border-slate-800/80 bg-white dark:bg-slate-950 flex flex-col gap-1 text-xs"
+                                >
+                                  <div className="flex items-start justify-between gap-2">
+                                    <span className="font-bold text-slate-700 dark:text-slate-300 break-words flex-1">
+                                      {item.campaignTitle || `Chiến dịch #${item.campaignId}`}
+                                    </span>
+                                    <span
+                                      className={`inline-flex shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                        item.attended
+                                          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400"
+                                          : "bg-rose-50 text-rose-700 dark:bg-rose-950/20 dark:text-rose-400"
+                                      }`}
+                                    >
+                                      {item.attended ? "Đã tham gia" : "Vắng mặt"}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 text-slate-400 text-[10px] font-medium">
+                                    <Calendar size={11} className="shrink-0" />
+                                    <span>
+                                      {item.attended
+                                        ? `Điểm danh lúc: ${formatDate(item.attendedAt || item.createdAt)}`
+                                        : `Đăng ký lúc: ${formatDate(item.createdAt)}`}
+                                    </span>
+                                  </div>
+                                  {!item.attended && item.rejectionReason && (
+                                    <div className="mt-1 p-1.5 rounded bg-rose-50/50 dark:bg-rose-950/10 border border-rose-100/50 dark:border-rose-900/20 text-[10px] text-rose-600 dark:text-rose-400 leading-normal font-medium">
+                                      <strong>Lý do vắng mặt:</strong> {item.rejectionReason}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -343,8 +546,10 @@ export function CitizenProfileModal({
                     >
                       Đóng
                     </button>
-                    {canModerate && !hideModerationActions && profile.role === "CITIZEN" && (
-                      profile.active ? (
+                    {canModerate &&
+                      !hideModerationActions &&
+                      profile.role === "CITIZEN" &&
+                      (profile.active ? (
                         <>
                           <button
                             type="button"
@@ -370,8 +575,7 @@ export function CitizenProfileModal({
                         >
                           <CheckCircle size={15} /> Mở khóa
                         </button>
-                      )
-                    )}
+                      ))}
                   </div>
                 ) : (
                   <form onSubmit={handleSubmit} className="space-y-3.5 animate-slide-down">
@@ -388,10 +592,11 @@ export function CitizenProfileModal({
                             : "Nhập lý do chặn tài khoản (ví dụ: Vi phạm quy định nghiêm trọng, phá hoại chiến dịch...)"
                         }
                         rows={3}
-                        className={`w-full rounded-xl border border-slate-250 dark:border-slate-800 bg-white dark:bg-slate-950 p-3 text-sm focus:ring-1 focus:outline-none ${actionType === "WARN"
-                          ? "focus:border-amber-400 focus:ring-amber-400"
-                          : "focus:border-rose-500 focus:ring-rose-500"
-                          }`}
+                        className={`w-full rounded-xl border border-slate-250 dark:border-slate-800 bg-white dark:bg-slate-950 p-3 text-sm focus:ring-1 focus:outline-none ${
+                          actionType === "WARN"
+                            ? "focus:border-amber-400 focus:ring-amber-400"
+                            : "focus:border-rose-500 focus:ring-rose-500"
+                        }`}
                       />
                     </div>
                     <div className="flex justify-end gap-2">
@@ -405,10 +610,11 @@ export function CitizenProfileModal({
                       <button
                         type="submit"
                         disabled={warnMutation.isPending || banMutation.isPending}
-                        className={`px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm hover:shadow disabled:bg-slate-300 disabled:shadow-none transition-all duration-200 cursor-pointer flex items-center gap-1 ${actionType === "WARN"
-                          ? "bg-amber-500 hover:bg-amber-600"
-                          : "bg-rose-600 hover:bg-rose-700"
-                          }`}
+                        className={`px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm hover:shadow disabled:bg-slate-300 disabled:shadow-none transition-all duration-200 cursor-pointer flex items-center gap-1 ${
+                          actionType === "WARN"
+                            ? "bg-amber-500 hover:bg-amber-600"
+                            : "bg-rose-600 hover:bg-rose-700"
+                        }`}
                       >
                         {(warnMutation.isPending || banMutation.isPending) && (
                           <span className="h-3 w-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>

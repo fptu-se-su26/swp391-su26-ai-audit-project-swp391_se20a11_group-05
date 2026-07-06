@@ -340,7 +340,8 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
           Người dân có thể đăng ký tham gia các chiến dịch khi đã được phê duyệt chính thức.
         </p>
         <Link
-          to="/campaigns"
+          to="/ward"
+          search={{ tab: "campaign" }}
           className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-indigo-700 active:scale-[0.97]"
         >
           <ArrowLeft size={16} />
@@ -365,7 +366,8 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
             </button>
           ) : (
             <Link
-              to="/campaigns"
+              to="/ward"
+              search={{ tab: "campaign" }}
               className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-indigo-600 shadow-sm"
             >
               <ArrowLeft size={16} />

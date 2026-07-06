@@ -21,4 +21,7 @@ public class UserDTO {
     private boolean isMfaEnabled;
     private Long wardId;
     private int warningCount;
+    private int completedCampaignCount;
+    private int noShowCampaignCount;
+    private String reputationBadge;
 }

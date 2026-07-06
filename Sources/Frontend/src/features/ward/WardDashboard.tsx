@@ -769,7 +769,7 @@ export function WardDashboard() {
               </div>
             )}
 
-            {activeSection === "campaign" && !detailId && (
+            {activeSection === "campaign" && !detailId && tab !== "campaign/create" && (
               <button
                 onClick={() => navigate({ to: "/ward", search: { tab: "campaign/create" } })}
                 className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#0F5BD8] px-3.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#0B4FC0] active:scale-[0.98] mr-2 cursor-pointer"
@@ -874,15 +874,11 @@ export function WardDashboard() {
                       ))
                     )}
                   </div>
-                  <div className="pt-2 text-center border-t border-slate-100">
-                    <Link
-                      to="/notifications"
-                      onClick={() => setNotifOpen(false)}
-                      className="text-xs font-bold text-indigo-600 hover:underline inline-block py-1"
-                    >
-                      Xem tất cả thông báo
-                    </Link>
-                  </div>
+                  {notifications.length > 5 && (
+                    <div className="pt-2 text-center border-t border-slate-100 text-[10px] font-semibold text-slate-400">
+                      Hiển thị 5 thông báo mới nhất
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -921,7 +917,8 @@ export function WardDashboard() {
                     </div>
                   </div>
                   <Link
-                    to="/profile"
+                    to="/ward"
+                    search={{ tab: "config" }}
                     onClick={() => setUserOpen(false)}
                     className="w-full text-left px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition flex items-center gap-2.5"
                   >
@@ -1388,7 +1385,8 @@ export function WardDashboard() {
                         Phản ánh theo lĩnh vực
                       </h3>
                       <Link
-                        to="/my-reports"
+                        to="/ward"
+                        search={{ tab: "feedback" }}
                         className="text-xs font-bold text-indigo-600 hover:text-indigo-700 transition"
                       >
                         Xem chi tiết
@@ -1438,7 +1436,8 @@ export function WardDashboard() {
                         Phản ánh ưu tiên cao
                       </h3>
                       <Link
-                        to="/my-reports"
+                        to="/ward"
+                        search={{ tab: "feedback" }}
                         className="text-xs font-bold text-indigo-600 hover:text-indigo-700 transition"
                       >
                         Xem tất cả →
@@ -1701,7 +1700,8 @@ export function WardDashboard() {
                           : "Tất cả thời gian"}
                       </p>
                       <Link
-                        to="/my-reports"
+                        to="/ward"
+                        search={{ tab: "feedback" }}
                         className="text-[10px] font-extrabold text-indigo-600 hover:underline mt-3 block"
                       >
                         Xem chi tiết

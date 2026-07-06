@@ -36,8 +36,10 @@ export const Route = createFileRoute("/campaigns/")({
 
 const statusOptions = [
   { value: "all", label: "Tất cả trạng thái" },
-  { value: "active", label: "Đang hoạt động" },
+  { value: "recruiting", label: "Chưa diễn ra" },
+  { value: "inProgress", label: "Đang diễn ra" },
   { value: "ended", label: "Đã kết thúc" },
+  { value: "cancelled", label: "Đã bị hủy" },
 ];
 
 const categoryOptions: { value: "all" | CampaignCategory; label: string }[] = [
@@ -93,8 +95,9 @@ function CampaignList() {
         (campaign.locationText ?? "").toLowerCase().includes(keyword);
       const matchesStatus =
         status === "all" ||
-        (status === "active" && (campaign.status === "active" || campaign.status === "recruiting" || campaign.status === "inProgress")) ||
-        (status === "ended" && (campaign.status === "ended" || campaign.status === "completed"));
+        campaign.status === status ||
+        (status === "inProgress" && campaign.status === "active") ||
+        (status === "ended" && campaign.status === "completed");
       const matchesCategory = category === "all" || campaign.category === category;
       return matchesSearch && matchesStatus && matchesCategory;
     });
@@ -121,15 +124,15 @@ function CampaignList() {
   const stats = [
     { label: "Tất cả chiến dịch", value: campaigns.length, icon: ListChecks, color: "#7C3AED", border: "border-l-[#7C3AED]" },
     {
-      label: "Đang tuyển quân",
-      value: campaigns.filter((c) => (c.status === "active" || c.status === "recruiting") && c.participants < c.target).length,
+      label: "Chưa diễn ra",
+      value: campaigns.filter((c) => c.status === "recruiting").length,
       icon: Megaphone,
-      color: "#10B981",
-      border: "border-l-[#10B981]",
+      color: "#F59E0B",
+      border: "border-l-[#F59E0B]",
     },
     {
-      label: "Tuyển đủ thành viên",
-      value: campaigns.filter((c) => (c.status === "active" || c.status === "recruiting") && c.participants >= c.target).length,
+      label: "Đang diễn ra",
+      value: campaigns.filter((c) => c.status === "inProgress" || c.status === "active").length,
       icon: Zap,
       color: "#3B82F6",
       border: "border-l-[#3B82F6]",
@@ -436,13 +439,13 @@ function CampaignCard({
 
 function StatusBadge({ status }: { status: Campaign["status"] }) {
   const meta = {
-    pending_review: { label: "Chờ duyệt", className: "border-slate-200 bg-slate-100 text-slate-600" },
-    recruiting: { label: "Đang hoạt động", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
-    inProgress: { label: "Đang hoạt động", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+    recruiting: { label: "Chưa diễn ra", className: "border-amber-200 bg-amber-50 text-amber-700" },
+    inProgress: { label: "Đang diễn ra", className: "border-blue-200 bg-blue-50 text-blue-700" },
     completed: { label: "Đã kết thúc", className: "border-red-200 bg-red-50 text-red-700" },
-    active: { label: "Đang hoạt động", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+    active: { label: "Đang diễn ra", className: "border-blue-200 bg-blue-50 text-blue-700" },
     ended: { label: "Đã kết thúc", className: "border-red-200 bg-red-50 text-red-700" },
-  }[status] ?? { label: "Đang hoạt động", className: "border-emerald-200 bg-emerald-50 text-emerald-700" };
+    cancelled: { label: "Đã bị hủy", className: "border-slate-300 bg-slate-100 text-slate-700" },
+  }[status] ?? { label: "Chưa diễn ra", className: "border-amber-200 bg-amber-50 text-amber-700" };
 
   return <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black shadow-sm ${meta.className}`}>{meta.label}</span>;
 }

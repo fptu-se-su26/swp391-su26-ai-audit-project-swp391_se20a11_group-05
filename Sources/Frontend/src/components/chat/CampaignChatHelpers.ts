@@ -15,30 +15,26 @@ export type ChatMessage = {
 export function getStatusInfo(status?: Campaign["status"]) {
   switch (status) {
     case "recruiting":
-    case "active":
       return {
-        label: "Đang tuyển",
-        className: "bg-emerald-50 text-emerald-700 border-emerald-100",
+        label: "Chưa diễn ra",
+        className: "bg-amber-50 text-amber-700 border-amber-100",
       };
     case "inProgress":
+    case "active":
       return {
         label: "Đang diễn ra",
         className: "bg-blue-50 text-blue-700 border-blue-100",
       };
-    case "completed":
-      return {
-        label: "Hoàn thành",
-        className: "bg-slate-100 text-slate-700 border-slate-200",
-      };
     case "ended":
+    case "completed":
       return {
         label: "Đã kết thúc",
         className: "bg-rose-50 text-rose-700 border-rose-100",
       };
-    case "pending_review":
+    case "cancelled":
       return {
-        label: "Chờ duyệt",
-        className: "bg-amber-50 text-amber-700 border-amber-100",
+        label: "Đã bị hủy",
+        className: "bg-slate-100 text-slate-700 border-slate-200",
       };
     default:
       return {

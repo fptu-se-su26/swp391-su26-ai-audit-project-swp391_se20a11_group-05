@@ -405,7 +405,8 @@ function CampaignGroupChatPage() {
     );
   }
 
-  const isInputDisabled = announcementMode && !campaign?.canManage;
+  const isCampaignEndedOrCancelled = campaign?.status === "ended" || campaign?.status === "completed" || campaign?.status === "cancelled";
+  const isInputDisabled = (announcementMode && !campaign?.canManage) || isCampaignEndedOrCancelled;
 
   return (
     <main className="min-h-screen bg-[#F5F7FA] font-sans text-slate-900">
@@ -495,7 +496,7 @@ function CampaignGroupChatPage() {
             </div>
           )}
 
-          {withinConfirmWindow && (currentStatus === "APPROVED" || currentStatus === "PENDING") && (
+          {withinConfirmWindow && (currentStatus === "PENDING" || currentStatus === "MAYBE") && (
             <div className="flex shrink-0 flex-col gap-2 border-b border-indigo-100 bg-indigo-50 px-4 py-3 md:px-6 animate-[chatSlideUp_0.2s_ease] sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2 min-w-0">
                 <span className="text-xs sm:text-sm text-indigo-800 font-bold">
@@ -605,7 +606,14 @@ function CampaignGroupChatPage() {
               </div>
             )}
 
-            {isInputDisabled ? (
+            {isCampaignEndedOrCancelled ? (
+              <div className="mx-auto max-w-3xl flex items-center gap-3 py-3.5 px-5 rounded-xl bg-slate-100 border border-slate-200 text-sm text-slate-650 shadow-sm animate-fade-in">
+                <Info className="h-5 w-5 text-slate-500 shrink-0" />
+                <span className="leading-relaxed font-medium text-slate-700">
+                  Chiến dịch này đã {campaign?.status === "cancelled" ? "bị hủy" : "kết thúc"}. Nhóm chat hiện ở chế độ chỉ đọc.
+                </span>
+              </div>
+            ) : isInputDisabled ? (
               <div className="mx-auto max-w-3xl flex items-center gap-3 py-3.5 px-5 rounded-xl bg-[#F0F7FF] border border-[#D0E7FF] text-sm text-slate-650 shadow-sm animate-fade-in">
                 <Info className="h-5 w-5 text-[#007AFF] shrink-0" />
                 <span className="leading-relaxed font-medium text-slate-700">

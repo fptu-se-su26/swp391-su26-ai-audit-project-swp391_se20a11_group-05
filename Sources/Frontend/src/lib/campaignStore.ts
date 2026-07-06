@@ -12,7 +12,7 @@ export type CampaignCategory =
   | "construction"
   | "fire_safety";
 
-export type CampaignStatus = "pending_review" | "recruiting" | "inProgress" | "completed" | "active" | "ended";
+export type CampaignStatus = "recruiting" | "inProgress" | "completed" | "active" | "ended" | "cancelled";
 
 export interface Campaign {
   id: string;
@@ -43,7 +43,7 @@ export interface Campaign {
   privateLocationText?: string;
   requiredTools?: string;
   organizerContact?: string;
-  currentUserJoinStatus?: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "WAITLIST" | "PENDING_CONFIRM" | "NO_SHOW";
+  currentUserJoinStatus?: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "WAITLIST" | "PENDING_CONFIRM" | "NO_SHOW" | "CONFIRMED" | "MAYBE";
   privateDetailsVisible?: boolean;
   canJoin?: boolean;
   canLeave?: boolean;
@@ -51,6 +51,7 @@ export interface Campaign {
   canComment?: boolean;
   canFeedback?: boolean;
   announcementMode?: boolean;
+  cancellationReason?: string | null;
   createdAt: string;
   boundaryGeojson?: string | null;
   coverImageUrl?: string | null;
@@ -58,6 +59,7 @@ export interface Campaign {
   latitude?: number | null;
   longitude?: number | null;
   wardId?: number | null;
+  minParticipants?: number | null;
 }
 
 const COVER_BY_CATEGORY: Record<CampaignCategory, string> = {

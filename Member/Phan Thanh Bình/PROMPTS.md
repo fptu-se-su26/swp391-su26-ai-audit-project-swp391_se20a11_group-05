@@ -54,13 +54,10 @@ Sinh viên/nhóm cần ghi lại:
 |---:|---|---|---|---|---|---|---|
 | 1 |  |  |  |  |  | Có / Không |  |
 | 2 | 28/05/2026 | ChatGPT | Hoàn thiện backend use case media và khớp frontend template | Yêu cầu AI chuẩn hóa API, bổ sung class thiếu và đảm bảo compile pass | Bổ sung service/controller/repository/DTO cho media + chuẩn endpoint /api/feedbacks/media + compile pass | Có | Commit: 37217fd, 99ad3b8, a0692cf |
-| 3 |  |  |  |  |  | Có / Không |  |
-| 4 |  |  |  |  |  | Có / Không |  |
-| 5 |  |  |  |  |  | Có / Không |  |
-| 6 |  |  |  |  |  | Có / Không |  |
-| 7 |  |  |  |  |  | Có / Không |  |
-| 8 |  |  |  |  |  | Có / Không |  |
-| 9 |  |  |  |  |  | Có / Không |  |
+| 3 | 02/06/2026 | ChatGPT | Phân tích kiến trúc và triển khai GPS integration | Định vị GPS bắt buộc, reverse geocoding tại backend | Tích hợp định vị chính xác và gán phường xử lý tự động từ tọa độ GPS | Có | |
+| 4 | 06/07/2026 | Antigravity | Tích hợp xem tóm tắt lịch sử hoạt động của Tình nguyện viên | Thiết kế API lấy lịch sử và UI click-to-expand xem chi tiết vắng mặt | Thêm endpoint GET /user/{userId} và toggle hiển thị lịch sử ở frontend | Có | |
+| 5 | 06/07/2026 | Antigravity | Tái cấu trúc logic điểm danh chiến dịch (Decouple Attendance) | Giữ status APPROVED của người vắng và dùng attended = false | Cập nhật logic điểm danh tay & tự động, viết query count tương thích ngược | Có | |
+| 6 | 06/07/2026 | Antigravity | Sửa lỗi lệch trạng thái chiến dịch theo thời gian | Giải pháp khắc phục lệch trạng thái temporal do timezone | Đồng bộ so sánh thời gian dạng Date milliseconds ở cả 2 phía | Có | |
 | 10 |  |  |  |  |  | Có / Không |  |
 
 ---
@@ -176,68 +173,73 @@ Prompt có hiệu quả cao vì:
 
 | Nội dung | Thông tin |
 |---|---|
-| Ngày sử dụng |  |
-| Công cụ AI | ChatGPT / Gemini / Claude / GitHub Copilot / Cursor / Antigravity / Khác |
-| Mục đích |  |
-| Phần việc liên quan | Requirement / Design / Database / Coding / Testing / Debug / Report / Presentation / Other |
-| Mức độ sử dụng | Hỏi ý tưởng / Hỏi giải thích / Hỏi review / Hỏi debug / Hỏi sinh code / Hỏi tối ưu |
+| Ngày sử dụng | 06/07/2026 |
+| Công cụ AI | Antigravity / Gemini |
+| Mục đích | Tích hợp xem tóm tắt lịch sử hoạt động của Tình nguyện viên |
+| Phần việc liên quan | Coding / UI Design / Security |
+| Mức độ sử dụng | Hỏi ý tưởng / Hỏi thiết kế |
 
 #### 5.1. Prompt nguyên văn
 
 ```text
-Dán nguyên văn prompt đã hỏi AI tại đây.
+Tôi muốn tích hợp thêm tính năng xem tóm tắt lịch sử hoạt động và số lần vắng mặt của Tình nguyện viên ngay trong Citizen Profile Modal dành cho Cán bộ.
+1. Ở Backend, tôi nên bổ sung những API và Query Method nào để lấy được lịch sử tham gia sắp xếp theo thời gian mới nhất?
+2. Ở Frontend, làm thế nào để hiển thị danh sách này trực quan, hỗ trợ click-to-expand để xem chi tiết lý do vắng mặt khi click vào thẻ thống kê?
 ```
 
 #### 5.2. Bối cảnh khi viết prompt
 
 ```text
-Viết tại đây...
+Cán bộ quản lý chiến dịch cần nhanh chóng đánh giá sự nhiệt tình và độ tin cậy của tình nguyện viên bằng cách xem lịch sử những chiến dịch họ đã từng tham gia hoặc vắng mặt trực tiếp trên modal hồ sơ công dân.
 ```
 
 #### 5.3. Kết quả AI trả về
 
 ```text
-Viết tại đây...
+- Gợi ý query JPA orderByCampaign_StartTimeDesc.
+- Cấu trúc state và layout click-to-expand hiển thị danh sách chiến dịch tương ứng ở frontend.
 ```
 
 #### 5.4. Kết quả đã áp dụng vào bài
 
 ```text
-Viết tại đây...
+- Tạo API endpoint GET /participants/user/{userId} được phân quyền cho cán bộ.
+- Xây dựng layout click-to-expand trong CitizenProfileModal.tsx.
 ```
 
 #### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
 
 ```text
-Viết tại đây...
+- Viết thêm hàm check existsByCitizenIdAndWardId ở Backend để cán bộ phường chỉ được xem lịch sử công dân của phường mình (tránh IDOR/BOLA).
+- Tự tối ưu hóa hiển thị ngày giờ tiếng Việt không dùng thư viện ngoài.
 ```
 
 #### 5.6. Đánh giá chất lượng prompt
 
-- [ ] Prompt rõ ràng
-- [ ] Prompt có đủ bối cảnh
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
 - [ ] Prompt còn thiếu thông tin
-- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả tốt
 - [ ] Prompt tạo ra kết quả chưa phù hợp
 - [ ] Cần hỏi lại AI nhiều lần
-- [ ] Cần tự kiểm tra và chỉnh sửa nhiều
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
 - [ ] Kết quả AI có lỗi hoặc chưa chính xác
 
 #### 5.7. Minh chứng liên quan
 
 | Loại minh chứng | Nội dung |
 |---|---|
-| Link commit |  |
-| File liên quan |  |
-| Screenshot |  |
-| Kết quả chạy/test |  |
-| Link tài liệu/báo cáo |  |
-| Ghi chú khác |  |
+| Link commit | |
+| File liên quan | Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/dto/CampaignParticipantResponse.java; Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/repository/CampaignParticipantRepository.java; Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/service/CampaignServiceImpl.java; Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/controller/CampaignController.java; Sources/Frontend/src/lib/api.ts; Sources/Frontend/src/components/chat/CitizenProfileModal.tsx |
+| Screenshot | |
+| Kết quả chạy/test | mvn compile: PASS; npx tsc --noEmit: PASS |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
 
 #### 5.8. Ghi chú thêm
 
 ```text
-Viết tại đây...
+Prompt này hiệu quả vì đi thẳng vào kiến trúc dự án và yêu cầu layout cụ thể cho cả 2 phía backend/frontend, giúp sinh viên làm chủ luồng dữ liệu trước khi viết code.
 ```
 
 ---
@@ -445,6 +447,155 @@ Nhóm không áp dụng nguyên xi mà tự chỉnh:
 Prompt lần này tốt hơn các prompt yêu cầu AI làm trực tiếp vì nó yêu cầu AI giải thích hướng thiết kế, dữ liệu cần lưu,
 case cần test và rủi ro cần chú ý. Nhờ đó nhóm hiểu rõ hơn vì sao cần từng thay đổi, thay vì chỉ copy code.
 ```
+---
+
+### Prompt số 5
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 06/07/2026 |
+| Công cụ AI | Antigravity / Gemini |
+| Mục đích | Tái cấu trúc logic điểm danh chiến dịch (Decouple Attendance) |
+| Phần việc liên quan | Coding / Refactoring / Database |
+| Mức độ sử dụng | Hỏi ý tưởng / Hỏi sinh code |
+
+#### 5.1. Prompt nguyên văn
+
+```text
+Tôi đang tối ưu lại hệ thống điểm danh chiến dịch. Hiện tại, khi đánh dấu vắng mặt, hệ thống đang cập nhật joinStatus = 'NO_SHOW'. Điều này dẫn đến việc tình nguyện viên bị mất trạng thái APPROVED ban đầu (ảnh hưởng đến quyền tham gia chat nhóm hoặc xem chi tiết chiến dịch). 
+Tôi muốn chuyển sang phương án: giữ nguyên joinStatus = 'APPROVED' nhưng dùng cờ attended = false và ghi nhận thời điểm attendedAt.
+1. Hãy giúp tôi rà soát các hàm markNoShow, bulkSaveAttendance trong CampaignServiceImpl và autoEndExpiredCampaigns trong scheduler xem cần sửa đổi gì.
+2. Để đếm số lần vắng mặt tương thích ngược với dữ liệu cũ (vẫn có bản ghi joinStatus = 'NO_SHOW'), tôi nên viết câu query JPA như thế nào để tối ưu hiệu năng?
+```
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Nhóm muốn chuẩn hóa nghiệp vụ điểm danh: một tình nguyện viên được duyệt (`APPROVED`) tham gia, kể cả khi họ vắng mặt thì trạng thái đã được duyệt của họ vẫn phải được giữ nguyên. Do đó, cần tách biệt trạng thái duyệt khỏi cờ ghi nhận có mặt/vắng mặt.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+- Hướng dẫn điều chỉnh cờ logic `attended` thành `false` trong các phương thức kết thúc chiến dịch, scheduler và điểm danh tay.
+- Mẫu câu truy vấn JPA `@Query` sử dụng logic `OR` để tương thích ngược khi tính tổng số lần vắng mặt.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+- Sửa đổi các hàm chốt vắng mặt trong `CampaignServiceImpl.java` và `CampaignScheduler.java`.
+- Tạo query mới `countNoShowCampaigns` tại `CampaignParticipantRepository.java`.
+- Cập nhật thống kê `UserMapper.java`.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+- Nhóm không xóa thông tin người duyệt và thời gian duyệt ban đầu để làm audit log cho hệ thống sau này.
+- Cập nhật thủ công các bộ lọc trong UI của danh sách tình nguyện viên để tag "Vắng mặt" hiển thị chính xác cả hai cơ chế.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | |
+| File liên quan | CampaignParticipantRepository.java; UserMapper.java; CampaignServiceImpl.java; CampaignScheduler.java; CitizenProfileModal.tsx; WardCampaignDetailPage.tsx |
+| Screenshot | |
+| Kết quả chạy/test | mvn compile: PASS; npx tsc --noEmit: PASS |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Prompt này giải quyết triệt để vấn đề tương thích dữ liệu cũ/mới nhờ cấu trúc truy vấn JPA lồng OR tối ưu, sinh viên tự chủ được thiết kế cấu trúc DB.
+```
+
+---
+
+### Prompt số 6
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 06/07/2026 |
+| Công cụ AI | Antigravity / Gemini |
+| Mục đích | Sửa lỗi lệch trạng thái chiến dịch theo thời gian |
+| Phần việc liên quan | Coding / Bug Fix / Timezone Alignment |
+| Mức độ sử dụng | Hỏi ý tưởng / Hỏi review |
+
+#### 5.1. Prompt nguyên văn
+
+```text
+Tôi nhận thấy trạng thái chiến dịch hiển thị không chính xác. Mặc dù chiến dịch chưa đến giờ bắt đầu trên thực tế, hệ thống vẫn hiển thị trạng thái là "Đang diễn ra" (IN_PROGRESS) thay vì "Chưa diễn ra". 
+Hãy giúp tôi rà soát cơ chế tính toán trạng thái temporal của chiến dịch trên frontend (campaignStore.ts) và backend (CampaignServiceImpl.java), tìm nguyên nhân lệch múi giờ giữa UTC và giờ địa phương và đề xuất cách so sánh thời gian chuẩn xác nhất.
+```
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Do khác biệt về timezone của môi trường trình duyệt client và máy chủ backend khi parse chuỗi ngày tháng ISO string, dẫn đến việc tính toán so sánh thời gian hiện tại bị sai lệch vài tiếng, làm chuyển đổi trạng thái chiến dịch sớm trước thời gian định trước.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+- Nhận diện lỗi so sánh chuỗi thô (string comparison).
+- Đề xuất chuyển về `Date.getTime()` hoặc so sánh miliseconds số học.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+- Đồng bộ hàm kiểm tra thời gian tại `campaignStore.ts` ở frontend.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+- Tự đồng bộ hóa cả logic ở backend (`CampaignServiceImpl.java` và `Campaign.java`) để đảm bảo các API trả về của danh sách luôn khớp 100% với hiển thị của frontend.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | |
+| File liên quan | campaignStore.ts; CampaignServiceImpl.java; Campaign.java |
+| Screenshot | |
+| Kết quả chạy/test | mvn compile: PASS; npx tsc --noEmit: PASS |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Nhóm chủ động sửa toàn diện từ database/entity cho đến store của client thay vì chỉ sửa phần hiển thị UI thô sơ theo gợi ý của AI.
+```
+
 ---
 
 ## 6. Prompt quan trọng nhất

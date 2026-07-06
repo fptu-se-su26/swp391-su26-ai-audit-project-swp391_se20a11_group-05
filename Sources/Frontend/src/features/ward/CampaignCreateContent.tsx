@@ -90,6 +90,7 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
     return `${yyyy}-${mm}-${dd}`;
   }, []);
   const [maxParticipants, setMaxParticipants] = useState("30");
+  const [minParticipants, setMinParticipants] = useState("");
   const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -255,6 +256,18 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
       return;
     }
 
+    if (minParticipants.trim() !== "") {
+      const minPartNum = Number.parseInt(minParticipants, 10);
+      if (Number.isNaN(minPartNum) || minPartNum <= 0) {
+        toast.error("Số người tối thiểu phải là số nguyên dương.");
+        return;
+      }
+      if (minPartNum > maxPartNum) {
+        toast.error("Số người tối thiểu không được lớn hơn số người tối đa.");
+        return;
+      }
+    }
+
     setShowConfirmDialog(true);
   };
 
@@ -305,6 +318,7 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
         startTime,
         endTime,
         maxParticipants,
+        minParticipants: minParticipants.trim() !== "" ? minParticipants : undefined,
         wardId: user?.wardId ?? undefined,
         wardName: user?.wardName || user?.org,
         latitude: selectedCoordinates.lat,
@@ -340,7 +354,8 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
           Người dân có thể đăng ký tham gia các chiến dịch khi đã được phê duyệt chính thức.
         </p>
         <Link
-          to="/campaigns"
+          to="/ward"
+          search={{ tab: "campaign" }}
           className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-indigo-700 active:scale-[0.97]"
         >
           <ArrowLeft size={16} />
@@ -365,7 +380,8 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
             </button>
           ) : (
             <Link
-              to="/campaigns"
+              to="/ward"
+              search={{ tab: "campaign" }}
               className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-indigo-600 shadow-sm"
             >
               <ArrowLeft size={16} />
@@ -487,7 +503,7 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
                   </select>
                 </Field>
 
-                <Field icon={Users} label="Tình nguyện viên cần tuyển">
+                <Field icon={Users} label="Tình nguyện viên cần tuyển (tối đa)">
                   <input
                     value={maxParticipants}
                     onChange={(event) => setMaxParticipants(event.target.value)}
@@ -497,6 +513,23 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
                     placeholder="30"
                   />
                 </Field>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field icon={Users} label="Số người tối thiểu để chốt">
+                  <input
+                    value={minParticipants}
+                    onChange={(event) => setMinParticipants(event.target.value)}
+                    className={inputClass}
+                    type="number"
+                    min="1"
+                    placeholder="Để trống nếu không yêu cầu"
+                  />
+                  <p className="mt-1.5 text-xs font-semibold text-slate-400">
+                    Hệ thống tự động hủy nếu chưa đủ số này khi đến giờ bắt đầu.
+                  </p>
+                </Field>
+                <div />
               </div>
 
               <Field icon={ClipboardList} label="Mô tả chi tiết chiến dịch" required>

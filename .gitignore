@@ -33,3 +33,4 @@ application-local.properties
 
 # Custom AI workflow rules
 dev-workflow-rules.md
+AGENTS.md

@@ -1,7 +1,7 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { useI18n, type Locale } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
-import { getLoginPathForRole, ROLE_LABEL, Role } from "@/lib/roles";
+import { getLoginPathForRole, ROLE_LABEL, Role, getDashboardPathForRole } from "@/lib/roles";
 import {
   Menu,
   X,
@@ -20,6 +20,7 @@ import {
   MessageSquareWarning,
   Clock3,
   Route as RouteIcon,
+  Sliders,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import logoUrl from "@/assets/logo.png";
@@ -241,8 +242,9 @@ export function Header() {
       ? [{ to: "/", hash: "lien-he", label: locale === "vi" ? "Liên hệ" : "Contact" }]
       : []),
   ];
-  const menuItems = isWardStaff
-    ? publicMenuItems.filter((item) => item.to !== "/" || item.hash === "lien-he")
+  const isAuthority = user && ([Role.WARD_STAFF, Role.POLICE, Role.SUPER_ADMIN] as Role[]).includes(user.role);
+  const menuItems = isAuthority
+    ? [] // Clean layout: no public links for staff users
     : publicMenuItems;
 
   const staffItemsAll = [
@@ -287,7 +289,10 @@ export function Header() {
     <header className="sticky top-0 z-50 bg-white border-b border-[#E4EAF2] shadow-sm">
       <div className="max-w-[1440px] mx-auto px-4 md:px-8 h-[76px] flex items-center justify-between">
         {/* Left: Brand logo & text */}
-        <Link to="/" className="flex items-center gap-2 group shrink-0">
+        <Link
+          to={user ? getDashboardPathForRole(user.role) : "/"}
+          className="flex items-center gap-2 group shrink-0"
+        >
           <img src={logoUrl} alt="Đà Nẵng Kết Nối" className="h-9 w-auto object-contain md:h-10" />
           <div className="flex flex-col leading-none">
             <span className="text-sm md:text-base font-extrabold tracking-tight text-[#0B4FC4] uppercase font-sans">
@@ -609,15 +614,26 @@ export function Header() {
                     {t("header.profile")}
                   </Link>
 
-                  <Link
-                    to="/feedback-search"
-                    search={{ tab: "my" }}
-                    onClick={() => setUserOpen(false)}
-                    className="w-full text-left px-4 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2.5 font-sans"
-                  >
-                    <ClipboardList size={14} className="text-[#667085]" />
-                    {t("header.myReports")}
-                  </Link>
+                  {isAuthority ? (
+                    <Link
+                      to={getDashboardPathForRole(user.role)}
+                      onClick={() => setUserOpen(false)}
+                      className="w-full text-left px-4 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2.5 font-sans"
+                    >
+                      <Sliders size={14} className="text-[#667085]" />
+                      {locale === "vi" ? "Trang quản trị" : "Admin Dashboard"}
+                    </Link>
+                  ) : (
+                    <Link
+                      to="/feedback-search"
+                      search={{ tab: "my" }}
+                      onClick={() => setUserOpen(false)}
+                      className="w-full text-left px-4 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2.5 font-sans"
+                    >
+                      <ClipboardList size={14} className="text-[#667085]" />
+                      {t("header.myReports")}
+                    </Link>
+                  )}
 
                   <Link
                     to="/notifications"
@@ -768,14 +784,24 @@ export function Header() {
                 >
                   {t("header.profile")}
                 </Link>
-                <Link
-                  to="/feedback-search"
-                  search={{ tab: "my" }}
-                  onClick={() => setOpen(false)}
-                  className="block min-h-[48px] px-4 py-3 rounded-md font-semibold text-[#123E8A] hover:bg-slate-50 font-sans"
-                >
-                  {t("header.myReports")}
-                </Link>
+                {isAuthority ? (
+                  <Link
+                    to={getDashboardPathForRole(user.role)}
+                    onClick={() => setOpen(false)}
+                    className="block min-h-[48px] px-4 py-3 rounded-md font-semibold text-[#123E8A] hover:bg-slate-50 font-sans"
+                  >
+                    {locale === "vi" ? "Trang quản trị" : "Admin Dashboard"}
+                  </Link>
+                ) : (
+                  <Link
+                    to="/feedback-search"
+                    search={{ tab: "my" }}
+                    onClick={() => setOpen(false)}
+                    className="block min-h-[48px] px-4 py-3 rounded-md font-semibold text-[#123E8A] hover:bg-slate-50 font-sans"
+                  >
+                    {t("header.myReports")}
+                  </Link>
+                )}
                 <button
                   onClick={() => {
                     setLogoutConfirmOpen(true);

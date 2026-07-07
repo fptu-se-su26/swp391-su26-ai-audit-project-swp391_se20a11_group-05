@@ -171,7 +171,6 @@ public class ChatbotService {
         };
     }
 
-    @Transactional
     public Map<String, Object> ask(Long userId, String sessionId, String question, List<Map<String, String>> historyContext) {
         long start = System.currentTimeMillis();
         log.info("📨 [Chatbot] userId={} | sessionId={} | question='{}'", userId, sessionId, question);

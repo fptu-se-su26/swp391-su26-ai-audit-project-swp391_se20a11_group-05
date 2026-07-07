@@ -106,7 +106,6 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         return feedbackRepository.findAll(pageable);
     }
 
-    @Transactional
     public Feedback createFeedback(FeedbackRequest request, String username) {
         // 1. GPS là bắt buộc để tránh phản ánh không có vị trí xử lý & tránh lỗi NPE unboxing khi gọi geocoding
         if (request.getLatitude() == null || request.getLongitude() == null) {
@@ -134,9 +133,18 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             log.warn("[Feedback] Location requires manual review. lat={}, lng={}", request.getLatitude(), request.getLongitude());
         }
 
+        // AI Duplicate Detection: Kiểm tra phản ánh trùng lặp (có phường hoặc không) ngoài transaction
+        Long wardId = (ward != null) ? ward.getId() : null;
+        checkDuplicateFeedback(request.getDescription(), wardId, request.getLongitude(), request.getLatitude());
+
         // Gọi method transactional qua self-proxy để đảm bảo AOP hoạt động chính xác (fallback this khi self == null trong unit tests)
         FeedbackService service = (self != null) ? self : this;
-        return service.saveFeedbackTransaction(request, username, ward, category);
+        Feedback saved = service.saveFeedbackTransaction(request, username, ward, category);
+
+        // AI Duplicate Detection: Lưu vector mô tả vào Database ngoài transaction
+        service.saveDescriptionVector(saved.getId(), saved.getDescription());
+
+        return saved;
     }
 
     @Transactional
@@ -157,10 +165,6 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             throw new CustomException("Vui long cho phep GPS truoc khi gui phan anh", HttpStatus.BAD_REQUEST.value());
         }
 
-        // AI Duplicate Detection: Kiểm tra phản ánh trùng lặp (có phường hoặc không)
-        Long wardId = (ward != null) ? ward.getId() : null;
-        checkDuplicateFeedback(request.getDescription(), wardId, request.getLongitude(), request.getLatitude());
-
         LocalDateTime now = LocalDateTime.now();
         Feedback feedback = new Feedback();
         feedback.setTrackingCode("FB-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
@@ -179,9 +183,6 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         categoryRoutingService.applyAssignment(feedback, category, ward, now);
 
         Feedback saved = feedbackRepository.save(feedback);
-
-        // AI Duplicate Detection: Lưu vector mô tả vào Database
-        saveDescriptionVector(saved.getId(), saved.getDescription());
 
         FeedbackLog submittedLog = new FeedbackLog(saved, citizen, null, saved.getStatus(), "Citizen submitted feedback");
         submittedLog.setAction("SUBMIT");
@@ -774,6 +775,10 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             notificationService.createFeedbackWaitingInfoNotification(feedback.getId(), effectiveNote);
         }
 
+        if ((newStatus == FeedbackStatus.IN_PROGRESS || newStatus == FeedbackStatus.RESOLVED || newStatus == FeedbackStatus.REJECTED) && sendNotification) {
+            notificationService.createFeedbackStatusChangedNotification(feedback.getId(), newStatus.name(), effectiveNote);
+        }
+
         // Gửi WebSocket notification
         webSocketNotificationService.notifyFeedbackStatusChange(
                 feedbackId, newStatus.name(),
@@ -922,6 +927,7 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         feedback.setAssignee(assignee);
         if (oldStatus == FeedbackStatus.PENDING) {
             feedback.setStatus(FeedbackStatus.IN_PROGRESS);
+            notificationService.createFeedbackStatusChangedNotification(feedback.getId(), FeedbackStatus.IN_PROGRESS.name(), "Cán bộ phường đã phân công người xử lý.");
         }
         feedback.setUpdatedAt(LocalDateTime.now());
         Feedback saved = feedbackRepository.save(feedback);

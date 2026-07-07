@@ -15,6 +15,7 @@ import com.example.smartcity.modules.campaign.dto.CampaignBatchApproveRequest;
 import com.example.smartcity.modules.campaign.dto.AttendanceBulkRequest;
 import com.example.smartcity.modules.auth.service.EmailOtpService;
 import com.example.smartcity.modules.notification.service.NotificationService;
+import com.example.smartcity.modules.notification.service.ExternalNotificationService;
 import com.example.smartcity.modules.campaign.entity.Campaign;
 import com.example.smartcity.modules.campaign.entity.CampaignChatMessage;
 import com.example.smartcity.modules.campaign.entity.CampaignComment;
@@ -76,6 +77,7 @@ public class CampaignServiceImpl implements CampaignService {
     private final CampaignIngestionService campaignIngestionService;
     private final EmailOtpService emailOtpService;
     private final NotificationService notificationService;
+    private final ExternalNotificationService externalNotificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -237,6 +239,14 @@ public class CampaignServiceImpl implements CampaignService {
             participantRepository.save(participant);
         }
 
+        notificationService.createCampaignNotification(
+                campaign.getCreatedByUser(),
+                campaignId,
+                "Có tình nguyện viên đăng ký mới",
+                String.format("Tình nguyện viên %s đã đăng ký tham gia chiến dịch '%s'.", citizen.getFullName(), campaign.getTitle()),
+                "CAMPAIGN_JOINED"
+        );
+
         return toResponse(campaignRepository.findById(campaignId).orElse(campaign), citizen);
     }
 
@@ -282,6 +292,14 @@ public class CampaignServiceImpl implements CampaignService {
         if (wasOccupyingSlot) {
             promoteNextWaitlist(campaignId);
         }
+
+        notificationService.createCampaignNotification(
+                campaign.getCreatedByUser(),
+                campaignId,
+                "Tình nguyện viên hủy tham gia",
+                String.format("Tình nguyện viên %s đã hủy tham gia chiến dịch '%s'.", citizen.getFullName(), campaign.getTitle()),
+                "CAMPAIGN_LEFT"
+        );
     }
 
     private void promoteNextWaitlist(Long campaignId) {
@@ -334,7 +352,24 @@ public class CampaignServiceImpl implements CampaignService {
         participant.setRejectedAt(null);
         participant.setRejectionReason(null);
         participant.setCancelledAt(null);
-        return toParticipantResponse(participantRepository.save(participant));
+        CampaignParticipantResponse response = toParticipantResponse(participantRepository.save(participant));
+
+        notificationService.createCampaignNotification(
+                participant.getCitizen(),
+                campaignId,
+                "Đăng ký chiến dịch được duyệt",
+                String.format("Yêu cầu tham gia chiến dịch '%s' của bạn đã được duyệt.", campaign.getTitle()),
+                "CAMPAIGN_APPROVED"
+        );
+
+        if (participant.getCitizen().getEmail() != null && !participant.getCitizen().getEmail().isBlank()) {
+            String subject = "[SmartCity] Đăng ký tham gia chiến dịch được duyệt";
+            String body = String.format("Chào %s,\n\nYêu cầu tham gia chiến dịch \"%s\" của bạn đã được duyệt thành công.\n\nTrân trọng,\nBan Quản Trị SmartCity",
+                    participant.getCitizen().getFullName(), campaign.getTitle());
+            externalNotificationService.sendEmailNotification(participant.getCitizen().getEmail(), subject, body);
+        }
+
+        return response;
     }
 
     @Override
@@ -364,6 +399,24 @@ public class CampaignServiceImpl implements CampaignService {
         if (wasOccupyingSlot) {
             promoteNextWaitlist(campaignId);
         }
+
+        String reason = request != null && request.getReason() != null && !request.getReason().isBlank()
+                ? request.getReason() : "Không phù hợp với chiến dịch.";
+        notificationService.createCampaignNotification(
+                participant.getCitizen(),
+                campaignId,
+                "Đăng ký chiến dịch bị từ chối",
+                String.format("Yêu cầu tham gia chiến dịch '%s' của bạn đã bị từ chối. Lý do: %s", campaign.getTitle(), reason),
+                "CAMPAIGN_REJECTED"
+        );
+
+        if (participant.getCitizen().getEmail() != null && !participant.getCitizen().getEmail().isBlank()) {
+            String subject = "[SmartCity] Đăng ký tham gia chiến dịch bị từ chối";
+            String body = String.format("Chào %s,\n\nYêu cầu tham gia chiến dịch \"%s\" của bạn đã bị từ chối.\nLý do: %s\n\nTrân trọng,\nBan Quản Trị SmartCity",
+                    participant.getCitizen().getFullName(), campaign.getTitle(), reason);
+            externalNotificationService.sendEmailNotification(participant.getCitizen().getEmail(), subject, body);
+        }
+
         return res;
     }
 
@@ -565,6 +618,10 @@ public class CampaignServiceImpl implements CampaignService {
         assertCanManage(campaign, user);
         assertCampaignLocationWithinWard(request, campaign.getWard());
 
+        boolean scheduleUpdated = !java.util.Objects.equals(campaign.getStartTime(), request.getStartTime()) 
+                || !java.util.Objects.equals(campaign.getEndTime(), request.getEndTime())
+                || !java.util.Objects.equals(campaign.getLocationText(), request.getLocationText());
+
         campaign.setTitle(request.getTitle());
         campaign.setDescription(request.getDescription());
         campaign.setCategory(blankToNull(request.getCategory()));
@@ -590,6 +647,11 @@ public class CampaignServiceImpl implements CampaignService {
 
         Campaign saved = campaignRepository.save(campaign);
         campaignIngestionService.ingestCampaignAsync(saved);
+
+        if (scheduleUpdated) {
+            notificationService.notifyCampaignRescheduled(id, campaign.getTitle(), campaign.getCreatedByUser());
+        }
+
         return toResponse(saved, user);
     }
 
@@ -617,6 +679,7 @@ public class CampaignServiceImpl implements CampaignService {
         if ("RECRUITING".equals(campaign.getStatus())) {
             campaign.setStatus("CANCELLED");
             campaign.setCancellationReason(reason != null && !reason.isBlank() ? reason : "Cán bộ hủy chiến dịch.");
+            notificationService.notifyCampaignCancelled(id, campaign.getTitle(), campaign.getCancellationReason(), campaign.getCreatedByUser());
         } else {
             campaign.setStatus("ENDED");
             
@@ -624,13 +687,16 @@ public class CampaignServiceImpl implements CampaignService {
             List<CampaignParticipant> remaining = participantRepository.findByCampaign_IdAndJoinStatusIn(id, List.of(JOIN_APPROVED));
             LocalDateTime now = LocalDateTime.now();
             for (CampaignParticipant participant : remaining) {
-                if (participant.getAttended() == null || !participant.getAttended()) {
+                if (participant.getAttendedAt() == null) {
                     participant.setAttended(false);
                     participant.setAttendedAt(now);
                     participant.setRejectionReason("Hệ thống tự động đánh dấu vắng mặt do không tham gia điểm danh");
                     participantRepository.save(participant);
                 }
             }
+
+            // Thông báo kết thúc chiến dịch thủ công
+            notificationService.notifyCampaignEndedManually(id, campaign.getTitle(), campaign.getCreatedByUser());
         }
         return toResponse(campaignRepository.save(campaign), user);
     }
@@ -1003,6 +1069,21 @@ public class CampaignServiceImpl implements CampaignService {
             participant.setConfirmationDeadline(null);
             updated.add(participantRepository.save(participant));
             approvedCount++;
+
+            notificationService.createCampaignNotification(
+                    participant.getCitizen(),
+                    campaignId,
+                    "Đăng ký chiến dịch được duyệt",
+                    String.format("Yêu cầu tham gia chiến dịch '%s' của bạn đã được duyệt.", campaign.getTitle()),
+                    "CAMPAIGN_APPROVED"
+            );
+
+            if (participant.getCitizen().getEmail() != null && !participant.getCitizen().getEmail().isBlank()) {
+                String subject = "[SmartCity] Đăng ký tham gia chiến dịch được duyệt";
+                String body = String.format("Chào %s,\n\nYêu cầu tham gia chiến dịch \"%s\" của bạn đã được duyệt thành công.\n\nTrân trọng,\nBan Quản Trị SmartCity",
+                        participant.getCitizen().getFullName(), campaign.getTitle());
+                externalNotificationService.sendEmailNotification(participant.getCitizen().getEmail(), subject, body);
+            }
         }
 
         return updated.stream().map(this::toParticipantResponse).toList();
@@ -1087,6 +1168,14 @@ public class CampaignServiceImpl implements CampaignService {
         if (JOIN_CONFIRMED.equals(signal)) {
             participant.setConfirmedAt(now);
             participant.setApprovedAt(null); // Bắt chờ Ward duyệt
+
+            notificationService.createCampaignNotification(
+                    campaign.getCreatedByUser(),
+                    campaignId,
+                    "Xác nhận tham gia chiến dịch",
+                    String.format("Tình nguyện viên %s đã xác nhận tham gia chiến dịch '%s' và đang chờ duyệt.", citizen.getFullName(), campaign.getTitle()),
+                    "CAMPAIGN_CONFIRMED"
+            );
         } else if (JOIN_MAYBE.equals(signal)) {
             participant.setConfirmedAt(null);
             participant.setApprovedAt(null); // MAYBE không được duyệt (không điểm danh)
@@ -1126,7 +1215,9 @@ public class CampaignServiceImpl implements CampaignService {
 
         // Đủ điều kiện → chốt chính thức sang IN_PROGRESS
         campaign.setStatus(STATUS_IN_PROGRESS);
-        return toResponse(campaignRepository.save(campaign), manager);
+        Campaign saved = campaignRepository.save(campaign);
+        notificationService.notifyCampaignFinalized(campaignId, campaign.getTitle(), campaign.getCreatedByUser());
+        return toResponse(saved, manager);
     }
 
 

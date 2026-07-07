@@ -21,6 +21,7 @@ import {
   Clock3,
   Route as RouteIcon,
   Sliders,
+  RefreshCw,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import logoUrl from "@/assets/logo.png";
@@ -57,10 +58,17 @@ function timeAgo(dateStr: string, locale: string): string {
 function iconForType(type?: string) {
   switch (type) {
     case "FEEDBACK_SUBMITTED":
+    case "CAMPAIGN_JOINED":
       return Send;
+    case "CAMPAIGN_CONFIRMED":
+      return ClipboardList;
     case "FEEDBACK_ACCEPTED":
       return ClipboardCheck;
     case "FEEDBACK_REJECTED":
+    case "CAMPAIGN_REJECTED":
+    case "CAMPAIGN_CANCELLED":
+    case "CAMPAIGN_LEFT":
+    case "CAMPAIGN_AUTO_CANCELLED":
       return AlertCircle;
     case "FEEDBACK_ASSIGNED":
     case "FEEDBACK_ASSIGNED_TO_WARD":
@@ -70,9 +78,15 @@ function iconForType(type?: string) {
       return FileClock;
     case "FEEDBACK_COMPLETED":
     case "FEEDBACK_CLOSED":
+    case "CAMPAIGN_APPROVED":
+    case "CAMPAIGN_AUTO_ENDED":
+    case "CAMPAIGN_FINALIZED":
+    case "CAMPAIGN_ENDED":
       return CheckCircle2;
     case "FEEDBACK_WAITING_INFO":
       return MessageSquareWarning;
+    case "CAMPAIGN_RESCHEDULED":
+      return RefreshCw;
     default:
       return Clock3;
   }
@@ -206,10 +220,24 @@ export function Header() {
         await markRead.mutateAsync(item.id);
       }
       if (feedbackId) {
-        if (isWardStaff) {
-          await navigate({ to: "/ward", search: { tab: "feedback", detailId: String(feedbackId) } });
+        if (item.type?.startsWith("CAMPAIGN")) {
+          if (isWardStaff) {
+            await navigate({
+              to: "/ward",
+              search: { tab: "campaign", detailId: String(feedbackId) },
+            });
+          } else {
+            await navigate({ to: "/campaigns/$id", params: { id: String(feedbackId) } });
+          }
         } else {
-          await navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
+          if (isWardStaff) {
+            await navigate({
+              to: "/ward",
+              search: { tab: "feedback", detailId: String(feedbackId) },
+            });
+          } else {
+            await navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
+          }
         }
       } else {
         await navigate({ to: "/notifications" });
@@ -242,7 +270,8 @@ export function Header() {
       ? [{ to: "/", hash: "lien-he", label: locale === "vi" ? "Liên hệ" : "Contact" }]
       : []),
   ];
-  const isAuthority = user && ([Role.WARD_STAFF, Role.POLICE, Role.SUPER_ADMIN] as Role[]).includes(user.role);
+  const isAuthority =
+    user && ([Role.WARD_STAFF, Role.POLICE, Role.SUPER_ADMIN] as Role[]).includes(user.role);
   const menuItems = isAuthority
     ? [] // Clean layout: no public links for staff users
     : publicMenuItems;

@@ -796,9 +796,37 @@ export function useCampaignChat(campaignId: string) {
     },
   });
 
+  const chatMessages = useMemo(() => {
+    if (!query.data) return [];
+    const allMsgs = query.data.pages.flat();
+
+    // Deduplicate by message ID
+    const uniqueMap = new Map<string | number, CampaignChatMessageResponse>();
+    for (const msg of allMsgs) {
+      const existing = uniqueMap.get(msg.id);
+      // Keep the real message if there's an optimistic duplicate
+      if (!existing || (existing.id < 0 && msg.id >= 0)) {
+        uniqueMap.set(msg.id, msg);
+      }
+    }
+    const deduplicated = Array.from(uniqueMap.values());
+
+    return deduplicated.sort((a, b) => {
+      const aId = Number(a.id);
+      const bId = Number(b.id);
+      if (aId < 0 && bId >= 0) return 1;
+      if (bId < 0 && aId >= 0) return -1;
+      if (aId < 0 && bId < 0) return aId - bId;
+      if (a.createdAt !== b.createdAt) {
+        return a.createdAt > b.createdAt ? 1 : -1;
+      }
+      return aId - bId;
+    });
+  }, [query.data]);
+
   return useMemo(
-    () => ({ ...query, sendMessage, isWsConnected }),
-    [query, sendMessage, isWsConnected],
+    () => ({ ...query, sendMessage, isWsConnected, chatMessages }),
+    [query, sendMessage, isWsConnected, chatMessages],
   );
 }
 

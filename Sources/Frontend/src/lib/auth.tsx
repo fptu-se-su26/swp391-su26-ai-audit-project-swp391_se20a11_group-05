@@ -119,6 +119,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (typeof window !== "undefined") {
         localStorage.removeItem(STORAGE_KEY);
         removeToken();
+        const path = window.location.pathname;
+        const isAuthority = ["/ward", "/police", "/city-admin", "/assistant"].some((p) =>
+          path.startsWith(p),
+        );
+        window.location.href = isAuthority ? "/authority-login" : "/login";
       }
     });
   }, []);

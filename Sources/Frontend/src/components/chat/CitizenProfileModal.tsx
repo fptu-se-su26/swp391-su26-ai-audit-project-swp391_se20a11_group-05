@@ -467,7 +467,7 @@ export function CitizenProfileModal({
                             selectedHistoryTab === "completed"
                               ? item.attended === true
                               : item.joinStatus === "NO_SHOW" ||
-                                  (item.joinStatus === "APPROVED" && item.attended === false),
+                                  (item.joinStatus === "APPROVED" && item.attended === false && !!item.attendedAt),
                           );
 
                           if (filtered.length === 0) {

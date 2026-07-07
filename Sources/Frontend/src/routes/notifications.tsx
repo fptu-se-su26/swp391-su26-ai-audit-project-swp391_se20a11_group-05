@@ -89,10 +89,24 @@ function NotificationsPage() {
         return;
       }
 
-      if (user?.role === Role.WARD_STAFF) {
-        await navigate({ to: "/ward", search: { tab: "feedback", detailId: String(feedbackId) } });
+      if (item.type?.startsWith("CAMPAIGN")) {
+        if (user?.role === Role.WARD_STAFF) {
+          await navigate({
+            to: "/ward",
+            search: { tab: "campaign", detailId: String(feedbackId) },
+          });
+        } else {
+          await navigate({ to: "/campaigns/$id", params: { id: String(feedbackId) } });
+        }
       } else {
-        await navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
+        if (user?.role === Role.WARD_STAFF) {
+          await navigate({
+            to: "/ward",
+            search: { tab: "feedback", detailId: String(feedbackId) },
+          });
+        } else {
+          await navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
+        }
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Update failed");
@@ -294,6 +308,17 @@ function iconForType(type?: string): ComponentType<{ size?: number; className?: 
     FEEDBACK_COMPLETED: CheckCircle2,
     FEEDBACK_CLOSED: CheckCircle2,
     FEEDBACK_WAITING_INFO: MessageSquareWarning,
+    CAMPAIGN_APPROVED: CheckCircle2,
+    CAMPAIGN_REJECTED: AlertCircle,
+    CAMPAIGN_CANCELLED: AlertCircle,
+    CAMPAIGN_RESCHEDULED: RefreshCw,
+    CAMPAIGN_JOINED: Send,
+    CAMPAIGN_LEFT: AlertCircle,
+    CAMPAIGN_AUTO_CANCELLED: AlertCircle,
+    CAMPAIGN_AUTO_ENDED: CheckCircle2,
+    CAMPAIGN_FINALIZED: CheckCircle2,
+    CAMPAIGN_ENDED: CheckCircle2,
+    CAMPAIGN_CONFIRMED: ClipboardCheck,
   };
   return icons[type || ""] || Clock3;
 }
@@ -310,6 +335,17 @@ function typeText(type: string | undefined, locale: string) {
     FEEDBACK_COMPLETED: locale === "vi" ? "Hoàn thành" : "Completed",
     FEEDBACK_CLOSED: locale === "vi" ? "Đã đóng" : "Closed",
     FEEDBACK_WAITING_INFO: locale === "vi" ? "Cần bổ sung thông tin" : "Need more info",
+    CAMPAIGN_APPROVED: locale === "vi" ? "Đăng ký được duyệt" : "Registration approved",
+    CAMPAIGN_REJECTED: locale === "vi" ? "Đăng ký bị từ chối" : "Registration rejected",
+    CAMPAIGN_CANCELLED: locale === "vi" ? "Chiến dịch bị hủy" : "Campaign cancelled",
+    CAMPAIGN_RESCHEDULED: locale === "vi" ? "Thay đổi lịch trình" : "Schedule changed",
+    CAMPAIGN_JOINED: locale === "vi" ? "Đăng ký mới" : "New registration",
+    CAMPAIGN_LEFT: locale === "vi" ? "Hủy tham gia" : "Registration cancelled",
+    CAMPAIGN_AUTO_CANCELLED: locale === "vi" ? "Chiến dịch tự động hủy" : "Campaign auto-cancelled",
+    CAMPAIGN_AUTO_ENDED: locale === "vi" ? "Chiến dịch tự động kết thúc" : "Campaign auto-ended",
+    CAMPAIGN_FINALIZED: locale === "vi" ? "Chiến dịch đã chốt" : "Campaign finalized",
+    CAMPAIGN_ENDED: locale === "vi" ? "Chiến dịch kết thúc" : "Campaign ended",
+    CAMPAIGN_CONFIRMED: locale === "vi" ? "Xác nhận tham gia" : "Attendance confirmed",
   };
   return labels[type || ""] || type || "SYSTEM";
 }

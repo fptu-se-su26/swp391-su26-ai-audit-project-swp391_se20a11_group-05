@@ -236,7 +236,6 @@ function ActiveChatArea({ campaignId, onBack }: { campaignId: string; onBack: ()
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
 
   const {
-    data: chatData,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -245,28 +244,13 @@ function ActiveChatArea({ campaignId, onBack }: { campaignId: string; onBack: ()
     isWsConnected,
     error: chatError,
     isError: isChatError,
+    chatMessages,
   } = useCampaignChat(campaignId);
 
   const pinMutation = usePinChatMessage(campaignId);
   const unpinMutation = useUnpinChatMessage(campaignId);
   const deleteMutation = useDeleteChatMessageMutation(campaignId);
   const announcementMutation = useSetAnnouncementMode(campaignId);
-
-  const chatMessages = useMemo(() => {
-    if (!chatData) return [];
-    const allMsgs = chatData.pages.flat();
-    return [...allMsgs].sort((a, b) => {
-      const aId = Number(a.id);
-      const bId = Number(b.id);
-      if (aId < 0 && bId >= 0) return 1;
-      if (bId < 0 && aId >= 0) return -1;
-      if (aId < 0 && bId < 0) return aId - bId;
-      if (a.createdAt !== b.createdAt) {
-        return a.createdAt > b.createdAt ? 1 : -1;
-      }
-      return aId - bId;
-    });
-  }, [chatData]);
 
   const formattedMessages = useMemo(() => {
     return chatMessages

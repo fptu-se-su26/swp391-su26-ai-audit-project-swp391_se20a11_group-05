@@ -134,6 +134,14 @@ public class CampaignScheduler {
                                 "CAMPAIGN_CANCELLED_INSUFFICIENT"
                         )
                 );
+
+                notificationService.createCampaignNotification(
+                        campaign.getCreatedByUser(),
+                        campaign.getId(),
+                        "Chiến dịch bị hủy tự động (Hệ thống)",
+                        "Chiến dịch '" + campaign.getTitle() + "' đã bị hệ thống tự động hủy do không đủ số lượng người đăng ký tối thiểu.",
+                        "CAMPAIGN_AUTO_CANCELLED"
+                );
             }
         }
     }
@@ -159,13 +167,24 @@ public class CampaignScheduler {
                     List.of("APPROVED")
             );
             for (CampaignParticipant participant : remaining) {
-                if (participant.getAttended() == null || !participant.getAttended()) {
+                if (participant.getAttendedAt() == null) {
                     participant.setAttended(false);
                     participant.setAttendedAt(now);
                     participant.setRejectionReason("Hệ thống tự động đánh dấu vắng mặt do không tham gia điểm danh (Chiến dịch kết thúc tự động)");
                     participantRepository.save(participant);
                 }
             }
+
+            notificationService.createCampaignNotification(
+                    campaign.getCreatedByUser(),
+                    campaign.getId(),
+                    "Chiến dịch tự động kết thúc",
+                    "Chiến dịch '" + campaign.getTitle() + "' đã tự động kết thúc sau khi hết giờ. Vui lòng kiểm tra danh sách điểm danh.",
+                    "CAMPAIGN_AUTO_ENDED"
+            );
+
+            // Gửi thông báo kết thúc chiến dịch tự động cho người dân đã đăng ký
+            notificationService.notifyCampaignEndedAutomatically(campaign.getId(), campaign.getTitle());
         }
     }
 }

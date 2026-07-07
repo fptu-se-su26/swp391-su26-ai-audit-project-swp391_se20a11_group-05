@@ -128,17 +128,17 @@ export function WardDashboard() {
   const { tab, detailId } = Route.useSearch();
   const activeSection = (
     tab &&
-      ([
-        "overview",
-        "feedback",
-        "campaign",
-        "statistics",
-        "schedule",
-        "config",
-        "blacklist",
-        "chat",
-      ].includes(tab) ||
-        tab.startsWith("campaign/"))
+    ([
+      "overview",
+      "feedback",
+      "campaign",
+      "statistics",
+      "schedule",
+      "config",
+      "blacklist",
+      "chat",
+    ].includes(tab) ||
+      tab.startsWith("campaign/"))
       ? tab.startsWith("campaign/")
         ? "campaign"
         : tab
@@ -579,20 +579,32 @@ export function WardDashboard() {
       }
       const feedbackId = item.feedbackId ?? item.referenceId;
       if (feedbackId) {
-        if (user?.role === Role.WARD_STAFF) {
-          navigate({ to: "/ward", search: { tab: "feedback", detailId: String(feedbackId) } });
+        if (item.type?.startsWith("CAMPAIGN")) {
+          if (user?.role === Role.WARD_STAFF) {
+            navigate({ to: "/ward", search: { tab: "campaign", detailId: String(feedbackId) } });
+          } else {
+            navigate({ to: "/campaigns/$id", params: { id: String(feedbackId) } });
+          }
         } else {
-          navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
+          if (user?.role === Role.WARD_STAFF) {
+            navigate({ to: "/ward", search: { tab: "feedback", detailId: String(feedbackId) } });
+          } else {
+            navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
+          }
         }
       }
-    } catch { }
+    } catch (e) {
+      // Ignore error
+    }
   };
 
   const handleLogout = async () => {
     const loginPath = getLoginPathForRole(user?.role);
     try {
-      await authApi.logout().catch(() => { });
-    } catch { }
+      await authApi.logout().catch(() => {});
+    } catch (e) {
+      // Ignore error
+    }
     logout();
     queryClient.clear();
     navigate({ to: loginPath });
@@ -625,16 +637,18 @@ export function WardDashboard() {
     <div className="min-h-screen bg-slate-50/50 text-slate-800 font-sans antialiased flex">
       {/* ─── 1. FIXED LEFT SIDEBAR ─── */}
       <aside
-        className={`bg-slate-950 text-white flex flex-col z-[2010] transition-all duration-300 fixed inset-y-0 left-0 ${sidebarCollapsed ? "w-[76px]" : "w-[240px]"
-          } ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
+        className={`bg-slate-950 text-white flex flex-col z-[2010] transition-all duration-300 fixed inset-y-0 left-0 ${
+          sidebarCollapsed ? "w-[76px]" : "w-[240px]"
+        } ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
       >
         {/* Emblem & Ward Title */}
         <div className="p-5 flex flex-col items-center border-b border-white/5 shrink-0">
           <img
             src={logoImg}
             alt="Biểu trưng UBND"
-            className={`transition-all duration-300 object-contain ${sidebarCollapsed ? "w-10 h-10" : "w-14 h-14"
-              }`}
+            className={`transition-all duration-300 object-contain ${
+              sidebarCollapsed ? "w-10 h-10" : "w-14 h-14"
+            }`}
           />
           {!sidebarCollapsed && (
             <div className="mt-3 text-center">
@@ -660,10 +674,11 @@ export function WardDashboard() {
                 key={idx}
                 type="button"
                 onClick={() => handleSectionChange(item.section)}
-                className={`w-full text-left flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-200 ${isActive
+                className={`w-full text-left flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-200 ${
+                  isActive
                     ? "bg-indigo-600 text-white shadow-sm"
                     : "text-slate-400 hover:bg-white/10 hover:text-white"
-                  }`}
+                }`}
               >
                 <Icon size={18} className="shrink-0" />
                 {!sidebarCollapsed && <span>{item.name}</span>}
@@ -697,8 +712,9 @@ export function WardDashboard() {
 
       {/* ─── MAIN WRAPPER ─── */}
       <div
-        className={`flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-300 ${sidebarCollapsed ? "md:pl-[76px]" : "md:pl-[240px]"
-          }`}
+        className={`flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-300 ${
+          sidebarCollapsed ? "md:pl-[76px]" : "md:pl-[240px]"
+        }`}
       >
         {/* ─── 2. TOP WHITE HEADER ─── */}
         <header className="h-[76px] bg-white border-b border-slate-100 flex items-center justify-between px-6 sticky top-0 z-[2000] shadow-sm shrink-0">
@@ -814,10 +830,11 @@ export function WardDashboard() {
                     key={option.key}
                     type="button"
                     onClick={() => setStatsRange(option.key as any)}
-                    className={`h-7 rounded-lg px-3 text-[11px] font-bold transition-all duration-200 active:scale-[0.98] ${statsRange === option.key
+                    className={`h-7 rounded-lg px-3 text-[11px] font-bold transition-all duration-200 active:scale-[0.98] ${
+                      statsRange === option.key
                         ? "bg-white text-slate-900 shadow-sm"
                         : "text-slate-500 hover:text-slate-900 cursor-pointer"
-                      }`}
+                    }`}
                   >
                     {option.label}
                   </button>
@@ -877,8 +894,9 @@ export function WardDashboard() {
                         <button
                           key={item.id}
                           onClick={() => handleNotifClick(item)}
-                          className={`w-full text-left p-3.5 flex gap-3 transition-colors hover:bg-slate-50/70 ${item.isRead ? "opacity-75" : "bg-indigo-50/30"
-                            }`}
+                          className={`w-full text-left p-3.5 flex gap-3 transition-colors hover:bg-slate-50/70 ${
+                            item.isRead ? "opacity-75" : "bg-indigo-50/30"
+                          }`}
                         >
                           <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-100/50">
                             <Bell size={14} />
@@ -1108,13 +1126,15 @@ export function WardDashboard() {
                             setActiveStatusFilter(chip.key as any);
                             setActiveTaskGroupFilter(null);
                           }}
-                          className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border transition-all duration-200 active:scale-[0.97] ${isActive ? chip.activeColor : `${chip.color} cursor-pointer`
-                            }`}
+                          className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border transition-all duration-200 active:scale-[0.97] ${
+                            isActive ? chip.activeColor : `${chip.color} cursor-pointer`
+                          }`}
                         >
                           <span>{chip.label}</span>
                           <span
-                            className={`px-1.5 py-0.2 rounded-full text-[9px] font-bold font-mono ${isActive ? "bg-white/20 text-white" : "bg-slate-200/50 text-slate-600"
-                              }`}
+                            className={`px-1.5 py-0.2 rounded-full text-[9px] font-bold font-mono ${
+                              isActive ? "bg-white/20 text-white" : "bg-slate-200/50 text-slate-600"
+                            }`}
                           >
                             {statusCounts[chip.key as keyof typeof statusCounts]}
                           </span>
@@ -1217,10 +1237,11 @@ export function WardDashboard() {
                                     setMapZoomState(16);
                                   }
                                 }}
-                                className={`p-3.5 rounded-xl border text-left transition-all duration-200 cursor-pointer ${isSelected
+                                className={`p-3.5 rounded-xl border text-left transition-all duration-200 cursor-pointer ${
+                                  isSelected
                                     ? "bg-indigo-50/70 border-indigo-200 shadow-sm"
                                     : "bg-white border-slate-100 hover:border-slate-200 hover:shadow-sm"
-                                  }`}
+                                }`}
                               >
                                 <div className="flex items-center gap-2 mb-1.5">
                                   <span className={`w-2 h-2 rounded-full ${statusColor}`} />
@@ -1288,106 +1309,107 @@ export function WardDashboard() {
                     <div className="space-y-3">
                       {feedbacksLoading
                         ? [1, 2, 3, 4].map((i) => (
-                          <div key={i} className="flex gap-3 animate-pulse py-2">
-                            <div className="w-3 h-3 bg-slate-100 rounded-full shrink-0" />
-                            <div className="flex-1 space-y-2">
-                              <div className="h-3 bg-slate-100 rounded w-1/3" />
-                              <div className="h-2.5 bg-slate-100 rounded w-2/3" />
+                            <div key={i} className="flex gap-3 animate-pulse py-2">
+                              <div className="w-3 h-3 bg-slate-100 rounded-full shrink-0" />
+                              <div className="flex-1 space-y-2">
+                                <div className="h-3 bg-slate-100 rounded w-1/3" />
+                                <div className="h-2.5 bg-slate-100 rounded w-2/3" />
+                              </div>
                             </div>
-                          </div>
-                        ))
+                          ))
                         : [
-                          {
-                            key: "OVERDUE_RECEIVE" as const,
-                            title: "Quá hạn tiếp nhận",
-                            desc: "Phản ánh chờ tiếp nhận quá 24 giờ",
-                            color: "bg-rose-500",
-                            textColor: "text-rose-700",
-                            bgColor: "bg-rose-50/70",
-                            borderColor: "border-rose-100/50",
-                            activeBorderColor: "border-rose-400",
-                            count: taskGroupCounts.OVERDUE_RECEIVE,
-                          },
-                          {
-                            key: "PENDING_12H" as const,
-                            title: "Chờ xử lý > 12 giờ",
-                            desc: "Sắp quá hạn xử lý",
-                            color: "bg-amber-500",
-                            textColor: "text-amber-700",
-                            bgColor: "bg-amber-50/70",
-                            borderColor: "border-amber-100/50",
-                            activeBorderColor: "border-amber-400",
-                            count: taskGroupCounts.PENDING_12H,
-                          },
-                          {
-                            key: "WAITING_INFO" as const,
-                            title: "Yêu cầu bổ sung thông tin",
-                            desc: "Đang chờ người dân phản hồi",
-                            color: "bg-indigo-500",
-                            textColor: "text-indigo-700",
-                            bgColor: "bg-indigo-50/70",
-                            borderColor: "border-indigo-100/50",
-                            activeBorderColor: "border-indigo-400",
-                            count: taskGroupCounts.WAITING_INFO,
-                          },
-                          {
-                            key: "TRANSFERRED" as const,
-                            title: "Đã chuyển liên ngành",
-                            desc: "Cần theo dõi tiến độ phối hợp",
-                            color: "bg-purple-500",
-                            textColor: "text-purple-700",
-                            bgColor: "bg-purple-50/70",
-                            borderColor: "border-purple-100/50",
-                            activeBorderColor: "border-purple-400",
-                            count: taskGroupCounts.TRANSFERRED,
-                          },
-                        ].map((group) => {
-                          const isZero = group.count === 0;
-                          const isActive = activeTaskGroupFilter === group.key;
-                          return (
-                            <button
-                              key={group.key}
-                              type="button"
-                              onClick={() => {
-                                if (isActive) {
-                                  setActiveTaskGroupFilter(null);
-                                } else {
-                                  setActiveTaskGroupFilter(group.key);
-                                  setActiveStatusFilter("ALL");
-                                }
-                              }}
-                              className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all duration-200 text-left ${isActive
-                                  ? `${group.bgColor} border-2 ${group.activeBorderColor} shadow-sm`
-                                  : isZero
-                                    ? "bg-white border-slate-100 opacity-40 hover:opacity-100 hover:border-slate-200 cursor-pointer"
-                                    : "bg-white border-slate-100 hover:border-slate-200 hover:shadow-sm cursor-pointer"
+                            {
+                              key: "OVERDUE_RECEIVE" as const,
+                              title: "Quá hạn tiếp nhận",
+                              desc: "Phản ánh chờ tiếp nhận quá 24 giờ",
+                              color: "bg-rose-500",
+                              textColor: "text-rose-700",
+                              bgColor: "bg-rose-50/70",
+                              borderColor: "border-rose-100/50",
+                              activeBorderColor: "border-rose-400",
+                              count: taskGroupCounts.OVERDUE_RECEIVE,
+                            },
+                            {
+                              key: "PENDING_12H" as const,
+                              title: "Chờ xử lý > 12 giờ",
+                              desc: "Sắp quá hạn xử lý",
+                              color: "bg-amber-500",
+                              textColor: "text-amber-700",
+                              bgColor: "bg-amber-50/70",
+                              borderColor: "border-amber-100/50",
+                              activeBorderColor: "border-amber-400",
+                              count: taskGroupCounts.PENDING_12H,
+                            },
+                            {
+                              key: "WAITING_INFO" as const,
+                              title: "Yêu cầu bổ sung thông tin",
+                              desc: "Đang chờ người dân phản hồi",
+                              color: "bg-indigo-500",
+                              textColor: "text-indigo-700",
+                              bgColor: "bg-indigo-50/70",
+                              borderColor: "border-indigo-100/50",
+                              activeBorderColor: "border-indigo-400",
+                              count: taskGroupCounts.WAITING_INFO,
+                            },
+                            {
+                              key: "TRANSFERRED" as const,
+                              title: "Đã chuyển liên ngành",
+                              desc: "Cần theo dõi tiến độ phối hợp",
+                              color: "bg-purple-500",
+                              textColor: "text-purple-700",
+                              bgColor: "bg-purple-50/70",
+                              borderColor: "border-purple-100/50",
+                              activeBorderColor: "border-purple-400",
+                              count: taskGroupCounts.TRANSFERRED,
+                            },
+                          ].map((group) => {
+                            const isZero = group.count === 0;
+                            const isActive = activeTaskGroupFilter === group.key;
+                            return (
+                              <button
+                                key={group.key}
+                                type="button"
+                                onClick={() => {
+                                  if (isActive) {
+                                    setActiveTaskGroupFilter(null);
+                                  } else {
+                                    setActiveTaskGroupFilter(group.key);
+                                    setActiveStatusFilter("ALL");
+                                  }
+                                }}
+                                className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all duration-200 text-left ${
+                                  isActive
+                                    ? `${group.bgColor} border-2 ${group.activeBorderColor} shadow-sm`
+                                    : isZero
+                                      ? "bg-white border-slate-100 opacity-40 hover:opacity-100 hover:border-slate-200 cursor-pointer"
+                                      : "bg-white border-slate-100 hover:border-slate-200 hover:shadow-sm cursor-pointer"
                                 }`}
-                            >
-                              <div className="flex items-center gap-3 min-w-0">
-                                <span
-                                  className={`w-2 h-2 rounded-full shrink-0 ${group.color}`}
-                                />
-                                <div className="min-w-0">
+                              >
+                                <div className="flex items-center gap-3 min-w-0">
                                   <span
-                                    className={`text-xs font-bold block truncate ${isZero ? "text-slate-500 font-medium" : "text-slate-800"}`}
+                                    className={`w-2 h-2 rounded-full shrink-0 ${group.color}`}
+                                  />
+                                  <div className="min-w-0">
+                                    <span
+                                      className={`text-xs font-bold block truncate ${isZero ? "text-slate-500 font-medium" : "text-slate-800"}`}
+                                    >
+                                      {group.title}
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 font-medium block truncate mt-1">
+                                      {group.desc}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <span
+                                    className={`text-xs font-bold font-mono px-2.5 py-0.5 rounded-full ${isZero ? "bg-slate-50 text-slate-400" : `${group.bgColor} ${group.textColor}`}`}
                                   >
-                                    {group.title}
-                                  </span>
-                                  <span className="text-[10px] text-slate-400 font-medium block truncate mt-1">
-                                    {group.desc}
+                                    {group.count}
                                   </span>
                                 </div>
-                              </div>
-                              <div className="text-right shrink-0">
-                                <span
-                                  className={`text-xs font-bold font-mono px-2.5 py-0.5 rounded-full ${isZero ? "bg-slate-50 text-slate-400" : `${group.bgColor} ${group.textColor}`}`}
-                                >
-                                  {group.count}
-                                </span>
-                              </div>
-                            </button>
-                          );
-                        })}
+                              </button>
+                            );
+                          })}
                     </div>
                   </div>
                   <div className="pt-2 text-[10px] text-slate-400 font-bold italic text-center border-t border-slate-50 shrink-0">
@@ -1416,30 +1438,30 @@ export function WardDashboard() {
                     <div className="space-y-4">
                       {feedbacksLoading
                         ? [1, 2, 3].map((i) => (
-                          <div key={i} className="space-y-2">
-                            <Skeleton className="h-3 w-1/3" />
-                            <Skeleton className="h-2 w-full" />
-                          </div>
-                        ))
+                            <div key={i} className="space-y-2">
+                              <Skeleton className="h-3 w-1/3" />
+                              <Skeleton className="h-2 w-full" />
+                            </div>
+                          ))
                         : categoryCounts.map((cat, idx) => (
-                          <div key={idx} className="space-y-1">
-                            <div className="flex justify-between text-xs font-bold text-slate-600">
-                              <span>{cat.name}</span>
-                              <span className="text-slate-800 font-bold font-mono">
-                                {cat.count}{" "}
-                                <span className="text-slate-400 font-semibold font-sans text-[10px]">
-                                  ({cat.percentage}%)
+                            <div key={idx} className="space-y-1">
+                              <div className="flex justify-between text-xs font-bold text-slate-600">
+                                <span>{cat.name}</span>
+                                <span className="text-slate-800 font-bold font-mono">
+                                  {cat.count}{" "}
+                                  <span className="text-slate-400 font-semibold font-sans text-[10px]">
+                                    ({cat.percentage}%)
+                                  </span>
                                 </span>
-                              </span>
+                              </div>
+                              <div className="w-full bg-slate-50 border border-slate-100/50 h-2 rounded-full overflow-hidden">
+                                <div
+                                  className="bg-indigo-600 h-full rounded-full transition-all duration-500"
+                                  style={{ width: `${cat.rawPercentage}%` }}
+                                />
+                              </div>
                             </div>
-                            <div className="w-full bg-slate-50 border border-slate-100/50 h-2 rounded-full overflow-hidden">
-                              <div
-                                className="bg-indigo-600 h-full rounded-full transition-all duration-500"
-                                style={{ width: `${cat.rawPercentage}%` }}
-                              />
-                            </div>
-                          </div>
-                        ))}
+                          ))}
                     </div>
                   </div>
                   <div className="pt-4 border-t border-slate-100">
@@ -1493,29 +1515,29 @@ export function WardDashboard() {
                           const statusMeta =
                             grp === "PENDING"
                               ? {
-                                label: "Chờ xử lý",
-                                className: "bg-indigo-50 border-indigo-100 text-indigo-700",
-                              }
+                                  label: "Chờ xử lý",
+                                  className: "bg-indigo-50 border-indigo-100 text-indigo-700",
+                                }
                               : grp === "IN_PROGRESS"
                                 ? {
-                                  label: "Đang xử lý",
-                                  className: "bg-amber-50 border-amber-100 text-amber-700",
-                                }
+                                    label: "Đang xử lý",
+                                    className: "bg-amber-50 border-amber-100 text-amber-700",
+                                  }
                                 : grp === "RESOLVED"
                                   ? {
-                                    label: "Đã xử lý",
-                                    className:
-                                      "bg-emerald-50 border-emerald-100 text-emerald-700",
-                                  }
+                                      label: "Đã xử lý",
+                                      className:
+                                        "bg-emerald-50 border-emerald-100 text-emerald-700",
+                                    }
                                   : grp === "REJECTED"
                                     ? {
-                                      label: "Đã từ chối",
-                                      className: "bg-rose-50 border-rose-100 text-rose-700",
-                                    }
+                                        label: "Đã từ chối",
+                                        className: "bg-rose-50 border-rose-100 text-rose-700",
+                                      }
                                     : {
-                                      label: "Không xác định",
-                                      className: "bg-slate-50 border-slate-100 text-slate-600",
-                                    };
+                                        label: "Không xác định",
+                                        className: "bg-slate-50 border-slate-100 text-slate-600",
+                                      };
 
                           return (
                             <div

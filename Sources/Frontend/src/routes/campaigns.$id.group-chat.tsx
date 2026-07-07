@@ -74,7 +74,6 @@ function CampaignGroupChatPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
-    data: chatData,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -83,23 +82,9 @@ function CampaignGroupChatPage() {
     isWsConnected,
     error: chatError,
     isError: isChatError,
+    chatMessages,
   } = useCampaignChat(id);
 
-  const chatMessages = useMemo(() => {
-    if (!chatData) return [];
-    const allMsgs = chatData.pages.flat();
-    return [...allMsgs].sort((a, b) => {
-      const aId = Number(a.id);
-      const bId = Number(b.id);
-      if (aId < 0 && bId >= 0) return 1;
-      if (bId < 0 && aId >= 0) return -1;
-      if (aId < 0 && bId < 0) return aId - bId;
-      if (a.createdAt !== b.createdAt) {
-        return a.createdAt > b.createdAt ? 1 : -1;
-      }
-      return aId - bId;
-    });
-  }, [chatData]);
   const pinMutation = usePinChatMessage(id);
   const unpinMutation = useUnpinChatMessage(id);
   const deleteMutation = useDeleteChatMessageMutation(id);

@@ -106,7 +106,7 @@ const LANGUAGE_OPTIONS: Array<{
 
 export function Header() {
   const { locale, setLocale, t } = useI18n();
-  const { user, logout, hasRole } = useAuth();
+  const { user, logout } = useAuth();
   const isWardStaff = user?.role === Role.WARD_STAFF;
   const path = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
@@ -312,19 +312,11 @@ export function Header() {
   ];
   const isAuthority =
     user && ([Role.WARD_STAFF, Role.POLICE, Role.SUPER_ADMIN] as Role[]).includes(user.role);
-  const menuItems = isAuthority
-    ? [] // Clean layout: no public links for staff users
+  const isDashboard = user && path.startsWith(getDashboardPathForRole(user.role));
+  const menuItems = isAuthority && isDashboard
+    ? [] // Clean layout: hide public links when IN the dashboard
     : publicMenuItems;
 
-  const staffItemsAll = [
-    { to: "/ward", label: t("nav.ward"), roles: [Role.WARD_STAFF, Role.SUPER_ADMIN] as const },
-    { to: "/police", label: t("nav.police"), roles: [Role.POLICE, Role.SUPER_ADMIN] as const },
-    { to: "/city-admin", label: t("nav.cityAdmin"), roles: [Role.SUPER_ADMIN] as const },
-  ] as const;
-  const staffItems = staffItemsAll.filter((i) => hasRole(...i.roles));
-
-  // Nếu là SUPER_ADMIN, không hiện menu public — chỉ hiện nút vào dashboard
-  const isSuperAdmin = user?.role === Role.SUPER_ADMIN;
 
   // Determine active item based on pathname and label
   const isItemActive = (item: (typeof menuItems)[number]) => {
@@ -375,51 +367,47 @@ export function Header() {
 
         {/* Center: Navigation Links */}
         <nav className="hidden lg:flex items-center gap-1 xl:gap-2 h-full" aria-label="Main">
-          <ul className="flex items-center gap-5 xl:gap-7 h-full">
-            {/* Nếu là SUPER_ADMIN: chỉ hiện nút vào dashboard, ẩn toàn bộ menu public */}
-            {isSuperAdmin ? (
-              <li className="h-full flex items-center">
-                <Link
-                  to="/city-admin"
-                  className="px-4 py-2 bg-[#0B4FC4] text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition shadow-sm font-sans flex items-center gap-2"
-                >
-                  Bảng điều hành IOC
-                </Link>
-              </li>
-            ) : (
-              <>
-                {menuItems.map((item, index) => {
-                  const active = isItemActive(item);
-                  return (
-                    <li key={index} className="h-full flex items-center">
-                      <Link
-                        to={item.to}
-                        hash={item.hash}
-                        className={`relative py-2 text-sm font-semibold transition-all font-sans ${
-                          active
-                            ? "text-[#0B4FC4] border-b-2 border-[#0B4FC4] pt-2"
-                            : "text-[#123E8A] hover:text-[#0B4FC4]"
-                        }`}
-                      >
-                        {item.label}
-                      </Link>
-                    </li>
-                  );
-                })}
-
-                {/* Staff access links nếu là WARD_STAFF hoặc POLICE */}
-                {staffItems.map((item, index) => (
-                  <li key={`staff-${index}`} className="h-full flex items-center">
+          <ul className="flex items-center gap-4 xl:gap-6 h-full">
+            <>
+              {menuItems.map((item, index) => {
+                const active = isItemActive(item);
+                return (
+                  <li key={index} className="h-full flex items-center shrink-0">
                     <Link
                       to={item.to}
-                      className="px-2.5 py-1 bg-amber-50 text-amber-700 rounded text-xs font-bold border border-amber-200 hover:bg-amber-100 transition font-sans"
+                      hash={item.hash}
+                      className={`relative py-2 text-sm font-semibold transition-all font-sans whitespace-nowrap ${
+                        active
+                          ? "text-[#0B4FC4] border-b-2 border-[#0B4FC4] pt-2"
+                          : "text-[#123E8A] hover:text-[#0B4FC4]"
+                      }`}
                     >
                       {item.label}
                     </Link>
                   </li>
-                ))}
-              </>
-            )}
+                );
+              })}
+              {isAuthority && user && (
+                <li className="h-full flex items-center pl-1 xl:pl-2 shrink-0">
+                  {isDashboard ? (
+                    <Link
+                      to="/"
+                      className="px-4 py-2 rounded-full border border-slate-200 text-slate-700 bg-slate-50 hover:bg-white hover:text-[#0B4FC4] hover:border-[#0B4FC4] transition-all duration-300 font-semibold text-sm flex items-center gap-2 shadow-sm whitespace-nowrap"
+                    >
+                      Quay về Trang chủ
+                    </Link>
+                  ) : (
+                    <Link
+                      to={getDashboardPathForRole(user.role)}
+                      className="px-4 py-1.5 rounded-full border border-[#0B4FC4] text-[#0B4FC4] bg-[#F5F9FF] hover:bg-[#0B4FC4] hover:text-white transition-all duration-300 font-bold text-sm flex items-center gap-2 shadow-sm whitespace-nowrap"
+                    >
+                      <Sliders size={16} />
+                      {user.role === Role.SUPER_ADMIN ? "Bảng điều hành IOC" : locale === "vi" ? "Trang làm việc" : "Workspace"}
+                    </Link>
+                  )}
+                </li>
+              )}
+            </>
           </ul>
         </nav>
 
@@ -986,55 +974,47 @@ export function Header() {
           className="lg:hidden bg-white border-t border-[#E4EAF2] py-4 px-4 space-y-1 animate-fade-in"
           aria-label="Mobile"
         >
-          {isSuperAdmin ? (
-            <Link
-              to="/city-admin"
-              onClick={() => setOpen(false)}
-              className="block min-h-[48px] px-4 py-3 rounded-md font-bold text-white bg-[#0B4FC4] text-center font-sans"
-            >
-              Bảng điều hành IOC
-            </Link>
-          ) : (
-            <>
-              {menuItems.map((item, index) => {
-                return (
-                  <Link
-                    key={index}
-                    to={item.to}
-                    hash={item.hash}
-                    onClick={() => setOpen(false)}
-                    className={`block min-h-[48px] px-4 py-3 rounded-md font-semibold transition-all font-sans ${
-                      isItemActive(item)
-                        ? "bg-[#F5F9FF] text-[#0B4FC4]"
-                        : "text-[#123E8A] hover:bg-slate-50"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
-
-              {staffItems.length > 0 && (
-                <>
-                  <div className="pt-2 pb-1 px-4 text-[10px] uppercase tracking-widest text-[#667085] font-extrabold font-sans">
-                    {t("header.staffArea")}
-                  </div>
-                  {staffItems.map((item, index) => {
-                    return (
-                      <Link
-                        key={`mobile-staff-${index}`}
-                        to={item.to}
-                        onClick={() => setOpen(false)}
-                        className="block min-h-[48px] px-4 py-3 rounded-md text-amber-700 bg-amber-50 border border-amber-100 font-bold font-sans"
-                      >
-                        {item.label}
-                      </Link>
-                    );
-                  })}
-                </>
+          {isAuthority && user && (
+            <div className="mb-2 pb-2 border-b border-[#E4EAF2]">
+              {isDashboard ? (
+                <Link
+                  to="/"
+                  onClick={() => setOpen(false)}
+                  className="block min-h-[48px] px-4 py-3 rounded-md font-bold text-[#123E8A] bg-slate-100 border border-slate-200 text-center font-sans flex items-center justify-center gap-2"
+                >
+                  Quay về Trang chủ
+                </Link>
+              ) : (
+                <Link
+                  to={getDashboardPathForRole(user.role)}
+                  onClick={() => setOpen(false)}
+                  className="block min-h-[48px] px-4 py-3 rounded-md font-bold text-[#0B4FC4] bg-[#F5F9FF] border border-[#0B4FC4] text-center font-sans flex items-center justify-center gap-2 shadow-sm transition hover:bg-[#0B4FC4] hover:text-white"
+                >
+                  <Sliders size={18} />
+                  {user.role === Role.SUPER_ADMIN ? "Bảng điều hành IOC" : locale === "vi" ? "Trang làm việc" : "Workspace"}
+                </Link>
               )}
-            </>
+            </div>
           )}
+          <>
+            {menuItems.map((item, index) => {
+              return (
+                <Link
+                  key={index}
+                  to={item.to}
+                  hash={item.hash}
+                  onClick={() => setOpen(false)}
+                  className={`block min-h-[48px] px-4 py-3 rounded-md font-semibold transition-all font-sans ${
+                    isItemActive(item)
+                      ? "bg-[#F5F9FF] text-[#0B4FC4]"
+                      : "text-[#123E8A] hover:bg-slate-50"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </>
 
           {/* Mobile Utility Actions */}
           <div className="pt-3 mt-3 border-t border-[#E4EAF2] flex flex-col gap-3">

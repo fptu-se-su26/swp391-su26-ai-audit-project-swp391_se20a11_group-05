@@ -91,9 +91,10 @@ public class PoliceFeedbackService {
     public PoliceFeedbackResponse acceptFeedback(Long feedbackId, String username) {
         Feedback feedback = getFeedback(feedbackId);
 
-        // Nút Tiếp nhận: Cán bộ sẽ nhận việc xử lý phản ánh này
         User policeUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy user công an: " + username));
+                
+        validatePolicePermission(policeUser, feedback);
 
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setAssignee(policeUser);
@@ -123,6 +124,9 @@ public class PoliceFeedbackService {
     @Transactional
     public PoliceFeedbackResponse updateStatus(Long feedbackId, String username, UpdateFeedbackStatusRequest request) {
         Feedback feedback = getFeedback(feedbackId);
+        User policeUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy user: " + username));
+        validatePolicePermission(policeUser, feedback);
 
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setStatus(request.getStatus());
@@ -141,6 +145,9 @@ public class PoliceFeedbackService {
     @Transactional
     public PoliceFeedbackResponse submitResult(Long feedbackId, String username, SubmitFeedbackResultRequest request) {
         Feedback feedback = getFeedback(feedbackId);
+        User policeUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy user: " + username));
+        validatePolicePermission(policeUser, feedback);
 
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setStatus(FeedbackStatus.RESOLVED);
@@ -161,6 +168,9 @@ public class PoliceFeedbackService {
     @Transactional
     public PoliceFeedbackResponse rejectFeedback(Long feedbackId, String username, RejectFeedbackRequest request) {
         Feedback feedback = getFeedback(feedbackId);
+        User policeUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy user: " + username));
+        validatePolicePermission(policeUser, feedback);
 
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setStatus(FeedbackStatus.REJECTED);
@@ -179,6 +189,9 @@ public class PoliceFeedbackService {
     @Transactional
     public PoliceFeedbackResponse requestMoreInfo(Long feedbackId, String username, RequestMoreInfoRequest request) {
         Feedback feedback = getFeedback(feedbackId);
+        User policeUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy user: " + username));
+        validatePolicePermission(policeUser, feedback);
 
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setStatus(FeedbackStatus.WAITING_INFO);
@@ -200,6 +213,15 @@ public class PoliceFeedbackService {
     private Feedback getFeedback(Long id) {
         return feedbackRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phản ánh"));
+    }
+
+    private void validatePolicePermission(User policeUser, Feedback feedback) {
+        if (!"POLICE".equals(feedback.getManagedByRole())) {
+            throw new com.example.smartcity.common.exception.CustomException("Phản ánh này không thuộc thẩm quyền xử lý của công an.", org.springframework.http.HttpStatus.FORBIDDEN.value());
+        }
+        if (policeUser.getWard() == null || feedback.getWard() == null || !policeUser.getWard().getId().equals(feedback.getWard().getId())) {
+            throw new com.example.smartcity.common.exception.CustomException("Cán bộ công an chỉ có quyền xử lý phản ánh thuộc địa bàn phường quản lý.", org.springframework.http.HttpStatus.FORBIDDEN.value());
+        }
     }
 
     private void saveFeedbackLog(Feedback feedback, String username, FeedbackStatus oldStatus, FeedbackStatus newStatus, String note) {

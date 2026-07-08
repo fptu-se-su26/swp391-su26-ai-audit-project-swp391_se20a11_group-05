@@ -8,7 +8,6 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock3,
-  Copy,
   Lock,
   MapPin,
   MessageCircle,
@@ -25,7 +24,6 @@ import {
   Map,
   MessageSquare,
   ArrowRight,
-  Facebook,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -950,7 +948,6 @@ export function WardCampaignDetailPage({
                 approvedStatus={campaign.currentUserJoinStatus === "APPROVED"}
                 theme={theme}
               />
-              <ShareCard theme={theme} />
 
               {/* Card 9: Volunteer Approvals Panel */}
               {campaign.canManage && (
@@ -1616,43 +1613,5 @@ function GroupChatNavigationCard({
         <ArrowRight size={16} />
       </Link>
     </section>
-  );
-}
-
-function ShareCard({ theme }: { theme: any }) {
-  return (
-    <section className={`rounded-2xl border ${theme.lightBorder} bg-white p-6 shadow-lg`}>
-      <h2 className="mb-4 text-sm font-black uppercase tracking-wider text-slate-500">
-        Chia sẻ chiến dịch
-      </h2>
-      <div className="grid grid-cols-3 gap-3">
-        <IconButton label="Facebook" icon={Facebook} theme={theme} />
-        <IconButton label="Zalo" text="Z" theme={theme} />
-        <IconButton label="Copy link" icon={Copy} theme={theme} />
-      </div>
-    </section>
-  );
-}
-
-function IconButton({
-  label,
-  icon: Icon,
-  text,
-  theme,
-}: {
-  label: string;
-  icon?: ElementType;
-  text?: string;
-  theme: any;
-}) {
-  return (
-    <button
-      type="button"
-      className={`grid h-11 place-items-center rounded-xl border ${theme.lightBorder} ${theme.mainBg} text-sm font-black ${theme.primaryText} transition ${theme.lightBgHover} active:scale-[0.97]`}
-      aria-label={label}
-      title={label}
-    >
-      {Icon ? <Icon size={18} /> : text}
-    </button>
   );
 }

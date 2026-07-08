@@ -34,7 +34,7 @@ class UserControllerTest {
 
     @Mock private UserService userService;
     @Mock private UserMapper userMapper;
-
+    @Mock private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
     @InjectMocks private UserController userController;
 
     private MockMvc mockMvc;
@@ -56,7 +56,7 @@ class UserControllerTest {
     private void mockSecurityContext(String username, String roleName) {
         Authentication authentication = mock(Authentication.class);
         when(authentication.getName()).thenReturn(username);
-        doReturn(Collections.singletonList(new SimpleGrantedAuthority(roleName)))
+        lenient().doReturn(Collections.singletonList(new SimpleGrantedAuthority(roleName)))
                 .when(authentication).getAuthorities();
 
         SecurityContext securityContext = mock(SecurityContext.class);
@@ -139,5 +139,76 @@ class UserControllerTest {
 
         mockMvc.perform(get("/api/users/2"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Should update profile successfully")
+    void updateProfile_success() throws Exception {
+        mockSecurityContext("citizen1", "ROLE_CITIZEN");
+
+        User targetUser = new User("citizen1", "encoded", "Citizen One", "0905123456", "citizen@example.com", Role.CITIZEN);
+        UserDTO targetDto = UserDTO.builder().username("citizen1").fullName("New Name").build();
+
+        when(userService.findByUsername("citizen1")).thenReturn(targetUser);
+        when(userService.save(any(User.class))).thenReturn(targetUser);
+        when(userMapper.toDto(any(User.class))).thenReturn(targetDto);
+
+        String requestBody = "{\"fullName\":\"New Name\",\"phoneNumber\":\"0336130405\",\"email\":\"citizen@example.com\"}";
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/users/profile")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+                .andDo(org.springframework.test.web.servlet.result.MockMvcResultHandlers.print())
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("Should change password successfully when current password matches and new password meets complexity rules")
+    void changePassword_success() throws Exception {
+        mockSecurityContext("citizen1", "ROLE_CITIZEN");
+        User targetUser = new User("citizen1", "encoded_old", "Citizen One", "0905123456", "citizen@example.com", Role.CITIZEN);
+
+        when(userService.findByUsername("citizen1")).thenReturn(targetUser);
+        when(passwordEncoder.matches("OldPassword1", "encoded_old")).thenReturn(true);
+        when(passwordEncoder.encode("NewPassword1")).thenReturn("encoded_new");
+
+        String requestBody = "{\"currentPassword\":\"OldPassword1\",\"newPassword\":\"NewPassword1\",\"confirmPassword\":\"NewPassword1\"}";
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/users/profile/change-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+                .andExpect(status().isOk());
+
+        verify(userService, times(1)).save(targetUser);
+    }
+
+    @Test
+    @DisplayName("Should fail changing password when current password is wrong")
+    void changePassword_wrongCurrentPassword_badRequest() throws Exception {
+        mockSecurityContext("citizen1", "ROLE_CITIZEN");
+        User targetUser = new User("citizen1", "encoded_old", "Citizen One", "0905123456", "citizen@example.com", Role.CITIZEN);
+
+        when(userService.findByUsername("citizen1")).thenReturn(targetUser);
+        when(passwordEncoder.matches("WrongPassword1", "encoded_old")).thenReturn(false);
+
+        String requestBody = "{\"currentPassword\":\"WrongPassword1\",\"newPassword\":\"NewPassword1\",\"confirmPassword\":\"NewPassword1\"}";
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/users/profile/change-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+                .andExpect(status().isBadRequest());
+
+        verify(userService, never()).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should fail changing password when new password and confirm password mismatch")
+    void changePassword_mismatchedNewConfirm_badRequest() throws Exception {
+        String requestBody = "{\"currentPassword\":\"OldPassword1\",\"newPassword\":\"NewPassword1\",\"confirmPassword\":\"MismatchPassword\"}";
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/users/profile/change-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+                .andExpect(status().isBadRequest());
     }
 }

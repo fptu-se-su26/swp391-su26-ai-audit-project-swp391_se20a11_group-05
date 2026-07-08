@@ -34,7 +34,10 @@ export function CampaignChatBubble({
             className="flex items-center gap-1 text-[11px] font-bold text-rose-600 hover:text-rose-700 bg-rose-50 border border-rose-200 px-2 py-1 rounded-full cursor-pointer hover:bg-rose-100 hover:scale-105 active:scale-95 transition-all duration-200 shrink-0"
             title="Gửi lại tin nhắn này"
           >
-            <RefreshCw size={11} className="transition-transform duration-300 group-hover:rotate-180" />
+            <RefreshCw
+              size={11}
+              className="transition-transform duration-300 group-hover:rotate-180"
+            />
             Thử lại
           </button>
         )}
@@ -96,17 +99,80 @@ export function CampaignChatBubble({
   const host = message.role === "host";
   const hasSenderId = message.senderId !== undefined;
 
+  const count = message.pastCampaignCount || 0;
+  let borderStyle = "";
+  let badgeIcon = "";
+  let badgeTitle = "";
+
+  if (!host) {
+    if (count >= 10) {
+      borderStyle =
+        "ring-2 ring-amber-400 ring-offset-1 ring-offset-white shadow-[0_0_8px_rgba(245,158,11,0.5)]";
+      badgeIcon = "🏆";
+      badgeTitle = "Đại sứ Vì cộng đồng (10+ Chiến dịch)";
+    } else if (count >= 5) {
+      borderStyle =
+        "ring-2 ring-cyan-400 ring-offset-1 ring-offset-white shadow-[0_0_8px_rgba(34,211,238,0.4)]";
+      badgeIcon = "🏛️";
+      badgeTitle = "Trụ cột Cộng đồng (5-9 Chiến dịch)";
+    } else if (count >= 1) {
+      borderStyle =
+        "ring-2 ring-emerald-400 ring-offset-1 ring-offset-white shadow-[0_0_6px_rgba(16,185,129,0.3)]";
+      badgeIcon = "⚡";
+      badgeTitle = "Thành viên Năng nổ (1-4 Chiến dịch)";
+    } else {
+      borderStyle =
+        "ring-2 ring-slate-300 ring-offset-1 ring-offset-white shadow-sm";
+      badgeIcon = "🌱";
+      badgeTitle = "Tình nguyện viên Mới (0 Chiến dịch)";
+    }
+  }
+
+  const avatarContent = message.senderAvatar ? (
+    <img
+      src={message.senderAvatar}
+      alt={message.sender}
+      className={`h-8 w-8 rounded-full object-cover shrink-0 select-none ${borderStyle} ${
+        canManage && hasSenderId
+          ? "hover:scale-105 active:scale-95 transition-transform duration-200"
+          : ""
+      }`}
+    />
+  ) : (
+    <span
+      className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-black select-none ${borderStyle} ${
+        canManage && hasSenderId
+          ? "hover:scale-105 active:scale-95 transition-transform duration-200"
+          : ""
+      } ${host ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"}`}
+    >
+      {host ? "CB" : message.sender.split(" ").at(-1)?.[0] || "A"}
+    </span>
+  );
+
   return (
     <div className="flex items-start gap-2 group" style={{ animation: "chatSlideUp 0.2s ease" }}>
-      <span
-        onClick={() => canManage && hasSenderId && onAvatarClick && onAvatarClick(message.senderId!)}
-        className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-black ${
-          canManage && hasSenderId ? "cursor-pointer hover:scale-105 active:scale-95 transition-transform" : ""
-        } ${host ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"}`}
-        title={canManage && hasSenderId ? "Xem thông tin & Điều trị thành viên" : undefined}
+      <div
+        className="relative shrink-0 select-none"
+        onClick={() =>
+          canManage && hasSenderId && onAvatarClick && onAvatarClick(message.senderId!)
+        }
+        style={{ cursor: canManage && hasSenderId ? "pointer" : "default" }}
+        title={
+          badgeTitle
+            ? `${badgeTitle}${canManage && hasSenderId ? " - Click để xem thông tin & Điều trị" : ""}`
+            : canManage && hasSenderId
+              ? "Xem thông tin & Điều trị thành viên"
+              : undefined
+        }
       >
-        {host ? "CB" : message.sender.split(" ").at(-1)?.[0] || "A"}
-      </span>
+        {avatarContent}
+        {badgeIcon && (
+          <span className="absolute -bottom-1 -right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-white text-[9px] shadow-[0_1px_3px_rgba(0,0,0,0.15)] border border-slate-100 select-none">
+            {badgeIcon}
+          </span>
+        )}
+      </div>
       <div
         className={`max-w-[78%] rounded-[0_12px_12px_12px] bg-white px-4 py-2.5 text-slate-800 shadow-sm relative ${
           host ? "border-l-[3px] border-l-[#F59E0B]" : ""
@@ -121,7 +187,9 @@ export function CampaignChatBubble({
           </div>
         )}
         <p
-          onClick={() => canManage && hasSenderId && onAvatarClick && onAvatarClick(message.senderId!)}
+          onClick={() =>
+            canManage && hasSenderId && onAvatarClick && onAvatarClick(message.senderId!)
+          }
           className={`mb-1 text-xs font-black ${
             canManage && hasSenderId ? "cursor-pointer hover:underline" : ""
           } ${host ? "text-amber-700" : "text-[#2563EB]"}`}

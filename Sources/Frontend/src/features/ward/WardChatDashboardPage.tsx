@@ -282,6 +282,8 @@ function ActiveChatArea({ campaignId, onBack }: { campaignId: string; onBack: ()
           pinned: msg.pinned || false,
           imageUrls: msg.imageUrls || [],
           status: msg.status,
+          senderAvatar: msg.senderAvatar,
+          pastCampaignCount: msg.pastCampaignCount,
         } as ChatMessage;
       });
   }, [chatMessages, user]);

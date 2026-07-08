@@ -16,12 +16,13 @@ public class UserDTO {
     private String fullName;
     private String phoneNumber;
     private String email;
+    private String avatarUrl;
     private Role role;
-    private boolean isActive;
-    private boolean isMfaEnabled;
+    private Boolean isActive;
+    private Boolean isMfaEnabled;
     private Long wardId;
-    private int warningCount;
-    private int completedCampaignCount;
-    private int noShowCampaignCount;
+    private Integer warningCount;
+    private Integer completedCampaignCount;
+    private Integer noShowCampaignCount;
     private String reputationBadge;
 }

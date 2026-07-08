@@ -1,6 +1,16 @@
 import React, { useState } from "react";
 import { useBlacklistQuery, useUnbanUserMutation } from "@/hooks/useCampaigns";
-import { Search, UserCheck, AlertTriangle, ShieldAlert, Sparkles, Inbox, RefreshCw, Mail, Phone } from "lucide-react";
+import {
+  Search,
+  UserCheck,
+  AlertTriangle,
+  ShieldAlert,
+  Sparkles,
+  Inbox,
+  RefreshCw,
+  Mail,
+  Phone,
+} from "lucide-react";
 
 export default function WardBlacklistPage() {
   const [search, setSearch] = useState("");
@@ -36,10 +46,11 @@ export default function WardBlacklistPage() {
         <div>
           <h2 className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100 flex items-center gap-2">
             <ShieldAlert className="h-5.5 w-5.5 text-rose-500" />
-            Danh sách chặn (Blacklist)
+            Danh sách chặn
           </h2>
           <p className="text-sm font-medium text-slate-500 mt-1">
-            Quản lý và giám sát các tài khoản bị khóa do vi phạm tiêu chuẩn cộng đồng hoặc tích lũy đủ 3 cảnh cáo.
+            Quản lý và giám sát các tài khoản bị khóa do vi phạm tiêu chuẩn cộng đồng hoặc tích lũy
+            đủ 3 cảnh cáo.
           </p>
         </div>
         <button
@@ -77,8 +88,12 @@ export default function WardBlacklistPage() {
       ) : error ? (
         <div className="flex flex-col items-center justify-center py-16 gap-3 bg-rose-50/50 dark:bg-rose-950/5 border border-rose-100 dark:border-rose-900/50 rounded-xl">
           <AlertTriangle className="h-10 w-10 text-rose-500" />
-          <p className="text-sm font-bold text-rose-700">Không thể tải danh sách tài khoản bị chặn</p>
-          <p className="text-xs text-slate-500">{(error as any)?.message || "Vui lòng thử lại sau"}</p>
+          <p className="text-sm font-bold text-rose-700">
+            Không thể tải danh sách tài khoản bị chặn
+          </p>
+          <p className="text-xs text-slate-500">
+            {(error as any)?.message || "Vui lòng thử lại sau"}
+          </p>
         </div>
       ) : filteredUsers.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center bg-white dark:bg-slate-900 rounded-xl border border-slate-150/80 dark:border-slate-800/80 shadow-sm">
@@ -86,34 +101,53 @@ export default function WardBlacklistPage() {
             <div className="absolute inset-0 bg-emerald-100 dark:bg-emerald-950/30 rounded-full scale-150 blur-xl opacity-60"></div>
             <Inbox className="h-12 w-12 text-slate-350 dark:text-slate-600 relative z-10" />
           </div>
-          <p className="text-sm font-bold text-slate-700 dark:text-slate-300">Không có tài khoản bị chặn</p>
+          <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+            Không có tài khoản bị chặn
+          </p>
           <p className="text-xs text-slate-450 dark:text-slate-500 mt-1 max-w-sm">
-            {search ? "Không tìm thấy kết quả nào phù hợp với từ khóa." : "Nhóm chat và cộng đồng của bạn hiện tại hoạt động rất tích cực và sạch sẽ!"}
+            {search
+              ? "Không tìm thấy kết quả nào phù hợp với từ khóa."
+              : "Nhóm chat và cộng đồng của bạn hiện tại hoạt động rất tích cực và sạch sẽ!"}
           </p>
         </div>
       ) : (
         <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-150/80 dark:border-slate-800/80 overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto max-h-[550px] overflow-y-auto">
             <table className="w-full border-collapse text-left">
               <thead>
-                <tr className="border-b border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 text-xs font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">
-                  <th className="px-6 py-4">Tài khoản & Họ tên</th>
-                  <th className="px-6 py-4">Liên hệ</th>
-                  <th className="px-6 py-4 text-center">Số cảnh cáo</th>
-                  <th className="px-6 py-4">Trạng thái</th>
-                  <th className="px-6 py-4 text-right">Hành động</th>
+                <tr className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 text-xs font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">
+                  <th className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 px-6 py-4 border-b border-slate-150 dark:border-slate-800">
+                    Tài khoản & Họ tên
+                  </th>
+                  <th className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 px-6 py-4 border-b border-slate-150 dark:border-slate-800">
+                    Liên hệ
+                  </th>
+                  <th className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 px-6 py-4 border-b border-slate-150 dark:border-slate-800 text-center">
+                    Số cảnh cáo
+                  </th>
+                  <th className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 px-6 py-4 border-b border-slate-150 dark:border-slate-800">
+                    Trạng thái
+                  </th>
+                  <th className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 px-6 py-4 border-b border-slate-150 dark:border-slate-800 text-right">
+                    Hành động
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
                 {filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-slate-50/55 dark:hover:bg-slate-800/20 transition-colors">
+                  <tr
+                    key={user.id}
+                    className="hover:bg-slate-50/55 dark:hover:bg-slate-800/20 transition-colors"
+                  >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="grid h-9 w-9 place-items-center rounded-full bg-rose-150 text-rose-700 font-bold shrink-0">
                           {user.fullName.split(" ").at(-1)?.[0] || "U"}
                         </div>
                         <div>
-                          <div className="font-bold text-slate-800 dark:text-slate-200">{user.fullName}</div>
+                          <div className="font-bold text-slate-800 dark:text-slate-200">
+                            {user.fullName}
+                          </div>
                           <div className="text-xs text-slate-400 font-medium">@{user.username}</div>
                         </div>
                       </div>

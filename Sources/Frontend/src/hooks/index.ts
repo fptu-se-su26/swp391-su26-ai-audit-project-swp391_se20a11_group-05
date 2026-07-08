@@ -10,6 +10,7 @@ import {
   ragApi,
   authApi,
   userApi,
+  campaignApi,
   notificationApi,
   policeApi,
   type FeedbackResponse,
@@ -26,6 +27,7 @@ import {
   type NotificationResponse,
   type FeedbackLookupStatsResponse,
   type PoliceFeedbackResponse,
+  type CampaignParticipantResponse,
 } from "@/lib/api";
 import {
   submitCitizenFeedbackMedia,
@@ -294,7 +296,11 @@ export function useRequestMoreInfo() {
 
 export function useSupplementFeedbackInfo() {
   const queryClient = useQueryClient();
-  return useMutation<FeedbackResponse, Error, { id: number | string; content?: string; imageUrls?: string[] }>({
+  return useMutation<
+    FeedbackResponse,
+    Error,
+    { id: number | string; content?: string; imageUrls?: string[] }
+  >({
     mutationFn: ({ id, content, imageUrls }) => feedbackApi.supplementInfo(id, content, imageUrls),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
@@ -305,7 +311,7 @@ export function useSupplementFeedbackInfo() {
 }
 
 export function useHotspots() {
-  return useQuery<any[]>({
+  return useQuery<unknown[]>({
     queryKey: ["feedbacks", "hotspots"],
     queryFn: () => policeApi.getHotspots(),
     staleTime: 60_000, // 1 min cache
@@ -408,11 +414,41 @@ export function useUpdateProfileMutation() {
   });
 }
 
-export function useNotifications() {
+export function useChangePasswordMutation() {
+  return useMutation<void, Error, { currentPassword: string; newPassword: string; confirmPassword: string }>({
+    mutationFn: (data) => userApi.changePassword(data),
+  });
+}
+
+export function useCitizenParticipationHistory(
+  userId: number | string,
+  options?: { enabled?: boolean },
+) {
+  return useQuery<CampaignParticipantResponse[]>({
+    queryKey: ["campaigns", "participants", "user", userId],
+    queryFn: () => campaignApi.getCitizenParticipationHistory(userId),
+    ...options,
+    enabled: options?.enabled !== false && !!userId,
+  });
+}
+
+export function useDeleteOwnProfileMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, void>({
+    mutationFn: () => userApi.deleteOwnProfile(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth.profile });
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
+    },
+  });
+}
+
+export function useNotifications(enabled = true) {
   return useQuery<NotificationResponse[]>({
     queryKey: queryKeys.notifications.all,
     queryFn: () => notificationApi.getAll(),
     staleTime: 30_000,
+    enabled,
     refetchInterval: 10_000,
   });
 }

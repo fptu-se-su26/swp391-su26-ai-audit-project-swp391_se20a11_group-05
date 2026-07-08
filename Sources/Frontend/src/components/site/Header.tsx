@@ -144,7 +144,7 @@ export function Header() {
   }).length;
 
   const filteredChatRooms = chatRooms.filter((room) =>
-    room.campaignTitle.toLowerCase().includes(chatSearch.toLowerCase())
+    room.campaignTitle.toLowerCase().includes(chatSearch.toLowerCase()),
   );
 
   // Notifications logic
@@ -153,7 +153,7 @@ export function Header() {
     isLoading: notifLoading,
     isError: notifError,
     refetch: notifRefetch,
-  } = useNotifications();
+  } = useNotifications(!!user);
   const markRead = useMarkNotificationReadMutation();
   const markAllRead = useMarkAllNotificationsReadMutation();
 
@@ -430,21 +430,31 @@ export function Header() {
             <div className="relative hidden md:block" ref={langRef}>
               <button
                 onClick={toggleLang}
-                className="group flex min-h-[40px] items-center gap-2 rounded-full border border-transparent px-2.5 text-sm font-semibold text-[#123E8A] transition hover:border-[#E4EAF2] hover:bg-[#F5F9FF] hover:text-[#0B4FC4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B4FC4]/20 cursor-pointer"
+                className={
+                  user?.role === Role.CITIZEN
+                    ? "group w-10 h-10 bg-slate-100 text-[#123E8A] hover:bg-slate-200 hover:text-[#0B4FC4] transition rounded-full flex items-center justify-center cursor-pointer font-bold text-[11px] font-sans"
+                    : "group flex min-h-[40px] items-center gap-2 rounded-full border border-transparent px-2.5 text-sm font-semibold text-[#123E8A] transition hover:border-[#E4EAF2] hover:bg-[#F5F9FF] hover:text-[#0B4FC4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B4FC4]/20 cursor-pointer"
+                }
                 aria-label="Select Language"
                 aria-haspopup="menu"
                 aria-expanded={langOpen}
               >
-                <span className="grid h-6 w-8 place-items-center rounded-md bg-[#EEF4FF] text-[11px] font-extrabold tracking-wide text-[#0B4FC4] font-sans">
-                  {activeLanguage.shortLabel}
-                </span>
-                <span className="hidden xl:inline font-sans">{activeLanguage.nativeLabel}</span>
-                <ChevronDown
-                  size={14}
-                  className={`text-[#667085] transition-transform group-hover:text-[#0B4FC4] ${
-                    langOpen ? "rotate-180" : ""
-                  }`}
-                />
+                {user?.role === Role.CITIZEN ? (
+                  <span>{activeLanguage.shortLabel}</span>
+                ) : (
+                  <>
+                    <span className="grid h-6 w-8 place-items-center rounded-md bg-[#EEF4FF] text-[11px] font-extrabold tracking-wide text-[#0B4FC4] font-sans">
+                      {activeLanguage.shortLabel}
+                    </span>
+                    <span className="hidden xl:inline font-sans">{activeLanguage.nativeLabel}</span>
+                    <ChevronDown
+                      size={14}
+                      className={`text-[#667085] transition-transform group-hover:text-[#0B4FC4] ${
+                        langOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </>
+                )}
               </button>
 
               {langOpen && (
@@ -502,7 +512,11 @@ export function Header() {
             <div className="relative" ref={chatRef}>
               <button
                 onClick={toggleChat}
-                className={`relative p-2 text-[#123E8A] hover:text-[#0B4FC4] transition rounded-full hover:bg-slate-50 min-w-[40px] min-h-[40px] flex items-center justify-center cursor-pointer`}
+                className={
+                  user.role === Role.CITIZEN
+                    ? "relative w-10 h-10 bg-slate-100 text-[#123E8A] hover:bg-slate-200 hover:text-[#0B4FC4] transition rounded-full flex items-center justify-center cursor-pointer"
+                    : "relative p-2 text-[#123E8A] hover:text-[#0B4FC4] transition rounded-full hover:bg-slate-50 min-w-[40px] min-h-[40px] flex items-center justify-center cursor-pointer"
+                }
                 aria-label="Mở danh sách tin nhắn"
                 aria-expanded={chatOpen}
               >
@@ -528,14 +542,26 @@ export function Header() {
                     <div className="mt-2 relative">
                       <input
                         type="text"
-                        placeholder={locale === "vi" ? "Tìm kiếm chiến dịch..." : "Search campaigns..."}
+                        placeholder={
+                          locale === "vi" ? "Tìm kiếm chiến dịch..." : "Search campaigns..."
+                        }
                         value={chatSearch}
                         onChange={(e) => setChatSearch(e.target.value)}
                         className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-[#E4EAF2] rounded-lg text-xs font-sans focus:outline-none focus:ring-1 focus:ring-[#0B4FC4] focus:bg-white transition"
                       />
                       <span className="absolute left-2.5 top-2 text-slate-400">
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        <svg
+                          className="w-3.5 h-3.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                          />
                         </svg>
                       </span>
                     </div>
@@ -559,18 +585,24 @@ export function Header() {
 
                     {!chatRoomsLoading && filteredChatRooms.length === 0 && (
                       <div className="py-8 text-center text-xs text-[#667085] font-sans px-4">
-                        {chatSearch 
-                          ? (locale === "vi" ? "Không tìm thấy chiến dịch nào." : "No campaigns found.")
-                          : (locale === "vi" ? "Bạn chưa tham gia chiến dịch nào hoặc không có quyền chat." : "No active campaigns found.")}
+                        {chatSearch
+                          ? locale === "vi"
+                            ? "Không tìm thấy chiến dịch nào."
+                            : "No campaigns found."
+                          : locale === "vi"
+                            ? "Bạn chưa tham gia chiến dịch nào hoặc không có quyền chat."
+                            : "No active campaigns found."}
                       </div>
                     )}
 
                     {!chatRoomsLoading &&
                       filteredChatRooms.map((room) => {
-                        const isUnread = room.lastMessage && 
+                        const isUnread =
+                          room.lastMessage &&
                           (!user || room.lastMessage.senderName !== user.name) &&
                           (!localStorage.getItem(`campaign-chat-seen-${room.campaignId}`) ||
-                           Number(localStorage.getItem(`campaign-chat-seen-${room.campaignId}`)) < room.lastMessage.id);
+                            Number(localStorage.getItem(`campaign-chat-seen-${room.campaignId}`)) <
+                              room.lastMessage.id);
 
                         return (
                           <Link
@@ -582,7 +614,10 @@ export function Header() {
                               setChatOpen(false);
                               setActiveFloatingChatId(String(room.campaignId));
                               if (room.lastMessage) {
-                                localStorage.setItem(`campaign-chat-seen-${room.campaignId}`, String(room.lastMessage.id));
+                                localStorage.setItem(
+                                  `campaign-chat-seen-${room.campaignId}`,
+                                  String(room.lastMessage.id),
+                                );
                               }
                             }}
                             className={`w-full text-left p-3 flex gap-3 transition-colors hover:bg-slate-50 border-l-4 ${
@@ -611,7 +646,9 @@ export function Header() {
                             {/* Info */}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-1 mb-0.5">
-                                <h4 className={`text-xs text-[#123E8A] truncate font-sans ${isUnread ? "font-bold" : "font-semibold"}`}>
+                                <h4
+                                  className={`text-xs text-[#123E8A] truncate font-sans ${isUnread ? "font-bold" : "font-semibold"}`}
+                                >
                                   {room.campaignTitle}
                                 </h4>
                                 {room.lastMessage && (
@@ -620,11 +657,16 @@ export function Header() {
                                   </span>
                                 )}
                               </div>
-                              <p className={`text-[11px] truncate font-sans ${isUnread ? "text-slate-900 font-semibold" : "text-[#667085]"}`}>
+                              <p
+                                className={`text-[11px] truncate font-sans ${isUnread ? "text-slate-900 font-semibold" : "text-[#667085]"}`}
+                              >
                                 {room.lastMessage ? (
                                   <>
-                                    <span className="font-semibold">{room.lastMessage.senderName}: </span>
-                                    {room.lastMessage.message || (locale === "vi" ? "[Hình ảnh]" : "[Image]")}
+                                    <span className="font-semibold">
+                                      {room.lastMessage.senderName}:{" "}
+                                    </span>
+                                    {room.lastMessage.message ||
+                                      (locale === "vi" ? "[Hình ảnh]" : "[Image]")}
                                   </>
                                 ) : (
                                   <span className="italic text-slate-400">
@@ -646,7 +688,11 @@ export function Header() {
           <div className="relative" ref={notifRef}>
             <button
               onClick={toggleNotif}
-              className={`relative p-2 text-[#123E8A] hover:text-[#0B4FC4] transition rounded-full hover:bg-slate-50 min-w-[40px] min-h-[40px] flex items-center justify-center cursor-pointer`}
+              className={
+                user?.role === Role.CITIZEN
+                  ? "relative w-10 h-10 bg-slate-100 text-[#123E8A] hover:bg-slate-200 hover:text-[#0B4FC4] transition rounded-full flex items-center justify-center cursor-pointer"
+                  : "relative p-2 text-[#123E8A] hover:text-[#0B4FC4] transition rounded-full hover:bg-slate-50 min-w-[40px] min-h-[40px] flex items-center justify-center cursor-pointer"
+              }
               aria-label="Mở danh sách thông báo"
               aria-expanded={notifOpen}
             >
@@ -785,25 +831,58 @@ export function Header() {
             <div className="relative" ref={userRef}>
               <button
                 onClick={toggleUser}
-                className="flex items-center gap-2 border-l border-[#E4EAF2] pl-2 sm:pl-3 md:pl-4 lg:pl-6 focus:outline-none group min-h-[40px] text-left cursor-pointer"
+                className={
+                  user.role === Role.CITIZEN
+                    ? "relative w-10 h-10 rounded-full focus:outline-none group cursor-pointer shrink-0 select-none flex items-center justify-center"
+                    : "flex items-center gap-2 border-l border-[#E4EAF2] pl-2 sm:pl-3 md:pl-4 lg:pl-6 focus:outline-none group min-h-[40px] text-left cursor-pointer"
+                }
                 aria-expanded={userOpen}
                 aria-haspopup="true"
               >
-                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[#0B4FC4] border border-[#E4EAF2] group-hover:bg-[#F5F9FF] transition shrink-0">
-                  <User size={16} />
-                </div>
-                <div className="text-right leading-tight hidden md:block">
-                  <div className="text-sm font-bold text-[#123E8A] font-sans group-hover:text-[#0B4FC4] transition flex items-center gap-1">
-                    {user.name}
-                    <ChevronDown
-                      size={14}
-                      className="text-[#667085] group-hover:text-[#0B4FC4] transition"
-                    />
-                  </div>
-                  <div className="text-[9px] uppercase tracking-widest text-[#667085] font-extrabold font-sans">
-                    {ROLE_LABEL[user.role][locale]}
-                  </div>
-                </div>
+                {user.role === Role.CITIZEN ? (
+                  <>
+                    {user.avatarUrl ? (
+                      <img
+                        src={user.avatarUrl}
+                        alt={user.name}
+                        className="w-10 h-10 rounded-full object-cover border border-[#E4EAF2] group-hover:opacity-90 transition shrink-0"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-[#EFF6FF] text-[#0F5BD8] font-bold flex items-center justify-center text-sm border border-[#E4EAF2] font-sans group-hover:bg-[#E0E7FF] transition shrink-0">
+                        {user.name.trim().split(" ").at(-1)?.[0]?.toUpperCase() || "U"}
+                      </div>
+                    )}
+                    <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center shadow-md border border-slate-200 dark:border-slate-700">
+                      <ChevronDown size={10} className="text-[#667085]" />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[#0B4FC4] border border-[#E4EAF2] group-hover:bg-[#F5F9FF] transition shrink-0">
+                      {user.avatarUrl ? (
+                        <img
+                          src={user.avatarUrl}
+                          alt={user.name}
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
+                      ) : (
+                        <User size={16} />
+                      )}
+                    </div>
+                    <div className="text-right leading-tight hidden md:block">
+                      <div className="text-sm font-bold text-[#123E8A] font-sans group-hover:text-[#0B4FC4] transition flex items-center gap-1">
+                        {user.name}
+                        <ChevronDown
+                          size={14}
+                          className="text-[#667085] group-hover:text-[#0B4FC4] transition"
+                        />
+                      </div>
+                      <div className="text-[9px] uppercase tracking-widest text-[#667085] font-extrabold font-sans">
+                        {ROLE_LABEL[user.role][locale]}
+                      </div>
+                    </div>
+                  </>
+                )}
               </button>
 
               {/* User Dropdown Menu */}

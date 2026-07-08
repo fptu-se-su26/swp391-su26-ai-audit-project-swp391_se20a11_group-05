@@ -151,6 +151,8 @@ export function FloatingCampaignChat({ campaignId, onClose }: FloatingCampaignCh
           time: timeStr,
           pinned: msg.pinned,
           status: "sent" as const,
+          senderAvatar: msg.senderAvatar,
+          pastCampaignCount: msg.pastCampaignCount,
         };
       });
   }, [chatMessages, user]);

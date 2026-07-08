@@ -51,6 +51,9 @@ public class User extends BaseEntity {
     @JoinColumn(name = "ward_id")
     private Ward ward;
 
+    @Column(name = "warning_count", nullable = false)
+    private int warningCount = 0;
+
     // [SECURITY FIX] AES-256/GCM encrypted at rest via AttributeEncryptor
     @Convert(converter = AttributeEncryptor.class)
     @Column(name = "mfa_secret")
@@ -163,5 +166,8 @@ public class User extends BaseEntity {
     public LocalDateTime getDeletedAt() { return deletedAt; }
     public String getDeletedBy() { return deletedBy; }
     public void setDeletedBy(String deletedBy) { this.deletedBy = deletedBy; }
+
+    public int getWarningCount() { return warningCount; }
+    public void setWarningCount(int warningCount) { this.warningCount = warningCount; }
 }
 

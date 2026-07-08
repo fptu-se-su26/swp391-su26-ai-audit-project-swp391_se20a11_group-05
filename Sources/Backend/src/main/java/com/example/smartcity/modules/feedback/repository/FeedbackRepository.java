@@ -17,6 +17,7 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"category", "ward", "citizen"})
     Page<Feedback> findAll(Pageable pageable);
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"category", "ward", "citizen"})
     Optional<Feedback> findByTrackingCode(String trackingCode);
 
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)

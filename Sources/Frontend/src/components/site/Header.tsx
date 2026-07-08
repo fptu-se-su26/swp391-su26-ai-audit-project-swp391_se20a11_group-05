@@ -1,7 +1,7 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { useI18n, type Locale } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
-import { getLoginPathForRole, ROLE_LABEL, Role } from "@/lib/roles";
+import { getLoginPathForRole, ROLE_LABEL, Role, getDashboardPathForRole } from "@/lib/roles";
 import {
   Menu,
   X,
@@ -20,6 +20,8 @@ import {
   MessageSquareWarning,
   Clock3,
   Route as RouteIcon,
+  Sliders,
+  RefreshCw,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import logoUrl from "@/assets/logo.png";
@@ -56,10 +58,17 @@ function timeAgo(dateStr: string, locale: string): string {
 function iconForType(type?: string) {
   switch (type) {
     case "FEEDBACK_SUBMITTED":
+    case "CAMPAIGN_JOINED":
       return Send;
+    case "CAMPAIGN_CONFIRMED":
+      return ClipboardList;
     case "FEEDBACK_ACCEPTED":
       return ClipboardCheck;
     case "FEEDBACK_REJECTED":
+    case "CAMPAIGN_REJECTED":
+    case "CAMPAIGN_CANCELLED":
+    case "CAMPAIGN_LEFT":
+    case "CAMPAIGN_AUTO_CANCELLED":
       return AlertCircle;
     case "FEEDBACK_ASSIGNED":
     case "FEEDBACK_ASSIGNED_TO_WARD":
@@ -69,9 +78,15 @@ function iconForType(type?: string) {
       return FileClock;
     case "FEEDBACK_COMPLETED":
     case "FEEDBACK_CLOSED":
+    case "CAMPAIGN_APPROVED":
+    case "CAMPAIGN_AUTO_ENDED":
+    case "CAMPAIGN_FINALIZED":
+    case "CAMPAIGN_ENDED":
       return CheckCircle2;
     case "FEEDBACK_WAITING_INFO":
       return MessageSquareWarning;
+    case "CAMPAIGN_RESCHEDULED":
+      return RefreshCw;
     default:
       return Clock3;
   }
@@ -205,10 +220,24 @@ export function Header() {
         await markRead.mutateAsync(item.id);
       }
       if (feedbackId) {
-        if (isWardStaff) {
-          await navigate({ to: "/ward", search: { tab: "feedback", detailId: String(feedbackId) } });
+        if (item.type?.startsWith("CAMPAIGN")) {
+          if (isWardStaff) {
+            await navigate({
+              to: "/ward",
+              search: { tab: "campaign", detailId: String(feedbackId) },
+            });
+          } else {
+            await navigate({ to: "/campaigns/$id", params: { id: String(feedbackId) } });
+          }
         } else {
-          await navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
+          if (isWardStaff) {
+            await navigate({
+              to: "/ward",
+              search: { tab: "feedback", detailId: String(feedbackId) },
+            });
+          } else {
+            await navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
+          }
         }
       } else {
         await navigate({ to: "/notifications" });
@@ -241,8 +270,10 @@ export function Header() {
       ? [{ to: "/", hash: "lien-he", label: locale === "vi" ? "Liên hệ" : "Contact" }]
       : []),
   ];
-  const menuItems = isWardStaff
-    ? publicMenuItems.filter((item) => item.to !== "/" || item.hash === "lien-he")
+  const isAuthority =
+    user && ([Role.WARD_STAFF, Role.POLICE, Role.SUPER_ADMIN] as Role[]).includes(user.role);
+  const menuItems = isAuthority
+    ? [] // Clean layout: no public links for staff users
     : publicMenuItems;
 
   const staffItemsAll = [
@@ -287,7 +318,10 @@ export function Header() {
     <header className="sticky top-0 z-50 bg-white border-b border-[#E4EAF2] shadow-sm">
       <div className="max-w-[1440px] mx-auto px-4 md:px-8 h-[76px] flex items-center justify-between">
         {/* Left: Brand logo & text */}
-        <Link to="/" className="flex items-center gap-2 group shrink-0">
+        <Link
+          to={user ? getDashboardPathForRole(user.role) : "/"}
+          className="flex items-center gap-2 group shrink-0"
+        >
           <img src={logoUrl} alt="Đà Nẵng Kết Nối" className="h-9 w-auto object-contain md:h-10" />
           <div className="flex flex-col leading-none">
             <span className="text-sm md:text-base font-extrabold tracking-tight text-[#0B4FC4] uppercase font-sans">
@@ -609,15 +643,26 @@ export function Header() {
                     {t("header.profile")}
                   </Link>
 
-                  <Link
-                    to="/feedback-search"
-                    search={{ tab: "my" }}
-                    onClick={() => setUserOpen(false)}
-                    className="w-full text-left px-4 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2.5 font-sans"
-                  >
-                    <ClipboardList size={14} className="text-[#667085]" />
-                    {t("header.myReports")}
-                  </Link>
+                  {isAuthority ? (
+                    <Link
+                      to={getDashboardPathForRole(user.role)}
+                      onClick={() => setUserOpen(false)}
+                      className="w-full text-left px-4 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2.5 font-sans"
+                    >
+                      <Sliders size={14} className="text-[#667085]" />
+                      {locale === "vi" ? "Trang quản trị" : "Admin Dashboard"}
+                    </Link>
+                  ) : (
+                    <Link
+                      to="/feedback-search"
+                      search={{ tab: "my" }}
+                      onClick={() => setUserOpen(false)}
+                      className="w-full text-left px-4 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2.5 font-sans"
+                    >
+                      <ClipboardList size={14} className="text-[#667085]" />
+                      {t("header.myReports")}
+                    </Link>
+                  )}
 
                   <Link
                     to="/notifications"
@@ -768,14 +813,24 @@ export function Header() {
                 >
                   {t("header.profile")}
                 </Link>
-                <Link
-                  to="/feedback-search"
-                  search={{ tab: "my" }}
-                  onClick={() => setOpen(false)}
-                  className="block min-h-[48px] px-4 py-3 rounded-md font-semibold text-[#123E8A] hover:bg-slate-50 font-sans"
-                >
-                  {t("header.myReports")}
-                </Link>
+                {isAuthority ? (
+                  <Link
+                    to={getDashboardPathForRole(user.role)}
+                    onClick={() => setOpen(false)}
+                    className="block min-h-[48px] px-4 py-3 rounded-md font-semibold text-[#123E8A] hover:bg-slate-50 font-sans"
+                  >
+                    {locale === "vi" ? "Trang quản trị" : "Admin Dashboard"}
+                  </Link>
+                ) : (
+                  <Link
+                    to="/feedback-search"
+                    search={{ tab: "my" }}
+                    onClick={() => setOpen(false)}
+                    className="block min-h-[48px] px-4 py-3 rounded-md font-semibold text-[#123E8A] hover:bg-slate-50 font-sans"
+                  >
+                    {t("header.myReports")}
+                  </Link>
+                )}
                 <button
                   onClick={() => {
                     setLogoutConfirmOpen(true);

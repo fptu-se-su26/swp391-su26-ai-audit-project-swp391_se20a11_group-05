@@ -30,6 +30,29 @@ tập, lab, assignment hoặc project.
 | ------------------- | ------------- | ----------------------------------------------- | ---------- |
 | Phase 01            | 18/05 - 20/05 | Khởi tạo dự án và Phân tích tài liệu khoa học   | Completed  |
 | Phase 02            | 20/05 - 22/05 | Phác thảo đặc tả yêu cầu phần mềm (SRS Phase 1) | Completed  |
+| Phase 03            | 20/05/2026    | Triển khai bảo mật nâng cao (Firebase & MFA)    | Completed  |
+| Phase 04            | 20/05/2026    | Triển khai cấu hình Supabase Cloud DB           | Completed  |
+| Phase 05            | 21/05/2026    | Đồng bộ hóa Frontend ↔ Backend REST API         | Completed  |
+| Phase 05 (Part 2)   | 21/05/2026    | Tích hợp API Dashboards & Sửa lỗi TypeScript    | Completed  |
+| Phase 06            | 21/05/2026    | Nâng cấp AI Orchestrator (Cache & Resilience)   | Completed  |
+| Phase 07            | 24/05/2026    | Sửa Kiến trúc REST API & Exception Handling     | Completed  |
+| Phase 08            | 24/05/2026    | Sửa BM25 & Triển khai Agentic Tool Calling      | Completed  |
+| Phase 09            | 25/05/2026    | Kiến trúc Multimodal RAG & Phân tích Hình ảnh   | Completed  |
+| Phase 10            | 25/05/2026    | Thiết kế Auto-Dispatch & Lập luận Phản biện     | Completed  |
+| Phase 12            | 25/05/2026    | Code chức năng Auto-Dispatch (AI & PostGIS)     | Completed  |
+| Phase 13            | 28/05/2026    | Đánh giá & Tái cấu trúc Hybrid RAG              | Completed  |
+| Phase 14            | 28/05/2026    | Tối ưu hóa Vector DB & Resilience4j             | Completed  |
+| Phase 15            | 04/06/2026    | Audit Bảo mật & Hiệu suất AI Orchestrator       | Completed  |
+| Phase 16            | 10/06/2026    | Nâng cấp luồng đăng ký 2 bước và SMS OTP        | Completed  |
+| Phase 17            | 17/06/2026    | Kiểm toán Logic Runtime & UX Gửi lại báo cáo    | Completed  |
+| Phase 18            | 21/06/2026    | Triển khai Outbox Pattern & Background Worker   | Completed  |
+| Phase 19            | 27/06/2026    | Tích hợp đăng nhập Google Firebase              | Completed  |
+| Phase 20            | 01/07/2026    | Tái cấu trúc Modular Monolith & Nâng cấp UX AI  | Completed  |
+| Phase 21 (Roadmap)  | 03/07 - 04/07 | AI Guardrails - Bộ lọc an toàn thông tin        | Planned    |
+| Phase 22 (Roadmap)  | 05/07 - 06/07 | Tối ưu N+1 Query & Caching hiệu năng            | Planned    |
+| Phase 23 (Roadmap)  | 07/07 - 08/07 | Multilingual AI & Speech-to-Text đa ngôn ngữ   | Planned    |
+| Phase 24 (Roadmap)  | 09/07 - 10/07 | AI-Powered Analytics & Biểu đồ thống kê         | Planned    |
+| Phase 25 (Roadmap)  | 11/07 - 12/07 | Dockerization & VPS Cloud Deployment            | Planned    |
 
 ---
 
@@ -747,6 +770,144 @@ Mô tả AI đã hỗ trợ phần nào:
 Antigravity đọc toàn bộ mã nguồn Frontend và Backend, kiểm tra logic nghiệp vụ của luồng đăng nhập Google và phát hiện bug type mismatch (data.token vs data.accessToken). AI cũng hướng dẫn cách cài đặt Firebase Console, bật Google Sign-In provider, đăng ký Web App và lấy config SDK để điền vào biến môi trường.
 ```
 
+# [Phase 20] Tái cấu trúc Modular Monolith & Nâng cấp UX AI Chatbot
+
+## Ngày thực hiện
+
+```text
+01/07/2026
+```
+
+## Đã hoàn thành
+
+- [x] **Dọn dẹp thư mục module (Backend)**: Chuyển toàn bộ các API chatbot cũ trong file `RagController` ở folder `rag` sang file `ChatbotController.java` mới nằm trong folder `modules/chatbot` cho đúng chuẩn phân chia module của nhóm.
+- [x] **Cập nhật phân quyền bảo mật**: Sửa lại cấu hình trong file `SecurityConfig.java` để cho phép người dân gọi API chatbot công khai, nhưng bắt buộc phải đăng nhập thì mới xem được lịch sử chat.
+- [x] **Làm tính năng gợi ý từ khóa (Autocomplete)**: Code bộ gợi ý từ khóa thông minh ngay trên ô nhập liệu ở trang chat lớn kết hợp bắt các phím bấm `Tab`, `Escape`, phím mũi tên lên xuống để chọn nhanh câu hỏi gợi ý.
+- [x] **Thêm nút Dừng và Sửa tin nhắn (Stop/Edit Message)**:
+  - Code chức năng bấm nút Dừng 🟥 để ngắt kết nối với API AI ngay lập tức khi đang tải tin nhắn.
+  - Thêm nút Sửa ✏️ khi người dùng di chuột vào câu hỏi cũ để lấy lại nội dung đưa lên ô nhập liệu.
+- [x] **Liên kết mã chat giữa bong bóng nổi và trang chat chính**:
+  - Sửa lỗi câu query SQL lấy danh sách chat ở Sidebar bị phân tách thành nhiều phiên khác nhau.
+  - Dùng bộ nhớ tạm trình duyệt (`sessionStorage`) lưu mã chat để khi người dùng đang chat ở bong bóng nổi góc phải mà phóng to ra trang chat lớn thì nội dung chat vẫn được giữ nguyên và tải tiếp tục.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi                                                      | Người thực hiện | File/Module liên quan                                          |
+| --: | ---------------------------------------------------------------------- | --------------- | -------------------------------------------------------------- |
+|   1 | Tạo file Controller mới quản lý riêng API Chatbot                       | Phạm Bá Trí     | `modules/chatbot/controller/ChatbotController.java`            |
+|   2 | Dọn dẹp các API cũ trong Controller RAG                                | Phạm Bá Trí     | `rag/controller/RagController.java`                            |
+|   3 | Cập nhật lại đường dẫn cho phép truy cập API chatbot                   | Phạm Bá Trí     | `security/SecurityConfig.java`                                 |
+|   4 | Sửa lỗi gom nhóm SQL GROUP BY và lấy tên session cũ                    | Phạm Bá Trí     | `modules/chatbot/repository/ChatHistoryRepository.java`        |
+|   5 | Kiểm tra session ID trước khi lưu tin nhắn mới                         | Phạm Bá Trí     | `modules/chatbot/service/ChatbotService.java`                  |
+|   6 | Đổi lại các đường dẫn gọi API của chatbot trên Frontend                | Phạm Bá Trí     | `Sources/Frontend/src/lib/api.ts`                              |
+|   7 | Thiết kế Sidebar Lịch sử, gợi ý từ khóa, nút Dừng & Sửa tin nhắn       | Phạm Bá Trí     | `Sources/Frontend/src/features/assistant/AssistantPage.tsx`    |
+|   8 | Thêm nút Sửa ✏️ xuất hiện khi di chuột vào tin nhắn                    | Phạm Bá Trí     | `Sources/Frontend/src/features/assistant/ChatMessage.tsx`     |
+|   9 | Lưu và truyền mã session ID ở widget chat nổi góc phải                 | Phạm Bá Trí     | `Sources/Frontend/src/components/FloatingChatbot.tsx`          |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI chỉ ra các file code chatbot đang bị để lộn xộn ngoài folder chính, sau đó hướng dẫn dọn dẹp chuyển Controller về đúng module chatbot. AI cũng viết code phụ phần đồng bộ session ID từ bong bóng chat nổi qua trang chat lớn, chỉ cách sửa câu lệnh GROUP BY bị lỗi và phụ sửa các lỗi đỏ trong file Java/TypeScript khi build.
+```
+
+---
+
+# [Phase 21] Lộ trình: AI Guardrails - Bộ lọc an toàn thông tin (Planned)
+
+## Dự kiến thực hiện
+
+```text
+03/07/2026 - 04/07/2026
+```
+
+## Nội dung kế hoạch
+
+- **Bộ lọc an toàn (Backend)**: Tích hợp bộ lọc từ khóa nhạy cảm và ngăn chặn Prompt Injection tại `ContentGuardrailService` trước khi gửi câu hỏi qua API LLM.
+- **Cảnh báo phía người dùng (Frontend)**: Hiển thị cảnh báo đỏ và chặn không cho gửi nếu người dân cố tình nhập các câu hỏi vi phạm tiêu chuẩn đạo đức hoặc quy định của thành phố.
+
+---
+
+# [Phase 22] Lộ trình: Tối ưu N+1 Query & Caching hiệu năng (Planned)
+
+## Dự kiến thực hiện
+
+```text
+05/07/2026 - 06/07/2026
+```
+
+## Nội dung kế hoạch
+
+- **Khắc phục N+1 Query**: Refactor toàn bộ các truy vấn JpaRepository trong `CampaignServiceImpl.java` và `FeedbackService.java` bằng cách áp dụng `@EntityGraph` hoặc `JOIN FETCH` để giảm từ 81 câu lệnh SQL xuống còn 1 câu duy nhất khi tải trang danh sách.
+- **Bộ nhớ đệm (Caching)**: Cài đặt Redis Cache cho các API xem thông tin chiến dịch tĩnh dành cho khách vãng lai để bảo vệ Database khi có lượng truy cập cao đột biến.
+
+---
+
+# [Phase 23] Lộ trình: Multilingual AI & Speech-to-Text đa ngôn ngữ (Planned)
+
+## Dự kiến thực hiện
+
+```text
+07/07/2026 - 08/07/2026
+```
+
+## Nội dung kế hoạch
+
+- **Nhập giọng nói thông minh**: Tích hợp Web Speech API cho phép người dùng nhập câu hỏi bằng giọng nói cả tiếng Anh lẫn tiếng Việt.
+- **Đa ngôn ngữ RAG**: Tự động nhận diện ngôn ngữ yêu cầu (Language Detection) để truy xuất các văn bản pháp luật bằng ngôn ngữ phù hợp từ Vector DB, phục vụ khách du lịch nước ngoài.
+
+---
+
+# [Phase 24] Lộ trình: AI-Powered Analytics & Biểu đồ thống kê (Planned)
+
+## Dự kiến thực hiện
+
+```text
+09/07/2026 - 10/07/2026
+```
+
+## Nội dung kế hoạch
+
+- **Vẽ biểu đồ tương tác**: Sử dụng thư viện Recharts để trực quan hóa số lượng và trạng thái xử lý phản ánh theo từng địa bàn Phường/Quận.
+- **AI Phân tích số liệu**: Tích hợp Copilot cho phép cán bộ đô thị đặt câu hỏi dạng *"Thống kê giúp tôi các lỗi kẹt xe ở quận Hải Châu tháng vừa rồi"* và AI sẽ tự giải thích số liệu biểu đồ bằng văn bản.
+
+---
+
+# [Phase 25] Lộ trình: Dockerization & VPS Cloud Deployment (Planned)
+
+## Dự kiến thực hiện
+
+```text
+11/07/2026 - 12/07/2026
+```
+
+## Nội dung kế hoạch
+
+- **Đóng gói container**: Viết tệp cấu hình `Dockerfile` và `Docker Compose` đóng gói toàn bộ Frontend, Backend, và PostgreSQL + PostGIS.
+- **Triển khai Cloud**: Hướng dẫn thiết lập máy chủ VPS (Ubuntu), cài đặt SSL Let's Encrypt và deploy dự án lên môi trường thực tế để sẵn sàng bàn giao sản phẩm.
+
+---
+
+# Hướng phát triển tương lai: Thay thế các dịch vụ Giả lập (Planned - Future Integration)
+
+Dự án hiện tại đang sử dụng một số dịch vụ mock (giả lập) để phục vụ cho mục đích demo và tiết kiệm chi phí. Khi triển khai thực tế, mình lên kế hoạch thay thế chúng bằng các kết nối thật như sau:
+
+*   **SMS OTP (Xác thực đăng ký/đăng nhập):**
+    *   *Phương án:* Tích hợp Twilio SMS API hoặc dịch vụ eSMS.vn.
+    *   *Hoạt động:* Gọi API gửi mã OTP ngẫu nhiên về điện thoại người dân khi đăng ký, lưu mã kèm thời gian hết hạn 3-5 phút vào database để kiểm tra chéo.
+*   **Email OTP (Xác thực quên mật khẩu):**
+    *   *Phương án:* Sử dụng Spring Mail kết nối với Gmail SMTP hoặc dịch vụ Amazon SES.
+    *   *Hoạt động:* Tự động gửi email chứa mã OTP được format bằng HTML đẹp mắt về hòm thư người dùng để mở khóa/quên mật khẩu.
+*   **Mô hình AI & Embedding (Chế độ dự phòng):**
+    *   *Phương án:* Nâng cấp lên gói trả phí Gemini API (Paid Tier) để mở khóa giới hạn Rate Limit, kết hợp cài đặt mô hình Ollama (Llama 3) chạy offline trên máy chủ riêng của thành phố Đà Nẵng để dự phòng khi đứt cáp Internet.
+*   **Weather Tool (Gọi công cụ thời tiết):**
+    *   *Phương án:* Kết nối với OpenWeatherMap API hoặc AccuWeather API.
+    *   *Hoạt động:* Gọi API thật truyền tọa độ Đà Nẵng để lấy thông tin thời tiết thực tế rồi ghép vào câu trả lời của chatbot Bé Rồng.
+
 ---
 
 # 5. Cam kết cập nhật Changelog
@@ -756,5 +917,6 @@ thực hiện trong quá trình làm bài tập/project.
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 | ----------------------- | ------------- |
-| Phạm Bá Trí             | 2026-06-27    |
+| Phạm Bá Trí             | 2026-07-01    |
+
 

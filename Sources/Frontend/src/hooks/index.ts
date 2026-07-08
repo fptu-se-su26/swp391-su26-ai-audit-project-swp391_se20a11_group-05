@@ -90,11 +90,12 @@ export function useFeedbackStatuses() {
   });
 }
 
-export function useFeedbackDetail(id: string | number) {
+export function useFeedbackDetail(id: string | number, options?: { enabled?: boolean }) {
   return useQuery<FeedbackResponse>({
     queryKey: queryKeys.feedbacks.detail(id),
     queryFn: () => feedbackApi.getById(id),
-    enabled: !!id,
+    ...options,
+    enabled: options?.enabled !== false && !!id,
   });
 }
 
@@ -148,11 +149,12 @@ export function useRecentPublicFeedback(limit = 5, filters: FeedbackListFilters 
   });
 }
 
-export function usePublicFeedbackDetail(id: string | number) {
+export function usePublicFeedbackDetail(id: string | number, options?: { enabled?: boolean }) {
   return useQuery<FeedbackResponse>({
     queryKey: queryKeys.feedbacks.publicDetail(id),
     queryFn: () => feedbackApi.getPublicById(id),
-    enabled: !!id,
+    ...options,
+    enabled: options?.enabled !== false && !!id,
   });
 }
 

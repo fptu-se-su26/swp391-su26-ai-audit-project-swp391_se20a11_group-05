@@ -264,6 +264,101 @@ Chưa commit. Sau khi commit có thể bổ sung hash/link commit vào đây.
 Thay đổi này tập trung vào security và UX của đăng nhập.
 Cần chạy lại backend test/build và kiểm tra thủ công hai cổng /login, /authority-login trước khi merge.
 ```
+---
+
+# [Phase 04 - Tiếp tục] Tối ưu hóa Điểm danh, Lịch sử Hoạt động & Đồng bộ Trạng thái Chiến dịch
+
+## Ngày thực hiện
+
+```text
+06/07/2026
+```
+
+## Đã hoàn thành
+
+- [x] Tích hợp xem tóm tắt lịch sử hoạt động của Tình nguyện viên trong hồ sơ công dân (`CitizenProfileModal.tsx`).
+- [x] Tách biệt kết quả điểm danh khỏi trạng thái đăng ký của chiến dịch (giữ trạng thái `APPROVED` cho cả người vắng mặt, ghi nhận cờ `attended = false`).
+- [x] Tối ưu hóa câu truy vấn đếm số chiến dịch vắng mặt, tương thích ngược với dữ liệu cũ (`NO_SHOW` cũ và `attended = false` mới).
+- [x] Khắc phục lỗi hiển thị sai lệch trạng thái chiến dịch do không đồng bộ múi giờ (UTC vs GMT+7) giữa Frontend và Backend.
+- [x] Đồng bộ các API kiểm tra trạng thái temporal của chiến dịch tại Backend Service để khớp 100% dữ liệu hiển thị.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Thêm API endpoint và UI click-to-expand xem lịch sử hoạt động của tình nguyện viên | Phan Thanh Bình | CampaignParticipantResponse.java; CampaignParticipantRepository.java; CampaignServiceImpl.java; CampaignController.java; api.ts; CitizenProfileModal.tsx | |
+| 2 | Sửa đổi logic mark vắng mặt giữ nguyên APPROVED và set attended = false. Bổ sung JPA Query đếm số lần vắng mặt có toán tử OR tương thích dữ liệu cũ. | Phan Thanh Bình | CampaignParticipantRepository.java; UserMapper.java; CampaignServiceImpl.java; CampaignScheduler.java | |
+| 3 | Sửa đổi và đồng bộ cách so sánh thời gian temporal trạng thái chiến dịch dựa trên milliseconds chuẩn múi giờ | Phan Thanh Bình | campaignStore.ts; CampaignServiceImpl.java; Campaign.java | |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI đề xuất query JPA và cấu trúc layout click-to-expand ban đầu cho phần lịch sử hoạt động. Đối với điểm danh và lệch múi giờ, AI gợi ý hướng thiết kế tách biệt trạng thái và xử lý UTC Date. Sinh viên chủ động tối ưu lớp bảo mật API (existsByCitizenIdAndWardId), logic lưu trữ audit log (không xóa thông tin người duyệt khi vắng mặt), và tự đồng bộ logic múi giờ từ Entity lên Service.
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+mvn compile: PASS; npx tsc --noEmit: PASS.
+```
+
+## Ghi chú
+
+```text
+Mọi thay đổi đã được compile và test cục bộ thành công. Sẵn sàng tích hợp và merge.
+```
+
+---
+
+# [Phase 04 - Tiếp tục] Cải thiện Bố cục Giao diện Khung chat (Chat UI Layout Improvement)
+
+## Ngày thực hiện
+
+```text
+07/07/2026
+```
+
+## Đã hoàn thành
+
+- [x] Tăng giới hạn độ rộng container tin nhắn và thanh nhập liệu từ `max-w-2xl` / `max-w-3xl` lên `max-w-5xl` để giảm khoảng trống 2 bên.
+- [x] Mở rộng thanh chat input (từ `h-9` lên `h-11`) và tăng kích thước chữ, icon để cân đối tỷ lệ trên các màn hình rộng.
+- [x] Nâng font-size của tiêu đề nhóm chat và thông tin số lượng thành viên ở header để có bố cục hài hòa hơn.
+- [x] Loại bỏ hoàn toàn các cảnh báo linter liên quan đến kiểu `any` trong file `campaigns.$id.group-chat.tsx` để tối ưu chất lượng code.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Căn chỉnh `max-w-5xl`, tăng chiều cao input/button lên `h-11`, tăng cỡ font header, item chat | Phan Thanh Bình | WardChatDashboardPage.tsx; campaigns.$id.group-chat.tsx | |
+| 2 | Thay đổi kiểu dữ liệu từ `any` sang các kiểu tường minh (`unknown`, object type định dạng sẵn) để làm sạch code | Phan Thanh Bình | campaigns.$id.group-chat.tsx | |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI phân tích các class hạn chế chiều ngang (max-w) của Tailwind và gợi ý giải pháp tăng container. Sinh viên tự rà soát, căn chỉnh lại các tỷ lệ font chữ xung quanh (header, badges) để giữ giao diện cân đối và thực hiện refactor ép kiểu TypeScript thô ('any') thành kiểu dữ liệu an toàn.
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+npx tsc --noEmit: PASS; npx eslint: PASS.
+```
+
+## Ghi chú
+
+```text
+Giao diện chat sau khi mở rộng trông thoáng và dễ đọc hơn rất nhiều trên màn hình Desktop mà vẫn giữ responsive tốt trên Mobile. Việc dọn linter giúp nhánh code an toàn để chuẩn bị merge.
+```
 
 ---
 

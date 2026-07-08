@@ -38,6 +38,8 @@ import {
   BarChart3,
   Settings,
   Plus,
+  ShieldAlert,
+  MessageSquare,
 } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { toast } from "sonner";
@@ -49,14 +51,24 @@ import { WardFeedbackManagementPage } from "./WardFeedbackManagementPage";
 import { WardCampaignPage } from "./WardCampaignPage";
 import { WardProfileConfigPage } from "./WardProfileConfigPage";
 import { WardStatisticsPage } from "./WardStatisticsPage";
+import WardBlacklistPage from "./WardBlacklistPage";
+import { WardChatDashboardPage } from "./WardChatDashboardPage";
 
-const CivicMap = clientOnly(() =>
-  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
+const CivicMap = clientOnly(
+  () => import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
 ) as any;
 
 import { WARD_CENTERS } from "@/lib/geojson";
 
-type WardSection = "overview" | "feedback" | "campaign" | "statistics" | "schedule" | "config";
+type WardSection =
+  | "overview"
+  | "feedback"
+  | "campaign"
+  | "statistics"
+  | "schedule"
+  | "config"
+  | "blacklist"
+  | "chat";
 
 // Date formatting helper
 function formatDate(dateStr: string, includeTime = true): string {
@@ -101,8 +113,6 @@ const mapCategoryName = (name: string | null | undefined): string => {
   return "Hạ tầng đô thị";
 };
 
-
-
 export function WardDashboard() {
   const { locale } = useI18n();
   const navigate = useNavigate();
@@ -117,8 +127,21 @@ export function WardDashboard() {
   const [userOpen, setUserOpen] = useState(false);
   const { tab, detailId } = Route.useSearch();
   const activeSection = (
-    tab && (["overview", "feedback", "campaign", "statistics", "schedule", "config"].includes(tab) || tab.startsWith("campaign/"))
-      ? (tab.startsWith("campaign/") ? "campaign" : tab)
+    tab &&
+    ([
+      "overview",
+      "feedback",
+      "campaign",
+      "statistics",
+      "schedule",
+      "config",
+      "blacklist",
+      "chat",
+    ].includes(tab) ||
+      tab.startsWith("campaign/"))
+      ? tab.startsWith("campaign/")
+        ? "campaign"
+        : tab
       : "overview"
   ) as WardSection;
 
@@ -556,20 +579,32 @@ export function WardDashboard() {
       }
       const feedbackId = item.feedbackId ?? item.referenceId;
       if (feedbackId) {
-        if (user?.role === Role.WARD_STAFF) {
-          navigate({ to: "/ward", search: { tab: "feedback", detailId: String(feedbackId) } });
+        if (item.type?.startsWith("CAMPAIGN")) {
+          if (user?.role === Role.WARD_STAFF) {
+            navigate({ to: "/ward", search: { tab: "campaign", detailId: String(feedbackId) } });
+          } else {
+            navigate({ to: "/campaigns/$id", params: { id: String(feedbackId) } });
+          }
         } else {
-          navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
+          if (user?.role === Role.WARD_STAFF) {
+            navigate({ to: "/ward", search: { tab: "feedback", detailId: String(feedbackId) } });
+          } else {
+            navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
+          }
         }
       }
-    } catch {}
+    } catch (e) {
+      // Ignore error
+    }
   };
 
   const handleLogout = async () => {
     const loginPath = getLoginPathForRole(user?.role);
     try {
       await authApi.logout().catch(() => {});
-    } catch {}
+    } catch (e) {
+      // Ignore error
+    }
     logout();
     queryClient.clear();
     navigate({ to: loginPath });
@@ -589,7 +624,9 @@ export function WardDashboard() {
     { name: "Tổng quan", section: "overview" as const, icon: Sliders },
     { name: "Phản ánh", section: "feedback" as const, icon: FileText },
     { name: "Chiến dịch", section: "campaign" as const, icon: Activity },
+    { name: "Tin nhắn", section: "chat" as const, icon: MessageSquare },
     { name: "Thống kê", section: "statistics" as const, icon: BarChart3 },
+    { name: "Danh sách chặn", section: "blacklist" as const, icon: ShieldAlert },
     { name: "Cấu hình", section: "config" as const, icon: Settings },
   ];
 
@@ -709,6 +746,11 @@ export function WardDashboard() {
                   Theo dõi và điều phối các chiến dịch cộng đồng trên địa bàn
                 </span>
               )}
+              {activeSection === "chat" && (
+                <span className="text-[11px] text-slate-400 font-medium mt-0.5 block">
+                  Trò chuyện nhóm và truyền thông hoạt động chiến dịch với người dân
+                </span>
+              )}
               {activeSection === "statistics" && (
                 <span className="text-[11px] text-slate-400 font-medium mt-0.5 block">
                   Phân tích xu hướng, tỷ lệ xử lý và các điểm cần ưu tiên trong địa bàn phụ trách
@@ -766,7 +808,7 @@ export function WardDashboard() {
               </div>
             )}
 
-            {activeSection === "campaign" && !detailId && (
+            {activeSection === "campaign" && !detailId && tab !== "campaign/create" && (
               <button
                 onClick={() => navigate({ to: "/ward", search: { tab: "campaign/create" } })}
                 className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#0F5BD8] px-3.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#0B4FC0] active:scale-[0.98] mr-2 cursor-pointer"
@@ -871,15 +913,11 @@ export function WardDashboard() {
                       ))
                     )}
                   </div>
-                  <div className="pt-2 text-center border-t border-slate-100">
-                    <Link
-                      to="/notifications"
-                      onClick={() => setNotifOpen(false)}
-                      className="text-xs font-bold text-indigo-600 hover:underline inline-block py-1"
-                    >
-                      Xem tất cả thông báo
-                    </Link>
-                  </div>
+                  {notifications.length > 5 && (
+                    <div className="pt-2 text-center border-t border-slate-100 text-[10px] font-semibold text-slate-400">
+                      Hiển thị 5 thông báo mới nhất
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -918,7 +956,8 @@ export function WardDashboard() {
                     </div>
                   </div>
                   <Link
-                    to="/profile"
+                    to="/ward"
+                    search={{ tab: "config" }}
                     onClick={() => setUserOpen(false)}
                     className="w-full text-left px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition flex items-center gap-2.5"
                   >
@@ -1055,7 +1094,8 @@ export function WardDashboard() {
                       {
                         key: "PENDING",
                         label: "Chờ xử lý",
-                        color: "bg-indigo-50/50 text-indigo-700 border-indigo-100/30 hover:border-indigo-100",
+                        color:
+                          "bg-indigo-50/50 text-indigo-700 border-indigo-100/30 hover:border-indigo-100",
                         activeColor: "bg-indigo-600 text-white border-indigo-600",
                       },
                       {
@@ -1087,9 +1127,7 @@ export function WardDashboard() {
                             setActiveTaskGroupFilter(null);
                           }}
                           className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border transition-all duration-200 active:scale-[0.97] ${
-                            isActive
-                              ? chip.activeColor
-                              : `${chip.color} cursor-pointer`
+                            isActive ? chip.activeColor : `${chip.color} cursor-pointer`
                           }`}
                         >
                           <span>{chip.label}</span>
@@ -1107,15 +1145,14 @@ export function WardDashboard() {
                     {activeTaskGroupFilter && (
                       <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#E8F0FE] text-indigo-600 border border-indigo-100 animate-fadeIn">
                         <span>
-                          Bộ lọc công việc: {
-                            activeTaskGroupFilter === "OVERDUE_RECEIVE"
-                              ? "Quá hạn tiếp nhận"
-                              : activeTaskGroupFilter === "PENDING_12H"
-                                ? "Chờ xử lý > 12 giờ"
-                                : activeTaskGroupFilter === "WAITING_INFO"
-                                  ? "Yêu cầu bổ sung"
-                                  : "Đã chuyển liên ngành"
-                          }
+                          Bộ lọc công việc:{" "}
+                          {activeTaskGroupFilter === "OVERDUE_RECEIVE"
+                            ? "Quá hạn tiếp nhận"
+                            : activeTaskGroupFilter === "PENDING_12H"
+                              ? "Chờ xử lý > 12 giờ"
+                              : activeTaskGroupFilter === "WAITING_INFO"
+                                ? "Yêu cầu bổ sung"
+                                : "Đã chuyển liên ngành"}
                         </span>
                         <button
                           type="button"
@@ -1165,7 +1202,9 @@ export function WardDashboard() {
                     {/* Sidebar Scrollable Feedback List */}
                     <div className="w-full md:w-80 flex flex-col h-full bg-slate-50/50 shrink-0 border-t md:border-t-0 md:border-l border-slate-100">
                       <div className="p-3 border-b border-slate-100 bg-white font-bold text-xs text-slate-400 flex items-center justify-between shrink-0">
-                        <span className="text-[10px] uppercase tracking-wider">DANH SÁCH PHẢN ÁNH</span>
+                        <span className="text-[10px] uppercase tracking-wider">
+                          DANH SÁCH PHẢN ÁNH
+                        </span>
                         <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold">
                           {filteredFeedbacks.length}
                         </span>
@@ -1268,105 +1307,109 @@ export function WardDashboard() {
                       </button>
                     </div>
                     <div className="space-y-3">
-                      {feedbacksLoading ? (
-                        [1, 2, 3, 4].map((i) => (
-                          <div key={i} className="flex gap-3 animate-pulse py-2">
-                            <div className="w-3 h-3 bg-slate-100 rounded-full shrink-0" />
-                            <div className="flex-1 space-y-2">
-                              <div className="h-3 bg-slate-100 rounded w-1/3" />
-                              <div className="h-2.5 bg-slate-100 rounded w-2/3" />
+                      {feedbacksLoading
+                        ? [1, 2, 3, 4].map((i) => (
+                            <div key={i} className="flex gap-3 animate-pulse py-2">
+                              <div className="w-3 h-3 bg-slate-100 rounded-full shrink-0" />
+                              <div className="flex-1 space-y-2">
+                                <div className="h-3 bg-slate-100 rounded w-1/3" />
+                                <div className="h-2.5 bg-slate-100 rounded w-2/3" />
+                              </div>
                             </div>
-                          </div>
-                        ))
-                      ) : (
-                        [
-                          {
-                            key: "OVERDUE_RECEIVE" as const,
-                            title: "Quá hạn tiếp nhận",
-                            desc: "Phản ánh chờ tiếp nhận quá 24 giờ",
-                            color: "bg-rose-500",
-                            textColor: "text-rose-700",
-                            bgColor: "bg-rose-50/70",
-                            borderColor: "border-rose-100/50",
-                            activeBorderColor: "border-rose-400",
-                            count: taskGroupCounts.OVERDUE_RECEIVE,
-                          },
-                          {
-                            key: "PENDING_12H" as const,
-                            title: "Chờ xử lý > 12 giờ",
-                            desc: "Sắp quá hạn xử lý",
-                            color: "bg-amber-500",
-                            textColor: "text-amber-700",
-                            bgColor: "bg-amber-50/70",
-                            borderColor: "border-amber-100/50",
-                            activeBorderColor: "border-amber-400",
-                            count: taskGroupCounts.PENDING_12H,
-                          },
-                          {
-                            key: "WAITING_INFO" as const,
-                            title: "Yêu cầu bổ sung thông tin",
-                            desc: "Đang chờ người dân phản hồi",
-                            color: "bg-indigo-500",
-                            textColor: "text-indigo-700",
-                            bgColor: "bg-indigo-50/70",
-                            borderColor: "border-indigo-100/50",
-                            activeBorderColor: "border-indigo-400",
-                            count: taskGroupCounts.WAITING_INFO,
-                          },
-                          {
-                            key: "TRANSFERRED" as const,
-                            title: "Đã chuyển liên ngành",
-                            desc: "Cần theo dõi tiến độ phối hợp",
-                            color: "bg-purple-500",
-                            textColor: "text-purple-700",
-                            bgColor: "bg-purple-50/70",
-                            borderColor: "border-purple-100/50",
-                            activeBorderColor: "border-purple-400",
-                            count: taskGroupCounts.TRANSFERRED,
-                          },
-                        ].map((group) => {
-                          const isZero = group.count === 0;
-                          const isActive = activeTaskGroupFilter === group.key;
-                          return (
-                            <button
-                              key={group.key}
-                              type="button"
-                              onClick={() => {
-                                if (isActive) {
-                                  setActiveTaskGroupFilter(null);
-                                } else {
-                                  setActiveTaskGroupFilter(group.key);
-                                  setActiveStatusFilter("ALL");
-                                }
-                              }}
-                              className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all duration-200 text-left ${
-                                isActive
-                                  ? `${group.bgColor} border-2 ${group.activeBorderColor} shadow-sm`
-                                  : isZero
-                                    ? "bg-white border-slate-100 opacity-40 hover:opacity-100 hover:border-slate-200 cursor-pointer"
-                                    : "bg-white border-slate-100 hover:border-slate-200 hover:shadow-sm cursor-pointer"
-                              }`}
-                            >
-                              <div className="flex items-center gap-3 min-w-0">
-                                <span className={`w-2 h-2 rounded-full shrink-0 ${group.color}`} />
-                                <div className="min-w-0">
-                                  <span className={`text-xs font-bold block truncate ${isZero ? "text-slate-500 font-medium" : "text-slate-800"}`}>
-                                    {group.title}
-                                  </span>
-                                  <span className="text-[10px] text-slate-400 font-medium block truncate mt-1">
-                                    {group.desc}
+                          ))
+                        : [
+                            {
+                              key: "OVERDUE_RECEIVE" as const,
+                              title: "Quá hạn tiếp nhận",
+                              desc: "Phản ánh chờ tiếp nhận quá 24 giờ",
+                              color: "bg-rose-500",
+                              textColor: "text-rose-700",
+                              bgColor: "bg-rose-50/70",
+                              borderColor: "border-rose-100/50",
+                              activeBorderColor: "border-rose-400",
+                              count: taskGroupCounts.OVERDUE_RECEIVE,
+                            },
+                            {
+                              key: "PENDING_12H" as const,
+                              title: "Chờ xử lý > 12 giờ",
+                              desc: "Sắp quá hạn xử lý",
+                              color: "bg-amber-500",
+                              textColor: "text-amber-700",
+                              bgColor: "bg-amber-50/70",
+                              borderColor: "border-amber-100/50",
+                              activeBorderColor: "border-amber-400",
+                              count: taskGroupCounts.PENDING_12H,
+                            },
+                            {
+                              key: "WAITING_INFO" as const,
+                              title: "Yêu cầu bổ sung thông tin",
+                              desc: "Đang chờ người dân phản hồi",
+                              color: "bg-indigo-500",
+                              textColor: "text-indigo-700",
+                              bgColor: "bg-indigo-50/70",
+                              borderColor: "border-indigo-100/50",
+                              activeBorderColor: "border-indigo-400",
+                              count: taskGroupCounts.WAITING_INFO,
+                            },
+                            {
+                              key: "TRANSFERRED" as const,
+                              title: "Đã chuyển liên ngành",
+                              desc: "Cần theo dõi tiến độ phối hợp",
+                              color: "bg-purple-500",
+                              textColor: "text-purple-700",
+                              bgColor: "bg-purple-50/70",
+                              borderColor: "border-purple-100/50",
+                              activeBorderColor: "border-purple-400",
+                              count: taskGroupCounts.TRANSFERRED,
+                            },
+                          ].map((group) => {
+                            const isZero = group.count === 0;
+                            const isActive = activeTaskGroupFilter === group.key;
+                            return (
+                              <button
+                                key={group.key}
+                                type="button"
+                                onClick={() => {
+                                  if (isActive) {
+                                    setActiveTaskGroupFilter(null);
+                                  } else {
+                                    setActiveTaskGroupFilter(group.key);
+                                    setActiveStatusFilter("ALL");
+                                  }
+                                }}
+                                className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all duration-200 text-left ${
+                                  isActive
+                                    ? `${group.bgColor} border-2 ${group.activeBorderColor} shadow-sm`
+                                    : isZero
+                                      ? "bg-white border-slate-100 opacity-40 hover:opacity-100 hover:border-slate-200 cursor-pointer"
+                                      : "bg-white border-slate-100 hover:border-slate-200 hover:shadow-sm cursor-pointer"
+                                }`}
+                              >
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <span
+                                    className={`w-2 h-2 rounded-full shrink-0 ${group.color}`}
+                                  />
+                                  <div className="min-w-0">
+                                    <span
+                                      className={`text-xs font-bold block truncate ${isZero ? "text-slate-500 font-medium" : "text-slate-800"}`}
+                                    >
+                                      {group.title}
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 font-medium block truncate mt-1">
+                                      {group.desc}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <span
+                                    className={`text-xs font-bold font-mono px-2.5 py-0.5 rounded-full ${isZero ? "bg-slate-50 text-slate-400" : `${group.bgColor} ${group.textColor}`}`}
+                                  >
+                                    {group.count}
                                   </span>
                                 </div>
-                              </div>
-                              <div className="text-right shrink-0">
-                                <span className={`text-xs font-bold font-mono px-2.5 py-0.5 rounded-full ${isZero ? "bg-slate-50 text-slate-400" : `${group.bgColor} ${group.textColor}`}`}>
-                                  {group.count}
-                                </span>
-                              </div>
-                            </button>
-                          );
-                        })
-                      )}
+                              </button>
+                            );
+                          })}
                     </div>
                   </div>
                   <div className="pt-2 text-[10px] text-slate-400 font-bold italic text-center border-t border-slate-50 shrink-0">
@@ -1385,7 +1428,8 @@ export function WardDashboard() {
                         Phản ánh theo lĩnh vực
                       </h3>
                       <Link
-                        to="/my-reports"
+                        to="/ward"
+                        search={{ tab: "feedback" }}
                         className="text-xs font-bold text-indigo-600 hover:text-indigo-700 transition"
                       >
                         Xem chi tiết
@@ -1435,7 +1479,8 @@ export function WardDashboard() {
                         Phản ánh ưu tiên cao
                       </h3>
                       <Link
-                        to="/my-reports"
+                        to="/ward"
+                        search={{ tab: "feedback" }}
                         className="text-xs font-bold text-indigo-600 hover:text-indigo-700 transition"
                       >
                         Xem tất cả →
@@ -1444,7 +1489,10 @@ export function WardDashboard() {
                     <div className="space-y-3">
                       {feedbacksLoading ? (
                         [1, 2, 3].map((i) => (
-                          <div key={i} className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
+                          <div
+                            key={i}
+                            className="rounded-xl border border-slate-100 bg-slate-50/60 p-4"
+                          >
                             <div className="flex items-start justify-between gap-3">
                               <div className="space-y-2">
                                 <Skeleton className="h-3 w-20" />
@@ -1478,7 +1526,8 @@ export function WardDashboard() {
                                 : grp === "RESOLVED"
                                   ? {
                                       label: "Đã xử lý",
-                                      className: "bg-emerald-50 border-emerald-100 text-emerald-700",
+                                      className:
+                                        "bg-emerald-50 border-emerald-100 text-emerald-700",
                                     }
                                   : grp === "REJECTED"
                                     ? {
@@ -1517,7 +1566,10 @@ export function WardDashboard() {
                                         {mapCategoryName(row.categoryName)}
                                       </b>
                                     </span>
-                                    <span className="truncate" title={row.addressDetails || row.address || "Tân Bình"}>
+                                    <span
+                                      className="truncate"
+                                      title={row.addressDetails || row.address || "Tân Bình"}
+                                    >
                                       Địa chỉ: {row.addressDetails || row.address || "Tân Bình"}
                                     </span>
                                     <span className="font-mono text-slate-400 text-[10px]">
@@ -1698,7 +1750,8 @@ export function WardDashboard() {
                           : "Tất cả thời gian"}
                       </p>
                       <Link
-                        to="/my-reports"
+                        to="/ward"
+                        search={{ tab: "feedback" }}
                         className="text-[10px] font-extrabold text-indigo-600 hover:underline mt-3 block"
                       >
                         Xem chi tiết
@@ -1827,7 +1880,10 @@ export function WardDashboard() {
                         ))
                       ) : todayFeedbacks.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="px-6 py-8 text-center text-xs font-bold text-slate-400">
+                          <td
+                            colSpan={7}
+                            className="px-6 py-8 text-center text-xs font-bold text-slate-400"
+                          >
                             Hôm nay chưa có phản ánh mới chờ xử lý.
                           </td>
                         </tr>
@@ -1905,8 +1961,12 @@ export function WardDashboard() {
             </>
           ) : activeSection === "campaign" ? (
             <WardCampaignPage hideHeader={true} />
+          ) : activeSection === "chat" ? (
+            <WardChatDashboardPage />
           ) : activeSection === "statistics" ? (
             <WardStatisticsPage range={statsRange} setRange={setStatsRange} hideHeader={true} />
+          ) : activeSection === "blacklist" ? (
+            <WardBlacklistPage />
           ) : activeSection === "config" ? (
             <WardProfileConfigPage
               user={user}
@@ -1930,11 +1990,7 @@ export function WardDashboard() {
   );
 }
 
-function WardSectionPlaceholder({
-  section,
-}: {
-  section: "schedule";
-}) {
+function WardSectionPlaceholder({ section }: { section: "schedule" }) {
   const labels: Record<"schedule", { title: string; description: string }> = {
     schedule: {
       title: "L\u1ecbch ti\u1ebfp c\u00f4ng d\u00e2n",

@@ -389,6 +389,357 @@ Qua quá trình tự tìm tòi và phản biện giải pháp này:
 
 ---
 
+### Lần sử dụng AI số 5
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 02/07/2026 |
+| Công cụ AI | Antigravity / Claude |
+| Mục đích sử dụng | Tham khảo ý kiến và nhờ sinh khung code mẫu để hiện thực hóa ý tưởng thiết kế "Chế độ thông báo" (Announcement Mode) và Menu tùy chọn chat |
+| Phần việc liên quan | Backend / Frontend / UI Design |
+| Mức độ sử dụng | Hỗ trợ một phần |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+Tôi đang tự thiết kế tính năng hạn chế gửi tin nhắn cho người dân trong nhóm chat chiến dịch khi có thông báo quan trọng từ chính quyền (gọi là Announcement Mode).
+Ý tưởng của tôi như sau:
+1. Ban quản trị sẽ có một menu CampaignChatMenu (chứa Quản lý thông báo, Thư viện, Tin nhắn ghim) và một nút toggle bật/tắt chế độ thông báo này.
+2. Khi bật, người dân thường sẽ bị ẩn ô nhập chat, thay vào đó hiển thị một banner thông báo màu sắc nổi bật giống kiểu của Zalo để họ biết họ đang bị chặn chat.
+3. Trạng thái bật/tắt này phải được lưu trong DB backend để khi người dùng F5 hoặc vào lại nhóm chat vẫn không bị mất trạng thái.
+
+Hãy gợi ý cho tôi cấu trúc code React hợp lý cho component CampaignChatMenu, và cách tổ chức luồng dữ liệu (data flow) từ thực thể Campaign (Backend) thông qua DTO để đồng bộ trực tiếp lên giao diện Frontend.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đánh giá cao ý tưởng thiết kế trải nghiệm người dùng (UX) và đề xuất:
+- Cung cấp khung code React (boilerplate) cho dropdown menu CampaignChatMenu.
+- Gợi ý bổ sung thuộc tính boolean `announcementMode` vào Campaign Entity ở Backend, và truyền qua DTO CampaignResponse để Frontend dễ dàng bắt được trạng thái thực tế của phòng chat.
+- Đưa ra đoạn code mẫu điều kiện render ở route `campaigns.$id.group-chat.tsx` để chuyển đổi giữa ô ChatInput và Banner thông báo.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Sử dụng khung cấu trúc code dropdown menu do AI sinh ra để tiết kiệm thời gian code giao diện thô.
+- Áp dụng cấu trúc truyền dữ liệu thông qua DTO từ Backend lên Frontend để đồng bộ cờ `announcementMode`.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Critical Thinking:
+- AI gợi ý chỉ cần ẩn nút gửi tin nhắn hoặc hiển thị một đoạn text đơn giản. Tôi thấy thiết kế đó chưa đủ rõ ràng và có thể khiến người dân nghĩ ứng dụng bị lỗi. Do đó, tôi đã tự thiết kế một Banner thông báo bo góc, đổ bóng (style Premium) cùng với một nút "Tìm hiểu thêm". Khi bấm vào nút này sẽ kích hoạt Toast thông báo giải thích rõ ràng lý do phòng chat bị khóa.
+
+Contextualization:
+- Tránh việc cán bộ vô tình click nhầm nút toggle làm gián đoạn cuộc hội thoại của hàng ngàn người dân. Tôi đã tự viết thêm một Confirmation Dialog (hộp thoại xác nhận) ở Frontend trước khi gửi API yêu cầu bật/tắt chế độ thông báo lên Server.
+
+Creative Synthesis & Decision Ownership:
+- Tự thiết kế và viết CSS hoàn chỉnh cho component CampaignChatMenu và Banner thông báo để đồng bộ với ngôn ngữ thiết kế chung của dự án (màu sắc, khoảng cách, font chữ).
+- Viết logic xử lý lỗi kết nối: nếu API toggle thất bại, giao diện Frontend sẽ tự động quay về trạng thái cũ và hiển thị thông báo lỗi cho cán bộ.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | |
+| File liên quan | Sources/Frontend/src/components/chat/CampaignChatMenu.tsx;<br>Sources/Frontend/src/routes/campaigns.$id.group-chat.tsx;<br>Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/service/CampaignServiceImpl.java;<br>Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/entity/Campaign.java |
+| Screenshot | |
+| Kết quả chạy/test | Đã chạy thử thực tế và build thành công. Khi tài khoản người dân vào nhóm chat đang bật Announcement Mode, thanh chat lập tức chuyển sang banner thông báo chặn gửi tin nhắn, bấm "Tìm hiểu thêm" hiển thị Toast chuẩn xác. |
+| Link video demo | |
+| Ghi chú khác | Hoàn toàn tự chủ động thiết kế luồng UI/UX và logic phân quyền. |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+1) Việc tự nghiên cứu và lên thiết kế chi tiết trước khi hỏi AI giúp tôi làm chủ được mã nguồn, AI chỉ đóng vai trò là một người trợ lý viết code mẫu giúp tăng tốc tiến độ.
+2) Thiết kế giao diện hướng đến trải nghiệm người dùng (UX) tốt luôn đòi hỏi sự tỉ mỉ và tư duy thực tế của lập trình viên, điều mà AI khó tự động tối ưu hoàn hảo được.
+```
+
+---
+
+### Lần sử dụng AI số 6
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 02/07/2026 |
+| Công cụ AI | Antigravity / Gemini |
+| Mục đích sử dụng | Tối ưu hóa hiệu năng gửi tin nhắn/ảnh bằng kỹ thuật Optimistic UI Updates và cơ chế upload nhiều ảnh song song (parallel multi-image upload) |
+| Phần việc liên quan | Frontend / Hook Logic / API Integration |
+| Mức độ sử dụng | Hỗ trợ nhiều |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+Tôi đang viết tính năng gửi nhiều ảnh đính kèm (multi-image upload) trong chat chiến dịch. Để tối ưu trải nghiệm, tôi muốn tin nhắn và ảnh hiển thị ngay lập tức lên khung chat dưới trạng thái "đang gửi" (loading) mà không cần đợi API tải ảnh và API gửi tin nhắn hoàn tất (áp dụng Optimistic UI). 
+Hãy hướng dẫn tôi cách thiết lập state trong hook useCampaigns.ts để:
+1. Chèn ngay tin nhắn tạm thời kèm ảnh tạm (dùng local blob URL) vào danh sách tin nhắn hiện tại.
+2. Thực hiện upload đồng thời nhiều file ảnh bằng Promise.all.
+3. Khi API phản hồi thành công, thay thế tin nhắn tạm bằng dữ liệu thực tế từ database. Nếu thất bại, tự động rollback (xóa tin nhắn tạm) và báo lỗi cho người dùng.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đề xuất giải pháp chi tiết:
+- Sử dụng UUID tạm thời (Client-side generated ID) cho tin nhắn gửi đi để quản lý trạng thái hiển thị.
+- Tạo danh sách URL ảnh tạm thời bằng `URL.createObjectURL(file)` để preview lập tức trên khung chat.
+- Cách viết `Promise.all` gom các request upload ảnh song song để rút ngắn thời gian phản hồi từ server.
+- Sử dụng cấu trúc `try-catch-finally` để nếu phát sinh bất kỳ lỗi upload nào, sẽ thực hiện cập nhật lại state của hook để loại bỏ tin nhắn tạm đó (Rollback state).
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Sử dụng mô hình quản lý local state với UUID tạm thời để cập nhật tức thì (Optimistic UI) trong useCampaigns.ts.
+- Sử dụng giải pháp `Promise.all` để tối ưu hóa việc upload file song song lên Supabase Storage/Server.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Critical Thinking:
+- AI đề xuất một giải pháp rollback đơn giản là xóa sạch tin nhắn tạm khi có lỗi. Tuy nhiên, trong thực tế, nếu người dùng gửi 3 ảnh mà chỉ lỗi 1 ảnh, việc xóa sạch cả tin nhắn và các ảnh còn lại rất gây ức chế. Tôi đã tự cải tiến cấu trúc tin nhắn tạm bằng cách theo dõi trạng thái của từng ảnh riêng biệt (`AttachmentStatus`). Ảnh nào lỗi sẽ hiển thị nút "Gửi lại" (Retry), ảnh nào thành công sẽ giữ nguyên.
+
+Contextualization:
+- Tránh rò rỉ bộ nhớ (Memory Leak) do các URL tạm thời (`URL.createObjectURL`). Tôi tự viết thêm hàm dọn dẹp (clean-up) bằng `URL.revokeObjectURL` trong hook useEffect/finally block ngay sau khi quá trình upload hoàn tất hoặc bị hủy.
+
+Creative Synthesis & Decision Ownership:
+- Tự thiết kế Responsive Grid Layout tại component ChatBubble để hiển thị ảnh đính kèm: tự động điều chỉnh bố cục đẹp mắt tùy thuộc vào số lượng ảnh gửi lên (1 ảnh chiếm toàn bộ, 2 ảnh chia đôi, 3-4 ảnh dạng grid 2x2).
+- Tích hợp thêm AbortController để cho phép người dùng bấm hủy (Cancel) tiến trình upload ảnh nếu tệp quá nặng hoặc gửi nhầm.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | |
+| File liên quan | Sources/Frontend/src/hooks/useCampaigns.ts;<br>Sources/Frontend/src/routes/campaigns.$id.group-chat.tsx;<br>Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/service/CampaignServiceImpl.java |
+| Screenshot | |
+| Kết quả chạy/test | Đã chạy kiểm thử gửi đồng thời 4 ảnh dung lượng lớn: ảnh hiển thị dạng mờ kèm icon loading ngay lập tức trên UI, sau khi server phản hồi thành công, ảnh chuyển sang trạng thái hiển thị rõ nét mà không làm giật khung chat. |
+| Link video demo | |
+| Ghi chú khác | Nâng cao trải nghiệm người dùng bằng xử lý bất đồng bộ phức tạp ở Client. |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+1) Kỹ thuật Optimistic UI Updates giúp cảm giác ứng dụng phản hồi nhanh hơn gấp nhiều lần, rất quan trọng đối với các tính năng mang tính tương tác thời gian thực như Group Chat.
+2) Việc tự xử lý rollback chi tiết tới từng tệp đính kèm thay vì toàn bộ tin nhắn giúp tăng độ tin cậy và sự hài lòng từ phía người dùng cuối.
+
+---
+
+### Lần sử dụng AI số 7
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 06/07/2026 |
+| Công cụ AI | Antigravity / Gemini |
+| Mục đích sử dụng | Tái cấu trúc logic điểm danh chiến dịch (Decouple Attendance from Status) |
+| Phần việc liên quan | Backend / Frontend / API Design / Refactoring |
+| Mức độ sử dụng | Hỗ trợ một phần |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+Tôi đang tối ưu lại hệ thống điểm danh chiến dịch. Hiện tại, khi đánh dấu vắng mặt, hệ thống đang cập nhật joinStatus = 'NO_SHOW'. Điều này dẫn đến việc tình nguyện viên bị mất trạng thái APPROVED ban đầu (ảnh hưởng đến quyền tham gia chat nhóm hoặc xem chi tiết chiến dịch). 
+Tôi muốn chuyển sang phương án: giữ nguyên joinStatus = 'APPROVED' nhưng dùng cờ attended = false và ghi nhận thời điểm attendedAt.
+1. Hãy giúp tôi rà soát các hàm markNoShow, bulkSaveAttendance trong CampaignServiceImpl và autoEndExpiredCampaigns trong scheduler xem cần sửa đổi gì.
+2. Để đếm số lần vắng mặt tương thích ngược với dữ liệu cũ (vẫn có bản ghi joinStatus = 'NO_SHOW'), tôi nên viết câu query JPA như thế nào để tối ưu hiệu năng?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+- Gợi ý sửa đổi logic trong `CampaignServiceImpl` và `CampaignScheduler`: thay vì đổi `joinStatus` sang `NO_SHOW`, giữ nguyên `APPROVED`, chỉ gán `attended = false` và lưu thời gian `attendedAt`.
+- Đề xuất câu truy vấn JPA sử dụng `@Query` lồng toán tử logic `OR` để đếm chính xác số lần vắng mặt của tình nguyện viên cho cả hai trường hợp (cũ và mới).
+- Gợi ý điều chỉnh logic render tab ở React frontend để kiểm tra cả hai điều kiện trên.
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+- Áp dụng cấu trúc câu truy vấn JPA `@Query` lồng logic `OR` vào `CampaignParticipantRepository.java`.
+- Sử dụng khung logic được đề xuất cho việc cập nhật logic ở `CampaignServiceImpl.java` và `CampaignScheduler.java`.
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+- **Critical Thinking & Decision Ownership:** Nhóm nhận định việc xóa thông tin người duyệt (`approvedBy`, `approvedAt`) khi tình nguyện viên vắng mặt (như AI ban đầu đề xuất) là không hợp lý, vì họ vẫn được duyệt tham gia trước đó. Nhóm quyết định giữ lại các thông tin này để phục vụ mục đích kiểm toán sau này.
+- **Contextualization:** Chỉnh sửa thêm bộ lọc danh sách trong `CitizenProfileModal.tsx` và badge hiển thị trong `WardCampaignDetailPage.tsx` để đồng bộ hoàn chỉnh giao diện, tránh tình trạng giao diện hiển thị sai lệch thông tin điểm danh.
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | |
+| File liên quan | Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/repository/CampaignParticipantRepository.java;<br>Sources/Backend/src/main/java/com/example/smartcity/modules/user/mapper/UserMapper.java;<br>Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/service/CampaignServiceImpl.java;<br>Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/job/CampaignScheduler.java;<br>Sources/Frontend/src/components/chat/CitizenProfileModal.tsx;<br>Sources/Frontend/src/features/ward/WardCampaignDetailPage.tsx |
+| Screenshot | |
+| Kết quả chạy/test | mvn compile: PASS; npx tsc --noEmit: PASS |
+| Link video demo | |
+| Ghi chú khác | |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Nhóm nhận thức rõ tầm quan trọng của việc tách biệt cấu trúc nghiệp vụ (trạng thái đăng ký và kết quả thực tế) để dữ liệu không bị xung đột, đồng thời luôn chủ động phản biện các đề xuất của AI để giữ lại các thông tin lưu trữ cần thiết cho hệ thống kiểm toán sau này.
+```
+---
+
+### Lần sử dụng AI số 8
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 06/07/2026 |
+| Công cụ AI | Antigravity / Gemini |
+| Mục đích sử dụng | Chức năng Xem lịch sử hoạt động của Tình nguyện viên (Volunteer Activity Summary) |
+| Phần việc liên quan | Frontend / Backend / UI Design / Security |
+| Mức độ sử dụng | Hỗ trợ nhiều |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+Tôi muốn tích hợp thêm tính năng xem tóm tắt lịch sử hoạt động và số lần vắng mặt của Tình nguyện viên ngay trong Citizen Profile Modal dành cho Cán bộ.
+1. Ở Backend, tôi nên bổ sung những API và Query Method nào để lấy được lịch sử tham gia sắp xếp theo thời gian mới nhất?
+2. Ở Frontend, làm thế nào để hiển thị danh sách này trực quan, hỗ trợ click-to-expand để xem chi tiết lý do vắng mặt khi click vào thẻ thống kê?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+- Đề xuất tạo API GET `/api/participants/user/{userId}` được phân quyền cho cán bộ và query sắp xếp theo thời gian chiến dịch bắt đầu giảm dần (`orderByCampaign_StartTimeDesc`).
+- Gợi ý cấu trúc React component hiển thị thống kê dạng thẻ (Cards) đi kèm danh sách chi tiết chiến dịch có phân chia tab "Tham gia" và "Vắng mặt".
+- Đưa ra mẫu code kiểm tra trạng thái vắng mặt và hiển thị lý do nếu có.
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+- Áp dụng các DTO và endpoint API mới ở Backend.
+- Sử dụng cấu trúc hiển thị danh sách hoạt động và toggle click-to-expand trong `CitizenProfileModal.tsx`.
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+- **Critical Thinking & Security:** Nhóm chủ động viết thêm tầng kiểm tra phân quyền dữ liệu (`existsByCitizenIdAndWardId`) ở Backend Service. Điều này đảm bảo cán bộ phường chỉ được phép xem thông tin lịch sử của công dân thuộc khu vực phường đó quản lý, ngăn chặn lỗ hổng IDOR/BOLA.
+- **Contextualization:** Chỉnh sửa hiển thị định dạng ngày giờ bằng JS Date API tiếng Việt đơn giản không cần Moment.js hay Day.js để tối ưu hóa bundle size của Frontend.
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | |
+| File liên quan | Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/dto/CampaignParticipantResponse.java;<br>Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/repository/CampaignParticipantRepository.java;<br>Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/service/CampaignServiceImpl.java;<br>Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/controller/CampaignController.java;<br>Sources/Frontend/src/lib/api.ts;<br>Sources/Frontend/src/components/chat/CitizenProfileModal.tsx |
+| Screenshot | |
+| Kết quả chạy/test | mvn compile: PASS; npx tsc --noEmit: PASS |
+| Link video demo | |
+| Ghi chú khác | |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Việc thiết kế trải nghiệm người dùng drill-down kết hợp bảo mật dữ liệu ở cấp độ Service layer (Data-level authorization) giúp bảo vệ thông tin cá nhân của người dân một cách tuyệt đối, đồng thời cán bộ vẫn nắm bắt hồ sơ một cách khoa học.
+```
+
+---
+
+### Lần sử dụng AI số 9
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 06/07/2026 |
+| Công cụ AI | Antigravity / Gemini |
+| Mục đích sử dụng | Khắc phục lỗi hiển thị sai lệch trạng thái chiến dịch theo thời gian (Campaign Status Mismatch Fix) |
+| Phần việc liên quan | Backend / Frontend / Timezone Alignment / Bug Fix |
+| Mức độ sử dụng | Hỗ trợ một phần |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+Tôi nhận thấy trạng thái chiến dịch hiển thị không chính xác. Mặc dù chiến dịch chưa đến giờ bắt đầu trên thực tế, hệ thống vẫn hiển thị trạng thái là "Đang diễn ra" (IN_PROGRESS) thay vì "Chưa diễn ra". 
+Hãy giúp tôi rà soát cơ chế tính toán trạng thái temporal của chiến dịch trên frontend (campaignStore.ts) và backend (CampaignServiceImpl.java), tìm nguyên nhân lệch múi giờ giữa UTC và giờ địa phương và đề xuất cách so sánh thời gian chuẩn xác nhất.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+- Chỉ ra nguyên nhân do sự lệch múi giờ khi so sánh chuỗi ISO String ở client (sử dụng thời gian cục bộ của trình duyệt) và server (sử dụng thời gian hệ thống UTC/UTC+7).
+- Đề xuất chuyển đổi thời gian về đối tượng `Date` chuẩn và thực hiện so sánh số miligiây (milliseconds) thay vì so sánh chuỗi thô.
+- Cung cấp đoạn mã tối ưu hóa hàm kiểm tra trạng thái trong `campaignStore.ts`.
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+- Áp dụng phương thức so sánh thời gian qua việc đưa về cùng múi giờ cục bộ của Việt Nam ở frontend và backend.
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+- **Critical Thinking:** Nhóm tự nhận thấy nếu chỉ sửa ở Frontend thì API trả về từ Backend vẫn hiển thị trạng thái không nhất quán khi gọi API lấy danh sách. Vì thế nhóm chủ động đồng bộ hàm lấy trạng thái `status` tại lớp Entity/Service ở Backend để đảm bảo dữ liệu trả về luôn trùng khớp 100% với Frontend.
+- **Contextualization:** Cập nhật lại các bộ lọc lọc chiến dịch theo trạng thái ở trang quản lý WardDashboard để đồng bộ tuyệt đối trạng thái temporal.
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | |
+| File liên quan | Sources/Frontend/src/lib/campaignStore.ts;<br>Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/service/CampaignServiceImpl.java;<br>Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/entity/Campaign.java |
+| Screenshot | |
+| Kết quả chạy/test | mvn compile: PASS; npx tsc --noEmit: PASS |
+| Link video demo | |
+| Ghi chú khác | |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Việc xử lý đồng bộ thời gian trên cả 2 phía Client và Server giúp loại bỏ hoàn toàn các lỗi hiển thị do lệch múi giờ của người dùng, mang lại trải nghiệm chính xác tuyệt đối về tiến độ chiến dịch.
+```
+
+---
+
+### Lần sử dụng AI số 10
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 07/07/2026 |
+| Công cụ AI | Antigravity / Gemini |
+| Mục đích sử dụng | Cải thiện bố cục giao diện và tận dụng không gian hiển thị của khung chat nhóm chiến dịch |
+| Phần việc liên quan | Frontend / UI Design / Code Quality |
+| Mức độ sử dụng | Hỗ trợ một phần |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+mình muốn cải thiện lại tại mình thấy hơi bị nhỏ ấy với lại 2 bên tin nhắn tháy còn dư ra nhièu
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+- Nhận diện các lớp giới hạn chiều ngang của khung chat là `max-w-2xl` và `max-w-3xl` đang thu hẹp giao diện và tạo khoảng trống thừa ở 2 bên.
+- Đề xuất tăng giới hạn chiều ngang của khung chat và thanh nhập liệu lên `max-w-5xl`.
+- Gợi ý nâng kích thước thanh chat input từ `h-9` lên `h-11` kèm kích thước font chữ và icon tương ứng để cân đối với giao diện rộng hơn.
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+- Áp dụng thay đổi từ `max-w-3xl` / `max-w-2xl` sang `max-w-5xl` cho khung tin nhắn và footer tại cả route của người dân (`campaigns.$id.group-chat.tsx`) và dashboard của cán bộ phường (`WardChatDashboardPage.tsx`).
+- Áp dụng tăng chiều cao input từ `h-9` lên `h-11` và cỡ font chữ lên `text-sm`.
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+- **Critical Thinking & Refactoring:** Khi thay đổi kích thước khung chat, sinh viên nhận thấy tiêu đề nhóm chat và mô tả số lượng thành viên ở header cũng bị nhỏ bất đối xứng so với khung chat mới. Sinh viên đã chủ động tăng kích thước font chữ tiêu đề từ `text-xs` lên `text-sm`/`text-base` và thành viên từ `text-[10px]` lên `text-xs` để đồng bộ tỷ lệ.
+- **Code Quality Guard:** Sinh viên chủ động rà soát toàn bộ các cảnh báo linter trong file `campaigns.$id.group-chat.tsx` liên quan đến ép kiểu `any` (quy tắc `@typescript-eslint/no-explicit-any`), tự viết lại kiểu dữ liệu chặt chẽ cho catch error block (`err: unknown`) và `chatError` state.
+- **Verification:** Chạy linter (`eslint`) và typecheck (`tsc --noEmit`) thủ công để đảm bảo các thay đổi sạch 100% trước khi merge.
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | |
+| File liên quan | Sources/Frontend/src/features/ward/WardChatDashboardPage.tsx;<br>Sources/Frontend/src/routes/campaigns.$id.group-chat.tsx |
+| Screenshot | |
+| Kết quả chạy/test | npx tsc --noEmit: PASS; npx eslint: PASS |
+| Link video demo | |
+| Ghi chú khác | |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Việc căn chỉnh giao diện không chỉ đơn thuần là thay đổi một thuộc tính width mà cần rà soát lại sự cân đối của tất cả các phần tử xung quanh (như font-size, line-height, icon-size). Đồng thời, việc tận dụng cơ hội refactor để dọn dẹp cảnh báo ép kiểu 'any' giúp nâng cao độ tin cậy của mã nguồn TypeScript.
+```
+
+---
+
 ## 5. Bảng tổng hợp mức độ sử dụng AI
 
 Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.

@@ -10,6 +10,8 @@ export type ChatMessage = {
   pinned: boolean;
   imageUrls?: string[];
   status?: "sending" | "failed" | "sent" | "seen";
+  senderAvatar?: string;
+  pastCampaignCount?: number;
 };
 
 export function getStatusInfo(status?: Campaign["status"]) {

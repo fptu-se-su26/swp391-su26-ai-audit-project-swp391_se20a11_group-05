@@ -135,7 +135,7 @@ public class ContentGuardrailService {
             if (p.matcher(normalized).find()) {
                 log.warn("⚠️  [GUARDRAIL-WARN] userId={} | pattern='{}'", userId, p.pattern());
                 int warnCount = recordWarn(userId);
-                if (warnCount > WARN_THRESHOLD_PER_WINDOW) {
+                if (warnCount >= WARN_THRESHOLD_PER_WINDOW) {
                     blockUser(userId);
                     throw new SecurityException("Quá nhiều yêu cầu đáng ngờ. Tài khoản tạm thời bị hạn chế 5 phút.");
                 }

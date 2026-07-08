@@ -209,9 +209,12 @@ export interface UserProfile {
   fullName: string;
   phoneNumber?: string;
   email?: string;
+  avatarUrl?: string;
   role: BackendRole;
   active: boolean;
+  isActive: boolean;
   mfaEnabled: boolean;
+  isMfaEnabled: boolean;
   wardName?: string | null;
   wardType?: string | null;
   wardId?: number | null;
@@ -221,10 +224,24 @@ export interface UserProfile {
   reputationBadge?: string;
 }
 
+export function mapUserProfile(profile: any): UserProfile {
+  if (!profile) return profile;
+  const active = profile.isActive !== undefined ? profile.isActive : profile.active;
+  const mfaEnabled = profile.isMfaEnabled !== undefined ? profile.isMfaEnabled : profile.mfaEnabled;
+  return {
+    ...profile,
+    active,
+    isActive: active,
+    mfaEnabled,
+    isMfaEnabled: mfaEnabled,
+  };
+}
+
 export interface UpdateProfileRequest {
   fullName: string;
   phoneNumber?: string;
   email?: string;
+  avatarUrl?: string;
 }
 
 // ─── Feedback Types ───────────────────────────────────────────
@@ -676,29 +693,45 @@ export const feedbackApi = {
 };
 
 export const userApi = {
-  profile: () => request<UserProfile>("/api/users/profile"),
+  profile: () => request<UserProfile>("/api/users/profile").then(mapUserProfile),
 
   updateProfile: (data: UpdateProfileRequest) =>
     request<UserProfile>("/api/users/profile", {
       method: "PUT",
       body: JSON.stringify(data),
+    }).then(mapUserProfile),
+
+  changePassword: (data: { currentPassword: string; newPassword: string; confirmPassword: string }) =>
+    request<void>("/api/users/profile/change-password", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  deleteOwnProfile: () =>
+    request<void>("/api/users/profile", {
+      method: "DELETE",
     }),
 
   // SUPER_ADMIN: lấy tất cả users có phân trang
   getAll: (page = 0, size = 200) =>
-    request<PageResponse<UserProfile>>(`/api/users/page?page=${page}&size=${size}`),
+    request<PageResponse<UserProfile>>(`/api/users/page?page=${page}&size=${size}`).then((res) => {
+      if (res && Array.isArray(res.content)) {
+        res.content = res.content.map(mapUserProfile);
+      }
+      return res;
+    }),
 
   // SUPER_ADMIN: đổi role
   changeRole: (id: number, role: string) =>
     request<UserProfile>(`/api/users/${id}/role?role=${encodeURIComponent(role)}`, {
       method: "PATCH",
-    }),
+    }).then(mapUserProfile),
 
   // SUPER_ADMIN: khóa/mở tài khoản
   changeStatus: (id: number, active: boolean) =>
     request<UserProfile>(`/api/users/${id}/status?active=${active}`, {
       method: "PATCH",
-    }),
+    }).then(mapUserProfile),
 
   // SUPER_ADMIN: xóa tài khoản
   delete: (id: number) =>
@@ -706,24 +739,24 @@ export const userApi = {
       method: "DELETE",
     }),
 
-  getById: (id: number) => request<UserProfile>(`/api/users/${id}`),
+  getById: (id: number) => request<UserProfile>(`/api/users/${id}`).then(mapUserProfile),
 
   warn: (id: number, reason: string) =>
     request<UserProfile>(`/api/users/${id}/warn?reason=${encodeURIComponent(reason)}`, {
       method: "POST",
-    }),
+    }).then(mapUserProfile),
 
-  getBlacklist: () => request<UserProfile[]>("/api/users/blacklist"),
+  getBlacklist: () => request<UserProfile[]>("/api/users/blacklist").then((res) => (res || []).map(mapUserProfile)),
 
   unban: (id: number) =>
     request<UserProfile>(`/api/users/${id}/unban`, {
       method: "POST",
-    }),
+    }).then(mapUserProfile),
 
   ban: (id: number, reason: string) =>
     request<UserProfile>(`/api/users/${id}/ban?reason=${encodeURIComponent(reason)}`, {
       method: "POST",
-    }),
+    }).then(mapUserProfile),
 };
 
 export const notificationApi = {
@@ -764,7 +797,7 @@ export const policeApi = {
     }),
 
   getHotspots: () =>
-    request<any[]>("/api/police/feedbacks/hotspots", {
+    request<unknown[]>("/api/police/feedbacks/hotspots", {
       method: "GET",
     }),
 
@@ -1027,7 +1060,17 @@ export interface CampaignParticipantResponse {
   campaignTitle?: string | null;
 }
 
+export interface CampaignChatRoomResponse {
+  campaignId: number;
+  campaignTitle: string;
+  coverImageUrl?: string;
+  status: string;
+  lastMessage?: CampaignChatMessageResponse;
+}
+
 export const campaignApi = {
+  getMyChatRooms: () => request<CampaignChatRoomResponse[]>("/api/campaigns/my-chats"),
+
   getAll: (page = 0, size = 20, status?: string) => {
     const params = new URLSearchParams({ page: String(page), size: String(size) });
     if (status) params.set("status", status);
@@ -1209,4 +1252,6 @@ export interface CampaignChatMessageResponse {
   pinned: boolean;
   createdAt: string;
   status?: "sending" | "failed" | "sent" | "seen";
+  senderAvatar?: string;
+  pastCampaignCount?: number;
 }

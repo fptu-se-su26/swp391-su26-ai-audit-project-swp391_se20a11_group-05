@@ -99,6 +99,15 @@ function CampaignGroupChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: chatMessages = [], sendMessage, isLoading: chatLoading, error: chatError, isError: isChatError } = useCampaignChat(id);
+
+  useEffect(() => {
+    if (chatMessages && chatMessages.length > 0) {
+      const maxId = Math.max(...chatMessages.map((m) => Number(m.id)).filter((id) => !isNaN(id)));
+      if (maxId > 0) {
+        localStorage.setItem(`campaign-chat-seen-${id}`, String(maxId));
+      }
+    }
+  }, [chatMessages, id]);
   const pinMutation = usePinChatMessage(id);
   const unpinMutation = useUnpinChatMessage(id);
   const participantsQuery = useCampaignParticipants(id);
@@ -150,10 +159,15 @@ function CampaignGroupChatPage() {
       return {
         id: String(msg.id),
         sender: msg.senderName,
+        senderId: msg.senderId,
         role: isMe ? "me" : isHost ? "host" : "member",
         text: msg.message,
         time: timeStr,
         pinned: msg.pinned || false,
+        imageUrls: msg.imageUrls || [],
+        status: msg.status,
+        senderAvatar: msg.senderAvatar,
+        pastCampaignCount: msg.pastCampaignCount,
       } as ChatMessage;
     });
   }, [chatMessages, user]);

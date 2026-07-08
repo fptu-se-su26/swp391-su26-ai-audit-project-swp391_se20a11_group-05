@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState, type ReactNode, type SelectHTMLAttributes } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, RefreshCw, Search, SlidersHorizontal, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+  Search,
+  SlidersHorizontal,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Role } from "@/lib/roles";
 import { useCategories, useFeedbacks } from "@/lib/hooks";
@@ -34,7 +42,9 @@ interface WardFeedbackManagementPageProps {
   hideHeader?: boolean;
 }
 
-export function WardFeedbackManagementPage({ hideHeader = false }: WardFeedbackManagementPageProps) {
+export function WardFeedbackManagementPage({
+  hideHeader = false,
+}: WardFeedbackManagementPageProps) {
   const { user } = useAuth();
   const isWardStaff = user?.role === Role.WARD_STAFF;
   const [page, setPage] = useState(0);
@@ -392,10 +402,35 @@ export function WardFeedbackManagementPage({ hideHeader = false }: WardFeedbackM
           })}
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="flex items-center px-6 py-3 border-b border-slate-100 bg-white">
+          <div className="flex items-center gap-3 text-xs text-slate-500 font-semibold">
+            <span>Hiển thị</span>
+            <select
+              value={pageSize}
+              onChange={(event) => {
+                setPageSize(Number(event.target.value));
+                setPage(0);
+              }}
+              className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs font-bold text-slate-700 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100/50 cursor-pointer"
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+            </select>
+            <span>
+              trên tổng số{" "}
+              <strong className="font-mono text-slate-700">
+                {totalElements.toLocaleString("vi-VN")}
+              </strong>{" "}
+              phản ánh
+            </span>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto max-h-[550px] overflow-y-auto">
           <table className="w-full border-collapse text-left">
             <thead>
-              <tr className="bg-slate-50/70 text-slate-500 border-b border-slate-100">
+              <tr className="sticky top-0 z-10 bg-slate-50 text-slate-500 border-b border-slate-100">
                 {[
                   "Mã phản ánh",
                   "Nội dung phản ánh",
@@ -409,7 +444,7 @@ export function WardFeedbackManagementPage({ hideHeader = false }: WardFeedbackM
                 ].map((header) => (
                   <th
                     key={header}
-                    className="px-4 py-3.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100"
+                    className="sticky top-0 z-10 bg-slate-50 px-4 py-3.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100"
                   >
                     {header}
                   </th>
@@ -485,29 +520,7 @@ export function WardFeedbackManagementPage({ hideHeader = false }: WardFeedbackM
           </table>
         </div>
 
-        <div className="flex flex-col gap-4 border-t border-slate-100 px-6 py-4 md:flex-row md:items-center md:justify-between bg-slate-50/30">
-          <div className="flex items-center gap-3 text-xs text-slate-500 font-semibold">
-            <span>Hiển thị</span>
-            <select
-              value={pageSize}
-              onChange={(event) => {
-                setPageSize(Number(event.target.value));
-                setPage(0);
-              }}
-              className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs font-bold text-slate-700 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100/50"
-            >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-            </select>
-            <span>
-              trên tổng số{" "}
-              <strong className="font-mono text-slate-700">
-                {totalElements.toLocaleString("vi-VN")}
-              </strong>{" "}
-              phản ánh
-            </span>
-          </div>
+        <div className="flex flex-col gap-4 border-t border-slate-100 px-6 py-4 md:flex-row md:items-center md:justify-end bg-slate-50/30">
           <div className="flex items-center gap-1.5">
             <PageButton
               disabled={page === 0}
@@ -540,7 +553,9 @@ export function WardFeedbackManagementPage({ hideHeader = false }: WardFeedbackM
 function FilterField({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="flex flex-col gap-2">
-      <span className="text-xs font-bold text-slate-400 uppercase tracking-widest font-mono">{label}</span>
+      <span className="text-xs font-bold text-slate-400 uppercase tracking-widest font-mono">
+        {label}
+      </span>
       {children}
     </label>
   );
@@ -585,7 +600,9 @@ function PageButton({
 function StatusBadge({ status }: { status: string }) {
   const info = getOfficerStatusInfo(status);
   return (
-    <span className={`inline-block rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider whitespace-nowrap ${info.className}`}>
+    <span
+      className={`inline-block rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider whitespace-nowrap ${info.className}`}
+    >
       {info.label}
     </span>
   );
@@ -602,7 +619,9 @@ function PriorityBadge({ value }: { value?: string | null }) {
           ? { label: "Thấp", className: "bg-emerald-50/50 text-emerald-700 border-emerald-100" }
           : { label: "Trung bình", className: "bg-amber-50/50 text-amber-700 border-amber-100" };
   return (
-    <span className={`inline-block rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider whitespace-nowrap ${info.className}`}>
+    <span
+      className={`inline-block rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider whitespace-nowrap ${info.className}`}
+    >
       {info.label}
     </span>
   );
@@ -620,7 +639,10 @@ function getOfficerStatusInfo(status: string) {
     return { label: "Đã gửi", className: "bg-indigo-50/50 text-indigo-700 border-indigo-100" };
   }
   if (upper === "PENDING_RECEIVE") {
-    return { label: "Chờ tiếp nhận", className: "bg-indigo-50/50 text-indigo-700 border-indigo-100" };
+    return {
+      label: "Chờ tiếp nhận",
+      className: "bg-indigo-50/50 text-indigo-700 border-indigo-100",
+    };
   }
   if (upper === "WAITING_INFO" || upper === "NEED_MORE_INFO") {
     return {
@@ -635,13 +657,19 @@ function getOfficerStatusInfo(status: string) {
     };
   }
   if (upper === "PENDING") {
-    return { label: "Đang chờ xử lý", className: "bg-indigo-50/50 text-indigo-700 border-indigo-100" };
+    return {
+      label: "Đang chờ xử lý",
+      className: "bg-indigo-50/50 text-indigo-700 border-indigo-100",
+    };
   }
   if (upper === "ASSIGNED") {
     return { label: "Đã phân công", className: "bg-amber-50/50 text-amber-700 border-amber-100" };
   }
   if (upper === "NEED_LOCATION_REVIEW") {
-    return { label: "Cần xác minh vị trí", className: "bg-slate-50/50 text-slate-700 border-slate-100" };
+    return {
+      label: "Cần xác minh vị trí",
+      className: "bg-slate-50/50 text-slate-700 border-slate-100",
+    };
   }
   if (upper === "PRE_EMPTIVE") {
     return { label: "Xử lý trước", className: "bg-amber-50/50 text-amber-700 border-amber-100" };

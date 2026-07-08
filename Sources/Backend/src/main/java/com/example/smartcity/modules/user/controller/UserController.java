@@ -9,6 +9,7 @@ import com.example.smartcity.modules.user.dto.UserDTO;
 import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.user.mapper.UserMapper;
 import com.example.smartcity.modules.user.service.UserService;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,10 +27,12 @@ public class UserController extends BaseGenericController<User, UserDTO, Long> {
 
     private final UserService userService;
     private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserController(UserService userService, UserMapper userMapper) {
+    public UserController(UserService userService, UserMapper userMapper, PasswordEncoder passwordEncoder) {
         this.userService = userService;
         this.userMapper = userMapper;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -99,6 +102,7 @@ public class UserController extends BaseGenericController<User, UserDTO, Long> {
         user.setFullName(dto.getFullName());
         user.setPhoneNumber(dto.getPhoneNumber());
         user.setEmail(dto.getEmail());
+        user.setAvatarUrl(dto.getAvatarUrl());
 
         User updated = userService.save(user);
         return ResponseEntity.ok(userMapper.toDto(updated));
@@ -129,9 +133,19 @@ public class UserController extends BaseGenericController<User, UserDTO, Long> {
         user.setFullName(dto.getFullName());
         user.setPhoneNumber(dto.getPhoneNumber());
         user.setEmail(dto.getEmail());
+        user.setAvatarUrl(dto.getAvatarUrl());
 
         User updated = userService.save(user);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật thông tin cá nhân thành công", userMapper.toDto(updated)));
+    }
+
+    @DeleteMapping("/profile")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Void>> deleteOwnProfile() {
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userService.findByUsername(currentUsername);
+        userService.deleteById(user.getId());
+        return ResponseEntity.ok(ApiResponse.success("Xóa tài khoản thành công", null));
     }
 
     // ─── LOCK / UNLOCK USER STATUS ──────────────────────────────────────────
@@ -197,5 +211,41 @@ public class UserController extends BaseGenericController<User, UserDTO, Long> {
     public ResponseEntity<ApiResponse<UserDTO>> unbanUser(@PathVariable Long id) {
         User updated = userService.unbanUser(id);
         return ResponseEntity.ok(ApiResponse.success("Mở khóa tài khoản thành công", userMapper.toDto(updated)));
+    }
+
+    @PutMapping("/profile/change-password")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Void>> changePassword(@RequestBody java.util.Map<String, String> request) {
+        String currentPassword = request.get("currentPassword");
+        String newPassword = request.get("newPassword");
+        String confirmPassword = request.get("confirmPassword");
+
+        if (currentPassword == null || currentPassword.isBlank()) {
+            throw new CustomException("Mật khẩu hiện tại không được để trống", 400);
+        }
+        if (newPassword == null || newPassword.isBlank()) {
+            throw new CustomException("Mật khẩu mới không được để trống", 400);
+        }
+        if (newPassword.length() < 8) {
+            throw new CustomException("Mật khẩu phải có ít nhất 8 ký tự", 400);
+        }
+        if (!newPassword.matches("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).*$")) {
+            throw new CustomException("Mật khẩu phải chứa ít nhất 1 chữ hoa, 1 chữ thường và 1 số", 400);
+        }
+        if (!newPassword.equals(confirmPassword)) {
+            throw new CustomException("Mật khẩu xác nhận không khớp", 400);
+        }
+
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userService.findByUsername(currentUsername);
+
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new CustomException("Mật khẩu hiện tại không chính xác", 400);
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userService.save(user);
+
+        return ResponseEntity.ok(ApiResponse.success("Đổi mật khẩu thành công", null));
     }
 }

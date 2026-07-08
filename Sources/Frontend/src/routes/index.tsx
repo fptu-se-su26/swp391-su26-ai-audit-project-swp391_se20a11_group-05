@@ -856,90 +856,92 @@ function HomePage() {
             </button>
           </div>
 
-          {/* Grouped Bar Chart */}
-          <div className="hidden w-full bg-white border border-[#E4EAF2] rounded-xl p-5 hover:shadow-sm transition">
-            <div className="h-[320px] md:h-[400px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={getGroupedChartData()}
-                  margin={{ top: 20, right: 10, left: -10, bottom: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                  <XAxis
-                    dataKey="name"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#64748B", fontSize: 12, fontWeight: 500 }}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#64748B", fontSize: 12 }}
-                    allowDecimals={false}
-                  />
-                  <Tooltip
-                    cursor={{ fill: "#F8FAFC" }}
-                    contentStyle={{
-                      backgroundColor: "#FFFFFF",
-                      border: "1px solid #E2E8F0",
-                      borderRadius: "8px",
-                      boxShadow:
-                        "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-                    }}
-                    labelStyle={{ fontWeight: 600, color: "#1E293B", marginBottom: "4px" }}
-                  />
-                  <Legend
-                    verticalAlign="top"
-                    height={36}
-                    iconType="circle"
-                    iconSize={8}
-                    formatter={(value) => {
-                      if (value === "total")
-                        return (
-                          <span className="text-sm font-medium text-[#475569]">
-                            {t("home.stats.total")}
-                          </span>
-                        );
-                      if (value === "processing")
-                        return (
-                          <span className="text-sm font-medium text-[#475569]">
-                            {t("home.stats.inProgress")}
-                          </span>
-                        );
-                      if (value === "processed")
-                        return (
-                          <span className="text-sm font-medium text-[#475569]">
-                            {t("home.stats.resolved")}
-                          </span>
-                        );
-                      return value;
-                    }}
-                  />
-                  <Bar
-                    dataKey="total"
-                    name="total"
-                    fill="#0B4FC4"
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={32}
-                  />
-                  <Bar
-                    dataKey="processing"
-                    name="processing"
-                    fill="#F97316"
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={32}
-                  />
-                  <Bar
-                    dataKey="processed"
-                    name="processed"
-                    fill="#16A34A"
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={32}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+          {/* Grouped Bar Chart - hidden by design, wrapped in conditional false to prevent mounting warnings */}
+          {false && (
+            <div className="hidden w-full bg-white border border-[#E4EAF2] rounded-xl p-5 hover:shadow-sm transition">
+              <div className="h-[320px] md:h-[400px]">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                  <BarChart
+                    data={getGroupedChartData()}
+                    margin={{ top: 20, right: 10, left: -10, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                    <XAxis
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#64748B", fontSize: 12, fontWeight: 500 }}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#64748B", fontSize: 12 }}
+                      allowDecimals={false}
+                    />
+                    <Tooltip
+                      cursor={{ fill: "#F8FAFC" }}
+                      contentStyle={{
+                        backgroundColor: "#FFFFFF",
+                        border: "1px solid #E2E8F0",
+                        borderRadius: "8px",
+                        boxShadow:
+                          "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                      }}
+                      labelStyle={{ fontWeight: 600, color: "#1E293B", marginBottom: "4px" }}
+                    />
+                    <Legend
+                      verticalAlign="top"
+                      height={36}
+                      iconType="circle"
+                      iconSize={8}
+                      formatter={(value) => {
+                        if (value === "total")
+                          return (
+                            <span className="text-sm font-medium text-[#475569]">
+                              {t("home.stats.total")}
+                            </span>
+                          );
+                        if (value === "processing")
+                          return (
+                            <span className="text-sm font-medium text-[#475569]">
+                              {t("home.stats.inProgress")}
+                            </span>
+                          );
+                        if (value === "processed")
+                          return (
+                            <span className="text-sm font-medium text-[#475569]">
+                              {t("home.stats.resolved")}
+                            </span>
+                          );
+                        return value;
+                      }}
+                    />
+                    <Bar
+                      dataKey="total"
+                      name="total"
+                      fill="#0B4FC4"
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={32}
+                    />
+                    <Bar
+                      dataKey="processing"
+                      name="processing"
+                      fill="#F97316"
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={32}
+                    />
+                    <Bar
+                      dataKey="processed"
+                      name="processed"
+                      fill="#16A34A"
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={32}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-          </div>
+          )}
         </section>
 
         {/* Sections 3, 4, 5, 6 — MAIN CONTENT GRID */}

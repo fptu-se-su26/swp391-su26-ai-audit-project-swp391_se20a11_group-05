@@ -87,7 +87,7 @@ function CampaignGroupChatPage() {
 
   useEffect(() => {
     if (chatMessages && chatMessages.length > 0) {
-      const maxId = Math.max(...chatMessages.map(m => Number(m.id)).filter(id => !isNaN(id)));
+      const maxId = Math.max(...chatMessages.map((m) => Number(m.id)).filter((id) => !isNaN(id)));
       if (maxId > 0) {
         localStorage.setItem(`campaign-chat-seen-${id}`, String(maxId));
       }
@@ -166,6 +166,8 @@ function CampaignGroupChatPage() {
           pinned: msg.pinned || false,
           imageUrls: msg.imageUrls || [],
           status: msg.status,
+          senderAvatar: msg.senderAvatar,
+          pastCampaignCount: msg.pastCampaignCount,
         } as ChatMessage;
       });
   }, [chatMessages, user]);

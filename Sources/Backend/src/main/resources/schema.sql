@@ -139,6 +139,9 @@ UPDATE campaigns SET announcement_mode = FALSE WHERE announcement_mode IS NULL;
 ALTER TABLE campaigns ALTER COLUMN announcement_mode SET DEFAULT FALSE;
 ALTER TABLE campaigns ALTER COLUMN announcement_mode SET NOT NULL;
 
+-- 19. Add avatar_url to users table
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(255);
+
 
 
 

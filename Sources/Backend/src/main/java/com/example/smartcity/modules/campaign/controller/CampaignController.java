@@ -331,7 +331,8 @@ public class CampaignController {
     }
 
     @GetMapping("/participants/user/{userId}")
-    @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN', 'POLICE')")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN', 'POLICE', 'CITIZEN')")
+
     public ResponseEntity<List<CampaignParticipantResponse>> getCitizenParticipationHistory(
             @PathVariable Long userId,
             Authentication authentication) {

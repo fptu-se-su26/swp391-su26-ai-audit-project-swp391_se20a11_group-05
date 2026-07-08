@@ -18,4 +18,7 @@ public class CampaignChatMessageResponse {
     private boolean pinned;
 
     private LocalDateTime createdAt;
+
+    private String senderAvatar;
+    private Integer pastCampaignCount;
 }

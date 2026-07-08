@@ -842,15 +842,28 @@ public class CampaignServiceImpl implements CampaignService {
     }
 
     private CampaignChatMessageResponse toChatResponse(CampaignChatMessage message) {
+        String senderAvatar = null;
+        Integer pastCampaignCount = null;
+        if (message.getSender() != null) {
+            senderAvatar = message.getSender().getAvatarUrl();
+            if (message.getSender().getRole() == com.example.smartcity.modules.user.entity.Role.CITIZEN) {
+                pastCampaignCount = (int) participantRepository.countByCitizen_IdAndJoinStatus(
+                        message.getSender().getId(),
+                        JOIN_APPROVED
+                );
+            }
+        }
         return CampaignChatMessageResponse.builder()
                 .id(message.getId())
-                .senderId(message.getSender().getId())
-                .senderName(message.getSender().getFullName())
-                .senderRole(message.getSender().getRole().name())
+                .senderId(message.getSender() != null ? message.getSender().getId() : null)
+                .senderName(message.getSender() != null ? message.getSender().getFullName() : "")
+                .senderRole(message.getSender() != null ? message.getSender().getRole().name() : "")
                 .message(message.getMessage())
                 .imageUrls(parseImageUrls(message.getImageUrl()))
                 .pinned(message.isPinned())
                 .createdAt(message.getCreatedAt())
+                .senderAvatar(senderAvatar)
+                .pastCampaignCount(pastCampaignCount)
                 .build();
     }
 

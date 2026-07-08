@@ -33,6 +33,7 @@ export interface AuthUser {
   wardName?: string | null;
   wardType?: string | null;
   wardId?: number | null;
+  avatarUrl?: string | null;
   token?: string;
 }
 
@@ -87,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setUser(parsed);
 
-        // Fetch full profile info to get the full name and wardId
+        // Fetch full profile info to get the full name, wardId and avatarUrl
         userApi
           .profile()
           .then((profile) => {
@@ -96,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 ...parsed,
                 name: profile.fullName || parsed.name,
                 wardId: profile.wardId !== undefined ? profile.wardId : parsed.wardId,
+                avatarUrl: profile.avatarUrl || parsed.avatarUrl || null,
               };
               setUser(updated);
               localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
@@ -136,7 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(u.token);
       }
     }
-    // Fetch profile to get full name and wardId
+    // Fetch profile to get full name, wardId and avatarUrl
     userApi
       .profile()
       .then((profile) => {
@@ -145,6 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             ...u,
             name: profile.fullName || u.name,
             wardId: profile.wardId !== undefined ? profile.wardId : u.wardId,
+            avatarUrl: profile.avatarUrl || u.avatarUrl || null,
           };
           setUser(updated);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));

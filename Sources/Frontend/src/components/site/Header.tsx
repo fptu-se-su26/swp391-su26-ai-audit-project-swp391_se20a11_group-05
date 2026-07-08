@@ -34,6 +34,7 @@ import {
 } from "@/lib/hooks";
 import { toast } from "sonner";
 import { authApi, campaignApi, type NotificationResponse } from "@/lib/api";
+import { highlightNotificationContent } from "@/lib/notificationHelper";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertDialog,
@@ -759,7 +760,7 @@ export function Header() {
                           className={`w-full text-left p-3.5 flex gap-3 transition-colors cursor-pointer border-l-4 ${
                             item.isRead
                               ? "bg-[#FFFFFF] hover:bg-[#F8FAFC] border-l-transparent"
-                              : "bg-[#EFF6FF] hover:bg-[#DBEAFE] border-l-[#0F5BD8]"
+                              : "bg-[#D0E2FF] hover:bg-[#B3D1FF] border-l-[#0F5BD8]"
                           }`}
                         >
                           <div
@@ -792,7 +793,7 @@ export function Header() {
                               </span>
                             </div>
                             <p className="text-[11px] text-[#667085] line-clamp-2 leading-relaxed font-sans">
-                              {item.content}
+                              {highlightNotificationContent(item.content)}
                             </p>
                           </div>
                         </button>

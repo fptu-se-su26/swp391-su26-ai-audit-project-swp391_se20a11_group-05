@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  useInfiniteQuery,
+  type InfiniteData,
+} from "@tanstack/react-query";
 import {
   campaignApi,
+  userApi,
   getToken,
   type CampaignChatMessageResponse,
   type CampaignCreateRequest,
@@ -16,19 +23,20 @@ import {
   type Campaign,
   type CampaignCategory,
 } from "@/lib/campaignStore";
-import { useFeedbackDetail } from "./index";
+import { useFeedbackDetail, usePublicFeedbackDetail } from "./index";
+import { useAuth } from "@/lib/auth";
+import { toast } from "sonner";
 
 function mapStatus(status: CampaignResponse["status"]): Campaign["status"] {
   const statusMap: Record<CampaignResponse["status"], Campaign["status"]> = {
-    PENDING_APPROVAL: "pending_review",
     RECRUITING: "recruiting",
     IN_PROGRESS: "inProgress",
-    COMPLETED: "completed",
-    CANCELLED: "ended",
+    COMPLETED: "ended",
+    CANCELLED: "cancelled",
     ACTIVE: "inProgress",
     ENDED: "ended",
   };
-  return statusMap[status] ?? "pending_review";
+  return statusMap[status] ?? "recruiting";
 }
 
 function mapCategory(category?: string | null): CampaignCategory {
@@ -89,6 +97,8 @@ function mapResponseToCampaign(response: CampaignResponse): Campaign {
     canManage: response.canManage,
     canComment: response.canComment,
     canFeedback: response.canFeedback,
+    announcementMode: response.announcementMode,
+    cancellationReason: response.cancellationReason ?? undefined,
     linkedFeedbackId: response.linkedFeedbackId ?? undefined,
     boundaryGeojson: response.boundaryGeojson ?? undefined,
     coverImageUrl: response.coverImageUrl ?? undefined,
@@ -96,6 +106,7 @@ function mapResponseToCampaign(response: CampaignResponse): Campaign {
     latitude: response.latitude ?? null,
     longitude: response.longitude ?? null,
     wardId: response.wardId,
+    minParticipants: response.minParticipants ?? null,
   } as Campaign;
 }
 
@@ -176,6 +187,7 @@ export function useCreateCampaign() {
       requiredTools?: string;
       organizerContact?: string;
       maxParticipants?: string;
+      minParticipants?: string;
       startTime?: string;
       endTime?: string;
       linkedFeedbackId?: string | number | null;
@@ -208,6 +220,9 @@ export function useCreateCampaign() {
             organizerContact: fallbackContact,
             maxParticipants: params.maxParticipants
               ? Number.parseInt(params.maxParticipants, 10)
+              : undefined,
+            minParticipants: params.minParticipants
+              ? Number.parseInt(params.minParticipants, 10)
               : undefined,
             startTime: params.startTime || undefined,
             endTime: params.endTime || undefined,
@@ -309,16 +324,6 @@ export function useSendEmailOtp() {
   });
 }
 
-export function useApproveCampaign() {
-  const queryClient = useQueryClient();
-  return useMutation<CampaignResponse, Error, string | number>({
-    mutationFn: (id) => campaignApi.approve(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
-    },
-  });
-}
-
 export function useDeleteCampaign() {
   const queryClient = useQueryClient();
   return useMutation<void, Error, string | number>({
@@ -372,8 +377,8 @@ export function useUpdateCampaign() {
 
 export function useEndCampaign() {
   const queryClient = useQueryClient();
-  return useMutation<CampaignResponse, Error, string | number>({
-    mutationFn: (id) => campaignApi.end(id),
+  return useMutation<CampaignResponse, Error, { id: string | number; reason?: string }>({
+    mutationFn: ({ id, reason }) => campaignApi.end(id, reason),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["campaigns"] });
     },
@@ -437,96 +442,392 @@ export function useCampaignComments(campaignId: string) {
   return { ...query, addComment };
 }
 
+// Helper functions to manage infinite query chat cache
+function appendMessageToInfiniteData(
+  old: InfiniteData<CampaignChatMessageResponse[]> | undefined,
+  message: CampaignChatMessageResponse,
+): InfiniteData<CampaignChatMessageResponse[]> {
+  if (!old) return { pages: [[message]], pageParams: [undefined] };
+  const newPages = [...old.pages];
+  if (newPages.length === 0) {
+    newPages.push([message]);
+  } else {
+    newPages[0] = [...newPages[0], message];
+  }
+  return { ...old, pages: newPages };
+}
+
+function updateMessageInInfiniteData(
+  old: InfiniteData<CampaignChatMessageResponse[]> | undefined,
+  message: CampaignChatMessageResponse,
+): InfiniteData<CampaignChatMessageResponse[]> {
+  if (!old) return { pages: [], pageParams: [] };
+  const newPages = old.pages.map((page) => page.map((m) => (m.id === message.id ? message : m)));
+  return { ...old, pages: newPages };
+}
+
+function deleteMessageFromInfiniteData(
+  old: InfiniteData<CampaignChatMessageResponse[]> | undefined,
+  messageId: number | string,
+): InfiniteData<CampaignChatMessageResponse[]> {
+  if (!old) return { pages: [], pageParams: [] };
+  const newPages = old.pages.map((page) => page.filter((m) => String(m.id) !== String(messageId)));
+  return { ...old, pages: newPages };
+}
+
+function existsInInfiniteData(
+  old: InfiniteData<CampaignChatMessageResponse[]> | undefined,
+  messageId: number | string,
+): boolean {
+  if (!old) return false;
+  return old.pages.some((page) => page.some((m) => String(m.id) === String(messageId)));
+}
+
 export function useCampaignChat(campaignId: string) {
   const queryClient = useQueryClient();
   const socketRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<number | null>(null);
+  const reconnectDelayRef = useRef<number>(1000);
+  const [isWsConnected, setIsWsConnected] = useState(false);
+  const { user } = useAuth();
+
   const token = typeof window !== "undefined" ? getToken() : null;
   const enabled = /^\d+$/.test(campaignId) && Boolean(token);
 
-  const query = useQuery<CampaignChatMessageResponse[]>({
+  const query = useInfiniteQuery<
+    CampaignChatMessageResponse[],
+    Error,
+    InfiniteData<CampaignChatMessageResponse[]>,
+    (string | number)[],
+    number | undefined
+  >({
     queryKey: ["campaigns", campaignId, "chat"],
-    queryFn: () => campaignApi.getChatMessages(campaignId),
+    queryFn: ({ pageParam }) => campaignApi.getChatMessages(campaignId, pageParam),
+    initialPageParam: undefined,
+    getNextPageParam: (lastPage) => {
+      if (!lastPage || lastPage.length === 0) return undefined;
+      const nonPinned = lastPage.filter((m) => !m.pinned);
+      const cursorSource = nonPinned.length > 0 ? nonPinned : lastPage;
+      const minId = Math.min(...cursorSource.map((m) => Number(m.id)));
+      return minId;
+    },
     enabled,
     retry: false,
-    refetchInterval: 5000,
+    refetchInterval: isWsConnected ? 60000 : 5000,
   });
 
   useEffect(() => {
     if (!enabled || !token || typeof window === "undefined") return;
 
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const socket = new WebSocket(`${protocol}//${window.location.host}/ws-native`);
-    socketRef.current = socket;
+    let isDestroyed = false;
 
-    socket.onopen = () => {
-      socket.send(`CONNECT\nAuthorization:Bearer ${token}\naccept-version:1.2\n\n\0`);
-      socket.send(
-        `SUBSCRIBE\nid:campaign-${campaignId}\ndestination:/topic/campaigns/${campaignId}/chat\n\n\0`,
-      );
-    };
+    const connect = () => {
+      if (isDestroyed) return;
 
-    socket.onmessage = (event) => {
-      const payload = String(event.data);
-      let bodyStart = payload.indexOf("\r\n\r\n");
-      let headerLength = 4;
-      if (bodyStart === -1) {
-        bodyStart = payload.indexOf("\n\n");
-        headerLength = 2;
-      }
-      if (!payload.startsWith("MESSAGE") || bodyStart === -1) return;
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const socket = new WebSocket(`${protocol}//${window.location.host}/ws-native`);
+      socketRef.current = socket;
 
-      try {
-        const body = payload.slice(bodyStart + headerLength).replace(/\0$/, "");
-        const message = JSON.parse(body) as CampaignChatMessageResponse;
-        queryClient.setQueryData<CampaignChatMessageResponse[]>(
-          ["campaigns", campaignId, "chat"],
-          (current = []) => {
-            const exists = current.some((m) => m.id === message.id);
-            if (exists) {
-              return current.map((m) => {
-                if (m.id === message.id) {
-                  return message;
-                }
-                if (message.pinned && m.id !== message.id) {
-                  return { ...m, pinned: false };
-                }
-                return m;
-              });
-            }
-            if (message.pinned) {
-              return [...current.map((m) => ({ ...m, pinned: false })), message];
-            }
-            return [...current, message];
-          },
+      socket.onopen = () => {
+        if (isDestroyed) {
+          socket.close();
+          return;
+        }
+        setIsWsConnected(true);
+        reconnectDelayRef.current = 1000;
+
+        socket.send(`CONNECT\nAuthorization:Bearer ${token}\naccept-version:1.2\n\n\0`);
+        socket.send(
+          `SUBSCRIBE\nid:campaign-${campaignId}\ndestination:/topic/campaigns/${campaignId}/chat\n\n\0`,
         );
-      } catch {
+        socket.send(
+          `SUBSCRIBE\nid:campaign-${campaignId}-announcement\ndestination:/topic/campaigns/${campaignId}/announcement-mode\n\n\0`,
+        );
+
+        // Sync missing messages
         queryClient.invalidateQueries({ queryKey: ["campaigns", campaignId, "chat"] });
-      }
+      };
+
+      socket.onmessage = (event) => {
+        if (isDestroyed) return;
+        const payload = String(event.data);
+        let bodyStart = payload.indexOf("\r\n\r\n");
+        let headerLength = 4;
+        if (bodyStart === -1) {
+          bodyStart = payload.indexOf("\n\n");
+          headerLength = 2;
+        }
+        if (!payload.startsWith("MESSAGE") || bodyStart === -1) return;
+
+        if (payload.includes(`/topic/campaigns/${campaignId}/announcement-mode`)) {
+          try {
+            const body = payload.slice(bodyStart + headerLength).replace(/\0$/, "");
+            const data = JSON.parse(body) as { announcementMode: boolean };
+            queryClient.setQueryData<CampaignResponse>(
+              ["campaigns", String(campaignId), "private", true],
+              (old) => (old ? { ...old, announcementMode: data.announcementMode } : old),
+            );
+            queryClient.setQueryData<CampaignResponse>(
+              ["campaigns", String(campaignId), "private", false],
+              (old) => (old ? { ...old, announcementMode: data.announcementMode } : old),
+            );
+            queryClient.invalidateQueries({ queryKey: ["campaigns", String(campaignId)] });
+          } catch (e) {
+            console.error("Failed to parse announcement-mode WS message", e);
+          }
+          return;
+        }
+
+        try {
+          const body = payload.slice(bodyStart + headerLength).replace(/\0$/, "");
+          const message = JSON.parse(body) as CampaignChatMessageResponse;
+
+          queryClient.setQueryData<InfiniteData<CampaignChatMessageResponse[]>>(
+            ["campaigns", campaignId, "chat"],
+            (old) => {
+              if (
+                (!message.message || message.message.trim() === "") &&
+                (!message.imageUrls || message.imageUrls.length === 0)
+              ) {
+                return deleteMessageFromInfiniteData(old, message.id);
+              }
+
+              const exists = existsInInfiniteData(old, message.id);
+              if (exists) {
+                return updateMessageInInfiniteData(old, message);
+              }
+
+              if (old) {
+                const newPages = old.pages.map((page) => {
+                  const optimisticIndex = page.findIndex(
+                    (m) =>
+                      m.id < 0 &&
+                      m.message === message.message &&
+                      JSON.stringify(m.imageUrls || []) ===
+                        JSON.stringify(message.imageUrls || []) &&
+                      (m.senderName === message.senderName ||
+                        m.senderName === "Tôi" ||
+                        message.senderName === user?.name),
+                  );
+                  if (optimisticIndex !== -1) {
+                    const next = [...page];
+                    next[optimisticIndex] = message;
+                    return next;
+                  }
+                  return page;
+                });
+
+                const replaced = newPages.some((page, i) => page !== old.pages[i]);
+                if (replaced) {
+                  return { ...old, pages: newPages };
+                }
+              }
+
+              return appendMessageToInfiniteData(old, message);
+            },
+          );
+        } catch {
+          queryClient.invalidateQueries({ queryKey: ["campaigns", campaignId, "chat"] });
+        }
+      };
+
+      const handleDisconnect = () => {
+        setIsWsConnected(false);
+        socketRef.current = null;
+
+        if (!isDestroyed) {
+          const delay = reconnectDelayRef.current;
+          reconnectDelayRef.current = Math.min(delay * 2, 30000);
+
+          if (reconnectTimeoutRef.current) {
+            clearTimeout(reconnectTimeoutRef.current);
+          }
+          reconnectTimeoutRef.current = window.setTimeout(() => {
+            connect();
+          }, delay);
+        }
+      };
+
+      socket.onclose = handleDisconnect;
+      socket.onerror = handleDisconnect;
     };
+
+    connect();
 
     return () => {
-      socket.close();
-      socketRef.current = null;
+      isDestroyed = true;
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      const socket = socketRef.current;
+      if (socket) {
+        socket.onclose = null;
+        socket.onerror = null;
+        socket.onmessage = null;
+        if (socket.readyState === WebSocket.CONNECTING) {
+          socket.onopen = () => {
+            socket.close();
+          };
+        } else {
+          socket.close();
+        }
+        socketRef.current = null;
+      }
+      setIsWsConnected(false);
     };
-  }, [campaignId, enabled, queryClient, token]);
+  }, [campaignId, enabled, queryClient, token, user?.name]);
 
   const sendMessage = useMutation({
-    mutationFn: (content: string) => {
-      const socket = socketRef.current;
-      if (socket?.readyState === WebSocket.OPEN) {
-        socket.send(
-          `SEND\ndestination:/app/campaigns/${campaignId}/chat\ncontent-type:application/json\n\n${JSON.stringify({ content })}\0`,
-        );
-        return Promise.resolve(undefined);
-      }
-      return campaignApi.addChatMessage(campaignId, content).then(() => undefined);
+    mutationFn: ({
+      content,
+      imageUrls,
+    }: {
+      content: string;
+      imageUrls?: string[];
+      resendId?: number;
+    }) => {
+      return campaignApi.addChatMessage(campaignId, content, imageUrls);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["campaigns", campaignId, "chat"] });
+    onMutate: async ({
+      content,
+      imageUrls,
+      resendId,
+    }: {
+      content: string;
+      imageUrls?: string[];
+      resendId?: number;
+    }) => {
+      await queryClient.cancelQueries({ queryKey: ["campaigns", campaignId, "chat"] });
+      const previousMessages = queryClient.getQueryData<
+        InfiniteData<CampaignChatMessageResponse[]>
+      >(["campaigns", campaignId, "chat"]);
+
+      const optimisticMessage: CampaignChatMessageResponse = {
+        id: -Date.now(),
+        senderId: 0,
+        senderName: user?.name || "Tôi",
+        senderRole: user?.role || "CITIZEN",
+        message: content.trim(),
+        imageUrls: imageUrls || [],
+        pinned: false,
+        createdAt: new Date().toISOString(),
+        status: "sending" as const,
+      };
+
+      queryClient.setQueryData<InfiniteData<CampaignChatMessageResponse[]>>(
+        ["campaigns", campaignId, "chat"],
+        (old) => {
+          let updated = old;
+          if (resendId) {
+            updated = deleteMessageFromInfiniteData(old, resendId);
+          }
+          return appendMessageToInfiniteData(updated, optimisticMessage);
+        },
+      );
+
+      return { previousMessages, tempId: optimisticMessage.id };
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData<InfiniteData<CampaignChatMessageResponse[]>>(
+        ["campaigns", campaignId, "chat"],
+        (old) => {
+          if (!old) return old;
+          const newPages = old.pages.map((page) =>
+            page.map((m) => {
+              if (m.id === context?.tempId) {
+                return { ...m, status: "failed" as const };
+              }
+              return m;
+            }),
+          );
+          return { ...old, pages: newPages };
+        },
+      );
+    },
+    onSuccess: (savedMessage) => {
+      queryClient.setQueryData<InfiniteData<CampaignChatMessageResponse[]>>(
+        ["campaigns", campaignId, "chat"],
+        (old) => {
+          if (existsInInfiniteData(old, savedMessage.id)) {
+            if (!old) return old;
+            const newPages = old.pages.map((page) =>
+              page.filter(
+                (m) =>
+                  !(
+                    m.id < 0 &&
+                    m.message === savedMessage.message &&
+                    JSON.stringify(m.imageUrls || []) ===
+                      JSON.stringify(savedMessage.imageUrls || [])
+                  ),
+              ),
+            );
+            return { ...old, pages: newPages };
+          }
+
+          if (!old) return { pages: [[savedMessage]], pageParams: [undefined] };
+
+          const newPages = old.pages.map((page) => {
+            const optimisticIndex = page.findIndex(
+              (m) =>
+                m.id < 0 &&
+                m.message === savedMessage.message &&
+                JSON.stringify(m.imageUrls || []) ===
+                  JSON.stringify(savedMessage.imageUrls || []) &&
+                (m.senderName === savedMessage.senderName ||
+                  m.senderName === "Tôi" ||
+                  savedMessage.senderName === user?.name),
+            );
+            if (optimisticIndex !== -1) {
+              const next = [...page];
+              next[optimisticIndex] = savedMessage;
+              return next;
+            }
+            return page;
+          });
+
+          const replaced = newPages.some((page, i) => page !== old.pages[i]);
+          if (replaced) {
+            return { ...old, pages: newPages };
+          }
+
+          return appendMessageToInfiniteData(old, savedMessage);
+        },
+      );
     },
   });
 
-  return useMemo(() => ({ ...query, sendMessage }), [query, sendMessage]);
+  const chatMessages = useMemo(() => {
+    if (!query.data) return [];
+    const allMsgs = query.data.pages.flat();
+
+    // Deduplicate by message ID
+    const uniqueMap = new Map<string | number, CampaignChatMessageResponse>();
+    for (const msg of allMsgs) {
+      const existing = uniqueMap.get(msg.id);
+      // Keep the real message if there's an optimistic duplicate
+      if (!existing || (existing.id < 0 && msg.id >= 0)) {
+        uniqueMap.set(msg.id, msg);
+      }
+    }
+    const deduplicated = Array.from(uniqueMap.values());
+
+    return deduplicated.sort((a, b) => {
+      const aId = Number(a.id);
+      const bId = Number(b.id);
+      if (aId < 0 && bId >= 0) return 1;
+      if (bId < 0 && aId >= 0) return -1;
+      if (aId < 0 && bId < 0) return aId - bId;
+      if (a.createdAt !== b.createdAt) {
+        return a.createdAt > b.createdAt ? 1 : -1;
+      }
+      return aId - bId;
+    });
+  }, [query.data]);
+
+  return useMemo(
+    () => ({ ...query, sendMessage, isWsConnected, chatMessages }),
+    [query, sendMessage, isWsConnected, chatMessages],
+  );
 }
 
 const DEFAULT_PLACEHOLDERS: Record<string, string> = {
@@ -546,7 +847,22 @@ const DEFAULT_PLACEHOLDERS: Record<string, string> = {
 
 export function useCampaignThumbnail(campaign?: Campaign): string {
   const feedbackId = campaign?.linkedFeedbackId;
-  const { data: feedback } = useFeedbackDetail(feedbackId ? String(feedbackId) : "");
+
+  // Nếu campaign đã có cover/thumbnail riêng thì không cần fetch feedback
+  const hasLocalThumbnail = !!(
+    campaign &&
+    ((campaign.imageUrls &&
+      campaign.imageUrls.length > 0 &&
+      campaign.imageUrls[0]?.trim() !== "") ||
+      (campaign.coverImageUrl && campaign.coverImageUrl.trim() !== "") ||
+      (campaign.cover && !campaign.cover.includes("photo-1542601906990-b4d3fb778b09")))
+  );
+
+  // Sử dụng endpoint public để tránh lỗi 403 Forbidden phân quyền quản lý và chỉ chạy khi thực sự cần thiết
+  const { data: feedback } = usePublicFeedbackDetail(
+    !hasLocalThumbnail && feedbackId ? String(feedbackId) : "",
+    { enabled: !hasLocalThumbnail && !!feedbackId },
+  );
 
   return useMemo(() => {
     if (!campaign) return DEFAULT_PLACEHOLDERS.default;
@@ -582,20 +898,78 @@ export function useCampaignThumbnail(campaign?: Campaign): string {
 
 export function usePinChatMessage(campaignId: string) {
   const queryClient = useQueryClient();
+  const chatKey = ["campaigns", campaignId, "chat"];
+
   return useMutation<CampaignChatMessageResponse, Error, number | string>({
     mutationFn: (messageId) => campaignApi.pinMessage(campaignId, messageId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["campaigns", campaignId, "chat"] });
+
+    // Optimistic update: cập nhật UI ngay lập tức, không chờ server
+    onMutate: async (messageId) => {
+      await queryClient.cancelQueries({ queryKey: chatKey });
+      const snapshot =
+        queryClient.getQueryData<InfiniteData<CampaignChatMessageResponse[]>>(chatKey);
+
+      queryClient.setQueryData<InfiniteData<CampaignChatMessageResponse[]>>(chatKey, (old) => {
+        if (!old) return old;
+        const newPages = old.pages.map((page) =>
+          page.map((m) => (String(m.id) === String(messageId) ? { ...m, pinned: true } : m)),
+        );
+        return { ...old, pages: newPages };
+      });
+
+      return { snapshot };
+    },
+
+    // Nếu server từ chối (vd: đã đạt 3 ghim), rollback về snapshot cũ
+    onError: (err: any, _messageId, context: any) => {
+      if (context?.snapshot) {
+        queryClient.setQueryData(chatKey, context.snapshot);
+      }
+      toast.error(err?.message || "Không thể ghim tin nhắn.");
+    },
+
+    // Sau khi server xác nhận, đồng bộ lại dữ liệu chính xác
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: chatKey });
     },
   });
 }
 
 export function useUnpinChatMessage(campaignId: string) {
   const queryClient = useQueryClient();
+  const chatKey = ["campaigns", campaignId, "chat"];
+
   return useMutation<CampaignChatMessageResponse, Error, number | string>({
     mutationFn: (messageId) => campaignApi.unpinMessage(campaignId, messageId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["campaigns", campaignId, "chat"] });
+
+    // Optimistic update: bỏ ghim ngay lập tức
+    onMutate: async (messageId) => {
+      await queryClient.cancelQueries({ queryKey: chatKey });
+      const snapshot =
+        queryClient.getQueryData<InfiniteData<CampaignChatMessageResponse[]>>(chatKey);
+
+      queryClient.setQueryData<InfiniteData<CampaignChatMessageResponse[]>>(chatKey, (old) => {
+        if (!old) return old;
+        const newPages = old.pages.map((page) =>
+          page.map((m) => (String(m.id) === String(messageId) ? { ...m, pinned: false } : m)),
+        );
+        return { ...old, pages: newPages };
+      });
+
+      return { snapshot };
+    },
+
+    // Rollback nếu lỗi
+    onError: (err: any, _messageId, context: any) => {
+      if (context?.snapshot) {
+        queryClient.setQueryData(chatKey, context.snapshot);
+      }
+      toast.error(err?.message || "Không thể bỏ ghim tin nhắn.");
+    },
+
+    // Đồng bộ sau khi server xác nhận
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: chatKey });
     },
   });
 }
@@ -616,6 +990,114 @@ export function useFinalizeCampaign() {
     mutationFn: (id) => campaignApi.finalizeCampaign(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+    },
+  });
+}
+
+export function useDeleteChatMessageMutation(campaignId: string | number) {
+  const queryClient = useQueryClient();
+  const chatKey = ["campaigns", String(campaignId), "chat"];
+
+  return useMutation<void, Error, number | string>({
+    mutationFn: (messageId) => campaignApi.deleteChatMessage(campaignId, messageId),
+    onMutate: async (messageId) => {
+      await queryClient.cancelQueries({ queryKey: chatKey });
+      const snapshot =
+        queryClient.getQueryData<InfiniteData<CampaignChatMessageResponse[]>>(chatKey);
+
+      queryClient.setQueryData<InfiniteData<CampaignChatMessageResponse[]>>(chatKey, (old) =>
+        deleteMessageFromInfiniteData(old, messageId),
+      );
+
+      return { snapshot };
+    },
+    onError: (err, _messageId, context: any) => {
+      if (context?.snapshot) {
+        queryClient.setQueryData(chatKey, context.snapshot);
+      }
+      toast.error("Không thể xóa tin nhắn.");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: chatKey });
+    },
+  });
+}
+
+export function useSetAnnouncementMode(campaignId: string | number) {
+  const queryClient = useQueryClient();
+  return useMutation<CampaignResponse, Error, boolean>({
+    mutationFn: (enabled) => campaignApi.setAnnouncementMode(campaignId, enabled),
+    onSuccess: (updatedCampaign) => {
+      queryClient.setQueryData<CampaignResponse>(
+        ["campaigns", String(campaignId), "private", true],
+        updatedCampaign,
+      );
+      queryClient.setQueryData<CampaignResponse>(
+        ["campaigns", String(campaignId), "private", false],
+        updatedCampaign,
+      );
+      queryClient.invalidateQueries({ queryKey: ["campaigns", String(campaignId)] });
+    },
+    onError: () => {
+      toast.error("Không thể thay đổi chế độ chỉ Cán bộ được nhắn.");
+    },
+  });
+}
+
+export function useWarnUserMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<any, Error, { userId: number; reason: string }>({
+    mutationFn: ({ userId, reason }) => userApi.warn(userId, reason),
+    onSuccess: (_, { userId }) => {
+      queryClient.invalidateQueries({ queryKey: ["user", userId] });
+    },
+  });
+}
+
+export function useBlacklistQuery() {
+  return useQuery({
+    queryKey: ["users", "blacklist"],
+    queryFn: () => userApi.getBlacklist(),
+  });
+}
+
+export function useUnbanUserMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<any, Error, number>({
+    mutationFn: (userId) => userApi.unban(userId),
+    onSuccess: (_, userId) => {
+      queryClient.invalidateQueries({ queryKey: ["user", userId] });
+      queryClient.invalidateQueries({ queryKey: ["users", "blacklist"] });
+    },
+  });
+}
+
+export function useBanUserMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<any, Error, { userId: number; reason: string }>({
+    mutationFn: ({ userId, reason }) => userApi.ban(userId, reason),
+    onSuccess: (_, { userId }) => {
+      queryClient.invalidateQueries({ queryKey: ["user", userId] });
+      queryClient.invalidateQueries({ queryKey: ["users", "blacklist"] });
+    },
+  });
+}
+
+export function useLookupParticipantByPhone(campaignId: string | number) {
+  return useMutation({
+    mutationFn: (phone: string) => campaignApi.lookupParticipantByPhone(campaignId, phone),
+  });
+}
+
+export function useBulkSaveAttendance(campaignId: string | number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { attendances: { participantId: number; attended: boolean }[] }) =>
+      campaignApi.bulkSaveAttendance(campaignId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["campaigns", String(campaignId), "participants"],
+      });
     },
   });
 }

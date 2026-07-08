@@ -159,21 +159,17 @@ function ReportDetail() {
         id: found.id,
         title: found.name,
         status:
-          found.status === "pending_review"
+          found.status === "recruiting"
             ? isVi
-              ? "Chờ duyệt"
-              : "Pending Review"
-            : found.status === "recruiting"
+              ? "Đang tuyển"
+              : "Recruiting"
+            : found.status === "completed"
               ? isVi
-                ? "Đang tuyển"
-                : "Recruiting"
-              : found.status === "completed"
-                ? isVi
-                  ? "Đã hoàn thành"
-                  : "Completed"
-                : isVi
-                  ? "Đang tiến hành"
-                  : "In Progress",
+                ? "Đã hoàn thành"
+                : "Completed"
+              : isVi
+                ? "Đang tiến hành"
+                : "In Progress",
         participants: found.participants,
         progress: found.progress,
       });
@@ -187,21 +183,17 @@ function ReportDetail() {
           id: updated.id,
           title: updated.name,
           status:
-            updated.status === "pending_review"
+            updated.status === "recruiting"
               ? isVi
-                ? "Chờ duyệt"
-                : "Pending Review"
-              : updated.status === "recruiting"
+                ? "Đang tuyển"
+                : "Recruiting"
+              : updated.status === "completed"
                 ? isVi
-                  ? "Đang tuyển"
-                  : "Recruiting"
-                : updated.status === "completed"
-                  ? isVi
-                    ? "Đã hoàn thành"
-                    : "Completed"
-                  : isVi
-                    ? "Đang tiến hành"
-                    : "In Progress",
+                  ? "Đã hoàn thành"
+                  : "Completed"
+                : isVi
+                  ? "Đang tiến hành"
+                  : "In Progress",
           participants: updated.participants,
           progress: updated.progress,
         });

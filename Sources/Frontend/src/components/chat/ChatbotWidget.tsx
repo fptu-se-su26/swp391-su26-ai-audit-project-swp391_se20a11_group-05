@@ -13,12 +13,18 @@ import {
   ArrowRight,
   Volume2,
   VolumeX,
+  ThumbsUp,
+  ThumbsDown,
+  ExternalLink,
+  Square,
 } from "lucide-react";
 import { useChatbot } from "@/hooks/useChatbot";
 import { AiTracePanel } from "./AiTracePanel";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import logoUrl from "@/assets/logo.png";
+import { ragApi } from "@/lib/api";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 
 const SUGGESTED_QUESTIONS = [
   "Báo cáo kẹt xe ở cầu Rồng",
@@ -26,6 +32,18 @@ const SUGGESTED_QUESTIONS = [
   "Tra cứu tiến độ phản ánh FB-1234",
   "Hướng dẫn nộp phạt vi phạm giao thông",
 ];
+
+// ─── Context-aware greeting map (Feature 3) ──────────────────────────────
+const CONTEXT_GREETINGS: Record<string, { text: string; chip?: string }> = {
+  "/report":       { text: "📋 Bạn đang xem trang Gửi Phản Ánh! Tôi có thể giúp bạn điền thông tin nếu cần.", chip: "Hướng dẫn điền form" },
+  "/my-reports":   { text: "🔍 Tôi có thể tra cứu trạng thái bất kỳ phản ánh nào của bạn. Nhập mã FB-... để bắt đầu!", chip: "Tra cứu phản ánh của tôi" },
+  "/campaigns":    { text: "🎯 Bạn đang khám phá các Chiến Dịch Tình Nguyện! Muốn tôi giới thiệu các chiến dịch phù hợp với bạn không?", chip: "Giới thiệu chiến dịch" },
+  "/feedback-search": { text: "🔍 Tôi có thể tra cứu thông tin phản ánh nhanh hơn bằng giọng nói hoặc mã số!", chip: "Tra cứu theo mã số" },
+  "/tin-tuc":      { text: "📰 Bạn đang đọc tin tức Đà Nẵng. Tôi có thể tóm tắt bất kỳ nội dung nào bạn muốn!", chip: "Tóm tắt bài viết" },
+  "/profile":      { text: "👤 Cần giúp đỡ gì với tài khoản của bạn?", chip: "Hỏi về tài khoản" },
+  "/notifications":{ text: "🔔 Bạn có thông báo mới! Tôi có thể giải thích nội dung nếu cần.", chip: "Giải thích thông báo" },
+  "/":             { text: "🏙️ Xin chào! Tôi là Bé Rồng — trợ lý AI của Đà Nẵng Kết Nối. Hôm nay tôi có thể giúp gì cho bạn?", chip: undefined },
+};
 
 type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
 
@@ -55,10 +73,16 @@ export function ChatbotWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [inputText, setInputText] = useState("");
+  const [ratedMessages, setRatedMessages] = useState<Record<string, 1 | -1>>({});
+  const navigate = useNavigate();
+  // Feature 3: đọc pathname hiện tại
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { messages, isLoading, petState, sendMessage, setMessages, isMuted, setIsMuted } =
     useChatbot();
   const [isListening, setIsListening] = useState(false);
   const [showTrace, setShowTrace] = useState(false);
+  // Feature 3: đã hiện câu chào ngữ cảnh chưa
+  const [contextGreetingShown, setContextGreetingShown] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -66,6 +90,22 @@ export function ChatbotWidget() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Feature 3: Hiện context greeting khi mở chat lần đầu trên mỗi trang
+  useEffect(() => {
+    if (isOpen && messages.length === 0 && contextGreetingShown !== pathname) {
+      const greeting = CONTEXT_GREETINGS[pathname] ?? CONTEXT_GREETINGS["/"];
+      // Dùng sendMessage giả lập như thể bot tự chào
+      setMessages([{
+        id: Date.now().toString(),
+        role: "assistant",
+        content: greeting.text,
+        // Chíp câu gợi ý nhanh nếu có
+        suggestedFollowUps: greeting.chip ? [greeting.chip] : SUGGESTED_QUESTIONS.slice(0, 3),
+      }]);
+      setContextGreetingShown(pathname);
+    }
+  }, [isOpen, pathname]);
 
   // Tự động co giãn textarea
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -463,14 +503,18 @@ export function ChatbotWidget() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Quick Actions Carousel (Chỉ hiện khi chưa chat hoặc bot hỏi) */}
-          {!isLoading &&
-            (messages.length === 0 ||
-              (messages.length > 0 &&
-                messages[messages.length - 1].role === "assistant" &&
-                messages[messages.length - 1].intent?.intent === "SMALLTALK")) && (
+          {/* Quick Actions Carousel — dynamic suggestedFollowUps từ backend hoặc fallback */}
+          {!isLoading && messages.length > 0 && (() => {
+            const lastBot = [...messages].reverse().find(m => m.role === "assistant" && !m.isError);
+            const chips = lastBot?.suggestedFollowUps?.length
+              ? lastBot.suggestedFollowUps
+              : (messages.length === 0 || (messages[messages.length - 1].role === "assistant" && messages[messages.length - 1].intent?.intent === "SMALLTALK"))
+                ? SUGGESTED_QUESTIONS
+                : [];
+            if (!chips.length) return null;
+            return (
               <div className="px-3 pb-2 pt-1 flex gap-2 overflow-x-auto scrollbar-none snap-x bg-white/50 backdrop-blur-sm border-t border-slate-50">
-                {SUGGESTED_QUESTIONS.map((q, idx) => (
+                {chips.map((q, idx) => (
                   <button
                     key={idx}
                     onClick={() => handleSubmit(undefined, q)}
@@ -480,7 +524,8 @@ export function ChatbotWidget() {
                   </button>
                 ))}
               </div>
-            )}
+            );
+          })()}
 
           {/* Ô nhập liệu */}
           <form
@@ -514,15 +559,27 @@ export function ChatbotWidget() {
                 disabled={isLoading || isListening}
               />
             </div>
-            <button
-              type="submit"
-              disabled={!inputText.trim() || isLoading}
-              className={`p-3 text-white rounded-xl flex-shrink-0 disabled:opacity-50 disabled:scale-100 transition-all duration-300 hover:scale-105 active:scale-95 shadow-md mb-1 ${
-                inputText.trim() ? headerBgColor : "bg-slate-200"
-              }`}
-            >
-              <Send className={`w-5 h-5 ${!inputText.trim() && "text-slate-400"}`} />
-            </button>
+            {/* Stop button khi đang loading — Feature 2 */}
+            {isLoading ? (
+              <button
+                type="button"
+                onClick={() => setMessages(prev => prev.filter(m => m.content !== ""))}
+                className="p-3 bg-red-500 text-white rounded-xl flex-shrink-0 transition-all hover:bg-red-600 shadow-md mb-1 flex items-center gap-1.5"
+                title="Dừng phản hồi"
+              >
+                <Square className="w-4 h-4" fill="white" />
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={!inputText.trim() || isLoading}
+                className={`p-3 text-white rounded-xl flex-shrink-0 disabled:opacity-50 disabled:scale-100 transition-all duration-300 hover:scale-105 active:scale-95 shadow-md mb-1 ${
+                  inputText.trim() ? headerBgColor : "bg-slate-200"
+                }`}
+              >
+                <Send className={`w-5 h-5 ${!inputText.trim() && "text-slate-400"}`} />
+              </button>
+            )}
           </form>
         </div>
       )}

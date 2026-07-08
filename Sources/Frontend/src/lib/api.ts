@@ -8,7 +8,7 @@
  *  - Error handling tập trung với ApiError
  */
 
-const API_BASE: string =
+export const API_BASE: string =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) || "";
 
 // ─── JWT Token Management ─────────────────────────────────────
@@ -215,6 +215,10 @@ export interface UserProfile {
   wardName?: string | null;
   wardType?: string | null;
   wardId?: number | null;
+  warningCount?: number;
+  completedCampaignCount?: number;
+  noShowCampaignCount?: number;
+  reputationBadge?: string;
 }
 
 export interface UpdateProfileRequest {
@@ -437,12 +441,34 @@ export interface RagResponse {
 }
 
 export interface ChatbotResponse {
+  // Legacy fields
   answer: string;
-  citations: Citation[];
+  citations?: Citation[];
   latencyMs: number;
   provider: string;
-  userId: number;
-  chatId: string;
+  userId?: number;
+  chatId?: string;
+  // Enhanced fields
+  reply?: string; // Primary reply text (same as answer but from new format)
+  intent?: string; // LOOKUP_FEEDBACK | CREATE_FEEDBACK | QA_LEGAL | STATISTICS | REPORT_COPILOT | DISCOVER_CAMPAIGN | NAVIGATION_GUIDE | GENERAL
+  emotion?: string; // POSITIVE | NEGATIVE | NEUTRAL
+  action?: string; // OPEN_FEEDBACK_FORM | NAVIGATE
+  navigateTo?: string; // e.g. /feedback/create
+  messageId?: string; // UUID for rating
+  suggestedFollowUps?: string[];
+  // Feedback lookup fields
+  trackingCode?: string;
+  feedbackStatus?: string;
+  feedbackCategory?: string;
+  feedbackAddress?: string;
+  feedbackDescription?: string;
+  feedbackCreatedAt?: string;
+  feedbackUpdatedAt?: string;
+  // Create feedback fields
+  location?: string;
+  category?: string;
+  description?: string;
+  needsMoreInfo?: string[];
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -679,6 +705,25 @@ export const userApi = {
     request<void>(`/api/users/${id}`, {
       method: "DELETE",
     }),
+
+  getById: (id: number) => request<UserProfile>(`/api/users/${id}`),
+
+  warn: (id: number, reason: string) =>
+    request<UserProfile>(`/api/users/${id}/warn?reason=${encodeURIComponent(reason)}`, {
+      method: "POST",
+    }),
+
+  getBlacklist: () => request<UserProfile[]>("/api/users/blacklist"),
+
+  unban: (id: number) =>
+    request<UserProfile>(`/api/users/${id}/unban`, {
+      method: "POST",
+    }),
+
+  ban: (id: number, reason: string) =>
+    request<UserProfile>(`/api/users/${id}/ban?reason=${encodeURIComponent(reason)}`, {
+      method: "POST",
+    }),
 };
 
 export const notificationApi = {
@@ -766,13 +811,56 @@ export const ragApi = {
       }),
     }),
 
-  chatbot: (question: string, userId: string | number) =>
-    request<ChatbotResponse>(`/api/rag/chatbot?q=${encodeURIComponent(question)}&userId=${userId}`),
+  chatbot: (question: string, userId: string | number, sessionId?: string) =>
+    request<ChatbotResponse>(
+      `/api/chatbot/query?q=${encodeURIComponent(question)}&userId=${userId}${sessionId ? `&sessionId=${encodeURIComponent(sessionId)}` : ""}`,
+    ),
 
   chatHistory: (userId: string | number) =>
-    request<unknown[]>(`/api/rag/chat-history?userId=${userId}`),
+    request<unknown[]>(`/api/chatbot/chat-history?userId=${userId}`),
 
-  stats: () => request<Record<string, unknown>>("/api/rag/stats"),
+  stats: () => request<Record<string, unknown>>("/api/chatbot/chat-stats"),
+
+  /**
+   * Đánh giá chất lượng câu trả lời của bot.
+   * @param messageId UUID của ChatHistory
+   * @param rating 1 = helpful, -1 = not helpful
+   */
+  rateMessage: (messageId: string, rating: 1 | -1) =>
+    request<{ success: boolean; message: string }>(
+      `/api/chatbot/rate?messageId=${encodeURIComponent(messageId)}&rating=${rating}`,
+      { method: "POST" },
+    ),
+
+  /**
+   * [Feature 4] Lấy danh sách sessions của user.
+   */
+  getSessions: (userId: string | number) =>
+    request<
+      Array<{
+        sessionId: string;
+        sessionName: string;
+        lastMessage: string;
+        messageCount: number;
+      }>
+    >(`/api/chatbot/chat-sessions?userId=${userId}`),
+
+  /**
+   * [Feature 4] Lấy toàn bộ tin nhắn trong một session.
+   */
+  getSessionMessages: (sessionId: string, userId: string | number) =>
+    request<
+      Array<{
+        messageId: string;
+        question: string;
+        answer: string;
+        intent: string;
+        createdAt: string;
+        latencyMs: number;
+        provider: string;
+        userRating: number | null;
+      }>
+    >(`/api/chatbot/chat-sessions/${encodeURIComponent(sessionId)}?userId=${userId}`),
 };
 
 export const aiApi = {
@@ -851,19 +939,31 @@ export interface CampaignResponse {
   minParticipants: number | null;
   startTime: string | null;
   endTime: string | null;
-  status: "PENDING_APPROVAL" | "RECRUITING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "ACTIVE" | "ENDED";
+  status: "RECRUITING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "ACTIVE" | "ENDED";
   wardId: number | null;
   wardName: string | null;
   createdByUserId: number;
   createdByName: string | null;
   participantCount: number;
-  currentUserJoinStatus: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "WAITLIST" | "PENDING_CONFIRM" | "NO_SHOW" | null;
+  currentUserJoinStatus:
+    | "PENDING"
+    | "APPROVED"
+    | "REJECTED"
+    | "CANCELLED"
+    | "WAITLIST"
+    | "PENDING_CONFIRM"
+    | "NO_SHOW"
+    | "CONFIRMED"
+    | "MAYBE"
+    | null;
   privateDetailsVisible: boolean;
   canJoin: boolean;
   canLeave: boolean;
   canManage: boolean;
   canComment: boolean;
   canFeedback: boolean;
+  announcementMode: boolean;
+  cancellationReason?: string | null;
   createdAt: string;
   updatedAt: string;
   linkedFeedbackId?: number | null;
@@ -899,7 +999,16 @@ export interface CampaignParticipantResponse {
   citizenId: number;
   citizenName: string;
   citizenEmail?: string;
-  joinStatus: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "WAITLIST" | "PENDING_CONFIRM" | "NO_SHOW" | "CONFIRMED" | "MAYBE";
+  joinStatus:
+    | "PENDING"
+    | "APPROVED"
+    | "REJECTED"
+    | "CANCELLED"
+    | "WAITLIST"
+    | "PENDING_CONFIRM"
+    | "NO_SHOW"
+    | "CONFIRMED"
+    | "MAYBE";
   volunteerExperience?: string;
   availabilityHours?: string;
   cancellationReason?: string | null;
@@ -912,6 +1021,10 @@ export interface CampaignParticipantResponse {
   rejectedAt: string | null;
   rejectionReason: string | null;
   confirmedAt: string | null;
+  attended?: boolean | null;
+  attendedAt?: string | null;
+  citizenPhone?: string | null;
+  campaignTitle?: string | null;
 }
 
 export const campaignApi = {
@@ -943,13 +1056,17 @@ export const campaignApi = {
       method: "DELETE",
     }),
 
-  approve: (id: number | string) =>
-    request<CampaignResponse>(`/api/campaigns/${id}/approve`, { method: "POST" }),
+  end: (id: number | string, reason?: string) => {
+    const url = reason
+      ? `/api/campaigns/${id}/end?reason=${encodeURIComponent(reason)}`
+      : `/api/campaigns/${id}/end`;
+    return request<CampaignResponse>(url, { method: "POST" });
+  },
 
-  end: (id: number | string) =>
-    request<CampaignResponse>(`/api/campaigns/${id}/end`, { method: "POST" }),
-
-  join: (id: number | string, data: { volunteerExperience?: string; availabilityHours?: string; otpCode: string }) =>
+  join: (
+    id: number | string,
+    data: { volunteerExperience?: string; availabilityHours?: string; otpCode: string },
+  ) =>
     request<CampaignResponse>(`/api/campaigns/${id}/join`, {
       method: "POST",
       body: JSON.stringify(data),
@@ -971,12 +1088,14 @@ export const campaignApi = {
     }),
 
   markNoShow: (id: number | string, participantId: number | string) =>
-    request<CampaignParticipantResponse>(`/api/campaigns/${id}/participants/${participantId}/no-show`, {
-      method: "POST",
-    }),
+    request<CampaignParticipantResponse>(
+      `/api/campaigns/${id}/participants/${participantId}/no-show`,
+      {
+        method: "POST",
+      },
+    ),
 
-  sendEmailOtp: () =>
-    request<string>("/api/campaigns/email-otp/send", { method: "POST" }),
+  sendEmailOtp: () => request<string>("/api/campaigns/email-otp/send", { method: "POST" }),
 
   getParticipants: (id: number | string) =>
     request<CampaignParticipantResponse[]>(`/api/campaigns/${id}/participants`),
@@ -1007,13 +1126,17 @@ export const campaignApi = {
       body: JSON.stringify({ content }),
     }),
 
-  getChatMessages: (id: number | string) =>
-    request<CampaignChatMessageResponse[]>(`/api/campaigns/${id}/chat`),
+  getChatMessages: (id: number | string, beforeId?: number | string) => {
+    const url = beforeId
+      ? `/api/campaigns/${id}/chat?beforeId=${beforeId}`
+      : `/api/campaigns/${id}/chat`;
+    return request<CampaignChatMessageResponse[]>(url);
+  },
 
-  addChatMessage: (id: number | string, content: string) =>
+  addChatMessage: (id: number | string, content: string, imageUrls?: string[]) =>
     request<CampaignChatMessageResponse>(`/api/campaigns/${id}/chat`, {
       method: "POST",
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ content, imageUrls }),
     }),
 
   pinMessage: (id: number | string, messageId: number | string) =>
@@ -1026,15 +1149,45 @@ export const campaignApi = {
       method: "POST",
     }),
 
-  signalAttendance: (id: number | string, signal: "CONFIRMED" | "MAYBE") =>
-    request<CampaignParticipantResponse>(`/api/campaigns/${id}/signal-attendance?signal=${signal}`, {
-      method: "POST",
+  deleteChatMessage: (id: number | string, messageId: number | string) =>
+    request<void>(`/api/campaigns/${id}/chat/${messageId}`, {
+      method: "DELETE",
     }),
+
+  signalAttendance: (id: number | string, signal: "CONFIRMED" | "MAYBE") =>
+    request<CampaignParticipantResponse>(
+      `/api/campaigns/${id}/signal-attendance?signal=${signal}`,
+      {
+        method: "POST",
+      },
+    ),
 
   finalizeCampaign: (id: number | string) =>
     request<CampaignResponse>(`/api/campaigns/${id}/finalize`, {
       method: "POST",
     }),
+
+  setAnnouncementMode: (id: number | string, enabled: boolean) =>
+    request<CampaignResponse>(`/api/campaigns/${id}/announcement-mode?enabled=${enabled}`, {
+      method: "PUT",
+    }),
+
+  lookupParticipantByPhone: (id: number | string, phone: string) =>
+    request<CampaignParticipantResponse>(
+      `/api/campaigns/${id}/participants/lookup?phone=${encodeURIComponent(phone)}`,
+    ),
+
+  bulkSaveAttendance: (
+    id: number | string,
+    data: { attendances: { participantId: number; attended: boolean }[] },
+  ) =>
+    request<CampaignParticipantResponse[]>(`/api/campaigns/${id}/attendance/bulk`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  getCitizenParticipationHistory: (userId: number | string) =>
+    request<CampaignParticipantResponse[]>(`/api/campaigns/participants/user/${userId}`),
 };
 
 export interface CampaignCommentResponse {
@@ -1052,6 +1205,8 @@ export interface CampaignChatMessageResponse {
   senderName: string;
   senderRole: BackendRole;
   message: string;
+  imageUrls?: string[];
   pinned: boolean;
   createdAt: string;
+  status?: "sending" | "failed" | "sent" | "seen";
 }

@@ -12,8 +12,10 @@ import com.example.smartcity.modules.campaign.dto.CampaignRequest;
 import com.example.smartcity.modules.campaign.dto.CampaignResponse;
 import com.example.smartcity.modules.campaign.dto.CampaignJoinRequest;
 import com.example.smartcity.modules.campaign.dto.CampaignBatchApproveRequest;
+import com.example.smartcity.modules.campaign.dto.AttendanceBulkRequest;
 import com.example.smartcity.modules.auth.service.EmailOtpService;
 import com.example.smartcity.modules.notification.service.NotificationService;
+import com.example.smartcity.modules.notification.service.ExternalNotificationService;
 import com.example.smartcity.modules.campaign.entity.Campaign;
 import com.example.smartcity.modules.campaign.entity.CampaignChatMessage;
 import com.example.smartcity.modules.campaign.entity.CampaignComment;
@@ -49,10 +51,9 @@ import java.util.Optional;
 @Slf4j
 public class CampaignServiceImpl implements CampaignService {
 
-    private static final String STATUS_PENDING_APPROVAL = "PENDING_APPROVAL";
     private static final String STATUS_RECRUITING = "RECRUITING";
-    private static final String STATUS_COMPLETED = "COMPLETED";
     private static final String STATUS_IN_PROGRESS = "IN_PROGRESS";
+    private static final String STATUS_COMPLETED = "COMPLETED";
     private static final String STATUS_CANCELLED_STR = "CANCELLED";
     private static final String JOIN_PENDING = "PENDING";
     private static final String JOIN_APPROVED = "APPROVED";
@@ -64,6 +65,7 @@ public class CampaignServiceImpl implements CampaignService {
     private static final String JOIN_CONFIRMED = "CONFIRMED";
     private static final String JOIN_MAYBE = "MAYBE";
     private static final List<String> ATTENDING_STATUSES = List.of(JOIN_CONFIRMED, JOIN_MAYBE, JOIN_APPROVED);
+    private static final List<String> ACTIVE_CHAT_STATUSES = List.of(JOIN_PENDING, JOIN_APPROVED, JOIN_CONFIRMED, JOIN_MAYBE);
 
     private final CampaignRepository campaignRepository;
     private final CampaignParticipantRepository participantRepository;
@@ -71,11 +73,11 @@ public class CampaignServiceImpl implements CampaignService {
     private final CampaignChatMessageRepository chatMessageRepository;
     private final CampaignFeedbackRepository feedbackRepository;
     private final UserRepository userRepository;
-    private final WardRepository wardRepository;
     private final LocationResolutionService locationResolutionService;
     private final CampaignIngestionService campaignIngestionService;
     private final EmailOtpService emailOtpService;
     private final NotificationService notificationService;
+    private final ExternalNotificationService externalNotificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -101,7 +103,6 @@ public class CampaignServiceImpl implements CampaignService {
     public CampaignResponse getById(Long id, String username) {
         User currentUser = findUser(username).orElse(null);
         Campaign campaign = getCampaign(id);
-        assertCanViewCampaign(campaign, currentUser);
         return toResponse(campaign, currentUser);
     }
 
@@ -122,7 +123,7 @@ public class CampaignServiceImpl implements CampaignService {
             throw new CustomException("Bạn không có quyền tạo chiến dịch", HttpStatus.FORBIDDEN.value());
         }
 
-        Ward ward = resolveWard(request, creator);
+        Ward ward = resolveWard(creator);
         assertCampaignLocationWithinWard(request, ward);
         Campaign campaign = Campaign.builder()
                 .createdByUser(creator)
@@ -163,25 +164,11 @@ public class CampaignServiceImpl implements CampaignService {
 
     @Override
     @Transactional
-    public CampaignResponse approveCampaign(Long campaignId, String username) {
-        User approver = requireUser(username);
-        if (approver.getRole() != Role.SUPER_ADMIN) {
-            throw new CustomException("Only city admin can approve campaigns", HttpStatus.FORBIDDEN.value());
-        }
-
-        Campaign campaign = getCampaign(campaignId);
-        if (!STATUS_PENDING_APPROVAL.equals(campaign.getStatus())) {
-            throw new CustomException("Campaign is not pending approval", HttpStatus.CONFLICT.value());
-        }
-
-        campaign.setStatus(STATUS_RECRUITING);
-        return toResponse(campaignRepository.save(campaign), approver);
-    }
-
-    @Override
-    @Transactional
     public CampaignResponse join(Long campaignId, CampaignJoinRequest request, String username) {
         User citizen = requireUser(username);
+        if ("BANNED".equalsIgnoreCase(citizen.getStatus())) {
+            throw new CustomException("Tài khoản của bạn đã bị khóa.", HttpStatus.FORBIDDEN.value());
+        }
         if (citizen.getRole() != Role.CITIZEN) {
             throw new CustomException("Only citizens can join campaigns", HttpStatus.FORBIDDEN.value());
         }
@@ -194,17 +181,29 @@ public class CampaignServiceImpl implements CampaignService {
 
         Campaign campaign = getCampaign(campaignId);
         LocalDateTime now = LocalDateTime.now();
-        boolean isEnded = "ENDED".equals(campaign.getStatus())
-                || "COMPLETED".equals(campaign.getStatus())
-                || (campaign.getEndTime() != null && now.isAfter(campaign.getEndTime()));
-        if (isEnded || !STATUS_RECRUITING.equals(campaign.getStatus())) {
+        String computedStatus = campaign.getStatus();
+        if (!"CANCELLED".equals(computedStatus)) {
+            if ("ENDED".equals(computedStatus)
+                    || "COMPLETED".equals(computedStatus)
+                    || (campaign.getEndTime() != null && now.isAfter(campaign.getEndTime()))) {
+                computedStatus = "ENDED";
+            } else if (campaign.getStartTime() != null && now.isAfter(campaign.getStartTime())) {
+                computedStatus = "IN_PROGRESS";
+            } else {
+                computedStatus = "RECRUITING";
+            }
+        }
+        if (!STATUS_RECRUITING.equals(computedStatus)) {
             throw new CustomException("Campaign is not open for registration", HttpStatus.CONFLICT.value());
         }
 
-        long approvedCount = participantRepository.countByCampaign_IdAndJoinStatus(campaignId, JOIN_APPROVED);
+        long activeChatCount = participantRepository.countByCampaign_IdAndJoinStatusIn(campaignId, ACTIVE_CHAT_STATUSES);
         String targetStatus = JOIN_PENDING;
-        if (campaign.getMaxParticipants() != null && approvedCount >= campaign.getMaxParticipants()) {
-            targetStatus = JOIN_WAITLIST;
+        if (campaign.getMaxParticipants() != null) {
+            int cap = (campaign.getMaxParticipants() * 3 + 1) / 2;
+            if (activeChatCount >= cap) {
+                targetStatus = JOIN_WAITLIST;
+            }
         }
 
         Optional<CampaignParticipant> existing = participantRepository
@@ -240,6 +239,14 @@ public class CampaignServiceImpl implements CampaignService {
             participantRepository.save(participant);
         }
 
+        notificationService.createCampaignNotification(
+                campaign.getCreatedByUser(),
+                campaignId,
+                "Có tình nguyện viên đăng ký mới",
+                String.format("Tình nguyện viên %s đã đăng ký tham gia chiến dịch '%s'.", citizen.getFullName(), campaign.getTitle()),
+                "CAMPAIGN_JOINED"
+        );
+
         return toResponse(campaignRepository.findById(campaignId).orElse(campaign), citizen);
     }
 
@@ -267,7 +274,8 @@ public class CampaignServiceImpl implements CampaignService {
             throw new CustomException("Không được phép hủy tham gia 2 lần liên tiếp cho cùng một chiến dịch.", HttpStatus.BAD_REQUEST.value());
         }
 
-        boolean wasApproved = JOIN_APPROVED.equals(participant.getJoinStatus());
+        boolean wasOccupyingSlot = List.of(JOIN_PENDING, JOIN_APPROVED, JOIN_CONFIRMED, JOIN_MAYBE, JOIN_PENDING_CONFIRM)
+                .contains(participant.getJoinStatus());
 
         participant.setJoinStatus(JOIN_CANCELLED);
         participant.setApprovedBy(null);
@@ -276,20 +284,29 @@ public class CampaignServiceImpl implements CampaignService {
         participant.setRejectionReason(null);
         participant.setCancelledAt(LocalDateTime.now());
         participant.setCancellationReason(request != null ? request.getReason() : "Hủy bởi người dùng");
-        participant.setCancelCount((participant.getCancelCount() == null ? 0 : participant.getCancelCount()) + 1);
+        Integer currentCancelCount = participant.getCancelCount();
+        participant.setCancelCount((currentCancelCount == null ? 0 : currentCancelCount.intValue()) + 1);
         participant.setConfirmationDeadline(null);
         participantRepository.save(participant);
 
-        if (wasApproved) {
+        if (wasOccupyingSlot) {
             promoteNextWaitlist(campaignId);
         }
+
+        notificationService.createCampaignNotification(
+                campaign.getCreatedByUser(),
+                campaignId,
+                "Tình nguyện viên hủy tham gia",
+                String.format("Tình nguyện viên %s đã hủy tham gia chiến dịch '%s'.", citizen.getFullName(), campaign.getTitle()),
+                "CAMPAIGN_LEFT"
+        );
     }
 
     private void promoteNextWaitlist(Long campaignId) {
         participantRepository.findFirstByCampaign_IdAndJoinStatusOrderByCreatedAtAsc(campaignId, JOIN_WAITLIST)
                 .ifPresent(nextParticipant -> {
                     nextParticipant.setJoinStatus(JOIN_PENDING_CONFIRM);
-                    nextParticipant.setConfirmationDeadline(LocalDateTime.now().plusHours(2));
+                    nextParticipant.setConfirmationDeadline(LocalDateTime.now().plusMinutes(10));
                     participantRepository.save(nextParticipant);
 
                     // Send notification to citizen
@@ -297,7 +314,7 @@ public class CampaignServiceImpl implements CampaignService {
                             nextParticipant.getCitizen(),
                             campaignId,
                             "🔔 Xác nhận tham gia chiến dịch",
-                            "Bạn đã được chọn từ danh sách chờ cho chiến dịch '" + nextParticipant.getCampaign().getTitle() + "'. Vui lòng xác nhận tham gia trong vòng 2 giờ.",
+                            "Bạn đã được chọn từ danh sách chờ cho chiến dịch '" + nextParticipant.getCampaign().getTitle() + "'. Vui lòng xác nhận tham gia trong vòng 10 phút.",
                             "CAMPAIGN_WAITLIST_PROMOTE"
                     );
                 });
@@ -335,7 +352,24 @@ public class CampaignServiceImpl implements CampaignService {
         participant.setRejectedAt(null);
         participant.setRejectionReason(null);
         participant.setCancelledAt(null);
-        return toParticipantResponse(participantRepository.save(participant));
+        CampaignParticipantResponse response = toParticipantResponse(participantRepository.save(participant));
+
+        notificationService.createCampaignNotification(
+                participant.getCitizen(),
+                campaignId,
+                "Đăng ký chiến dịch được duyệt",
+                String.format("Yêu cầu tham gia chiến dịch '%s' của bạn đã được duyệt.", campaign.getTitle()),
+                "CAMPAIGN_APPROVED"
+        );
+
+        if (participant.getCitizen().getEmail() != null && !participant.getCitizen().getEmail().isBlank()) {
+            String subject = "[SmartCity] Đăng ký tham gia chiến dịch được duyệt";
+            String body = String.format("Chào %s,\n\nYêu cầu tham gia chiến dịch \"%s\" của bạn đã được duyệt thành công.\n\nTrân trọng,\nBan Quản Trị SmartCity",
+                    participant.getCitizen().getFullName(), campaign.getTitle());
+            externalNotificationService.sendEmailNotification(participant.getCitizen().getEmail(), subject, body);
+        }
+
+        return response;
     }
 
     @Override
@@ -350,13 +384,40 @@ public class CampaignServiceImpl implements CampaignService {
         assertCanManage(campaign, manager);
 
         CampaignParticipant participant = getParticipant(participantId, campaignId);
+        boolean wasOccupyingSlot = List.of(JOIN_PENDING, JOIN_APPROVED, JOIN_CONFIRMED, JOIN_MAYBE, JOIN_PENDING_CONFIRM)
+                .contains(participant.getJoinStatus());
+
         participant.setJoinStatus(JOIN_REJECTED);
         participant.setApprovedBy(null);
         participant.setApprovedAt(null);
         participant.setRejectedAt(LocalDateTime.now());
         participant.setRejectionReason(request != null ? blankToNull(request.getReason()) : null);
         participant.setCancelledAt(null);
-        return toParticipantResponse(participantRepository.save(participant));
+        
+        CampaignParticipantResponse res = toParticipantResponse(participantRepository.save(participant));
+        
+        if (wasOccupyingSlot) {
+            promoteNextWaitlist(campaignId);
+        }
+
+        String reason = request != null && request.getReason() != null && !request.getReason().isBlank()
+                ? request.getReason() : "Không phù hợp với chiến dịch.";
+        notificationService.createCampaignNotification(
+                participant.getCitizen(),
+                campaignId,
+                "Đăng ký chiến dịch bị từ chối",
+                String.format("Yêu cầu tham gia chiến dịch '%s' của bạn đã bị từ chối. Lý do: %s", campaign.getTitle(), reason),
+                "CAMPAIGN_REJECTED"
+        );
+
+        if (participant.getCitizen().getEmail() != null && !participant.getCitizen().getEmail().isBlank()) {
+            String subject = "[SmartCity] Đăng ký tham gia chiến dịch bị từ chối";
+            String body = String.format("Chào %s,\n\nYêu cầu tham gia chiến dịch \"%s\" của bạn đã bị từ chối.\nLý do: %s\n\nTrân trọng,\nBan Quản Trị SmartCity",
+                    participant.getCitizen().getFullName(), campaign.getTitle(), reason);
+            externalNotificationService.sendEmailNotification(participant.getCitizen().getEmail(), subject, body);
+        }
+
+        return res;
     }
 
     @Override
@@ -386,13 +447,32 @@ public class CampaignServiceImpl implements CampaignService {
     }
 
     @Override
-    public List<CampaignChatMessageResponse> getChatMessages(Long campaignId, String username) {
+    public List<CampaignChatMessageResponse> getChatMessages(Long campaignId, Long beforeId, String username) {
         User currentUser = requireUser(username);
         Campaign campaign = getCampaign(campaignId);
         assertCanAccessCampaignChat(campaign, currentUser);
 
-        List<CampaignChatMessage> messages = new ArrayList<>(chatMessageRepository.findTop50ByCampaign_IdOrderByCreatedAtDesc(campaignId));
-        java.util.Collections.reverse(messages);
+        List<CampaignChatMessage> messages;
+        if (beforeId == null) {
+            messages = new ArrayList<>(chatMessageRepository.findTop15ByCampaign_IdOrderByCreatedAtDesc(campaignId));
+
+            // Luôn kèm tất cả tin nhắn đang ghim, kể cả những tin cũ ngoài top 15 vào trang đầu tiên
+            List<CampaignChatMessage> pinnedMessages = chatMessageRepository.findByCampaign_IdAndPinnedTrue(campaignId);
+            for (CampaignChatMessage pinned : pinnedMessages) {
+                if (messages.stream().noneMatch(m -> m.getId().equals(pinned.getId()))) {
+                    messages.add(pinned);
+                }
+            }
+        } else {
+            messages = new ArrayList<>(chatMessageRepository.findPageBefore(
+                campaignId,
+                beforeId,
+                org.springframework.data.domain.PageRequest.of(0, 15)
+            ));
+        }
+
+        // Sắp xếp lại theo thời gian tăng dần
+        messages.sort(java.util.Comparator.comparing(CampaignChatMessage::getCreatedAt));
         return messages.stream().map(this::toChatResponse).toList();
     }
 
@@ -403,10 +483,26 @@ public class CampaignServiceImpl implements CampaignService {
         Campaign campaign = getCampaign(campaignId);
         assertCanAccessCampaignChat(campaign, sender);
 
+        if (campaign.isAnnouncementMode() && !canManage(campaign, sender)) {
+            throw new CustomException("Chế độ thông báo đang bật. Chỉ cán bộ mới được nhắn tin.", HttpStatus.FORBIDDEN.value());
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        String status = campaign.getStatus();
+        boolean isEndedOrCancelled = "CANCELLED".equals(status)
+                || "ENDED".equals(status)
+                || "COMPLETED".equals(status)
+                || (campaign.getEndTime() != null && now.isAfter(campaign.getEndTime()));
+
+        if (isEndedOrCancelled && !canManage(campaign, sender)) {
+            throw new CustomException("Chiến dịch đã kết thúc hoặc bị hủy. Chỉ cán bộ mới được nhắn tin.", HttpStatus.FORBIDDEN.value());
+        }
+
         CampaignChatMessage message = CampaignChatMessage.builder()
                 .campaign(campaign)
                 .sender(sender)
-                .message(request.getContent().trim())
+                .message(request.getContent() != null ? request.getContent().trim() : "")
+                .imageUrl(joinImageUrls(request.getImageUrls()))
                 .build();
         return toChatResponse(chatMessageRepository.save(message));
     }
@@ -455,8 +551,14 @@ public class CampaignServiceImpl implements CampaignService {
             throw new CustomException("Message does not belong to this campaign", HttpStatus.BAD_REQUEST.value());
         }
 
-        // Unpin all other messages for this campaign (only one pinned message at a time)
-        chatMessageRepository.unpinAllForCampaign(campaignId);
+        if (message.isPinned()) {
+            return toChatResponse(message);
+        }
+
+        long pinnedCount = chatMessageRepository.countByCampaign_IdAndPinnedTrue(campaignId);
+        if (pinnedCount >= 3) {
+            throw new CustomException("Chiến dịch chỉ được ghim tối đa 3 tin nhắn. Vui lòng bỏ ghim bớt tin nhắn cũ trước.", HttpStatus.BAD_REQUEST.value());
+        }
 
         message.setPinned(true);
         return toChatResponse(chatMessageRepository.save(message));
@@ -480,6 +582,22 @@ public class CampaignServiceImpl implements CampaignService {
     }
 
     @Override
+    @Transactional
+    public void deleteChatMessage(Long campaignId, Long messageId, String username) {
+        User manager = requireUser(username);
+        Campaign campaign = getCampaign(campaignId);
+        assertCanManage(campaign, manager);
+
+        CampaignChatMessage message = chatMessageRepository.findById(messageId)
+                .orElseThrow(() -> new CustomException("Message not found", HttpStatus.NOT_FOUND.value()));
+        if (!message.getCampaign().getId().equals(campaignId)) {
+            throw new CustomException("Message does not belong to this campaign", HttpStatus.BAD_REQUEST.value());
+        }
+
+        chatMessageRepository.delete(message);
+    }
+
+    @Override
     public boolean canAccessRealtimeChannel(Long campaignId, String username) {
         if (username == null || username.isBlank()) {
             return false;
@@ -500,6 +618,10 @@ public class CampaignServiceImpl implements CampaignService {
         assertCanManage(campaign, user);
         assertCampaignLocationWithinWard(request, campaign.getWard());
 
+        boolean scheduleUpdated = !java.util.Objects.equals(campaign.getStartTime(), request.getStartTime()) 
+                || !java.util.Objects.equals(campaign.getEndTime(), request.getEndTime())
+                || !java.util.Objects.equals(campaign.getLocationText(), request.getLocationText());
+
         campaign.setTitle(request.getTitle());
         campaign.setDescription(request.getDescription());
         campaign.setCategory(blankToNull(request.getCategory()));
@@ -518,8 +640,18 @@ public class CampaignServiceImpl implements CampaignService {
         campaign.setImageUrls(joinImageUrls(request.getImageUrls()));
         validateMinMax(campaign.getMinParticipants(), campaign.getMaxParticipants());
 
+        // Nếu dời lịch khởi chạy sang tương lai, tự động reset trạng thái về RECRUITING
+        if (campaign.getStartTime() != null && campaign.getStartTime().isAfter(LocalDateTime.now())) {
+            campaign.setStatus("RECRUITING");
+        }
+
         Campaign saved = campaignRepository.save(campaign);
         campaignIngestionService.ingestCampaignAsync(saved);
+
+        if (scheduleUpdated) {
+            notificationService.notifyCampaignRescheduled(id, campaign.getTitle(), campaign.getCreatedByUser());
+        }
+
         return toResponse(saved, user);
     }
 
@@ -539,12 +671,33 @@ public class CampaignServiceImpl implements CampaignService {
 
     @Override
     @Transactional
-    public CampaignResponse endCampaign(Long id, String username) {
+    public CampaignResponse endCampaign(Long id, String reason, String username) {
         User user = requireUser(username);
         Campaign campaign = getCampaign(id);
         assertCanManage(campaign, user);
 
-        campaign.setStatus("ENDED");
+        if ("RECRUITING".equals(campaign.getStatus())) {
+            campaign.setStatus("CANCELLED");
+            campaign.setCancellationReason(reason != null && !reason.isBlank() ? reason : "Cán bộ hủy chiến dịch.");
+            notificationService.notifyCampaignCancelled(id, campaign.getTitle(), campaign.getCancellationReason(), campaign.getCreatedByUser());
+        } else {
+            campaign.setStatus("ENDED");
+            
+            // Tự động chốt điểm danh vắng mặt cho các thành viên chưa được điểm danh có mặt
+            List<CampaignParticipant> remaining = participantRepository.findByCampaign_IdAndJoinStatusIn(id, List.of(JOIN_APPROVED));
+            LocalDateTime now = LocalDateTime.now();
+            for (CampaignParticipant participant : remaining) {
+                if (participant.getAttendedAt() == null) {
+                    participant.setAttended(false);
+                    participant.setAttendedAt(now);
+                    participant.setRejectionReason("Hệ thống tự động đánh dấu vắng mặt do không tham gia điểm danh");
+                    participantRepository.save(participant);
+                }
+            }
+
+            // Thông báo kết thúc chiến dịch thủ công
+            notificationService.notifyCampaignEndedManually(id, campaign.getTitle(), campaign.getCreatedByUser());
+        }
         return toResponse(campaignRepository.save(campaign), user);
     }
 
@@ -555,16 +708,27 @@ public class CampaignServiceImpl implements CampaignService {
                 : participantRepository.findByCampaign_IdAndCitizen_Id(campaign.getId(), currentUser.getId());
 
         LocalDateTime now = LocalDateTime.now();
-        boolean isEnded = "ENDED".equals(campaign.getStatus())
-                || "COMPLETED".equals(campaign.getStatus())
-                || (campaign.getEndTime() != null && now.isAfter(campaign.getEndTime()));
+        // DB status là source of truth. Chỉ override sang ENDED nếu đã quá endTime
+        // (hoặc status DB đã là ENDED/COMPLETED).
+        // KHÔNG tự suy diễn IN_PROGRESS từ startTime — cán bộ phải chốt thủ công.
+        String displayStatus = campaign.getStatus();
+        if (!"CANCELLED".equals(displayStatus)) {
+            if ("ENDED".equals(displayStatus)
+                    || "COMPLETED".equals(displayStatus)
+                    || (campaign.getEndTime() != null && now.isAfter(campaign.getEndTime()))) {
+                displayStatus = "ENDED";
+            }
+            // Nếu status là RECRUITING hoặc IN_PROGRESS → giữ nguyên giá trị từ DB
+        }
+
+        boolean isEnded = "ENDED".equals(displayStatus);
 
         boolean canManage = currentUser != null && canManage(campaign, currentUser);
         boolean privateDetailsVisible = currentUser != null && canViewPrivateDetails(campaign, currentUser);
         boolean canJoin = currentUser != null
                 && currentUser.getRole() == Role.CITIZEN
                 && !isEnded
-                && STATUS_RECRUITING.equals(campaign.getStatus())
+                && "RECRUITING".equals(displayStatus)
                 && currentParticipant
                 .map(p -> JOIN_REJECTED.equals(p.getJoinStatus()) ||
                           JOIN_CANCELLED.equals(p.getJoinStatus()) ||
@@ -605,7 +769,7 @@ public class CampaignServiceImpl implements CampaignService {
                 .maxParticipants(campaign.getMaxParticipants())
                 .startTime(campaign.getStartTime())
                 .endTime(campaign.getEndTime())
-                .status(isEnded ? "ENDED" : campaign.getStatus())
+                .status(displayStatus)
                 .wardId(campaign.getWard() != null ? campaign.getWard().getId() : null)
                 .wardName(campaign.getWard() != null ? campaign.getWard().getName() : null)
                 .createdByUserId(campaign.getCreatedByUser().getId())
@@ -618,6 +782,8 @@ public class CampaignServiceImpl implements CampaignService {
                 .canManage(canManage)
                 .canComment(canComment)
                 .canFeedback(canFeedback)
+                .announcementMode(campaign.isAnnouncementMode())
+                .cancellationReason(campaign.getCancellationReason())
                 .createdAt(campaign.getCreatedAt())
                 .updatedAt(campaign.getUpdatedAt())
                 .linkedFeedbackId(campaign.getLinkedFeedbackId())
@@ -625,6 +791,11 @@ public class CampaignServiceImpl implements CampaignService {
                 .coverImageUrl(campaign.getCoverImageUrl())
                 .imageUrls(parseImageUrls(campaign.getImageUrls()))
                 .build();
+    }
+
+    private String maskPhone(String phone) {
+        if (phone == null || phone.length() < 7) return phone;
+        return phone.substring(0, 4) + "***" + phone.substring(7);
     }
 
     private CampaignParticipantResponse toParticipantResponse(CampaignParticipant participant) {
@@ -651,6 +822,10 @@ public class CampaignServiceImpl implements CampaignService {
                 .rejectedAt(participant.getRejectedAt())
                 .rejectionReason(participant.getRejectionReason())
                 .confirmedAt(participant.getConfirmedAt())
+                .attended(participant.getAttended())
+                .attendedAt(participant.getAttendedAt())
+                .citizenPhone(maskPhone(participant.getCitizen().getPhoneNumber()))
+                .campaignTitle(participant.getCampaign().getTitle())
                 .build();
     }
 
@@ -672,6 +847,7 @@ public class CampaignServiceImpl implements CampaignService {
                 .senderName(message.getSender().getFullName())
                 .senderRole(message.getSender().getRole().name())
                 .message(message.getMessage())
+                .imageUrls(parseImageUrls(message.getImageUrl()))
                 .pinned(message.isPinned())
                 .createdAt(message.getCreatedAt())
                 .build();
@@ -714,14 +890,8 @@ public class CampaignServiceImpl implements CampaignService {
         return userRepository.findByUsername(username);
     }
 
-    private Ward resolveWard(CampaignRequest request, User creator) {
-        if (creator.getWard() == null && creator.getRole() != Role.SUPER_ADMIN) {
-            // Police and Authority might not be assigned to a specific ward in the system sometimes, 
-            // but if they are creating a local campaign, they should either be linked to a Ward or we allow it to be global.
-            // Let's rely on linkedFeedback's ward or the creator's ward.
-            if (creator.getRole() == Role.POLICE || creator.getRole() == Role.SUPER_ADMIN) {
-                return null; // Global campaign or linked to feedback's location
-            }
+    private Ward resolveWard(User creator) {
+        if (creator.getWard() == null && creator.getRole() != Role.SUPER_ADMIN && creator.getRole() != Role.POLICE) {
             throw new CustomException("Tài khoản chưa được phân công quản lý phường/xã", HttpStatus.CONFLICT.value());
         }
         return creator.getWard();
@@ -729,7 +899,7 @@ public class CampaignServiceImpl implements CampaignService {
 
     private void assertCampaignLocationWithinWard(CampaignRequest request, Ward assignedWard) {
         if (assignedWard == null) {
-            throw new CustomException("Ward staff account is not assigned to a ward", HttpStatus.CONFLICT.value());
+            return;
         }
         if (request.getLatitude() == null || request.getLongitude() == null) {
             return;
@@ -748,12 +918,6 @@ public class CampaignServiceImpl implements CampaignService {
         }
     }
 
-    private void assertCanViewCampaign(Campaign campaign, User user) {
-        if (STATUS_PENDING_APPROVAL.equals(campaign.getStatus())
-                && (user == null || (!canManage(campaign, user) && user.getRole() != Role.SUPER_ADMIN && user.getRole() != Role.WARD_STAFF && user.getRole() != Role.POLICE))) {
-            throw new CustomException("Campaign not found", HttpStatus.NOT_FOUND.value());
-        }
-    }
 
     private void assertCanManage(Campaign campaign, User user) {
         if (!canManage(campaign, user)) {
@@ -768,6 +932,9 @@ public class CampaignServiceImpl implements CampaignService {
     }
 
     private void assertCanComment(Campaign campaign, User user) {
+        if (user != null && "BANNED".equalsIgnoreCase(user.getStatus())) {
+            throw new CustomException("Tài khoản của bạn đã bị khóa.", HttpStatus.FORBIDDEN.value());
+        }
         if (!canComment(campaign, user)) {
             throw new CustomException("Only campaign managers and approved participants can comment", HttpStatus.FORBIDDEN.value());
         }
@@ -801,24 +968,16 @@ public class CampaignServiceImpl implements CampaignService {
         if (user == null) return false;
         // Managers always have access
         if (canManage(campaign, user)) return true;
-        // User must be a registered participant (any status)
-        boolean isRegistered = participantRepository
-                .findByCampaign_IdAndCitizen_Id(campaign.getId(), user.getId())
-                .isPresent();
-        if (!isRegistered) return false;
-        // Enforce slot cap: ceil(maxParticipants * 1.5)
-        if (campaign.getMaxParticipants() != null) {
-            int cap = (campaign.getMaxParticipants() * 3 + 1) / 2;
-            long totalRegistered = participantRepository.countByCampaign_IdAndJoinStatusIn(
-                campaign.getId(),
-                List.of(JOIN_APPROVED, JOIN_CONFIRMED, JOIN_MAYBE, JOIN_PENDING_CONFIRM)
-            );
-            if (totalRegistered > cap) return false;
-        }
-        return true;
+        
+        return participantRepository.findByCampaign_IdAndCitizen_Id(campaign.getId(), user.getId())
+                .map(participant -> ACTIVE_CHAT_STATUSES.contains(participant.getJoinStatus()))
+                .orElse(false);
     }
 
     private void assertCanAccessCampaignChat(Campaign campaign, User user) {
+        if (user != null && "BANNED".equalsIgnoreCase(user.getStatus())) {
+            throw new CustomException("Tài khoản của bạn đã bị khóa.", HttpStatus.FORBIDDEN.value());
+        }
         if (!canAccessCampaignChat(campaign, user)) {
             throw new CustomException("Bạn không có quyền truy cập kênh chat của chiến dịch này.", HttpStatus.FORBIDDEN.value());
         }
@@ -870,15 +1029,15 @@ public class CampaignServiceImpl implements CampaignService {
         if (participant.getConfirmationDeadline() != null && LocalDateTime.now().isAfter(participant.getConfirmationDeadline())) {
             participant.setJoinStatus(JOIN_CANCELLED);
             participant.setCancelledAt(LocalDateTime.now());
-            participant.setCancellationReason("Hết hạn xác nhận chờ (2 giờ)");
+            participant.setCancellationReason("Hết hạn xác nhận chờ (10 phút)");
             participantRepository.save(participant);
 
             promoteNextWaitlist(campaignId);
-            throw new CustomException("Thời hạn xác nhận đã hết (quá 2 giờ). Hệ thống đã nhường chỗ cho người tiếp theo.", HttpStatus.BAD_REQUEST.value());
+            throw new CustomException("Thời hạn xác nhận đã hết (quá 10 phút). Hệ thống đã nhường chỗ cho người tiếp theo.", HttpStatus.BAD_REQUEST.value());
         }
 
-        participant.setJoinStatus(JOIN_APPROVED);
-        participant.setApprovedAt(LocalDateTime.now());
+        participant.setJoinStatus(JOIN_PENDING);
+        participant.setApprovedAt(null);
         participant.setConfirmationDeadline(null);
         participantRepository.save(participant);
     }
@@ -895,7 +1054,7 @@ public class CampaignServiceImpl implements CampaignService {
 
         for (Long participantId : request.getParticipantIds()) {
             CampaignParticipant participant = getParticipant(participantId, campaignId);
-            if (!JOIN_PENDING.equals(participant.getJoinStatus())) {
+            if (!JOIN_CONFIRMED.equals(participant.getJoinStatus())) {
                 continue;
             }
 
@@ -912,6 +1071,21 @@ public class CampaignServiceImpl implements CampaignService {
             participant.setConfirmationDeadline(null);
             updated.add(participantRepository.save(participant));
             approvedCount++;
+
+            notificationService.createCampaignNotification(
+                    participant.getCitizen(),
+                    campaignId,
+                    "Đăng ký chiến dịch được duyệt",
+                    String.format("Yêu cầu tham gia chiến dịch '%s' của bạn đã được duyệt.", campaign.getTitle()),
+                    "CAMPAIGN_APPROVED"
+            );
+
+            if (participant.getCitizen().getEmail() != null && !participant.getCitizen().getEmail().isBlank()) {
+                String subject = "[SmartCity] Đăng ký tham gia chiến dịch được duyệt";
+                String body = String.format("Chào %s,\n\nYêu cầu tham gia chiến dịch \"%s\" của bạn đã được duyệt thành công.\n\nTrân trọng,\nBan Quản Trị SmartCity",
+                        participant.getCitizen().getFullName(), campaign.getTitle());
+                externalNotificationService.sendEmailNotification(participant.getCitizen().getEmail(), subject, body);
+            }
         }
 
         return updated.stream().map(this::toParticipantResponse).toList();
@@ -925,12 +1099,10 @@ public class CampaignServiceImpl implements CampaignService {
         assertCanManage(campaign, manager);
 
         CampaignParticipant participant = getParticipant(participantId, campaignId);
-        participant.setJoinStatus(JOIN_NO_SHOW);
-        participant.setApprovedBy(null);
-        participant.setApprovedAt(null);
-        participant.setRejectedAt(null);
+        participant.setJoinStatus(JOIN_APPROVED);
+        participant.setAttended(false);
+        participant.setAttendedAt(LocalDateTime.now());
         participant.setRejectionReason("Cán bộ phường đánh giá vắng mặt không lý do");
-        participant.setCancelledAt(LocalDateTime.now());
         
         return toParticipantResponse(participantRepository.save(participant));
     }
@@ -956,7 +1128,7 @@ public class CampaignServiceImpl implements CampaignService {
                     participant.getCitizen().getUsername(), participant.getCampaign().getId());
             participant.setJoinStatus(JOIN_CANCELLED);
             participant.setCancelledAt(LocalDateTime.now());
-            participant.setCancellationReason("Hết hạn xác nhận chờ (quá 2 giờ)");
+            participant.setCancellationReason("Hết hạn xác nhận chờ (quá 10 phút)");
             participantRepository.save(participant);
 
             promoteNextWaitlist(participant.getCampaign().getId());
@@ -974,9 +1146,12 @@ public class CampaignServiceImpl implements CampaignService {
             throw new CustomException("Chỉ công dân mới có thể gửi tín hiệu xác nhận.", HttpStatus.FORBIDDEN.value());
         }
         Campaign campaign = getCampaign(campaignId);
+
+        // Chỉ cho phép xác nhận khi DB status là RECRUITING
         if (!STATUS_RECRUITING.equals(campaign.getStatus())) {
             throw new CustomException("Chiến dịch không ở trạng thái tuyển quân.", HttpStatus.CONFLICT.value());
         }
+
         if (campaign.getStartTime() == null) {
             throw new CustomException("Chiến dịch chưa có thời gian bắt đầu.", HttpStatus.BAD_REQUEST.value());
         }
@@ -984,6 +1159,7 @@ public class CampaignServiceImpl implements CampaignService {
         if (now.isAfter(campaign.getStartTime()) || now.isBefore(campaign.getStartTime().minusHours(24))) {
             throw new CustomException("Chỉ có thể xác nhận trong vòng 24 giờ trước khi chiến dịch bắt đầu.", HttpStatus.BAD_REQUEST.value());
         }
+
         CampaignParticipant participant = participantRepository
                 .findByCampaign_IdAndCitizen_Id(campaignId, citizen.getId())
                 .orElseThrow(() -> new CustomException("Bạn chưa đăng ký tham gia chiến dịch này.", HttpStatus.NOT_FOUND.value()));
@@ -994,9 +1170,17 @@ public class CampaignServiceImpl implements CampaignService {
         if (JOIN_CONFIRMED.equals(signal)) {
             participant.setConfirmedAt(now);
             participant.setApprovedAt(null); // Bắt chờ Ward duyệt
+
+            notificationService.createCampaignNotification(
+                    campaign.getCreatedByUser(),
+                    campaignId,
+                    "Xác nhận tham gia chiến dịch",
+                    String.format("Tình nguyện viên %s đã xác nhận tham gia chiến dịch '%s' và đang chờ duyệt.", citizen.getFullName(), campaign.getTitle()),
+                    "CAMPAIGN_CONFIRMED"
+            );
         } else if (JOIN_MAYBE.equals(signal)) {
             participant.setConfirmedAt(null);
-            participant.setApprovedAt(now); // MAYBE tự động được duyệt không cần Ward duyệt
+            participant.setApprovedAt(null); // MAYBE không được duyệt (không điểm danh)
         }
         return toParticipantResponse(participantRepository.save(participant));
     }
@@ -1007,32 +1191,145 @@ public class CampaignServiceImpl implements CampaignService {
         User manager = requireUser(username);
         Campaign campaign = getCampaign(campaignId);
         assertCanManage(campaign, manager);
+
+        // Chỉ cho phép chốt khi DB status đang là RECRUITING
         if (!STATUS_RECRUITING.equals(campaign.getStatus())) {
-            throw new CustomException("Chiến dịch phải ở trạng thái RECRUITING mới có thể chốt.", HttpStatus.CONFLICT.value());
+            throw new CustomException("Chiến dịch phải ở trạng thái tuyển quân (RECRUITING) mới có thể chốt.", HttpStatus.CONFLICT.value());
         }
+
+        // Bắt buộc phải đã đến giờ bắt đầu
+        LocalDateTime now = LocalDateTime.now();
+        if (campaign.getStartTime() != null && now.isBefore(campaign.getStartTime())) {
+            throw new CustomException(
+                    "Chưa đến giờ bắt đầu chiến dịch. Chỉ có thể chốt khi đã đến hoặc qua thời điểm bắt đầu.",
+                    HttpStatus.BAD_REQUEST.value());
+        }
+
         long attendingCount = participantRepository.countByCampaign_IdAndJoinStatusIn(campaignId, ATTENDING_STATUSES);
-        if (campaign.getMinParticipants() == null || attendingCount >= campaign.getMinParticipants()) {
-            campaign.setStatus(STATUS_IN_PROGRESS);
-            return toResponse(campaignRepository.save(campaign), manager);
+
+        // Nếu thiếu người tối thiểu → báo lỗi, không tự hủy (Scheduler sẽ xử lý hủy tự động)
+        if (campaign.getMinParticipants() != null && attendingCount < campaign.getMinParticipants()) {
+            throw new CustomException(
+                    "Chiến dịch chưa đủ số người tối thiểu (" + attendingCount + "/" + campaign.getMinParticipants()
+                            + " người). Hệ thống sẽ tự động hủy chiến dịch này.",
+                    HttpStatus.CONFLICT.value());
         }
-        // Not enough — cancel and notify
-        campaign.setStatus(STATUS_CANCELLED_STR);
-        campaignRepository.save(campaign);
-        String contactInfo = (campaign.getOrganizerContact() != null && !campaign.getOrganizerContact().isBlank())
-                ? " Liên hệ cán bộ tổ chức: " + campaign.getOrganizerContact()
-                : "";
-        String msg = "Chiến dịch '" + campaign.getTitle() + "' đã bị hủy vì không đủ số người tối thiểu (" +
-                attendingCount + "/" + campaign.getMinParticipants() + " người)." + contactInfo;
-        participantRepository.findByCampaign_IdAndJoinStatusIn(campaignId, ATTENDING_STATUSES).forEach(p ->
-                notificationService.createCampaignNotification(
-                        p.getCitizen(),
-                        campaignId,
-                        "Chiến dịch bị hủy",
-                        msg,
-                        "CAMPAIGN_CANCELLED_INSUFFICIENT"
-                )
-        );
-        return toResponse(campaign, manager);
+
+        // Đủ điều kiện → chốt chính thức sang IN_PROGRESS
+        campaign.setStatus(STATUS_IN_PROGRESS);
+        Campaign saved = campaignRepository.save(campaign);
+        notificationService.notifyCampaignFinalized(campaignId, campaign.getTitle(), campaign.getCreatedByUser());
+        return toResponse(saved, manager);
+    }
+
+
+    @Override
+    @Transactional
+    public CampaignResponse setAnnouncementMode(Long campaignId, boolean enabled, String username) {
+        User manager = requireUser(username);
+        Campaign campaign = getCampaign(campaignId);
+        assertCanManage(campaign, manager);
+        campaign.setAnnouncementMode(enabled);
+        return toResponse(campaignRepository.save(campaign), manager);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CampaignParticipantResponse lookupParticipantByPhone(Long campaignId, String phone, String username) {
+        User manager = requireUser(username);
+        Campaign campaign = getCampaign(campaignId);
+        assertCanManage(campaign, manager);
+
+        CampaignParticipant participant = participantRepository
+                .findByCampaign_IdAndCitizen_PhoneNumberAndJoinStatus(campaignId, phone, JOIN_APPROVED)
+                .orElseThrow(() -> new CustomException("Không tìm thấy tình nguyện viên nào đã được duyệt với số điện thoại này.", HttpStatus.NOT_FOUND.value()));
+
+        return toParticipantResponse(participant);
+    }
+
+    @Override
+    @Transactional
+    public List<CampaignParticipantResponse> bulkSaveAttendance(Long campaignId, AttendanceBulkRequest request, String username) {
+        User manager = requireUser(username);
+        Campaign campaign = getCampaign(campaignId);
+        assertCanManage(campaign, manager);
+
+        if (!STATUS_IN_PROGRESS.equals(campaign.getStatus()) && !STATUS_COMPLETED.equals(campaign.getStatus()) && !"ENDED".equals(campaign.getStatus())) {
+            throw new CustomException("Chỉ có thể điểm danh khi chiến dịch đang diễn ra hoặc đã kết thúc.", HttpStatus.BAD_REQUEST.value());
+        }
+
+        List<CampaignParticipantResponse> responses = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
+
+        for (AttendanceBulkRequest.AttendanceItem item : request.getAttendances()) {
+            CampaignParticipant participant = getParticipant(item.getParticipantId(), campaignId);
+            
+            if (!JOIN_APPROVED.equals(participant.getJoinStatus()) && !JOIN_NO_SHOW.equals(participant.getJoinStatus())) {
+                continue;
+            }
+
+            participant.setAttended(item.isAttended());
+            participant.setAttendedAt(now);
+            
+            if (item.isAttended()) {
+                participant.setJoinStatus(JOIN_APPROVED);
+                participant.setRejectionReason(null);
+            } else {
+                participant.setJoinStatus(JOIN_APPROVED);
+                participant.setRejectionReason("Cán bộ phường đánh giá vắng mặt không lý do");
+            }
+
+            responses.add(toParticipantResponse(participantRepository.save(participant)));
+        }
+
+        return responses;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CampaignParticipantResponse> getCitizenParticipationHistory(Long citizenId, String username) {
+        User currentUser = requireUser(username);
+
+        boolean isAuthorized = currentUser.getRole() == Role.SUPER_ADMIN
+                || currentUser.getRole() == Role.WARD_STAFF
+                || currentUser.getRole() == Role.POLICE;
+
+        if (!isAuthorized) {
+            throw new CustomException("Bạn không có quyền truy cập thông tin lịch sử tham gia của tài khoản này.", 403);
+        }
+
+        if (currentUser.getRole() == Role.WARD_STAFF || currentUser.getRole() == Role.POLICE) {
+            if (currentUser.getWard() != null) {
+                boolean hasPermission = participantRepository.existsByCitizenIdAndWardId(citizenId, currentUser.getWard().getId());
+                if (!hasPermission) {
+                    throw new CustomException("Bạn không có quyền truy cập thông tin lịch sử tham gia của tài khoản này.", 403);
+                }
+            } else {
+                throw new CustomException("Tài khoản của bạn chưa được gán khu vực phường quản lý.", 403);
+            }
+        }
+
+        List<CampaignParticipant> history = participantRepository.findByCitizen_IdOrderByCampaign_StartTimeDesc(citizenId);
+        List<CampaignParticipantResponse> responses = new java.util.ArrayList<>();
+        for (CampaignParticipant participant : history) {
+            responses.add(toParticipantResponse(participant));
+        }
+        return responses;
+    }
+
+    @org.springframework.scheduling.annotation.Scheduled(fixedDelay = 300000)
+    @Transactional
+    public void autoTransitionPendingToMaybe() {
+        LocalDateTime threshold = LocalDateTime.now().plusHours(24);
+        List<CampaignParticipant> pendingParticipants = participantRepository
+                .findByJoinStatusAndCampaign_StartTimeBefore(JOIN_PENDING, threshold);
+        
+        for (CampaignParticipant participant : pendingParticipants) {
+            log.info("[Attendance] Auto transitioning pending participant {} to MAYBE for campaign {}", 
+                    participant.getCitizen().getUsername(), participant.getCampaign().getId());
+            participant.setJoinStatus(JOIN_MAYBE);
+            participantRepository.save(participant);
+        }
     }
 }
 

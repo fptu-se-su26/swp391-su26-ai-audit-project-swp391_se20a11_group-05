@@ -23,7 +23,7 @@ export function useFeedbackNotification(feedbackId?: number | string) {
     const host = window.location.host;
     // STOMP over WebSocket (simplified — raw WS for demo)
     // Production: dùng Stomp.js client
-    const url = `${protocol}//${host}/ws`;
+    const url = `${protocol}//${host}/ws-native`;
 
     try {
       const ws = new WebSocket(url);
@@ -73,7 +73,20 @@ export function useFeedbackNotification(feedbackId?: number | string) {
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
-      wsRef.current?.close();
+      const socket = wsRef.current;
+      if (socket) {
+        socket.onclose = null;
+        socket.onerror = null;
+        socket.onmessage = null;
+        if (socket.readyState === WebSocket.CONNECTING) {
+          socket.onopen = () => {
+            socket.close();
+          };
+        } else {
+          socket.close();
+        }
+        wsRef.current = null;
+      }
     };
   }, [connect]);
 }

@@ -13,24 +13,30 @@ function getMapStatusInfo(status: Campaign["status"]) {
   if (status === "recruiting") {
     return {
       color: "#F59E0B",
-      label: "Đang tuyển",
+      label: "Chưa diễn ra",
     };
   }
-  if (status === "completed" || status === "ended") {
-    return {
-      color: "#EF4444",
-      label: "Đã kết thúc",
-    };
-  }
-  if (status === "active" || status === "inProgress") {
+  if (status === "inProgress" || status === "active") {
     return {
       color: "#1E5EFF",
       label: "Đang diễn ra",
     };
   }
+  if (status === "ended" || status === "completed") {
+    return {
+      color: "#EF4444",
+      label: "Đã kết thúc",
+    };
+  }
+  if (status === "cancelled") {
+    return {
+      color: "#64748B",
+      label: "Đã bị hủy",
+    };
+  }
   return {
     color: "#64748B",
-    label: "Chờ duyệt",
+    label: "Chưa cập nhật",
   };
 }
 

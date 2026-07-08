@@ -41,6 +41,9 @@ public class CampaignResponse {
     private boolean canComment;
     private boolean canFeedback;
 
+    private boolean announcementMode;
+    private String cancellationReason;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

@@ -52,13 +52,14 @@ public class SecurityConfig {
                         // Public: static assets, auth endpoints
                         .requestMatchers("/", "/favicon.ico", "/**/*.png", "/**/*.gif", "/**/*.svg", "/**/*.jpg", "/**/*.html", "/**/*.css", "/**/*.js").permitAll()
                         .requestMatchers("/api/auth/**").permitAll() // Login/Register/MFA are public
-                        .requestMatchers("/api/rag/chatbot", "/api/rag/stream", "/api/chat/stream").permitAll() // Public Chatbot endpoints
+                        .requestMatchers("/api/chatbot/query", "/api/chatbot/stream", "/api/chat/stream").permitAll() // Public Chatbot endpoints
                         .requestMatchers("/actuator/health").permitAll() // Health check only
                         .requestMatchers("/api/feedbacks/public/**", "/api/feedbacks/statuses").permitAll() // Public Feedback Lookups & Statuses
                         .requestMatchers(HttpMethod.GET, "/api/campaigns", "/api/campaigns/*").permitAll()
                         .requestMatchers("/ws", "/ws/**", "/ws-native", "/ws-native/**").permitAll()
                         // Authenticated: all business endpoints
                         .requestMatchers("/api/ai/**").authenticated()
+                        .requestMatchers("/api/chatbot/**").authenticated() // Authenticate other chatbot endpoints
                         .requestMatchers("/api/rag/**").authenticated()
                         .requestMatchers("/api/feedbacks/**").authenticated()
                         .requestMatchers("/api/categories/**").authenticated()

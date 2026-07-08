@@ -67,7 +67,7 @@ public class CampaignController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('WARD_STAFF')")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'POLICE', 'SUPER_ADMIN')")
     public ResponseEntity<CampaignResponse> create(
             @Valid @RequestBody CampaignRequest request,
             Authentication authentication) {
@@ -125,7 +125,7 @@ public class CampaignController {
     }
 
     @GetMapping("/{id}/participants")
-    @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'POLICE', 'SUPER_ADMIN')")
     public ResponseEntity<List<CampaignParticipantResponse>> getParticipants(
             @PathVariable Long id,
             Authentication authentication) {
@@ -133,7 +133,7 @@ public class CampaignController {
     }
 
     @PostMapping("/{id}/participants/{participantId}/approve")
-    @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'POLICE', 'SUPER_ADMIN')")
     public ResponseEntity<CampaignParticipantResponse> approveParticipant(
             @PathVariable Long id,
             @PathVariable Long participantId,
@@ -142,7 +142,7 @@ public class CampaignController {
     }
 
     @PostMapping("/{id}/participants/{participantId}/reject")
-    @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'POLICE', 'SUPER_ADMIN')")
     public ResponseEntity<CampaignParticipantResponse> rejectParticipant(
             @PathVariable Long id,
             @PathVariable Long participantId,
@@ -189,7 +189,7 @@ public class CampaignController {
     }
 
     @PostMapping("/{id}/chat/{messageId}/pin")
-    @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'POLICE', 'SUPER_ADMIN')")
     public ResponseEntity<CampaignChatMessageResponse> pinMessage(
             @PathVariable Long id,
             @PathVariable Long messageId,
@@ -200,7 +200,7 @@ public class CampaignController {
     }
 
     @PostMapping("/{id}/chat/{messageId}/unpin")
-    @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'POLICE', 'SUPER_ADMIN')")
     public ResponseEntity<CampaignChatMessageResponse> unpinMessage(
             @PathVariable Long id,
             @PathVariable Long messageId,
@@ -249,7 +249,7 @@ public class CampaignController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('WARD_STAFF')")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'POLICE', 'SUPER_ADMIN')")
     public ResponseEntity<CampaignResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody CampaignRequest request,
@@ -269,7 +269,7 @@ public class CampaignController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('WARD_STAFF')")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'POLICE', 'SUPER_ADMIN')")
     public ResponseEntity<Void> delete(
             @PathVariable Long id,
             Authentication authentication) {
@@ -278,7 +278,7 @@ public class CampaignController {
     }
 
     @PostMapping("/{id}/end")
-    @PreAuthorize("hasRole('WARD_STAFF')")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'POLICE', 'SUPER_ADMIN')")
     public ResponseEntity<CampaignResponse> endCampaign(
             @PathVariable Long id,
             @RequestParam(required = false) String reason,

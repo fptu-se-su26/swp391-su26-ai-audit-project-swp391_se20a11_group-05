@@ -120,8 +120,8 @@ public class CampaignServiceImpl implements CampaignService {
     @Transactional
     public CampaignResponse create(CampaignRequest request, String username) {
         User creator = requireUser(username);
-        if (creator.getRole() != Role.WARD_STAFF) {
-            throw new CustomException("Only ward staff can create campaigns", HttpStatus.FORBIDDEN.value());
+        if (creator.getRole() != Role.WARD_STAFF && creator.getRole() != Role.POLICE && creator.getRole() != Role.SUPER_ADMIN) {
+            throw new CustomException("Bạn không có quyền tạo chiến dịch", HttpStatus.FORBIDDEN.value());
         }
 
         Ward ward = resolveWard(creator);
@@ -905,15 +905,15 @@ public class CampaignServiceImpl implements CampaignService {
     }
 
     private Ward resolveWard(User creator) {
-        if (creator.getWard() == null) {
-            throw new CustomException("Ward staff account is not assigned to a ward", HttpStatus.CONFLICT.value());
+        if (creator.getWard() == null && creator.getRole() != Role.SUPER_ADMIN && creator.getRole() != Role.POLICE) {
+            throw new CustomException("Tài khoản chưa được phân công quản lý phường/xã", HttpStatus.CONFLICT.value());
         }
         return creator.getWard();
     }
 
     private void assertCampaignLocationWithinWard(CampaignRequest request, Ward assignedWard) {
         if (assignedWard == null) {
-            throw new CustomException("Ward staff account is not assigned to a ward", HttpStatus.CONFLICT.value());
+            return;
         }
         if (request.getLatitude() == null || request.getLongitude() == null) {
             return;
@@ -931,6 +931,7 @@ public class CampaignServiceImpl implements CampaignService {
                     HttpStatus.FORBIDDEN.value());
         }
     }
+
 
     private void assertCanManage(Campaign campaign, User user) {
         if (!canManage(campaign, user)) {
@@ -956,6 +957,7 @@ public class CampaignServiceImpl implements CampaignService {
     private boolean canManage(Campaign campaign, User user) {
         return user != null
                 && (user.getRole() == Role.SUPER_ADMIN
+                || (user.getRole() == Role.POLICE && campaign.getCreatedByUser() != null && campaign.getCreatedByUser().getId().equals(user.getId()))
                 || (user.getRole() == Role.WARD_STAFF
                     && campaign.getWard() != null
                     && user.getWard() != null

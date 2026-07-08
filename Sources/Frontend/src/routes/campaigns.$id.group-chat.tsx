@@ -1,6 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ArrowLeft,
+  Crown,
+  MoreVertical,
   Paperclip,
   Search,
   SendHorizontal,
@@ -9,32 +12,12 @@ import {
   X,
   Lock,
   Pin,
-  Loader2,
-  Crown,
-  ChevronLeft,
-  ChevronRight,
-  Info,
 } from "lucide-react";
-import {
-  useCampaignChat,
-  useCampaignDetail,
-  usePinChatMessage,
-  useUnpinChatMessage,
-  useSignalAttendance,
-  useDeleteChatMessageMutation,
-  useSetAnnouncementMode,
-} from "@/hooks/useCampaigns";
+import logoImg from "@/assets/logo.png";
+import { useCampaignDetail, useCampaignChat, usePinChatMessage, useUnpinChatMessage, useCampaignParticipants, useCampaignThumbnail } from "@/hooks/useCampaigns";
 import { useAuth } from "@/lib/auth";
-import { API_BASE, getToken } from "@/lib/api";
 import { toast } from "sonner";
-import { CampaignGroupSidebar } from "@/components/chat/CampaignGroupSidebar";
-import { CampaignChatBubble } from "@/components/chat/CampaignChatBubble";
-import { CampaignChatMenu } from "@/components/chat/CampaignChatMenu";
-import { CitizenProfileModal } from "@/components/chat/CitizenProfileModal";
-import type { ChatMessage } from "@/components/chat/CampaignChatHelpers";
 import type { Campaign } from "@/lib/campaignStore";
-import { PinnedMessagesDropdown } from "@/components/chat/PinnedMessagesDropdown";
-import { EmojiPicker } from "@/components/chat/EmojiPicker";
 
 export const Route = createFileRoute("/campaigns/$id/group-chat")({
   head: () => ({
@@ -49,7 +32,62 @@ export const Route = createFileRoute("/campaigns/$id/group-chat")({
   component: CampaignGroupChatPage,
 });
 
-const DEFAULT_CAMPAIGN_NAME = "Chiến dịch cộng đồng";
+type ChatMessage = {
+  id: string;
+  sender: string;
+  role: "host" | "member" | "me";
+  text: string;
+  time: string;
+  pinned: boolean;
+  status?: "sent" | "seen";
+};
+
+const DEFAULT_CAMPAIGN_NAME = "Chiến dịch Mùa Hè Xanh - Dọn dẹp bãi biển Xuân Thiều";
+
+
+const initialMessages: ChatMessage[] = [
+  {
+    id: "m1",
+    sender: "Người chủ trì",
+    role: "host",
+    time: "10:15",
+    text: "Chào mọi người! Chiến dịch sẽ bắt đầu lúc 6h sáng 19/6. Mọi người tập trung đúng giờ nhé.",
+    pinned: false,
+  },
+  {
+    id: "m2",
+    sender: "Nguyễn Văn A",
+    role: "member",
+    time: "10:17",
+    text: "Dạ em sẽ có mặt ạ!",
+    pinned: false,
+  },
+  {
+    id: "m3",
+    sender: "Trần Thị B",
+    role: "member",
+    time: "10:18",
+    text: "Mình cần mang thêm găng tay không ạ?",
+    pinned: false,
+  },
+  {
+    id: "m4",
+    sender: "Người chủ trì",
+    role: "host",
+    time: "10:19",
+    text: "Mình sẽ chuẩn bị dụng cụ cho mọi người, không cần mang thêm.",
+    pinned: false,
+  },
+  {
+    id: "m5",
+    sender: "citizen1",
+    role: "me",
+    time: "10:20",
+    text: "Ok em hiểu rồi ạ, cảm ơn anh/chị!",
+    status: "seen",
+    pinned: false,
+  },
+];
 
 function CampaignGroupChatPage() {
   const { id } = Route.useParams();
@@ -59,31 +97,8 @@ function CampaignGroupChatPage() {
   const [infoOpen, setInfoOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const announcementMode = campaign?.announcementMode ?? false;
-  const announcementMutation = useSetAnnouncementMode(id);
 
-  interface ImageAttachment {
-    id: string;
-    file: File;
-    preview: string;
-    url: string | null;
-    isUploading: boolean;
-    error?: string;
-  }
-  const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const {
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    sendMessage,
-    isLoading: chatLoading,
-    isWsConnected,
-    error: chatError,
-    isError: isChatError,
-    chatMessages,
-  } = useCampaignChat(id);
+  const { data: chatMessages = [], sendMessage, isLoading: chatLoading, error: chatError, isError: isChatError } = useCampaignChat(id);
 
   useEffect(() => {
     if (chatMessages && chatMessages.length > 0) {
@@ -93,145 +108,81 @@ function CampaignGroupChatPage() {
       }
     }
   }, [chatMessages, id]);
-
   const pinMutation = usePinChatMessage(id);
   const unpinMutation = useUnpinChatMessage(id);
-  const deleteMutation = useDeleteChatMessageMutation(id);
+  const participantsQuery = useCampaignParticipants(id);
+  const realParticipants = participantsQuery.data ?? [];
 
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
-
-  const handleResend = (msg: ChatMessage) => {
-    sendMessage.mutate({
-      content: msg.text,
-      imageUrls: msg.imageUrls,
-      resendId: Number(msg.id),
-    });
-  };
-
+  const hostName = campaign?.createdBy || "Người chủ trì";
   const campaignName = campaign?.name || DEFAULT_CAMPAIGN_NAME;
-  const hostName = campaign?.createdBy || "Cán bộ phường";
-  const memberCount = campaign?.participants ?? 0;
-  const target = campaign?.target ?? 0;
-  const progressPercent = target > 0 ? Math.min(100, Math.round((memberCount / target) * 100)) : 0;
+  const memberCount = campaign?.participants || 1;
+  const target = campaign?.target || 30;
+  
+  const members = useMemo(() => {
+    const hostMember = { name: hostName, initials: hostName.split(" ").at(-1)?.[0] || "H", online: true, role: "host" };
+    const meMember = user ? { name: user.name, initials: user.name.split(" ").at(-1)?.[0] || "C", online: true, role: "me" } : null;
+    
+    const approvedParticipants = realParticipants
+      .filter((p) => p.joinStatus === "APPROVED" && (!user || p.citizenName !== user.name))
+      .map((p, i) => ({
+        name: p.citizenName,
+        initials: p.citizenName.split(" ").at(-1)?.[0] || "U",
+        online: i % 3 === 0, // Mock online status
+        role: "member",
+      }));
 
-  const startTime = campaign?.startTime ? new Date(campaign.startTime) : null;
-  const now = new Date();
-  const withinConfirmWindow =
-    startTime !== null &&
-    now < startTime &&
-    now >= new Date(startTime.getTime() - 24 * 60 * 60 * 1000);
-
-  const signalAttendance = useSignalAttendance(id);
-  const currentStatus = campaign?.currentUserJoinStatus;
-
-  const handleSignal = async (signal: "CONFIRMED" | "MAYBE") => {
-    try {
-      await signalAttendance.mutateAsync(signal);
-      toast.success(
-        signal === "CONFIRMED" ? "Đã xác nhận tham gia chiến dịch!" : "Đã chọn 'Có thể tham gia'.",
-      );
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : "Không thể gửi xác nhận.";
-      toast.error(errorMsg);
+    const result = [hostMember];
+    if (meMember && meMember.name !== hostName) {
+      result.push(meMember);
     }
-  };
+    result.push(...approvedParticipants);
+    return result;
+  }, [hostName, user, realParticipants]);
+  const onlineCount = members.filter((member) => member.online).length;
+  const progressPercent = Math.min(100, Math.round((memberCount / target) * 100));
 
   const formattedMessages = useMemo(() => {
-    return chatMessages
-      .filter(
-        (msg) =>
-          (msg.message && msg.message.trim() !== "") || (msg.imageUrls && msg.imageUrls.length > 0),
-      )
-      .map((msg) => {
-        const isMe = user && user.name === msg.senderName;
-        const isHost = msg.senderRole === "WARD_STAFF" || msg.senderRole === "SUPER_ADMIN";
+    return chatMessages.map((msg) => {
+      const isMe = user && user.name === msg.senderName;
+      const isHost = msg.senderRole === "WARD_STAFF" || msg.senderRole === "SUPER_ADMIN";
 
-        let timeStr = "";
-        try {
-          const date = new Date(msg.createdAt);
-          const hours = String(date.getHours()).padStart(2, "0");
-          const minutes = String(date.getMinutes()).padStart(2, "0");
-          timeStr = `${hours}:${minutes}`;
-        } catch {
-          timeStr = "12:00";
-        }
+      let timeStr = "";
+      try {
+        const date = new Date(msg.createdAt);
+        const hours = String(date.getHours()).padStart(2, "0");
+        const minutes = String(date.getMinutes()).padStart(2, "0");
+        timeStr = `${hours}:${minutes}`;
+      } catch {
+        timeStr = "12:00";
+      }
 
-        return {
-          id: String(msg.id),
-          sender: msg.senderName,
-          senderId: msg.senderId,
-          role: isMe ? "me" : isHost ? "host" : "member",
-          text: msg.message,
-          time: timeStr,
-          pinned: msg.pinned || false,
-          imageUrls: msg.imageUrls || [],
-          status: msg.status,
-          senderAvatar: msg.senderAvatar,
-          pastCampaignCount: msg.pastCampaignCount,
-        } as ChatMessage;
-      });
+      return {
+        id: String(msg.id),
+        sender: msg.senderName,
+        senderId: msg.senderId,
+        role: isMe ? "me" : isHost ? "host" : "member",
+        text: msg.message,
+        time: timeStr,
+        pinned: msg.pinned || false,
+        imageUrls: msg.imageUrls || [],
+        status: msg.status,
+        senderAvatar: msg.senderAvatar,
+        pastCampaignCount: msg.pastCampaignCount,
+      } as ChatMessage;
+    });
   }, [chatMessages, user]);
 
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const loaderRef = useRef<HTMLDivElement>(null);
-  const lastMessageIdRef = useRef<string | null>(null);
-  const isInitialLoadRef = useRef(true);
-
   useEffect(() => {
-    if (formattedMessages.length === 0) return;
-
-    const lastMsg = formattedMessages[formattedMessages.length - 1];
-    const isNewMessage = lastMsg.id !== lastMessageIdRef.current;
-
-    if (isInitialLoadRef.current || isNewMessage) {
-      messagesEndRef.current?.scrollIntoView({
-        behavior: isInitialLoadRef.current ? "auto" : "smooth",
-      });
-      isInitialLoadRef.current = false;
-    }
-
-    lastMessageIdRef.current = lastMsg.id;
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [formattedMessages]);
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          const container = scrollContainerRef.current;
-          if (container) {
-            const previousScrollHeight = container.scrollHeight;
-            const previousScrollTop = container.scrollTop;
-
-            fetchNextPage().then(() => {
-              requestAnimationFrame(() => {
-                const newScrollHeight = container.scrollHeight;
-                container.scrollTop = previousScrollTop + (newScrollHeight - previousScrollHeight);
-              });
-            });
-          }
-        }
-      },
-      { threshold: 0.1 },
-    );
-
-    const currentLoader = loaderRef.current;
-    if (currentLoader) {
-      observer.observe(currentLoader);
-    }
-    return () => {
-      if (currentLoader) {
-        observer.unobserve(currentLoader);
-      }
-    };
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
-
-  const pinnedMessages = useMemo(() => {
-    return formattedMessages.filter((m) => m.pinned);
-  }, [formattedMessages]);
+  const pinnedMsg = useMemo(() => {
+    return chatMessages.find((m) => m.pinned);
+  }, [chatMessages]);
 
   const sidebar = useMemo(
     () => (
-      <CampaignGroupSidebar
+      <GroupSidebar
         campaignId={id}
         campaignName={campaignName}
         campaign={campaign}
@@ -239,129 +190,21 @@ function CampaignGroupChatPage() {
         target={target}
         memberCount={memberCount}
         progressPercent={progressPercent}
+        hostWard={campaign?.ward || "Chưa cập nhật"}
+        members={members}
       />
     ),
-    [campaign, campaignName, hostName, id, memberCount, progressPercent, target],
+    [campaignName, id, memberCount, progressPercent, target, hostName, campaign?.ward, members],
   );
 
   const handleSendMessage = () => {
-    const isInputDisabled = announcementMode && !campaign?.canManage;
-    if (isInputDisabled) return;
-
     const text = draft.trim();
-    const uploadedUrls = attachments
-      .filter((att) => att.url !== null)
-      .map((att) => att.url as string);
-    const hasUploading = attachments.some((att) => att.isUploading);
-
-    if (hasUploading) {
-      toast.warning("Vui lòng đợi hình ảnh tải lên hoàn tất");
-      return;
-    }
-
-    if (!text && uploadedUrls.length === 0) return;
-
-    sendMessage.mutate({ content: text, imageUrls: uploadedUrls });
+    if (!text) return;
+    sendMessage.mutate(text);
     setDraft("");
-    setAttachments([]);
   };
 
-  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const isInputDisabled = announcementMode && !campaign?.canManage;
-    if (isInputDisabled) return;
-
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    const newAttachments: ImageAttachment[] = [];
-    const token = getToken();
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-
-      if (!file.type.startsWith("image/")) {
-        toast.error(`File "${file.name}" không phải hình ảnh hợp lệ`);
-        continue;
-      }
-
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error(`Ảnh "${file.name}" vượt quá kích thước 10MB`);
-        continue;
-      }
-
-      const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const previewUrl = URL.createObjectURL(file);
-
-      newAttachments.push({
-        id,
-        file,
-        preview: previewUrl,
-        url: null,
-        isUploading: true,
-      });
-    }
-
-    if (newAttachments.length === 0) {
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      return;
-    }
-
-    setAttachments((prev) => [...prev, ...newAttachments]);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-
-    newAttachments.forEach(async (att) => {
-      try {
-        const formData = new FormData();
-        formData.append("file", att.file);
-
-        const res = await fetch(`${API_BASE}/api/files/upload`, {
-          method: "POST",
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-          body: formData,
-        });
-
-        const data = await res.json().catch(() => null);
-        if (!res.ok) {
-          throw new Error(data?.message || data?.error || "Upload failed");
-        }
-
-        setAttachments((prev) =>
-          prev.map((item) =>
-            item.id === att.id ? { ...item, url: data.fileUrl, isUploading: false } : item,
-          ),
-        );
-      } catch (err: unknown) {
-        const errorMsg = err instanceof Error ? err.message : String(err);
-        console.error(err);
-        toast.error(`Không thể tải ảnh "${att.file.name}" lên server: ${errorMsg}`);
-        setAttachments((prev) =>
-          prev.map((item) =>
-            item.id === att.id ? { ...item, isUploading: false, error: errorMsg } : item,
-          ),
-        );
-      }
-    });
-  };
-
-  const handleCancelAttachment = (attId: string) => {
-    setAttachments((prev) => {
-      const target = prev.find((item) => item.id === attId);
-      if (target) {
-        URL.revokeObjectURL(target.preview);
-      }
-      return prev.filter((item) => item.id !== attId);
-    });
-  };
-
-  const handleAttachmentClick = () => {
-    const isInputDisabled = announcementMode && !campaign?.canManage;
-    if (isInputDisabled) return;
-    fileInputRef.current?.click();
-  };
-
-  const isForbiddenError = isChatError && (chatError as { status?: number })?.status === 403;
-  const isBanned =
-    isForbiddenError && (chatError as { message?: string })?.message?.includes("khóa");
+  const isForbiddenError = isChatError && (chatError as any)?.status === 403;
 
   // If campaign details are loaded, check if user is authorized (manager or approved participant)
   if (isForbiddenError) {
@@ -371,20 +214,16 @@ function CampaignGroupChatPage() {
           <div className="mx-auto w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4">
             <Lock size={24} />
           </div>
-          <h1 className="text-lg font-black text-slate-900 mb-2">
-            {isBanned ? "Tài khoản đã bị khóa" : "Quyền truy cập bị từ chối"}
-          </h1>
+          <h1 className="text-lg font-black text-slate-900 mb-2">Quyền truy cập bị từ chối</h1>
           <p className="text-sm font-semibold text-slate-500 mb-6 leading-relaxed">
-            {isBanned
-              ? "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên để biết thêm chi tiết."
-              : "Bạn không có quyền truy cập nhóm chat này. Chỉ quản trị viên và thành viên đã tham gia mới có quyền truy cập."}
+            Bạn không có quyền truy cập nhóm chat này. Chỉ quản trị viên và thành viên đã tham gia mới có quyền truy cập.
           </p>
           <Link
-            to={isBanned ? "/" : "/campaigns/$id"}
-            params={isBanned ? undefined : { id }}
+            to="/campaigns/$id"
+            params={{ id }}
             className="inline-flex h-10 items-center justify-center rounded-lg bg-blue-600 px-4 text-xs font-black text-white shadow-md hover:bg-blue-700 transition"
           >
-            {isBanned ? "Về trang chủ" : "Quay lại trang chi tiết"}
+            Quay lại trang chi tiết
           </Link>
         </div>
       </main>
@@ -402,14 +241,6 @@ function CampaignGroupChatPage() {
       </div>
     );
   }
-
-  const isCampaignEndedOrCancelled =
-    campaign?.status === "ended" ||
-    campaign?.status === "completed" ||
-    campaign?.status === "cancelled";
-  const isInputDisabled =
-    (announcementMode && !campaign?.canManage) ||
-    (isCampaignEndedOrCancelled && !campaign?.canManage);
 
   return (
     <main className="min-h-screen bg-[#F5F7FA] font-sans text-slate-900">
@@ -443,46 +274,40 @@ function CampaignGroupChatPage() {
                 <h1 className="truncate text-sm font-black text-slate-950 md:text-base">
                   {campaignName}
                 </h1>
-                <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-                  <span>
-                    {memberCount}/{target || "?"} thành viên
-                  </span>
-                </div>
+                <p className="text-xs font-semibold text-slate-500">
+                  {memberCount}/{target || "?"} thành viên
+                </p>
               </div>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2">
-              {pinnedMessages.length > 0 && (
-                <PinnedMessagesDropdown
-                  pinnedMessages={pinnedMessages}
-                  canManage={!!campaign.canManage}
-                  onUnpin={(msgId) => unpinMutation.mutate(msgId)}
-                  onJumpTo={(msgId) => {
-                    const el = document.querySelector(`[data-message-id="${msgId}"]`);
-                    if (el) {
-                      el.scrollIntoView({ behavior: "smooth", block: "center" });
-                      el.classList.add("bg-amber-100/50");
-                      setTimeout(() => {
-                        el.classList.remove("bg-amber-100/50");
-                      }, 2000);
-                    } else {
-                      toast.error("Không tìm thấy tin nhắn hoặc tin nhắn chưa được tải.");
-                    }
-                  }}
-                />
-              )}
+            <div className="flex shrink-0 items-center gap-1">
               <IconButton label="Tìm kiếm tin nhắn" icon={<Search size={18} />} />
               <IconButton label="Danh sách thành viên" icon={<Users size={18} />} />
-              <CampaignChatMenu
-                campaignId={id}
-                canManage={!!campaign?.canManage}
-                chatMessages={formattedMessages}
-                announcementMode={announcementMode}
-                setAnnouncementMode={(val) => announcementMutation.mutate(val)}
-                onUnpin={(msgId) => unpinMutation.mutate(msgId)}
-              />
+              <IconButton label="Menu thêm" icon={<MoreVertical size={18} />} />
             </div>
           </header>
+
+          {/* Pinned Message Bar */}
+          {pinnedMsg && (
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-amber-100 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-900 md:px-6 animate-[chatSlideUp_0.2s_ease]">
+              <div className="flex items-center gap-2 min-w-0">
+                <Pin size={15} className="text-amber-500 fill-current shrink-0 rotate-45" />
+                <span className="truncate text-xs sm:text-sm">
+                  <span className="font-black text-amber-800">Tin nhắn đã ghim: </span>
+                  {pinnedMsg.message}
+                </span>
+              </div>
+              {campaign.canManage && (
+                <button
+                  onClick={() => unpinMutation.mutate(pinnedMsg.id)}
+                  disabled={unpinMutation.isPending}
+                  className="text-amber-700 hover:text-amber-900 text-xs font-black shrink-0 underline decoration-dotted cursor-pointer"
+                >
+                  Bỏ ghim
+                </button>
+              )}
+            </div>
+          )}
 
           {noticeVisible && (
             <div className="flex shrink-0 items-center justify-between gap-3 border-b border-blue-100 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800 md:px-6">
@@ -501,215 +326,50 @@ function CampaignGroupChatPage() {
             </div>
           )}
 
-          {withinConfirmWindow && (currentStatus === "PENDING" || currentStatus === "MAYBE") && (
-            <div className="flex shrink-0 flex-col gap-2 border-b border-indigo-100 bg-indigo-50 px-4 py-3 md:px-6 animate-[chatSlideUp_0.2s_ease] sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-xs sm:text-sm text-indigo-800 font-bold">
-                  Chiến dịch sắp khởi chạy. Vui lòng cập nhật khả năng tham gia của bạn.
-                </span>
-              </div>
-              <div className="flex gap-2 shrink-0">
-                <button
-                  onClick={() => handleSignal("CONFIRMED")}
-                  disabled={signalAttendance.isPending}
-                  className="text-white bg-[#7C3AED] hover:bg-[#6D28D9] px-3 py-1.5 rounded-lg text-xs font-black shadow-sm cursor-pointer transition active:scale-[0.97] disabled:opacity-50"
-                >
-                  Xác nhận tham gia
-                </button>
-                <button
-                  onClick={() => handleSignal("MAYBE")}
-                  disabled={signalAttendance.isPending}
-                  className="text-slate-700 border border-slate-200 bg-white hover:bg-slate-50 px-3 py-1.5 rounded-lg text-xs font-black shadow-sm cursor-pointer transition active:scale-[0.97] disabled:opacity-50"
-                >
-                  Có thể tham gia
-                </button>
-              </div>
-            </div>
-          )}
+          {/* Notice for withinConfirmWindow removed */}
 
-          {withinConfirmWindow && (currentStatus as string) === "CONFIRMED" && (
-            <div className="flex shrink-0 items-center justify-between border-b border-emerald-100 bg-emerald-50 px-4 py-3 text-xs font-bold text-emerald-800 shadow-sm md:px-6">
-              Bạn đã xác nhận tham gia. Vui lòng chờ cán bộ phường phê duyệt chính thức.
-            </div>
-          )}
-
-          {withinConfirmWindow && (currentStatus as string) === "MAYBE" && (
-            <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-slate-100 px-4 py-3 text-xs font-bold text-slate-700 shadow-sm md:px-6">
-              Bạn đã chọn khả năng Có thể tham gia chiến dịch (Không cần duyệt).
-            </div>
-          )}
-
-          <div
-            className="flex-1 overflow-y-auto bg-[#F5F7FA] px-4 py-5 md:px-8"
-            ref={scrollContainerRef}
-          >
-            <div className="mx-auto flex max-w-5xl flex-col gap-4">
-              {hasNextPage && (
-                <div ref={loaderRef} className="flex justify-center py-2 shrink-0">
-                  {isFetchingNextPage ? (
-                    <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
-                  ) : (
-                    <span className="text-[11px] text-slate-400 font-bold select-none cursor-pointer hover:underline">
-                      Xem tin nhắn cũ hơn
-                    </span>
-                  )}
-                </div>
-              )}
-
+          <div className="flex-1 overflow-y-auto bg-[#F5F7FA] px-4 py-5 md:px-8">
+            <div className="mx-auto flex max-w-3xl flex-col gap-4">
               <div className="self-center rounded-full bg-slate-200/70 px-3 py-1 text-xs font-bold text-slate-500">
                 Hôm nay
               </div>
 
               {formattedMessages.map((message) => (
-                <div
-                  key={message.id}
-                  data-message-id={message.id}
-                  className="transition-all duration-500 rounded-xl"
-                >
-                  <CampaignChatBubble
-                    message={message}
-                    canManage={!!campaign.canManage}
-                    onPin={(msgId) => pinMutation.mutate(msgId)}
-                    onUnpin={(msgId) => unpinMutation.mutate(msgId)}
-                    onResend={handleResend}
-                    onAvatarClick={(userId) => setSelectedUserId(userId)}
-                    onDelete={(msgId) => {
-                      if (confirm("Bạn có chắc chắn muốn xóa tin nhắn này không?")) {
-                        deleteMutation.mutate(msgId);
-                      }
-                    }}
-                  />
-                </div>
+                <ChatBubble 
+                  key={message.id} 
+                  message={message} 
+                  canManage={campaign.canManage || false}
+                  onPin={(msgId) => pinMutation.mutate(msgId)}
+                  onUnpin={(msgId) => unpinMutation.mutate(msgId)}
+                />
               ))}
               <div ref={messagesEndRef} />
             </div>
           </div>
 
           <footer className="shrink-0 border-t border-slate-200 bg-white px-4 py-3 md:px-6">
-            {attachments.length > 0 && (
-              <div className="mx-auto max-w-5xl mb-3 flex flex-wrap gap-3 bg-slate-50 border border-slate-200/60 p-2.5 rounded-xl animate-fade-in animate-[chatSlideUp_0.15s_ease]">
-                {attachments.map((att) => (
-                  <div
-                    key={att.id}
-                    className="relative h-16 w-16 overflow-hidden rounded-lg border border-slate-250/80 shadow-sm bg-white shrink-0 group"
-                  >
-                    <img
-                      src={att.preview}
-                      alt="Xem trước ảnh"
-                      className="h-full w-full object-cover"
-                    />
-                    {att.isUploading && (
-                      <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center">
-                        <Loader2 className="animate-spin text-white h-5 w-5" />
-                      </div>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleCancelAttachment(att.id)}
-                      className="absolute top-1 right-1 bg-black/60 hover:bg-rose-600 text-white rounded-full p-0.5 transition shadow"
-                      title="Xóa ảnh"
-                    >
-                      <X size={10} />
-                    </button>
-                    {att.error && (
-                      <div
-                        className="absolute inset-0 bg-rose-500/20 flex items-center justify-center"
-                        title={att.error}
-                      >
-                        <span className="text-[9px] font-black text-rose-700 bg-white/90 px-1 rounded">
-                          Lỗi
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {isCampaignEndedOrCancelled && !campaign?.canManage ? (
-              <div className="mx-auto max-w-5xl flex flex-col gap-2 py-3.5 px-5 rounded-xl bg-slate-100 border border-slate-200 text-sm text-slate-650 shadow-sm animate-fade-in">
-                <div className="flex items-center gap-3">
-                  <Info className="h-5 w-5 text-slate-500 shrink-0" />
-                  <span className="leading-relaxed font-medium text-slate-700">
-                    Chiến dịch này đã {campaign?.status === "cancelled" ? "bị hủy" : "kết thúc"}.
-                    Nhóm chat hiện ở chế độ chỉ đọc.
-                  </span>
-                </div>
-                {campaign?.status === "cancelled" && campaign?.cancellationReason && (
-                  <div className="text-[11px] font-semibold text-rose-500 italic bg-rose-50/50 p-2 rounded-lg border border-rose-100 leading-relaxed text-left ml-8">
-                    Lý do hủy: {campaign.cancellationReason}
-                  </div>
-                )}
-              </div>
-            ) : isInputDisabled ? (
-              <div className="mx-auto max-w-5xl flex items-center gap-3 py-3.5 px-5 rounded-xl bg-[#F0F7FF] border border-[#D0E7FF] text-sm text-slate-650 shadow-sm animate-fade-in">
-                <Info className="h-5 w-5 text-[#007AFF] shrink-0" />
-                <span className="leading-relaxed font-medium text-slate-700">
-                  Chỉ <span className="text-[#007AFF] font-bold">quản trị viên cộng đồng</span> được
-                  gửi tin nhắn vào cộng đồng.{" "}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      toast.info("Chế độ chỉ quản trị viên", {
-                        description:
-                          "Chỉ trưởng nhóm và cán bộ phụ trách mới có quyền gửi tin nhắn trong chế độ này để hạn chế trôi tin quan trọng.",
-                      });
-                    }}
-                    className="text-[#007AFF] font-bold hover:underline inline-block focus:outline-none"
-                  >
-                    Tìm hiểu thêm
-                  </button>
-                </span>
-              </div>
-            ) : (
-              <div className="mx-auto flex max-w-5xl items-center gap-2">
-                <IconButton
-                  label="Đính kèm"
-                  icon={<Paperclip size={19} />}
-                  onClick={handleAttachmentClick}
-                  disabled={isInputDisabled}
-                />
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={handleImageSelect}
-                  disabled={isInputDisabled}
-                />
-                <EmojiPicker
-                  onSelectEmoji={(emoji) => setDraft((prev) => prev + emoji)}
-                  disabled={isInputDisabled}
-                />
-                <input
-                  value={draft}
-                  onChange={(event) => setDraft(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") handleSendMessage();
-                  }}
-                  disabled={isInputDisabled}
-                  placeholder={
-                    isInputDisabled
-                      ? "Chỉ cán bộ phường mới được gửi tin nhắn trong nhóm này"
-                      : "Nhắn tin cho nhóm..."
-                  }
-                  className={`h-11 min-w-0 flex-1 rounded-full px-4 text-sm font-semibold outline-none ring-1 ring-transparent transition placeholder:text-slate-400 focus:bg-white focus:ring-[#3B82F6]/30 bg-[#F3F4F6] text-slate-800`}
-                />
-                <button
-                  type="button"
-                  onClick={handleSendMessage}
-                  disabled={
-                    (!draft.trim() && attachments.filter((a) => a.url).length === 0) ||
-                    attachments.some((a) => a.isUploading)
-                  }
-                  className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-[#3B82F6] transition hover:bg-blue-50 disabled:text-slate-300 disabled:hover:bg-transparent"
-                  aria-label="Gửi tin nhắn"
-                >
-                  <SendHorizontal size={21} />
-                </button>
-              </div>
-            )}
+            <div className="mx-auto flex max-w-3xl items-center gap-2">
+              <IconButton label="Đính kèm" icon={<Paperclip size={19} />} />
+              <IconButton label="Emoji" icon={<Smile size={19} />} />
+              <input
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") handleSendMessage();
+                }}
+                placeholder="Nhắn tin cho nhóm..."
+                className="h-11 min-w-0 flex-1 rounded-full bg-[#F3F4F6] px-4 text-sm font-semibold text-slate-800 outline-none ring-1 ring-transparent transition placeholder:text-slate-400 focus:bg-white focus:ring-[#3B82F6]/30"
+              />
+              <button
+                type="button"
+                onClick={handleSendMessage}
+                disabled={!draft.trim()}
+                className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-[#3B82F6] transition hover:bg-blue-50 disabled:text-slate-300 disabled:hover:bg-transparent"
+                aria-label="Gửi tin nhắn"
+              >
+                <SendHorizontal size={21} />
+              </button>
+            </div>
           </footer>
         </section>
       </div>
@@ -724,7 +384,7 @@ function CampaignGroupChatPage() {
             type="button"
             className="absolute inset-0 h-full w-full"
             onClick={() => setInfoOpen(false)}
-            aria-label="Đóng thông báo"
+            aria-label="Đóng thông tin nhóm"
           />
           <aside className="absolute inset-x-0 bottom-0 max-h-[86vh] overflow-hidden rounded-t-2xl bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
@@ -742,31 +402,270 @@ function CampaignGroupChatPage() {
           </aside>
         </div>
       )}
-
-      {selectedUserId && (
-        <CitizenProfileModal userId={selectedUserId} onClose={() => setSelectedUserId(null)} />
-      )}
     </main>
   );
 }
 
-function IconButton({
-  label,
-  icon,
-  onClick,
-  disabled,
+function GroupSidebar({
+  campaignId,
+  campaignName,
+  campaign,
+  hostName,
+  target,
+  memberCount,
+  progressPercent,
+  hostWard,
+  members,
 }: {
-  label: string;
-  icon: React.ReactNode;
-  onClick?: () => void;
-  disabled?: boolean;
+  campaignId: string;
+  campaignName: string;
+  campaign?: Campaign;
+  hostName: string;
+  target: number;
+  memberCount: number;
+  progressPercent: number;
+  hostWard: string;
+  members: any[];
 }) {
+  const getStatusInfo = (status?: string) => {
+    switch (status) {
+      case "recruiting": return { label: "Đang tuyển", className: "border-[#10B981] bg-[#10B981]/10 text-[#10B981]" };
+      case "inProgress": return { label: "Đang diễn ra", className: "border-[#3B82F6] bg-[#3B82F6]/10 text-[#3B82F6]" };
+      case "completed": return { label: "Hoàn thành", className: "border-[#8B5CF6] bg-[#8B5CF6]/10 text-[#8B5CF6]" };
+      case "ended": return { label: "Đã kết thúc", className: "border-slate-500 bg-slate-500/10 text-slate-500" };
+      default: return { label: "Chờ duyệt", className: "border-amber-500 bg-amber-500/10 text-amber-500" };
+    }
+  };
+  const getCategoryLabel = (category?: string) => {
+    switch (category) {
+      case "environment": return "Môi trường";
+      case "infrastructure": return "Hạ tầng";
+      case "public_safety": return "An ninh";
+      case "construction": return "Xây dựng";
+      case "fire_safety": return "PCCC";
+      default: return "Cộng đồng";
+    }
+  };
+
+  const thumbnail = useCampaignThumbnail(campaign);
+  const statusInfo = getStatusInfo(campaign?.status);
+  const categoryLabel = getCategoryLabel(campaign?.category);
+  const wardName = campaign?.ward || "Chưa cập nhật địa bàn";
+  const memberRatio = target > 0 ? `${memberCount}/${target}` : String(memberCount);
+  const canViewParticipants = Boolean(campaign?.canManage);
+  const { data: participants = [], isLoading: participantsLoading } = useCampaignParticipants(
+    campaignId,
+    canViewParticipants,
+  );
+  const approvedParticipants = participants.filter(
+    (participant) => participant.joinStatus === "APPROVED",
+  );
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col bg-white">
+      <div className="space-y-4 border-b border-slate-100 p-4">
+        <div className="flex items-center gap-2">
+          <img src={logoImg} alt="Đà Nẵng Kết Nối" className="h-9 w-9 object-contain" />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-black text-[#0B4FC4]">Đà Nẵng Kết Nối</p>
+            <p className="text-[10px] font-bold uppercase text-slate-400">Campaign Group</p>
+          </div>
+        </div>
+
+        <Link
+          to="/campaigns/$id"
+          params={{ id: campaignId }}
+          className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+        >
+          <ArrowLeft size={15} />
+          Quay lại chiến dịch
+        </Link>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+        <div className="relative aspect-video overflow-hidden rounded-lg bg-slate-100">
+          <img src={thumbnail} alt={campaignName} className="h-full w-full object-cover" />
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/55 to-transparent p-4">
+            <span className="rounded-md bg-white/90 px-2 py-1 text-xs font-black text-[#0B4FC4] shadow-sm">
+              {categoryLabel}
+            </span>
+          </div>
+        </div>
+
+        <h2 className="mt-3 line-clamp-2 text-base font-black leading-6 text-slate-950">
+          {campaignName}
+        </h2>
+        <span
+          className={`mt-3 inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${statusInfo.className}`}
+        >
+          {statusInfo.label}
+        </span>
+
+        <div className="my-5 h-px bg-slate-100" />
+
+        <section>
+          <p className="mb-3 text-[10px] font-black uppercase tracking-wider text-slate-400">
+            Người chủ trì
+          </p>
+          <div className="rounded-lg border border-amber-100 bg-amber-50/60 p-3">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <span className="grid h-10 w-10 place-items-center rounded-full bg-amber-100 text-sm font-black text-amber-700 uppercase">
+                  {hostName.split(" ").at(-1)?.[0] || "H"}
+                </span>
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-black text-slate-900">{hostName}</p>
+                <p className="text-xs font-semibold text-slate-500">{hostWard}</p>
+              </div>
+            </div>
+            <span className="mt-3 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[11px] font-black text-amber-700">
+              <Crown size={13} />
+              Quản trị nhóm
+            </span>
+          </div>
+        </section>
+
+        <section className="mt-5">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+              Thành viên ({memberRatio})
+            </p>
+            <span className="text-[10px] font-black text-slate-400">{progressPercent}%</span>
+          </div>
+          <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-slate-100">
+            <div
+              className="h-full rounded-full bg-[#3B82F6]"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+
+          <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-3">
+            <div className="flex items-center justify-between gap-3 text-xs font-bold text-slate-600">
+              <span>Đã được duyệt tham gia</span>
+              <span className="text-slate-900">{memberCount}</span>
+            </div>
+            <div className="mt-2 flex items-center justify-between gap-3 text-xs font-bold text-slate-600">
+              <span>Sức chứa tối đa</span>
+              <span className="text-slate-900">{target || "Chưa giới hạn"}</span>
+            </div>
+          </div>
+
+          {canViewParticipants && (
+            <div className="mt-4 space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                  Danh sách đã duyệt
+                </p>
+                <span className="text-[10px] font-black text-slate-400">
+                  {approvedParticipants.length}
+                </span>
+              </div>
+            </div>
+          )}
+          {members.length > 8 && (
+            <p className="mt-3 text-xs font-bold text-slate-400">+ {members.length - 8} người khác</p>
+          )}
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function ChatBubble({
+  message,
+  canManage,
+  onPin,
+  onUnpin,
+}: {
+  message: ChatMessage;
+  canManage: boolean;
+  onPin: (id: string) => void;
+  onUnpin: (id: string) => void;
+}) {
+  if (message.role === "me") {
+    return (
+      <div
+        className="flex justify-end items-center gap-2 group"
+        style={{ animation: "chatSlideUp 0.2s ease" }}
+      >
+        {canManage && (
+          <button
+            onClick={() => (message.pinned ? onUnpin(message.id) : onPin(message.id))}
+            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-full hover:bg-slate-250/80 bg-slate-100/50 text-slate-400 hover:text-amber-500 transition-all duration-200 shrink-0 shadow-sm border border-slate-200/50 cursor-pointer"
+            title={message.pinned ? "Bỏ ghim tin nhắn" : "Ghim tin nhắn"}
+          >
+            <Pin size={13} className={message.pinned ? "fill-amber-500 text-amber-500" : ""} />
+          </button>
+        )}
+        <div
+          className={`max-w-[78%] rounded-[12px_0_12px_12px] bg-[#3B82F6] px-4 py-2.5 text-white shadow-sm relative ${message.pinned ? "border-t-[3px] border-t-amber-400" : ""}`}
+        >
+          {message.pinned && (
+            <div
+              className="absolute -top-2 -right-1 bg-amber-400 text-white rounded-full p-0.5 shadow-sm"
+              title="Đã ghim"
+            >
+              <Pin size={9} className="fill-current" />
+            </div>
+          )}
+          <p className="text-sm font-medium leading-6">{message.text}</p>
+          <div className="mt-1 flex items-center justify-end gap-1 text-[10px] font-bold text-blue-100">
+            <span>{message.time}</span>
+            <span>{message.status === "seen" ? "✓✓" : "✓"}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+    const host = message.role === "host";
+  
+    return (
+      <div className="flex items-start gap-2 group" style={{ animation: "chatSlideUp 0.2s ease" }}>
+        <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-black uppercase ${
+          host ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
+        }`}>
+          {host ? message.sender.split(" ").at(-1)?.[0] || "H" : message.sender.split(" ").at(-1)?.[0] || "A"}
+        </span>
+      <div
+        className={`max-w-[78%] rounded-[0_12px_12px_12px] bg-white px-4 py-2.5 text-slate-800 shadow-sm relative ${
+          host ? "border-l-[3px] border-l-[#F59E0B]" : ""
+        } ${message.pinned ? "border-t-[3px] border-t-amber-400" : ""}`}
+      >
+        {message.pinned && (
+          <div
+            className="absolute -top-2 -right-1 bg-amber-400 text-white rounded-full p-0.5 shadow-sm"
+            title="Đã ghim"
+          >
+            <Pin size={9} className="fill-current" />
+          </div>
+        )}
+        <p className={`mb-1 text-xs font-black ${host ? "text-amber-700" : "text-[#2563EB]"}`}>
+          {host && <Crown size={13} className="mr-1 inline text-amber-500" />}
+          {message.sender}
+        </p>
+        <p className="text-sm font-medium leading-6">{message.text}</p>
+        <p className="mt-1 text-[10px] font-bold text-slate-400">{message.time}</p>
+      </div>
+      {canManage && (
+        <button
+          onClick={() => (message.pinned ? onUnpin(message.id) : onPin(message.id))}
+          className="opacity-0 group-hover:opacity-100 p-1.5 rounded-full hover:bg-slate-250/80 bg-slate-100/50 text-slate-400 hover:text-amber-500 transition-all duration-200 self-center shrink-0 shadow-sm border border-slate-200/50 cursor-pointer"
+          title={message.pinned ? "Bỏ ghim tin nhắn" : "Ghim tin nhắn"}
+        >
+          <Pin size={13} className={message.pinned ? "fill-amber-500 text-amber-500" : ""} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function IconButton({ label, icon }: { label: string; icon: React.ReactNode }) {
   return (
     <button
       type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className="grid h-10 w-10 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-[#3B82F6] disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-slate-500 cursor-pointer"
+      className="grid h-10 w-10 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-[#3B82F6]"
       aria-label={label}
       title={label}
     >

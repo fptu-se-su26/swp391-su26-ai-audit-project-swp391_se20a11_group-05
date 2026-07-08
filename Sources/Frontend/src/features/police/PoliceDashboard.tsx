@@ -80,7 +80,7 @@ const CivicMap = clientOnly(() =>
 ) as any;
 
 const HeatmapMap = clientOnly(() =>
-  import("@/components/site/HeatmapMap").then((m) => ({ default: m.HeatmapMap })) as any,
+  import("@/components/site/HeatmapMap").then((m) => ({ default: m.HeatmapMap })),
 ) as any;
 
 // Date formatting helper

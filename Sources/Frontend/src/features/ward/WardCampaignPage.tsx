@@ -325,32 +325,32 @@ export function WardCampaignPage({ hideHeader = false }: WardCampaignPageProps) 
             </select>
           </div>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto max-h-[550px] overflow-y-auto">
           <table className="w-full min-w-[850px] text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/70">
-                <th className="px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400">
+              <tr className="sticky top-0 z-10 bg-slate-50 text-slate-500 border-b border-slate-100">
+                <th className="sticky top-0 z-10 bg-slate-50 px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400 border-b border-slate-100">
                   Tên chiến dịch
                 </th>
-                <th className="px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400">
+                <th className="sticky top-0 z-10 bg-slate-50 px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400 border-b border-slate-100">
                   Lĩnh vực
                 </th>
-                <th className="px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400">
+                <th className="sticky top-0 z-10 bg-slate-50 px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400 border-b border-slate-100">
                   Địa bàn
                 </th>
-                <th className="px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400">
+                <th className="sticky top-0 z-10 bg-slate-50 px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400 border-b border-slate-100">
                   Thời gian
                 </th>
-                <th className="px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400">
+                <th className="sticky top-0 z-10 bg-slate-50 px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400 border-b border-slate-100">
                   Trạng thái
                 </th>
-                <th className="px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400">
+                <th className="sticky top-0 z-10 bg-slate-50 px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400 border-b border-slate-100">
                   Thành viên
                 </th>
-                <th className="px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400">
+                <th className="sticky top-0 z-10 bg-slate-50 px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400 border-b border-slate-100">
                   Người tạo
                 </th>
-                <th className="px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400">
+                <th className="sticky top-0 z-10 bg-slate-50 px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400 border-b border-slate-100">
                   Thao tác
                 </th>
               </tr>

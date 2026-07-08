@@ -182,6 +182,20 @@ export function FeedbackDetailPageComponent({
   const [sendCitizenNotification, setSendCitizenNotification] = useState(true);
   const [resolutionFiles, setResolutionFiles] = useState<File[]>([]);
   const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
+  const [opSteps, setOpSteps] = useState<boolean[]>(() => {
+    try {
+      const saved = localStorage.getItem(`feedback_steps_${feedbackId}`);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [false, false, false, false];
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(`feedback_steps_${feedbackId}`, JSON.stringify(opSteps));
+    } catch (e) {}
+  }, [opSteps, feedbackId]);
+  const allStepsChecked = opSteps.every((s) => s);
 
   useEffect(() => {
     setResolutionFiles([]);
@@ -238,9 +252,9 @@ export function FeedbackDetailPageComponent({
   });
 
   const linkedCampaign = useMemo(() => {
-    if (!campaignsData?.content) return null;
-    return campaignsData.content.find((c) => c.linkedFeedbackId === Number(feedbackId));
-  }, [campaignsData, feedbackId]);
+    if (!campaignsData?.content || !user) return null;
+    return campaignsData.content.find((c) => c.linkedFeedbackId === Number(feedbackId) && c.createdByUserId === user.id);
+  }, [campaignsData, feedbackId, user]);
 
   // Set default values when report is loaded
   useEffect(() => {
@@ -923,10 +937,91 @@ export function FeedbackDetailPageComponent({
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">
                       Lựa chọn hành động xử lý
                     </label>
+                    {report?.status === "IN_PROGRESS" && (
+                      <div className="mb-6 bg-gradient-to-br from-slate-50 to-blue-50/30 border border-slate-200 rounded-2xl p-5 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-xs font-black text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
+                            <CheckCircle2 size={16} className="text-blue-600" />
+                            Các bước nghiệp vụ xử lý
+                          </label>
+                          <span className="text-[11px] font-black text-blue-700 bg-blue-100 px-2.5 py-0.5 rounded-full shadow-sm">
+                            {opSteps.filter(Boolean).length} / 4
+                          </span>
+                        </div>
+                        
+                        <div className="h-1.5 w-full bg-slate-200/80 rounded-full overflow-hidden mb-5">
+                          <div 
+                            className="h-full bg-blue-600 transition-all duration-500 ease-out" 
+                            style={{ width: `${(opSteps.filter(Boolean).length / 4) * 100}%` }} 
+                          />
+                        </div>
+
+                        <div className="space-y-2.5">
+                          {[
+                            "Xác minh sự cố tại hiện trường",
+                            "Triển khai lực lượng / phương án giải quyết",
+                            "Khắc phục / Xử lý vi phạm",
+                            "Dọn dẹp & Báo cáo kết quả",
+                          ].map((stepLabel, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              disabled={!hasWriteAccess}
+                              onClick={() => {
+                                const newSteps = [...opSteps];
+                                newSteps[idx] = !newSteps[idx];
+                                setOpSteps(newSteps);
+                                
+                                const allCheckedNow = newSteps.every(s => s);
+                                if (allCheckedNow) {
+                                  setSelectedStatus("RESOLVED");
+                                } else if (!newSteps[idx] && selectedStatus === "RESOLVED") {
+                                  setSelectedStatus("");
+                                }
+                              }}
+                              className={`w-full flex items-center gap-3.5 p-3.5 rounded-xl border transition-all duration-300 outline-none focus:ring-2 focus:ring-blue-200 ${
+                                opSteps[idx]
+                                  ? "bg-blue-50/80 border-blue-200 shadow-sm"
+                                  : "bg-white border-slate-200 hover:border-blue-300 hover:shadow-sm"
+                              } disabled:opacity-50 disabled:cursor-not-allowed group`}
+                            >
+                              <div
+                                className={`w-5 h-5 shrink-0 rounded-full flex items-center justify-center border transition-all duration-300 ${
+                                  opSteps[idx]
+                                    ? "bg-blue-600 border-blue-600 text-white scale-110"
+                                    : "border-slate-300 text-transparent bg-slate-50 group-hover:border-blue-400"
+                                }`}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                              </div>
+                              <span
+                                className={`text-sm font-bold transition-all duration-300 ${
+                                  opSteps[idx] ? "text-blue-900" : "text-slate-600 group-hover:text-slate-800"
+                                }`}
+                              >
+                                {stepLabel}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                        {allStepsChecked && (
+                          <div className="mt-5 p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl animate-fadeIn text-xs font-bold text-emerald-800 flex items-center gap-2.5 shadow-sm">
+                            <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+                            Đã hoàn tất các bước nghiệp vụ. Form báo cáo kết quả đã được mở bên dưới.
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <div className="flex flex-wrap gap-2.5">
                       {targetTransitions.map((target) => {
                         const details = TARGET_STATUS_DETAILS[target];
                         if (!details) return null;
+                        
+                        // Hide RESOLVED button if not all steps are checked in IN_PROGRESS
+                        if (report?.status === "IN_PROGRESS" && target === "RESOLVED" && !allStepsChecked) {
+                          return null;
+                        }
+
                         const IconComponent = details.icon;
                         const isActive = selectedStatus === target;
 

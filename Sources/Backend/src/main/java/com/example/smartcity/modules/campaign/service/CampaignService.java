@@ -12,6 +12,7 @@ import com.example.smartcity.modules.campaign.dto.CampaignResponse;
 import com.example.smartcity.modules.campaign.dto.CampaignJoinRequest;
 import com.example.smartcity.modules.campaign.dto.CampaignBatchApproveRequest;
 import com.example.smartcity.modules.campaign.dto.AttendanceBulkRequest;
+import com.example.smartcity.modules.campaign.dto.CampaignChatRoomResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -19,6 +20,8 @@ import java.util.List;
 
 public interface CampaignService {
 // ... (rest unchanged, just matching the replacement block target)
+
+    List<CampaignChatRoomResponse> getMyChatRooms(String username);
 
     Page<CampaignResponse> getAll(String status, Pageable pageable, String username);
 

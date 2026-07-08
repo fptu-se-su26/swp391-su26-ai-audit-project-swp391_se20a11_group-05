@@ -500,48 +500,7 @@ export function WardDashboard() {
     }));
   }, [feedbacks]);
 
-  // Inter-agency coordination counts â€” police-transferred feedback in selected date (from rawFeedbacks)
-  const coordinationStats = useMemo(() => {
-    const policeCount = rawFeedbacks.filter((fb) => {
-      const n = (fb.categoryName || fb.category || "").toLowerCase();
-      return (
-        n.includes("an ninh") ||
-        n.includes("security") ||
-        n.includes("trật tự") ||
-        n.includes("công an")
-      );
-    }).length;
-
-    return { policeCount };
-  }, [rawFeedbacks]);
-
-  // Quick info statistics â€” all counts use feedbacks already filtered by selectedDate
-  const quickInfo = useMemo(() => {
-    const newInDate = feedbacks.length;
-
-    const resolvedInDate = feedbacks.filter((f) => {
-      const grp = getGroupedFeedbackStatus(f.status);
-      return grp === "RESOLVED";
-    }).length;
-
-    const inProgressOverdue = feedbacks.filter((f) => {
-      const grp = getGroupedFeedbackStatus(f.status);
-      const isInProgress = grp === "IN_PROGRESS";
-      const now = new Date();
-      const diffTime = Math.abs(now.getTime() - new Date(f.createdAt).getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      return isInProgress && diffDays > 3;
-    }).length;
-
-    const hasRating = resolvedInDate > 0;
-
-    return {
-      newInDate,
-      resolvedInDate,
-      inProgressOverdue,
-      hasRating,
-    };
-  }, [feedbacks]);
+  // Stats calculations
 
   // High-priority reports table â€” uses feedbacks already filtered by selectedDate
   const priorityReports = useMemo(() => {
@@ -1420,8 +1379,8 @@ export function WardDashboard() {
 
               {/* ─── BOTTOM ROW GRID ─── */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-                {/* Reports by Category Panel (30%) */}
-                <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col justify-between min-h-[380px]">
+                {/* Reports by Category Panel (50%) */}
+                <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col justify-between min-h-[380px]">
                   <div>
                     <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
                       <h3 className="text-sm font-bold uppercase tracking-tight text-slate-900">
@@ -1471,8 +1430,8 @@ export function WardDashboard() {
                   </div>
                 </div>
 
-                {/* High Priority Reports Table (50%) */}
-                <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col justify-between min-h-[380px]">
+                {/* High Priority Reports Table (70%) */}
+                <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col justify-between min-h-[380px]">
                   <div>
                     <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
                       <h3 className="text-sm font-bold uppercase tracking-tight text-slate-900">
@@ -1718,97 +1677,6 @@ export function WardDashboard() {
                           )}
                         </tbody>
                       </table>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Panel Stack: Coordination & Quick Info (30%) */}
-                <div className="lg:col-span-3 flex flex-col gap-6">
-                  {/* Inter-agency Coordination */}
-                  <div className="hidden">
-                    <div className="flex items-center gap-1 pb-2 border-b border-slate-100">
-                      <h3 className="font-extrabold text-sm text-[#0B2545]">Phối hợp liên ngành</h3>
-                      <span className="text-[10px] text-slate-400 cursor-pointer">ⓘ</span>
-                    </div>
-                    <div className="border border-slate-100 rounded-xl p-4 bg-slate-50/50">
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className="w-8 h-8 rounded-full bg-[#198754]/10 text-[#198754] flex items-center justify-center shrink-0">
-                          <Shield size={16} />
-                        </span>
-                        <span className="text-xs font-semibold text-slate-600">Chuyển công an</span>
-                      </div>
-                      <h4 className="text-3xl font-extrabold text-[#0B2545] leading-none mb-1">
-                        {feedbacksLoading ? (
-                          <Skeleton className="h-8 w-12" />
-                        ) : (
-                          coordinationStats.policeCount
-                        )}
-                      </h4>
-                      <p className="text-[10px] text-slate-400 font-medium mt-2">
-                        {selectedDate
-                          ? `Phản ánh trong ngày ${formatDateToDisplay(selectedDate)}`
-                          : "Tất cả thời gian"}
-                      </p>
-                      <Link
-                        to="/ward"
-                        search={{ tab: "feedback" }}
-                        className="text-[10px] font-extrabold text-indigo-600 hover:underline mt-3 block"
-                      >
-                        Xem chi tiết
-                      </Link>
-                    </div>
-                  </div>
-
-                  {/* Quick Info Panel */}
-                  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-3">
-                    <h3 className="text-xs font-bold uppercase tracking-tight text-slate-900 pb-2 border-b border-slate-100">
-                      Thông tin nhanh
-                    </h3>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-xs font-bold text-slate-600">
-                        <span className="flex items-center gap-2">
-                          <FileText size={14} className="text-slate-400 shrink-0" />
-                          {selectedDate
-                            ? isTodayDate(selectedDate)
-                              ? "Phản ánh mới hôm nay"
-                              : "Phản ánh mới trong ngày"
-                            : "Tổng số phản ánh mới"}
-                        </span>
-                        <span className="text-slate-900 font-bold font-mono">
-                          {quickInfo.newInDate}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs font-bold text-slate-600">
-                        <span className="flex items-center gap-2">
-                          <CheckCircle2 size={14} className="text-slate-400 shrink-0" />
-                          {selectedDate
-                            ? isTodayDate(selectedDate)
-                              ? "Phản ánh đã xử lý hôm nay"
-                              : "Phản ánh đã xử lý trong ngày"
-                            : "Tổng phản ánh đã xử lý"}
-                        </span>
-                        <span className="text-slate-900 font-bold font-mono">
-                          {quickInfo.resolvedInDate}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs font-bold text-slate-600">
-                        <span className="flex items-center gap-2">
-                          <Clock size={14} className="text-slate-400 shrink-0" />
-                          Đang xử lý quá hạn
-                        </span>
-                        <span className="text-rose-600 font-bold font-mono">
-                          {quickInfo.inProgressOverdue}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs font-bold text-slate-600">
-                        <span className="flex items-center gap-2">
-                          <UserCheck size={14} className="text-slate-400 shrink-0" />
-                          Tỷ lệ hài lòng người dân
-                        </span>
-                        <span className="text-slate-400 font-bold text-[10px] shrink-0 font-mono">
-                          N/A
-                        </span>
-                      </div>
                     </div>
                   </div>
                 </div>

@@ -79,7 +79,7 @@ const getAvatarAuraClass = (badge?: string) => {
   if (!badge) return "";
   switch (badge) {
     case "Đại sứ Vì cộng đồng":
-      return "ring-4 ring-amber-400 dark:ring-amber-500 shadow-[0_0_15px_#f59e0b] animate-pulse ring-offset-2 ring-offset-white dark:ring-offset-slate-900";
+      return "ring-4 ring-amber-400 dark:ring-amber-500 shadow-[0_0_15px_#f59e0b] ring-offset-2 ring-offset-white dark:ring-offset-slate-900";
     case "Trụ cột Cộng đồng":
       return "ring-4 ring-cyan-400 dark:ring-cyan-500 shadow-[0_0_12px_#06b6d4] ring-offset-2 ring-offset-white dark:ring-offset-slate-900";
     case "Thành viên Năng nổ":
@@ -190,8 +190,9 @@ export function CitizenProfileModal({
       refetch();
       queryClient.invalidateQueries({ queryKey: ["campaigns"] });
       setTimeout(() => setSuccessMsg(""), 3000);
-    } catch (err: any) {
-      setErrorMsg(err.message || "Không thể mở khóa.");
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "Không thể mở khóa.";
+      setErrorMsg(errorMsg);
     }
   };
 
@@ -217,8 +218,10 @@ export function CitizenProfileModal({
       // Invalidate general query keys to sync lists
       queryClient.invalidateQueries({ queryKey: ["campaigns"] });
       setTimeout(() => setSuccessMsg(""), 3000);
-    } catch (err: any) {
-      setErrorMsg(err.message || `Không thể thực hiện yêu cầu. Vui lòng thử lại.`);
+    } catch (err: unknown) {
+      const errorMsg =
+        err instanceof Error ? err.message : "Không thể thực hiện yêu cầu. Vui lòng thử lại.";
+      setErrorMsg(errorMsg);
     }
   };
 
@@ -253,20 +256,30 @@ export function CitizenProfileModal({
               <AlertTriangle className="h-10 w-10 text-rose-500 mx-auto mb-2" />
               <p className="text-sm font-semibold text-rose-600">Đã xảy ra lỗi khi lấy thông tin</p>
               <p className="text-xs text-slate-400 mt-1">
-                {(error as any)?.message || "Vui lòng thử lại sau"}
+                {(error as { message?: string })?.message || "Vui lòng thử lại sau"}
               </p>
             </div>
           ) : profile ? (
             <div className="space-y-5">
               {/* Profile card summary */}
               <div className="flex items-center gap-5 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
-                <div
-                  className={`grid h-12 w-12 place-items-center rounded-full text-lg font-black transition-all duration-300 ${getAvatarStyle(profile.role)} ${
-                    profile.role === "CITIZEN" ? getAvatarAuraClass(profile.reputationBadge) : ""
-                  }`}
-                >
-                  {profile.fullName.split(" ").at(-1)?.[0] || "U"}
-                </div>
+                {profile.avatarUrl ? (
+                  <img
+                    src={profile.avatarUrl}
+                    alt={profile.fullName}
+                    className={`h-12 w-12 rounded-full object-cover border border-slate-200 dark:border-slate-800 shrink-0 ${
+                      profile.role === "CITIZEN" ? getAvatarAuraClass(profile.reputationBadge) : ""
+                    }`}
+                  />
+                ) : (
+                  <div
+                    className={`grid h-12 w-12 place-items-center rounded-full text-lg font-black transition-all duration-300 ${getAvatarStyle(profile.role)} ${
+                      profile.role === "CITIZEN" ? getAvatarAuraClass(profile.reputationBadge) : ""
+                    }`}
+                  >
+                    {profile.fullName.split(" ").at(-1)?.[0] || "U"}
+                  </div>
+                )}
                 <div>
                   <h4 className="text-base font-bold text-slate-800 dark:text-slate-100">
                     {profile.fullName}
@@ -467,7 +480,9 @@ export function CitizenProfileModal({
                             selectedHistoryTab === "completed"
                               ? item.attended === true
                               : item.joinStatus === "NO_SHOW" ||
-                                  (item.joinStatus === "APPROVED" && item.attended === false && !!item.attendedAt),
+                                (item.joinStatus === "APPROVED" &&
+                                  item.attended === false &&
+                                  !!item.attendedAt),
                           );
 
                           if (filtered.length === 0) {

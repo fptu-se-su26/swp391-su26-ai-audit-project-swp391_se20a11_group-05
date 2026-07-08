@@ -85,6 +85,9 @@ public class User extends BaseEntity {
     @Column(name = "deleted_by", length = 100)
     private String deletedBy;
 
+    @Column(name = "avatar_url", length = 255)
+    private String avatarUrl;
+
     public User() {
     }
 
@@ -169,5 +172,8 @@ public class User extends BaseEntity {
 
     public int getWarningCount() { return warningCount; }
     public void setWarningCount(int warningCount) { this.warningCount = warningCount; }
+
+    public String getAvatarUrl() { return avatarUrl; }
+    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
 }
 

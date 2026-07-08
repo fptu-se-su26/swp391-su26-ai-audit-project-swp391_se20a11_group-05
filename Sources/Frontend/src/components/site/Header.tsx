@@ -18,6 +18,7 @@ import {
   FileClock,
   CheckCircle2,
   MessageSquareWarning,
+  MessageSquare,
   Clock3,
   Route as RouteIcon,
   Sliders,
@@ -32,8 +33,8 @@ import {
   useNotificationUnreadCount,
 } from "@/lib/hooks";
 import { toast } from "sonner";
-import { authApi, type NotificationResponse } from "@/lib/api";
-import { useQueryClient } from "@tanstack/react-query";
+import { authApi, campaignApi, type NotificationResponse } from "@/lib/api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,6 +45,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { FloatingCampaignChat } from "@/components/chat/FloatingCampaignChat";
 
 function timeAgo(dateStr: string, locale: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -114,13 +116,36 @@ export function Header() {
   const [langOpen, setLangOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatSearch, setChatSearch] = useState("");
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const [activeFloatingChatId, setActiveFloatingChatId] = useState<string | null>(null);
 
   const notifRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
   const langRef = useRef<HTMLDivElement>(null);
+  const chatRef = useRef<HTMLDivElement>(null);
   const activeLanguage =
     LANGUAGE_OPTIONS.find((language) => language.code === locale) ?? LANGUAGE_OPTIONS[0];
+
+  // Campaigns Chat rooms
+  const { data: chatRooms = [], isLoading: chatRoomsLoading } = useQuery({
+    queryKey: ["my-chat-rooms"],
+    queryFn: () => campaignApi.getMyChatRooms(),
+    enabled: !!user,
+    refetchInterval: 15000,
+  });
+
+  const unreadChatCount = chatRooms.filter((room) => {
+    if (!room.lastMessage) return false;
+    if (user && room.lastMessage.senderName === user.name) return false;
+    const seenId = localStorage.getItem(`campaign-chat-seen-${room.campaignId}`);
+    return !seenId || Number(seenId) < room.lastMessage.id;
+  }).length;
+
+  const filteredChatRooms = chatRooms.filter((room) =>
+    room.campaignTitle.toLowerCase().includes(chatSearch.toLowerCase())
+  );
 
   // Notifications logic
   const {
@@ -161,6 +186,9 @@ export function Header() {
       if (langRef.current && !langRef.current.contains(event.target as Node)) {
         setLangOpen(false);
       }
+      if (chatRef.current && !chatRef.current.contains(event.target as Node)) {
+        setChatOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -173,6 +201,7 @@ export function Header() {
         setNotifOpen(false);
         setUserOpen(false);
         setLangOpen(false);
+        setChatOpen(false);
       }
     }
     document.addEventListener("keydown", handleKeyDown);
@@ -183,6 +212,7 @@ export function Header() {
     setNotifOpen(!notifOpen);
     setUserOpen(false);
     setLangOpen(false);
+    setChatOpen(false);
     setOpen(false);
   };
 
@@ -190,6 +220,7 @@ export function Header() {
     setUserOpen(!userOpen);
     setNotifOpen(false);
     setLangOpen(false);
+    setChatOpen(false);
     setOpen(false);
   };
 
@@ -197,6 +228,15 @@ export function Header() {
     setLangOpen(!langOpen);
     setNotifOpen(false);
     setUserOpen(false);
+    setChatOpen(false);
+    setOpen(false);
+  };
+
+  const toggleChat = () => {
+    setChatOpen(!chatOpen);
+    setNotifOpen(false);
+    setUserOpen(false);
+    setLangOpen(false);
     setOpen(false);
   };
 
@@ -452,6 +492,151 @@ export function Header() {
                       </button>
                     );
                   })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Chat/Messenger bell & dropdown */}
+          {user && (
+            <div className="relative" ref={chatRef}>
+              <button
+                onClick={toggleChat}
+                className={`relative p-2 text-[#123E8A] hover:text-[#0B4FC4] transition rounded-full hover:bg-slate-50 min-w-[40px] min-h-[40px] flex items-center justify-center cursor-pointer`}
+                aria-label="Mở danh sách tin nhắn"
+                aria-expanded={chatOpen}
+              >
+                <MessageSquare size={20} />
+                {unreadChatCount > 0 && (
+                  <span className="absolute top-0.5 right-0.5 w-[18px] h-[18px] bg-[#0B4FC4] text-white text-[10px] font-bold rounded-full flex items-center justify-center border border-white font-sans animate-pulse">
+                    {unreadChatCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Chat Dropdown Panel */}
+              {chatOpen && (
+                <div className="absolute right-0 mt-2 w-[320px] sm:w-[360px] bg-white border border-[#E4EAF2] rounded-xl shadow-lg py-3 z-50 animate-fade-in">
+                  {/* Header */}
+                  <div className="px-4 pb-2 border-b border-[#E4EAF2]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-[#123E8A] font-sans">
+                        {locale === "vi" ? "Đoạn chat chiến dịch" : "Campaign Chats"}
+                      </span>
+                    </div>
+                    {/* Search Bar */}
+                    <div className="mt-2 relative">
+                      <input
+                        type="text"
+                        placeholder={locale === "vi" ? "Tìm kiếm chiến dịch..." : "Search campaigns..."}
+                        value={chatSearch}
+                        onChange={(e) => setChatSearch(e.target.value)}
+                        className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-[#E4EAF2] rounded-lg text-xs font-sans focus:outline-none focus:ring-1 focus:ring-[#0B4FC4] focus:bg-white transition"
+                      />
+                      <span className="absolute left-2.5 top-2 text-slate-400">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Body */}
+                  <div className="max-h-[320px] overflow-y-auto divide-y divide-[#E4EAF2]">
+                    {chatRoomsLoading && (
+                      <div className="p-4 space-y-3">
+                        {[1, 2, 3].map((i) => (
+                          <div key={i} className="flex gap-3 animate-pulse">
+                            <div className="w-10 h-10 bg-slate-100 rounded-full shrink-0" />
+                            <div className="flex-1 space-y-2">
+                              <div className="h-3.5 bg-slate-100 rounded w-1/3" />
+                              <div className="h-3 bg-slate-100 rounded w-4/5" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {!chatRoomsLoading && filteredChatRooms.length === 0 && (
+                      <div className="py-8 text-center text-xs text-[#667085] font-sans px-4">
+                        {chatSearch 
+                          ? (locale === "vi" ? "Không tìm thấy chiến dịch nào." : "No campaigns found.")
+                          : (locale === "vi" ? "Bạn chưa tham gia chiến dịch nào hoặc không có quyền chat." : "No active campaigns found.")}
+                      </div>
+                    )}
+
+                    {!chatRoomsLoading &&
+                      filteredChatRooms.map((room) => {
+                        const isUnread = room.lastMessage && 
+                          (!user || room.lastMessage.senderName !== user.name) &&
+                          (!localStorage.getItem(`campaign-chat-seen-${room.campaignId}`) ||
+                           Number(localStorage.getItem(`campaign-chat-seen-${room.campaignId}`)) < room.lastMessage.id);
+
+                        return (
+                          <Link
+                            key={room.campaignId}
+                            to="/campaigns/$id/group-chat"
+                            params={{ id: String(room.campaignId) }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setChatOpen(false);
+                              setActiveFloatingChatId(String(room.campaignId));
+                              if (room.lastMessage) {
+                                localStorage.setItem(`campaign-chat-seen-${room.campaignId}`, String(room.lastMessage.id));
+                              }
+                            }}
+                            className={`w-full text-left p-3 flex gap-3 transition-colors hover:bg-slate-50 border-l-4 ${
+                              isUnread ? "bg-[#EFF6FF] border-l-[#0B4FC4]" : "border-l-transparent"
+                            }`}
+                          >
+                            {/* Avatar */}
+                            <div className="relative shrink-0">
+                              {room.coverImageUrl ? (
+                                <img
+                                  src={room.coverImageUrl}
+                                  alt={room.campaignTitle}
+                                  className="w-10 h-10 rounded-full object-cover border border-[#E4EAF2]"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-[#EEF4FF] text-[#0B4FC4] font-bold flex items-center justify-center text-sm border border-[#E4EAF2] font-sans">
+                                  {room.campaignTitle.charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              {/* Status indicator */}
+                              {room.status === "IN_PROGRESS" && (
+                                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border border-white rounded-full" />
+                              )}
+                            </div>
+
+                            {/* Info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-1 mb-0.5">
+                                <h4 className={`text-xs text-[#123E8A] truncate font-sans ${isUnread ? "font-bold" : "font-semibold"}`}>
+                                  {room.campaignTitle}
+                                </h4>
+                                {room.lastMessage && (
+                                  <span className="text-[9px] text-[#667085] shrink-0 font-sans">
+                                    {timeAgo(room.lastMessage.createdAt, locale)}
+                                  </span>
+                                )}
+                              </div>
+                              <p className={`text-[11px] truncate font-sans ${isUnread ? "text-slate-900 font-semibold" : "text-[#667085]"}`}>
+                                {room.lastMessage ? (
+                                  <>
+                                    <span className="font-semibold">{room.lastMessage.senderName}: </span>
+                                    {room.lastMessage.message || (locale === "vi" ? "[Hình ảnh]" : "[Image]")}
+                                  </>
+                                ) : (
+                                  <span className="italic text-slate-400">
+                                    {locale === "vi" ? "Chưa có tin nhắn nào" : "No messages yet"}
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+                          </Link>
+                        );
+                      })}
+                  </div>
                 </div>
               )}
             </div>
@@ -881,6 +1066,13 @@ export function Header() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {activeFloatingChatId && (
+        <FloatingCampaignChat
+          campaignId={activeFloatingChatId}
+          onClose={() => setActiveFloatingChatId(null)}
+        />
+      )}
     </header>
   );
 }

@@ -1027,7 +1027,17 @@ export interface CampaignParticipantResponse {
   campaignTitle?: string | null;
 }
 
+export interface CampaignChatRoomResponse {
+  campaignId: number;
+  campaignTitle: string;
+  coverImageUrl?: string;
+  status: string;
+  lastMessage?: CampaignChatMessageResponse;
+}
+
 export const campaignApi = {
+  getMyChatRooms: () => request<CampaignChatRoomResponse[]>("/api/campaigns/my-chats"),
+
   getAll: (page = 0, size = 20, status?: string) => {
     const params = new URLSearchParams({ page: String(page), size: String(size) });
     if (status) params.set("status", status);

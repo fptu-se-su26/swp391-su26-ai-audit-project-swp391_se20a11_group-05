@@ -85,6 +85,15 @@ function CampaignGroupChatPage() {
     chatMessages,
   } = useCampaignChat(id);
 
+  useEffect(() => {
+    if (chatMessages && chatMessages.length > 0) {
+      const maxId = Math.max(...chatMessages.map(m => Number(m.id)).filter(id => !isNaN(id)));
+      if (maxId > 0) {
+        localStorage.setItem(`campaign-chat-seen-${id}`, String(maxId));
+      }
+    }
+  }, [chatMessages, id]);
+
   const pinMutation = usePinChatMessage(id);
   const unpinMutation = useUnpinChatMessage(id);
   const deleteMutation = useDeleteChatMessageMutation(id);

@@ -13,6 +13,7 @@ import com.example.smartcity.modules.campaign.dto.CampaignResponse;
 import com.example.smartcity.modules.campaign.dto.CampaignJoinRequest;
 import com.example.smartcity.modules.campaign.dto.CampaignBatchApproveRequest;
 import com.example.smartcity.modules.campaign.dto.AttendanceBulkRequest;
+import com.example.smartcity.modules.campaign.dto.CampaignChatRoomResponse;
 import com.example.smartcity.modules.auth.service.EmailOtpService;
 import com.example.smartcity.modules.notification.service.NotificationService;
 import com.example.smartcity.modules.notification.service.ExternalNotificationService;
@@ -1290,7 +1291,8 @@ public class CampaignServiceImpl implements CampaignService {
 
         boolean isAuthorized = currentUser.getRole() == Role.SUPER_ADMIN
                 || currentUser.getRole() == Role.WARD_STAFF
-                || currentUser.getRole() == Role.POLICE;
+                || currentUser.getRole() == Role.POLICE
+                || currentUser.getId().equals(citizenId);
 
         if (!isAuthorized) {
             throw new CustomException("Bạn không có quyền truy cập thông tin lịch sử tham gia của tài khoản này.", 403);
@@ -1312,6 +1314,55 @@ public class CampaignServiceImpl implements CampaignService {
         for (CampaignParticipant participant : history) {
             responses.add(toParticipantResponse(participant));
         }
+        return responses;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CampaignChatRoomResponse> getMyChatRooms(String username) {
+        User user = requireUser(username);
+        List<Campaign> campaigns = new ArrayList<>();
+
+        if (user.getRole() == Role.SUPER_ADMIN) {
+            campaigns = campaignRepository.findAll();
+        } else if (user.getRole() == Role.WARD_STAFF) {
+            if (user.getWard() != null) {
+                campaigns = campaignRepository.findByWard_Id(user.getWard().getId());
+            }
+        } else {
+            // Citizen, Police: get from participants table
+            List<CampaignParticipant> participations = participantRepository.findByCitizen_IdOrderByCampaign_StartTimeDesc(user.getId());
+            for (CampaignParticipant p : participations) {
+                if (ACTIVE_CHAT_STATUSES.contains(p.getJoinStatus())) {
+                    campaigns.add(p.getCampaign());
+                }
+            }
+        }
+
+        List<CampaignChatRoomResponse> responses = new ArrayList<>();
+        for (Campaign campaign : campaigns) {
+            List<CampaignChatMessage> messages = chatMessageRepository.findTop15ByCampaign_IdOrderByCreatedAtDesc(campaign.getId());
+            CampaignChatMessageResponse lastMessageDto = null;
+            if (messages != null && !messages.isEmpty()) {
+                lastMessageDto = toChatResponse(messages.get(0));
+            }
+
+            responses.add(CampaignChatRoomResponse.builder()
+                    .campaignId(campaign.getId())
+                    .campaignTitle(campaign.getTitle())
+                    .coverImageUrl(campaign.getCoverImageUrl())
+                    .status(campaign.getStatus())
+                    .lastMessage(lastMessageDto)
+                    .build());
+        }
+
+        // Sort responses by last message createdAt or campaign start time, desc
+        responses.sort((r1, r2) -> {
+            java.time.LocalDateTime t1 = r1.getLastMessage() != null ? r1.getLastMessage().getCreatedAt() : java.time.LocalDateTime.MIN;
+            java.time.LocalDateTime t2 = r2.getLastMessage() != null ? r2.getLastMessage().getCreatedAt() : java.time.LocalDateTime.MIN;
+            return t2.compareTo(t1);
+        });
+
         return responses;
     }
 

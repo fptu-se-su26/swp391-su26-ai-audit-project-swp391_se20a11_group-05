@@ -1,4 +1,4 @@
-$env:ENCRYPTION_SECRET="my-local-dev-32-chars-secret-key"
+$env:ENCRYPTION_SECRET="CHANGE_ME_32_CHARS_PLACEHOLDER!!"
 $env:MAVEN_USER_HOME="$PSScriptRoot\.m2"
 
 # Nạp biến môi trường từ file .env.local.ps1 (file này KHÔNG được commit lên Git)

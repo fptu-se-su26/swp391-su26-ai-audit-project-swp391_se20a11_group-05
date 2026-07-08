@@ -82,7 +82,8 @@ public class AttributeEncryptor implements AttributeConverter<String, String> {
 
             return new String(cipher.doFinal(encryptedData));
         } catch (Exception e) {
-            throw new IllegalStateException("[SECURITY] Failed to decrypt sensitive attribute", e);
+            System.err.println("[SECURITY] Failed to decrypt sensitive attribute: " + e.getMessage());
+            return null;
         }
     }
 }

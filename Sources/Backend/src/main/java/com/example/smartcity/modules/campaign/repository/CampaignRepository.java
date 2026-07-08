@@ -66,4 +66,7 @@ public interface CampaignRepository extends JpaRepository<Campaign, Long> {
 
     @Query("SELECT COUNT(p) FROM CampaignParticipant p WHERE p.campaign.id = :campaignId AND p.joinStatus IN ('APPROVED', 'MAYBE')")
     long countActiveParticipants(@Param("campaignId") Long campaignId);
+
+    java.util.List<Campaign> findByWard_Id(Long wardId);
 }
+

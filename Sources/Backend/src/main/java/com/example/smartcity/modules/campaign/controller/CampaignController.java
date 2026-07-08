@@ -12,6 +12,7 @@ import com.example.smartcity.modules.campaign.dto.CampaignResponse;
 import com.example.smartcity.modules.campaign.dto.CampaignJoinRequest;
 import com.example.smartcity.modules.campaign.dto.CampaignBatchApproveRequest;
 import com.example.smartcity.modules.campaign.dto.AttendanceBulkRequest;
+import com.example.smartcity.modules.campaign.dto.CampaignChatRoomResponse;
 import com.example.smartcity.modules.campaign.service.CampaignService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -323,6 +324,12 @@ public class CampaignController {
         return ResponseEntity.ok(campaignService.bulkSaveAttendance(id, request, authentication.getName()));
     }
     
+    @GetMapping("/my-chats")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<CampaignChatRoomResponse>> getMyChatRooms(Authentication authentication) {
+        return ResponseEntity.ok(campaignService.getMyChatRooms(username(authentication)));
+    }
+
     @GetMapping("/participants/user/{userId}")
     @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN', 'POLICE')")
     public ResponseEntity<List<CampaignParticipantResponse>> getCitizenParticipationHistory(

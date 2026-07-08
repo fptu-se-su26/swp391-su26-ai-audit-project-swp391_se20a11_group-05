@@ -274,22 +274,30 @@ export function WardStatisticsPage({ range: propRange, setRange: propSetRange, h
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(360px,0.9fr)]">
         <Panel title="Xu hướng phản ánh theo thời gian">
           <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={trendData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                <Tooltip content={<CustomTooltip />} />
-                <Line type="monotone" dataKey="total" name="Tổng phản ánh" stroke="#4F46E5" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
-                <Line type="monotone" dataKey="resolved" name="Đã xử lý" stroke="#059669" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
-              </LineChart>
-            </ResponsiveContainer>
+            {isLoading ? (
+              <div className="w-full h-full bg-slate-50/50 rounded-xl animate-pulse flex items-center justify-center text-xs text-slate-400 font-medium">
+                Đang tải dữ liệu biểu đồ...
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trendData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Line type="monotone" dataKey="total" name="Tổng phản ánh" stroke="#4F46E5" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="resolved" name="Đã xử lý" stroke="#059669" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </Panel>
 
         <Panel title="Tỷ lệ xử lý">
           <div className="grid min-h-[300px] place-items-center">
-            {statusData.length === 0 ? (
+            {isLoading ? (
+              <div className="w-full h-full max-h-[190px] aspect-square rounded-full border-8 border-slate-100 border-t-indigo-600 animate-spin" />
+            ) : statusData.length === 0 ? (
               <EmptyChart />
             ) : (
               <div className="grid w-full gap-6 md:grid-cols-[180px_1fr] xl:grid-cols-1">
@@ -329,7 +337,11 @@ export function WardStatisticsPage({ range: propRange, setRange: propSetRange, h
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(420px,0.85fr)]">
         <Panel title="Phản ánh theo lĩnh vực">
           <div className="h-[300px]">
-            {categoryData.length === 0 ? (
+            {isLoading ? (
+              <div className="w-full h-full bg-slate-50/50 rounded-xl animate-pulse flex items-center justify-center text-xs text-slate-400 font-medium">
+                Đang tải dữ liệu biểu đồ...
+              </div>
+            ) : categoryData.length === 0 ? (
               <EmptyChart />
             ) : (
               <ResponsiveContainer width="100%" height="100%">

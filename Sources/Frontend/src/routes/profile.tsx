@@ -30,8 +30,14 @@ import {
   useUpdateProfileMutation,
   useDeleteOwnProfileMutation,
   useChangePasswordMutation,
+  useSendChangePasswordOtp,
 } from "@/hooks";
 import { useI18n } from "@/lib/i18n";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 
 export const Route = createFileRoute("/profile")({
   beforeLoad: () => {
@@ -131,10 +137,37 @@ function ProfilePage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [otpCode, setOtpCode] = useState("");
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [countdown, setCountdown] = useState(0);
   const changePasswordMutation = useChangePasswordMutation();
+  const sendOtpMutation = useSendChangePasswordOtp();
+
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = setInterval(() => {
+      setCountdown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [countdown]);
+
+  const handleSendOtp = async () => {
+    try {
+      await sendOtpMutation.mutateAsync();
+      toast.success(
+        locale === "vi"
+          ? "Đã gửi mã OTP thành công. Vui lòng kiểm tra email!"
+          : "OTP sent successfully. Please check your email!",
+      );
+      setCountdown(60);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : (locale === "vi" ? "Gửi mã OTP thất bại!" : "Failed to send OTP!"),
+      );
+    }
+  };
 
   // Deactivate account state
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
@@ -288,12 +321,18 @@ function ProfilePage() {
       return;
     }
 
+    if (!otpCode) {
+      toast.error(locale === "vi" ? "Vui lòng nhập mã OTP xác thực!" : "Please enter the OTP verification code!");
+      return;
+    }
+
     try {
-      await changePasswordMutation.mutateAsync({ currentPassword, newPassword, confirmPassword });
+      await changePasswordMutation.mutateAsync({ currentPassword, newPassword, confirmPassword, otpCode });
       toast.success(locale === "vi" ? "Đổi mật khẩu thành công!" : "Password changed successfully!");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
+      setOtpCode("");
       setShowCurrentPassword(false);
       setShowNewPassword(false);
       setShowConfirmPassword(false);
@@ -704,6 +743,42 @@ function ProfilePage() {
                             {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                           </button>
                         </div>
+                      </div>
+                    </div>
+                    {/* Mã xác nhận OTP */}
+                    <div className="pt-2">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                        {locale === "vi" ? "Mã xác thực OTP (Email)" : "OTP Verification Code (Email)"} <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="flex gap-3">
+                        <InputOTP
+                          maxLength={6}
+                          value={otpCode}
+                          onChange={setOtpCode}
+                        >
+                          <InputOTPGroup>
+                            <InputOTPSlot index={0} className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800" />
+                            <InputOTPSlot index={1} className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800" />
+                            <InputOTPSlot index={2} className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800" />
+                            <InputOTPSlot index={3} className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800" />
+                            <InputOTPSlot index={4} className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800" />
+                            <InputOTPSlot index={5} className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800" />
+                          </InputOTPGroup>
+                        </InputOTP>
+                        <button
+                          type="button"
+                          onClick={handleSendOtp}
+                          disabled={countdown > 0 || sendOtpMutation.isPending}
+                          className="px-4 py-2 bg-[#F5F9FF] hover:bg-[#E4EAF2] disabled:bg-slate-50 text-[#0B4FC4] disabled:text-slate-400 font-bold rounded-xl text-sm border border-[#E4EAF2] dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-850 transition-all duration-200 shrink-0 min-w-[120px] flex items-center justify-center cursor-pointer"
+                        >
+                          {sendOtpMutation.isPending ? (
+                            <Loader2 className="animate-spin h-4 w-4" />
+                          ) : countdown > 0 ? (
+                            `${countdown}s`
+                          ) : (
+                            locale === "vi" ? "Gửi mã OTP" : "Send OTP"
+                          )}
+                        </button>
                       </div>
                     </div>
                   </div>

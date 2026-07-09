@@ -434,4 +434,85 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
     }
+
+    @Transactional
+    public AuthResponse registerWithFirebaseToken(RegisterRequest registerRequest, String firebaseTokenStr) {
+        FirebaseToken decodedToken = firebaseService.verifyIdToken(firebaseTokenStr);
+        String firebasePhone = (String) decodedToken.getClaims().get("phone_number");
+
+        if (firebasePhone == null) {
+            throw new CustomException("Firebase token không chứa số điện thoại.", 400);
+        }
+
+        String normRegPhone = normalizePhone(registerRequest.getPhoneNumber());
+        String normFbPhone = normalizePhone(firebasePhone);
+
+        if (!normRegPhone.equals(normFbPhone)) {
+            throw new CustomException("Số điện thoại xác thực không khớp với số đăng ký.", 400);
+        }
+
+        userRepository.findByPhoneNumber(registerRequest.getPhoneNumber()).ifPresent(user -> {
+            if ("INACTIVE".equals(user.getStatus())) {
+                userRepository.delete(user);
+                userRepository.flush();
+            } else {
+                throw new CustomException("Số điện thoại này đã được liên kết với tài khoản khác!", 400);
+            }
+        });
+
+        userRepository.findByUsername(registerRequest.getUsername()).ifPresent(user -> {
+            if ("INACTIVE".equals(user.getStatus())) {
+                userRepository.delete(user);
+                userRepository.flush();
+            } else {
+                throw new CustomException("Tên đăng nhập đã tồn tại!", 400);
+            }
+        });
+
+        userRepository.findByEmail(registerRequest.getEmail()).ifPresent(user -> {
+            if ("INACTIVE".equals(user.getStatus())) {
+                userRepository.delete(user);
+                userRepository.flush();
+            } else {
+                throw new CustomException("Email đã được sử dụng!", 400);
+            }
+        });
+
+        User user = new User(
+                registerRequest.getUsername(),
+                passwordEncoder.encode(registerRequest.getPassword()),
+                registerRequest.getFullName(),
+                registerRequest.getPhoneNumber(),
+                registerRequest.getEmail(),
+                Role.CITIZEN
+        );
+        
+        user.setStatus("ACTIVE");
+        user.setPhoneVerified(true);
+        User savedUser = userRepository.save(user);
+
+        TokenPairResponse tokenPair = refreshTokenService.createTokenPair(savedUser);
+
+        return AuthResponse.builder()
+                .token(tokenPair.getAccessToken())
+                .refreshToken(tokenPair.getRefreshToken())
+                .expiresIn(tokenPair.getExpiresIn())
+                .username(tokenPair.getUsername())
+                .role(tokenPair.getRole())
+                .wardName(tokenPair.getWardName())
+                .wardType(tokenPair.getWardType())
+                .wardId(tokenPair.getWardId())
+                .org(tokenPair.getOrg())
+                .mfaRequired(false)
+                .build();
+    }
+
+    private String normalizePhone(String phone) {
+        if (phone == null) return "";
+        String clean = phone.replaceAll("\\D", "");
+        if (clean.startsWith("84")) {
+            clean = "0" + clean.substring(2);
+        }
+        return clean;
+    }
 }

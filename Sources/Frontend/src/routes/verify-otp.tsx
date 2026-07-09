@@ -4,6 +4,7 @@ import { useI18n } from "@/lib/i18n";
 import { Loader2, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError, authApi } from "@/lib/api";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 export const Route = createFileRoute("/verify-otp")({
   validateSearch: (search: Record<string, unknown>): { phone?: string } => ({
@@ -16,10 +17,10 @@ function VerifyOtpPage() {
   const { locale } = useI18n();
   const navigate = useNavigate();
   const { phone } = Route.useSearch();
-  const [otpArray, setOtpArray] = useState(["", "", "", "", "", ""]);
+  const [otpCode, setOtpCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [countdown, setCountdown] = useState(60);
-  const otpString = otpArray.join("");
+  const otpString = otpCode;
 
   useEffect(() => {
     if (!phone) {
@@ -97,47 +98,22 @@ function VerifyOtpPage() {
         </div>
 
         <form onSubmit={handleVerify} className="p-8 space-y-6">
-          <div className="flex justify-center gap-2 sm:gap-3">
-            {otpArray.map((digit, index) => (
-              <input
-                key={index}
-                id={`otp-${index}`}
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                value={digit}
-                onChange={(event) => {
-                  const value = event.target.value.replace(/\D/g, "");
-                  const nextOtp = [...otpArray];
-
-                  if (value.length > 1) {
-                    value
-                      .slice(0, 6)
-                      .split("")
-                      .forEach((char, charIndex) => {
-                        nextOtp[charIndex] = char;
-                      });
-                    setOtpArray(nextOtp);
-                    document.getElementById(`otp-${Math.min(5, value.length - 1)}`)?.focus();
-                    return;
-                  }
-
-                  nextOtp[index] = value.slice(-1);
-                  setOtpArray(nextOtp);
-                  if (value && index < 5) {
-                    document.getElementById(`otp-${index + 1}`)?.focus();
-                  }
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Backspace" && !digit && index > 0) {
-                    document.getElementById(`otp-${index - 1}`)?.focus();
-                  }
-                }}
-                className="w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl font-bold rounded-xl border-2 border-slate-200 bg-white focus:border-gov-blue focus:ring-2 focus:ring-gov-blue/20 outline-none transition-all placeholder:text-slate-200"
-                placeholder="*"
-                autoFocus={index === 0}
-              />
-            ))}
+          <div className="flex justify-center">
+            <InputOTP
+              maxLength={6}
+              value={otpCode}
+              onChange={setOtpCode}
+              autoFocus
+            >
+              <InputOTPGroup>
+                <InputOTPSlot index={0} className="w-10 h-12 sm:w-12 sm:h-14 text-xl sm:text-2xl font-bold bg-white" />
+                <InputOTPSlot index={1} className="w-10 h-12 sm:w-12 sm:h-14 text-xl sm:text-2xl font-bold bg-white" />
+                <InputOTPSlot index={2} className="w-10 h-12 sm:w-12 sm:h-14 text-xl sm:text-2xl font-bold bg-white" />
+                <InputOTPSlot index={3} className="w-10 h-12 sm:w-12 sm:h-14 text-xl sm:text-2xl font-bold bg-white" />
+                <InputOTPSlot index={4} className="w-10 h-12 sm:w-12 sm:h-14 text-xl sm:text-2xl font-bold bg-white" />
+                <InputOTPSlot index={5} className="w-10 h-12 sm:w-12 sm:h-14 text-xl sm:text-2xl font-bold bg-white" />
+              </InputOTPGroup>
+            </InputOTP>
           </div>
 
           <button

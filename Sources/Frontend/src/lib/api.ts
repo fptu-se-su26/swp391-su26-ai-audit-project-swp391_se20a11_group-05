@@ -500,17 +500,21 @@ export const authApi = {
       skipAuth: true,
     }),
 
-  register: (data: {
-    username: string;
-    password: string;
-    fullName: string;
-    phoneNumber?: string;
-    email: string;
-  }) =>
-    request<unknown>("/api/auth/register", {
+  register: (
+    data: {
+      username: string;
+      password: string;
+      fullName: string;
+      phoneNumber?: string;
+      email: string;
+    },
+    firebaseToken?: string,
+  ) =>
+    request<any>("/api/auth/register", {
       method: "POST",
       body: JSON.stringify(data),
       skipAuth: true,
+      headers: firebaseToken ? { Authorization: `Bearer ${firebaseToken}` } : undefined,
     }),
 
   registerConfirm: (phoneNumber: string, otpCode: string) =>
@@ -701,10 +705,15 @@ export const userApi = {
       body: JSON.stringify(data),
     }).then(mapUserProfile),
 
-  changePassword: (data: { currentPassword: string; newPassword: string; confirmPassword: string }) =>
+  changePassword: (data: { currentPassword: string; newPassword: string; confirmPassword: string; otpCode: string }) =>
     request<void>("/api/users/profile/change-password", {
       method: "PUT",
       body: JSON.stringify(data),
+    }),
+
+  sendChangePasswordOtp: () =>
+    request<{ status: number; message: string; data: string }>("/api/users/profile/change-password/otp", {
+      method: "POST",
     }),
 
   deleteOwnProfile: () =>

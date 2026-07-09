@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useI18n } from "@/lib/i18n";
 import { ApiError } from "@/lib/api";
 import { useRegisterMutation } from "@/lib/hooks";
@@ -24,6 +24,10 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from "@/component
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import logoUrl from "@/assets/logo.png";
+import { getFirebaseAuth } from "@/lib/firebase";
+import { RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from "firebase/auth";
+import { useAuth } from "@/lib/auth";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 export const Route = createFileRoute("/register")({
   validateSearch: (search: Record<string, unknown>): { googleEmail?: string; googleName?: string } => ({
@@ -92,13 +96,12 @@ function PasswordStrengthIndicator({ password }: { password: string }) {
         {checks.map((_, i) => (
           <div
             key={i}
-            className={`h-1.5 flex-1 rounded-full transition-colors duration-200 ${
-              password.length === 0
+            className={`h-1.5 flex-1 rounded-full transition-colors duration-200 ${password.length === 0
                 ? "bg-gray-200"
                 : i < passedCount
                   ? activeSegmentClass
                   : "bg-gray-200"
-            }`}
+              }`}
           />
         ))}
       </div>
@@ -110,9 +113,18 @@ function PasswordStrengthIndicator({ password }: { password: string }) {
 function RegisterPage() {
   const { locale } = useI18n();
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const { googleEmail, googleName } = Route.useSearch();
   const isFromGoogle = !!googleEmail;
+
+  // Firebase Phone Auth States
+  const [otpCode, setOtpCode] = useState("");
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const [registerValues, setRegisterValues] = useState<RegisterFormValues | null>(null);
 
   const registerMutation = useRegisterMutation();
 
@@ -129,34 +141,119 @@ function RegisterPage() {
 
   const watchedPassword = form.watch("password");
 
-  const handleRegister = async (values: RegisterFormValues) => {
+  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
+
+  useEffect(() => {
     try {
-      await registerMutation.mutateAsync({
-        username: values.username,
-        password: values.password,
-        fullName: values.fullName,
-        email: values.email,
-        phoneNumber: values.phone,
+      const authInstance = getFirebaseAuth();
+      const verifier = new RecaptchaVerifier(authInstance, "recaptcha-container", {
+        size: "invisible",
       });
-      toast.success(locale === "vi" ? "Đăng ký thành công!" : "Registration successful!", {
-        description:
-          locale === "vi"
-            ? "Đang chuyển hướng đến trang xác thực OTP..."
-            : "Redirecting to OTP verification...",
+      verifier.render().then(() => {
+        recaptchaVerifierRef.current = verifier;
+      }).catch(err => {
+        console.warn("Failed to render recaptcha badge immediately:", err);
       });
-      setTimeout(() => {
-        navigate({ to: "/verify-otp", search: { phone: values.phone } });
-      }, 1500);
     } catch (err) {
-      if (err instanceof ApiError) {
-        toast.error(err.message);
-      } else {
-        toast.error(
-          locale === "vi"
-            ? "Lỗi kết nối. Backend chưa chạy?"
-            : "Connection error. Backend running?",
-        );
+      console.warn("Recaptcha initialization failed on mount:", err);
+    }
+
+    return () => {
+      if (recaptchaVerifierRef.current) {
+        try {
+          recaptchaVerifierRef.current.clear();
+        } catch (e) {}
       }
+    };
+  }, []);
+
+  const handleRegister = async (values: RegisterFormValues) => {
+    setRegisterValues(values);
+    setIsSendingOtp(true);
+    const toastId = toast.loading(locale === "vi" ? "Đang gửi mã OTP..." : "Sending OTP...");
+
+    try {
+      const authInstance = getFirebaseAuth();
+      let verifier = recaptchaVerifierRef.current;
+
+      if (!verifier) {
+        const container = document.getElementById("recaptcha-container");
+        if (container) {
+          container.innerHTML = "";
+        }
+        verifier = new RecaptchaVerifier(authInstance, "recaptcha-container", {
+          size: "invisible",
+        });
+        recaptchaVerifierRef.current = verifier;
+      }
+
+      let formattedPhone = values.phone.trim();
+      if (formattedPhone.startsWith("0")) {
+        formattedPhone = "+84" + formattedPhone.substring(1);
+      }
+
+      const confirmation = await signInWithPhoneNumber(authInstance, formattedPhone, verifier);
+      setConfirmationResult(confirmation);
+      toast.success(locale === "vi" ? "Đã gửi mã OTP đến điện thoại!" : "OTP sent to your phone!", { id: toastId });
+      setShowOtpModal(true);
+    } catch (err: any) {
+      toast.error(err?.message || (locale === "vi" ? "Không thể gửi OTP. Thử lại sau." : "Failed to send OTP. Try again."), { id: toastId });
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!confirmationResult || otpCode.length !== 6 || !registerValues) return;
+
+    setIsVerifyingOtp(true);
+    const toastId = toast.loading(locale === "vi" ? "Đang xác thực mã OTP..." : "Verifying OTP...");
+
+    try {
+      // 1. Confirm OTP with Firebase
+      const result = await confirmationResult.confirm(otpCode);
+      const idToken = await result.user.getIdToken();
+
+      // 2. Register user at Backend with Firebase Token
+      const response = await registerMutation.mutateAsync({
+        data: {
+          username: registerValues.username,
+          password: registerValues.password,
+          fullName: registerValues.fullName,
+          email: registerValues.email,
+          phoneNumber: registerValues.phone,
+        },
+        firebaseToken: idToken,
+      });
+
+      toast.success(locale === "vi" ? "Đăng ký thành công!" : "Registration successful!", { id: toastId });
+
+      // 3. Set token in localStorage and log in
+      if (response && response.token) {
+        localStorage.setItem("dn_token_v2", response.token);
+        login({
+          name: response.username,
+          role: response.role,
+          org: response.org || "",
+          wardName: response.wardName,
+          wardType: response.wardType,
+          wardId: response.wardId,
+          token: response.token,
+        });
+      }
+
+      setShowOtpModal(false);
+      setTimeout(() => {
+        navigate({ to: "/" });
+      }, 1000);
+    } catch (err: any) {
+      toast.error(
+        err?.message || (locale === "vi" ? "Mã OTP không chính xác hoặc lỗi đăng ký." : "Invalid OTP or registration error."),
+        { id: toastId }
+      );
+    } finally {
+      setIsVerifyingOtp(false);
     }
   };
 
@@ -390,11 +487,10 @@ function RegisterPage() {
                         <Input
                           type="email"
                           placeholder={locale === "vi" ? "Email" : "Email"}
-                          className={`w-full min-h-[52px] pl-10 pr-4 rounded-xl border-2 bg-white text-base focus:border-gov-blue focus-visible:ring-0 outline-none transition-colors placeholder:text-slate-400 ${
-                            isFromGoogle
+                          className={`w-full min-h-[52px] pl-10 pr-4 rounded-xl border-2 bg-white text-base focus:border-gov-blue focus-visible:ring-0 outline-none transition-colors placeholder:text-slate-400 ${isFromGoogle
                               ? "border-blue-300 bg-blue-50 text-blue-900 cursor-not-allowed"
                               : "border-slate-200"
-                          }`}
+                            }`}
                           readOnly={isFromGoogle}
                           {...field}
                         />
@@ -519,6 +615,78 @@ function RegisterPage() {
           </p>
         </footer>
       </div>
+
+      {/* Invisible Recaptcha */}
+      <div id="recaptcha-container"></div>
+      <style dangerouslySetInnerHTML={{__html: `
+        .grecaptcha-badge { 
+          position: fixed !important; 
+          bottom: 75px !important; 
+          right: 0 !important; 
+          z-index: 40 !important; 
+        }
+        body {
+          overflow-x: hidden;
+        }
+      `}} />
+
+      {/* OTP verification Modal */}
+      {showOtpModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 relative overflow-hidden animate-scale-up">
+            <div className="flex items-center gap-2 text-gov-blue mb-4">
+              <Shield className="h-6 w-6 text-[#00387b]" />
+              <h3 className="text-lg font-extrabold text-slate-800 dark:text-slate-100">
+                {locale === "vi" ? "Xác thực số điện thoại" : "Verify Phone Number"}
+              </h3>
+            </div>
+
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 leading-relaxed mb-5">
+              {locale === "vi"
+                ? `Mã OTP đã được gửi đến số điện thoại ${registerValues?.phone}. Vui lòng nhập mã 6 số để hoàn tất đăng ký.`
+                : `A 6-digit OTP has been sent to ${registerValues?.phone}. Please enter it to complete registration.`}
+            </p>
+
+            <form onSubmit={handleVerifyOtp} className="space-y-6">
+              <div className="flex justify-center">
+                <InputOTP
+                  maxLength={6}
+                  value={otpCode}
+                  onChange={setOtpCode}
+                  autoFocus
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} className="w-10 h-12 sm:w-12 sm:h-14 text-xl sm:text-2xl font-bold bg-white dark:bg-slate-950" />
+                    <InputOTPSlot index={1} className="w-10 h-12 sm:w-12 sm:h-14 text-xl sm:text-2xl font-bold bg-white dark:bg-slate-950" />
+                    <InputOTPSlot index={2} className="w-10 h-12 sm:w-12 sm:h-14 text-xl sm:text-2xl font-bold bg-white dark:bg-slate-950" />
+                    <InputOTPSlot index={3} className="w-10 h-12 sm:w-12 sm:h-14 text-xl sm:text-2xl font-bold bg-white dark:bg-slate-950" />
+                    <InputOTPSlot index={4} className="w-10 h-12 sm:w-12 sm:h-14 text-xl sm:text-2xl font-bold bg-white dark:bg-slate-950" />
+                    <InputOTPSlot index={5} className="w-10 h-12 sm:w-12 sm:h-14 text-xl sm:text-2xl font-bold bg-white dark:bg-slate-950" />
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
+
+              <div className="flex gap-3 justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowOtpModal(false)}
+                  className="px-4 py-2.5 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  {locale === "vi" ? "Hủy" : "Cancel"}
+                </button>
+                <button
+                  type="submit"
+                  disabled={isVerifyingOtp || otpCode.length !== 6}
+                  className="flex items-center gap-2 bg-[#00387b] hover:bg-[#00264d] text-white font-bold py-2.5 px-5 rounded-xl text-sm disabled:opacity-50 transition-all duration-200 cursor-pointer"
+                >
+                  {isVerifyingOtp && <Loader2 className="animate-spin h-4 w-4" />}
+                  {locale === "vi" ? "Xác nhận" : "Confirm"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

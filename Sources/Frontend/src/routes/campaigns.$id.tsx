@@ -40,6 +40,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import type { Campaign } from "@/lib/campaignStore";
 import { buildGoogleMapsSearchUrl, resolveCampaignCoordinates } from "@/lib/campaignLocation";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { SingleCampaignMap } from "@/components/site/SingleCampaignMap";
 
 export const Route = createFileRoute("/campaigns/$id")({
@@ -751,13 +752,22 @@ export function CampaignDetailPageComponent({
                       {otpSent ? "Gửi lại mã OTP" : "Nhận mã qua Gmail"}
                     </button>
                   </div>
-                  <input
-                    value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value)}
-                    placeholder="Nhập 6 ký tự OTP"
-                    maxLength={6}
-                    className="w-full text-center tracking-widest font-mono font-black h-11 rounded-xl border border-slate-200 px-3 text-sm outline-none transition focus:border-[#7C3AED] focus:ring focus:ring-[#7C3AED]/15"
-                  />
+                  <div className="flex justify-center">
+                    <InputOTP
+                      maxLength={6}
+                      value={otpCode}
+                      onChange={setOtpCode}
+                    >
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} className="w-10 h-11 text-base font-bold bg-white" />
+                        <InputOTPSlot index={1} className="w-10 h-11 text-base font-bold bg-white" />
+                        <InputOTPSlot index={2} className="w-10 h-11 text-base font-bold bg-white" />
+                        <InputOTPSlot index={3} className="w-10 h-11 text-base font-bold bg-white" />
+                        <InputOTPSlot index={4} className="w-10 h-11 text-base font-bold bg-white" />
+                        <InputOTPSlot index={5} className="w-10 h-11 text-base font-bold bg-white" />
+                      </InputOTPGroup>
+                    </InputOTP>
+                  </div>
                 </div>
 
                 <button

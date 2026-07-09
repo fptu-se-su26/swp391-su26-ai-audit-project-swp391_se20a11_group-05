@@ -35,6 +35,7 @@ class UserControllerTest {
     @Mock private UserService userService;
     @Mock private UserMapper userMapper;
     @Mock private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+    @Mock private com.example.smartcity.modules.auth.service.EmailOtpService emailOtpService;
     @InjectMocks private UserController userController;
 
     private MockMvc mockMvc;
@@ -170,15 +171,17 @@ class UserControllerTest {
 
         when(userService.findByUsername("citizen1")).thenReturn(targetUser);
         when(passwordEncoder.matches("OldPassword1", "encoded_old")).thenReturn(true);
+        when(passwordEncoder.matches("NewPassword1", "encoded_old")).thenReturn(false);
         when(passwordEncoder.encode("NewPassword1")).thenReturn("encoded_new");
 
-        String requestBody = "{\"currentPassword\":\"OldPassword1\",\"newPassword\":\"NewPassword1\",\"confirmPassword\":\"NewPassword1\"}";
+        String requestBody = "{\"currentPassword\":\"OldPassword1\",\"newPassword\":\"NewPassword1\",\"confirmPassword\":\"NewPassword1\",\"otpCode\":\"123456\"}";
 
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/users/profile/change-password")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
                 .andExpect(status().isOk());
 
+        verify(emailOtpService, times(1)).verifyOtp("citizen@example.com", "123456");
         verify(userService, times(1)).save(targetUser);
     }
 
@@ -191,7 +194,7 @@ class UserControllerTest {
         when(userService.findByUsername("citizen1")).thenReturn(targetUser);
         when(passwordEncoder.matches("WrongPassword1", "encoded_old")).thenReturn(false);
 
-        String requestBody = "{\"currentPassword\":\"WrongPassword1\",\"newPassword\":\"NewPassword1\",\"confirmPassword\":\"NewPassword1\"}";
+        String requestBody = "{\"currentPassword\":\"WrongPassword1\",\"newPassword\":\"NewPassword1\",\"confirmPassword\":\"NewPassword1\",\"otpCode\":\"123456\"}";
 
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/users/profile/change-password")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -204,11 +207,31 @@ class UserControllerTest {
     @Test
     @DisplayName("Should fail changing password when new password and confirm password mismatch")
     void changePassword_mismatchedNewConfirm_badRequest() throws Exception {
-        String requestBody = "{\"currentPassword\":\"OldPassword1\",\"newPassword\":\"NewPassword1\",\"confirmPassword\":\"MismatchPassword\"}";
+        String requestBody = "{\"currentPassword\":\"OldPassword1\",\"newPassword\":\"NewPassword1\",\"confirmPassword\":\"MismatchPassword\",\"otpCode\":\"123456\"}";
 
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/users/profile/change-password")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Should fail changing password when new password is same as current password")
+    void changePassword_sameAsCurrent_badRequest() throws Exception {
+        mockSecurityContext("citizen1", "ROLE_CITIZEN");
+        User targetUser = new User("citizen1", "encoded_old", "Citizen One", "0905123456", "citizen@example.com", Role.CITIZEN);
+
+        when(userService.findByUsername("citizen1")).thenReturn(targetUser);
+        when(passwordEncoder.matches("OldPassword1", "encoded_old")).thenReturn(true);
+        when(passwordEncoder.matches("OldPassword1", "encoded_old")).thenReturn(true);
+
+        String requestBody = "{\"currentPassword\":\"OldPassword1\",\"newPassword\":\"OldPassword1\",\"confirmPassword\":\"OldPassword1\",\"otpCode\":\"123456\"}";
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/users/profile/change-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+                .andExpect(status().isBadRequest());
+
+        verify(userService, never()).save(any(User.class));
     }
 }

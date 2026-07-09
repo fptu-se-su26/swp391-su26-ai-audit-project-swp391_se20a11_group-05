@@ -9,6 +9,7 @@ import com.example.smartcity.modules.user.dto.UserDTO;
 import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.user.mapper.UserMapper;
 import com.example.smartcity.modules.user.service.UserService;
+import com.example.smartcity.modules.auth.service.EmailOtpService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -28,11 +29,13 @@ public class UserController extends BaseGenericController<User, UserDTO, Long> {
     private final UserService userService;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final EmailOtpService emailOtpService;
 
-    public UserController(UserService userService, UserMapper userMapper, PasswordEncoder passwordEncoder) {
+    public UserController(UserService userService, UserMapper userMapper, PasswordEncoder passwordEncoder, EmailOtpService emailOtpService) {
         this.userService = userService;
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
+        this.emailOtpService = emailOtpService;
     }
 
     @Override
@@ -213,12 +216,25 @@ public class UserController extends BaseGenericController<User, UserDTO, Long> {
         return ResponseEntity.ok(ApiResponse.success("Mở khóa tài khoản thành công", userMapper.toDto(updated)));
     }
 
+    @PostMapping("/profile/change-password/otp")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<String>> sendChangePasswordOtp() {
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userService.findByUsername(currentUsername);
+        if (user.getEmail() == null || user.getEmail().isBlank()) {
+            throw new CustomException("Tài khoản chưa cấu hình email để nhận mã OTP.", 400);
+        }
+        String msg = emailOtpService.generateAndSendOtp(user, user.getEmail(), "PASSWORD_CHANGE");
+        return ResponseEntity.ok(ApiResponse.success("Gửi mã OTP thành công", msg));
+    }
+
     @PutMapping("/profile/change-password")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Void>> changePassword(@RequestBody java.util.Map<String, String> request) {
         String currentPassword = request.get("currentPassword");
         String newPassword = request.get("newPassword");
         String confirmPassword = request.get("confirmPassword");
+        String otpCode = request.get("otpCode");
 
         if (currentPassword == null || currentPassword.isBlank()) {
             throw new CustomException("Mật khẩu hiện tại không được để trống", 400);
@@ -235,6 +251,9 @@ public class UserController extends BaseGenericController<User, UserDTO, Long> {
         if (!newPassword.equals(confirmPassword)) {
             throw new CustomException("Mật khẩu xác nhận không khớp", 400);
         }
+        if (otpCode == null || otpCode.isBlank()) {
+            throw new CustomException("Mã xác thực OTP không được để trống", 400);
+        }
 
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userService.findByUsername(currentUsername);
@@ -242,6 +261,11 @@ public class UserController extends BaseGenericController<User, UserDTO, Long> {
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             throw new CustomException("Mật khẩu hiện tại không chính xác", 400);
         }
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+            throw new CustomException("Mật khẩu mới không được trùng với mật khẩu cũ", 400);
+        }
+
+        emailOtpService.verifyOtp(user.getEmail(), otpCode);
 
         user.setPassword(passwordEncoder.encode(newPassword));
         userService.save(user);

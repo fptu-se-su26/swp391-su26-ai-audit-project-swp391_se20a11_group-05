@@ -89,11 +89,19 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<UserDTO>> registerUser(
+    public ResponseEntity<ApiResponse<Object>> registerUser(
             @Valid @RequestBody RegisterRequest registerRequest,
             HttpServletRequest httpRequest) {
         // [SECURITY] Rate limit: 5 lần / 1 giờ theo IP
         rateLimiter.checkRegisterLimit(getClientIp(httpRequest));
+
+        String authHeader = httpRequest.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String firebaseToken = authHeader.substring(7);
+            AuthResponse response = authService.registerWithFirebaseToken(registerRequest, firebaseToken);
+            return ResponseEntity.ok(ApiResponse.success("Đăng ký và đăng nhập thành công", response));
+        }
+
         User result = authService.registerUser(registerRequest);
         return ResponseEntity.ok(ApiResponse.success("Đăng ký nháp thành công. Vui lòng xác thực mã OTP gửi về điện thoại.", userMapper.toDto(result)));
     }

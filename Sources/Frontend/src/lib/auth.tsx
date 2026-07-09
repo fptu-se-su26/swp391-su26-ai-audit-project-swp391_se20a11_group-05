@@ -10,6 +10,7 @@
  */
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { getToken, setToken, removeToken, setOnUnauthorized, userApi } from "./api";
 import {
   Role,
@@ -57,6 +58,7 @@ const STORAGE_KEY = "dn_auth_user_v2";
 
 // ─── Provider ────────────────────────────────────────────────
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const navigate = useNavigate();
   const [user, setUser] = useState<AuthUser | null>(null);
 
   // Rehydrate from localStorage on mount (SSR-safe)
@@ -125,10 +127,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const isAuthority = ["/ward", "/police", "/city-admin", "/assistant"].some((p) =>
           path.startsWith(p),
         );
-        window.location.href = isAuthority ? "/authority-login" : "/login";
+        void navigate({ to: isAuthority ? "/authority-login" : "/login", replace: true });
       }
     });
-  }, []);
+  }, [navigate]);
 
   const login = (u: AuthUser) => {
     setUser(u);

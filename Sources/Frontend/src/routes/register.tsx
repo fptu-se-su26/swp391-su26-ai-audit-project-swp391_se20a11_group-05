@@ -122,6 +122,7 @@ function RegisterPage() {
   const [otpCode, setOtpCode] = useState("");
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [resendCountdown, setResendCountdown] = useState(60);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [registerValues, setRegisterValues] = useState<RegisterFormValues | null>(null);
@@ -167,33 +168,51 @@ function RegisterPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!showOtpModal || resendCountdown <= 0) return;
+    const timer = window.setTimeout(() => {
+      setResendCountdown((value) => Math.max(0, value - 1));
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [showOtpModal, resendCountdown]);
+
+  const formatPhoneForFirebase = (phone: string) => {
+    const trimmedPhone = phone.trim();
+    return trimmedPhone.startsWith("0") ? "+84" + trimmedPhone.substring(1) : trimmedPhone;
+  };
+
+  const getRecaptchaVerifier = () => {
+    const authInstance = getFirebaseAuth();
+    let verifier = recaptchaVerifierRef.current;
+
+    if (!verifier) {
+      const container = document.getElementById("recaptcha-container");
+      if (container) {
+        container.innerHTML = "";
+      }
+      verifier = new RecaptchaVerifier(authInstance, "recaptcha-container", {
+        size: "invisible",
+      });
+      recaptchaVerifierRef.current = verifier;
+    }
+
+    return { authInstance, verifier };
+  };
+
+  const sendRegistrationOtp = async (phone: string) => {
+    const { authInstance, verifier } = getRecaptchaVerifier();
+    return signInWithPhoneNumber(authInstance, formatPhoneForFirebase(phone), verifier);
+  };
   const handleRegister = async (values: RegisterFormValues) => {
     setRegisterValues(values);
     setIsSendingOtp(true);
     const toastId = toast.loading(locale === "vi" ? "Đang gửi mã OTP..." : "Sending OTP...");
 
     try {
-      const authInstance = getFirebaseAuth();
-      let verifier = recaptchaVerifierRef.current;
-
-      if (!verifier) {
-        const container = document.getElementById("recaptcha-container");
-        if (container) {
-          container.innerHTML = "";
-        }
-        verifier = new RecaptchaVerifier(authInstance, "recaptcha-container", {
-          size: "invisible",
-        });
-        recaptchaVerifierRef.current = verifier;
-      }
-
-      let formattedPhone = values.phone.trim();
-      if (formattedPhone.startsWith("0")) {
-        formattedPhone = "+84" + formattedPhone.substring(1);
-      }
-
-      const confirmation = await signInWithPhoneNumber(authInstance, formattedPhone, verifier);
+      const confirmation = await sendRegistrationOtp(values.phone);
       setConfirmationResult(confirmation);
+      setOtpCode("");
+      setResendCountdown(60);
       toast.success(locale === "vi" ? "Đã gửi mã OTP đến điện thoại!" : "OTP sent to your phone!", { id: toastId });
       setShowOtpModal(true);
     } catch (err: any) {
@@ -203,6 +222,24 @@ function RegisterPage() {
     }
   };
 
+  const handleResendOtp = async () => {
+    if (!registerValues || resendCountdown > 0 || isSendingOtp || isVerifyingOtp) return;
+
+    setIsSendingOtp(true);
+    const toastId = toast.loading(locale === "vi" ? "Đang gửi lại mã OTP..." : "Resending OTP...");
+
+    try {
+      const confirmation = await sendRegistrationOtp(registerValues.phone);
+      setConfirmationResult(confirmation);
+      setOtpCode("");
+      setResendCountdown(60);
+      toast.success(locale === "vi" ? "Đã gửi lại mã OTP!" : "OTP resent!", { id: toastId });
+    } catch (err: any) {
+      toast.error(err?.message || (locale === "vi" ? "Không thể gửi lại OTP. Thử lại sau." : "Failed to resend OTP. Try again."), { id: toastId });
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!confirmationResult || otpCode.length !== 6 || !registerValues) return;
@@ -571,11 +608,11 @@ function RegisterPage() {
                 {/* Submit button */}
                 <button
                   type="submit"
-                  disabled={registerMutation.isPending}
+                  disabled={registerMutation.isPending || isSendingOtp}
                   className="w-full min-h-[52px] rounded-xl text-base font-bold text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-2"
                   style={{ background: "linear-gradient(135deg, #00387b 0%, #00264d 100%)" }}
                 >
-                  {registerMutation.isPending && <Loader2 size={18} className="animate-spin" />}
+                  {(registerMutation.isPending || isSendingOtp) && <Loader2 size={18} className="animate-spin" />}
                   {locale === "vi" ? "Đăng ký ngay →" : "Register Now →"}
                 </button>
               </form>
@@ -664,6 +701,25 @@ function RegisterPage() {
                     <InputOTPSlot index={5} className="w-10 h-12 sm:w-12 sm:h-14 text-xl sm:text-2xl font-bold bg-white dark:bg-slate-950" />
                   </InputOTPGroup>
                 </InputOTP>
+              </div>
+
+              <div className="text-center text-sm text-slate-500 dark:text-slate-400">
+                <span>{locale === "vi" ? "Chưa nhận được mã? " : "Didn't receive the code? "}</span>
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={resendCountdown > 0 || isSendingOtp || isVerifyingOtp}
+                  className="inline-flex items-center gap-1 font-bold text-gov-blue hover:underline disabled:opacity-50 disabled:no-underline transition-all"
+                >
+                  {isSendingOtp && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  {resendCountdown > 0
+                    ? locale === "vi"
+                      ? `Gửi lại sau ${resendCountdown}s`
+                      : `Resend in ${resendCountdown}s`
+                    : locale === "vi"
+                      ? "Gửi lại mã OTP"
+                      : "Resend OTP"}
+                </button>
               </div>
 
               <div className="flex gap-3 justify-end pt-2 border-t border-slate-100 dark:border-slate-800">

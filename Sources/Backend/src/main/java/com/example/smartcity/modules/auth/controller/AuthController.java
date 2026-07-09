@@ -97,6 +97,8 @@ public class AuthController {
 
         String authHeader = httpRequest.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            // [SECURITY] Rate limit: 5 lần / 1 giờ theo IP và số điện thoại cho Firebase OTP
+            rateLimiter.checkFirebaseOtpLimit(getClientIp(httpRequest), registerRequest.getPhoneNumber());
             String firebaseToken = authHeader.substring(7);
             AuthResponse response = authService.registerWithFirebaseToken(registerRequest, firebaseToken);
             return ResponseEntity.ok(ApiResponse.success("Đăng ký và đăng nhập thành công", response));

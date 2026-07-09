@@ -118,8 +118,8 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
     if (!response.ok) {
       const error = ApiError.fromResponse(response, body);
 
-      // Auto-logout on 401, but bypass if using the dummy demo token
-      if (error.isUnauthorized && onUnauthorized && getToken() !== "demo-token") {
+      // Auto-logout only for authenticated API calls. Public auth endpoints keep form state.
+      if (!skipAuth && error.isUnauthorized && onUnauthorized && getToken() !== "demo-token") {
         onUnauthorized();
       }
 
@@ -134,7 +134,7 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
         // Backend trả về chuẩn { status, message, data }
         if (body.status >= 400) {
           const error = new ApiError(body.status, body.message, body.data);
-          if (error.isUnauthorized && onUnauthorized && getToken() !== "demo-token")
+          if (!skipAuth && error.isUnauthorized && onUnauthorized && getToken() !== "demo-token")
             onUnauthorized();
           throw error;
         }

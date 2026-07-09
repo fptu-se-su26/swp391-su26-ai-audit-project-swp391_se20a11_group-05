@@ -370,13 +370,19 @@ export function useLoginMutation() {
 
 export function useRegisterMutation() {
   return useMutation({
-    mutationFn: (data: {
-      username: string;
-      password: string;
-      fullName: string;
-      phoneNumber?: string;
-      email: string;
-    }) => authApi.register(data),
+    mutationFn: ({
+      data,
+      firebaseToken,
+    }: {
+      data: {
+        username: string;
+        password: string;
+        fullName: string;
+        phoneNumber?: string;
+        email: string;
+      };
+      firebaseToken?: string;
+    }) => authApi.register(data, firebaseToken),
   });
 }
 
@@ -415,8 +421,14 @@ export function useUpdateProfileMutation() {
 }
 
 export function useChangePasswordMutation() {
-  return useMutation<void, Error, { currentPassword: string; newPassword: string; confirmPassword: string }>({
+  return useMutation<void, Error, { currentPassword: string; newPassword: string; confirmPassword: string; otpCode: string }>({
     mutationFn: (data) => userApi.changePassword(data),
+  });
+}
+
+export function useSendChangePasswordOtp() {
+  return useMutation<{ status: number; message: string; data: string }, Error, void>({
+    mutationFn: () => userApi.sendChangePasswordOtp(),
   });
 }
 

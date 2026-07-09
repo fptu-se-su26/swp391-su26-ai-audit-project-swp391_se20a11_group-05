@@ -57,6 +57,8 @@ public class AuthController {
             @Valid @RequestBody LoginRequest loginRequest,
             HttpServletRequest httpRequest) {
         // [SECURITY] Rate limit: 5 lần / 15 phút theo IP
+        rateLimiter.checkLoginLimit(getClientIp(httpRequest));
+
         AuthResponse result = authService.authenticateUser(loginRequest);
         if (result.isMfaRequired()) {
             return ResponseEntity.ok(ApiResponse.success("Yêu cầu xác thực MFA", result));

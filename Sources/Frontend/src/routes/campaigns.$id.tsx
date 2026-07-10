@@ -238,7 +238,7 @@ export function CampaignDetailPageComponent({
       return;
     }
     try {
-      await endCampaign.mutateAsync(campaignId);
+      await endCampaign.mutateAsync({ id: campaignId });
       toast.success("Đã kết thúc chiến dịch thành công.");
     } catch (err) {
       toast.error("Lỗi khi kết thúc chiến dịch: " + (err instanceof Error ? err.message : "Lỗi hệ thống"));
@@ -999,7 +999,7 @@ function GroupChatNavigationCard({
   const chat = useCampaignChat(campaign.id);
   const signalAttendance = useSignalAttendance(campaign.id);
   const memberCount = Math.max(1, campaign.participants || 0);
-  const latest = chat.data?.at(-1);
+  const latest = chat.chatMessages?.at(-1);
   const latestPreview = latest
     ? `${latest.senderName}: ${latest.message}`
     : `${campaign.createdBy || "Người chủ trì"}: Chiến dịch sẽ bắt đầu lúc 6h sáng 19/6.`;
@@ -1250,7 +1250,7 @@ function StatusBadge({
   status: Campaign["status"];
   theme?: Record<string, string>;
 }) {
-  const currentMeta = {
+  const currentMeta = ({
     pending_review: {
       label: "Chờ duyệt",
       className: "border-slate-200 bg-slate-100 text-slate-600",
@@ -1264,8 +1264,9 @@ function StatusBadge({
     active: { label: "Đang hoạt động", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
     ended: { label: "Đã kết thúc", className: "border-red-200 bg-red-50 text-red-700" },
     CANCELLED: { label: "Đã hủy", className: "border-red-200 bg-red-50 text-red-700" },
+    cancelled: { label: "Đã hủy", className: "border-red-200 bg-red-50 text-red-700" },
     IN_PROGRESS: { label: "Đang diễn ra", className: "border-blue-200 bg-blue-50 text-blue-700" },
-  }[status] ?? { label: status || "Không rõ", className: "border-slate-200 bg-slate-50 text-slate-600" };
+  } as Record<string, { label: string; className: string }>)[status] ?? { label: status || "Không rõ", className: "border-slate-200 bg-slate-50 text-slate-600" };
 
   return (
     <span

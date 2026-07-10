@@ -98,7 +98,7 @@ function CampaignGroupChatPage() {
   const [draft, setDraft] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { data: chatMessages = [], sendMessage, isLoading: chatLoading, error: chatError, isError: isChatError } = useCampaignChat(id);
+  const { chatMessages = [], sendMessage, isLoading: chatLoading, error: chatError, isError: isChatError } = useCampaignChat(id);
 
   useEffect(() => {
     if (chatMessages && chatMessages.length > 0) {
@@ -197,10 +197,20 @@ function CampaignGroupChatPage() {
     [campaignName, id, memberCount, progressPercent, target, hostName, campaign?.ward, members],
   );
 
+  const isCampaignEndedOrCancelled =
+    campaign?.status === "ended" ||
+    campaign?.status === "completed" ||
+    campaign?.status === "cancelled";
+
+  const isInputDisabled =
+    ((campaign?.announcementMode ?? false) && !campaign?.canManage) ||
+    (isCampaignEndedOrCancelled && !campaign?.canManage);
+
   const handleSendMessage = () => {
+    if (isInputDisabled) return;
     const text = draft.trim();
     if (!text) return;
-    sendMessage.mutate(text);
+    sendMessage.mutate({ content: text });
     setDraft("");
   };
 
@@ -348,28 +358,51 @@ function CampaignGroupChatPage() {
           </div>
 
           <footer className="shrink-0 border-t border-slate-200 bg-white px-4 py-3 md:px-6">
-            <div className="mx-auto flex max-w-3xl items-center gap-2">
-              <IconButton label="Đính kèm" icon={<Paperclip size={19} />} />
-              <IconButton label="Emoji" icon={<Smile size={19} />} />
-              <input
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") handleSendMessage();
-                }}
-                placeholder="Nhắn tin cho nhóm..."
-                className="h-11 min-w-0 flex-1 rounded-full bg-[#F3F4F6] px-4 text-sm font-semibold text-slate-800 outline-none ring-1 ring-transparent transition placeholder:text-slate-400 focus:bg-white focus:ring-[#3B82F6]/30"
-              />
-              <button
-                type="button"
-                onClick={handleSendMessage}
-                disabled={!draft.trim()}
-                className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-[#3B82F6] transition hover:bg-blue-50 disabled:text-slate-300 disabled:hover:bg-transparent"
-                aria-label="Gửi tin nhắn"
-              >
-                <SendHorizontal size={21} />
-              </button>
-            </div>
+            {isCampaignEndedOrCancelled && !campaign.canManage ? (
+              <div className="mx-auto max-w-3xl flex flex-col gap-1.5 py-2.5 px-4 rounded-xl bg-slate-100 border border-slate-200 text-xs text-slate-600 font-medium">
+                <div className="flex items-center gap-2">
+                  <Lock className="h-4 w-4 text-slate-500 shrink-0" />
+                  <span className="font-bold">
+                    Chiến dịch đã {campaign.status === "cancelled" ? "bị hủy" : "kết thúc"}. Nhóm chat hiện ở chế độ chỉ đọc.
+                  </span>
+                </div>
+                {campaign.status === "cancelled" && campaign.cancellationReason && (
+                  <div className="text-[10px] font-bold text-rose-500 italic ml-6">
+                    Lý do hủy: {campaign.cancellationReason}
+                  </div>
+                )}
+              </div>
+            ) : isInputDisabled ? (
+              <div className="mx-auto max-w-3xl flex items-center gap-2.5 py-2.5 px-4 rounded-xl bg-blue-50 border border-blue-100 text-xs text-blue-750">
+                <Lock className="h-4 w-4 text-blue-600 shrink-0" />
+                <span className="font-bold">
+                  Nhóm chat đang ở chế độ chỉ dành cho người quản lý nhắn tin.
+                </span>
+              </div>
+            ) : (
+              <div className="mx-auto flex max-w-3xl items-center gap-2">
+                <IconButton label="Đính kèm" icon={<Paperclip size={19} />} />
+                <IconButton label="Emoji" icon={<Smile size={19} />} />
+                <input
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") handleSendMessage();
+                  }}
+                  placeholder="Nhắn tin cho nhóm..."
+                  className="h-11 min-w-0 flex-1 rounded-full bg-[#F3F4F6] px-4 text-sm font-semibold text-slate-800 outline-none ring-1 ring-transparent transition placeholder:text-slate-400 focus:bg-white focus:ring-[#3B82F6]/30"
+                />
+                <button
+                  type="button"
+                  onClick={handleSendMessage}
+                  disabled={!draft.trim()}
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-[#3B82F6] transition hover:bg-blue-50 disabled:text-slate-300 disabled:hover:bg-transparent"
+                  aria-label="Gửi tin nhắn"
+                >
+                  <SendHorizontal size={21} />
+                </button>
+              </div>
+            )}
           </footer>
         </section>
       </div>

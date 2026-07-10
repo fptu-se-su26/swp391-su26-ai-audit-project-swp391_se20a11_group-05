@@ -361,8 +361,30 @@ function CampaignCard({
 }) {
   const progressPercent = campaign.target > 0 ? Math.min(100, Math.round((campaign.participants / campaign.target) * 100)) : 0;
   const CategoryIcon = categoryIcon[campaign.category] ?? Leaf;
-  const hasJoined = campaign.currentUserJoinStatus &&
-    ["PENDING", "APPROVED", "WAITLIST", "PENDING_CONFIRM"].includes(campaign.currentUserJoinStatus);
+
+  const remainingTimeStr = useMemo(() => {
+    if (campaign.status === "completed" || campaign.status === "ended") {
+      return "Đã kết thúc";
+    }
+    if (campaign.status === "cancelled") {
+      return "Đã bị hủy";
+    }
+    if (campaign.status === "inProgress" || campaign.status === "active") {
+      return "Đang diễn ra";
+    }
+    if (!campaign.startTime) return "Chưa diễn ra";
+    const start = new Date(campaign.startTime);
+    const now = new Date();
+    if (now >= start) {
+      return "Đang diễn ra";
+    }
+    const diffMs = start.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays <= 0) {
+      return "Đang diễn ra";
+    }
+    return `Còn ${diffDays} ngày`;
+  }, [campaign.startTime, campaign.status]);
 
   return (
     <article
@@ -401,7 +423,7 @@ function CampaignCard({
           </span>
           <span className="inline-flex items-center gap-1.5">
             <Clock3 size={14} />
-            {campaign.daysLeft > 0 ? `Còn ${campaign.daysLeft} ngày` : "Đã kết thúc"}
+            {remainingTimeStr}
           </span>
         </div>
 

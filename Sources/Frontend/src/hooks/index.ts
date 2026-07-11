@@ -456,27 +456,32 @@ export function useDeleteOwnProfileMutation() {
   });
 }
 
+import { getToken } from "@/lib/api";
+
 export function useNotifications(enabled = true) {
+  const token = getToken();
   return useQuery<NotificationResponse[]>({
     queryKey: queryKeys.notifications.all,
     queryFn: () => notificationApi.getAll(),
     staleTime: 30_000,
-    enabled,
+    enabled: enabled && !!token,
     refetchInterval: 10_000,
   });
 }
 
 export function useNotificationUnreadCount(enabled = true) {
+  const token = getToken();
   return useQuery<number>({
     queryKey: queryKeys.notifications.unreadCount,
     queryFn: () => notificationApi.getUnreadCount(),
     staleTime: 30_000,
-    enabled,
+    enabled: enabled && !!token,
     refetchInterval: 10_000,
   });
 }
 
 export function useInfiniteNotifications(size = 5) {
+  const token = getToken();
   return useInfiniteQuery<PageResponse<NotificationResponse>>({
     queryKey: queryKeys.notifications.page(size),
     queryFn: ({ pageParam }) => notificationApi.getPage(Number(pageParam ?? 0), size),
@@ -487,6 +492,7 @@ export function useInfiniteNotifications(size = 5) {
     },
     staleTime: 30_000,
     refetchInterval: 10_000,
+    enabled: !!token,
   });
 }
 

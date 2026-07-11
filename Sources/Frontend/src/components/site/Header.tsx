@@ -593,26 +593,8 @@ export function Header() {
                             Number(localStorage.getItem(`campaign-chat-seen-${room.campaignId}`)) <
                               room.lastMessage.id);
 
-                        return (
-                          <Link
-                            key={room.campaignId}
-                            to="/campaigns/$id/group-chat"
-                            params={{ id: String(room.campaignId) }}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              setChatOpen(false);
-                              setActiveFloatingChatId(String(room.campaignId));
-                              if (room.lastMessage) {
-                                localStorage.setItem(
-                                  `campaign-chat-seen-${room.campaignId}`,
-                                  String(room.lastMessage.id),
-                                );
-                              }
-                            }}
-                            className={`w-full text-left p-3 flex gap-3 transition-colors hover:bg-slate-50 border-l-4 ${
-                              isUnread ? "bg-[#EFF6FF] border-l-[#0B4FC4]" : "border-l-transparent"
-                            }`}
-                          >
+                        const innerContent = (
+                          <>
                             {/* Avatar */}
                             <div className="relative shrink-0">
                               {room.coverImageUrl ? (
@@ -664,6 +646,52 @@ export function Header() {
                                 )}
                               </p>
                             </div>
+                          </>
+                        );
+
+                        return isWardStaff ? (
+                          <Link
+                            key={room.campaignId}
+                            to="/ward"
+                            search={{ tab: "chat", detailId: String(room.campaignId) }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setChatOpen(false);
+                              setActiveFloatingChatId(String(room.campaignId));
+                              if (room.lastMessage) {
+                                localStorage.setItem(
+                                  `campaign-chat-seen-${room.campaignId}`,
+                                  String(room.lastMessage.id),
+                                );
+                              }
+                            }}
+                            className={`w-full text-left p-3 flex gap-3 transition-colors hover:bg-slate-50 border-l-4 ${
+                              isUnread ? "bg-[#EFF6FF] border-l-[#0B4FC4]" : "border-l-transparent"
+                            }`}
+                          >
+                            {innerContent}
+                          </Link>
+                        ) : (
+                          <Link
+                            key={room.campaignId}
+                            to="/campaigns/$id/group-chat"
+                            params={{ id: String(room.campaignId) }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setChatOpen(false);
+                              setActiveFloatingChatId(String(room.campaignId));
+                              if (room.lastMessage) {
+                                localStorage.setItem(
+                                  `campaign-chat-seen-${room.campaignId}`,
+                                  String(room.lastMessage.id),
+                                );
+                              }
+                            }}
+                            className={`w-full text-left p-3 flex gap-3 transition-colors hover:bg-slate-50 border-l-4 ${
+                              isUnread ? "bg-[#EFF6FF] border-l-[#0B4FC4]" : "border-l-transparent"
+                            }`}
+                          >
+                            {innerContent}
                           </Link>
                         );
                       })}

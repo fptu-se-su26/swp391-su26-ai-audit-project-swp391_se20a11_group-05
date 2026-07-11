@@ -1605,8 +1605,8 @@ function GroupChatNavigationCard({
       </p>
       <p className="mt-1 truncate text-sm font-semibold text-slate-500">{latestPreview}</p>
       <Link
-        to="/campaigns/$id/group-chat"
-        params={{ id: campaign.id }}
+        to="/ward"
+        search={{ tab: "chat", detailId: campaign.id }}
         className={`mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl ${theme.primaryBg} px-4 text-sm font-black text-white shadow-sm transition ${theme.primaryHover} active:scale-[0.97]`}
       >
         Vào nhóm chat

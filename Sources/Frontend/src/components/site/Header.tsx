@@ -306,6 +306,7 @@ export function Header() {
     { to: "/tin-tuc", label: locale === "vi" ? "Tin tức" : "News" },
     { to: "/feedback-search", label: locale === "vi" ? "Tra cứu" : "Search" },
     { to: "/campaigns", label: locale === "vi" ? "Chiến dịch" : "Campaigns" },
+    { to: "/leaderboard", label: locale === "vi" ? "Xếp hạng" : "Leaderboard" },
     { to: "/", hash: "huong-dan", label: locale === "vi" ? "Hướng dẫn" : "Guides" },
     ...(!isWardStaff
       ? [{ to: "/", hash: "lien-he", label: locale === "vi" ? "Liên hệ" : "Contact" }]
@@ -337,6 +338,9 @@ export function Header() {
     }
     if (item.label === "Chiến dịch" || item.label === "Campaigns") {
       return path.startsWith("/campaigns");
+    }
+    if (item.label === "Xếp hạng" || item.label === "Leaderboard") {
+      return path.startsWith("/leaderboard");
     }
     if (item.label === "Hướng dẫn" || item.label === "Guides") {
       return path === "/" && hash === "#huong-dan";

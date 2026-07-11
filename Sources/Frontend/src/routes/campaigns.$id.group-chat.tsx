@@ -26,6 +26,7 @@ import {
   useCampaignParticipants,
   useCampaignThumbnail,
   useDeleteChatMessageMutation,
+  useSignalAttendance,
 } from "@/hooks/useCampaigns";
 import { useAuth } from "@/lib/auth";
 import { Role } from "@/lib/roles";
@@ -174,7 +175,29 @@ function CampaignGroupChatPage() {
   const unpinMutation = useUnpinChatMessage(id);
   const deleteMutation = useDeleteChatMessageMutation(id);
 
-  const participantsQuery = useCampaignParticipants(id, true);
+  const signalAttendance = useSignalAttendance(id);
+  const currentStatus = campaign?.currentUserJoinStatus as string | undefined;
+
+  const startTime = campaign?.startTime ? new Date(campaign.startTime) : null;
+  const now = new Date();
+  const withinConfirmWindow =
+    startTime !== null &&
+    now < startTime &&
+    now >= new Date(startTime.getTime() - 24 * 60 * 60 * 1000);
+
+  const handleSignal = async (signal: "CONFIRMED" | "MAYBE") => {
+    try {
+      await signalAttendance.mutateAsync(signal);
+      toast.success(
+        signal === "CONFIRMED" ? "Đã xác nhận tham gia chiến dịch!" : "Đã chọn 'Có thể tham gia'.",
+      );
+    } catch (err: any) {
+      toast.error(err?.message || "Không thể gửi xác nhận.");
+    }
+  };
+
+  const canViewParticipants = Boolean(campaign?.canManage || campaign?.privateDetailsVisible);
+  const participantsQuery = useCampaignParticipants(id, canViewParticipants);
   const realParticipants = useMemo(() => participantsQuery.data ?? [], [participantsQuery.data]);
 
   const hostName = campaign?.createdBy || "Người chủ trì";
@@ -721,7 +744,43 @@ function CampaignGroupChatPage() {
             </div>
           )}
 
-          {/* Notice for withinConfirmWindow removed */}
+          {withinConfirmWindow && (currentStatus === "APPROVED" || currentStatus === "PENDING") && (
+            <div className="flex shrink-0 flex-col gap-2 border-b border-indigo-100 bg-indigo-50 px-4 py-3 md:px-6 animate-[chatSlideUp_0.2s_ease] sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-xs sm:text-sm text-indigo-800 font-bold">
+                  Chiến dịch sắp khởi chạy. Vui lòng cập nhật khả năng tham gia của bạn.
+                </span>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <button
+                  onClick={() => handleSignal("CONFIRMED")}
+                  disabled={signalAttendance.isPending}
+                  className="text-white bg-[#7C3AED] hover:bg-[#6D28D9] px-3 py-1.5 rounded-lg text-xs font-black shadow-sm cursor-pointer transition active:scale-[0.97] disabled:opacity-50"
+                >
+                  Xác nhận tham gia
+                </button>
+                <button
+                  onClick={() => handleSignal("MAYBE")}
+                  disabled={signalAttendance.isPending}
+                  className="text-slate-700 border border-slate-200 bg-white hover:bg-slate-50 px-3 py-1.5 rounded-lg text-xs font-black shadow-sm cursor-pointer transition active:scale-[0.97] disabled:opacity-50"
+                >
+                  Có thể tham gia
+                </button>
+              </div>
+            </div>
+          )}
+
+          {withinConfirmWindow && currentStatus === "CONFIRMED" && (
+            <div className="flex shrink-0 items-center justify-between border-b border-emerald-100 bg-emerald-50 px-4 py-3 text-xs font-bold text-emerald-800 shadow-sm md:px-6">
+              Bạn đã xác nhận tham gia. Vui lòng chờ cán bộ phường phê duyệt chính thức.
+            </div>
+          )}
+
+          {withinConfirmWindow && currentStatus === "MAYBE" && (
+            <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-slate-100 px-4 py-3 text-xs font-bold text-slate-700 shadow-sm md:px-6">
+              Bạn đã chọn khả năng Có thể tham gia chiến dịch (Không cần duyệt).
+            </div>
+          )}
 
           <div
             ref={scrollContainerRef}
@@ -999,7 +1058,6 @@ function GroupSidebar({
   const wardName = campaign?.ward || "Chưa cập nhật địa bàn";
   const memberRatio = target > 0 ? `${memberCount}/${target}` : String(memberCount);
 
-
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-white">
       <div className="space-y-4 border-b border-slate-100 p-4">
@@ -1100,8 +1158,6 @@ function GroupSidebar({
               <span className="text-slate-900">{target || "Chưa giới hạn"}</span>
             </div>
           </div>
-
-
         </section>
       </div>
     </div>

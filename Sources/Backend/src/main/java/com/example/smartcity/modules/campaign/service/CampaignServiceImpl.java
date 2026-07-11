@@ -1386,7 +1386,7 @@ public class CampaignServiceImpl implements CampaignService {
     @org.springframework.scheduling.annotation.Scheduled(fixedDelay = 300000)
     @Transactional
     public void autoTransitionPendingToMaybe() {
-        LocalDateTime threshold = LocalDateTime.now().plusHours(24);
+        LocalDateTime threshold = LocalDateTime.now().plusHours(2);
         List<CampaignParticipant> pendingParticipants = participantRepository
                 .findByJoinStatusAndCampaign_StartTimeBefore(JOIN_PENDING, threshold);
         

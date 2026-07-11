@@ -30,6 +30,7 @@ import { useAuth } from "@/lib/auth";
 import { Role } from "@/lib/roles";
 import { useFeedbackDetail, useChangeFeedbackStatus } from "@/hooks";
 import { useCreateCampaign } from "@/hooks/useCampaigns";
+import type { CampaignCategory } from "@/lib/campaignStore";
 import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { campaignApi, type FeedbackStatus, type FeedbackLogResponse } from "@/lib/api";
 import { uploadResolutionEvidence } from "@/lib/citizenFeedbackMediaApi";
@@ -42,8 +43,8 @@ import {
 } from "@/components/ui/dialog";
 
 // Lazy load CivicMap to prevent SSR issues with Leaflet
-const CivicMap = clientOnly(() =>
-  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
+const CivicMap = clientOnly(
+  () => import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
 ) as any;
 
 function getInitials(name?: string | null) {
@@ -85,7 +86,13 @@ const VALID_TRANSITIONS: Record<FeedbackStatus, FeedbackStatus[]> = {
 
 const TARGET_STATUS_DETAILS: Record<
   FeedbackStatus,
-  { label: string; btnLabel: string; colorClass: string; activeColorClass: string; icon: LucideIcon }
+  {
+    label: string;
+    btnLabel: string;
+    colorClass: string;
+    activeColorClass: string;
+    icon: LucideIcon;
+  }
 > = {
   PENDING: {
     label: "Chờ xử lý",
@@ -212,13 +219,16 @@ export function FeedbackDetailPageComponent({
   // Campaign creation form state
   const [campaignTitle, setCampaignTitle] = useState("");
   const [campaignDesc, setCampaignDesc] = useState("");
-  const [campaignCategory, setCampaignCategory] = useState("traffic");
+  const [campaignCategory, setCampaignCategory] = useState("environment");
   const [customCampaignCategory, setCustomCampaignCategory] = useState("");
   const [campaignLocation, setCampaignLocation] = useState("");
+  const [campaignPrivateLocation, setCampaignPrivateLocation] = useState("");
   const [campaignOrganizer, setCampaignOrganizer] = useState("");
+  const [campaignMinParticipants, setCampaignMinParticipants] = useState("5");
   const [campaignParticipants, setCampaignParticipants] = useState("20");
   const [campaignTools, setCampaignTools] = useState("");
   const [campaignExpectedResult, setCampaignExpectedResult] = useState("");
+  const [campaignCoverUrl, setCampaignCoverUrl] = useState("");
   const [campaignStartDate, setCampaignStartDate] = useState("");
   const [campaignStartHour, setCampaignStartHour] = useState("08");
   const [campaignStartMinute, setCampaignStartMinute] = useState("00");
@@ -253,7 +263,9 @@ export function FeedbackDetailPageComponent({
 
   const linkedCampaign = useMemo(() => {
     if (!campaignsData?.content || !user) return null;
-    return campaignsData.content.find((c) => c.linkedFeedbackId === Number(feedbackId) && c.createdByUserId === user.id);
+    return campaignsData.content.find(
+      (c) => c.linkedFeedbackId === Number(feedbackId) && c.createdByUserId === user.id,
+    );
   }, [campaignsData, feedbackId, user]);
 
   // Set default values when report is loaded
@@ -263,6 +275,7 @@ export function FeedbackDetailPageComponent({
       setCampaignTitle(`Chiến dịch dọn dẹp: ${report.title}`);
       setCampaignDesc("");
       setCampaignLocation(report.addressDetails || report.address || "");
+      setCampaignPrivateLocation(report.addressDetails || report.address || "");
       setCampaignOrganizer(
         user?.name ? `${user.name} - UBND ${user.wardName || "phường"}` : "UBND Phường",
       );
@@ -271,10 +284,18 @@ export function FeedbackDetailPageComponent({
       );
 
       // Set category default based on report category code
-      const catCode = report.categoryCode || report.category || "";
-      if (catCode === "TRAFFIC" || catCode === "GIAO_THONG") setCampaignCategory("traffic");
-      else if (catCode === "PUBLIC_SECURITY" || catCode === "AN_NINH") setCampaignCategory("public_safety");
-      else if (catCode === "FIRE_SAFETY" || catCode === "CHAY_NO") setCampaignCategory("fire_safety");
+      const catCode = (report.categoryCode || report.category || "").toUpperCase();
+      if (catCode === "TRAFFIC" || catCode === "GIAO_THONG") setCampaignCategory("public_safety");
+      else if (catCode === "PUBLIC_SECURITY" || catCode === "AN_NINH")
+        setCampaignCategory("public_safety");
+      else if (catCode === "FIRE_SAFETY" || catCode === "CHAY_NO")
+        setCampaignCategory("fire_safety");
+      else if (catCode === "ENVIRONMENT" || catCode === "MOI_TRUONG")
+        setCampaignCategory("environment");
+      else if (catCode === "URBAN_INFRASTRUCTURE" || catCode === "HA_TANG")
+        setCampaignCategory("infrastructure");
+      else if (catCode === "CONSTRUCTION" || catCode === "XAY_DUNG")
+        setCampaignCategory("construction");
       else setCampaignCategory("other");
     }
   }, [report, user]);
@@ -283,29 +304,29 @@ export function FeedbackDetailPageComponent({
   const hasWriteAccess = useMemo(() => {
     if (!user || !report) return false;
     if (report.wardId !== user.wardId) return false;
-    
+
     const catCode = report.categoryCode || report.category || report.categoryName;
-    
+
     if (user.role === Role.WARD_STAFF) {
       return isWardStaffCategory(catCode);
     }
-    
+
     if (user.role === Role.POLICE) {
       return isPoliceCategory(catCode);
     }
-    
+
     return false;
   }, [user, report]);
 
   const canCreateCampaign = useMemo(() => {
     if (!user || !report) return false;
-    
-    // Chỉ cho phép tạo chiến dịch khi phản ánh đang ở trạng thái "Đã tiếp nhận" (ASSIGNED)
-    if (report.status !== 'ASSIGNED') return false;
-    
+
+    // Cho phép tạo chiến dịch khi phản ánh ở trạng thái "Đã tiếp nhận" (ASSIGNED) hoặc "Đang xử lý" (IN_PROGRESS)
+    if (report.status !== "ASSIGNED" && report.status !== "IN_PROGRESS") return false;
+
     // Nếu account test không có wardId, ta tạm bypass check này để tiện demo
     if (user.wardId && report.wardId !== user.wardId) return false;
-    
+
     const catCode = (report.categoryCode || report.category || "").toUpperCase();
     if (user.role === Role.WARD_STAFF) {
       return ["URBAN_INFRASTRUCTURE", "ENVIRONMENT", "CONSTRUCTION"].includes(catCode);
@@ -405,7 +426,7 @@ export function FeedbackDetailPageComponent({
         const uploadToastId = toast.loading("Đang tải lên các tệp bằng chứng xử lý...");
         try {
           await Promise.all(
-            resolutionFiles.map((file) => uploadResolutionEvidence(report.id, file))
+            resolutionFiles.map((file) => uploadResolutionEvidence(report.id, file)),
           );
           toast.success("Tải lên bằng chứng xử lý thành công.", { id: uploadToastId });
         } catch (uploadErr) {
@@ -485,16 +506,28 @@ export function FeedbackDetailPageComponent({
       return;
     }
 
+    if (campaignMinParticipants && campaignParticipants) {
+      const min = parseInt(campaignMinParticipants, 10);
+      const max = parseInt(campaignParticipants, 10);
+      if (!isNaN(min) && !isNaN(max) && min > max) {
+        toast.error("Số lượng tối thiểu tham gia không được lớn hơn số lượng tối đa.");
+        return;
+      }
+    }
+
     try {
       await createCampaign({
         title: campaignTitle.trim(),
         description: campaignDesc.trim(),
-        category: (campaignCategory === "other" ? customCampaignCategory.trim() : campaignCategory) as any,
+        category: (campaignCategory === "other"
+          ? customCampaignCategory.trim()
+          : campaignCategory) as CampaignCategory,
         locationText: campaignLocation.trim(),
-        privateLocationText: campaignLocation.trim(),
+        privateLocationText: campaignPrivateLocation.trim() || campaignLocation.trim(),
         requiredTools: campaignTools.trim(),
         organizerContact: campaignOrganizer.trim(),
         maxParticipants: campaignParticipants.trim() ? campaignParticipants : undefined,
+        minParticipants: campaignMinParticipants.trim() ? campaignMinParticipants : undefined,
         startTime: `${campaignStart}:00`,
         endTime: `${campaignEnd}:00`,
         linkedFeedbackId: report.id,
@@ -504,6 +537,7 @@ export function FeedbackDetailPageComponent({
         wardName: report.wardName || user?.wardName || undefined,
         latitude: report.latitude ?? undefined,
         longitude: report.longitude ?? undefined,
+        coverImageUrl: campaignCoverUrl.trim() || undefined,
       });
 
       toast.success("Tạo chiến dịch liên kết thành công!");
@@ -584,27 +618,6 @@ export function FeedbackDetailPageComponent({
         <div className="flex items-center gap-2.5">
           <PriorityBadge value={report.priority} />
           <StatusBadge status={report.status} />
-          {linkedCampaign ? (
-            <Link
-              to="/campaigns/$id"
-              params={{ id: String(linkedCampaign.id) }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shadow-sm"
-            >
-              <Eye size={14} />
-              Xem chiến dịch
-            </Link>
-          ) : (
-            canCreateCampaign && (
-              <button
-                type="button"
-                onClick={() => setIsCampaignModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shadow-sm"
-              >
-                <Plus size={14} />
-                Tạo chiến dịch
-              </button>
-            )
-          )}
         </div>
       </div>
 
@@ -617,7 +630,8 @@ export function FeedbackDetailPageComponent({
               <p className="text-sm font-bold">Chế độ xem chi tiết (Chỉ đọc)</p>
               <p className="text-xs text-amber-800/90 mt-0.5">
                 Tài khoản của bạn chỉ được phép xem phản ánh này. Có thể bạn không thuộc{" "}
-                {report.wardName || "phường quản lý"} hoặc lĩnh vực này không thuộc thẩm quyền xử lý của bạn.
+                {report.wardName || "phường quản lý"} hoặc lĩnh vực này không thuộc thẩm quyền xử lý
+                của bạn.
               </p>
             </div>
           </div>
@@ -883,7 +897,8 @@ export function FeedbackDetailPageComponent({
                       Giải quyết phản ánh bằng Chiến dịch
                     </h3>
                     <p className="text-xs text-emerald-700 font-semibold leading-relaxed max-w-md">
-                      Huy động lực lượng dân quân, công an phường hoặc người dân cùng tham gia xử lý sự cố này một cách triệt để.
+                      Huy động lực lượng dân quân, công an phường hoặc người dân cùng tham gia xử lý
+                      sự cố này một cách triệt để.
                     </p>
                   </div>
                   <button
@@ -907,14 +922,16 @@ export function FeedbackDetailPageComponent({
                       Chiến dịch đã được phát động
                     </h3>
                     <p className="text-xs text-emerald-700 font-medium">
-                      Phản ánh này đang được xử lý thông qua chiến dịch: <strong className="text-emerald-900">{linkedCampaign.title}</strong>
+                      Phản ánh này đang được xử lý thông qua chiến dịch:{" "}
+                      <strong className="text-emerald-900">{linkedCampaign.title}</strong>
                     </p>
                   </div>
                   <Link
-                    to="/"
-                    className="shrink-0 bg-white border border-emerald-200 hover:bg-emerald-50 text-emerald-700 text-xs font-bold px-4 py-2.5 rounded-xl transition-colors flex items-center gap-2"
+                    to="/campaigns/$id"
+                    params={{ id: String(linkedCampaign.id) }}
+                    className="shrink-0 bg-white border border-emerald-200 hover:bg-emerald-50 text-emerald-700 text-xs font-bold px-4 py-2.5 rounded-xl transition-colors flex items-center gap-2 cursor-pointer"
                   >
-                    <Eye size={16} /> Xem Danh Sách Chiến Dịch
+                    <Eye size={16} /> Xem Chi Tiết Chiến Dịch
                   </Link>
                 </div>
               </div>
@@ -929,7 +946,9 @@ export function FeedbackDetailPageComponent({
               {targetTransitions.length === 0 ? (
                 <div className="text-center py-6 bg-slate-50 border border-slate-200/60 rounded-xl space-y-2">
                   <CheckCircle2 className="mx-auto h-8 w-8 text-slate-400" />
-                  <p className="text-xs font-bold text-slate-500">Trạng thái phản ánh đã kết thúc</p>
+                  <p className="text-xs font-bold text-slate-500">
+                    Trạng thái phản ánh đã kết thúc
+                  </p>
                 </div>
               ) : (
                 <form onSubmit={handleUpdateStatus} className="space-y-4">
@@ -948,11 +967,11 @@ export function FeedbackDetailPageComponent({
                             {opSteps.filter(Boolean).length} / 4
                           </span>
                         </div>
-                        
+
                         <div className="h-1.5 w-full bg-slate-200/80 rounded-full overflow-hidden mb-5">
-                          <div 
-                            className="h-full bg-blue-600 transition-all duration-500 ease-out" 
-                            style={{ width: `${(opSteps.filter(Boolean).length / 4) * 100}%` }} 
+                          <div
+                            className="h-full bg-blue-600 transition-all duration-500 ease-out"
+                            style={{ width: `${(opSteps.filter(Boolean).length / 4) * 100}%` }}
                           />
                         </div>
 
@@ -971,8 +990,8 @@ export function FeedbackDetailPageComponent({
                                 const newSteps = [...opSteps];
                                 newSteps[idx] = !newSteps[idx];
                                 setOpSteps(newSteps);
-                                
-                                const allCheckedNow = newSteps.every(s => s);
+
+                                const allCheckedNow = newSteps.every((s) => s);
                                 if (allCheckedNow) {
                                   setSelectedStatus("RESOLVED");
                                 } else if (!newSteps[idx] && selectedStatus === "RESOLVED") {
@@ -992,11 +1011,25 @@ export function FeedbackDetailPageComponent({
                                     : "border-slate-300 text-transparent bg-slate-50 group-hover:border-blue-400"
                                 }`}
                               >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="12"
+                                  height="12"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
                               </div>
                               <span
                                 className={`text-sm font-bold transition-all duration-300 ${
-                                  opSteps[idx] ? "text-blue-900" : "text-slate-600 group-hover:text-slate-800"
+                                  opSteps[idx]
+                                    ? "text-blue-900"
+                                    : "text-slate-600 group-hover:text-slate-800"
                                 }`}
                               >
                                 {stepLabel}
@@ -1007,7 +1040,8 @@ export function FeedbackDetailPageComponent({
                         {allStepsChecked && (
                           <div className="mt-5 p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl animate-fadeIn text-xs font-bold text-emerald-800 flex items-center gap-2.5 shadow-sm">
                             <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
-                            Đã hoàn tất các bước nghiệp vụ. Form báo cáo kết quả đã được mở bên dưới.
+                            Đã hoàn tất các bước nghiệp vụ. Form báo cáo kết quả đã được mở bên
+                            dưới.
                           </div>
                         )}
                       </div>
@@ -1016,9 +1050,13 @@ export function FeedbackDetailPageComponent({
                       {targetTransitions.map((target) => {
                         const details = TARGET_STATUS_DETAILS[target];
                         if (!details) return null;
-                        
+
                         // Hide RESOLVED button if not all steps are checked in IN_PROGRESS
-                        if (report?.status === "IN_PROGRESS" && target === "RESOLVED" && !allStepsChecked) {
+                        if (
+                          report?.status === "IN_PROGRESS" &&
+                          target === "RESOLVED" &&
+                          !allStepsChecked
+                        ) {
                           return null;
                         }
 
@@ -1088,7 +1126,8 @@ export function FeedbackDetailPageComponent({
                             </label>
                           </div>
                           <p className="text-[10px] text-blue-800/80 font-medium">
-                            * Yêu cầu này sẽ hiển thị trực tiếp trên tài khoản ứng dụng di động của người dân.
+                            * Yêu cầu này sẽ hiển thị trực tiếp trên tài khoản ứng dụng di động của
+                            người dân.
                           </p>
                         </div>
                       )}
@@ -1109,15 +1148,19 @@ export function FeedbackDetailPageComponent({
 
                           <div className="space-y-2">
                             <label className="block text-xs font-bold text-green-900 uppercase">
-                              Hình ảnh / Video bằng chứng xử lý <span className="text-red-500">*</span>
+                              Hình ảnh / Video bằng chứng xử lý{" "}
+                              <span className="text-red-500">*</span>
                             </label>
-                            
+
                             {resolutionFiles.length > 0 && (
                               <div className="flex flex-wrap gap-2 pb-1">
                                 {resolutionFiles.map((file, idx) => {
                                   const isVideo = file.type.startsWith("video/");
                                   return (
-                                    <div key={idx} className="relative h-16 w-20 shrink-0 rounded-lg overflow-hidden border border-green-205 group bg-white shadow-sm">
+                                    <div
+                                      key={idx}
+                                      className="relative h-16 w-20 shrink-0 rounded-lg overflow-hidden border border-green-205 group bg-white shadow-sm"
+                                    >
                                       {isVideo ? (
                                         <div className="w-full h-full bg-slate-900 flex items-center justify-center">
                                           <Play size={16} className="text-white fill-white" />
@@ -1133,7 +1176,9 @@ export function FeedbackDetailPageComponent({
                                         type="button"
                                         disabled={isUploadingEvidence}
                                         onClick={() => {
-                                          setResolutionFiles(prev => prev.filter((_, i) => i !== idx));
+                                          setResolutionFiles((prev) =>
+                                            prev.filter((_, i) => i !== idx),
+                                          );
                                         }}
                                         className="absolute top-0.5 right-0.5 bg-red-500/80 hover:bg-red-600 text-white rounded-full p-0.5 shadow transition-colors cursor-pointer"
                                       >
@@ -1151,7 +1196,9 @@ export function FeedbackDetailPageComponent({
                             <div
                               onClick={() => {
                                 if (!isUploadingEvidence && hasWriteAccess) {
-                                  document.getElementById("resolution-evidence-file-input")?.click();
+                                  document
+                                    .getElementById("resolution-evidence-file-input")
+                                    ?.click();
                                 }
                               }}
                               className={`border-2 border-dashed border-green-300 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-green-100/50 hover:border-green-400 transition-all text-green-700 bg-white/70 shadow-inner ${isUploadingEvidence ? "opacity-50 cursor-not-allowed" : ""}`}
@@ -1173,12 +1220,16 @@ export function FeedbackDetailPageComponent({
                                 onChange={(e) => {
                                   if (e.target.files) {
                                     const selected = Array.from(e.target.files);
-                                    const invalid = selected.filter(f => !f.type.startsWith("image/") && !f.type.startsWith("video/"));
+                                    const invalid = selected.filter(
+                                      (f) =>
+                                        !f.type.startsWith("image/") &&
+                                        !f.type.startsWith("video/"),
+                                    );
                                     if (invalid.length > 0) {
                                       toast.error("Chỉ chấp nhận file hình ảnh hoặc video.");
                                       return;
                                     }
-                                    setResolutionFiles(prev => [...prev, ...selected]);
+                                    setResolutionFiles((prev) => [...prev, ...selected]);
                                   }
                                 }}
                               />
@@ -1220,7 +1271,7 @@ export function FeedbackDetailPageComponent({
                       )}
 
                       {/* Submit action */}
-                       <button
+                      <button
                         type="submit"
                         disabled={
                           !hasWriteAccess ||
@@ -1265,7 +1316,7 @@ export function FeedbackDetailPageComponent({
                     if (log.action === "PROVIDE_INFO") {
                       statusInfo = {
                         label: "Đã bổ sung thông tin",
-                        className: "bg-blue-50 text-blue-700 border-blue-200"
+                        className: "bg-blue-50 text-blue-700 border-blue-200",
                       };
                     }
                     const actorName = log.actorName || log.actionByName || "Hệ thống";
@@ -1294,7 +1345,9 @@ export function FeedbackDetailPageComponent({
                           </div>
 
                           <div className="flex flex-wrap items-center gap-1.5">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusInfo.className}`}>
+                            <span
+                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusInfo.className}`}
+                            >
                               {statusInfo.label}
                             </span>
                             {log.action && (
@@ -1304,79 +1357,100 @@ export function FeedbackDetailPageComponent({
                             )}
                           </div>
 
-                            {log.note && (
-                             <div className="mt-1.5 p-2.5 bg-slate-50 border border-slate-150 rounded-lg text-xs font-medium text-slate-600 whitespace-pre-wrap leading-relaxed shadow-sm">
-                               {log.note}
-                               {((log.newStatus === "RESOLVED") || (log.action === "RESOLVE")) && resolutionAttachments.length > 0 && (
-                                 <div className="mt-3 space-y-2 border-t border-slate-200/60 pt-2.5">
-                                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                     📸 Bằng chứng xử lý từ cán bộ:
-                                   </p>
-                                   <div className="flex flex-wrap gap-2 pt-1">
-                                     {resolutionAttachments.map((att) => {
-                                       const isVideo = att.fileType?.startsWith("video/") || att.fileUrl.endsWith(".mp4");
-                                       return (
-                                         <div key={att.id} className="relative h-16 w-20 shrink-0 rounded-lg overflow-hidden border border-slate-200 bg-slate-950 shadow-sm">
-                                           {isVideo ? (
-                                             <video src={att.fileUrl} className="w-full h-full object-cover" controls />
-                                           ) : (
-                                             <img
-                                               src={att.fileUrl}
-                                               alt=""
-                                               className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
-                                               onClick={() => window.open(att.fileUrl, "_blank")}
-                                             />
-                                           )}
-                                         </div>
-                                       );
-                                     })}
-                                   </div>
-                                 </div>
-                               )}
+                          {log.note && (
+                            <div className="mt-1.5 p-2.5 bg-slate-50 border border-slate-150 rounded-lg text-xs font-medium text-slate-600 whitespace-pre-wrap leading-relaxed shadow-sm">
+                              {log.note}
+                              {(log.newStatus === "RESOLVED" || log.action === "RESOLVE") &&
+                                resolutionAttachments.length > 0 && (
+                                  <div className="mt-3 space-y-2 border-t border-slate-200/60 pt-2.5">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                      📸 Bằng chứng xử lý từ cán bộ:
+                                    </p>
+                                    <div className="flex flex-wrap gap-2 pt-1">
+                                      {resolutionAttachments.map((att) => {
+                                        const isVideo =
+                                          att.fileType?.startsWith("video/") ||
+                                          att.fileUrl.endsWith(".mp4");
+                                        return (
+                                          <div
+                                            key={att.id}
+                                            className="relative h-16 w-20 shrink-0 rounded-lg overflow-hidden border border-slate-200 bg-slate-950 shadow-sm"
+                                          >
+                                            {isVideo ? (
+                                              <video
+                                                src={att.fileUrl}
+                                                className="w-full h-full object-cover"
+                                                controls
+                                              />
+                                            ) : (
+                                              <img
+                                                src={att.fileUrl}
+                                                alt=""
+                                                className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
+                                                onClick={() => window.open(att.fileUrl, "_blank")}
+                                              />
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
 
-                               {(() => {
-                                 if (log.action !== "PROVIDE_INFO" || !report.attachments) return null;
-                                 const suppAtts = report.attachments.filter((att) => {
-                                   if (att.attachmentPurpose !== "SUPPLEMENTARY_EVIDENCE") return false;
-                                   const logTime = new Date(log.createdAt).getTime();
-                                   const uploadTime = new Date(att.uploadedAt || "").getTime();
-                                   return Math.abs(uploadTime - logTime) < 60000;
-                                 });
-                                 if (suppAtts.length === 0) return null;
-                                 return (
-                                   <div className="mt-3 space-y-2 border-t border-slate-200/60 pt-2.5">
-                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                       📸 Hình ảnh bổ sung từ người dân:
-                                     </p>
-                                     <div className="flex flex-wrap gap-2 pt-1">
-                                       {suppAtts.map((att) => {
-                                         const isVideo = att.fileType?.startsWith("video/") || att.fileUrl.endsWith(".mp4");
-                                         return (
-                                           <div key={att.id} className="relative h-16 w-20 shrink-0 rounded-lg overflow-hidden border border-slate-200 bg-slate-950 shadow-sm">
-                                             {isVideo ? (
-                                               <video src={att.fileUrl} className="w-full h-full object-cover" controls />
-                                             ) : (
-                                               <img
-                                                 src={att.fileUrl}
-                                                 alt=""
-                                                 className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
-                                                 onClick={() => window.open(att.fileUrl, "_blank")}
-                                               />
-                                             )}
-                                           </div>
-                                         );
-                                       })}
-                                     </div>
-                                   </div>
-                                 );
-                               })()}
-                             </div>
-                           )}
+                              {(() => {
+                                if (log.action !== "PROVIDE_INFO" || !report.attachments)
+                                  return null;
+                                const suppAtts = report.attachments.filter((att) => {
+                                  if (att.attachmentPurpose !== "SUPPLEMENTARY_EVIDENCE")
+                                    return false;
+                                  const logTime = new Date(log.createdAt).getTime();
+                                  const uploadTime = new Date(att.uploadedAt || "").getTime();
+                                  return Math.abs(uploadTime - logTime) < 60000;
+                                });
+                                if (suppAtts.length === 0) return null;
+                                return (
+                                  <div className="mt-3 space-y-2 border-t border-slate-200/60 pt-2.5">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                      📸 Hình ảnh bổ sung từ người dân:
+                                    </p>
+                                    <div className="flex flex-wrap gap-2 pt-1">
+                                      {suppAtts.map((att) => {
+                                        const isVideo =
+                                          att.fileType?.startsWith("video/") ||
+                                          att.fileUrl.endsWith(".mp4");
+                                        return (
+                                          <div
+                                            key={att.id}
+                                            className="relative h-16 w-20 shrink-0 rounded-lg overflow-hidden border border-slate-200 bg-slate-950 shadow-sm"
+                                          >
+                                            {isVideo ? (
+                                              <video
+                                                src={att.fileUrl}
+                                                className="w-full h-full object-cover"
+                                                controls
+                                              />
+                                            ) : (
+                                              <img
+                                                src={att.fileUrl}
+                                                alt=""
+                                                className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
+                                                onClick={() => window.open(att.fileUrl, "_blank")}
+                                              />
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
                   })}
-                  
+
                   {sortedLogs.length > 3 && (
                     <div className="flex justify-center pt-2 border-t border-slate-100 -mx-5 px-5">
                       <button
@@ -1417,7 +1491,8 @@ export function FeedbackDetailPageComponent({
               Phát Động Chiến Dịch Liên Kết
             </DialogTitle>
             <DialogDescription className="relative z-10 text-xs text-emerald-50 font-semibold mt-3 max-w-lg leading-relaxed">
-              Thiết lập thông tin chiến dịch cộng đồng để huy động lực lượng tham gia xử lý triệt để sự cố phản ánh này.
+              Thiết lập thông tin chiến dịch cộng đồng để huy động lực lượng tham gia xử lý triệt để
+              sự cố phản ánh này.
             </DialogDescription>
           </div>
 
@@ -1440,7 +1515,10 @@ export function FeedbackDetailPageComponent({
                 </div>
                 <div className="col-span-2 md:col-span-1">
                   <span className="text-slate-400 font-semibold block mb-0.5">Địa chỉ:</span>
-                  <span className="text-slate-800 font-bold truncate block" title={report.addressDetails || report.address || undefined}>
+                  <span
+                    className="text-slate-800 font-bold truncate block"
+                    title={report.addressDetails || report.address || undefined}
+                  >
                     {report.addressDetails || report.address}
                   </span>
                 </div>
@@ -1485,9 +1563,11 @@ export function FeedbackDetailPageComponent({
                     onChange={(e) => setCampaignCategory(e.target.value)}
                     className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm font-semibold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-sm cursor-pointer"
                   >
-                    <option value="traffic">Giao thông</option>
+                    <option value="environment">Môi trường</option>
+                    <option value="infrastructure">Hạ tầng đô thị</option>
+                    <option value="construction">Xây dựng</option>
                     <option value="public_safety">An ninh trật tự</option>
-                    <option value="fire_safety">Phòng cháy chữa cháy</option>
+                    <option value="fire_safety">An toàn PCCC</option>
                     <option value="other">Khác...</option>
                   </select>
                   {campaignCategory === "other" && (
@@ -1500,31 +1580,60 @@ export function FeedbackDetailPageComponent({
                     />
                   )}
                 </div>
-                <div>
-                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
-                    <Users size={14} className="text-emerald-600" /> Số lượng tối đa tham gia
-                  </label>
-                  <input
-                    type="number"
-                    value={campaignParticipants}
-                    onChange={(e) => setCampaignParticipants(e.target.value)}
-                    min={5}
-                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm font-semibold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-sm"
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                      <Users size={14} className="text-emerald-600" /> Tối thiểu
+                    </label>
+                    <input
+                      type="number"
+                      value={campaignMinParticipants}
+                      onChange={(e) => setCampaignMinParticipants(e.target.value)}
+                      min={1}
+                      className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-2 text-sm font-semibold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                      <Users size={14} className="text-emerald-600" /> Tối đa
+                    </label>
+                    <input
+                      type="number"
+                      value={campaignParticipants}
+                      onChange={(e) => setCampaignParticipants(e.target.value)}
+                      min={5}
+                      className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-2 text-sm font-semibold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-sm"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
-                  <MapPin size={14} className="text-emerald-600" /> Địa điểm diễn ra <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={campaignLocation}
-                  onChange={(e) => setCampaignLocation(e.target.value)}
-                  placeholder="Nhập địa chỉ cụ thể tổ chức chiến dịch"
-                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm font-semibold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-sm"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                    <MapPin size={14} className="text-emerald-600" /> Địa điểm công khai{" "}
+                    <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={campaignLocation}
+                    onChange={(e) => setCampaignLocation(e.target.value)}
+                    placeholder="Địa chỉ hiển thị công khai"
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm font-semibold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-sm"
+                  />
+                </div>
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                    <MapPin size={14} className="text-emerald-600" /> Vị trí chi tiết/nội bộ
+                  </label>
+                  <input
+                    type="text"
+                    value={campaignPrivateLocation}
+                    onChange={(e) => setCampaignPrivateLocation(e.target.value)}
+                    placeholder="Chỉ hiển thị cho thành viên đã tham gia"
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm font-semibold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-sm"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-4 bg-emerald-50/50 border border-emerald-100 rounded-xl">
@@ -1547,7 +1656,11 @@ export function FeedbackDetailPageComponent({
                     >
                       {Array.from({ length: 24 }).map((_, i) => {
                         const val = String(i).padStart(2, "0");
-                        return <option key={val} value={val}>{val}h</option>;
+                        return (
+                          <option key={val} value={val}>
+                            {val}h
+                          </option>
+                        );
                       })}
                     </select>
                     <select
@@ -1557,7 +1670,11 @@ export function FeedbackDetailPageComponent({
                     >
                       {Array.from({ length: 60 }).map((_, i) => {
                         const val = String(i).padStart(2, "0");
-                        return <option key={val} value={val}>{val}m</option>;
+                        return (
+                          <option key={val} value={val}>
+                            {val}m
+                          </option>
+                        );
                       })}
                     </select>
                   </div>
@@ -1582,7 +1699,11 @@ export function FeedbackDetailPageComponent({
                     >
                       {Array.from({ length: 24 }).map((_, i) => {
                         const val = String(i).padStart(2, "0");
-                        return <option key={val} value={val}>{val}h</option>;
+                        return (
+                          <option key={val} value={val}>
+                            {val}h
+                          </option>
+                        );
                       })}
                     </select>
                     <select
@@ -1592,7 +1713,11 @@ export function FeedbackDetailPageComponent({
                     >
                       {Array.from({ length: 60 }).map((_, i) => {
                         const val = String(i).padStart(2, "0");
-                        return <option key={val} value={val}>{val}m</option>;
+                        return (
+                          <option key={val} value={val}>
+                            {val}m
+                          </option>
+                        );
                       })}
                     </select>
                   </div>
@@ -1602,7 +1727,8 @@ export function FeedbackDetailPageComponent({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                   <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
-                    <Plus size={14} className="text-emerald-600" /> Dụng cụ hỗ trợ cần thiết <span className="text-red-500">*</span>
+                    <Plus size={14} className="text-emerald-600" /> Dụng cụ hỗ trợ cần thiết{" "}
+                    <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -1615,7 +1741,8 @@ export function FeedbackDetailPageComponent({
 
                 <div>
                   <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
-                    <User size={14} className="text-emerald-600" /> Đơn vị đứng ra tổ chức <span className="text-red-500">*</span>
+                    <User size={14} className="text-emerald-600" /> Đơn vị đứng ra tổ chức{" "}
+                    <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -1625,6 +1752,20 @@ export function FeedbackDetailPageComponent({
                     className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm font-semibold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-sm"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                  <Compass size={14} className="text-emerald-600" /> Link ảnh bìa chiến dịch (Cover
+                  Image URL)
+                </label>
+                <input
+                  type="text"
+                  value={campaignCoverUrl}
+                  onChange={(e) => setCampaignCoverUrl(e.target.value)}
+                  placeholder="Để trống nếu muốn sử dụng ảnh mặc định của lĩnh vực"
+                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm font-semibold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-sm"
+                />
               </div>
             </div>
 
@@ -1721,7 +1862,12 @@ function isPoliceCategory(value?: string | null) {
     return true;
   }
   const text = normalized.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  return text.includes("AN NINH") || text.includes("PCCC") || text.includes("GIAO THONG") || text.includes("CHAY NO");
+  return (
+    text.includes("AN NINH") ||
+    text.includes("PCCC") ||
+    text.includes("GIAO THONG") ||
+    text.includes("CHAY NO")
+  );
 }
 
 function invalidateFeedbackSyncQueries(queryClient: QueryClient, feedbackId?: string | number) {

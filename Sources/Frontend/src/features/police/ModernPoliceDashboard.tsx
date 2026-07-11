@@ -20,6 +20,7 @@ import {
   Users,
   Settings,
   MoreVertical,
+  ChevronLeft,
   ChevronRight,
   ChevronDown,
   ChevronUp,
@@ -35,6 +36,7 @@ import {
 import policeEmblemImg from "@/assets/police-emblem.png";
 import { PoliceCampaignPage } from "./PoliceCampaignPage";
 import { FeedbackDetailPageComponent } from "@/routes/_auth.authority.feedback.$feedbackId";
+import { PoliceStatisticalReports } from "./PoliceStatisticalReports";
 
 const HeatmapMap = clientOnly(() =>
   import("@/components/site/HeatmapMap").then((m) => ({ default: m.HeatmapMap })),
@@ -42,10 +44,10 @@ const HeatmapMap = clientOnly(() =>
 const initialSchedule = [
   { day: "Thứ 2", date: "29/06", morning: "Trực ban hành chính", mOfficer: "Đ/c Nguyễn Văn A", afternoon: "Xử lý hồ sơ", aOfficer: "Đ/c Lê Thị B", night: "Trực ban", nOfficer: "Đ/c Lê Thị B" },
   { day: "Thứ 3", date: "30/06", morning: "Tuần tra địa bàn", mOfficer: "Đ/c Phạm Văn C, Đ/c Võ D", afternoon: "Tuần tra địa bàn", aOfficer: "Đ/c Phạm Văn C, Đ/c Võ D", night: "Trực chỉ huy", nOfficer: "Đ/c Hoàng Văn E" },
-  { day: "Thứ 4", date: "01/07", morning: "Nghỉ bù", mOfficer: "-", afternoon: "Nghỉ bù", aOfficer: "-", night: "Tuần tra đêm", nOfficer: "Đ/c Nguyễn Văn A" },
+  { day: "Thứ 4", date: "01/07", morning: "Trực ban hành chính", mOfficer: "Đ/c Lê Thị B", afternoon: "Tiếp công dân", aOfficer: "Đ/c Nguyễn Văn A", night: "Tuần tra đêm", nOfficer: "Đ/c Trần H" },
   { day: "Thứ 5", date: "02/07", morning: "Xử lý hồ sơ", mOfficer: "Đ/c Trần H", afternoon: "Tiếp công dân", aOfficer: "Đ/c Nguyễn Văn A", night: "Trực chỉ huy", nOfficer: "Đ/c Đặng L" },
   { day: "Thứ 6", date: "03/07", morning: "Họp giao ban", mOfficer: "Toàn Đội", afternoon: "Trực ban hành chính", aOfficer: "Đ/c Lê Thị B", night: "Tuần tra đêm", nOfficer: "Đ/c Phạm Văn C, Đ/c Trần H" },
-  { day: "Thứ 7", date: "04/07", morning: "-", mOfficer: "-", afternoon: "-", aOfficer: "-", night: "Trực ban", nOfficer: "Đ/c Võ D" },
+  { day: "Thứ 7", date: "04/07", morning: "Trực ban cuối tuần", mOfficer: "Đ/c Hoàng Văn E", afternoon: "Tuần tra địa bàn", aOfficer: "Đ/c Võ D", night: "Trực ban", nOfficer: "Đ/c Đặng L" },
   { day: "Chủ nhật", date: "05/07", morning: "Trực ban", mOfficer: "Đ/c Đặng L", afternoon: "Trực ban", aOfficer: "Đ/c Đặng L", night: "Tuần tra đêm", nOfficer: "Đ/c Trần H" },
 ];
 
@@ -53,7 +55,24 @@ const DutyRoster = () => {
   const [view, setView] = useState<'week'|'month'|'year'>('week');
   const [isEditing, setIsEditing] = useState(false);
   const [schedule, setSchedule] = useState(initialSchedule);
-  
+  const [weekOffset, setWeekOffset] = useState(0);
+
+  useEffect(() => {
+    if (view === 'week') {
+      const today = new Date();
+      const dayOfWeek = today.getDay() || 7;
+      const diff = today.getDate() - dayOfWeek + 1 + weekOffset * 7;
+      const monday = new Date(today.getFullYear(), today.getMonth(), diff);
+      
+      setSchedule(prev => prev.map((row, idx) => {
+        const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + idx);
+        const dayStr = String(d.getDate()).padStart(2, '0');
+        const monthStr = String(d.getMonth() + 1).padStart(2, '0');
+        return { ...row, date: `${dayStr}/${monthStr}` };
+      }));
+    }
+  }, [weekOffset, view]);
+
   return (
     <div className="max-w-[1600px] mx-auto bg-white rounded-[8px] border shadow-sm p-6" style={{ borderColor: "#D9E1EC" }}>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
@@ -62,6 +81,15 @@ const DutyRoster = () => {
           <p className="text-sm text-slate-500 mt-1">Quản lý và theo dõi lịch trực ban, tuần tra, họp giao ban của đơn vị</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-4 items-end sm:items-center">
+          {view === 'week' && (
+            <div className="flex items-center bg-slate-100 rounded-[6px] p-1 gap-1 shrink-0">
+               <button onClick={() => setWeekOffset(w => w - 1)} className="p-1 hover:bg-white rounded shadow-sm text-slate-600 transition-all"><ChevronLeft size={16}/></button>
+               <span className="text-xs font-bold px-2 text-slate-700 min-w-[70px] text-center">
+                 {weekOffset === 0 ? 'Tuần này' : weekOffset === 1 ? 'Tuần sau' : weekOffset === -1 ? 'Tuần trước' : weekOffset > 0 ? `+${weekOffset} Tuần` : `${weekOffset} Tuần`}
+               </span>
+               <button onClick={() => setWeekOffset(w => w + 1)} className="p-1 hover:bg-white rounded shadow-sm text-slate-600 transition-all"><ChevronRight size={16}/></button>
+            </div>
+          )}
           {view === 'week' && (
             <button 
               onClick={() => {
@@ -583,7 +611,6 @@ export function ModernPoliceDashboard() {
     { id: "campaigns", name: "Chiến dịch", icon: Flag },
     { id: "schedule", name: "Lịch trực ban", icon: Calendar },
     { id: "reports", name: "Báo cáo thống kê", icon: BarChart2 },
-    { id: "settings", name: "Cài đặt tài khoản", icon: Settings },
     { id: "go_home", name: "Về trang chủ", icon: ExternalLink },
   ];
 
@@ -1160,7 +1187,10 @@ export function ModernPoliceDashboard() {
           {activeTab === "schedule" && (
             <DutyRoster />
           )}
-          {activeTab !== "overview" && activeTab !== "manage" && activeTab !== "campaigns" && activeTab !== "schedule" && (
+          {activeTab === "reports" && (
+            <PoliceStatisticalReports feedbacks={feedbacksData || []} />
+          )}
+          {activeTab !== "overview" && activeTab !== "manage" && activeTab !== "campaigns" && activeTab !== "schedule" && activeTab !== "reports" && (
             <div className="flex items-center justify-center h-full text-slate-400">
               Chức năng đang được cập nhật theo giao diện mới...
             </div>

@@ -91,9 +91,10 @@ export function FloatingCampaignChat({ campaignId, onClose }: FloatingCampaignCh
   const leaveCampaign = useLeaveCampaign();
 
   // Participant query
+  const canViewParticipants = Boolean(campaign?.canManage || campaign?.privateDetailsVisible);
   const { data: participants = [], isLoading: loadingParticipants } = useCampaignParticipants(
     campaignId,
-    activePanel === "members",
+    activePanel === "members" && canViewParticipants,
   );
 
   const isCampaignEndedOrCancelled =
@@ -623,6 +624,10 @@ export function FloatingCampaignChat({ campaignId, onClose }: FloatingCampaignCh
                   <div className="flex items-center justify-center py-10">
                     <Loader2 className="w-5 h-5 text-[#0B4FC4] animate-spin" />
                   </div>
+                ) : !canViewParticipants ? (
+                  <p className="text-xs text-slate-400 text-center py-8">
+                    Bạn không có quyền xem danh sách thành viên.
+                  </p>
                 ) : participants.length === 0 ? (
                   <p className="text-xs text-slate-400 text-center py-8">
                     Không tìm thấy thành viên nào.

@@ -47,7 +47,7 @@ import { SingleCampaignMap } from "@/components/site/SingleCampaignMap";
 export const Route = createFileRoute("/campaigns/$id")({
   validateSearch: (search: Record<string, unknown>): { join?: boolean } => {
     return {
-      join: (search.join === "true" || search.join === true) ? true : undefined,
+      join: search.join === "true" || search.join === true ? true : undefined,
     };
   },
   head: () => ({
@@ -107,10 +107,14 @@ export function CampaignDetailPageComponent({
   });
   const campaign = useCampaignDetail(campaignId);
   const { user, isAuthenticated } = useAuth();
-  const hasJoined = !!(campaign && (
-    campaign.canManage ||
-    (campaign.currentUserJoinStatus && ["APPROVED", "CONFIRMED", "MAYBE", "PENDING_CONFIRM", "PENDING"].includes(campaign.currentUserJoinStatus))
-  ));
+  const hasJoined = !!(
+    campaign &&
+    (campaign.canManage ||
+      (campaign.currentUserJoinStatus &&
+        ["APPROVED", "CONFIRMED", "MAYBE", "PENDING_CONFIRM", "PENDING"].includes(
+          campaign.currentUserJoinStatus,
+        )))
+  );
   const joinCampaign = useJoinCampaign();
   const leaveCampaign = useLeaveCampaign();
   const confirmWaitlist = useConfirmWaitlist();
@@ -230,24 +234,36 @@ export function CampaignDetailPageComponent({
       toast.success("Cập nhật chiến dịch thành công.");
       setIsEditing(false);
     } catch (err) {
-      toast.error("Lỗi khi cập nhật chiến dịch: " + (err instanceof Error ? err.message : "Lỗi hệ thống"));
+      toast.error(
+        "Lỗi khi cập nhật chiến dịch: " + (err instanceof Error ? err.message : "Lỗi hệ thống"),
+      );
     }
   };
 
   const handleEndCampaign = async () => {
-    if (!window.confirm("Bạn có chắc chắn muốn kết thúc sớm chiến dịch này? Hành động này sẽ khóa đơn đăng ký và dừng tuyển quân.")) {
+    if (
+      !window.confirm(
+        "Bạn có chắc chắn muốn kết thúc sớm chiến dịch này? Hành động này sẽ khóa đơn đăng ký và dừng tuyển quân.",
+      )
+    ) {
       return;
     }
     try {
       await endCampaign.mutateAsync({ id: campaignId });
       toast.success("Đã kết thúc chiến dịch thành công.");
     } catch (err) {
-      toast.error("Lỗi khi kết thúc chiến dịch: " + (err instanceof Error ? err.message : "Lỗi hệ thống"));
+      toast.error(
+        "Lỗi khi kết thúc chiến dịch: " + (err instanceof Error ? err.message : "Lỗi hệ thống"),
+      );
     }
   };
 
   const handleFinalizeCampaign = async () => {
-    if (!window.confirm("Bạn có chắc chắn muốn chốt chiến dịch? Hệ thống sẽ kiểm tra số người tham gia và chuyển trạng thái chiến dịch.")) {
+    if (
+      !window.confirm(
+        "Bạn có chắc chắn muốn chốt chiến dịch? Hệ thống sẽ kiểm tra số người tham gia và chuyển trạng thái chiến dịch.",
+      )
+    ) {
       return;
     }
     try {
@@ -258,7 +274,9 @@ export function CampaignDetailPageComponent({
         toast.error("Chiến dịch bị hủy do không đủ số người tối thiểu.");
       }
     } catch (err) {
-      toast.error("Lỗi khi chốt chiến dịch: " + (err instanceof Error ? err.message : "Lỗi hệ thống"));
+      toast.error(
+        "Lỗi khi chốt chiến dịch: " + (err instanceof Error ? err.message : "Lỗi hệ thống"),
+      );
     }
   };
 
@@ -568,61 +586,59 @@ export function CampaignDetailPageComponent({
                   {finalizeCampaign.isPending ? "Đang xử lý..." : "Chốt chiến dịch"}
                 </button>
               )}
-              {campaign.canManage && (campaign.status === "recruiting" || campaign.status === "inProgress") && (
-                <button
-                  onClick={handleEndCampaign}
-                  disabled={endCampaign.isPending}
-                  className="mb-3 h-12 w-full rounded-xl bg-red-600 text-sm font-black text-white shadow-md transition hover:bg-red-700 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {endCampaign.isPending ? "Đang xử lý..." : "Kết thúc chiến dịch"}
-                </button>
-              )}
+              {campaign.canManage &&
+                (campaign.status === "recruiting" || campaign.status === "inProgress") && (
+                  <button
+                    onClick={handleEndCampaign}
+                    disabled={endCampaign.isPending}
+                    className="mb-3 h-12 w-full rounded-xl bg-red-600 text-sm font-black text-white shadow-md transition hover:bg-red-700 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {endCampaign.isPending ? "Đang xử lý..." : "Kết thúc chiến dịch"}
+                  </button>
+                )}
               {(campaign.status === "recruiting" ||
                 campaign.status === "completed" ||
                 campaign.status === "ended" ||
                 campaign.status === "inProgress") && (
-                  <div
-                    title={campaign.status !== "recruiting" ? "Chiến dịch đã đóng" : undefined}
-                    className="w-full"
-                  >
-                    {hasJoined ? (
-                      user?.role === Role.WARD_STAFF ? (
-                        <Link
-                          to="/ward"
-                          search={{ tab: "chat", detailId: campaign.id }}
-                          className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#7C3AED] text-sm font-black text-white shadow-sm transition hover:brightness-110"
-                        >
-                          Vào nhóm chat
-                        </Link>
-                      ) : (
-                        <Link
-                          to="/campaigns/$id/group-chat"
-                          params={{ id: campaign.id }}
-                          className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#7C3AED] text-sm font-black text-white shadow-sm transition hover:brightness-110"
-                        >
-                          Vào nhóm chat
-                        </Link>
-                      )
-                    ) : (
-                      <button
-                        onClick={() => {
-                          if (!isAuthenticated) {
-                            toast.error("Vui lòng đăng nhập để tham gia chiến dịch.");
-                            return;
-                          }
-                          setShowJoinModal(true);
-                        }}
-                        disabled={
-                          campaign.status !== "recruiting" ||
-                          joinCampaign.isPending
-                        }
-                        className="h-12 w-full rounded-xl bg-[#7C3AED] text-sm font-black text-white shadow-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                <div
+                  title={campaign.status !== "recruiting" ? "Chiến dịch đã đóng" : undefined}
+                  className="w-full"
+                >
+                  {hasJoined ? (
+                    user?.role === Role.WARD_STAFF ? (
+                      <Link
+                        to="/ward"
+                        search={{ tab: "chat", detailId: campaign.id }}
+                        className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#7C3AED] text-sm font-black text-white shadow-sm transition hover:brightness-110"
                       >
-                        Đăng ký & Vào Chat
-                      </button>
-                    )}
-                  </div>
-                )}
+                        Vào nhóm chat
+                      </Link>
+                    ) : (
+                      <Link
+                        to="/campaigns/$id/group-chat"
+                        params={{ id: campaign.id }}
+                        className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#7C3AED] text-sm font-black text-white shadow-sm transition hover:brightness-110"
+                      >
+                        Vào nhóm chat
+                      </Link>
+                    )
+                  ) : (
+                    <button
+                      onClick={() => {
+                        if (!isAuthenticated) {
+                          toast.error("Vui lòng đăng nhập để tham gia chiến dịch.");
+                          return;
+                        }
+                        setShowJoinModal(true);
+                      }}
+                      disabled={campaign.status !== "recruiting" || joinCampaign.isPending}
+                      className="h-12 w-full rounded-xl bg-[#7C3AED] text-sm font-black text-white shadow-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Đăng ký & Vào Chat
+                    </button>
+                  )}
+                </div>
+              )}
 
               {campaign.currentUserJoinStatus === "PENDING_CONFIRM" && (
                 <button
@@ -690,7 +706,14 @@ export function CampaignDetailPageComponent({
               </button>
             </section>
 
-            <GroupChatNavigationCard campaign={campaign} approvedStatus={approvedStatus} theme={theme} hasJoined={hasJoined} onJoinClick={() => setShowJoinModal(true)} isAuthenticated={isAuthenticated} />
+            <GroupChatNavigationCard
+              campaign={campaign}
+              approvedStatus={approvedStatus}
+              theme={theme}
+              hasJoined={hasJoined}
+              onJoinClick={() => setShowJoinModal(true)}
+              isAuthenticated={isAuthenticated}
+            />
             <ShareCard theme={theme} />
           </aside>
         </section>
@@ -771,18 +794,32 @@ export function CampaignDetailPageComponent({
                     </button>
                   </div>
                   <div className="flex justify-center">
-                    <InputOTP
-                      maxLength={6}
-                      value={otpCode}
-                      onChange={setOtpCode}
-                    >
+                    <InputOTP maxLength={6} value={otpCode} onChange={setOtpCode}>
                       <InputOTPGroup>
-                        <InputOTPSlot index={0} className="w-10 h-11 text-base font-bold bg-white" />
-                        <InputOTPSlot index={1} className="w-10 h-11 text-base font-bold bg-white" />
-                        <InputOTPSlot index={2} className="w-10 h-11 text-base font-bold bg-white" />
-                        <InputOTPSlot index={3} className="w-10 h-11 text-base font-bold bg-white" />
-                        <InputOTPSlot index={4} className="w-10 h-11 text-base font-bold bg-white" />
-                        <InputOTPSlot index={5} className="w-10 h-11 text-base font-bold bg-white" />
+                        <InputOTPSlot
+                          index={0}
+                          className="w-10 h-11 text-base font-bold bg-white"
+                        />
+                        <InputOTPSlot
+                          index={1}
+                          className="w-10 h-11 text-base font-bold bg-white"
+                        />
+                        <InputOTPSlot
+                          index={2}
+                          className="w-10 h-11 text-base font-bold bg-white"
+                        />
+                        <InputOTPSlot
+                          index={3}
+                          className="w-10 h-11 text-base font-bold bg-white"
+                        />
+                        <InputOTPSlot
+                          index={4}
+                          className="w-10 h-11 text-base font-bold bg-white"
+                        />
+                        <InputOTPSlot
+                          index={5}
+                          className="w-10 h-11 text-base font-bold bg-white"
+                        />
                       </InputOTPGroup>
                     </InputOTP>
                   </div>
@@ -1014,7 +1051,7 @@ function GroupChatNavigationCard({
   onJoinClick: () => void;
   isAuthenticated: boolean;
 }) {
-  const chat = useCampaignChat(campaign.id);
+  const chat = useCampaignChat(campaign.id, { enabled: hasJoined });
   const signalAttendance = useSignalAttendance(campaign.id);
   const { user } = useAuth();
   const memberCount = Math.max(1, campaign.participants || 0);
@@ -1022,7 +1059,11 @@ function GroupChatNavigationCard({
   const latestPreview = latest
     ? `${latest.senderName}: ${latest.message}`
     : `${campaign.createdBy || "Người chủ trì"}: Chiến dịch sẽ bắt đầu lúc 6h sáng 19/6.`;
-  const avatars = [campaign.createdBy ? campaign.createdBy.split(" ").at(-1)?.[0] || "H" : "CB", "A", "B"];
+  const avatars = [
+    campaign.createdBy ? campaign.createdBy.split(" ").at(-1)?.[0] || "H" : "CB",
+    "A",
+    "B",
+  ];
 
   // Check if within 24h window
   const startTime = campaign.startTime ? new Date(campaign.startTime) : null;
@@ -1038,9 +1079,7 @@ function GroupChatNavigationCard({
     try {
       await signalAttendance.mutateAsync(signal);
       toast.success(
-        signal === "CONFIRMED"
-          ? "Đã xác nhận tham gia chiến dịch!"
-          : "Đã chọn 'Có thể tham gia'."
+        signal === "CONFIRMED" ? "Đã xác nhận tham gia chiến dịch!" : "Đã chọn 'Có thể tham gia'.",
       );
     } catch (err: any) {
       toast.error(err?.message || "Không thể gửi xác nhận.");
@@ -1082,7 +1121,8 @@ function GroupChatNavigationCard({
               Xác nhận tham gia trước 24 giờ
             </p>
             <p className="mt-1 text-xs text-slate-500 leading-relaxed">
-              Chiến dịch sắp khởi chạy. Vui lòng cập nhật khả năng tham gia của bạn để ban tổ chức chuẩn bị chu đáo.
+              Chiến dịch sắp khởi chạy. Vui lòng cập nhật khả năng tham gia của bạn để ban tổ chức
+              chuẩn bị chu đáo.
             </p>
           </div>
           <div className="flex gap-2">
@@ -1280,23 +1320,37 @@ function StatusBadge({
   status: Campaign["status"];
   theme?: Record<string, string>;
 }) {
-  const currentMeta = ({
-    pending_review: {
-      label: "Chờ duyệt",
-      className: "border-slate-200 bg-slate-100 text-slate-600",
-    },
-    recruiting: {
-      label: "Đang tuyển",
-      className: "border-emerald-200 bg-emerald-50 text-emerald-700",
-    },
-    inProgress: { label: "Đang thực hiện", className: "border-blue-200 bg-blue-50 text-blue-700" },
-    completed: { label: "Hoàn thành", className: "border-violet-200 bg-violet-50 text-[#7C3AED]" },
-    active: { label: "Đang hoạt động", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
-    ended: { label: "Đã kết thúc", className: "border-red-200 bg-red-50 text-red-700" },
-    CANCELLED: { label: "Đã hủy", className: "border-red-200 bg-red-50 text-red-700" },
-    cancelled: { label: "Đã hủy", className: "border-red-200 bg-red-50 text-red-700" },
-    IN_PROGRESS: { label: "Đang diễn ra", className: "border-blue-200 bg-blue-50 text-blue-700" },
-  } as Record<string, { label: string; className: string }>)[status] ?? { label: status || "Không rõ", className: "border-slate-200 bg-slate-50 text-slate-600" };
+  const currentMeta = (
+    {
+      pending_review: {
+        label: "Chờ duyệt",
+        className: "border-slate-200 bg-slate-100 text-slate-600",
+      },
+      recruiting: {
+        label: "Đang tuyển",
+        className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      },
+      inProgress: {
+        label: "Đang thực hiện",
+        className: "border-blue-200 bg-blue-50 text-blue-700",
+      },
+      completed: {
+        label: "Hoàn thành",
+        className: "border-violet-200 bg-violet-50 text-[#7C3AED]",
+      },
+      active: {
+        label: "Đang hoạt động",
+        className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      },
+      ended: { label: "Đã kết thúc", className: "border-red-200 bg-red-50 text-red-700" },
+      CANCELLED: { label: "Đã hủy", className: "border-red-200 bg-red-50 text-red-700" },
+      cancelled: { label: "Đã hủy", className: "border-red-200 bg-red-50 text-red-700" },
+      IN_PROGRESS: { label: "Đang diễn ra", className: "border-blue-200 bg-blue-50 text-blue-700" },
+    } as Record<string, { label: string; className: string }>
+  )[status] ?? {
+    label: status || "Không rõ",
+    className: "border-slate-200 bg-slate-50 text-slate-600",
+  };
 
   return (
     <span

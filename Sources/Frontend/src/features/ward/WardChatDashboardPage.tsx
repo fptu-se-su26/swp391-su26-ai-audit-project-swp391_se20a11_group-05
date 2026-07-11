@@ -1,5 +1,6 @@
-import { useState, useMemo, useRef, useEffect } from "react";
-import { Link } from "@tanstack/react-router";
+import { useState, useMemo, useRef, useEffect, useLayoutEffect } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { Route } from "@/routes/_auth.ward";
 import {
   Search,
   Users,
@@ -16,6 +17,10 @@ import {
   MessageSquare,
   AlertCircle,
   Inbox,
+  Zap,
+  ChevronUp,
+  ChevronDown,
+  ChevronsDown,
 } from "lucide-react";
 import {
   useCampaignList,
@@ -48,7 +53,20 @@ export function WardChatDashboardPage() {
   const { user } = useAuth();
   const campaigns = useCampaignList();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
+  const { tab, detailId } = Route.useSearch();
+  const navigate = useNavigate();
+  const selectedCampaignId = tab === "chat" && detailId ? detailId : null;
+
+  const setSelectedCampaignId = (id: string | null) => {
+    navigate({
+      to: "/ward",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      search: (prev: any) => ({
+        ...prev,
+        detailId: id || undefined,
+      }),
+    });
+  };
 
   // Filter campaigns by current ward and search query
   const wardCampaigns = useMemo(() => {
@@ -234,6 +252,20 @@ function ActiveChatArea({ campaignId, onBack }: { campaignId: string; onBack: ()
   const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+  const [searchMsgQuery, setSearchMsgQuery] = useState("");
+  const [isSearchingMsg, setIsSearchingMsg] = useState(false);
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+  const [showQuickReplies, setShowQuickReplies] = useState(false);
+  const [showScrollBottomBtn, setShowScrollBottomBtn] = useState(false);
+
+  const handleScroll = () => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    setShowScrollBottomBtn(distanceFromBottom > 300);
+  };
 
   const {
     fetchNextPage,
@@ -292,6 +324,28 @@ function ActiveChatArea({ campaignId, onBack }: { campaignId: string; onBack: ()
     return formattedMessages.filter((m) => m.pinned);
   }, [formattedMessages]);
 
+  const matchingMessageIds = useMemo(() => {
+    if (!isSearchingMsg || !searchMsgQuery.trim()) return [];
+    return formattedMessages
+      .filter((msg) => msg.text?.toLowerCase().includes(searchMsgQuery.toLowerCase()))
+      .map((msg) => msg.id);
+  }, [formattedMessages, isSearchingMsg, searchMsgQuery]);
+
+  useEffect(() => {
+    setCurrentMatchIndex(0);
+  }, [searchMsgQuery]);
+
+  useEffect(() => {
+    if (matchingMessageIds.length === 0) return;
+    const targetId = matchingMessageIds[currentMatchIndex];
+    if (targetId) {
+      const el = document.querySelector(`[data-message-id="${targetId}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+  }, [currentMatchIndex, matchingMessageIds]);
+
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const loaderRef = useRef<HTMLDivElement>(null);
   const lastMessageIdRef = useRef<string | null>(null);
@@ -314,22 +368,50 @@ function ActiveChatArea({ campaignId, onBack }: { campaignId: string; onBack: ()
     lastMessageIdRef.current = lastMsg.id;
   }, [formattedMessages]);
 
+  const firstMessageIdBeforeFetch = useRef<string | null>(null);
+  const firstMessageOffsetTop = useRef<number>(0);
+
+  // Scroll retention when loading older messages
+  useLayoutEffect(() => {
+    if (!firstMessageIdBeforeFetch.current) return;
+
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const targetEl = container.querySelector(
+      `[data-message-id="${firstMessageIdBeforeFetch.current}"]`,
+    );
+    if (targetEl) {
+      const targetRect = targetEl.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      const currentOffsetTop = targetRect.top - containerRect.top;
+      const diff = currentOffsetTop - firstMessageOffsetTop.current;
+      container.scrollTop += diff;
+    }
+
+    firstMessageIdBeforeFetch.current = null;
+  }, [formattedMessages]);
+
   // Infinite scroll old messages hook
   useEffect(() => {
+    if (isSearchingMsg) return; // Disable automatic load while searching
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
           const container = scrollContainerRef.current;
-          if (container) {
-            const previousScrollHeight = container.scrollHeight;
-            const previousScrollTop = container.scrollTop;
+          if (container && formattedMessages.length > 0) {
+            // Save the top message ID and its offset relative to the scroll container
+            const topMsg = formattedMessages[0];
+            firstMessageIdBeforeFetch.current = topMsg.id;
 
-            fetchNextPage().then(() => {
-              requestAnimationFrame(() => {
-                const newScrollHeight = container.scrollHeight;
-                container.scrollTop = previousScrollTop + (newScrollHeight - previousScrollHeight);
-              });
-            });
+            const firstMessageEl = container.querySelector(`[data-message-id="${topMsg.id}"]`);
+            if (firstMessageEl) {
+              firstMessageOffsetTop.current =
+                firstMessageEl.getBoundingClientRect().top - container.getBoundingClientRect().top;
+            }
+
+            void fetchNextPage();
           }
         }
       },
@@ -345,7 +427,7 @@ function ActiveChatArea({ campaignId, onBack }: { campaignId: string; onBack: ()
         observer.unobserve(currentLoader);
       }
     };
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, formattedMessages, isSearchingMsg]);
 
   const handleSendMessage = () => {
     const announcementMode = campaign?.announcementMode ?? false;
@@ -503,7 +585,7 @@ function ActiveChatArea({ campaignId, onBack }: { campaignId: string; onBack: ()
     (isCampaignEndedOrCancelled && !campaign.canManage);
 
   return (
-    <div className="flex-1 flex flex-col h-full min-w-0 bg-white">
+    <div className="flex-1 flex flex-col h-full min-w-0 bg-white relative">
       {/* Header */}
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-slate-100 bg-white px-4">
         <div className="flex min-w-0 items-center gap-3">
@@ -537,10 +619,27 @@ function ActiveChatArea({ campaignId, onBack }: { campaignId: string; onBack: ()
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setIsSearchingMsg((prev) => !prev);
+              if (!isSearchingMsg) {
+                setSearchMsgQuery("");
+              }
+            }}
+            className={`p-1.5 rounded-lg transition-all border ${
+              isSearchingMsg
+                ? "bg-indigo-50 text-indigo-650 border-indigo-200"
+                : "text-slate-400 hover:text-indigo-650 hover:bg-slate-50 border-transparent"
+            }`}
+            title="Tìm kiếm tin nhắn"
+          >
+            <Search size={14} />
+          </button>
           <Link
             to="/ward"
             search={{ tab: "campaign", detailId: campaignId }}
-            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100/80 rounded-lg transition-all shadow-sm active:scale-[0.97] cursor-pointer"
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100/80 rounded-lg transition-all shadow-sm active:scale-[0.97] cursor-pointer"
           >
             <Info size={12} />
             <span>Xem chi tiết</span>
@@ -576,6 +675,76 @@ function ActiveChatArea({ campaignId, onBack }: { campaignId: string; onBack: ()
         </div>
       </header>
 
+      {/* Message Search Bar */}
+      {isSearchingMsg && (
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-100 bg-slate-50/50 px-4 py-2 gap-3">
+          <div className="relative flex-1 max-w-md flex items-center bg-white rounded-xl border border-slate-200 px-3 py-1.5 shadow-sm">
+            <Search className="h-3.5 w-3.5 text-slate-400 shrink-0 mr-2" />
+            <input
+              type="text"
+              placeholder="Tìm tin nhắn..."
+              value={searchMsgQuery}
+              onChange={(e) => setSearchMsgQuery(e.target.value)}
+              className="w-full text-xs font-semibold outline-none placeholder:text-slate-400 text-slate-800 bg-transparent"
+              autoFocus
+            />
+            <div className="flex items-center gap-1 shrink-0 pl-2 border-l border-slate-150 select-none">
+              <span className="text-[10px] font-bold text-slate-500 font-mono pr-1">
+                {searchMsgQuery.trim()
+                  ? matchingMessageIds.length > 0
+                    ? `${currentMatchIndex + 1} of ${matchingMessageIds.length}`
+                    : "No results"
+                  : ""}
+              </span>
+              <button
+                type="button"
+                disabled={matchingMessageIds.length === 0}
+                onClick={() =>
+                  setCurrentMatchIndex((prev) =>
+                    prev === 0 ? matchingMessageIds.length - 1 : prev - 1,
+                  )
+                }
+                className="p-1 rounded text-slate-400 hover:text-slate-650 hover:bg-slate-100 disabled:opacity-30 transition cursor-pointer"
+                title="Tìm trước đó"
+              >
+                <ChevronUp size={14} />
+              </button>
+              <button
+                type="button"
+                disabled={matchingMessageIds.length === 0}
+                onClick={() =>
+                  setCurrentMatchIndex((prev) =>
+                    prev === matchingMessageIds.length - 1 ? 0 : prev + 1,
+                  )
+                }
+                className="p-1 rounded text-slate-400 hover:text-slate-650 hover:bg-slate-100 disabled:opacity-30 transition cursor-pointer"
+                title="Tìm tiếp theo"
+              >
+                <ChevronDown size={14} />
+              </button>
+              {searchMsgQuery && (
+                <button
+                  onClick={() => setSearchMsgQuery("")}
+                  className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                  title="Xóa tìm kiếm"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setIsSearchingMsg(false);
+              setSearchMsgQuery("");
+            }}
+            className="text-xs font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-100 px-2.5 py-1.5 rounded-lg transition"
+          >
+            Đóng
+          </button>
+        </div>
+      )}
+
       {/* Admin Notice */}
       <div className="flex shrink-0 items-center justify-between border-b border-indigo-100/50 bg-indigo-50/40 px-4 py-1.5 text-[11px] font-semibold text-indigo-700">
         <span className="min-w-0">
@@ -585,44 +754,74 @@ function ActiveChatArea({ campaignId, onBack }: { campaignId: string; onBack: ()
       </div>
 
       {/* Message Feed */}
-      <div className="flex-1 overflow-y-auto bg-slate-50/50 px-4 py-4" ref={scrollContainerRef}>
+      <div
+        className="flex-1 overflow-y-auto bg-slate-50/50 px-4 py-4"
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+      >
         <div className="mx-auto flex max-w-5xl flex-col gap-4">
           {hasNextPage && (
-            <div ref={loaderRef} className="flex justify-center py-2 shrink-0">
+            <div className="flex justify-center py-2 shrink-0">
               {isFetchingNextPage ? (
                 <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
               ) : (
-                <span className="text-[10px] text-slate-400 font-bold select-none cursor-pointer hover:underline">
+                <span
+                  ref={loaderRef}
+                  onClick={() => fetchNextPage()}
+                  className="text-[10px] text-slate-400 font-bold select-none cursor-pointer hover:underline"
+                >
                   Xem tin nhắn cũ hơn
                 </span>
               )}
             </div>
           )}
 
-          {formattedMessages.map((message) => (
-            <div
-              key={message.id}
-              data-message-id={message.id}
-              className="transition-all duration-300 rounded-xl"
-            >
-              <CampaignChatBubble
-                message={message}
-                canManage={!!campaign.canManage}
-                onPin={(msgId) => pinMutation.mutate(msgId)}
-                onUnpin={(msgId) => unpinMutation.mutate(msgId)}
-                onResend={handleResend}
-                onAvatarClick={(userId) => setSelectedUserId(userId)}
-                onDelete={(msgId) => {
-                  if (confirm("Bạn có chắc chắn muốn xóa tin nhắn này không?")) {
-                    deleteMutation.mutate(msgId);
-                  }
-                }}
-              />
+          {formattedMessages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+              <AlertCircle size={28} className="text-slate-300 mb-2" />
+              <p className="text-xs font-semibold">Chưa có tin nhắn nào</p>
             </div>
-          ))}
+          ) : (
+            formattedMessages.map((message) => (
+              <div
+                key={message.id}
+                data-message-id={message.id}
+                className="transition-all duration-300 rounded-xl"
+              >
+                <CampaignChatBubble
+                  message={message}
+                  canManage={!!campaign.canManage}
+                  onPin={(msgId) => pinMutation.mutate(msgId)}
+                  onUnpin={(msgId) => unpinMutation.mutate(msgId)}
+                  onResend={handleResend}
+                  onAvatarClick={(userId) => setSelectedUserId(userId)}
+                  onDelete={(msgId) => {
+                    if (confirm("Bạn có chắc chắn muốn xóa tin nhắn này không?")) {
+                      deleteMutation.mutate(msgId);
+                    }
+                  }}
+                  highlightQuery={isSearchingMsg ? searchMsgQuery : undefined}
+                />
+              </div>
+            ))
+          )}
           <div ref={messagesEndRef} />
         </div>
       </div>
+
+      {/* Scroll to bottom button */}
+      {showScrollBottomBtn && (
+        <button
+          type="button"
+          onClick={() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+          }}
+          className="absolute bottom-[80px] right-6 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-slate-500 hover:text-indigo-600 hover:bg-white border border-slate-200/80 shadow-md backdrop-blur-sm transition-all duration-200 active:scale-95 cursor-pointer"
+          title="Về tin nhắn mới nhất"
+        >
+          <ChevronsDown size={18} />
+        </button>
+      )}
 
       {/* Footer / Input Area */}
       <footer className="shrink-0 border-t border-slate-100 bg-white px-4 py-3">
@@ -710,6 +909,54 @@ function ActiveChatArea({ campaignId, onBack }: { campaignId: string; onBack: ()
               triggerClassName="grid h-11 w-11 place-items-center rounded-xl text-slate-400 hover:text-indigo-650 hover:bg-slate-50 transition cursor-pointer border border-slate-200/60 shadow-sm disabled:opacity-50 shrink-0"
             />
 
+            <div className="relative shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowQuickReplies((prev) => !prev)}
+                disabled={isInputDisabled}
+                className={`grid h-11 w-11 place-items-center rounded-xl transition cursor-pointer border shadow-sm disabled:opacity-50 shrink-0 ${
+                  showQuickReplies
+                    ? "bg-amber-50 text-amber-600 border-amber-200"
+                    : "text-slate-400 hover:text-amber-500 hover:bg-slate-50 border-slate-200/60"
+                }`}
+                title="Trả lời nhanh"
+              >
+                <Zap size={18} />
+              </button>
+              {showQuickReplies && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowQuickReplies(false)} />
+                  <div className="absolute bottom-14 left-0 z-50 w-72 md:w-80 rounded-2xl bg-white border border-slate-200 shadow-xl p-3 animate-[chatSlideUp_0.15s_ease] space-y-2">
+                    <h5 className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-1 py-0.5 border-b border-slate-100 mb-1 flex items-center gap-1">
+                      <Zap size={10} className="text-amber-500" />
+                      Tin nhắn mẫu nhanh
+                    </h5>
+                    <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
+                      {[
+                        "Mọi người lưu ý tập trung đúng giờ tại địa điểm đã thông báo nhé!",
+                        "Hãy đảm bảo an toàn lao động và mặc trang phục bảo hộ đầy đủ.",
+                        "Cán bộ đã duyệt thêm một số tình nguyện viên mới. Mọi người chào mừng nhé!",
+                        "Chiến dịch hôm nay tạm hoãn do thời tiết xấu. Lịch cụ thể sẽ thông báo sau.",
+                        "Cảm ơn tinh thần tình nguyện của các bạn trong ngày hôm nay!",
+                      ].map((tpl, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                            setDraft((prev) => (prev ? prev + " " + tpl : tpl));
+                            setShowQuickReplies(false);
+                          }}
+                          className="w-full text-left p-2 rounded-lg text-xs font-semibold text-slate-700 hover:bg-amber-50/50 hover:text-amber-800 transition border border-transparent hover:border-amber-100/50 cursor-pointer block truncate"
+                          title={tpl}
+                        >
+                          {tpl}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
             <input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
@@ -739,6 +986,7 @@ function ActiveChatArea({ campaignId, onBack }: { campaignId: string; onBack: ()
         <CampaignMembersModal
           campaignId={campaignId}
           campaign={campaign}
+          messages={formattedMessages}
           onClose={() => setIsMembersModalOpen(false)}
           onAvatarClick={(userId) => setSelectedUserId(userId)}
         />
@@ -751,20 +999,24 @@ function ActiveChatArea({ campaignId, onBack }: { campaignId: string; onBack: ()
   );
 }
 
-// ─── HELPER COMPONENT: CAMPAIGN MEMBERS MODAL ───
+// ─── HELPER COMPONENT: CAMPAIGN MEMBERS & MEDIA MODAL ───
 function CampaignMembersModal({
   campaignId,
   campaign,
+  messages,
   onClose,
   onAvatarClick,
 }: {
   campaignId: string;
   campaign: Campaign;
+  messages: ChatMessage[];
   onClose: () => void;
   onAvatarClick: (userId: number) => void;
 }) {
   const { data: participants = [], isLoading } = useCampaignParticipants(campaignId);
   const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState<"members" | "media">("members");
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
   const activeMembers = useMemo(() => {
     return participants.filter(
@@ -774,14 +1026,30 @@ function CampaignMembersModal({
     );
   }, [participants, search]);
 
+  const chatImages = useMemo(() => {
+    const list: { url: string; sender: string; time: string }[] = [];
+    messages.forEach((msg) => {
+      if (msg.imageUrls && msg.imageUrls.length > 0) {
+        msg.imageUrls.forEach((url) => {
+          list.push({
+            url,
+            sender: msg.sender,
+            time: msg.time,
+          });
+        });
+      }
+    });
+    return list;
+  }, [messages]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4 backdrop-blur-sm">
       <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl animate-[chatSlideUp_0.2s_ease] overflow-hidden flex flex-col max-h-[500px]">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 shrink-0">
+        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 shrink-0 bg-white">
           <div className="flex items-center gap-2 text-indigo-750 font-black text-sm uppercase tracking-wider">
             <Users size={16} className="text-indigo-650" />
-            Danh sách thành viên
+            Chi tiết phòng trò chuyện
           </div>
           <button
             onClick={onClose}
@@ -791,91 +1059,169 @@ function CampaignMembersModal({
           </button>
         </div>
 
+        {/* Tab Selection */}
+        <div className="flex border-b border-slate-100 bg-slate-50/50 shrink-0">
+          <button
+            onClick={() => setActiveTab("members")}
+            className={`flex-1 py-3 text-xs font-bold text-center border-b-2 transition ${
+              activeTab === "members"
+                ? "border-indigo-600 text-indigo-600 bg-white"
+                : "border-transparent text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            Thành viên ({activeMembers.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("media")}
+            className={`flex-1 py-3 text-xs font-bold text-center border-b-2 transition ${
+              activeTab === "media"
+                ? "border-indigo-600 text-indigo-600 bg-white"
+                : "border-transparent text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            Hình ảnh / Media ({chatImages.length})
+          </button>
+        </div>
+
         {/* Content */}
         <div className="p-5 flex-1 overflow-y-auto space-y-5">
-          {/* Admin / Host Section */}
-          <section>
-            <h5 className="mb-2.5 text-[10px] font-black uppercase tracking-wider text-slate-400">
-              Quản trị viên (Cán bộ)
-            </h5>
-            <div className="rounded-xl border border-amber-100 bg-amber-50/50 p-3 flex items-center gap-3">
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-100 text-xs font-black text-amber-700">
-                {getInitials(campaign.createdBy)}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-extrabold text-slate-800">
-                  {campaign.createdBy}
-                </p>
-                <p className="text-[10px] font-semibold text-slate-400">
-                  {campaign.ward || "Cán bộ phường"}
-                </p>
-              </div>
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-black text-amber-700 uppercase tracking-wide">
-                <Crown size={10} />
-                Admin
-              </span>
-            </div>
-          </section>
-
-          {/* Search bar for members */}
-          <section className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h5 className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                Thành viên ({activeMembers.length})
-              </h5>
-            </div>
-
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Tìm kiếm thành viên..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-4 py-2 text-xs font-semibold outline-none transition focus:border-indigo-500 focus:bg-white placeholder:text-slate-400 text-slate-800"
-              />
-            </div>
-
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-8 text-slate-400">
-                <Loader2 className="h-5 w-5 animate-spin mb-2" />
-                <span className="text-xs font-semibold">Đang tải danh sách...</span>
-              </div>
-            ) : activeMembers.length > 0 ? (
-              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                {activeMembers.map((member) => (
-                  <div
-                    key={member.id}
-                    onClick={() => onAvatarClick(member.citizenId)}
-                    className="flex items-center gap-3 rounded-xl p-2 hover:bg-slate-50 transition cursor-pointer border border-transparent hover:border-slate-100"
-                  >
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-indigo-50 text-xs font-black text-indigo-750">
-                      {getInitials(member.citizenName)}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-extrabold text-slate-800 hover:text-indigo-650 transition">
-                        {member.citizenName}
-                      </p>
-                      {member.citizenPhone && (
-                        <p className="text-[10px] font-medium text-slate-450 mt-0.5">
-                          SĐT: {member.citizenPhone}
-                        </p>
-                      )}
-                    </div>
-                    <span className="rounded-full bg-emerald-50 border border-emerald-100 px-2 py-0.5 text-[9px] font-black text-emerald-700">
-                      {getJoinStatusLabel(member.joinStatus)}
-                    </span>
+          {activeTab === "members" ? (
+            <>
+              {/* Admin / Host Section */}
+              <section>
+                <h5 className="mb-2.5 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                  Quản trị viên (Cán bộ)
+                </h5>
+                <div className="rounded-xl border border-amber-100 bg-amber-50/50 p-3 flex items-center gap-3">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-100 text-xs font-black text-amber-700">
+                    {getInitials(campaign.createdBy)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-extrabold text-slate-800">
+                      {campaign.createdBy}
+                    </p>
+                    <p className="text-[10px] font-semibold text-slate-400">
+                      {campaign.ward || "Cán bộ phường"}
+                    </p>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-xl border border-dashed border-slate-200 bg-white p-6 text-center text-xs font-semibold text-slate-400">
-                {search ? "Không tìm thấy thành viên nào." : "Chưa có thành viên nào tham gia."}
-              </div>
-            )}
-          </section>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-black text-amber-700 uppercase tracking-wide">
+                    <Crown size={10} />
+                    Admin
+                  </span>
+                </div>
+              </section>
+
+              {/* Search bar for members */}
+              <section className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h5 className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                    Danh sách thành viên
+                  </h5>
+                </div>
+
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm thành viên..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-4 py-2 text-xs font-semibold outline-none transition focus:border-indigo-500 focus:bg-white placeholder:text-slate-400 text-slate-800"
+                  />
+                </div>
+
+                {isLoading ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-slate-400">
+                    <Loader2 className="h-5 w-5 animate-spin mb-2" />
+                    <span className="text-xs font-semibold">Đang tải danh sách...</span>
+                  </div>
+                ) : activeMembers.length > 0 ? (
+                  <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                    {activeMembers.map((member) => (
+                      <div
+                        key={member.id}
+                        onClick={() => onAvatarClick(member.citizenId)}
+                        className="flex items-center gap-3 rounded-xl p-2 hover:bg-slate-50 transition cursor-pointer border border-transparent hover:border-slate-100"
+                      >
+                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-indigo-50 text-xs font-black text-indigo-750">
+                          {getInitials(member.citizenName)}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-extrabold text-slate-800 hover:text-indigo-650 transition">
+                            {member.citizenName}
+                          </p>
+                          {member.citizenPhone && (
+                            <p className="text-[10px] font-medium text-slate-450 mt-0.5">
+                              SĐT: {member.citizenPhone}
+                            </p>
+                          )}
+                        </div>
+                        <span className="rounded-full bg-emerald-50 border border-emerald-100 px-2 py-0.5 text-[9px] font-black text-emerald-700">
+                          {getJoinStatusLabel(member.joinStatus)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-slate-200 bg-white p-6 text-center text-xs font-semibold text-slate-400">
+                    {search ? "Không tìm thấy thành viên nào." : "Chưa có thành viên nào tham gia."}
+                  </div>
+                )}
+              </section>
+            </>
+          ) : (
+            <div className="space-y-4">
+              {chatImages.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center text-xs font-semibold text-slate-400 flex flex-col items-center justify-center">
+                  <Paperclip size={24} className="text-slate-350 mb-2" />
+                  Chưa có hình ảnh nào được gửi trong nhóm này.
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {chatImages.map((img, i) => (
+                    <div
+                      key={i}
+                      onClick={() => setPreviewImageUrl(img.url)}
+                      className="group relative aspect-square rounded-lg overflow-hidden border border-slate-200 bg-slate-50 cursor-pointer shadow-sm active:scale-95 transition-all"
+                      title={`Gửi bởi: ${img.sender} lúc ${img.time}`}
+                    >
+                      <img
+                        src={img.url}
+                        alt="Media upload"
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex flex-col justify-end p-1.5 text-white">
+                        <p className="text-[8px] font-black truncate">{img.sender}</p>
+                        <p className="text-[7px] font-bold opacity-80">{img.time}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
+
+      {previewImageUrl && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm cursor-zoom-out animate-[chatSlideUp_0.15s_ease]"
+          onClick={() => setPreviewImageUrl(null)}
+        >
+          <button
+            onClick={() => setPreviewImageUrl(null)}
+            className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white rounded-full p-2 transition"
+          >
+            <X size={20} />
+          </button>
+          <img
+            src={previewImageUrl}
+            alt="Preview large"
+            className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
+          />
+        </div>
+      )}
     </div>
   );
 }

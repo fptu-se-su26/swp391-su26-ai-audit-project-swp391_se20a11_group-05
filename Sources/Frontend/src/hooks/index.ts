@@ -135,11 +135,12 @@ export function usePublicFeedbackStatistics(filters: FeedbackListFilters = {}) {
   });
 }
 
-export function useWardStaffStatistics(date?: string) {
+export function useWardStaffStatistics(date?: string, options?: { enabled?: boolean }) {
   return useQuery<FeedbackLookupStatsResponse>({
     queryKey: ["ward-staff-dashboard-statistics", date || "all"],
     queryFn: () => feedbackApi.getWardStaffStatistics(date),
     staleTime: 30_000,
+    ...options,
   });
 }
 

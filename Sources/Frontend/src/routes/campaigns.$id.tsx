@@ -38,6 +38,7 @@ import {
   useFinalizeCampaign,
 } from "@/hooks/useCampaigns";
 import { useAuth } from "@/lib/auth";
+import { Role } from "@/lib/roles";
 import type { Campaign } from "@/lib/campaignStore";
 import { buildGoogleMapsSearchUrl, resolveCampaignCoordinates } from "@/lib/campaignLocation";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
@@ -64,7 +65,7 @@ export const Route = createFileRoute("/campaigns/$id")({
 const defaultHeroImage =
   "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&auto=format&fit=crop&q=85";
 
-export function CampaignDetailPage() {
+function CampaignDetailPage() {
   const { id } = Route.useParams();
   const { join } = Route.useSearch();
   return <CampaignDetailPageComponent campaignId={id} join={join} />;
@@ -398,10 +399,17 @@ export function CampaignDetailPageComponent({
       setAvailabilityHours("");
       setOtpCode("");
       setOtpSent(false);
-      navigate({
-        to: "/campaigns/$id/group-chat",
-        params: { id: campaign.id },
-      });
+      if (user?.role === Role.WARD_STAFF) {
+        navigate({
+          to: "/ward",
+          search: { tab: "chat", detailId: campaign.id },
+        });
+      } else {
+        navigate({
+          to: "/campaigns/$id/group-chat",
+          params: { id: campaign.id },
+        });
+      }
     } catch (error) {
       const err = error as Error;
       toast.error(err?.message || "Đăng ký không thành công. Vui lòng kiểm tra lại mã OTP.");
@@ -578,13 +586,23 @@ export function CampaignDetailPageComponent({
                     className="w-full"
                   >
                     {hasJoined ? (
-                      <Link
-                        to="/campaigns/$id/group-chat"
-                        params={{ id: campaign.id }}
-                        className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#7C3AED] text-sm font-black text-white shadow-sm transition hover:brightness-110"
-                      >
-                        Vào nhóm chat
-                      </Link>
+                      user?.role === Role.WARD_STAFF ? (
+                        <Link
+                          to="/ward"
+                          search={{ tab: "chat", detailId: campaign.id }}
+                          className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#7C3AED] text-sm font-black text-white shadow-sm transition hover:brightness-110"
+                        >
+                          Vào nhóm chat
+                        </Link>
+                      ) : (
+                        <Link
+                          to="/campaigns/$id/group-chat"
+                          params={{ id: campaign.id }}
+                          className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#7C3AED] text-sm font-black text-white shadow-sm transition hover:brightness-110"
+                        >
+                          Vào nhóm chat
+                        </Link>
+                      )
                     ) : (
                       <button
                         onClick={() => {
@@ -998,6 +1016,7 @@ function GroupChatNavigationCard({
 }) {
   const chat = useCampaignChat(campaign.id);
   const signalAttendance = useSignalAttendance(campaign.id);
+  const { user } = useAuth();
   const memberCount = Math.max(1, campaign.participants || 0);
   const latest = chat.chatMessages?.at(-1);
   const latestPreview = latest
@@ -1097,14 +1116,25 @@ function GroupChatNavigationCard({
         </div>
       )}
       {hasJoined ? (
-        <Link
-          to="/campaigns/$id/group-chat"
-          params={{ id: campaign.id }}
-          className={`mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl ${theme.primaryBg} px-4 text-sm font-black text-white shadow-sm transition ${theme.primaryHover} active:scale-[0.97]`}
-        >
-          Vào nhóm chat
-          <ArrowRight size={16} />
-        </Link>
+        user?.role === Role.WARD_STAFF ? (
+          <Link
+            to="/ward"
+            search={{ tab: "chat", detailId: campaign.id }}
+            className={`mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl ${theme.primaryBg} px-4 text-sm font-black text-white shadow-sm transition ${theme.primaryHover} active:scale-[0.97]`}
+          >
+            Vào nhóm chat
+            <ArrowRight size={16} />
+          </Link>
+        ) : (
+          <Link
+            to="/campaigns/$id/group-chat"
+            params={{ id: campaign.id }}
+            className={`mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl ${theme.primaryBg} px-4 text-sm font-black text-white shadow-sm transition ${theme.primaryHover} active:scale-[0.97]`}
+          >
+            Vào nhóm chat
+            <ArrowRight size={16} />
+          </Link>
+        )
       ) : (
         <button
           onClick={() => {

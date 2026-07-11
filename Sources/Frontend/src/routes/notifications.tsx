@@ -16,6 +16,7 @@ import { useEffect, useMemo, useRef, useState, type ComponentType } from "react"
 import { toast } from "sonner";
 import { getToken, type NotificationResponse } from "@/lib/api";
 import { useInfiniteNotifications, useMarkNotificationReadMutation } from "@/lib/hooks";
+import { highlightNotificationContent } from "@/lib/notificationHelper";
 import { useI18n } from "@/lib/i18n";
 import { useAuth, Role } from "@/lib/auth";
 
@@ -224,7 +225,7 @@ function NotificationCard({
       className={`card-civic p-5 border-l-4 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gov-blue ${
         item.isRead
           ? "!bg-white !border-slate-200 border-l-slate-200"
-          : "!bg-blue-50 !border-gov-blue border-l-gov-blue ring-1 ring-gov-blue/20"
+          : "!bg-blue-100/70 hover:!bg-blue-200/50 !border-gov-blue border-l-gov-blue ring-1 ring-gov-blue/20"
       }`}
     >
       <div className="grid grid-cols-[44px_minmax(0,1fr)_auto] gap-4 items-start">
@@ -243,7 +244,9 @@ function NotificationCard({
               </span>
             )}
           </div>
-          <p className="text-ink-soft mb-3 leading-relaxed">{item.content}</p>
+          <p className="text-ink-soft mb-3 leading-relaxed">
+            {highlightNotificationContent(item.content)}
+          </p>
 
           {(item.feedbackTrackingCode || item.feedbackTitle || statusLabel) && (
             <div className="rounded-lg border border-slate-200 bg-white/80 px-3 py-2 mb-3">

@@ -803,6 +803,7 @@ export function useCampaignChat(campaignId: string) {
     // Deduplicate by message ID
     const uniqueMap = new Map<string | number, CampaignChatMessageResponse>();
     for (const msg of allMsgs) {
+      if (!msg || msg.id === undefined || msg.id === null) continue;
       const existing = uniqueMap.get(msg.id);
       // Keep the real message if there's an optimistic duplicate
       if (!existing || (existing.id < 0 && msg.id >= 0)) {

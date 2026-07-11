@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/lib/auth";
 
 interface NotificationPayload {
   type: string;
@@ -17,8 +18,10 @@ export function useFeedbackNotification(feedbackId?: number | string) {
   const queryClient = useQueryClient();
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const { user } = useAuth();
 
   const connect = useCallback(() => {
+    if (!user) return;
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const host = window.location.host;
     // STOMP over WebSocket (simplified — raw WS for demo)
@@ -65,9 +68,10 @@ export function useFeedbackNotification(feedbackId?: number | string) {
     } catch {
       // WebSocket not available — silently degrade
     }
-  }, [feedbackId]);
+  }, [feedbackId, user]);
 
   useEffect(() => {
+    if (!user) return;
     connect();
     return () => {
       if (reconnectTimeoutRef.current) {
@@ -88,5 +92,5 @@ export function useFeedbackNotification(feedbackId?: number | string) {
         wsRef.current = null;
       }
     };
-  }, [connect]);
+  }, [connect, user]);
 }

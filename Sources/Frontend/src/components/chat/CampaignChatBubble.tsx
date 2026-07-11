@@ -10,6 +10,7 @@ export function CampaignChatBubble({
   onResend,
   onAvatarClick,
   onDelete,
+  highlightQuery,
 }: {
   message: ChatMessage;
   canManage: boolean;
@@ -18,9 +19,35 @@ export function CampaignChatBubble({
   onResend?: (message: ChatMessage) => void;
   onAvatarClick?: (userId: number) => void;
   onDelete?: (id: string) => void;
+  highlightQuery?: string;
 }) {
   const isFailed = message.status === "failed";
   const isSending = Number(message.id) < 0 && !isFailed;
+
+  const renderText = (text: string) => {
+    if (!highlightQuery || !highlightQuery.trim()) {
+      return <p className="text-sm font-medium leading-6">{text}</p>;
+    }
+    const parts = text.split(
+      new RegExp(`(${highlightQuery.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")})`, "gi"),
+    );
+    return (
+      <p className="text-sm font-medium leading-6">
+        {parts.map((part, index) =>
+          part.toLowerCase() === highlightQuery.toLowerCase() ? (
+            <mark
+              key={index}
+              className="bg-amber-300 text-slate-900 rounded-[2px] px-[2px] font-bold"
+            >
+              {part}
+            </mark>
+          ) : (
+            part
+          ),
+        )}
+      </p>
+    );
+  };
 
   if (message.role === "me") {
     return (
@@ -76,7 +103,7 @@ export function CampaignChatBubble({
           {message.imageUrls && message.imageUrls.length > 0 && (
             <CampaignImageGrid urls={message.imageUrls} />
           )}
-          {message.text && <p className="text-sm font-medium leading-6">{message.text}</p>}
+          {message.text && renderText(message.text)}
           <div className="mt-1 flex items-center justify-end gap-1 text-[10px] font-bold text-blue-100">
             <span>{message.time}</span>
             <span>
@@ -121,8 +148,7 @@ export function CampaignChatBubble({
       badgeIcon = "⚡";
       badgeTitle = "Thành viên Năng nổ (1-4 Chiến dịch)";
     } else {
-      borderStyle =
-        "ring-2 ring-slate-300 ring-offset-1 ring-offset-white shadow-sm";
+      borderStyle = "ring-2 ring-slate-300 ring-offset-1 ring-offset-white shadow-sm";
       badgeIcon = "🌱";
       badgeTitle = "Tình nguyện viên Mới (0 Chiến dịch)";
     }
@@ -201,7 +227,7 @@ export function CampaignChatBubble({
         {message.imageUrls && message.imageUrls.length > 0 && (
           <CampaignImageGrid urls={message.imageUrls} />
         )}
-        {message.text && <p className="text-sm font-medium leading-6">{message.text}</p>}
+        {message.text && renderText(message.text)}
         <p className="mt-1 text-[10px] font-bold text-slate-400">{message.time}</p>
       </div>
       {canManage && (

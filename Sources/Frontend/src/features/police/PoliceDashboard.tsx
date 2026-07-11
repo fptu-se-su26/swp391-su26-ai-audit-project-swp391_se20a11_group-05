@@ -59,6 +59,7 @@ import {
   type FeedbackResponse,
   type PoliceFeedbackResponse,
 } from "@/lib/api";
+import { highlightNotificationContent } from "@/lib/notificationHelper";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -811,8 +812,8 @@ export function PoliceDashboard() {
                         <button
                           key={item.id}
                           onClick={() => handleNotifClick(item)}
-                          className={`w-full text-left p-3.5 flex gap-3 transition-colors hover:bg-slate-50 ${
-                            item.isRead ? "opacity-70" : "bg-[#EFF6FF]"
+                          className={`w-full text-left p-3.5 flex gap-3 transition-colors hover:bg-slate-100 ${
+                            item.isRead ? "opacity-70" : "bg-[#D0E2FF] hover:bg-[#B3D1FF]"
                           }`}
                         >
                           <div className="w-8 h-8 rounded-full bg-[#0F5BD8]/10 text-[#0F5BD8] flex items-center justify-center shrink-0">
@@ -823,7 +824,7 @@ export function PoliceDashboard() {
                               {item.title}
                             </span>
                             <span className="text-[11px] text-slate-500 mt-0.5 line-clamp-2 leading-relaxed block">
-                              {item.content}
+                              {highlightNotificationContent(item.content)}
                             </span>
                           </div>
                         </button>

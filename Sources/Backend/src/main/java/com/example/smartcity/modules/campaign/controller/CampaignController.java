@@ -125,7 +125,7 @@ public class CampaignController {
     }
 
     @GetMapping("/{id}/participants")
-    @PreAuthorize("hasAnyRole('WARD_STAFF', 'POLICE', 'SUPER_ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<CampaignParticipantResponse>> getParticipants(
             @PathVariable Long id,
             Authentication authentication) {

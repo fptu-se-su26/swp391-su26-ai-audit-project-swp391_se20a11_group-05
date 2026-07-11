@@ -28,6 +28,7 @@ export type { RoleType };
 // ─── Types ───────────────────────────────────────────────────
 
 export interface AuthUser {
+  id?: number | null;
   name: string;
   role: RoleType;
   org: string;
@@ -97,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (profile) {
               const updated = {
                 ...parsed,
+                id: profile.id,
                 name: profile.fullName || parsed.name,
                 wardId: profile.wardId !== undefined ? profile.wardId : parsed.wardId,
                 avatarUrl: profile.avatarUrl || parsed.avatarUrl || null,
@@ -147,6 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (profile) {
           const updated = {
             ...u,
+            id: profile.id,
             name: profile.fullName || u.name,
             wardId: profile.wardId !== undefined ? profile.wardId : u.wardId,
             avatarUrl: profile.avatarUrl || u.avatarUrl || null,

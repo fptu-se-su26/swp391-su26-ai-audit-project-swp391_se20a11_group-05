@@ -242,8 +242,8 @@ export function WardDashboard() {
     data: feedbacksPage,
     isLoading: feedbacksLoading,
     refetch,
-  } = useFeedbacks(0, 500, feedbackDateFilters);
-  const { data: notifications = [], isLoading: notifLoading } = useNotifications();
+  } = useFeedbacks(0, 500, feedbackDateFilters, { enabled: !!user });
+  const { data: notifications = [], isLoading: notifLoading } = useNotifications(!!user);
   const { data: unreadCountData } = useNotificationUnreadCount(!!user);
   const markRead = useMarkNotificationReadMutation();
   const markAllRead = useMarkAllNotificationsReadMutation();
@@ -273,7 +273,7 @@ export function WardDashboard() {
     data: todayFeedbacksPage,
     isLoading: todayFeedbacksLoading,
     refetch: refetchToday,
-  } = useFeedbacks(0, 500, todayFeedbackFilters);
+  } = useFeedbacks(0, 500, todayFeedbackFilters, { enabled: !!user });
 
   const todayFeedbacks = useMemo(() => {
     const rawToday = todayFeedbacksPage?.content ?? [];
@@ -332,7 +332,7 @@ export function WardDashboard() {
     data: statsData,
     isLoading: statsLoading,
     refetch: refetchStats,
-  } = useWardStaffStatistics(dateStr || undefined);
+  } = useWardStaffStatistics(dateStr || undefined, { enabled: !!user });
 
   const dateLabel = selectedDate
     ? isTodayDate(selectedDate)
@@ -598,6 +598,10 @@ export function WardDashboard() {
     activeSection === "notifications"
       ? (locale === "vi" ? "Thông báo hệ thống" : "System Notifications")
       : menuItems.find((item) => item.section === activeSection)?.name || "Tổng quan";
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50/50 text-slate-800 font-sans antialiased flex">

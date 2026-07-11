@@ -28,6 +28,7 @@ import {
   useLeaveCampaign,
 } from "@/hooks/useCampaigns";
 import { useAuth } from "@/lib/auth";
+import { Role } from "@/lib/roles";
 import { API_BASE, getToken } from "@/lib/api";
 import { toast } from "sonner";
 import { CampaignChatBubble } from "./CampaignChatBubble";
@@ -402,7 +403,11 @@ export function FloatingCampaignChat({ campaignId, onClose }: FloatingCampaignCh
                     icon: MessageSquare,
                     color: "text-blue-500 bg-blue-50",
                     action: () => {
-                      window.location.href = `/campaigns/${campaignId}/group-chat`;
+                      if (user?.role === Role.WARD_STAFF) {
+                        window.location.href = `/ward?tab=chat&detailId=${campaignId}`;
+                      } else {
+                        window.location.href = `/campaigns/${campaignId}/group-chat`;
+                      }
                     },
                   },
                   {

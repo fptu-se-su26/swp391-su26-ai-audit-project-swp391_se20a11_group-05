@@ -28,6 +28,8 @@ import {
   Clock,
   LogOut,
   Key,
+  Eye,
+  EyeOff,
   Flag,
   Camera,
   Calendar,
@@ -319,6 +321,7 @@ export function ModernPoliceDashboard() {
     new: "",
     confirm: ""
   });
+  const [showPassword, setShowPassword] = useState(false);
   
   const [selectedFeedbackId, setSelectedFeedbackId] = useState<string | null>(null);
 
@@ -1464,17 +1467,26 @@ export function ModernPoliceDashboard() {
             <DialogTitle className="text-lg font-bold" style={{ color: colors.primaryNavy }}>Đổi mật khẩu</DialogTitle>
           </DialogHeader>
           <div className="py-2 space-y-4">
-            <div>
+            <div className="relative">
               <label className="block text-[13px] font-semibold text-slate-700 mb-1">Mật khẩu hiện tại</label>
-              <input type="password" value={passwordForm.current} onChange={e => setPasswordForm({...passwordForm, current: e.target.value})} className="w-full h-9 px-3 border rounded-[4px] text-sm focus:outline-none focus:ring-1 bg-slate-50 text-slate-700" style={{ borderColor: colors.border }} />
+              <input type={showPassword ? "text" : "password"} value={passwordForm.current} onChange={e => setPasswordForm({...passwordForm, current: e.target.value})} className="w-full h-9 px-3 pr-10 border rounded-[4px] text-sm focus:outline-none focus:ring-1 bg-slate-50 text-slate-700" style={{ borderColor: colors.border }} />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-[26px] text-slate-400 hover:text-slate-600 transition-colors">
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
-            <div>
+            <div className="relative">
               <label className="block text-[13px] font-semibold text-slate-700 mb-1">Mật khẩu mới</label>
-              <input type="password" value={passwordForm.new} onChange={e => setPasswordForm({...passwordForm, new: e.target.value})} className="w-full h-9 px-3 border rounded-[4px] text-sm focus:outline-none focus:ring-1 bg-slate-50 text-slate-700" style={{ borderColor: colors.border }} />
+              <input type={showPassword ? "text" : "password"} value={passwordForm.new} onChange={e => setPasswordForm({...passwordForm, new: e.target.value})} className="w-full h-9 px-3 pr-10 border rounded-[4px] text-sm focus:outline-none focus:ring-1 bg-slate-50 text-slate-700" style={{ borderColor: colors.border }} />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-[26px] text-slate-400 hover:text-slate-600 transition-colors">
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
-            <div>
+            <div className="relative">
               <label className="block text-[13px] font-semibold text-slate-700 mb-1">Xác nhận mật khẩu mới</label>
-              <input type="password" value={passwordForm.confirm} onChange={e => setPasswordForm({...passwordForm, confirm: e.target.value})} className="w-full h-9 px-3 border rounded-[4px] text-sm focus:outline-none focus:ring-1 bg-slate-50 text-slate-700" style={{ borderColor: colors.border }} />
+              <input type={showPassword ? "text" : "password"} value={passwordForm.confirm} onChange={e => setPasswordForm({...passwordForm, confirm: e.target.value})} className="w-full h-9 px-3 pr-10 border rounded-[4px] text-sm focus:outline-none focus:ring-1 bg-slate-50 text-slate-700" style={{ borderColor: colors.border }} />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-[26px] text-slate-400 hover:text-slate-600 transition-colors">
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
           </div>
           <DialogFooter className="flex justify-end gap-3 mt-4">

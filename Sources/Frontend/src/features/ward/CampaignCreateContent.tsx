@@ -142,7 +142,7 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
     return () => clearTimeout(timer);
   }, [locationText]);
 
-  const canCreate = isAuthenticated && user?.role === Role.WARD_STAFF;
+  const canCreate = isAuthenticated && (user?.role === Role.WARD_STAFF || user?.role === Role.POLICE);
   const startTime = combineDateTime(startDate, startClock);
   const endTime = combineDateTime(endDate, endClock);
 
@@ -350,17 +350,26 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
         </div>
         <h1 className="text-2xl font-black text-slate-900">Quyền truy cập bị giới hạn</h1>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Chỉ có cán bộ địa phương phụ trách được cấp quyền tạo các chiến dịch cộng đồng mới.
+          Chỉ có cán bộ địa phương hoặc lực lượng Công an phụ trách được cấp quyền tạo các chiến dịch cộng đồng mới.
           Người dân có thể đăng ký tham gia các chiến dịch khi đã được phê duyệt chính thức.
         </p>
-        <Link
-          to="/ward"
-          search={{ tab: "campaign" }}
-          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-indigo-700 active:scale-[0.97]"
-        >
-          <ArrowLeft size={16} />
-          Quay lại danh sách
-        </Link>
+        {onBack ? (
+          <button
+            onClick={onBack}
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-indigo-700 active:scale-[0.97]"
+          >
+            <ArrowLeft size={16} />
+            Quay lại
+          </button>
+        ) : (
+          <Link
+            to="/"
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-indigo-700 active:scale-[0.97]"
+          >
+            <ArrowLeft size={16} />
+            Quay lại trang chủ
+          </Link>
+        )}
       </section>
     );
   }

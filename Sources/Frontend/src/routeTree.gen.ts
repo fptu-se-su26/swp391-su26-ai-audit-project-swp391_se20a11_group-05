@@ -22,8 +22,10 @@ import { Route as AuthorityLoginRouteImport } from './routes/authority-login'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MyReportsIndexRouteImport } from './routes/my-reports.index'
+import { Route as LeaderboardIndexRouteImport } from './routes/leaderboard.index'
 import { Route as CampaignsIndexRouteImport } from './routes/campaigns.index'
 import { Route as MyReportsIdRouteImport } from './routes/my-reports.$id'
+import { Route as LeaderboardWardIdRouteImport } from './routes/leaderboard.$wardId'
 import { Route as CampaignsCreateRouteImport } from './routes/campaigns.create'
 import { Route as CampaignsIdRouteImport } from './routes/campaigns.$id'
 import { Route as AuthWardRouteImport } from './routes/_auth.ward'
@@ -97,6 +99,11 @@ const MyReportsIndexRoute = MyReportsIndexRouteImport.update({
   path: '/my-reports/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LeaderboardIndexRoute = LeaderboardIndexRouteImport.update({
+  id: '/leaderboard/',
+  path: '/leaderboard/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CampaignsIndexRoute = CampaignsIndexRouteImport.update({
   id: '/campaigns/',
   path: '/campaigns/',
@@ -105,6 +112,11 @@ const CampaignsIndexRoute = CampaignsIndexRouteImport.update({
 const MyReportsIdRoute = MyReportsIdRouteImport.update({
   id: '/my-reports/$id',
   path: '/my-reports/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeaderboardWardIdRoute = LeaderboardWardIdRouteImport.update({
+  id: '/leaderboard/$wardId',
+  path: '/leaderboard/$wardId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CampaignsCreateRoute = CampaignsCreateRouteImport.update({
@@ -167,8 +179,10 @@ export interface FileRoutesByFullPath {
   '/ward': typeof AuthWardRoute
   '/campaigns/$id': typeof CampaignsIdRouteWithChildren
   '/campaigns/create': typeof CampaignsCreateRoute
+  '/leaderboard/$wardId': typeof LeaderboardWardIdRoute
   '/my-reports/$id': typeof MyReportsIdRoute
   '/campaigns/': typeof CampaignsIndexRoute
+  '/leaderboard/': typeof LeaderboardIndexRoute
   '/my-reports/': typeof MyReportsIndexRoute
   '/campaigns/$id/group-chat': typeof CampaignsIdGroupChatRoute
   '/authority/feedback/$feedbackId': typeof AuthAuthorityFeedbackFeedbackIdRoute
@@ -191,8 +205,10 @@ export interface FileRoutesByTo {
   '/ward': typeof AuthWardRoute
   '/campaigns/$id': typeof CampaignsIdRouteWithChildren
   '/campaigns/create': typeof CampaignsCreateRoute
+  '/leaderboard/$wardId': typeof LeaderboardWardIdRoute
   '/my-reports/$id': typeof MyReportsIdRoute
   '/campaigns': typeof CampaignsIndexRoute
+  '/leaderboard': typeof LeaderboardIndexRoute
   '/my-reports': typeof MyReportsIndexRoute
   '/campaigns/$id/group-chat': typeof CampaignsIdGroupChatRoute
   '/authority/feedback/$feedbackId': typeof AuthAuthorityFeedbackFeedbackIdRoute
@@ -217,8 +233,10 @@ export interface FileRoutesById {
   '/_auth/ward': typeof AuthWardRoute
   '/campaigns/$id': typeof CampaignsIdRouteWithChildren
   '/campaigns/create': typeof CampaignsCreateRoute
+  '/leaderboard/$wardId': typeof LeaderboardWardIdRoute
   '/my-reports/$id': typeof MyReportsIdRoute
   '/campaigns/': typeof CampaignsIndexRoute
+  '/leaderboard/': typeof LeaderboardIndexRoute
   '/my-reports/': typeof MyReportsIndexRoute
   '/campaigns/$id/group-chat': typeof CampaignsIdGroupChatRoute
   '/_auth/authority/feedback/$feedbackId': typeof AuthAuthorityFeedbackFeedbackIdRoute
@@ -243,8 +261,10 @@ export interface FileRouteTypes {
     | '/ward'
     | '/campaigns/$id'
     | '/campaigns/create'
+    | '/leaderboard/$wardId'
     | '/my-reports/$id'
     | '/campaigns/'
+    | '/leaderboard/'
     | '/my-reports/'
     | '/campaigns/$id/group-chat'
     | '/authority/feedback/$feedbackId'
@@ -267,8 +287,10 @@ export interface FileRouteTypes {
     | '/ward'
     | '/campaigns/$id'
     | '/campaigns/create'
+    | '/leaderboard/$wardId'
     | '/my-reports/$id'
     | '/campaigns'
+    | '/leaderboard'
     | '/my-reports'
     | '/campaigns/$id/group-chat'
     | '/authority/feedback/$feedbackId'
@@ -292,8 +314,10 @@ export interface FileRouteTypes {
     | '/_auth/ward'
     | '/campaigns/$id'
     | '/campaigns/create'
+    | '/leaderboard/$wardId'
     | '/my-reports/$id'
     | '/campaigns/'
+    | '/leaderboard/'
     | '/my-reports/'
     | '/campaigns/$id/group-chat'
     | '/_auth/authority/feedback/$feedbackId'
@@ -314,8 +338,10 @@ export interface RootRouteChildren {
   VerifyOtpRoute: typeof VerifyOtpRoute
   CampaignsIdRoute: typeof CampaignsIdRouteWithChildren
   CampaignsCreateRoute: typeof CampaignsCreateRoute
+  LeaderboardWardIdRoute: typeof LeaderboardWardIdRoute
   MyReportsIdRoute: typeof MyReportsIdRoute
   CampaignsIndexRoute: typeof CampaignsIndexRoute
+  LeaderboardIndexRoute: typeof LeaderboardIndexRoute
   MyReportsIndexRoute: typeof MyReportsIndexRoute
 }
 
@@ -412,6 +438,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MyReportsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/leaderboard/': {
+      id: '/leaderboard/'
+      path: '/leaderboard'
+      fullPath: '/leaderboard/'
+      preLoaderRoute: typeof LeaderboardIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/campaigns/': {
       id: '/campaigns/'
       path: '/campaigns'
@@ -424,6 +457,13 @@ declare module '@tanstack/react-router' {
       path: '/my-reports/$id'
       fullPath: '/my-reports/$id'
       preLoaderRoute: typeof MyReportsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leaderboard/$wardId': {
+      id: '/leaderboard/$wardId'
+      path: '/leaderboard/$wardId'
+      fullPath: '/leaderboard/$wardId'
+      preLoaderRoute: typeof LeaderboardWardIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/campaigns/create': {
@@ -530,8 +570,10 @@ const rootRouteChildren: RootRouteChildren = {
   VerifyOtpRoute: VerifyOtpRoute,
   CampaignsIdRoute: CampaignsIdRouteWithChildren,
   CampaignsCreateRoute: CampaignsCreateRoute,
+  LeaderboardWardIdRoute: LeaderboardWardIdRoute,
   MyReportsIdRoute: MyReportsIdRoute,
   CampaignsIndexRoute: CampaignsIndexRoute,
+  LeaderboardIndexRoute: LeaderboardIndexRoute,
   MyReportsIndexRoute: MyReportsIndexRoute,
 }
 export const routeTree = rootRouteImport

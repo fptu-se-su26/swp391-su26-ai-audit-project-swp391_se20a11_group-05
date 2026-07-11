@@ -1,9 +1,9 @@
 import React, { useState, Suspense, useMemo, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth";
-import { useHotspots, usePoliceAssignedFeedbacks, useAcceptFeedback, useRejectFeedback, useRequestMoreInfo, useUpdatePoliceFeedbackStatus } from "@/hooks";
+import { useHotspots, usePoliceAssignedFeedbacks, useAcceptFeedback, useRejectFeedback, useRequestMoreInfo, useUpdatePoliceFeedbackStatus, useSubmitPoliceFeedbackResult } from "@/hooks";
 import { clientOnly } from "@/components/ClientOnly";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { authApi } from "@/lib/api";
+import { authApi, policeApi } from "@/lib/api";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
@@ -40,13 +40,13 @@ const HeatmapMap = clientOnly(() =>
   import("@/components/site/HeatmapMap").then((m) => ({ default: m.HeatmapMap })),
 ) as any;
 const initialSchedule = [
-  { day: "Thứ 2", date: "29/06", morning: "Trực ban hành chính", mOfficer: "Đ/c Nguyễn Văn A", afternoon: "Xử lý hồ sơ", aOfficer: "Đ/c Lê Thị B", night: "-", nOfficer: "-" },
+  { day: "Thứ 2", date: "29/06", morning: "Trực ban hành chính", mOfficer: "Đ/c Nguyễn Văn A", afternoon: "Xử lý hồ sơ", aOfficer: "Đ/c Lê Thị B", night: "Trực ban", nOfficer: "Đ/c Lê Thị B" },
   { day: "Thứ 3", date: "30/06", morning: "Tuần tra địa bàn", mOfficer: "Đ/c Phạm Văn C, Đ/c Võ D", afternoon: "Tuần tra địa bàn", aOfficer: "Đ/c Phạm Văn C, Đ/c Võ D", night: "Trực chỉ huy", nOfficer: "Đ/c Hoàng Văn E" },
-  { day: "Thứ 4", date: "01/07", morning: "Nghỉ bù", mOfficer: "-", afternoon: "Nghỉ bù", aOfficer: "-", night: "-", nOfficer: "-" },
-  { day: "Thứ 5", date: "02/07", morning: "Xử lý hồ sơ", mOfficer: "Đ/c Trần H", afternoon: "Tiếp công dân", aOfficer: "Đ/c Nguyễn Văn A", night: "-", nOfficer: "-" },
+  { day: "Thứ 4", date: "01/07", morning: "Nghỉ bù", mOfficer: "-", afternoon: "Nghỉ bù", aOfficer: "-", night: "Tuần tra đêm", nOfficer: "Đ/c Nguyễn Văn A" },
+  { day: "Thứ 5", date: "02/07", morning: "Xử lý hồ sơ", mOfficer: "Đ/c Trần H", afternoon: "Tiếp công dân", aOfficer: "Đ/c Nguyễn Văn A", night: "Trực chỉ huy", nOfficer: "Đ/c Đặng L" },
   { day: "Thứ 6", date: "03/07", morning: "Họp giao ban", mOfficer: "Toàn Đội", afternoon: "Trực ban hành chính", aOfficer: "Đ/c Lê Thị B", night: "Tuần tra đêm", nOfficer: "Đ/c Phạm Văn C, Đ/c Trần H" },
-  { day: "Thứ 7", date: "04/07", morning: "-", mOfficer: "-", afternoon: "-", aOfficer: "-", night: "-", nOfficer: "-" },
-  { day: "Chủ nhật", date: "05/07", morning: "Trực ban", mOfficer: "Đ/c Đặng L", afternoon: "Trực ban", aOfficer: "Đ/c Đặng L", night: "-", nOfficer: "-" },
+  { day: "Thứ 7", date: "04/07", morning: "-", mOfficer: "-", afternoon: "-", aOfficer: "-", night: "Trực ban", nOfficer: "Đ/c Võ D" },
+  { day: "Chủ nhật", date: "05/07", morning: "Trực ban", mOfficer: "Đ/c Đặng L", afternoon: "Trực ban", aOfficer: "Đ/c Đặng L", night: "Tuần tra đêm", nOfficer: "Đ/c Trần H" },
 ];
 
 const DutyRoster = () => {
@@ -311,11 +311,30 @@ export function ModernPoliceDashboard() {
   const rejectMut = useRejectFeedback();
   const requestInfoMut = useRequestMoreInfo();
   const updateStatusMut = useUpdatePoliceFeedbackStatus();
+  const submitResultMut = useSubmitPoliceFeedbackResult();
 
   const [rejectingItem, setRejectingItem] = useState<any>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [requestInfoItem, setRequestInfoItem] = useState<any>(null);
   const [requestReason, setRequestReason] = useState("");
+  const [submittingItem, setSubmittingItem] = useState<any>(null);
+  const [resultNote, setResultNote] = useState("");
+
+  const handleSubmitResult = async () => {
+    if (!resultNote.trim()) {
+      toast.error("Vui lòng nhập kết quả xử lý");
+      return;
+    }
+    try {
+      await submitResultMut.mutateAsync({ id: submittingItem.id, resultNote });
+      toast.success("Đã báo cáo kết quả xử lý");
+      setSubmittingItem(null);
+      setResultNote("");
+      setFilterStatus("RESOLVED");
+    } catch (err) {
+      toast.error("Không thể báo cáo kết quả");
+    }
+  };
 
   const handleAccept = async (e: React.MouseEvent, id: number | string) => {
     e.stopPropagation();
@@ -387,10 +406,45 @@ export function ModernPoliceDashboard() {
     }
   };
 
+  const [aiGroups, setAiGroups] = useState<any[]>([]);
+  const [isAnalyzingAI, setIsAnalyzingAI] = useState(false);
+
+  const handleAnalyzeAI = async () => {
+    setIsAnalyzingAI(true);
+    try {
+      const res = await policeApi.analyzeDuplicates();
+      if (res) {
+        setAiGroups(res);
+      }
+    } catch (e) {
+      console.error("AI Error:", e);
+    } finally {
+      setIsAnalyzingAI(false);
+    }
+  };
+
   // Filtered feedbacks: Separate priority (same title >= 2) and regular
   const { priorityFeedbacks, regularFeedbacks } = useMemo(() => {
     if (!feedbacksData) return { priorityFeedbacks: [], regularFeedbacks: [] };
     
+    if (aiGroups && aiGroups.length > 0) {
+      const pList: any[] = [];
+      const rList: any[] = [];
+      const duplicateIds = new Set<number>();
+      aiGroups.forEach(g => {
+        g.feedbackIds.forEach((id: number) => duplicateIds.add(id));
+      });
+      feedbacksData.forEach(f => {
+        if (duplicateIds.has(f.id)) {
+           const group = aiGroups.find(g => g.feedbackIds.includes(f.id));
+           pList.push({ ...f, _aiScore: group?.matchScore || 90, _aiReason: group?.reason });
+        } else {
+           rList.push(f);
+        }
+      });
+      return { priorityFeedbacks: pList, regularFeedbacks: rList };
+    }
+
     // Group feedbacks by a content key (title + location) to find duplicates
     const contentGroups: Record<string, typeof feedbacksData> = {};
     feedbacksData.forEach(f => {
@@ -816,6 +870,24 @@ export function ModernPoliceDashboard() {
                     <h3 className="font-bold text-sm uppercase" style={{ color: colors.primaryNavy }}>Vụ việc ưu tiên</h3>
                     <button className="text-xs font-medium hover:underline" style={{ color: colors.secondaryBlue }}>Xem tất cả</button>
                   </div>
+                  <div className="p-4 border-b bg-red-50/50 flex items-center justify-between" style={{ borderColor: colors.border }}>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-[13px] font-bold uppercase tracking-wide" style={{ color: colors.criticalRed }}>
+                        Hồ Sơ Cần Ưu Tiên (Gom Nhóm AI)
+                      </h4>
+                      <span className="bg-red-100 text-red-600 text-[10px] px-1.5 py-0.5 rounded font-bold">
+                        {Object.keys(groupedPriorityIncidents).length} Vụ Việc
+                      </span>
+                    </div>
+                    <button 
+                      onClick={handleAnalyzeAI} 
+                      disabled={isAnalyzingAI}
+                      className="text-[11px] bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-[4px] font-bold flex items-center gap-1.5 disabled:opacity-50 transition-colors shadow-sm"
+                    >
+                      {isAnalyzingAI ? <RefreshCw size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                      Phân Tích AI
+                    </button>
+                  </div>
                   <div className="flex-1 overflow-auto">
                     <table className="w-full text-left text-sm">
                       <thead className="bg-slate-50 sticky top-0">
@@ -838,7 +910,8 @@ export function ModernPoliceDashboard() {
                               {items.map((row) => {
                                 const isUrgent = row.priority === "CRITICAL" || row.priority === "HIGH";
                                 // Mock AI Score (tạo số ngẫu nhiên nhưng cố định theo ID để demo)
-                                const mockScore = 85 + (Number(row.id) % 15);
+                                const aiScore = (row as any)._aiScore || (85 + (Number(row.id) % 15));
+                                const aiReason = (row as any)._aiReason || "Khớp: Tiêu đề, Nội dung, Định vị";
                                 
                                 return (
                                   <tr key={row.id} 
@@ -857,9 +930,9 @@ export function ModernPoliceDashboard() {
                                       </span>
                                     </td>
                                     <td className="px-4 py-3">
-                                      <div className="flex items-center gap-1.5" title="Khớp: Tiêu đề, Nội dung, Định vị">
+                                      <div className="flex items-center gap-1.5" title={aiReason}>
                                         <span className="text-[11px] font-bold text-green-700 bg-green-100 px-1.5 py-0.5 rounded-[4px] border border-green-200">
-                                          {mockScore}%
+                                          {aiScore}%
                                         </span>
                                         <span className="text-[10px] font-semibold text-slate-400">3/4</span>
                                       </div>
@@ -1053,6 +1126,16 @@ export function ModernPoliceDashboard() {
                                       </button>
                                     </div>
                                   )}
+                                  {item.status === "IN_PROGRESS" && (
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); setSubmittingItem(item); }}
+                                        className="px-2 py-1 bg-green-600 text-white text-[11px] font-bold rounded hover:bg-green-700"
+                                      >
+                                        Báo cáo kết quả
+                                      </button>
+                                    </div>
+                                  )}
                                 </td>
                               </tr>
                             );
@@ -1155,6 +1238,42 @@ export function ModernPoliceDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Submit Result Dialog */}
+      <Dialog open={!!submittingItem} onOpenChange={(open) => !open && setSubmittingItem(null)}>
+        <DialogContent className="bg-white rounded-[8px] p-6 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold" style={{ color: colors.successGreen }}>Báo cáo kết quả xử lý</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-slate-600 mb-2">Nhập kết quả xử lý phản ánh này để báo cáo cho người dân và lưu trữ vào hồ sơ.</p>
+            <textarea
+              value={resultNote}
+              onChange={(e) => setResultNote(e.target.value)}
+              placeholder="VD: Đã tiến hành kiểm tra, xử phạt vi phạm hành chính..."
+              className="w-full min-h-[100px] p-3 border rounded-[4px] text-sm focus:outline-none focus:ring-1 bg-slate-50"
+              style={{ borderColor: colors.border }}
+            />
+          </div>
+          <DialogFooter className="flex justify-end gap-3">
+            <button
+              onClick={() => setSubmittingItem(null)}
+              className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-[4px] hover:bg-slate-200"
+            >
+              Hủy
+            </button>
+            <button
+              onClick={handleSubmitResult}
+              disabled={submitResultMut.isPending}
+              className="px-4 py-2 text-sm font-bold text-white rounded-[4px] disabled:opacity-50"
+              style={{ backgroundColor: colors.successGreen }}
+            >
+              {submitResultMut.isPending ? "Đang lưu..." : "Xác nhận hoàn thành"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       {/* Profile Dialog */}
       <Dialog open={isProfileDialogOpen} onOpenChange={(open) => { setIsProfileDialogOpen(open); if(!open) setIsEditingProfile(false); }}>

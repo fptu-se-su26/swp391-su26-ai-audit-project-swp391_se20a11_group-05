@@ -1,4 +1,4 @@
-package com.example.smartcity.modules.chat.dto;
+package com.example.smartcity.modules.chatbot.dto;
 
 import lombok.Data;
 import java.util.List;

@@ -24,6 +24,8 @@ public class CampaignScheduler {
     private final CampaignParticipantRepository participantRepository;
     private final NotificationService notificationService;
     private final NotificationRepository notificationRepository;
+    private final com.example.smartcity.modules.user.service.UserService userService;
+    private final com.example.smartcity.modules.notification.service.ExternalNotificationService externalNotificationService;
 
     // Chạy mỗi 15 phút một lần để kiểm tra và gửi thông báo nhắc nhở 24h
     @Scheduled(fixedDelay = 900000)
@@ -171,7 +173,8 @@ public class CampaignScheduler {
                     participant.setAttended(false);
                     participant.setAttendedAt(now);
                     participant.setRejectionReason("Hệ thống tự động đánh dấu vắng mặt do không tham gia điểm danh (Chiến dịch kết thúc tự động)");
-                    participantRepository.save(participant);
+                    CampaignParticipant saved = participantRepository.save(participant);
+                    verifyAndApplyCampaignBan(saved.getCitizen(), campaign);
                 }
             }
 
@@ -185,6 +188,25 @@ public class CampaignScheduler {
 
             // Gửi thông báo kết thúc chiến dịch tự động cho người dân đã đăng ký
             notificationService.notifyCampaignEndedAutomatically(campaign.getId(), campaign.getTitle());
+        }
+    }
+
+    private void verifyAndApplyCampaignBan(com.example.smartcity.modules.user.entity.User citizen, Campaign campaign) {
+        boolean banned = userService.checkAndBanFromCampaigns(citizen.getId(), campaign.getTitle());
+        if (banned) {
+            notificationService.createCampaignNotification(
+                    citizen,
+                    campaign.getId(),
+                    "Bị cấm tham gia chiến dịch",
+                    String.format("Tài khoản của bạn đã bị cấm đăng ký tham gia chiến dịch cộng đồng mới do vắng mặt lần thứ 3 tại chiến dịch '%s'. Bạn có thể gửi đơn xin mở khóa trong trang cá nhân.", campaign.getTitle()),
+                    "CAMPAIGN_BANNED"
+            );
+            if (citizen.getEmail() != null && !citizen.getEmail().isBlank()) {
+                String subject = "[SmartCity] Tài khoản bị cấm tham gia chiến dịch";
+                String body = String.format("Chào %s,\n\nTài khoản của bạn đã bị cấm đăng ký tham gia chiến dịch cộng đồng mới do vắng mặt quá 3 lần (lần thứ 3 vắng mặt tại chiến dịch: \"%s\").\n\nBạn có thể gửi đơn giải trình trực tuyến trên ứng dụng để được Cán bộ phường phê duyệt mở khóa.\n\nTrân trọng,\nBan Quản Trị SmartCity",
+                        citizen.getFullName(), campaign.getTitle());
+                externalNotificationService.sendEmailNotification(citizen.getEmail(), subject, body);
+            }
         }
     }
 }

@@ -116,4 +116,71 @@ class UserServiceTest {
         assertTrue(result);
         verify(campaignParticipantRepository).existsByCitizenIdAndWardId(5L, 10L);
     }
+
+    @Test
+    @DisplayName("Should return false immediately if citizen is already campaign banned")
+    void checkAndBanFromCampaigns_alreadyBanned() {
+        User citizen = new User("citizen1", "encoded", "Citizen One", "0905123456", "citizen@example.com", Role.CITIZEN);
+        citizen.setCampaignBanned(true);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(citizen));
+
+        boolean result = userService.checkAndBanFromCampaigns(1L, "Clean Up");
+
+        assertFalse(result);
+        verify(campaignParticipantRepository, never()).countNoShowCampaignsAfter(any(), any());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should return false if citizen has less than 3 no-shows since last unban")
+    void checkAndBanFromCampaigns_lessThanThreeNoShows() {
+        User citizen = new User("citizen1", "encoded", "Citizen One", "0905123456", "citizen@example.com", Role.CITIZEN);
+        citizen.setCampaignBanned(false);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(citizen));
+        when(campaignParticipantRepository.countNoShowCampaigns(1L)).thenReturn(2L);
+
+        boolean result = userService.checkAndBanFromCampaigns(1L, "Clean Up");
+
+        assertFalse(result);
+        assertFalse(citizen.isCampaignBanned());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should ban citizen and return true if citizen has 3 or more no-shows since last unban")
+    void checkAndBanFromCampaigns_threeOrMoreNoShows() {
+        User citizen = new User("citizen1", "encoded", "Citizen One", "0905123456", "citizen@example.com", Role.CITIZEN);
+        citizen.setCampaignBanned(false);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(citizen));
+        when(campaignParticipantRepository.countNoShowCampaigns(1L)).thenReturn(3L);
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        boolean result = userService.checkAndBanFromCampaigns(1L, "Clean Up");
+
+        assertTrue(result);
+        assertTrue(citizen.isCampaignBanned());
+        verify(userRepository).save(citizen);
+    }
+
+    @Test
+    @DisplayName("Should ban citizen and return true if citizen has 1 or more no-shows after being unbanned")
+    void checkAndBanFromCampaigns_oneOrMoreNoShowsAfterUnban() {
+        User citizen = new User("citizen1", "encoded", "Citizen One", "0905123456", "citizen@example.com", Role.CITIZEN);
+        citizen.setCampaignBanned(false);
+        java.time.LocalDateTime unbanTime = java.time.LocalDateTime.now().minusDays(1);
+        citizen.setLastCampaignUnbanAt(unbanTime);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(citizen));
+        when(campaignParticipantRepository.countNoShowCampaignsAfter(1L, unbanTime)).thenReturn(1L);
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        boolean result = userService.checkAndBanFromCampaigns(1L, "Clean Up");
+
+        assertTrue(result);
+        assertTrue(citizen.isCampaignBanned());
+        verify(userRepository).save(citizen);
+    }
 }

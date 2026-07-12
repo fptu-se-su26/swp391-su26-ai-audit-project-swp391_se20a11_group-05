@@ -18,6 +18,7 @@ public abstract class UserMapper implements BaseMapper<User, UserDTO> {
     @Mapping(target = "wardId", source = "ward.id")
     @Mapping(target = "isActive", source = "active")
     @Mapping(target = "isMfaEnabled", source = "mfaEnabled")
+    @Mapping(target = "isCampaignBanned", source = "campaignBanned")
     @Mapping(target = "completedCampaignCount", expression = "java(countCompletedCampaigns(entity))")
     @Mapping(target = "noShowCampaignCount", expression = "java(countNoShowCampaigns(entity))")
     @Mapping(target = "reputationBadge", expression = "java(determineReputationBadge(countCompletedCampaigns(entity)))")

@@ -102,4 +102,12 @@ public class PoliceFeedbackController {
         PoliceFeedbackResponse res = feedbackService.requestMoreInfo(id, authentication.getName(), request);
         return ResponseEntity.ok(ApiResponse.success("Đã yêu cầu người dân bổ sung thông tin", res));
     }
+    /**
+     * GET /api/police/feedbacks/analyze-duplicates - Sử dụng AI để phân tích và gom nhóm các phản ánh trùng lặp
+     */
+    @GetMapping("/analyze-duplicates")
+    public ResponseEntity<ApiResponse<List<com.example.smartcity.modules.police.dto.AiDeduplicationResponse>>> analyzeDuplicates(Authentication authentication) {
+        List<com.example.smartcity.modules.police.dto.AiDeduplicationResponse> res = feedbackService.analyzeDuplicates(authentication.getName());
+        return ResponseEntity.ok(ApiResponse.success("Phân tích trùng lặp bằng AI thành công", res));
+    }
 }

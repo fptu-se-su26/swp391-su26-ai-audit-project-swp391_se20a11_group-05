@@ -22,9 +22,22 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-export default function WardBlacklistPage() {
-  const [activeTab, setActiveTab] = useState<"platform" | "appeals">("platform");
+interface WardBlacklistPageProps {
+  defaultAppealId?: number;
+}
+
+export default function WardBlacklistPage({ defaultAppealId }: WardBlacklistPageProps) {
+  const [activeTab, setActiveTab] = useState<"platform" | "appeals">(
+    defaultAppealId ? "appeals" : "platform"
+  );
   const [search, setSearch] = useState("");
+
+  React.useEffect(() => {
+    if (defaultAppealId) {
+      setActiveTab("appeals");
+      setSelectedAppealId(defaultAppealId);
+    }
+  }, [defaultAppealId]);
   
   // Platform blacklist hooks
   const { data: bannedUsers = [], isLoading: isBlacklistLoading, error: blacklistError, refetch: refetchBlacklist } = useBlacklistQuery();
@@ -35,7 +48,7 @@ export default function WardBlacklistPage() {
   const approveAppealMutation = useApproveCampaignAppealMutation();
   const rejectAppealMutation = useRejectCampaignAppealMutation();
 
-  const [selectedAppealId, setSelectedAppealId] = useState<number | null>(null);
+  const [selectedAppealId, setSelectedAppealId] = useState<number | null>(defaultAppealId || null);
   const [reviewNotes, setReviewNotes] = useState("");
 
   const handleUnban = async (userId: number, fullName: string) => {
@@ -258,12 +271,16 @@ export default function WardBlacklistPage() {
                           )}
                         </td>
                         <td className="px-6 py-4 text-center">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50">
-                            {user.warningCount || 0} / 3 cảnh cáo
-                          </span>
+                          {user.status === "BANNED" ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50">
+                              {user.warningCount || 0} / 3 cảnh cáo
+                            </span>
+                          ) : (
+                            <span className="text-xs text-slate-400 font-semibold">—</span>
+                          )}
                         </td>
                         <td className="px-6 py-4">
-                          {user.isCampaignBanned && user.status !== "BANNED" ? (
+                          {user.campaignBanned && user.status !== "BANNED" ? (
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400 border border-amber-200 dark:border-amber-900/30">
                               <AlertTriangle size={12} /> Cấm chiến dịch
                             </span>

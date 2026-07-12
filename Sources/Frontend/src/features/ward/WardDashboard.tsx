@@ -543,7 +543,13 @@ export function WardDashboard() {
       }
       const feedbackId = item.feedbackId ?? item.referenceId;
       if (feedbackId) {
-        if (item.type?.startsWith("CAMPAIGN")) {
+        if (item.type === "NEW_CAMPAIGN_APPEAL") {
+          if (user?.role === Role.WARD_STAFF) {
+            navigate({ to: "/ward", search: { tab: "blacklist", detailId: String(feedbackId) } });
+          }
+        } else if (item.type === "CAMPAIGN_APPEAL_APPROVED" || item.type === "CAMPAIGN_APPEAL_REJECTED") {
+          navigate({ to: "/profile" });
+        } else if (item.type?.startsWith("CAMPAIGN")) {
           if (user?.role === Role.WARD_STAFF) {
             navigate({ to: "/ward", search: { tab: "campaign", detailId: String(feedbackId) } });
           } else {
@@ -570,8 +576,10 @@ export function WardDashboard() {
       // Ignore error
     }
     logout();
-    queryClient.clear();
     navigate({ to: loginPath });
+    setTimeout(() => {
+      queryClient.clear();
+    }, 0);
   };
   const handleSectionChange = (section: WardSection) => {
     setSidebarOpen(false);
@@ -596,7 +604,9 @@ export function WardDashboard() {
 
   const activeSectionTitle =
     activeSection === "notifications"
-      ? (locale === "vi" ? "Thông báo hệ thống" : "System Notifications")
+      ? locale === "vi"
+        ? "Thông báo hệ thống"
+        : "System Notifications"
       : menuItems.find((item) => item.section === activeSection)?.name || "Tổng quan";
 
   if (!user) {
@@ -1851,7 +1861,7 @@ export function WardDashboard() {
           ) : activeSection === "statistics" ? (
             <WardStatisticsPage range={statsRange} setRange={setStatsRange} hideHeader={true} />
           ) : activeSection === "blacklist" ? (
-            <WardBlacklistPage />
+            <WardBlacklistPage defaultAppealId={detailId ? Number(detailId) : undefined} />
           ) : activeSection === "config" ? (
             <WardProfileConfigPage
               user={user}

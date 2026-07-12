@@ -362,27 +362,77 @@ Giao diện chat sau khi mở rộng trông thoáng và dễ đọc hơn rất n
 
 ---
 
+# [Phase 04 - Tiếp tục] Tích hợp Hệ thống Cấm Chiến dịch Tự động & Cơ chế Duyệt đơn Giải trình
+
+## Ngày thực hiện
+
+```text
+10/07/2026
+```
+
+## Đã hoàn thành
+
+- [x] Tự động hóa quét vắng mặt cuối ngày và cập nhật warningCount bằng cờ vật lý trong User Entity.
+- [x] Gửi thông báo & email warning cho Citizens khi vắng mặt 2 lần và cấm tham gia chiến dịch khi vắng mặt đủ 3 lần (`isCampaignBanned = true`).
+- [x] Triển khai luồng Appeal Submission (người dân bị cấm gửi đơn giải trình kèm lý do).
+- [x] Triển khai API duyệt/từ chối đơn giải trình tại `CampaignAppealServiceImpl` kèm cơ chế bảo mật BOLA/IDOR (check wardId chéo giữa Ward Staff và Citizen).
+- [x] Tối ưu hóa reset cấm bằng cách thêm `lastCampaignUnbanAt` để giữ nguyên lịch sử vắng mặt cũ (không xóa bản ghi).
+- [x] Cập nhật Frontend UI: tab Blacklist tại `WardBlacklistPage.tsx` để duyệt đơn, deep-linking điều hướng từ Notification trực tiếp vào chi tiết đơn giải trình.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Thêm các trường cờ vật lý `isCampaignBanned`, `warningCount`, `lastCampaignUnbanAt` và scheduler quét tự động cấm sau 3 lần vắng | Phan Thanh Bình | User.java; CampaignScheduler.java; CampaignServiceImpl.java | |
+| 2 | Triển khai API Appeal Submission & Review với BOLA check bảo mật phân cấp phường xã | Phan Thanh Bình | CampaignAppealController.java; CampaignAppealServiceImpl.java; CampaignAppealRepository.java | |
+| 3 | Cập nhật frontend hiển thị danh sách Blacklist, form gửi giải trình, modal phê duyệt và deep-linking từ Notification | Phan Thanh Bình | WardBlacklistPage.tsx; WardDashboard.tsx; NotificationsPage.tsx | |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI đề xuất query COUNT động và việc xóa dữ liệu lịch sử khi unban. Sinh viên đã phản biện và bác bỏ: sử dụng cờ vật lý trên User để tối ưu O(1) hiệu năng, dùng lastCampaignUnbanAt để lưu vết lịch sử (Audit Trail). Ngoài ra, sinh viên tự bổ sung logic kiểm tra chéo wardId để chống lỗ hổng bảo mật IDOR/BOLA.
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+mvn compile: PASS; mvn test -Dtest=CampaignAppealServiceImplTest: PASS.
+```
+
+## Ghi chú
+
+```text
+Tính năng đã hoàn thiện cả backend và frontend, đảm bảo bảo mật dữ liệu cấp phân quyền phường và hiệu năng cao cho scheduler.
+```
+
+---
+
 # [Phase 05] Testing & Debug
 
 ## Ngày thực hiện
 
 ```text
-28/05/2026
+11/07/2026 - 12/07/2026
 ```
 
 ## Đã hoàn thành
 
-- [ ] Viết test case
-- [ ] Chạy test chức năng chính
-- [ ] Kiểm tra output
-- [ ] Kiểm tra validation
-- [ ] Kiểm tra lỗi giao diện
-- [ ] Kiểm tra lỗi database
-- [ ] Kiểm tra phân quyền
-- [ ] Kiểm tra bảo mật cơ bản
-- [ ] Fix bug
-- [ ] Chạy lại sau khi fix bug
-- [ ] Ghi nhận kết quả test
+- [x] Viết test case
+- [x] Chạy test chức năng chính
+- [x] Kiểm tra output
+- [x] Kiểm tra validation
+- [x] Kiểm tra lỗi giao diện
+- [x] Kiểm tra lỗi database
+- [x] Kiểm tra phân quyền
+- [x] Kiểm tra bảo mật cơ bản
+- [x] Fix bug
+- [x] Chạy lại sau khi fix bug
+- [x] Ghi nhận kết quả test
 
 ## Danh sách lỗi đã xử lý
 
@@ -392,37 +442,40 @@ Giao diện chat sau khi mở rộng trông thoáng và dễ đọc hơn rất n
 | 2 | Trùng dòng fetch trong helper frontend | Patch chồng khi chỉnh endpoint | Xóa dòng thừa, giữ 1 lệnh fetch duy nhất | Fixed |
 | 3 | Runtime risk khi thiếu categoryId từ template report | Payload hiện tại frontend chưa luôn gửi categoryId | Cho phép categoryId optional + validate mềm trong service | Fixed |
 | 4 | Build risk khi merge nhánh | Thiếu bước compile sau chỉnh sửa | Chạy compile backend sau cập nhật | Fixed |
-| 5 |  |  |  | Open / Fixed / Pending |
+| 5 | Nguy cơ lỗ hổng bảo mật BOLA chéo phường trong API duyệt giải trình | Phân quyền chỉ check role WARD_STAFF ở controller mà không check wardId của citizen | Thêm check chéo wardId ở service layer, trả 403 Forbidden nếu không khớp địa bàn | Fixed |
+| 6 | Trùng lặp/lệch đếm vắng mặt sau khi mở khóa | Đề xuất xóa dữ liệu vắng mặt gây mất lịch sử hoạt động | Dùng lastCampaignUnbanAt làm mốc thời gian bắt đầu đếm vắng mặt mới | Fixed |
+| 7 | Điều hướng thông báo đơn giải trình bị lỗi | Click thông báo không tự chọn đơn giải trình tương ứng | Thêm defaultAppealId và tích hợp deep-linking chọn tự động khi load tab blacklist | Fixed |
 
 ## Thay đổi chi tiết
 
 | STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
 |---:|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
+| 1 | Viết unit test Mockito kiểm chứng các trạng thái duyệt/từ chối đơn giải trình | Phan Thanh Bình | CampaignAppealServiceImplTest.java | PASS |
+| 2 | Sửa lỗi phân quyền chéo wardId ở service layer | Phan Thanh Bình | CampaignAppealServiceImpl.java | Code check wardId |
+| 3 | Sửa lỗi điều hướng tab blacklist và deep-linking thông báo | Phan Thanh Bình | WardBlacklistPage.tsx; WardDashboard.tsx | UI works |
 
 ## AI có hỗ trợ không?
 
-- [ ] Có
+- [x] Có
 - [ ] Không
 
 Nếu có, mô tả AI đã hỗ trợ phần nào:
 
 ```text
-Viết tại đây...
+AI hỗ trợ sinh khung sườn unit test mẫu ban đầu. Sinh viên tự chỉnh sửa mock data, thêm các mock test case giả lập chéo wardId để kiểm chứng BOLA guard, sửa lại assert cho chính xác và chạy pass compile.
 ```
 
 ## Commit/Screenshot minh chứng
 
 ```text
-Dán link commit, screenshot hoặc mô tả minh chứng tại đây...
+mvn test: PASS.
 ```
 
 ## Ghi chú
 
 ```text
-Viết tại đây...
+Các lỗi bảo mật và điều hướng đã được khắc phục hoàn toàn trước khi tiến hành bàn giao/merge code.
+```
 ```
 
 ---

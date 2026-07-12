@@ -222,18 +222,25 @@ export interface UserProfile {
   completedCampaignCount?: number;
   noShowCampaignCount?: number;
   reputationBadge?: string;
+  campaignBanned?: boolean;
+  lastCampaignUnbanAt?: string | null;
+  status?: string;
 }
 
 export function mapUserProfile(profile: any): UserProfile {
   if (!profile) return profile;
   const active = profile.isActive !== undefined ? profile.isActive : profile.active;
   const mfaEnabled = profile.isMfaEnabled !== undefined ? profile.isMfaEnabled : profile.mfaEnabled;
+  const campaignBanned = profile.isCampaignBanned !== undefined ? profile.isCampaignBanned : profile.campaignBanned;
   return {
+    status: profile.status,
     ...profile,
     active,
     isActive: active,
     mfaEnabled,
     isMfaEnabled: mfaEnabled,
+    campaignBanned,
+    isCampaignBanned: campaignBanned,
   };
 }
 
@@ -242,6 +249,7 @@ export interface UpdateProfileRequest {
   phoneNumber?: string;
   email?: string;
   avatarUrl?: string;
+  wardId?: number | null;
 }
 
 // ─── Feedback Types ───────────────────────────────────────────
@@ -1343,4 +1351,38 @@ export const wardRankingApi = {
   getPdfReportUrl: (wardId: number | string) => {
     return `/api/ward-ranking/${wardId}/report-pdf`;
   }
+};
+
+export interface CampaignAppealResponse {
+  id: number;
+  citizenId: number;
+  citizenName: string;
+  reason: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  reviewNotes: string | null;
+  reviewedBy: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
+}
+
+export const campaignAppealApi = {
+  submit: (reason: string) =>
+    request<CampaignAppealResponse>("/api/campaigns/appeals", {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
+  getMyLastAppeal: () =>
+    request<CampaignAppealResponse>("/api/campaigns/appeals/my-appeal"),
+  getPending: () =>
+    request<CampaignAppealResponse[]>("/api/campaigns/appeals/pending"),
+  approve: (id: number, reviewNotes?: string) =>
+    request<CampaignAppealResponse>(`/api/campaigns/appeals/${id}/approve`, {
+      method: "POST",
+      body: JSON.stringify({ notes: reviewNotes, reviewNotes }),
+    }),
+  reject: (id: number, reviewNotes?: string) =>
+    request<CampaignAppealResponse>(`/api/campaigns/appeals/${id}/reject`, {
+      method: "POST",
+      body: JSON.stringify({ notes: reviewNotes, reviewNotes }),
+    }),
 };

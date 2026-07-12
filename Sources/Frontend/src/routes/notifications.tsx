@@ -90,7 +90,16 @@ function NotificationsPage() {
         return;
       }
 
-      if (item.type?.startsWith("CAMPAIGN")) {
+      if (item.type === "NEW_CAMPAIGN_APPEAL") {
+        if (user?.role === Role.WARD_STAFF) {
+          await navigate({
+            to: "/ward",
+            search: { tab: "blacklist", detailId: String(feedbackId) },
+          });
+        }
+      } else if (item.type === "CAMPAIGN_APPEAL_APPROVED" || item.type === "CAMPAIGN_APPEAL_REJECTED") {
+        await navigate({ to: "/profile" });
+      } else if (item.type?.startsWith("CAMPAIGN")) {
         if (user?.role === Role.WARD_STAFF) {
           await navigate({
             to: "/ward",
@@ -322,6 +331,11 @@ function iconForType(type?: string): ComponentType<{ size?: number; className?: 
     CAMPAIGN_FINALIZED: CheckCircle2,
     CAMPAIGN_ENDED: CheckCircle2,
     CAMPAIGN_CONFIRMED: ClipboardCheck,
+    CAMPAIGN_WARNING: MessageSquareWarning,
+    CAMPAIGN_BANNED: AlertCircle,
+    NEW_CAMPAIGN_APPEAL: FileClock,
+    CAMPAIGN_APPEAL_APPROVED: CheckCircle2,
+    CAMPAIGN_APPEAL_REJECTED: AlertCircle,
   };
   return icons[type || ""] || Clock3;
 }
@@ -349,6 +363,11 @@ function typeText(type: string | undefined, locale: string) {
     CAMPAIGN_FINALIZED: locale === "vi" ? "Chiến dịch đã chốt" : "Campaign finalized",
     CAMPAIGN_ENDED: locale === "vi" ? "Chiến dịch kết thúc" : "Campaign ended",
     CAMPAIGN_CONFIRMED: locale === "vi" ? "Xác nhận tham gia" : "Attendance confirmed",
+    CAMPAIGN_WARNING: locale === "vi" ? "Cảnh cáo vắng mặt" : "Attendance warning",
+    CAMPAIGN_BANNED: locale === "vi" ? "Cấm tham gia chiến dịch" : "Campaign banned",
+    NEW_CAMPAIGN_APPEAL: locale === "vi" ? "Có đơn giải trình mới" : "New campaign appeal",
+    CAMPAIGN_APPEAL_APPROVED: locale === "vi" ? "Đơn giải trình được duyệt" : "Appeal approved",
+    CAMPAIGN_APPEAL_REJECTED: locale === "vi" ? "Đơn giải trình bị từ chối" : "Appeal rejected",
   };
   return labels[type || ""] || type || "SYSTEM";
 }

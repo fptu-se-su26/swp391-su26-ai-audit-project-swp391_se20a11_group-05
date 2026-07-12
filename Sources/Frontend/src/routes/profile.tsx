@@ -21,10 +21,14 @@ import {
   Lock,
   Eye,
   EyeOff,
+  Send,
+  Clock,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth, Role } from "@/lib/auth";
-import { getToken, API_BASE } from "@/lib/api";
+import { getToken, API_BASE, wardApi } from "@/lib/api";
 import {
   useProfile,
   useUpdateProfileMutation,
@@ -33,6 +37,7 @@ import {
   useSendChangePasswordOtp,
 } from "@/hooks";
 import { useI18n } from "@/lib/i18n";
+import { CampaignAppealPanel } from "@/components/site/CampaignAppealPanel";
 import {
   InputOTP,
   InputOTPGroup,
@@ -132,6 +137,15 @@ function ProfilePage() {
   const [email, setEmail] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [wardId, setWardId] = useState<number | undefined>(undefined);
+  const [wardSearch, setWardSearch] = useState("");
+  const [showWardDropdown, setShowWardDropdown] = useState(false);
+  const wardDropdownRef = useRef<HTMLDivElement>(null);
+
+  const { data: wards } = useQuery({
+    queryKey: ["wards"],
+    queryFn: () => wardApi.getAll(),
+  });
 
   // Password change states
   const [currentPassword, setCurrentPassword] = useState("");
@@ -174,12 +188,34 @@ function ProfilePage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (wardDropdownRef.current && !wardDropdownRef.current.contains(event.target as Node)) {
+        setShowWardDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
     if (!profile) return;
     setFullName(profile.fullName || "");
     setPhoneNumber(profile.phoneNumber || "");
     setEmail(profile.email || "");
     setAvatarUrl(profile.avatarUrl || "");
+    setWardId(profile.wardId ?? undefined);
   }, [profile]);
+
+  useEffect(() => {
+    if (wardId && wards) {
+      const match = wards.find((w) => w.id === wardId);
+      if (match) {
+        setWardSearch(match.name);
+      }
+    } else {
+      setWardSearch("");
+    }
+  }, [wardId, wards]);
 
   const handleAvatarClick = () => {
     fileInputRef.current?.click();
@@ -241,21 +277,30 @@ function ProfilePage() {
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
+    if (wardSearch.trim() && !wardId) {
+      toast.error(
+        locale === "vi"
+          ? "Vui lòng chọn một Phường/Xã hợp lệ từ danh sách gợi ý!"
+          : "Please select a valid Ward from the suggestion list!",
+      );
+      return;
+    }
     try {
       const updated = await updateProfile.mutateAsync({
         fullName: fullName.trim(),
         phoneNumber: phoneNumber.trim() || undefined,
         email: email.trim() || undefined,
         avatarUrl: avatarUrl || undefined,
+        wardId: wardId ?? null,
       });
       if (profile) {
         login({
           name: updated.fullName || profile.fullName,
           role: profile.role,
-          org: profile.wardName || "",
-          wardName: profile.wardName,
-          wardType: profile.wardType,
-          wardId: profile.wardId,
+          org: updated.wardName || profile.wardName || "",
+          wardName: updated.wardName || profile.wardName,
+          wardType: updated.wardType || profile.wardType,
+          wardId: updated.wardId !== undefined ? updated.wardId : profile.wardId,
           avatarUrl: updated.avatarUrl || avatarUrl || undefined,
           token: getToken() || undefined,
         });
@@ -301,22 +346,32 @@ function ProfilePage() {
   const handlePasswordChange = async (event: FormEvent) => {
     event.preventDefault();
     if (!currentPassword) {
-      toast.error(locale === "vi" ? "Vui lòng nhập mật khẩu hiện tại!" : "Please enter your current password!");
+      toast.error(
+        locale === "vi"
+          ? "Vui lòng nhập mật khẩu hiện tại!"
+          : "Please enter your current password!",
+      );
       return;
     }
     if (newPassword !== confirmPassword) {
-      toast.error(locale === "vi" ? "Mật khẩu xác nhận không khớp!" : "Confirm password does not match!");
+      toast.error(
+        locale === "vi" ? "Mật khẩu xác nhận không khớp!" : "Confirm password does not match!",
+      );
       return;
     }
     if (newPassword.length < 8) {
-      toast.error(locale === "vi" ? "Mật khẩu phải có ít nhất 8 ký tự!" : "Password must be at least 8 characters!");
+      toast.error(
+        locale === "vi"
+          ? "Mật khẩu phải có ít nhất 8 ký tự!"
+          : "Password must be at least 8 characters!",
+      );
       return;
     }
     if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).*$/.test(newPassword)) {
       toast.error(
         locale === "vi"
           ? "Mật khẩu phải chứa ít nhất 1 chữ hoa, 1 chữ thường và 1 số!"
-          : "Password must contain at least 1 uppercase letter, 1 lowercase letter, and 1 number!"
+          : "Password must contain at least 1 uppercase letter, 1 lowercase letter, and 1 number!",
       );
       return;
     }
@@ -337,7 +392,13 @@ function ProfilePage() {
       setShowNewPassword(false);
       setShowConfirmPassword(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : (locale === "vi" ? "Đổi mật khẩu thất bại!" : "Password change failed!"));
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : locale === "vi"
+            ? "Đổi mật khẩu thất bại!"
+            : "Password change failed!",
+      );
     }
   };
 
@@ -352,6 +413,11 @@ function ProfilePage() {
     const yr = d.getFullYear();
     return `${hrs}:${mins} ${day}/${month}/${yr}`;
   };
+
+  const filteredWards =
+    wards
+      ?.filter((ward) => ward.name.toLowerCase().includes(wardSearch.toLowerCase()))
+      .slice(0, 10) || [];
 
   if (isLoading) {
     return (
@@ -490,10 +556,8 @@ function ProfilePage() {
                 {locale === "vi" ? "Thống kê hoạt động" : "Activity Stats"}
               </h3>
               <div className="grid grid-cols-2 gap-4">
-                 {/* Completed campaigns */}
-                <div
-                  className="bg-emerald-50/50 dark:bg-emerald-950/10 border border-emerald-100/75 dark:border-emerald-900/30 rounded-xl p-3.5 text-center transition-all duration-200"
-                >
+                {/* Completed campaigns */}
+                <div className="bg-emerald-50/50 dark:bg-emerald-950/10 border border-emerald-100/75 dark:border-emerald-900/30 rounded-xl p-3.5 text-center transition-all duration-200">
                   <Award className="h-6 w-6 text-emerald-600 dark:text-emerald-400 mx-auto mb-1.5" />
                   <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                     {locale === "vi" ? "Hoàn thành" : "Completed"}
@@ -539,6 +603,10 @@ function ProfilePage() {
                     </p>
                   </div>
                 </div>
+              )}
+
+              {(profile.campaignBanned || profile.status === "BANNED") && (
+                <CampaignAppealPanel locale={locale} isGlobalBan={profile.status === "BANNED"} />
               )}
             </div>
           )}
@@ -648,6 +716,79 @@ function ProfilePage() {
                       />
                     </div>
                   </div>
+
+                  <div ref={wardDropdownRef} className="relative">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                      {locale === "vi" ? "Phường/Xã cư trú" : "Registered Ward"}
+                    </label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3.5 top-[15px] h-4.5 w-4.5 text-slate-400 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={wardSearch}
+                        onFocus={() => setShowWardDropdown(true)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setWardSearch(val);
+                          // Try to match ward immediately
+                          const match = wards?.find((w) => w.name.toLowerCase() === val.trim().toLowerCase());
+                          if (match) {
+                            setWardId(match.id);
+                          } else {
+                            setWardId(undefined);
+                          }
+                        }}
+                        placeholder={locale === "vi" ? "Nhập để tìm Phường/Xã..." : "Type to search ward..."}
+                        disabled={profile.role !== "CITIZEN"}
+                        className="w-full min-h-[48px] pl-11 pr-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus:border-[#0B4FC4] focus:ring-1 focus:ring-[#0B4FC4] focus:outline-none text-sm font-semibold transition-all duration-200 disabled:opacity-75 disabled:cursor-not-allowed"
+                      />
+                      {wardSearch && profile.role === "CITIZEN" && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setWardSearch("");
+                            setWardId(undefined);
+                          }}
+                          className="absolute right-3 top-[14px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        >
+                          <XCircle className="h-5 w-5" />
+                        </button>
+                      )}
+                    </div>
+
+                    {showWardDropdown && profile.role === "CITIZEN" && (
+                      <div className="absolute z-50 w-full mt-1.5 max-h-60 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-955 shadow-lg scrollbar-thin">
+                        {filteredWards.length > 0 ? (
+                          filteredWards.map((ward) => (
+                            <button
+                              key={ward.id}
+                              type="button"
+                              onClick={() => {
+                                setWardId(ward.id);
+                                setWardSearch(ward.name);
+                                setShowWardDropdown(false);
+                              }}
+                              className="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-900 text-sm font-semibold text-slate-700 dark:text-slate-300 transition-colors flex items-center gap-2"
+                            >
+                              <MapPin className="h-4 w-4 text-slate-400" />
+                              <span>{ward.name}</span>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-4 py-3 text-sm text-slate-500 text-center font-medium">
+                            {locale === "vi" ? "Không tìm thấy Phường/Xã nào" : "No wards found"}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {profile.role !== "CITIZEN" && (
+                      <p className="text-[10px] text-slate-400 mt-1 font-semibold">
+                        {locale === "vi"
+                          ? "Cán bộ không tự thay đổi phường trực thuộc"
+                          : "Staff cannot change their assigned ward"}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </form>
             </div>
@@ -679,7 +820,8 @@ function ProfilePage() {
                   <div className="space-y-4">
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
-                        {locale === "vi" ? "Mật khẩu hiện tại" : "Current Password"} <span className="text-rose-500">*</span>
+                        {locale === "vi" ? "Mật khẩu hiện tại" : "Current Password"}{" "}
+                        <span className="text-rose-500">*</span>
                       </label>
                       <div className="relative">
                         <input
@@ -688,7 +830,9 @@ function ProfilePage() {
                           onChange={(e) => setCurrentPassword(e.target.value)}
                           required
                           className="w-full min-h-[44px] pl-3.5 pr-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus:border-[#0B4FC4] focus:ring-1 focus:ring-[#0B4FC4] focus:outline-none text-sm font-semibold transition-all duration-200"
-                          placeholder={locale === "vi" ? "Nhập mật khẩu hiện tại" : "Enter current password"}
+                          placeholder={
+                            locale === "vi" ? "Nhập mật khẩu hiện tại" : "Enter current password"
+                          }
                         />
                         <button
                           type="button"
@@ -702,7 +846,8 @@ function ProfilePage() {
                     <div className="grid md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
-                          {locale === "vi" ? "Mật khẩu mới" : "New Password"} <span className="text-rose-500">*</span>
+                          {locale === "vi" ? "Mật khẩu mới" : "New Password"}{" "}
+                          <span className="text-rose-500">*</span>
                         </label>
                         <div className="relative">
                           <input
@@ -711,7 +856,9 @@ function ProfilePage() {
                             onChange={(e) => setNewPassword(e.target.value)}
                             required
                             className="w-full min-h-[44px] pl-3.5 pr-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus:border-[#0B4FC4] focus:ring-1 focus:ring-[#0B4FC4] focus:outline-none text-sm font-semibold transition-all duration-200"
-                            placeholder={locale === "vi" ? "Nhập mật khẩu mới" : "Enter new password"}
+                            placeholder={
+                              locale === "vi" ? "Nhập mật khẩu mới" : "Enter new password"
+                            }
                           />
                           <button
                             type="button"
@@ -724,7 +871,8 @@ function ProfilePage() {
                       </div>
                       <div>
                         <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
-                          {locale === "vi" ? "Xác nhận mật khẩu mới" : "Confirm New Password"} <span className="text-rose-500">*</span>
+                          {locale === "vi" ? "Xác nhận mật khẩu mới" : "Confirm New Password"}{" "}
+                          <span className="text-rose-500">*</span>
                         </label>
                         <div className="relative">
                           <input
@@ -733,7 +881,9 @@ function ProfilePage() {
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             required
                             className="w-full min-h-[44px] pl-3.5 pr-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus:border-[#0B4FC4] focus:ring-1 focus:ring-[#0B4FC4] focus:outline-none text-sm font-semibold transition-all duration-200"
-                            placeholder={locale === "vi" ? "Xác nhận mật khẩu mới" : "Confirm new password"}
+                            placeholder={
+                              locale === "vi" ? "Xác nhận mật khẩu mới" : "Confirm new password"
+                            }
                           />
                           <button
                             type="button"

@@ -71,7 +71,7 @@ public class UserService extends BaseServiceImpl<User, Long> {
     }
 
     public java.util.List<User> getBannedUsers() {
-        return userRepository.findByStatus("BANNED");
+        return userRepository.findBannedOrCampaignBannedUsers();
     }
 
     @org.springframework.transaction.annotation.Transactional
@@ -92,6 +92,26 @@ public class UserService extends BaseServiceImpl<User, Long> {
         User user = findById(id);
         user.setStatus("ACTIVE");
         user.setWarningCount(0);
+        user.setCampaignBanned(false);
+        user.setLastCampaignUnbanAt(java.time.LocalDateTime.now());
         return userRepository.save(user);
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public boolean checkAndBanFromCampaigns(Long citizenId, String campaignTitle) {
+        User citizen = findById(citizenId);
+        if (citizen.isCampaignBanned()) {
+            return false;
+        }
+        long threshold = citizen.getLastCampaignUnbanAt() == null ? 3 : 1;
+        long noShowCount = citizen.getLastCampaignUnbanAt() == null
+                ? campaignParticipantRepository.countNoShowCampaigns(citizenId)
+                : campaignParticipantRepository.countNoShowCampaignsAfter(citizenId, citizen.getLastCampaignUnbanAt());
+        if (noShowCount >= threshold) {
+            citizen.setCampaignBanned(true);
+            userRepository.save(citizen);
+            return true;
+        }
+        return false;
     }
 }

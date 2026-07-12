@@ -37,6 +37,7 @@ export interface AuthUser {
   wardId?: number | null;
   avatarUrl?: string | null;
   token?: string;
+  campaignBanned?: boolean;
 }
 
 interface AuthCtx {
@@ -102,6 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 name: profile.fullName || parsed.name,
                 wardId: profile.wardId !== undefined ? profile.wardId : parsed.wardId,
                 avatarUrl: profile.avatarUrl || parsed.avatarUrl || null,
+                campaignBanned: profile.campaignBanned !== undefined ? profile.campaignBanned : parsed.campaignBanned,
               };
               setUser(updated);
               localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
@@ -153,6 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             name: profile.fullName || u.name,
             wardId: profile.wardId !== undefined ? profile.wardId : u.wardId,
             avatarUrl: profile.avatarUrl || u.avatarUrl || null,
+            campaignBanned: profile.campaignBanned !== undefined ? profile.campaignBanned : u.campaignBanned,
           };
           setUser(updated);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));

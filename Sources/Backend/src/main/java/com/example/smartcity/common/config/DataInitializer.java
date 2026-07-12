@@ -225,6 +225,17 @@ public class DataInitializer implements CommandLineRunner {
                 log.info("Assigned default ward {} to police1.", defaultWard.getName());
             });
         });
+
+        userRepository.findByUsername("citizen1").ifPresent(citizen -> {
+            if (citizen.getWard() != null) {
+                return;
+            }
+            wardRepository.findById(1L).or(() -> wardRepository.findAll().stream().findFirst()).ifPresent(defaultWard -> {
+                citizen.setWard(defaultWard);
+                userRepository.save(citizen);
+                log.info("Assigned default ward {} to citizen1.", defaultWard.getName());
+            });
+        });
     }
 
     private void seedDefaultCategories() {

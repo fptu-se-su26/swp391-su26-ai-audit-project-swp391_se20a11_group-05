@@ -47,6 +47,22 @@ public class CampaignAppealServiceImpl implements CampaignAppealService {
                 .build();
 
         CampaignAppeal saved = appealRepository.save(appeal);
+
+        if (citizen.getWard() != null) {
+            List<User> wardStaffs = userRepository.findByRoleAndWardId(Role.WARD_STAFF, citizen.getWard().getId());
+            String title = "Có đơn giải trình mới";
+            String content = String.format("Công dân %s đã gửi đơn giải trình xin mở khóa tham gia chiến dịch.", citizen.getFullName());
+            for (User staff : wardStaffs) {
+                notificationService.createCampaignNotification(
+                        staff,
+                        saved.getId(),
+                        title,
+                        content,
+                        "NEW_CAMPAIGN_APPEAL"
+                );
+            }
+        }
+
         return toResponse(saved);
     }
 
@@ -114,7 +130,7 @@ public class CampaignAppealServiceImpl implements CampaignAppealService {
         String notesText = (request.getNotes() != null && !request.getNotes().isBlank()) ? " Ghi chú: " + request.getNotes() : "";
         notificationService.createCampaignNotification(
                 citizen,
-                null,
+                saved.getId(),
                 "Đơn xin mở khóa chiến dịch được duyệt",
                 "Đơn giải trình của bạn đã được phê duyệt. Bạn đã có thể đăng ký tham gia các chiến dịch cộng đồng mới." + notesText,
                 "CAMPAIGN_APPEAL_APPROVED"
@@ -158,7 +174,7 @@ public class CampaignAppealServiceImpl implements CampaignAppealService {
         String notesText = (request.getNotes() != null && !request.getNotes().isBlank()) ? " Lý do từ chối: " + request.getNotes() : "";
         notificationService.createCampaignNotification(
                 citizen,
-                null,
+                saved.getId(),
                 "Đơn xin mở khóa chiến dịch bị từ chối",
                 "Đơn giải trình của bạn đã bị từ chối." + notesText,
                 "CAMPAIGN_APPEAL_REJECTED"
@@ -190,6 +206,7 @@ public class CampaignAppealServiceImpl implements CampaignAppealService {
                 .status(appeal.getStatus())
                 .reviewedById(appeal.getReviewedBy() != null ? appeal.getReviewedBy().getId() : null)
                 .reviewedByName(appeal.getReviewedBy() != null ? appeal.getReviewedBy().getFullName() : null)
+                .reviewedBy(appeal.getReviewedBy() != null ? appeal.getReviewedBy().getFullName() : null)
                 .reviewNotes(appeal.getReviewNotes())
                 .createdAt(appeal.getCreatedAt())
                 .updatedAt(appeal.getUpdatedAt())

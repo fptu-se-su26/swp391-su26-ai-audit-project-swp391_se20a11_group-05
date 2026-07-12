@@ -16,6 +16,8 @@ public abstract class UserMapper implements BaseMapper<User, UserDTO> {
 
     @Override
     @Mapping(target = "wardId", source = "ward.id")
+    @Mapping(target = "wardName", source = "ward.name")
+    @Mapping(target = "wardType", source = "ward.type")
     @Mapping(target = "isActive", source = "active")
     @Mapping(target = "isMfaEnabled", source = "mfaEnabled")
     @Mapping(target = "isCampaignBanned", source = "campaignBanned")

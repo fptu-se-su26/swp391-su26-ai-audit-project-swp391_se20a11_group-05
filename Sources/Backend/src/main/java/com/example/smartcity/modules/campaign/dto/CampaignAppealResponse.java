@@ -19,6 +19,7 @@ public class CampaignAppealResponse {
     private String status;
     private Long reviewedById;
     private String reviewedByName;
+    private String reviewedBy;
     private String reviewNotes;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

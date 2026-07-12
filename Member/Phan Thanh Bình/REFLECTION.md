@@ -532,3 +532,60 @@ Kiểm chứng tính đúng đắn qua các bước:
 Hạn chế & Rủi ro:
 - Cần chạy kiểm thử hiển thị thực tế trên nhiều thiết bị có độ phân giải màn hình khác nhau (responsive layout check) để đảm bảo chiều cao input h-11 không che khuất phần nội dung chính trên màn hình điện thoại hoặc máy tính bảng.
 ```
+
+## Bổ sung reflection cho lần sử dụng AI số 11
+
+```text
+Ở lần sử dụng AI số 11, nhóm sử dụng AI để thiết kế logic tự động cấm người dùng sau 3 lần vắng mặt.
+
+AI đề xuất giải pháp chạy câu truy vấn COUNT động trên bảng tham gia chiến dịch mỗi khi có hành động đăng ký hoặc khi scheduler quét cuối ngày, đồng thời khuyên không nên lưu cờ vật lý trong bảng User để tránh trùng lặp dữ liệu.
+
+Tuy nhiên, nhóm đã phản biện và cải tiến:
+- Về hiệu năng: Việc chạy query COUNT động trên bảng lớn sẽ gây thắt nút cổ chai (O(N) reads). Nhóm quyết định thêm các cờ vật lý isCampaignBanned, warningCount và lastCampaignUnbanAt trực tiếp vào bảng User để kiểm tra quyền đăng ký chiến dịch đạt O(1) hiệu năng.
+- Về trải nghiệm người dùng: Thêm logic tự động gửi email và notification warning khi warningCount = 2, giúp người dùng nhận biết sớm trước khi bị ban chính thức ở lần thứ 3.
+- Về múi giờ: Thiết kế scheduler chạy chính xác theo giờ Việt Nam (GMT+7) bằng cách so sánh mốc milliseconds số học để tránh lệch múi giờ của máy chủ cloud.
+```
+
+### Cập nhật mục kiểm chứng kết quả AI (Lần 11)
+
+```text
+Kiểm chứng bằng cách:
+- Chạy biên dịch backend Spring Boot (./mvnw compile) thành công.
+- Rà soát sự tương thích của entity và schema update SQL.
+- Kiểm tra thủ công logic cộng dồn warningCount và cơ chế scheduler quét cuối ngày.
+```
+
+### Cập nhật mục hạn chế/rủi ro (Lần 11)
+
+```text
+Hạn chế & Rủi ro:
+- Cờ vật lý trong User cần được đồng bộ cẩn thận mỗi khi admin mở khóa tài khoản hoặc có thay đổi điểm danh thủ công để tránh lệch trạng thái với bảng lịch sử tham gia.
+```
+
+## Bổ sung reflection cho lần sử dụng AI số 12
+
+```text
+Ở lần sử dụng AI số 12, nhóm sử dụng AI để xây dựng luồng nộp đơn và duyệt đơn giải trình (Appeal Submission & Review).
+
+AI cung cấp code React UI cho dashboard duyệt đơn và gợi ý xóa trắng dữ liệu lịch sử vắng mặt cũ của citizen để reset warningCount về 0 khi duyệt đơn thành công. AI cũng chỉ phân quyền cơ bản check role WARD_STAFF ở controller mà không kiểm tra thông tin địa lý của cán bộ.
+
+Nhóm đã phản biện và có những cải tiến bảo mật/kiến trúc quan trọng:
+- Bảo vệ dữ liệu lịch sử (Audit Trail): Nhóm bác bỏ việc xóa dữ liệu vắng mặt của citizen. Thay vào đó, nhóm lưu vết unban bằng trường lastCampaignUnbanAt và chỉ đếm các lần vắng mặt phát sinh sau thời điểm này. Điều này giúp giữ nguyên lịch sử hoạt động cũ để phục vụ việc kiểm toán sau này.
+- Phòng chống lỗ hổng BOLA/IDOR: Nhóm tự bổ sung logic kiểm tra chéo wardId ở service layer. Cán bộ phường chỉ được phép duyệt đơn giải trình của công dân trực thuộc phường mình quản lý. Nếu không khớp wardId, hệ thống trả về lỗi 403 Forbidden thay vì cho phép duyệt chéo địa bàn.
+- Trải nghiệm người dùng: Thiết kế deep-linking từ notification ID. Khi cán bộ click vào thông báo đơn giải trình mới, hệ thống tự động điều hướng và select đúng tab Blacklist cùng đơn giải trình đó trên Ward Dashboard.
+```
+
+### Cập nhật mục kiểm chứng kết quả AI (Lần 12)
+
+```text
+Kiểm chứng bằng các bước:
+- Viết và chạy thành công CampaignAppealServiceImplTest.java (100% test cases pass, bao gồm cả case duyệt thành công, từ chối và case vi phạm phân quyền wardId).
+- Chạy bun tsc --noEmit và bun run lint để đảm bảo frontend typecheck sạch sẽ.
+```
+
+### Cập nhật mục hạn chế/rủi ro (Lần 12)
+
+```text
+Hạn chế & Rủi ro:
+- Nếu citizen thay đổi địa chỉ thường trú (chuyển sang phường khác) sau khi bị cấm, logic check chéo wardId tại thời điểm duyệt đơn cần được kiểm soát chặt chẽ để đảm bảo đơn giải trình vẫn được gửi đúng cán bộ có thẩm quyền giải quyết.
+```

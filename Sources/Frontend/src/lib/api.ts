@@ -834,6 +834,11 @@ export const policeApi = {
       method: "POST",
       body: JSON.stringify({ resultNote }),
     }),
+
+  analyzeDuplicates: () =>
+    request<any[]>("/api/police/feedbacks/analyze-duplicates", {
+      method: "GET",
+    }),
 };
 
 export const categoryApi = {

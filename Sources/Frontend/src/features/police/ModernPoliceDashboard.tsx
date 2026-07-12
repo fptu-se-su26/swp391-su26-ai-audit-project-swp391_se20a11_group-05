@@ -41,7 +41,7 @@ import { FeedbackDetailPageComponent } from "@/routes/_auth.authority.feedback.$
 import { PoliceStatisticalReports } from "./PoliceStatisticalReports";
 
 const HeatmapMap = clientOnly(() =>
-  import("@/components/site/HeatmapMap").then((m) => ({ default: m.HeatmapMap })),
+  import("@/components/site/HeatmapMap").then((m) => ({ default: m.HeatmapMap })) as any,
 ) as any;
 const initialSchedule = [
   { day: "Thứ 2", date: "29/06", morning: "Trực ban hành chính", mOfficer: "Đ/c Nguyễn Văn A", afternoon: "Xử lý hồ sơ", aOfficer: "Đ/c Lê Thị B", night: "Trực ban", nOfficer: "Đ/c Lê Thị B" },

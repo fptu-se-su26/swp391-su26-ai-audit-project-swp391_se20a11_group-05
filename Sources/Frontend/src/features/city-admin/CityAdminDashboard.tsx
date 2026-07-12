@@ -2,6 +2,7 @@ import { lazy, Suspense, useState, useEffect, useRef, useMemo } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNotifications, useMarkNotificationReadMutation } from "@/hooks";
+import { highlightNotificationContent } from "@/lib/notificationHelper";
 import { useFeedbackNotification } from "@/hooks/use-notification";
 import { useAuth } from "@/lib/auth";
 import { getLoginPathForRole } from "@/lib/roles";
@@ -944,15 +945,15 @@ export function CityAdminDashboard() {
                           onClick={() =>
                             handleNotifClick(item.id, item.feedbackId ?? item.referenceId)
                           }
-                          className={`w-full text-left p-3 flex flex-col transition-colors hover:bg-slate-50 ${
-                            item.isRead ? "opacity-75" : "bg-blue-50/40"
+                          className={`w-full text-left p-3 flex flex-col transition-colors hover:bg-slate-100 ${
+                            item.isRead ? "opacity-75" : "bg-blue-100 hover:bg-blue-200/80"
                           }`}
                         >
                           <span className="text-xs font-bold text-slate-800 leading-snug">
                             {item.title}
                           </span>
                           <span className="text-[10px] text-slate-500 mt-1 leading-snug">
-                            {item.content}
+                            {highlightNotificationContent(item.content)}
                           </span>
                         </button>
                       ))

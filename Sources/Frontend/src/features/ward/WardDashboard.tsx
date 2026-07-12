@@ -5,6 +5,7 @@ import { getGroupedFeedbackStatus } from "@/lib/status";
 import {
   useFeedbacks,
   useNotifications,
+  useInfiniteNotifications,
   useMarkNotificationReadMutation,
   useMarkAllNotificationsReadMutation,
   useNotificationUnreadCount,
@@ -44,6 +45,7 @@ import {
 import logoImg from "@/assets/logo.png";
 import { toast } from "sonner";
 import { authApi, type NotificationResponse, type FeedbackResponse } from "@/lib/api";
+import { highlightNotificationContent } from "@/lib/notificationHelper";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAdministrativeUnitLabel, getAdministrativeUnitName } from "@/lib/administrativeUnit";
@@ -53,6 +55,7 @@ import { WardProfileConfigPage } from "./WardProfileConfigPage";
 import { WardStatisticsPage } from "./WardStatisticsPage";
 import WardBlacklistPage from "./WardBlacklistPage";
 import { WardChatDashboardPage } from "./WardChatDashboardPage";
+import { WardNotificationsPage } from "./WardNotificationsPage";
 
 const CivicMap = clientOnly(
   () => import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
@@ -68,7 +71,8 @@ type WardSection =
   | "schedule"
   | "config"
   | "blacklist"
-  | "chat";
+  | "chat"
+  | "notifications";
 
 // Date formatting helper
 function formatDate(dateStr: string, includeTime = true): string {
@@ -137,6 +141,7 @@ export function WardDashboard() {
       "config",
       "blacklist",
       "chat",
+      "notifications",
     ].includes(tab) ||
       tab.startsWith("campaign/"))
       ? tab.startsWith("campaign/")
@@ -237,8 +242,8 @@ export function WardDashboard() {
     data: feedbacksPage,
     isLoading: feedbacksLoading,
     refetch,
-  } = useFeedbacks(0, 500, feedbackDateFilters);
-  const { data: notifications = [], isLoading: notifLoading } = useNotifications();
+  } = useFeedbacks(0, 500, feedbackDateFilters, { enabled: !!user });
+  const { data: notifications = [], isLoading: notifLoading } = useNotifications(!!user);
   const { data: unreadCountData } = useNotificationUnreadCount(!!user);
   const markRead = useMarkNotificationReadMutation();
   const markAllRead = useMarkAllNotificationsReadMutation();
@@ -268,7 +273,7 @@ export function WardDashboard() {
     data: todayFeedbacksPage,
     isLoading: todayFeedbacksLoading,
     refetch: refetchToday,
-  } = useFeedbacks(0, 500, todayFeedbackFilters);
+  } = useFeedbacks(0, 500, todayFeedbackFilters, { enabled: !!user });
 
   const todayFeedbacks = useMemo(() => {
     const rawToday = todayFeedbacksPage?.content ?? [];
@@ -327,7 +332,7 @@ export function WardDashboard() {
     data: statsData,
     isLoading: statsLoading,
     refetch: refetchStats,
-  } = useWardStaffStatistics(dateStr || undefined);
+  } = useWardStaffStatistics(dateStr || undefined, { enabled: !!user });
 
   const dateLabel = selectedDate
     ? isTodayDate(selectedDate)
@@ -590,7 +595,13 @@ export function WardDashboard() {
   ];
 
   const activeSectionTitle =
-    menuItems.find((item) => item.section === activeSection)?.name || "Tổng quan";
+    activeSection === "notifications"
+      ? (locale === "vi" ? "Thông báo hệ thống" : "System Notifications")
+      : menuItems.find((item) => item.section === activeSection)?.name || "Tổng quan";
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50/50 text-slate-800 font-sans antialiased flex">
@@ -853,8 +864,8 @@ export function WardDashboard() {
                         <button
                           key={item.id}
                           onClick={() => handleNotifClick(item)}
-                          className={`w-full text-left p-3.5 flex gap-3 transition-colors hover:bg-slate-50/70 ${
-                            item.isRead ? "opacity-75" : "bg-indigo-50/30"
+                          className={`w-full text-left p-3.5 flex gap-3 transition-colors hover:bg-slate-100 ${
+                            item.isRead ? "opacity-75" : "bg-indigo-100 hover:bg-indigo-200/80"
                           }`}
                         >
                           <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-100/50">
@@ -865,18 +876,24 @@ export function WardDashboard() {
                               {item.title}
                             </span>
                             <span className="text-[11px] text-slate-500 mt-0.5 block line-clamp-2 leading-relaxed font-semibold">
-                              {item.content}
+                              {highlightNotificationContent(item.content)}
                             </span>
                           </div>
                         </button>
                       ))
                     )}
                   </div>
-                  {notifications.length > 5 && (
-                    <div className="pt-2 text-center border-t border-slate-100 text-[10px] font-semibold text-slate-400">
-                      Hiển thị 5 thông báo mới nhất
-                    </div>
-                  )}
+                  <div className="pt-2 text-center border-t border-slate-100">
+                    <button
+                      onClick={() => {
+                        handleSectionChange("notifications");
+                        setNotifOpen(false);
+                      }}
+                      className="text-xs font-bold text-indigo-600 hover:underline inline-block py-1 bg-transparent border-0 cursor-pointer"
+                    >
+                      {locale === "vi" ? "Xem tất cả" : "See all"}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -1849,8 +1866,10 @@ export function WardDashboard() {
                 });
               }}
             />
+          ) : activeSection === "notifications" ? (
+            <WardNotificationsPage />
           ) : (
-            <WardSectionPlaceholder section={activeSection} />
+            <WardSectionPlaceholder section={activeSection as "schedule"} />
           )}
         </main>
       </div>

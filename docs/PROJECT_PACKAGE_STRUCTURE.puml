@@ -1,0 +1,98 @@
+@startuml Smart City Backend - Package Diagram
+
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam nodesep 40
+skinparam ranksep 50
+
+title Smart City Backend - Package Diagram\ncom.example.smartcity
+
+' ═══════════════════════════════════════════
+' ROW 1 — Top: Auth & User modules
+' ═══════════════════════════════════════════
+package "auth" as auth
+package "user" as user
+package "feedback" as feedback
+package "notification" as notification
+
+' ═══════════════════════════════════════════
+' ROW 2 — Middle: Core infrastructure
+' ═══════════════════════════════════════════
+package "campaign" as campaign
+package "chatbot" as chatbot
+package "police" as police
+
+' ═══════════════════════════════════════════
+' ROW 3 — AI & Shared layers
+' ═══════════════════════════════════════════
+package "ai_orchestrator" as ai
+package "rag" as rag
+package "security" as sec
+package "common" as common
+package "config" as config
+
+' ═══════════════════════════════════════════
+' ROW 4 — Bottom: Smaller modules
+' ═══════════════════════════════════════════
+package "core" as core
+package "permission" as perm
+package "warning" as warn
+package "file" as file
+package "analytics" as analytics
+
+' ═══════════════════════════════════════════
+' DEPENDENCIES — all «use»
+' ═══════════════════════════════════════════
+
+' auth dependencies
+auth ..> sec : <<use>>
+auth ..> common : <<use>>
+
+' user dependencies
+user ..> sec : <<use>>
+user ..> common : <<use>>
+
+' feedback dependencies
+feedback ..> sec : <<use>>
+feedback ..> common : <<use>>
+feedback ..> ai : <<use>>
+
+' notification dependencies
+notification ..> common : <<use>>
+
+' campaign dependencies
+campaign ..> common : <<use>>
+
+' chatbot dependencies
+chatbot ..> rag : <<use>>
+chatbot ..> common : <<use>>
+chatbot ..> ai : <<use>>
+
+' police dependencies
+police ..> sec : <<use>>
+
+' core dependencies
+core ..> common : <<use>>
+
+' rag -> ai_orchestrator
+rag ..> ai : <<use>>
+
+' ai_orchestrator -> config
+ai ..> config : <<use>>
+
+' security -> common
+sec ..> common : <<use>>
+
+' analytics -> common
+analytics ..> common : <<use>>
+
+' file -> common
+file ..> common : <<use>>
+
+' permission -> common
+perm ..> common : <<use>>
+
+@enduml

@@ -111,7 +111,7 @@ export function useChatbot() {
         const startTime = Date.now();
 
         // 2. Gọi API Backend (Spring Boot) SSE Stream
-        const response = await fetch("/api/chat/stream", {
+        const response = await fetch("/api/chatbot/stream", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

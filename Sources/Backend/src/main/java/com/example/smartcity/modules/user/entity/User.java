@@ -62,6 +62,12 @@ public class User extends BaseEntity {
     @Column(name = "is_mfa_enabled", nullable = false)
     private boolean isMfaEnabled = false;
 
+    @Column(name = "is_campaign_banned", nullable = false, columnDefinition = "boolean default false")
+    private boolean isCampaignBanned = false;
+
+    @Column(name = "last_campaign_unban_at")
+    private LocalDateTime lastCampaignUnbanAt;
+
     // [SECURITY] Brute-force login protection
     @Column(name = "login_attempts", nullable = false)
     private int loginAttempts = 0;
@@ -143,6 +149,12 @@ public class User extends BaseEntity {
 
     public boolean isMfaEnabled() { return isMfaEnabled; }
     public void setMfaEnabled(boolean isMfaEnabled) { this.isMfaEnabled = isMfaEnabled; }
+
+    public boolean isCampaignBanned() { return isCampaignBanned; }
+    public void setCampaignBanned(boolean campaignBanned) { isCampaignBanned = campaignBanned; }
+
+    public LocalDateTime getLastCampaignUnbanAt() { return lastCampaignUnbanAt; }
+    public void setLastCampaignUnbanAt(LocalDateTime lastCampaignUnbanAt) { this.lastCampaignUnbanAt = lastCampaignUnbanAt; }
 
     public int getLoginAttempts() { return loginAttempts; }
     public void setLoginAttempts(int loginAttempts) { this.loginAttempts = loginAttempts; }

@@ -9,12 +9,14 @@ import {
 import {
   campaignApi,
   userApi,
+  campaignAppealApi,
   getToken,
   type CampaignChatMessageResponse,
   type CampaignCreateRequest,
   type CampaignParticipantResponse,
   type CampaignResponse,
   type PageResponse,
+  type CampaignAppealResponse,
 } from "@/lib/api";
 import {
   createCampaign as createLocalCampaign,
@@ -502,7 +504,10 @@ export function useCampaignChat(campaignId: string, options?: { enabled?: boolea
     number | undefined
   >({
     queryKey: ["campaigns", campaignId, "chat"],
-    queryFn: ({ pageParam }) => campaignApi.getChatMessages(campaignId, pageParam),
+    queryFn: ({ pageParam }) => {
+      if (!getToken()) return [];
+      return campaignApi.getChatMessages(campaignId, pageParam);
+    },
     initialPageParam: undefined,
     getNextPageParam: (lastPage) => {
       if (!lastPage || lastPage.length === 0) return undefined;
@@ -513,7 +518,7 @@ export function useCampaignChat(campaignId: string, options?: { enabled?: boolea
     },
     enabled,
     retry: false,
-    refetchInterval: isWsConnected ? 60000 : 5000,
+    refetchInterval: enabled ? (isWsConnected ? 60000 : 5000) : false,
   });
 
   useEffect(() => {
@@ -1099,6 +1104,54 @@ export function useBulkSaveAttendance(campaignId: string | number) {
       queryClient.invalidateQueries({
         queryKey: ["campaigns", String(campaignId), "participants"],
       });
+    },
+  });
+}
+
+export function usePendingCampaignAppealsQuery() {
+  return useQuery<CampaignAppealResponse[], Error>({
+    queryKey: ["campaigns", "appeals", "pending"],
+    queryFn: () => campaignAppealApi.getPending(),
+  });
+}
+
+export function useSubmitCampaignAppealMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<CampaignAppealResponse, Error, string>({
+    mutationFn: (reason) => campaignAppealApi.submit(reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["campaigns", "appeals"] });
+      queryClient.invalidateQueries({ queryKey: ["user", "profile"] });
+    },
+  });
+}
+
+export function useMyLastCampaignAppealQuery() {
+  return useQuery<CampaignAppealResponse, Error>({
+    queryKey: ["campaigns", "appeals", "my-last"],
+    queryFn: () => campaignAppealApi.getMyLastAppeal(),
+    retry: false,
+  });
+}
+
+export function useApproveCampaignAppealMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<CampaignAppealResponse, Error, { id: number; reviewNotes?: string }>({
+    mutationFn: ({ id, reviewNotes }) => campaignAppealApi.approve(id, reviewNotes),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["campaigns", "appeals"] });
+      queryClient.invalidateQueries({ queryKey: ["users", "blacklist"] });
+    },
+  });
+}
+
+export function useRejectCampaignAppealMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<CampaignAppealResponse, Error, { id: number; reviewNotes?: string }>({
+    mutationFn: ({ id, reviewNotes }) => campaignAppealApi.reject(id, reviewNotes),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["campaigns", "appeals"] });
+      queryClient.invalidateQueries({ queryKey: ["users", "blacklist"] });
     },
   });
 }

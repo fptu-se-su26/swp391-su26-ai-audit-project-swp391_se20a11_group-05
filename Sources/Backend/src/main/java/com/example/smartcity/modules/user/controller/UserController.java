@@ -20,6 +20,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import com.example.smartcity.modules.core.repository.WardRepository;
 import java.util.List;
 
 @RestController
@@ -30,12 +31,14 @@ public class UserController extends BaseGenericController<User, UserDTO, Long> {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final EmailOtpService emailOtpService;
+    private final WardRepository wardRepository;
 
-    public UserController(UserService userService, UserMapper userMapper, PasswordEncoder passwordEncoder, EmailOtpService emailOtpService) {
+    public UserController(UserService userService, UserMapper userMapper, PasswordEncoder passwordEncoder, EmailOtpService emailOtpService, WardRepository wardRepository) {
         this.userService = userService;
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
         this.emailOtpService = emailOtpService;
+        this.wardRepository = wardRepository;
     }
 
     @Override
@@ -106,6 +109,11 @@ public class UserController extends BaseGenericController<User, UserDTO, Long> {
         user.setPhoneNumber(dto.getPhoneNumber());
         user.setEmail(dto.getEmail());
         user.setAvatarUrl(dto.getAvatarUrl());
+        if (dto.getWardId() != null) {
+            wardRepository.findById(dto.getWardId()).ifPresent(user::setWard);
+        } else {
+            user.setWard(null);
+        }
 
         User updated = userService.save(user);
         return ResponseEntity.ok(userMapper.toDto(updated));
@@ -137,6 +145,11 @@ public class UserController extends BaseGenericController<User, UserDTO, Long> {
         user.setPhoneNumber(dto.getPhoneNumber());
         user.setEmail(dto.getEmail());
         user.setAvatarUrl(dto.getAvatarUrl());
+        if (dto.getWardId() != null) {
+            wardRepository.findById(dto.getWardId()).ifPresent(user::setWard);
+        } else {
+            user.setWard(null);
+        }
 
         User updated = userService.save(user);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật thông tin cá nhân thành công", userMapper.toDto(updated)));

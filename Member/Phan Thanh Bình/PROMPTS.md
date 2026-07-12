@@ -59,6 +59,8 @@ Sinh viên/nhóm cần ghi lại:
 | 5 | 06/07/2026 | Antigravity | Tái cấu trúc logic điểm danh chiến dịch (Decouple Attendance) | Giữ status APPROVED của người vắng và dùng attended = false | Cập nhật logic điểm danh tay & tự động, viết query count tương thích ngược | Có | |
 | 6 | 06/07/2026 | Antigravity | Sửa lỗi lệch trạng thái chiến dịch theo thời gian | Giải pháp khắc phục lệch trạng thái temporal do timezone | Đồng bộ so sánh thời gian dạng Date milliseconds ở cả 2 phía | Có | |
 | 7 | 07/07/2026 | Antigravity | Cải thiện bố cục giao diện khung chat nhóm | Nới rộng khung chat, thanh nhập liệu, tăng font header & dọn 'any' | Mở rộng container lên max-w-5xl, nâng input h-11, clean linter warnings | Có | |
+| 8 | 09/07/2026 | Antigravity | Tích hợp logic tự động cấm khi vắng mặt 3 lần | Thiết kế logic và query tính vắng mặt cho scheduler | Cờ vật lý isCampaignBanned, warningCount trên User entity | Có | |
+| 9 | 10/07/2026 | Antigravity | Triển khai luồng Appeal Submission & Review | Thiết kế API gửi/duyệt giải trình và Ward Dashboard UI | API duyệt giải trình, reset cảnh báo, UI duyệt đơn, check wardId (BOLA) | Có | |
 
 
 ---
@@ -671,6 +673,158 @@ Prompt ngắn gọn nhưng phản ánh đúng nhu cầu thiết kế UX. Kết q
 
 ---
 
+### Prompt số 8
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 09/07/2026 |
+| Công cụ AI | Antigravity / Gemini |
+| Mục đích | Tích hợp logic tự động cấm khi vắng mặt 3 lần |
+| Phần việc liên quan | Backend / Scheduler / Campaign Ban Logic |
+| Mức độ sử dụng | Hỏi ý tưởng / Hỏi sinh code |
+
+#### 5.1. Prompt nguyên văn
+
+```text
+Tôi muốn triển khai logic tự động cấm người dùng tham gia chiến dịch nếu họ vắng mặt đủ 3 lần. 
+Mỗi khi CampaignScheduler quét vào cuối ngày (autoEndExpiredCampaigns), hãy đếm số lần vắng mặt của citizen. 
+Nếu vắng mặt đủ 3 lần, gán thuộc tính cấm. 
+Hãy gợi ý cách viết câu query động đếm số lần vắng mặt từ bảng CampaignParticipant và cách update.
+```
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Cần thiết lập cơ chế tự động hóa việc phạt những tình nguyện viên vắng mặt nhiều lần để đảm bảo tính kỷ luật khi tham gia chiến dịch cộng đồng.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+- Gợi ý chạy một truy vấn COUNT động trên bảng campaign_participants liên kết với user tại thời điểm scheduler chạy hoặc kiểm tra đăng ký.
+- Khuyên không nên dùng thuộc tính cờ vật lý trong bảng User để tránh dư thừa (redundancy).
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+- Áp dụng cấu trúc scheduler quét vào cuối ngày để kết thúc chiến dịch và cập nhật cảnh cáo.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+- Bác bỏ COUNT động của AI do lo ngại về hiệu năng (O(N) database reads trên bảng lớn khi lượng đăng ký tăng cao). Chuyển sang dùng thuộc tính vật lý isCampaignBanned, warningCount, lastCampaignUnbanAt trực tiếp trên Entity User để tối ưu O(1).
+- So sánh thời gian Milliseconds chuẩn GMT+7 để tránh lệch múi giờ của máy chủ chạy scheduler.
+- Thêm logic gửi thông báo/mail cảnh cáo khi noShowCount = 2 để người dùng chủ động sửa đổi trước khi bị ban chính thức.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [x] Kết quả AI có lỗi hoặc chưa chính xác (thiết kế kém hiệu năng)
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | |
+| File liên quan | CampaignScheduler.java; CampaignServiceImpl.java |
+| Screenshot | |
+| Kết quả chạy/test | mvn compile: PASS |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Prompt hỏi trực tiếp giải pháp thô nên kết quả nhận về mang tính lý thuyết, thiếu tính toán hiệu năng thực tế. Sinh viên cần chủ động phản biện.
+```
+
+---
+
+### Prompt số 9
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 10/07/2026 |
+| Công cụ AI | Antigravity / Gemini |
+| Mục đích | Triển khai luồng Appeal Submission & Review |
+| Phần việc liên quan | Backend / Frontend / Security (BOLA) |
+| Mức độ sử dụng | Hỏi ý tưởng / Hỏi thiết kế / Hỏi sinh code |
+
+#### 5.1. Prompt nguyên văn
+
+```text
+Tôi muốn thiết kế tính năng gửi đơn giải trình cho người dân khi bị cấm và giao diện duyệt đơn cho Cán bộ.
+1. Khi được duyệt giải trình, reset trạng thái cấm của người dân và xóa lịch sử vắng mặt của họ trong DB để họ có thể đăng ký lại.
+2. Hãy gợi ý code API duyệt đơn và giao diện hiển thị danh sách đơn giải trình đang chờ ở Ward Dashboard.
+```
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Người dân sau khi bị cấm cần có kênh gửi đơn giải trình lý do chính đáng (ốm đau, tai nạn) lên để cán bộ phường xem xét mở khóa tài khoản, kèm theo notification và email xác nhận.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+- Cung cấp khung React UI danh sách đơn giải trình và modal duyệt đơn ở frontend.
+- Gợi ý câu lệnh xóa (delete) hoặc đổi trạng thái các bản ghi vắng mặt cũ trong DB để reset warning về 0.
+- Gợi ý phân quyền cơ bản check Role.WARD_STAFF tại API controller.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+- Áp dụng khung React UI hiển thị danh sách đơn giải trình và modal phê duyệt đơn tại WardBlacklistPage.tsx.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+- Bác bỏ đề xuất xóa/đổi trạng thái bản ghi vắng mặt cũ vì phá hỏng tính toàn vẹn dữ liệu (Audit Trail). Thay vào đó, giữ nguyên lịch sử vắng mặt, thêm trường lastCampaignUnbanAt và chỉ đếm các lần vắng mặt phát sinh sau thời điểm unban.
+- Bổ sung check chéo wardId của cán bộ duyệt đơn và công dân tại service layer để phòng chống lỗ hổng bảo mật nghiêm trọng BOLA/IDOR (ngăn cán bộ phường A duyệt đơn của người dân phường B).
+- Thiết kế luồng deep-linking từ Notification ID trực tiếp đến chi tiết đơn giải trình đang chờ xử lý trên Ward Dashboard.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [x] Kết quả AI có lỗi hoặc chưa chính xác (bỏ qua bảo mật chéo và phá dữ liệu lịch sử)
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | |
+| File liên quan | CampaignAppealServiceImpl.java; WardBlacklistPage.tsx; WardDashboard.tsx |
+| Screenshot | |
+| Kết quả chạy/test | mvn test -Dtest=CampaignAppealServiceImplTest: PASS |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Gợi ý của AI đã bỏ qua hoàn toàn yêu cầu bảo mật phân quyền ở tầng dữ liệu và toàn vẹn dữ liệu lịch sử, nhấn mạnh tầm quan trọng của việc lập trình viên phải chủ động rà soát code.
+```
+
+---
+
 ## 6. Prompt quan trọng nhất
 
 Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.
@@ -678,31 +832,35 @@ Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.
 ### 6.1. Prompt được chọn
 
 ```text
-Dán prompt quan trọng nhất tại đây.
+Prompt số 9 - Triển khai luồng Appeal Submission & Review kèm phân quyền
 ```
 
 ### 6.2. Vì sao prompt này quan trọng?
 
 ```text
-Viết tại đây...
+Prompt này quyết định cấu trúc của tính năng mở khóa tài khoản - một nghiệp vụ nhạy cảm liên quan đến quyền lợi của công dân và phân cấp hành chính (phường/xã). Nếu đi theo hướng gợi ý của AI (xóa dữ liệu lịch sử và chỉ check role cơ bản ở controller), hệ thống sẽ vừa mất kiểm soát dữ liệu lịch sử (audit trail) vừa dễ bị khai thác tấn công BOLA/IDOR để duyệt chéo địa bàn.
 ```
 
 ### 6.3. Kết quả prompt này mang lại
 
 ```text
-Viết tại đây...
+Giúp nhóm nhanh chóng dựng được khung sườn giao diện React và luồng API duyệt đơn, tiết kiệm thời gian code boilerplate UI.
 ```
 
 ### 6.4. Sinh viên/nhóm đã kiểm tra kết quả như thế nào?
 
 ```text
-Viết tại đây...
+- Viết unit test Mockito kiểm chứng các trạng thái duyệt/từ chối đơn giải trình.
+- Viết test case giả lập gọi API duyệt đơn của phường khác để xác nhận hệ thống trả về lỗi 403 Forbidden.
+- Chạy biên dịch và typecheck toàn hệ thống.
 ```
 
 ### 6.5. Sinh viên/nhóm đã cải tiến gì từ kết quả AI?
 
 ```text
-Viết tại đây...
+- Thêm check chéo wardId tại service layer để phòng chống IDOR/BOLA.
+- Giữ nguyên lịch sử vắng mặt cũ và dùng mốc thời gian unban để tính warning count mới.
+- Thiết kế luồng deep-linking điều hướng mượt mà cho Cán bộ từ thông báo đến giao diện duyệt đơn.
 ```
 
 ---
@@ -714,42 +872,31 @@ Ghi lại ít nhất một prompt chưa tạo ra kết quả tốt hoặc chưa 
 ### 7.1. Prompt chưa hiệu quả
 
 ```text
-Dán prompt chưa hiệu quả tại đây.
+Prompt số 8 - Tự động cấm khi vắng mặt 3 lần
 ```
 
 ### 7.2. Vì sao prompt này chưa hiệu quả?
 
 ```text
-Viết tại đây...
+Prompt hỏi trực tiếp giải pháp đếm và cập nhật mà không đưa ra các ràng buộc phi chức năng (non-functional requirements) như hiệu năng hệ thống lớn, khiến AI đề xuất giải pháp tính toán động COUNT O(N) gây thắt nút cổ chai và khuyên không lưu cờ vật lý.
 ```
-
-Gợi ý nguyên nhân:
-
-- Prompt quá ngắn.
-- Thiếu bối cảnh bài toán.
-- Không nêu rõ yêu cầu đầu ra.
-- Không cung cấp ngôn ngữ lập trình/công nghệ đang dùng.
-- Không đưa lỗi cụ thể.
-- Không đưa ví dụ input/output.
-- Không yêu cầu AI giải thích.
-- Hỏi AI làm toàn bộ thay vì hỏi từng phần.
 
 ### 7.3. Cách cải thiện prompt
 
 ```text
-Viết tại đây...
+Nêu rõ ràng buộc về hiệu năng (yêu cầu kiểm tra với độ phức tạp O(1)) và yêu cầu thiết kế tối ưu cho cơ sở dữ liệu lớn ngay từ đầu.
 ```
 
 ### 7.4. Prompt sau khi cải tiến
 
 ```text
-Dán prompt đã được cải tiến tại đây.
+Hãy thiết kế giải pháp theo dõi và cấm người dùng vắng mặt 3 lần sao cho việc kiểm tra quyền đăng ký chiến dịch mới đạt O(1) hiệu năng, không thực hiện các truy vấn quét toàn bảng (full table scans) và giữ lại lịch sử để đối chiếu.
 ```
 
 ### 7.5. Kết quả sau khi cải tiến prompt
 
 ```text
-Viết tại đây...
+AI sẽ đề xuất thiết kế thêm các cờ vật lý (isCampaignBanned, warningCount) và thời điểm mở khóa (lastCampaignUnbanAt) trực tiếp trong entity User để tránh truy vấn quét bảng phức tạp.
 ```
 
 ---
@@ -759,30 +906,23 @@ Viết tại đây...
 ### 8.1. Khi viết prompt, em/nhóm cần cung cấp thông tin gì để AI trả lời tốt hơn?
 
 ```text
-Viết tại đây...
+- Mục tiêu chức năng chi tiết và bối cảnh nghiệp vụ.
+- Ràng buộc phi chức năng (Hiệu năng O(1), bảo mật BOLA/IDOR, toàn vẹn dữ liệu Audit Trail).
+- Công nghệ cụ thể và cấu trúc DB hiện có.
+- Yêu cầu AI đưa ra hướng thiết kế và phân tích rủi ro trước khi viết code.
 ```
-
-Gợi ý:
-
-- Mục tiêu cần đạt.
-- Bối cảnh bài toán.
-- Công nghệ/ngôn ngữ lập trình đang dùng.
-- Input/output mong muốn.
-- Ràng buộc của đề bài.
-- Lỗi đang gặp.
-- Format kết quả mong muốn.
-- Yêu cầu AI giải thích từng bước.
 
 ### 8.2. Em/nhóm đã học được gì về cách đặt câu hỏi cho AI?
 
 ```text
-Viết tại đây...
+Không nên hỏi AI viết hộ toàn bộ code một cách thụ động. Thay vào đó, hãy hỏi dưới dạng tham khảo ý kiến chuyên gia, yêu cầu phân tích các phương án thiết kế khác nhau, rồi tự chọn lọc và cải tiến.
 ```
 
 ### 8.3. Lần sau em/nhóm sẽ cải thiện prompt như thế nào?
 
 ```text
-Viết tại đây...
+- Đưa thêm các quy chuẩn thiết kế bảo mật và tối ưu DB vào bối cảnh prompt.
+- Chia nhỏ các yêu cầu phức tạp thành các prompt tuần tự thay vì dồn tất cả vào một prompt lớn.
 ```
 
 ---
@@ -793,18 +933,18 @@ Viết tại đây...
 
 | Loại prompt | Số lượng | Ví dụ prompt tiêu biểu |
 |---|---:|---|
-| Prompt phân tích yêu cầu |  |  |
-| Prompt giải thích kiến thức |  |  |
-| Prompt thiết kế giải pháp |  |  |
-| Prompt thiết kế database |  |  |
-| Prompt sinh code mẫu |  |  |
-| Prompt debug lỗi |  |  |
-| Prompt viết test case |  |  |
-| Prompt review code |  |  |
-| Prompt tối ưu code |  |  |
-| Prompt viết báo cáo |  |  |
-| Prompt chuẩn bị thuyết trình |  |  |
-| Prompt khác |  |  |
+| Prompt phân tích yêu cầu | 1 | Prompt số 1 |
+| Prompt giải thích kiến thức | 1 | Prompt số 4 |
+| Prompt thiết kế giải pháp | 3 | Prompt số 2, Prompt số 8, Prompt số 9 |
+| Prompt thiết kế database | 0 | |
+| Prompt sinh code mẫu | 2 | Prompt số 3, Prompt số 5 |
+| Prompt debug lỗi | 1 | Prompt số 6 |
+| Prompt viết test case | 0 | |
+| Prompt review code | 0 | |
+| Prompt tối ưu code | 1 | Prompt số 7 |
+| Prompt viết báo cáo | 0 | |
+| Prompt chuẩn bị thuyết trình | 0 | |
+| Prompt khác | 0 | |
 
 ---
 
@@ -814,16 +954,16 @@ Sinh viên/nhóm tự kiểm tra chất lượng prompt đã dùng.
 
 | Tiêu chí | Đã đạt? | Ghi chú |
 |---|:---:|---|
-| Prompt có mục tiêu rõ ràng |  |  |
-| Prompt có đủ bối cảnh |  |  |
-| Prompt có nêu công nghệ/ngôn ngữ sử dụng |  |  |
-| Prompt có nêu yêu cầu đầu ra |  |  |
-| Prompt không yêu cầu AI làm toàn bộ bài một cách máy móc |  |  |
-| Prompt có yêu cầu AI giải thích hoặc phân tích |  |  |
-| Kết quả AI được kiểm tra lại |  |  |
-| Kết quả AI được chỉnh sửa trước khi sử dụng |  |  |
-| Prompt quan trọng được ghi lại đầy đủ |  |  |
-| Prompt sai/chưa hiệu quả được rút kinh nghiệm |  |  |
+| Prompt có mục tiêu rõ ràng | ✔ | Đều ghi rõ mục đích cụ thể |
+| Prompt có đủ bối cảnh | ✔ | Nêu rõ cấu trúc hiện tại của dự án |
+| Prompt có nêu công nghệ/ngôn ngữ sử dụng | ✔ | Spring Boot, React, JPA, Tailwind |
+| Prompt có nêu yêu cầu đầu ra | ✔ | API compile pass, UI responsive |
+| Prompt không yêu cầu AI làm toàn bộ bài một cách máy móc | ✔ | Chỉ tham khảo cấu trúc và giải thuật |
+| Prompt có yêu cầu AI giải thích hoặc phân tích | ✔ | Hỏi cách thiết kế và truy vấn tối ưu |
+| Kết quả AI được kiểm tra lại | ✔ | Chạy thử unit test và build |
+| Kết quả AI được chỉnh sửa trước khi sử dụng | ✔ | Chỉnh sửa check wardId và cờ vật lý |
+| Prompt quan trọng được ghi lại đầy đủ | ✔ | Log đầy đủ prompt 8 và 9 |
+| Prompt sai/chưa hiệu quả được rút kinh nghiệm | ✔ | Phân tích rõ hạn chế của prompt số 8 |
 
 ---
 
@@ -839,4 +979,4 @@ Sinh viên/nhóm cam kết rằng:
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-|  |  |
+| Phan Thanh Bình | 12/07/2026 |

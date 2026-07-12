@@ -740,6 +740,111 @@ Việc căn chỉnh giao diện không chỉ đơn thuần là thay đổi một
 
 ---
 
+### Lần sử dụng AI số 11
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 09/07/2026 |
+| Công cụ AI | Antigravity / Gemini |
+| Mục đích sử dụng | Thiết kế và triển khai logic tự động cấm tham gia chiến dịch (3 lần vắng mặt) trong CampaignScheduler |
+| Phần việc liên quan | Backend / Scheduler / Campaign Ban Logic |
+| Mức độ sử dụng | Hỗ trợ ý tưởng / Hỗ trợ một phần |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+Tôi muốn triển khai logic tự động cấm người dùng tham gia chiến dịch nếu họ vắng mặt đủ 3 lần. 
+Mỗi khi CampaignScheduler quét vào cuối ngày (autoEndExpiredCampaigns), hãy đếm số lần vắng mặt của citizen. 
+Nếu vắng mặt đủ 3 lần, gán thuộc tính cấm. 
+Hãy gợi ý cách viết câu query động đếm số lần vắng mặt từ bảng CampaignParticipant và cách update.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+- Đề xuất chạy truy vấn `COUNT` động qua tất cả các citizen đang tham gia chiến dịch mỗi khi scheduler quét kết thúc chiến dịch.
+- Khuyên không nên lưu trữ cờ vật lý trong bảng User (ví dụ: `isCampaignBanned`) để tránh dư thừa dữ liệu (redundancy) mà nên tính toán động qua database query.
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+- Ý tưởng cấu trúc scheduler chạy vào cuối ngày để kết thúc chiến dịch và cập nhật thông báo cảnh cáo vắng mặt lần 2, thực hiện cấm khi đạt threshold lần 3.
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+- **Critical Thinking & Performance optimization:** Sinh viên phản biện và bác bỏ đề xuất dùng query `COUNT` động của AI trên diện rộng vì nó sẽ gây thắt nút cổ chai hiệu năng (O(N) database reads trên bảng lớn). Thay vào đó, sinh viên quyết định thiết kế cờ vật lý `isCampaignBanned`, `warningCount` và `lastCampaignUnbanAt` lưu trực tiếp trong entity `User`. Điều này giúp việc kiểm tra điều kiện cấm chỉ mất `O(1)` khi người dùng đăng ký chiến dịch mới.
+- **Timezone Safety:** Tự viết logic milliseconds comparison sử dụng múi giờ Việt Nam (GMT+7) trong scheduler để so sánh thời gian chính xác, tránh việc scheduler chạy lệch múi giờ dẫn đến cấm nhầm.
+- **Absence Warning Integration:** Tự bổ sung thêm logic kiểm tra nếu `noShowCount == 2` thì gửi email cảnh cáo người dùng trước khi bị ban chính thức.
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | |
+| File liên quan | Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/job/CampaignScheduler.java;<br>Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/service/CampaignServiceImpl.java |
+| Screenshot | |
+| Kết quả chạy/test | mvn compile: PASS; scheduler chạy đúng chu kỳ và gửi mail/cảnh báo thành công |
+| Link video demo | |
+| Ghi chú khác | |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Ý tưởng của AI thường đi theo hướng đơn giản và lý thuyết (tính toán động để tránh redundancy). Tuy nhiên, khi đối chiếu với hiệu năng thực tế của hệ thống production lớn, các thuộc tính cờ vật lý và warning count lưu trong DB giúp giảm tải truy vấn và tăng tốc độ xử lý hơn rất nhiều.
+```
+
+---
+
+### Lần sử dụng AI số 12
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 10/07/2026 |
+| Công cụ AI | Antigravity / Gemini |
+| Mục đích sử dụng | Thiết kế cơ chế gửi đơn giải trình và duyệt đơn giải trình (Appeal Submission & Review Flow) |
+| Phần việc liên quan | Backend / Frontend / Security (BOLA) |
+| Mức độ sử dụng | Hỗ trợ một phần |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+Tôi muốn thiết kế tính năng gửi đơn giải trình cho người dân khi bị cấm và giao diện duyệt đơn cho Cán bộ.
+1. Khi được duyệt giải trình, reset trạng thái cấm của người dân và xóa lịch sử vắng mặt của họ trong DB để họ có thể đăng ký lại.
+2. Hãy gợi ý code API duyệt đơn và giao diện hiển thị danh sách đơn giải trình đang chờ ở Ward Dashboard.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+- Đề xuất xóa (delete) hoặc đổi trạng thái các bản ghi `CampaignParticipant` cũ liên quan đến vắng mặt của user để reset số lần vắng mặt về 0.
+- Gợi ý phân quyền cơ bản bằng cách check vai trò `Role.WARD_STAFF` hoặc `Role.SUPER_ADMIN` tại API controller.
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+- Cấu trúc React UI hiển thị danh sách đơn giải trình và các modal/form duyệt/từ chối đơn tại Ward Blacklist page.
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+- **Critical Thinking & Audit Trail:** Sinh viên phản biện rằng việc xóa bản ghi tham gia chiến dịch cũ (hoặc đổi trạng thái vắng mặt thành có mặt) như AI đề xuất là phá hỏng tính toàn vẹn dữ liệu lịch sử (Audit Trail). Sinh viên quyết định giữ nguyên toàn bộ lịch sử vắng mặt, giải quyết bằng cách thêm trường `lastCampaignUnbanAt` trong `User` và đếm số lần vắng mặt *sau* thời điểm unban gần nhất (`countNoShowCampaignsAfter`), đảm bảo giữ nguyên lịch sử hoạt động để cán bộ tra cứu.
+- **BOLA/IDOR Security Guard:** Gợi ý của AI chỉ check vai trò `Role.WARD_STAFF` chung chung ở Controller. Điều này dẫn đến lỗ hổng BOLA (Broken Object Level Authorization): cán bộ phường A có thể duyệt đơn của công dân thuộc phường B bằng cách gọi API trực tiếp với `appealId` của phường B. Sinh viên đã tự bổ sung check chéo ward ID: `appeal.getCitizen().getWard().getId().equals(reviewer.getWard().getId())` trực tiếp tại Service layer để bảo vệ dữ liệu.
+- **Deep-linking & Navigation:** Tự thiết kế luồng deep-linking từ Notification ID đến tab giải trình trong Ward Dashboard để cán bộ click trực tiếp là mở ngay chi tiết đơn giải trình tương ứng.
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | |
+| File liên quan | Sources/Backend/src/main/java/com/example/smartcity/modules/campaign/service/CampaignAppealServiceImpl.java;<br>Sources/Frontend/src/features/ward/WardBlacklistPage.tsx;<br>Sources/Frontend/src/features/ward/WardDashboard.tsx |
+| Screenshot | |
+| Kết quả chạy/test | mvn test -Dtest=CampaignAppealServiceImplTest: PASS; npx tsc --noEmit: PASS |
+| Link video demo | |
+| Ghi chú khác | |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Luôn cần đặt tính toàn vẹn của dữ liệu (Audit Trail) và bảo mật tầng ứng dụng (BOLA/IDOR checking) lên hàng đầu. AI thường chỉ đưa ra các demo ngắn gọn, bỏ qua các kiểm soát phân quyền chéo địa bàn hành chính, lập trình viên cần tự chủ động thiết kế lớp bảo mật này.
+```
+
+---
+
 ## 5. Bảng tổng hợp mức độ sử dụng AI
 
 Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.
@@ -771,6 +876,9 @@ Ghi lại các trường hợp AI trả lời sai, thiếu, chưa phù hợp ho�
 | 1 | AI đề xuất bảo mật phân quyền (BOLA/IDOR) bằng cách lọc/ẩn các nút ở Frontend thay vì kiểm tra ở Backend. | Tự phản biện thấy người dùng có thể dùng Postman gửi request trực tiếp để bypass UI. | Bổ sung hàm kiểm tra chéo `validateActionPermission` trực tiếp tại Backend Service Layer. |
 | 2 | Đề xuất dùng thư viện bản đồ Google Maps và API Geocoding có phí, đồng thời không xử lý tốt trường hợp GPS bị nhiễu/null. | Khi chạy thử hệ thống báo lỗi thiếu API Key và không định vị được khi mất tín hiệu GPS. | Thay thế bằng OpenStreetMap (Nominatim) miễn phí và thêm fallback tự động nhận diện Phường dựa trên chuỗi địa chỉ người dùng nhập. |
 | 3 | Khi hướng dẫn viết tính năng tìm trùng lặp phản ánh, AI sinh câu truy vấn SQL/JPQL tính khoảng cách cosine thông thường, không dùng được cho `pgvector`. | Khi chạy compile backend báo lỗi cú pháp truy vấn cơ sở dữ liệu PostgreSQL. | Nhóm tự tìm hiểu tài liệu của extension `pgvector` và sửa lại câu truy vấn Native Query sử dụng toán tử `<=>` và hàm địa lý `ST_DWithin`. |
+| 4 | AI đề xuất tính toán số lần vắng mặt động bằng `COUNT` trong scheduler qua toàn bộ danh sách citizen. | Phân tích hiệu năng, thấy `O(N)` query trên bảng lớn gây thắt nút cổ chai. | Thêm cờ vật lý `isCampaignBanned`, `warningCount` và `lastCampaignUnbanAt` trong bảng `users` để kiểm tra `O(1)`. |
+| 5 | AI đề xuất xóa hoặc sửa đổi trạng thái của các bản ghi vắng mặt cũ trong DB để reset số lần vắng mặt về 0 khi duyệt đơn. | Phản biện nghiệp vụ, nhận thấy việc này phá vỡ tính toàn vẹn dữ liệu lịch sử (Audit Trail). | Lưu giữ nguyên bản ghi lịch sử, thêm trường `lastCampaignUnbanAt` và chỉ đếm các lần vắng mặt phát sinh sau thời điểm unban đó. |
+| 6 | AI đề xuất duyệt đơn giải trình chỉ check vai trò `Role.WARD_STAFF` chung chung ở controller. | Phân tích bảo mật BOLA/IDOR, nhận thấy cán bộ phường này có thể duyệt đơn của phường khác. | Kiểm tra so khớp `wardId` của công dân và cán bộ duyệt trực tiếp trong service layer. |
 
 ---
 
@@ -794,7 +902,11 @@ Có thể bao gồm:
 ### Nội dung kiểm chứng
 
 ```text
-Viết tại đây...
+Quy trình kiểm chứng đã dùng:
+1) Viết test case Mockito bao phủ 100% các scenario của CampaignAppealServiceImpl.
+2) Kiểm thử bảo mật BOLA/IDOR bằng cách gọi API duyệt đơn chéo phường và xác minh backend trả về lỗi 403 Forbidden.
+3) Kiểm tra hiển thị countdown và tab Blacklist ở frontend.
+4) Build biên dịch thử backend/frontend thành công trước khi commit.
 ```
 
 ---
@@ -806,17 +918,14 @@ Viết tại đây...
 Mô tả phần sinh viên tự làm, phần AI hỗ trợ và phần đã tự cải tiến.
 
 ```text
-Viết tại đây...
+Tôi đã tự nghiên cứu, thiết kế, triển khai logic Campaign Ban & Appeal và tối ưu hóa hệ thống. AI chỉ hỗ trợ đưa ra một số mẫu khung code React UI cho dropdown và gợi ý cấu trúc scheduler ban đầu. Bản thân tôi tự phản biện các giải pháp kém hiệu năng của AI (như query COUNT động toàn hệ thống), tự thiết kế cấu trúc database tối ưu hơn (sử dụng cờ vật lý và warning count trên entity User) và tự bảo mật tầng Service chống lỗ hổng BOLA (kiểm tra chéo ward ID) cũng như bảo vệ Audit Trail (không xóa dữ liệu vắng mặt lịch sử khi unban).
 ```
 
 ### 8.2. Đối với bài nhóm
 
 | Thành viên | MSSV | Nhiệm vụ chính | Có sử dụng AI không? | Minh chứng đóng góp |
 |---|---|---|---|---|
-|  |  |  | Có / Không |  |
-|  |  |  | Có / Không |  |
-|  |  |  | Có / Không |  |
-|  |  |  | Có / Không |  |
+| Phan Thanh Bình | DE190210 | Phát triển Campaign Ban, Appeal review, progressive lockout và Chat UI | Có | Đã tích hợp code sạch, test case đầy đủ và cập nhật tài liệu đầy đủ |
 
 ---
 
@@ -825,37 +934,44 @@ Viết tại đây...
 ### 9.1. AI đã hỗ trợ em/nhóm ở điểm nào?
 
 ```text
-Viết tại đây...
+AI đã hỗ trợ tốt trong việc gợi ý cấu trúc khung React UI cho các dropdown menu, modal và scheduler template thô sơ. Ngoài ra, AI hỗ trợ cung cấp các đoạn template Mockito test case và viết một số hàm format thời gian.
 ```
 
 ### 9.2. Phần nào em/nhóm không sử dụng theo gợi ý của AI? Vì sao?
 
 ```text
-Viết tại đây...
+1) Không sử dụng giải pháp tính toán động COUNT số lần vắng mặt của AI vì rất kém hiệu năng khi số lượng bản ghi lớn; tôi tự thay thế bằng cờ vật lý và warning count trong entity User.
+2) Không sử dụng giải pháp xóa/reset trạng thái bản ghi vắng mặt cũ trong DB của AI vì phá hỏng tính toàn vẹn dữ liệu (Audit Trail); tôi tự thay thế bằng giải pháp dùng trường lastCampaignUnbanAt.
+3) Không tin tưởng giải pháp phân quyền cơ bản chỉ check Role chung chung ở Controller của AI vì nguy cơ hổng BOLA/IDOR; tôi tự bổ sung check chéo ward ID ở tầng Service.
 ```
 
 ### 9.3. Em/nhóm đã kiểm tra tính đúng đắn của kết quả AI như thế nào?
 
 ```text
-Viết tại đây...
+- Viết unit test cho service (CampaignAppealServiceImplTest) để bao phủ 100% các case thành công và thất bại.
+- Chạy biên dịch backend (mvn compile) và chạy kiểm tra kiểu tĩnh của React (npx tsc --noEmit) sau mỗi thay đổi.
+- Chạy thử trực tiếp trên trình duyệt, kiểm tra routing khi click vào notification và kiểm tra phân quyền tài khoản Ward Staff của các phường khác nhau.
 ```
 
 ### 9.4. Nếu không có AI, phần nào sẽ khó khăn nhất?
 
 ```text
-Viết tại đây...
+Phần viết các test case Mockito hoặc xây dựng giao diện thô React/Tailwind ban đầu sẽ tốn nhiều thời gian hơn vì phải viết từng dòng code boilerplate và style thủ công.
 ```
 
 ### 9.5. Sau bài tập/project này, em/nhóm học được gì về môn học?
 
 ```text
-Viết tại đây...
+- Hiểu sâu về bảo mật phân quyền ở mức dữ liệu (Data-level Authorization / BOLA) trong thực tế.
+- Tầm quan trọng của việc thiết kế Database tối ưu hiệu năng (O(1) vs O(N)) và bảo toàn dữ liệu lịch sử (Audit Trail).
+- Cách đồng bộ hóa hệ thống bất đồng bộ phức tạp (Scheduler chạy ngầm, Notification, và Email gửi đi).
 ```
 
 ### 9.6. Sau bài tập/project này, em/nhóm học được gì về cách sử dụng AI có trách nhiệm?
 
 ```text
-Viết tại đây...
+- AI chỉ là một trợ lý gợi ý giải pháp lý thuyết chung chung. Developer luôn phải giữ vai trò chủ động, phản biện các đề xuất của AI dưới lăng kính hiệu năng, bảo mật và nghiệp vụ thực tế của hệ thống.
+- Ghi nhận trung thực và minh bạch mọi lần tham khảo AI.
 ```
 
 ---
@@ -872,4 +988,5 @@ Sinh viên/nhóm cam kết rằng:
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-|  |  |
+| Phan Thanh Bình | 12/07/2026 |
+

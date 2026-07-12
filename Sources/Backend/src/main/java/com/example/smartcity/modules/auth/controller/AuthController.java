@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 import com.example.smartcity.modules.auth.service.AuthService;
+import com.example.smartcity.modules.core.repository.WardRepository;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -42,6 +43,7 @@ public class AuthController {
     private final UserMapper userMapper;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final WardRepository wardRepository;
 
     /** Lấy IP thực của client, hỗ trợ reverse proxy (X-Forwarded-For) */
     private String getClientIp(HttpServletRequest request) {
@@ -180,6 +182,9 @@ public class AuthController {
         User user = new User(username, passwordEncoder.encode(password), fullName, phone, email, role);
         user.setStatus("ACTIVE");
         user.setPhoneVerified(true);
+        if (role != Role.SUPER_ADMIN) {
+            wardRepository.findById(1L).or(() -> wardRepository.findAll().stream().findFirst()).ifPresent(user::setWard);
+        }
         userRepository.save(user);
 
         return ResponseEntity.ok(ApiResponse.success(

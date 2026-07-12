@@ -79,6 +79,7 @@ public class CampaignServiceImpl implements CampaignService {
     private final EmailOtpService emailOtpService;
     private final NotificationService notificationService;
     private final ExternalNotificationService externalNotificationService;
+    private final com.example.smartcity.modules.user.service.UserService userService;
 
     @Override
     @Transactional(readOnly = true)
@@ -169,6 +170,9 @@ public class CampaignServiceImpl implements CampaignService {
         User citizen = requireUser(username);
         if ("BANNED".equalsIgnoreCase(citizen.getStatus())) {
             throw new CustomException("Tài khoản của bạn đã bị khóa.", HttpStatus.FORBIDDEN.value());
+        }
+        if (citizen.isCampaignBanned()) {
+            throw new CustomException("Tài khoản của bạn đã bị cấm đăng ký tham gia chiến dịch do vắng mặt quá 3 lần. Vui lòng gửi đơn xin mở khóa.", HttpStatus.FORBIDDEN.value());
         }
         if (citizen.getRole() != Role.CITIZEN) {
             throw new CustomException("Only citizens can join campaigns", HttpStatus.FORBIDDEN.value());
@@ -694,7 +698,8 @@ public class CampaignServiceImpl implements CampaignService {
                     participant.setAttended(false);
                     participant.setAttendedAt(now);
                     participant.setRejectionReason("Hệ thống tự động đánh dấu vắng mặt do không tham gia điểm danh");
-                    participantRepository.save(participant);
+                    CampaignParticipant saved = participantRepository.save(participant);
+                    verifyAndApplyCampaignBan(saved.getCitizen(), campaign);
                 }
             }
 
@@ -1120,13 +1125,21 @@ public class CampaignServiceImpl implements CampaignService {
         participant.setAttendedAt(LocalDateTime.now());
         participant.setRejectionReason("Cán bộ phường đánh giá vắng mặt không lý do");
         
-        return toParticipantResponse(participantRepository.save(participant));
+        CampaignParticipant saved = participantRepository.save(participant);
+        verifyAndApplyCampaignBan(saved.getCitizen(), campaign);
+        return toParticipantResponse(saved);
     }
 
     @Override
     @Transactional
     public String sendEmailOtp(String username) {
         User user = requireUser(username);
+        if ("BANNED".equalsIgnoreCase(user.getStatus())) {
+            throw new CustomException("Tài khoản của bạn đã bị khóa.", HttpStatus.FORBIDDEN.value());
+        }
+        if (user.isCampaignBanned()) {
+            throw new CustomException("Tài khoản của bạn đã bị cấm đăng ký tham gia chiến dịch do vắng mặt quá 3 lần. Vui lòng gửi đơn xin mở khóa.", HttpStatus.FORBIDDEN.value());
+        }
         if (user.getEmail() == null || user.getEmail().isBlank()) {
             throw new CustomException("Tài khoản chưa được cấu hình email. Vui lòng cập nhật email trong hồ sơ.", HttpStatus.BAD_REQUEST.value());
         }
@@ -1295,7 +1308,11 @@ public class CampaignServiceImpl implements CampaignService {
                 participant.setRejectionReason("Cán bộ phường đánh giá vắng mặt không lý do");
             }
 
-            responses.add(toParticipantResponse(participantRepository.save(participant)));
+            CampaignParticipant saved = participantRepository.save(participant);
+            if (!item.isAttended()) {
+                verifyAndApplyCampaignBan(saved.getCitizen(), campaign);
+            }
+            responses.add(toParticipantResponse(saved));
         }
 
         return responses;
@@ -1395,6 +1412,46 @@ public class CampaignServiceImpl implements CampaignService {
                     participant.getCitizen().getUsername(), participant.getCampaign().getId());
             participant.setJoinStatus(JOIN_MAYBE);
             participantRepository.save(participant);
+        }
+    }
+
+    private void verifyAndApplyCampaignBan(User citizen, Campaign campaign) {
+        long threshold = citizen.getLastCampaignUnbanAt() == null ? 3 : 1;
+        long noShowCount = citizen.getLastCampaignUnbanAt() == null
+                ? participantRepository.countNoShowCampaigns(citizen.getId())
+                : participantRepository.countNoShowCampaignsAfter(citizen.getId(), citizen.getLastCampaignUnbanAt());
+
+        if (noShowCount == 2 && citizen.getLastCampaignUnbanAt() == null) {
+            notificationService.createCampaignNotification(
+                    citizen,
+                    campaign.getId(),
+                    "Cảnh cáo vắng mặt chiến dịch",
+                    String.format("Bạn đã vắng mặt 2 lần tại các chiến dịch cộng đồng (lần gần nhất tại '%s'). Nếu tiếp tục vắng mặt lần thứ 3, tài khoản của bạn sẽ bị cấm tham gia chiến dịch mới.", campaign.getTitle()),
+                    "CAMPAIGN_WARNING"
+            );
+            if (citizen.getEmail() != null && !citizen.getEmail().isBlank()) {
+                String subject = "[SmartCity] Cảnh báo vắng mặt tham gia chiến dịch";
+                String body = String.format("Chào %s,\n\nBạn đã vắng mặt 2 lần tại các chiến dịch cộng đồng (lần gần nhất tại chiến dịch: \"%s\").\n\nNếu tiếp tục vắng mặt lần thứ 3, tài khoản của bạn sẽ bị cấm đăng ký tham gia mọi chiến dịch cộng đồng mới.\n\nVui lòng sắp xếp thời gian tham gia đầy đủ để tránh ảnh hưởng đến quyền lợi thành viên.\n\nTrân trọng,\nBan Quản Trị SmartCity",
+                        citizen.getFullName(), campaign.getTitle());
+                externalNotificationService.sendEmailNotification(citizen.getEmail(), subject, body);
+            }
+        }
+
+        boolean banned = userService.checkAndBanFromCampaigns(citizen.getId(), campaign.getTitle());
+        if (banned) {
+            notificationService.createCampaignNotification(
+                    citizen,
+                    campaign.getId(),
+                    "Bị cấm tham gia chiến dịch",
+                    String.format("Tài khoản của bạn đã bị cấm đăng ký tham gia chiến dịch cộng đồng mới do vắng mặt lần thứ 3 tại chiến dịch '%s'. Bạn có thể gửi đơn xin mở khóa trong trang cá nhân.", campaign.getTitle()),
+                    "CAMPAIGN_BANNED"
+            );
+            if (citizen.getEmail() != null && !citizen.getEmail().isBlank()) {
+                String subject = "[SmartCity] Tài khoản bị cấm tham gia chiến dịch";
+                String body = String.format("Chào %s,\n\nTài khoản của bạn đã bị cấm đăng ký tham gia chiến dịch cộng đồng mới do vắng mặt quá 3 lần (lần thứ 3 vắng mặt tại chiến dịch: \"%s\").\n\nBạn có thể gửi đơn giải trình trực tuyến trên ứng dụng để được Cán bộ phường phê duyệt mở khóa.\n\nTrân trọng,\nBan Quản Trị SmartCity",
+                        citizen.getFullName(), campaign.getTitle());
+                externalNotificationService.sendEmailNotification(citizen.getEmail(), subject, body);
+            }
         }
     }
 }

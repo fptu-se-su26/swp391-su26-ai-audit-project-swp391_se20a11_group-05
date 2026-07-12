@@ -1134,6 +1134,12 @@ public class CampaignServiceImpl implements CampaignService {
     @Transactional
     public String sendEmailOtp(String username) {
         User user = requireUser(username);
+        if ("BANNED".equalsIgnoreCase(user.getStatus())) {
+            throw new CustomException("Tài khoản của bạn đã bị khóa.", HttpStatus.FORBIDDEN.value());
+        }
+        if (user.isCampaignBanned()) {
+            throw new CustomException("Tài khoản của bạn đã bị cấm đăng ký tham gia chiến dịch do vắng mặt quá 3 lần. Vui lòng gửi đơn xin mở khóa.", HttpStatus.FORBIDDEN.value());
+        }
         if (user.getEmail() == null || user.getEmail().isBlank()) {
             throw new CustomException("Tài khoản chưa được cấu hình email. Vui lòng cập nhật email trong hồ sơ.", HttpStatus.BAD_REQUEST.value());
         }
@@ -1410,6 +1416,27 @@ public class CampaignServiceImpl implements CampaignService {
     }
 
     private void verifyAndApplyCampaignBan(User citizen, Campaign campaign) {
+        long threshold = citizen.getLastCampaignUnbanAt() == null ? 3 : 1;
+        long noShowCount = citizen.getLastCampaignUnbanAt() == null
+                ? participantRepository.countNoShowCampaigns(citizen.getId())
+                : participantRepository.countNoShowCampaignsAfter(citizen.getId(), citizen.getLastCampaignUnbanAt());
+
+        if (noShowCount == 2 && citizen.getLastCampaignUnbanAt() == null) {
+            notificationService.createCampaignNotification(
+                    citizen,
+                    campaign.getId(),
+                    "Cảnh cáo vắng mặt chiến dịch",
+                    String.format("Bạn đã vắng mặt 2 lần tại các chiến dịch cộng đồng (lần gần nhất tại '%s'). Nếu tiếp tục vắng mặt lần thứ 3, tài khoản của bạn sẽ bị cấm tham gia chiến dịch mới.", campaign.getTitle()),
+                    "CAMPAIGN_WARNING"
+            );
+            if (citizen.getEmail() != null && !citizen.getEmail().isBlank()) {
+                String subject = "[SmartCity] Cảnh báo vắng mặt tham gia chiến dịch";
+                String body = String.format("Chào %s,\n\nBạn đã vắng mặt 2 lần tại các chiến dịch cộng đồng (lần gần nhất tại chiến dịch: \"%s\").\n\nNếu tiếp tục vắng mặt lần thứ 3, tài khoản của bạn sẽ bị cấm đăng ký tham gia mọi chiến dịch cộng đồng mới.\n\nVui lòng sắp xếp thời gian tham gia đầy đủ để tránh ảnh hưởng đến quyền lợi thành viên.\n\nTrân trọng,\nBan Quản Trị SmartCity",
+                        citizen.getFullName(), campaign.getTitle());
+                externalNotificationService.sendEmailNotification(citizen.getEmail(), subject, body);
+            }
+        }
+
         boolean banned = userService.checkAndBanFromCampaigns(citizen.getId(), campaign.getTitle());
         if (banned) {
             notificationService.createCampaignNotification(

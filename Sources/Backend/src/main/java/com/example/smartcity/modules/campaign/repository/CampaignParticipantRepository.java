@@ -25,8 +25,8 @@ public interface CampaignParticipantRepository extends JpaRepository<CampaignPar
     long countNoShowCampaigns(@org.springframework.data.repository.query.Param("citizenId") Long citizenId);
 
     @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM CampaignParticipant p WHERE p.citizen.id = :citizenId AND " +
-            "((p.joinStatus = 'APPROVED' AND p.attended = false AND p.attendedAt IS NOT NULL AND (:since IS NULL OR p.attendedAt > :since)) OR " +
-            " (p.joinStatus = 'NO_SHOW' AND (:since IS NULL OR p.createdAt > :since)))")
+            "((p.joinStatus = 'APPROVED' AND p.attended = false AND p.attendedAt IS NOT NULL AND p.attendedAt > :since) OR " +
+            " (p.joinStatus = 'NO_SHOW' AND p.createdAt > :since))")
     long countNoShowCampaignsAfter(@org.springframework.data.repository.query.Param("citizenId") Long citizenId, 
                                    @org.springframework.data.repository.query.Param("since") java.time.LocalDateTime since);
 

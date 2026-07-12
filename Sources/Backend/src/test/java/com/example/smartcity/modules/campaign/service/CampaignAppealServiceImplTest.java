@@ -65,6 +65,37 @@ class CampaignAppealServiceImplTest {
     }
 
     @Test
+    @DisplayName("Should successfully submit appeal and notify ward staff when citizen belongs to a ward")
+    void submitAppeal_success_withWard_notifiesStaff() {
+        User citizen = new User("citizen1", "encoded", "Citizen One", "0905123456", "citizen@example.com", Role.CITIZEN);
+        citizen.setCampaignBanned(true);
+        com.example.smartcity.modules.core.entity.Ward ward = mock(com.example.smartcity.modules.core.entity.Ward.class);
+        when(ward.getId()).thenReturn(1L);
+        citizen.setWard(ward);
+
+        User staff = new User("staff1", "encoded", "Staff One", "0905123457", "staff@example.com", Role.WARD_STAFF);
+
+        CampaignAppealRequest request = new CampaignAppealRequest("I had a family emergency.");
+
+        when(userRepository.findByUsername("citizen1")).thenReturn(Optional.of(citizen));
+        when(appealRepository.existsByCitizenIdAndStatus(citizen.getId(), "PENDING")).thenReturn(false);
+        when(appealRepository.save(any(CampaignAppeal.class))).thenAnswer(invocation -> {
+            CampaignAppeal appeal = invocation.getArgument(0);
+            appeal.setId(100L);
+            return appeal;
+        });
+        when(userRepository.findByRoleAndWardId(Role.WARD_STAFF, 1L)).thenReturn(java.util.List.of(staff));
+
+        CampaignAppealResponse response = appealService.submitAppeal(request, "citizen1");
+
+        assertNotNull(response);
+        assertEquals(100L, response.getId());
+        verify(appealRepository).save(any(CampaignAppeal.class));
+        verify(userRepository).findByRoleAndWardId(Role.WARD_STAFF, 1L);
+        verify(notificationService).createCampaignNotification(eq(staff), any(), any(), any(), eq("NEW_CAMPAIGN_APPEAL"));
+    }
+
+    @Test
     @DisplayName("Should throw exception on submitAppeal when citizen is not campaign banned")
     void submitAppeal_notBanned() {
         User citizen = new User("citizen1", "encoded", "Citizen One", "0905123456", "citizen@example.com", Role.CITIZEN);
@@ -75,7 +106,7 @@ class CampaignAppealServiceImplTest {
         when(userRepository.findByUsername("citizen1")).thenReturn(Optional.of(citizen));
 
         CustomException ex = assertThrows(CustomException.class, () -> appealService.submitAppeal(request, "citizen1"));
-        assertEquals("Tài khoản của bạn không bị cấm tham gia chiến dịch.", ex.getMessage());
+        assertEquals("Tài khoản của bạn không bị cấm tham gia chiến dịch hoặc bị khóa.", ex.getMessage());
         verify(appealRepository, never()).save(any());
     }
 

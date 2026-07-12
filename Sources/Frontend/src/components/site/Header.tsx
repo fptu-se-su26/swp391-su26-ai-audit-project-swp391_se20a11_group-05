@@ -296,8 +296,10 @@ export function Header() {
       // noop
     }
     logout();
-    queryClient.clear();
     void navigate({ to: loginPath });
+    setTimeout(() => {
+      queryClient.clear();
+    }, 0);
   };
 
   // Simplified core navigation items
@@ -315,10 +317,10 @@ export function Header() {
   const isAuthority =
     user && ([Role.WARD_STAFF, Role.POLICE, Role.SUPER_ADMIN] as Role[]).includes(user.role);
   const isDashboard = user && path.startsWith(getDashboardPathForRole(user.role));
-  const menuItems = isAuthority && isDashboard
-    ? [] // Clean layout: hide public links when IN the dashboard
-    : publicMenuItems;
-
+  const menuItems =
+    isAuthority && isDashboard
+      ? [] // Clean layout: hide public links when IN the dashboard
+      : publicMenuItems;
 
   // Determine active item based on pathname and label
   const isItemActive = (item: (typeof menuItems)[number]) => {
@@ -407,7 +409,11 @@ export function Header() {
                       className="px-4 py-1.5 rounded-full border border-[#0B4FC4] text-[#0B4FC4] bg-[#F5F9FF] hover:bg-[#0B4FC4] hover:text-white transition-all duration-300 font-bold text-sm flex items-center gap-2 shadow-sm whitespace-nowrap"
                     >
                       <Sliders size={16} />
-                      {user.role === Role.SUPER_ADMIN ? "Bảng điều hành IOC" : locale === "vi" ? "Trang làm việc" : "Workspace"}
+                      {user.role === Role.SUPER_ADMIN
+                        ? "Bảng điều hành IOC"
+                        : locale === "vi"
+                          ? "Trang làm việc"
+                          : "Workspace"}
                     </Link>
                   )}
                 </li>
@@ -1024,7 +1030,11 @@ export function Header() {
                   className="block min-h-[48px] px-4 py-3 rounded-md font-bold text-[#0B4FC4] bg-[#F5F9FF] border border-[#0B4FC4] text-center font-sans flex items-center justify-center gap-2 shadow-sm transition hover:bg-[#0B4FC4] hover:text-white"
                 >
                   <Sliders size={18} />
-                  {user.role === Role.SUPER_ADMIN ? "Bảng điều hành IOC" : locale === "vi" ? "Trang làm việc" : "Workspace"}
+                  {user.role === Role.SUPER_ADMIN
+                    ? "Bảng điều hành IOC"
+                    : locale === "vi"
+                      ? "Trang làm việc"
+                      : "Workspace"}
                 </Link>
               )}
             </div>

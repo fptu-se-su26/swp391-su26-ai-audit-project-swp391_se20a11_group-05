@@ -76,12 +76,12 @@ import {
   Legend,
 } from "recharts";
 
-const CivicMap = clientOnly(() =>
-  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
+const CivicMap = clientOnly(
+  () => import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
 ) as any;
 
-const HeatmapMap = clientOnly(() =>
-  import("@/components/site/HeatmapMap").then((m) => ({ default: m.HeatmapMap })) as any,
+const HeatmapMap = clientOnly(
+  () => import("@/components/site/HeatmapMap").then((m) => ({ default: m.HeatmapMap })) as any,
 ) as any;
 
 // Date formatting helper
@@ -641,8 +641,10 @@ export function PoliceDashboard() {
       await authApi.logout().catch(() => {});
     } catch {}
     logout();
-    queryClient.clear();
     navigate({ to: loginPath });
+    setTimeout(() => {
+      queryClient.clear();
+    }, 0);
   };
 
   const menuItems = [
@@ -1073,7 +1075,10 @@ export function PoliceDashboard() {
                               ))
                             ) : priorityReports.length === 0 ? (
                               <tr>
-                                <td colSpan={6} className="px-5 py-8 text-center text-xs text-slate-400">
+                                <td
+                                  colSpan={6}
+                                  className="px-5 py-8 text-center text-xs text-slate-400"
+                                >
                                   Chưa có phản ánh mới cần xử lý.
                                 </td>
                               </tr>

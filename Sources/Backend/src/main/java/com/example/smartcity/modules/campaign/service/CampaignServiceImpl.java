@@ -323,9 +323,11 @@ public class CampaignServiceImpl implements CampaignService {
 
     @Override
     public List<CampaignParticipantResponse> getParticipants(Long campaignId, String username) {
-        User manager = requireUser(username);
+        User user = requireUser(username);
         Campaign campaign = getCampaign(campaignId);
-        assertCanManage(campaign, manager);
+        if (!canViewPrivateDetails(campaign, user)) {
+            throw new CustomException("You do not have permission to view participants of this campaign", HttpStatus.FORBIDDEN.value());
+        }
         return participantRepository.findByCampaign_IdOrderByCreatedAtDesc(campaignId).stream()
                 .map(this::toParticipantResponse)
                 .toList();
@@ -1384,7 +1386,7 @@ public class CampaignServiceImpl implements CampaignService {
     @org.springframework.scheduling.annotation.Scheduled(fixedDelay = 300000)
     @Transactional
     public void autoTransitionPendingToMaybe() {
-        LocalDateTime threshold = LocalDateTime.now().plusHours(24);
+        LocalDateTime threshold = LocalDateTime.now().plusHours(2);
         List<CampaignParticipant> pendingParticipants = participantRepository
                 .findByJoinStatusAndCampaign_StartTimeBefore(JOIN_PENDING, threshold);
         

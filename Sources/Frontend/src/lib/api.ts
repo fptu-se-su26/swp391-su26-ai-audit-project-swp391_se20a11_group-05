@@ -1269,3 +1269,78 @@ export interface CampaignChatMessageResponse {
   senderAvatar?: string;
   pastCampaignCount?: number;
 }
+
+// ─── Ward Ranking Types ──────────────────────────────────────
+
+export interface WardRankingEntry {
+  wardId: number;
+  wardName: string;
+  overallScore: number;
+  rankPosition: number;
+  previousRank: number | null;
+  rankChange: number;
+  resolutionRate: number;
+  speedScore: number;
+  totalFeedbacks: number;
+  resolvedCount: number;
+  avgResolutionHours: number;
+  badges: string[];
+}
+
+export interface WardRankingMonthlyScore {
+  year: number;
+  month: number;
+  score: number;
+  rank: number;
+}
+
+export interface WardRankingAchievement {
+  badgeCode: string;
+  badgeLabel: string;
+  earnedAt: string | null;
+}
+
+export interface WardRankingDetail {
+  wardId: number;
+  wardName: string;
+  currentScore: number;
+  currentRank: number;
+  resolutionRate: number;
+  avgResolutionHours: number;
+  speedScore: number;
+  lowIncidenceScore: number;
+  satisfactionScore: number;
+  trendScore: number;
+  totalFeedbacks: number;
+  resolvedCount: number;
+  history: WardRankingMonthlyScore[];
+  achievements: WardRankingAchievement[];
+}
+
+export const wardRankingApi = {
+  getLeaderboard: (year?: number, month?: number) => {
+    const params = new URLSearchParams();
+    if (year) params.set("year", String(year));
+    if (month) params.set("month", String(month));
+    const qs = params.toString();
+    return request<WardRankingEntry[]>(`/api/ward-ranking/leaderboard${qs ? `?${qs}` : ""}`, { skipAuth: true });
+  },
+
+  getTop: (limit = 3) =>
+    request<WardRankingEntry[]>(`/api/ward-ranking/top?limit=${limit}`, { skipAuth: true }),
+
+  getWardDetail: (wardId: number | string) =>
+    request<WardRankingDetail>(`/api/ward-ranking/${wardId}`, { skipAuth: true }),
+
+  recalculate: (year?: number, month?: number) => {
+    const params = new URLSearchParams();
+    if (year) params.set("year", String(year));
+    if (month) params.set("month", String(month));
+    const qs = params.toString();
+    return request<string>(`/api/ward-ranking/recalculate${qs ? `?${qs}` : ""}`, { method: "POST" });
+  },
+
+  getPdfReportUrl: (wardId: number | string) => {
+    return `/api/ward-ranking/${wardId}/report-pdf`;
+  }
+};

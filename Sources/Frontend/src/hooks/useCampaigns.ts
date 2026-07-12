@@ -150,7 +150,7 @@ export function useCampaignDetail(id: string): Campaign | undefined {
   const { data: privateCampaign, isError: privateError } = useQuery<CampaignResponse>({
     queryKey: ["campaigns", id, "private", hasToken],
     queryFn: () => campaignApi.getPrivateDetail(id),
-    enabled: isNumericId && hasToken,
+    enabled: isNumericId && hasToken && Boolean(publicCampaign?.privateDetailsVisible),
     staleTime: 5000,
     refetchInterval: 5000,
     retry: false,
@@ -483,7 +483,7 @@ function existsInInfiniteData(
   return old.pages.some((page) => page.some((m) => String(m.id) === String(messageId)));
 }
 
-export function useCampaignChat(campaignId: string) {
+export function useCampaignChat(campaignId: string, options?: { enabled?: boolean }) {
   const queryClient = useQueryClient();
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
@@ -492,7 +492,7 @@ export function useCampaignChat(campaignId: string) {
   const { user } = useAuth();
 
   const token = typeof window !== "undefined" ? getToken() : null;
-  const enabled = /^\d+$/.test(campaignId) && Boolean(token);
+  const enabled = /^\d+$/.test(campaignId) && Boolean(token) && (options?.enabled ?? true);
 
   const query = useInfiniteQuery<
     CampaignChatMessageResponse[],
@@ -803,6 +803,7 @@ export function useCampaignChat(campaignId: string) {
     // Deduplicate by message ID
     const uniqueMap = new Map<string | number, CampaignChatMessageResponse>();
     for (const msg of allMsgs) {
+      if (!msg || msg.id === undefined || msg.id === null) continue;
       const existing = uniqueMap.get(msg.id);
       // Keep the real message if there's an optimistic duplicate
       if (!existing || (existing.id < 0 && msg.id >= 0)) {

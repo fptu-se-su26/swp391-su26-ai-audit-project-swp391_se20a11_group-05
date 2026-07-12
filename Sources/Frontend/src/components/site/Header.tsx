@@ -34,6 +34,7 @@ import {
 } from "@/lib/hooks";
 import { toast } from "sonner";
 import { authApi, campaignApi, type NotificationResponse } from "@/lib/api";
+import { highlightNotificationContent } from "@/lib/notificationHelper";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertDialog,
@@ -305,6 +306,7 @@ export function Header() {
     { to: "/tin-tuc", label: locale === "vi" ? "Tin tức" : "News" },
     { to: "/feedback-search", label: locale === "vi" ? "Tra cứu" : "Search" },
     { to: "/campaigns", label: locale === "vi" ? "Chiến dịch" : "Campaigns" },
+    { to: "/leaderboard", label: locale === "vi" ? "Xếp hạng" : "Leaderboard" },
     { to: "/", hash: "huong-dan", label: locale === "vi" ? "Hướng dẫn" : "Guides" },
     ...(!isWardStaff
       ? [{ to: "/", hash: "lien-he", label: locale === "vi" ? "Liên hệ" : "Contact" }]
@@ -336,6 +338,9 @@ export function Header() {
     }
     if (item.label === "Chiến dịch" || item.label === "Campaigns") {
       return path.startsWith("/campaigns");
+    }
+    if (item.label === "Xếp hạng" || item.label === "Leaderboard") {
+      return path.startsWith("/leaderboard");
     }
     if (item.label === "Hướng dẫn" || item.label === "Guides") {
       return path === "/" && hash === "#huong-dan";
@@ -592,26 +597,8 @@ export function Header() {
                             Number(localStorage.getItem(`campaign-chat-seen-${room.campaignId}`)) <
                               room.lastMessage.id);
 
-                        return (
-                          <Link
-                            key={room.campaignId}
-                            to="/campaigns/$id/group-chat"
-                            params={{ id: String(room.campaignId) }}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              setChatOpen(false);
-                              setActiveFloatingChatId(String(room.campaignId));
-                              if (room.lastMessage) {
-                                localStorage.setItem(
-                                  `campaign-chat-seen-${room.campaignId}`,
-                                  String(room.lastMessage.id),
-                                );
-                              }
-                            }}
-                            className={`w-full text-left p-3 flex gap-3 transition-colors hover:bg-slate-50 border-l-4 ${
-                              isUnread ? "bg-[#EFF6FF] border-l-[#0B4FC4]" : "border-l-transparent"
-                            }`}
-                          >
+                        const innerContent = (
+                          <>
                             {/* Avatar */}
                             <div className="relative shrink-0">
                               {room.coverImageUrl ? (
@@ -663,6 +650,52 @@ export function Header() {
                                 )}
                               </p>
                             </div>
+                          </>
+                        );
+
+                        return isWardStaff ? (
+                          <Link
+                            key={room.campaignId}
+                            to="/ward"
+                            search={{ tab: "chat", detailId: String(room.campaignId) }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setChatOpen(false);
+                              setActiveFloatingChatId(String(room.campaignId));
+                              if (room.lastMessage) {
+                                localStorage.setItem(
+                                  `campaign-chat-seen-${room.campaignId}`,
+                                  String(room.lastMessage.id),
+                                );
+                              }
+                            }}
+                            className={`w-full text-left p-3 flex gap-3 transition-colors hover:bg-slate-50 border-l-4 ${
+                              isUnread ? "bg-[#EFF6FF] border-l-[#0B4FC4]" : "border-l-transparent"
+                            }`}
+                          >
+                            {innerContent}
+                          </Link>
+                        ) : (
+                          <Link
+                            key={room.campaignId}
+                            to="/campaigns/$id/group-chat"
+                            params={{ id: String(room.campaignId) }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setChatOpen(false);
+                              setActiveFloatingChatId(String(room.campaignId));
+                              if (room.lastMessage) {
+                                localStorage.setItem(
+                                  `campaign-chat-seen-${room.campaignId}`,
+                                  String(room.lastMessage.id),
+                                );
+                              }
+                            }}
+                            className={`w-full text-left p-3 flex gap-3 transition-colors hover:bg-slate-50 border-l-4 ${
+                              isUnread ? "bg-[#EFF6FF] border-l-[#0B4FC4]" : "border-l-transparent"
+                            }`}
+                          >
+                            {innerContent}
                           </Link>
                         );
                       })}
@@ -759,7 +792,7 @@ export function Header() {
                           className={`w-full text-left p-3.5 flex gap-3 transition-colors cursor-pointer border-l-4 ${
                             item.isRead
                               ? "bg-[#FFFFFF] hover:bg-[#F8FAFC] border-l-transparent"
-                              : "bg-[#EFF6FF] hover:bg-[#DBEAFE] border-l-[#0F5BD8]"
+                              : "bg-[#D0E2FF] hover:bg-[#B3D1FF] border-l-[#0F5BD8]"
                           }`}
                         >
                           <div
@@ -792,7 +825,7 @@ export function Header() {
                               </span>
                             </div>
                             <p className="text-[11px] text-[#667085] line-clamp-2 leading-relaxed font-sans">
-                              {item.content}
+                              {highlightNotificationContent(item.content)}
                             </p>
                           </div>
                         </button>

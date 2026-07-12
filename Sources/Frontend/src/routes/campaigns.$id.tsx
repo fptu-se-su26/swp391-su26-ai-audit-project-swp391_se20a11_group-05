@@ -2,6 +2,7 @@ import { createFileRoute, Link, Outlet, useRouterState, useNavigate } from "@tan
 import { useState, useEffect, useMemo, useRef } from "react";
 import type { ElementType, ReactNode } from "react";
 import {
+  AlertCircle,
   ArrowLeft,
   ArrowRight,
   CalendarDays,
@@ -43,6 +44,8 @@ import type { Campaign } from "@/lib/campaignStore";
 import { buildGoogleMapsSearchUrl, resolveCampaignCoordinates } from "@/lib/campaignLocation";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { SingleCampaignMap } from "@/components/site/SingleCampaignMap";
+import { useI18n } from "@/lib/i18n";
+import { CampaignAppealModal } from "@/components/site/CampaignAppealModal";
 
 export const Route = createFileRoute("/campaigns/$id")({
   validateSearch: (search: Record<string, unknown>): { join?: boolean } => {
@@ -107,6 +110,7 @@ export function CampaignDetailPageComponent({
   });
   const campaign = useCampaignDetail(campaignId);
   const { user, isAuthenticated } = useAuth();
+  const { locale } = useI18n();
   const hasJoined = !!(
     campaign &&
     (campaign.canManage ||
@@ -290,6 +294,7 @@ export function CampaignDetailPageComponent({
   // Leave Modal states
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [leaveReason, setLeaveReason] = useState("");
+  const [showAppealModal, setShowAppealModal] = useState(false);
 
   const navigate = useNavigate({ from: "/campaigns/$id" });
 
@@ -341,13 +346,21 @@ export function CampaignDetailPageComponent({
 
   useEffect(() => {
     if (join && isAuthenticated && campaign?.canJoin && campaign?.status === "recruiting") {
+      if (user?.campaignBanned) {
+        setShowAppealModal(true);
+        navigate({
+          search: (prev) => ({ ...prev, join: undefined }),
+          replace: true,
+        });
+        return;
+      }
       setShowJoinModal(true);
       navigate({
         search: (prev) => ({ ...prev, join: undefined }),
         replace: true,
       });
     }
-  }, [join, isAuthenticated, campaign, navigate]);
+  }, [join, isAuthenticated, campaign, navigate, user?.campaignBanned]);
 
   if (isGroupChatRoute) {
     return <Outlet />;
@@ -623,19 +636,40 @@ export function CampaignDetailPageComponent({
                       </Link>
                     )
                   ) : (
-                    <button
-                      onClick={() => {
-                        if (!isAuthenticated) {
-                          toast.error("Vui lòng đăng nhập để tham gia chiến dịch.");
-                          return;
-                        }
-                        setShowJoinModal(true);
-                      }}
-                      disabled={campaign.status !== "recruiting" || joinCampaign.isPending}
-                      className="h-12 w-full rounded-xl bg-[#7C3AED] text-sm font-black text-white shadow-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      Đăng ký & Vào Chat
-                    </button>
+                    <div>
+                      {isAuthenticated && user?.campaignBanned ? (
+                        <div className="space-y-3">
+                          <button
+                            onClick={() => setShowAppealModal(true)}
+                            className="h-12 w-full rounded-xl bg-rose-600 text-sm font-black text-white shadow-sm transition hover:bg-rose-700 active:scale-[0.97]"
+                          >
+                            Giải trình để mở khóa
+                          </button>
+                          <p className="text-[11px] font-semibold text-rose-650 text-center leading-normal">
+                            Tài khoản bị cấm đăng ký tham gia chiến dịch do vắng mặt. Vui lòng gửi đơn giải trình để được xem xét mở khóa.
+                          </p>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            if (!isAuthenticated) {
+                              toast.error("Vui lòng đăng nhập để tham gia chiến dịch.");
+                              return;
+                            }
+                            if (user?.campaignBanned) {
+                              setShowAppealModal(true);
+                              return;
+                            }
+
+                            setShowJoinModal(true);
+                          }}
+                          disabled={campaign.status !== "recruiting" || joinCampaign.isPending}
+                          className="h-12 w-full rounded-xl bg-[#7C3AED] text-sm font-black text-white shadow-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Đăng ký & Vào Chat
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               )}
@@ -711,9 +745,8 @@ export function CampaignDetailPageComponent({
               approvedStatus={approvedStatus}
               theme={theme}
               hasJoined={hasJoined}
-              onJoinClick={() => setShowJoinModal(true)}
-              isAuthenticated={isAuthenticated}
             />
+            <RegulationsCard theme={theme} />
             <ShareCard theme={theme} />
           </aside>
         </section>
@@ -889,6 +922,12 @@ export function CampaignDetailPageComponent({
             </div>
           </div>
         )}
+
+        <CampaignAppealModal
+          isOpen={showAppealModal}
+          onOpenChange={setShowAppealModal}
+          locale={locale}
+        />
       </div>
     </main>
   );
@@ -1041,15 +1080,11 @@ function GroupChatNavigationCard({
   approvedStatus,
   theme,
   hasJoined,
-  onJoinClick,
-  isAuthenticated,
 }: {
   campaign: Campaign;
   approvedStatus: boolean;
   theme: any;
   hasJoined: boolean;
-  onJoinClick: () => void;
-  isAuthenticated: boolean;
 }) {
   const chat = useCampaignChat(campaign.id, { enabled: hasJoined });
   const signalAttendance = useSignalAttendance(campaign.id);
@@ -1176,20 +1211,28 @@ function GroupChatNavigationCard({
           </Link>
         )
       ) : (
-        <button
-          onClick={() => {
-            if (!isAuthenticated) {
-              toast.error("Vui lòng đăng nhập để tham gia chat.");
-              return;
-            }
-            onJoinClick();
-          }}
-          className={`mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl ${theme.primaryBg} px-4 text-sm font-black text-white shadow-sm transition ${theme.primaryHover} active:scale-[0.97] cursor-pointer`}
-        >
-          Đăng ký & Vào Chat
-          <ArrowRight size={16} />
-        </button>
+        <div className="mt-5 rounded-xl border border-slate-100 bg-slate-50 p-4 text-center">
+          <p className="text-xs font-semibold text-slate-500">
+            Bạn cần đăng ký tham gia chiến dịch để truy cập vào nhóm chat này.
+          </p>
+        </div>
       )}
+    </section>
+  );
+}
+
+function RegulationsCard({ theme }: { theme: Record<string, string> }) {
+  return (
+    <section className={`rounded-2xl border ${theme.lightBorder} bg-white p-6 shadow-lg`}>
+      <h2 className="mb-3 flex items-center gap-2 text-sm font-black uppercase tracking-wider text-slate-900">
+        <AlertCircle size={16} className="text-amber-500" />
+        Thể lệ & Quy định
+      </h2>
+      <ul className="space-y-2 text-xs font-semibold text-slate-600 list-disc pl-4 leading-relaxed">
+        <li>Tích lũy điểm cống hiến và ghi nhận thành tích tình nguyện.</li>
+        <li><strong>Vắng mặt lần 2:</strong> Nhận thông báo cảnh cáo từ Cán bộ Phường.</li>
+        <li><strong>Vắng mặt lần 3:</strong> <span className="text-red-600 font-bold">Cấm tham gia</span> các chiến dịch mới trên toàn hệ thống.</li>
+      </ul>
     </section>
   );
 }

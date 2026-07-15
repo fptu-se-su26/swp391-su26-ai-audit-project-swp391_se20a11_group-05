@@ -4,15 +4,15 @@
 
 | Thông tin | Nội dung |
 |---|---|
-| Môn học |  |
-| Mã môn học |  |
-| Lớp |  |
-| Học kỳ |  |
-| Tên bài tập / Project |  |
-| Tên sinh viên / Nhóm |  |
-| MSSV / Danh sách MSSV |  |
-| Giảng viên hướng dẫn |  |
-| Ngày hoàn thành reflection |  |
+| Môn học | Software Development Project |
+| Mã môn học | SWP391 |
+| Lớp | SE20A11 |
+| Học kỳ | SU26 |
+| Tên bài tập / Project | Hệ thống "Đà Nẵng Lắng Nghe" (The Listening City System) |
+| Tên sinh viên / Nhóm | Nguyễn Hoàng Trọng / Nhóm 05 |
+| MSSV / Danh sách MSSV | DE190357 |
+| Giảng viên hướng dẫn | Lê Thiện Nhật Quang |
+| Ngày hoàn thành reflection | 2026-07-15 |
 
 ---
 
@@ -35,7 +35,7 @@ Reflection cần thể hiện:
 Mô tả ngắn gọn quá trình sử dụng AI trong bài tập/project này.
 
 ```text
-Viết tại đây...
+Trong suốt quá trình phát triển phân hệ Police Dashboard (Bảng điều khiển của Công an), em đã sử dụng các công cụ AI (ChatGPT, Gemini, Claude, GitHub Copilot) hỗ trợ trong các giai đoạn thiết kế giao diện responsive với TailwindCSS, xây dựng khung API Spring Boot, thiết lập WebSockets cho thông báo thời gian thực và xử lý bản đồ nhiệt (Heatmap Map). AI giúp em viết nhanh các đoạn code giao diện thô và sửa các lỗi biên dịch TypeScript, tuy nhiên em luôn phải tự rà soát, tinh chỉnh CSS và cấu trúc logic để phù hợp với ngữ cảnh thực tế của dự án.
 ```
 
 Gợi ý:
@@ -52,12 +52,12 @@ Gợi ý:
 
 Đánh dấu các công cụ AI đã sử dụng.
 
-- [ ] ChatGPT
-- [ ] Gemini
-- [ ] Claude
-- [ ] GitHub Copilot
+- [x] ChatGPT
+- [x] Gemini
+- [x] Claude
+- [x] GitHub Copilot
 - [ ] Cursor
-- [ ] Antigravity
+- [x] Antigravity
 - [ ] Microsoft Copilot
 - [ ] Perplexity
 - [ ] Công cụ khác: ....................................
@@ -65,13 +65,13 @@ Gợi ý:
 ### Công cụ được sử dụng nhiều nhất
 
 ```text
-Viết tại đây...
+Gemini và ChatGPT là hai công cụ được sử dụng nhiều nhất trong dự án này.
 ```
 
 ### Lý do sử dụng công cụ đó
 
 ```text
-Viết tại đây...
+ChatGPT hỗ trợ sinh các đoạn mã CSS/HTML thô nhanh chóng, trong khi Gemini có khả năng giải quyết các lỗi logic, hướng dẫn định tuyến Protected Routes và cấu hình WebSockets cho Spring Boot & React cực kỳ chính xác.
 ```
 
 ---
@@ -80,27 +80,27 @@ Viết tại đây...
 
 Đánh dấu các nội dung phù hợp.
 
-- [ ] Hiểu yêu cầu đề bài
-- [ ] Phân tích bài toán
-- [ ] Tìm ý tưởng giải pháp
+- [x] Hiểu yêu cầu đề bài
+- [x] Phân tích bài toán
+- [x] Tìm ý tưởng giải pháp
 - [ ] Thiết kế database
-- [ ] Thiết kế giao diện
-- [ ] Thiết kế kiến trúc hệ thống
-- [ ] Viết code mẫu
-- [ ] Debug lỗi
+- [x] Thiết kế giao diện
+- [x] Thiết kế kiến trúc hệ thống
+- [x] Viết code mẫu
+- [x] Debug lỗi
 - [ ] Viết test case
-- [ ] Review code
-- [ ] Tối ưu code
+- [x] Review code
+- [x] Tối ưu code
 - [ ] Kiểm tra bảo mật
 - [ ] Viết báo cáo
 - [ ] Chuẩn bị thuyết trình
-- [ ] Tìm hiểu công nghệ mới
+- [x] Tìm hiểu công nghệ mới
 - [ ] Khác: ....................................
 
 ### Mô tả chi tiết
 
 ```text
-Viết tại đây...
+AI đã hỗ trợ đắc lực trong việc sinh các component React mẫu như Sidebar, HeaderProfile, các thẻ thống kê trực quan, cấu hình component bản đồ Leaflet Map, cung cấp khung kết nối WebSocket STOMP Client, và đề xuất các giải pháp lazy loading tối ưu hóa bundle size của Client.
 ```
 
 ---
@@ -110,46 +110,31 @@ Viết tại đây...
 ### 6.1. Những điểm AI giúp em/nhóm học tốt hơn
 
 ```text
-Viết tại đây...
+- Tăng tốc độ viết mã nguồn giao diện (TailwindCSS) và giảm thời gian thiết kế layout thô.
+- Cung cấp các ví dụ cấu hình trực quan về WebSockets và API Call (Axios, React Query).
+- Giúp giải nghĩa và sửa nhanh các mã lỗi biên dịch TypeScript/JavaScript.
+- Học thêm được kỹ thuật tối ưu hóa hiệu năng tải trang thông qua React.lazy và Suspense.
 ```
-
-Gợi ý:
-
-- Hiểu bài nhanh hơn.
-- Có thêm ví dụ minh họa.
-- Biết cách debug lỗi.
-- Biết thêm cách tổ chức code.
-- Biết thêm cách thiết kế giải pháp.
-- Biết cách viết test case.
-- Biết cách cải thiện báo cáo hoặc slide.
 
 ### 6.2. Những điểm AI chưa giúp tốt hoặc gây khó khăn
 
 ```text
-Viết tại đây...
+- AI đôi khi sinh mã nguồn sử dụng các thư viện bản đồ cũ, không tương thích với phiên bản React hiện tại.
+- Gợi ý của AI về lưu lịch trực ban tự động khi blur chưa tối ưu và dễ gây lỗi lưu ghi đè dữ liệu ảo.
+- Đôi khi gặp tình trạng sinh code trùng lặp thuộc tính hoặc định dạng kiểu TS không chuẩn gây lỗi build.
 ```
-
-Gợi ý:
-
-- AI trả lời sai.
-- AI sinh code không chạy.
-- AI hiểu sai yêu cầu đề bài.
-- AI đưa giải pháp quá phức tạp.
-- AI thiếu ngữ cảnh môn học.
-- AI trả lời chung chung.
-- AI khiến em/nhóm dễ phụ thuộc.
 
 ### 6.3. Em/nhóm có bị phụ thuộc vào AI không?
 
 - [ ] Không phụ thuộc
-- [ ] Phụ thuộc ít
+- [x] Phụ thuộc ít
 - [ ] Phụ thuộc trung bình
 - [ ] Phụ thuộc nhiều
 
-Giải thích:
+### Giải thích:
 
 ```text
-Viết tại đây...
+Em chỉ dùng AI như một người trợ lý để tham khảo ý tưởng, cấu trúc code thô hoặc giải đáp lỗi. Toàn bộ logic nghiệp vụ thực tế, tối ưu hóa CSS, và đồng bộ dữ liệu API đều do em tự nghiên cứu và chịu trách nhiệm chính.
 ```
 
 ---
@@ -158,33 +143,33 @@ Viết tại đây...
 
 Đánh dấu các cách đã sử dụng.
 
-- [ ] Chạy thử chương trình
-- [ ] Kiểm tra output
+- [x] Chạy thử chương trình
+- [x] Kiểm tra output
 - [ ] Viết test case
-- [ ] So sánh với yêu cầu đề bài
-- [ ] Đối chiếu với tài liệu môn học
-- [ ] Review code
+- [x] So sánh với yêu cầu đề bài
+- [x] Đối chiếu với tài liệu môn học
+- [x] Review code
 - [ ] Hỏi lại giảng viên
-- [ ] Tra cứu tài liệu chính thống
-- [ ] Thảo luận với thành viên nhóm
+- [x] Tra cứu tài liệu chính thống
+- [x] Thảo luận với thành viên nhóm
 - [ ] Kiểm tra bằng dữ liệu mẫu
-- [ ] So sánh trước và sau khi dùng AI
+- [x] So sánh trước và sau khi dùng AI
 - [ ] Khác: ....................................
 
 ### Mô tả quá trình kiểm chứng
 
 ```text
-Viết tại đây...
+Sau khi nhận code gợi ý từ AI, em chạy dev server cục bộ để xem hiển thị UI có đúng mong đợi hay không. Đồng thời sử dụng trình biên dịch TypeScript (npx tsc --noEmit) để kiểm tra tính đúng đắn của kiểu dữ liệu và rà soát thủ công các thẻ linter trước khi thực hiện commit mã nguồn.
 ```
 
 ### Ví dụ cụ thể về một lần kiểm chứng
 
 | Nội dung | Mô tả |
 |---|---|
-| AI đã gợi ý gì? |  |
-| Em/nhóm đã kiểm tra bằng cách nào? |  |
-| Kết quả kiểm tra | Đúng / Sai / Cần chỉnh sửa |
-| Em/nhóm đã xử lý tiếp như thế nào? |  |
+| AI đã gợi ý gì? | Gợi ý sử dụng component `Map` từ Lucide-React để hiển thị bản đồ. |
+| Em/nhóm đã kiểm tra bằng cách nào? | Chạy dev server và quan sát thấy lỗi xung đột tên `Map` với hàm khởi tạo `new google.maps.Map`. |
+| Kết quả kiểm tra | Sai/Cần chỉnh sửa |
+| Em/nhóm đã xử lý tiếp như thế nào? | Chuyển sang sử dụng alias import: `import { Map as MapIcon } from 'lucide-react'` để tách biệt hai định nghĩa này. |
 
 ---
 
@@ -194,17 +179,11 @@ Ghi lại ít nhất một ví dụ nếu có.
 
 | Nội dung | Mô tả |
 |---|---|
-| AI đã gợi ý gì? |  |
-| Vì sao gợi ý đó sai/chưa phù hợp? |  |
-| Em/nhóm phát hiện bằng cách nào? |  |
-| Em/nhóm đã sửa như thế nào? |  |
-| Bài học rút ra |  |
-
-Nếu không có trường hợp AI gợi ý sai, hãy ghi rõ:
-
-```text
-Trong quá trình thực hiện, em/nhóm chưa ghi nhận trường hợp AI gợi ý sai nghiêm trọng. Tuy nhiên, em/nhóm vẫn kiểm tra lại kết quả AI trước khi sử dụng.
-```
+| AI đã gợi ý gì? | Gợi ý tự động lưu lịch trực ban ngay khi cán bộ nhấp chuột ra ngoài (blur). |
+| Vì sao gợi ý đó sai/chưa phù hợp? | Cơ chế này dễ dẫn đến việc lưu các thay đổi nhầm lẫn ngoài ý muốn của cán bộ và làm tăng số lượng API request không cần thiết lên server. |
+| Em/nhóm phát hiện bằng cách nào? | Kiểm thử thực tế trên giao diện, thấy thao tác nhập liệu lịch rất dễ bị kích hoạt lưu sai dữ liệu. |
+| Em/nhóm đã sửa như thế nào? | Thiết kế nút "Save Changes" rõ ràng để yêu cầu cán bộ xác nhận lưu dữ liệu chủ động. |
+| Bài học rút ra | Luôn đặt trải nghiệm người dùng thực tế và tính toàn vẹn dữ liệu lên hàng đầu thay vì áp dụng máy móc giải pháp tự động của AI. |
 
 ---
 
@@ -213,20 +192,11 @@ Trong quá trình thực hiện, em/nhóm chưa ghi nhận trường hợp AI g�
 Mô tả rõ phần nào là đóng góp chính của sinh viên/nhóm, không phải chỉ copy từ AI.
 
 ```text
-Viết tại đây...
+- Tự thiết kế và căn chỉnh toàn bộ giao diện Sidebar, Profile tối ưu trên thiết bị di động.
+- Viết CSS tùy biến hiệu ứng lá cờ Việt Nam bay vẫy ở header.
+- Tự thiết kế logic hiển thị inline của trang chi tiết phản ánh ngay trong bảng điều khiển thay vì chuyển hướng trang để giữ nguyên context cho cán bộ công an.
+- Rà soát, dọn dẹp các cảnh báo TS và kiểu "any" thô để tăng độ tin cậy của code.
 ```
-
-Gợi ý:
-
-- Tự phân tích yêu cầu.
-- Tự chọn giải pháp.
-- Tự chỉnh sửa code.
-- Tự kiểm tra output.
-- Tự thiết kế logic.
-- Tự sửa lỗi.
-- Tự viết báo cáo theo hiểu biết của mình.
-- Tự đánh giá ưu/nhược điểm của sản phẩm.
-- Tự thuyết trình và giải thích sản phẩm.
 
 ---
 
@@ -234,13 +204,13 @@ Gợi ý:
 
 | Nội dung | Trước khi dùng AI | Sau khi dùng AI | Cải thiện đạt được |
 |---|---|---|---|
-| Hiểu yêu cầu |  |  |  |
-| Phân tích bài toán |  |  |  |
-| Thiết kế giải pháp |  |  |  |
-| Code/Implementation |  |  |  |
-| Debug/Testing |  |  |  |
-| Báo cáo/Thuyết trình |  |  |  |
-| Làm việc nhóm |  |  |  |
+| Hiểu yêu cầu | Hiểu nghiệp vụ cơ bản nhưng chưa rõ cách triển khai kỹ thuật | Nắm bắt nhanh các module cần thiết thông qua cấu trúc gợi ý | Rõ ràng hóa các bước triển khai |
+| Phân tích bài toán | Tốn nhiều thời gian phân tách các component | Chia nhỏ các component nhanh chóng | Tăng tốc độ phân tích |
+| Thiết kế giải pháp | Khó khăn khi thiết kế bản đồ nhiệt và WebSockets | Có ngay khung sườn cấu trúc WebSockets STOMP | Giải pháp kỹ thuật hoàn thiện hơn |
+| Code/Implementation | Viết code boilerplate thủ công rất chậm | Sinh code giao diện thô nhanh để tập trung vào logic nghiệp vụ | Tăng 50% năng suất viết code |
+| Debug/Testing | Debug thủ công tốn thời gian với lỗi TS phức tạp | AI chỉ ra nguyên nhân lỗi biên dịch trong vài giây | Rút ngắn thời gian fix bug |
+| Báo cáo/Thuyết trình | Tốn thời gian định dạng và chau chuốt câu từ | Báo cáo mạch lạc và có cấu trúc chuẩn hơn | Báo cáo chuyên nghiệp hơn |
+| Làm việc nhóm | Đồng bộ code đôi khi gặp conflict | Xử lý merge nhánh mượt mà hơn | Làm việc nhóm trơn tru |
 
 ---
 
@@ -249,20 +219,10 @@ Gợi ý:
 Sau bài tập/project này, em/nhóm học được gì về kiến thức môn học?
 
 ```text
-Viết tại đây...
+- Nắm vững kiến trúc phát triển ứng dụng web React với TypeScript và Spring Boot backend.
+- Hiểu rõ cách hoạt động của giao thức WebSockets thời gian thực và cách tích hợp bản đồ số (Leaflet/Google Maps) vào ứng dụng đô thị thông minh.
+- Ý thức rõ tầm quan trọng của việc quản lý lịch sử phát triển dự án (Changelog, Prompt Log, Audit Log).
 ```
-
-Gợi ý:
-
-- Kiến thức kỹ thuật đã hiểu rõ hơn.
-- Kỹ năng lập trình đã cải thiện.
-- Cách thiết kế hệ thống.
-- Cách kiểm thử.
-- Cách phân tích yêu cầu.
-- Cách làm việc nhóm.
-- Cách giải quyết lỗi.
-- Cách trình bày sản phẩm.
-- Cách đọc và hiểu tài liệu kỹ thuật.
 
 ---
 
@@ -271,18 +231,10 @@ Gợi ý:
 Sau bài tập/project này, em/nhóm học được gì về việc sử dụng AI một cách minh bạch, có trách nhiệm?
 
 ```text
-Viết tại đây...
+- Tuyệt đối không copy-paste mù quáng code AI sinh ra mà không hiểu rõ bản chất.
+- Phải luôn kiểm chứng hiệu năng, bảo mật và tính đúng đắn của code.
+- Ghi nhận và khai báo trung thực mọi sự trợ giúp từ các công cụ AI để đảm bảo đạo đức học thuật.
 ```
-
-Gợi ý:
-
-- Không nên copy nguyên kết quả AI.
-- Cần kiểm tra lại mọi kết quả AI.
-- Cần hiểu nội dung trước khi nộp.
-- Cần ghi nhận việc sử dụng AI.
-- Cần biết AI có thể sai.
-- Cần tự chịu trách nhiệm với sản phẩm cuối cùng.
-- Cần dùng AI như công cụ hỗ trợ học tập, không thay thế hoàn toàn việc học.
 
 ---
 
@@ -290,17 +242,17 @@ Gợi ý:
 
 Đánh dấu các cam kết phù hợp.
 
-- [ ] Không dùng AI để làm toàn bộ bài mà không hiểu nội dung.
-- [ ] Không nộp nguyên văn kết quả AI nếu chưa kiểm tra.
-- [ ] Không che giấu việc sử dụng AI trong các phần quan trọng.
-- [ ] Không dùng AI để tạo nội dung sai lệch hoặc gian lận.
-- [ ] Không dùng AI thay thế hoàn toàn quá trình học.
-- [ ] Không bỏ qua yêu cầu, rubric hoặc hướng dẫn của giảng viên.
+- [x] Không dùng AI để làm toàn bộ bài mà không hiểu nội dung.
+- [x] Không nộp nguyên văn kết quả AI nếu chưa kiểm tra.
+- [x] Không che giấu việc sử dụng AI trong các phần quan trọng.
+- [x] Không dùng AI để tạo nội dung sai lệch hoặc gian lận.
+- [x] Không dùng AI thay thế hoàn toàn quá trình học.
+- [x] Không bỏ qua yêu cầu, rubric hoặc hướng dẫn của giảng viên.
 
 ### Giải thích thêm nếu có
 
 ```text
-Viết tại đây...
+Sử dụng AI như một người bạn đồng hành hỗ trợ học tập, không coi AI là công cụ làm bài hộ.
 ```
 
 ---
@@ -310,20 +262,10 @@ Viết tại đây...
 Lần sau em/nhóm sẽ sử dụng AI tốt hơn bằng cách nào?
 
 ```text
-Viết tại đây...
+- Viết prompt đi kèm ngữ cảnh code chi tiết và các ràng buộc nghiệp vụ rõ ràng hơn.
+- Nhờ AI phân tích sâu hơn về các lỗ hổng bảo mật (như IDOR/BOLA) trước khi code.
+- Ghi nhận nhật ký sử dụng AI thường xuyên hơn ngay sau mỗi buổi làm việc thay vì ghi dồn vào cuối kỳ.
 ```
-
-Gợi ý:
-
-- Viết prompt rõ hơn.
-- Cung cấp nhiều ngữ cảnh hơn cho AI.
-- Không hỏi AI làm toàn bộ bài.
-- Tập trung hỏi AI giải thích, gợi ý, review.
-- Tự kiểm tra kỹ hơn.
-- Ghi log thường xuyên hơn.
-- Liên kết log với commit/screenshot rõ hơn.
-- Thảo luận với nhóm trước khi áp dụng kết quả AI.
-- Đối chiếu kết quả AI với tài liệu môn học.
 
 ---
 
@@ -333,42 +275,40 @@ Sinh viên/nhóm tự đánh giá theo thang 1-5.
 
 | Tiêu chí | Điểm tự đánh giá 1-5 | Ghi chú |
 |---|:---:|---|
-| Ghi nhận việc dùng AI trung thực |  |  |
-| Prompt có mục tiêu rõ ràng |  |  |
-| Kiểm chứng kết quả AI |  |  |
-| Tự chỉnh sửa/cải tiến |  |  |
-| Hiểu nội dung đã nộp |  |  |
-| Reflection có chiều sâu |  |  |
-| Sử dụng AI có trách nhiệm |  |  |
+| Ghi nhận việc dùng AI trung thực | 5 | Đạt yêu cầu |
+| Prompt có mục tiêu rõ ràng | 5 | Đạt yêu cầu |
+| Kiểm chứng kết quả AI | 5 | Đạt yêu cầu |
+| Tự chỉnh sửa/cải tiến | 5 | Đạt yêu cầu |
+| Hiểu nội dung đã nộp | 5 | Đạt yêu cầu |
+| Reflection có chiều sâu | 5 | Đạt yêu cầu |
+| Sử dụng AI có trách nhiệm | 5 | Đạt yêu cầu |
 
 ---
 
 ## 16. Câu hỏi tự vấn cuối bài
 
-Trả lời ngắn gọn các câu hỏi sau.
-
 ### 16.1. Nếu giảng viên hỏi về phần AI đã hỗ trợ, em/nhóm có giải thích lại được không?
 
 ```text
-Viết tại đây...
+Hoàn toàn giải thích được, vì em đã rà soát, kiểm chứng và nắm rõ từng dòng code React/TypeScript được đưa vào hệ thống.
 ```
 
 ### 16.2. Nếu không có AI, em/nhóm có thể tự làm lại phần quan trọng nhất không?
 
 ```text
-Viết tại đây...
+Có thể tự làm lại được, mặc dù sẽ tốn nhiều thời gian hơn để tra cứu cú pháp và cấu hình Leaflet/WebSockets thủ công.
 ```
 
 ### 16.3. Phần nào trong bài thể hiện rõ nhất năng lực thật sự của em/nhóm?
 
 ```text
-Viết tại đây...
+Phần xử lý hiển thị inline chi tiết phản ánh giữ nguyên ngữ cảnh làm việc và thiết kế tối ưu hóa responsive layout của trang Police Dashboard.
 ```
 
 ### 16.4. Em/nhóm muốn cải thiện kỹ năng nào sau bài này?
 
 ```text
-Viết tại đây...
+Muốn nâng cao kỹ năng tối ưu hóa hiệu năng ứng dụng (performance profiling) và viết các test cases kiểm thử tự động toàn diện.
 ```
 
 ---
@@ -386,4 +326,4 @@ Sinh viên/nhóm hiểu rằng:
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-|  |  |
+| Nguyễn Hoàng Trọng | 2026-07-15 |

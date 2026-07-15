@@ -70,8 +70,22 @@ public class ChatHistory {
     @Column(name = "session_id", length = 50)
     private String sessionId;
 
+    /**
+     * Tên session tự động (cắt ngắn từ câu hỏi đầu tiên của session).
+     * Ví dụ: "Tôi muốn báo ổ gà đường..."
+     */
+    @Column(name = "session_name", length = 100)
+    private String sessionName;
+
     @Column(name = "feedback_created")
     private String feedbackTrackingCode;
+
+    /**
+     * Đánh giá chất lượng câu trả lời từ người dùng.
+     * 1 = helpful (👍), -1 = not helpful (👎), null = chưa đánh giá
+     */
+    @Column(name = "user_rating")
+    private Integer userRating;
 
     /** Thời điểm tạo */
     @Column(name = "created_at", nullable = false)

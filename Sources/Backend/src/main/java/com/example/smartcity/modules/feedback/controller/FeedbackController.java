@@ -308,7 +308,7 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
     // ═══ State Machine Endpoints ═════════════════════════════════
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasRole('WARD_STAFF')")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'POLICE', 'SUPER_ADMIN')")
     public ResponseEntity<FeedbackResponse> changeStatus(
             @PathVariable Long id,
             @Valid @RequestBody StatusChangeRequest request,

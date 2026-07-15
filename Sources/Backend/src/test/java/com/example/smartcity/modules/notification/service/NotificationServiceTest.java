@@ -4,6 +4,7 @@ import com.example.smartcity.modules.feedback.repository.FeedbackRepository;
 import com.example.smartcity.modules.notification.entity.Notification;
 import com.example.smartcity.modules.notification.repository.NotificationRepository;
 import com.example.smartcity.modules.user.repository.UserRepository;
+import com.example.smartcity.modules.campaign.repository.CampaignParticipantRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,9 @@ class NotificationServiceTest {
     @Mock
     private com.example.smartcity.modules.notification.WebSocketNotificationService webSocketNotificationService;
 
+    @Mock
+    private CampaignParticipantRepository campaignParticipantRepository;
+
     private NotificationService notificationService;
 
     @BeforeEach
@@ -38,7 +42,8 @@ class NotificationServiceTest {
                 notificationRepository,
                 feedbackRepository,
                 userRepository,
-                webSocketNotificationService
+                webSocketNotificationService,
+                campaignParticipantRepository
         );
     }
 

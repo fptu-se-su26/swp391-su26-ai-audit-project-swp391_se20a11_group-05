@@ -30,6 +30,7 @@ import { useAuth } from "@/lib/auth";
 import { Role } from "@/lib/roles";
 import { useFeedbackDetail, useChangeFeedbackStatus } from "@/hooks";
 import { useCreateCampaign } from "@/hooks/useCampaigns";
+import type { CampaignCategory } from "@/lib/campaignStore";
 import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { campaignApi, type FeedbackStatus, type FeedbackLogResponse } from "@/lib/api";
 import { uploadResolutionEvidence } from "@/lib/citizenFeedbackMediaApi";
@@ -42,9 +43,9 @@ import {
 } from "@/components/ui/dialog";
 
 // Lazy load CivicMap to prevent SSR issues with Leaflet
-const CivicMap = clientOnly(() =>
-  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
-);
+const CivicMap = clientOnly(
+  () => import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
+) as any;
 
 function getInitials(name?: string | null) {
   if (!name) return "?";
@@ -85,7 +86,13 @@ const VALID_TRANSITIONS: Record<FeedbackStatus, FeedbackStatus[]> = {
 
 const TARGET_STATUS_DETAILS: Record<
   FeedbackStatus,
-  { label: string; btnLabel: string; colorClass: string; activeColorClass: string; icon: LucideIcon }
+  {
+    label: string;
+    btnLabel: string;
+    colorClass: string;
+    activeColorClass: string;
+    icon: LucideIcon;
+  }
 > = {
   PENDING: {
     label: "Chờ xử lý",
@@ -182,6 +189,20 @@ export function FeedbackDetailPageComponent({
   const [sendCitizenNotification, setSendCitizenNotification] = useState(true);
   const [resolutionFiles, setResolutionFiles] = useState<File[]>([]);
   const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
+  const [opSteps, setOpSteps] = useState<boolean[]>(() => {
+    try {
+      const saved = localStorage.getItem(`feedback_steps_${feedbackId}`);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [false, false, false, false];
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(`feedback_steps_${feedbackId}`, JSON.stringify(opSteps));
+    } catch (e) {}
+  }, [opSteps, feedbackId]);
+  const allStepsChecked = opSteps.every((s) => s);
 
   useEffect(() => {
     setResolutionFiles([]);
@@ -199,11 +220,15 @@ export function FeedbackDetailPageComponent({
   const [campaignTitle, setCampaignTitle] = useState("");
   const [campaignDesc, setCampaignDesc] = useState("");
   const [campaignCategory, setCampaignCategory] = useState("environment");
+  const [customCampaignCategory, setCustomCampaignCategory] = useState("");
   const [campaignLocation, setCampaignLocation] = useState("");
+  const [campaignPrivateLocation, setCampaignPrivateLocation] = useState("");
   const [campaignOrganizer, setCampaignOrganizer] = useState("");
+  const [campaignMinParticipants, setCampaignMinParticipants] = useState("5");
   const [campaignParticipants, setCampaignParticipants] = useState("20");
   const [campaignTools, setCampaignTools] = useState("");
   const [campaignExpectedResult, setCampaignExpectedResult] = useState("");
+  const [campaignCoverUrl, setCampaignCoverUrl] = useState("");
   const [campaignStartDate, setCampaignStartDate] = useState("");
   const [campaignStartHour, setCampaignStartHour] = useState("08");
   const [campaignStartMinute, setCampaignStartMinute] = useState("00");
@@ -237,9 +262,11 @@ export function FeedbackDetailPageComponent({
   });
 
   const linkedCampaign = useMemo(() => {
-    if (!campaignsData?.content) return null;
-    return campaignsData.content.find((c) => c.linkedFeedbackId === Number(feedbackId));
-  }, [campaignsData, feedbackId]);
+    if (!campaignsData?.content || !user) return null;
+    return campaignsData.content.find(
+      (c) => c.linkedFeedbackId === Number(feedbackId) && c.createdByUserId === user.id,
+    );
+  }, [campaignsData, feedbackId, user]);
 
   // Set default values when report is loaded
   useEffect(() => {
@@ -248,6 +275,7 @@ export function FeedbackDetailPageComponent({
       setCampaignTitle(`Chiến dịch dọn dẹp: ${report.title}`);
       setCampaignDesc("");
       setCampaignLocation(report.addressDetails || report.address || "");
+      setCampaignPrivateLocation(report.addressDetails || report.address || "");
       setCampaignOrganizer(
         user?.name ? `${user.name} - UBND ${user.wardName || "phường"}` : "UBND Phường",
       );
@@ -256,12 +284,19 @@ export function FeedbackDetailPageComponent({
       );
 
       // Set category default based on report category code
-      const catCode = report.categoryCode || report.category || "";
-      if (catCode === "ENVIRONMENT") setCampaignCategory("environment");
-      else if (catCode === "URBAN_INFRASTRUCTURE") setCampaignCategory("infrastructure");
-      else if (catCode === "PUBLIC_SECURITY") setCampaignCategory("public_safety");
-      else if (catCode === "CONSTRUCTION") setCampaignCategory("construction");
-      else if (catCode === "FIRE_SAFETY") setCampaignCategory("fire_safety");
+      const catCode = (report.categoryCode || report.category || "").toUpperCase();
+      if (catCode === "TRAFFIC" || catCode === "GIAO_THONG") setCampaignCategory("public_safety");
+      else if (catCode === "PUBLIC_SECURITY" || catCode === "AN_NINH")
+        setCampaignCategory("public_safety");
+      else if (catCode === "FIRE_SAFETY" || catCode === "CHAY_NO")
+        setCampaignCategory("fire_safety");
+      else if (catCode === "ENVIRONMENT" || catCode === "MOI_TRUONG")
+        setCampaignCategory("environment");
+      else if (catCode === "URBAN_INFRASTRUCTURE" || catCode === "HA_TANG")
+        setCampaignCategory("infrastructure");
+      else if (catCode === "CONSTRUCTION" || catCode === "XAY_DUNG")
+        setCampaignCategory("construction");
+      else setCampaignCategory("other");
     }
   }, [report, user]);
 
@@ -269,27 +304,38 @@ export function FeedbackDetailPageComponent({
   const hasWriteAccess = useMemo(() => {
     if (!user || !report) return false;
     if (report.wardId !== user.wardId) return false;
-    
+
     const catCode = report.categoryCode || report.category || report.categoryName;
-    
+
     if (user.role === Role.WARD_STAFF) {
       return isWardStaffCategory(catCode);
     }
-    
+
     if (user.role === Role.POLICE) {
       return isPoliceCategory(catCode);
     }
-    
+
     return false;
   }, [user, report]);
 
   const canCreateCampaign = useMemo(() => {
     if (!user || !report) return false;
-    if (user.role !== Role.WARD_STAFF) return false;
-    if (report.wardId !== user.wardId) return false;
-    if (report.status === "REJECTED") return false;
+
+    // Cho phép tạo chiến dịch khi phản ánh ở trạng thái "Đã tiếp nhận" (ASSIGNED) hoặc "Đang xử lý" (IN_PROGRESS)
+    if (report.status !== "ASSIGNED" && report.status !== "IN_PROGRESS") return false;
+
+    // Nếu account test không có wardId, ta tạm bypass check này để tiện demo
+    if (user.wardId && report.wardId !== user.wardId) return false;
+
     const catCode = (report.categoryCode || report.category || "").toUpperCase();
-    return ["URBAN_INFRASTRUCTURE", "ENVIRONMENT", "CONSTRUCTION"].includes(catCode);
+    if (user.role === Role.WARD_STAFF) {
+      return ["URBAN_INFRASTRUCTURE", "ENVIRONMENT", "CONSTRUCTION"].includes(catCode);
+    }
+    if (user.role === Role.POLICE) {
+      // Cho phép công an tạo chiến dịch với mọi phản ánh được giao để dễ dàng demo
+      return true;
+    }
+    return false;
   }, [user, report]);
 
   const resolutionAttachments = useMemo(() => {
@@ -380,7 +426,7 @@ export function FeedbackDetailPageComponent({
         const uploadToastId = toast.loading("Đang tải lên các tệp bằng chứng xử lý...");
         try {
           await Promise.all(
-            resolutionFiles.map((file) => uploadResolutionEvidence(report.id, file))
+            resolutionFiles.map((file) => uploadResolutionEvidence(report.id, file)),
           );
           toast.success("Tải lên bằng chứng xử lý thành công.", { id: uploadToastId });
         } catch (uploadErr) {
@@ -435,6 +481,10 @@ export function FeedbackDetailPageComponent({
       toast.error("Vui lòng nhập mô tả chiến dịch.");
       return;
     }
+    if (campaignCategory === "other" && !customCampaignCategory.trim()) {
+      toast.error("Vui lòng nhập lĩnh vực chiến dịch khác.");
+      return;
+    }
     if (!campaignLocation.trim()) {
       toast.error("Vui lòng nhập địa điểm diễn ra chiến dịch.");
       return;
@@ -456,18 +506,30 @@ export function FeedbackDetailPageComponent({
       return;
     }
 
+    if (campaignMinParticipants && campaignParticipants) {
+      const min = parseInt(campaignMinParticipants, 10);
+      const max = parseInt(campaignParticipants, 10);
+      if (!isNaN(min) && !isNaN(max) && min > max) {
+        toast.error("Số lượng tối thiểu tham gia không được lớn hơn số lượng tối đa.");
+        return;
+      }
+    }
+
     try {
       await createCampaign({
         title: campaignTitle.trim(),
         description: campaignDesc.trim(),
-        category: campaignCategory as any,
+        category: (campaignCategory === "other"
+          ? customCampaignCategory.trim()
+          : campaignCategory) as CampaignCategory,
         locationText: campaignLocation.trim(),
-        privateLocationText: campaignLocation.trim(),
+        privateLocationText: campaignPrivateLocation.trim() || campaignLocation.trim(),
         requiredTools: campaignTools.trim(),
         organizerContact: campaignOrganizer.trim(),
-        maxParticipants: campaignParticipants,
-        startTime: new Date(campaignStart).toISOString(),
-        endTime: new Date(campaignEnd).toISOString(),
+        maxParticipants: campaignParticipants.trim() ? campaignParticipants : undefined,
+        minParticipants: campaignMinParticipants.trim() ? campaignMinParticipants : undefined,
+        startTime: `${campaignStart}:00`,
+        endTime: `${campaignEnd}:00`,
         linkedFeedbackId: report.id,
         linkedFeedbackCode: report.trackingCode || report.code || String(report.id),
         linkedFeedbackTitle: report.title,
@@ -475,6 +537,7 @@ export function FeedbackDetailPageComponent({
         wardName: report.wardName || user?.wardName || undefined,
         latitude: report.latitude ?? undefined,
         longitude: report.longitude ?? undefined,
+        coverImageUrl: campaignCoverUrl.trim() || undefined,
       });
 
       toast.success("Tạo chiến dịch liên kết thành công!");
@@ -555,27 +618,6 @@ export function FeedbackDetailPageComponent({
         <div className="flex items-center gap-2.5">
           <PriorityBadge value={report.priority} />
           <StatusBadge status={report.status} />
-          {linkedCampaign ? (
-            <Link
-              to="/campaigns/$id"
-              params={{ id: String(linkedCampaign.id) }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shadow-sm"
-            >
-              <Eye size={14} />
-              Xem chiến dịch
-            </Link>
-          ) : (
-            canCreateCampaign && (
-              <button
-                type="button"
-                onClick={() => setIsCampaignModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shadow-sm"
-              >
-                <Plus size={14} />
-                Tạo chiến dịch
-              </button>
-            )
-          )}
         </div>
       </div>
 
@@ -588,7 +630,8 @@ export function FeedbackDetailPageComponent({
               <p className="text-sm font-bold">Chế độ xem chi tiết (Chỉ đọc)</p>
               <p className="text-xs text-amber-800/90 mt-0.5">
                 Tài khoản của bạn chỉ được phép xem phản ánh này. Có thể bạn không thuộc{" "}
-                {report.wardName || "phường quản lý"} hoặc lĩnh vực này không thuộc thẩm quyền xử lý của bạn.
+                {report.wardName || "phường quản lý"} hoặc lĩnh vực này không thuộc thẩm quyền xử lý
+                của bạn.
               </p>
             </div>
           </div>
@@ -843,6 +886,57 @@ export function FeedbackDetailPageComponent({
               </div>
             </div>
 
+            {/* Campaign Invitation Banner */}
+            {canCreateCampaign && !linkedCampaign && (
+              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl border border-emerald-200 p-5 shadow-sm relative overflow-hidden group">
+                <div className="absolute -right-8 -top-8 w-32 h-32 bg-emerald-200/40 rounded-full blur-3xl group-hover:bg-emerald-300/50 transition-colors" />
+                <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="space-y-1.5">
+                    <h3 className="text-sm font-extrabold text-emerald-900 flex items-center gap-2">
+                      <Rocket size={18} className="text-emerald-600 animate-pulse" />
+                      Giải quyết phản ánh bằng Chiến dịch
+                    </h3>
+                    <p className="text-xs text-emerald-700 font-semibold leading-relaxed max-w-md">
+                      Huy động lực lượng dân quân, công an phường hoặc người dân cùng tham gia xử lý
+                      sự cố này một cách triệt để.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsCampaignModalOpen(true)}
+                    className="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-[0_4px_12px_rgba(5,150,105,0.3)] transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2 cursor-pointer"
+                  >
+                    <Plus size={16} /> Tạo Chiến Dịch Ngay
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Linked Campaign Card */}
+            {linkedCampaign && (
+              <div className="bg-emerald-50 rounded-2xl border border-emerald-200 p-5 shadow-sm relative overflow-hidden">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="space-y-1.5">
+                    <h3 className="text-sm font-extrabold text-emerald-900 flex items-center gap-2">
+                      <CheckCircle2 size={18} className="text-emerald-600" />
+                      Chiến dịch đã được phát động
+                    </h3>
+                    <p className="text-xs text-emerald-700 font-medium">
+                      Phản ánh này đang được xử lý thông qua chiến dịch:{" "}
+                      <strong className="text-emerald-900">{linkedCampaign.title}</strong>
+                    </p>
+                  </div>
+                  <Link
+                    to="/campaigns/$id"
+                    params={{ id: String(linkedCampaign.id) }}
+                    className="shrink-0 bg-white border border-emerald-200 hover:bg-emerald-50 text-emerald-700 text-xs font-bold px-4 py-2.5 rounded-xl transition-colors flex items-center gap-2 cursor-pointer"
+                  >
+                    <Eye size={16} /> Xem Chi Tiết Chiến Dịch
+                  </Link>
+                </div>
+              </div>
+            )}
+
             {/* Card 3: Processing Actions */}
             <div className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm space-y-4">
               <h2 className="sticky top-[68px] z-10 bg-white/95 backdrop-blur-sm -mx-5 px-5 -mt-5 pt-5 pb-3 border-b border-slate-100 rounded-t-2xl text-sm font-bold text-slate-900 uppercase tracking-wide">
@@ -852,7 +946,9 @@ export function FeedbackDetailPageComponent({
               {targetTransitions.length === 0 ? (
                 <div className="text-center py-6 bg-slate-50 border border-slate-200/60 rounded-xl space-y-2">
                   <CheckCircle2 className="mx-auto h-8 w-8 text-slate-400" />
-                  <p className="text-xs font-bold text-slate-500">Trạng thái phản ánh đã kết thúc</p>
+                  <p className="text-xs font-bold text-slate-500">
+                    Trạng thái phản ánh đã kết thúc
+                  </p>
                 </div>
               ) : (
                 <form onSubmit={handleUpdateStatus} className="space-y-4">
@@ -860,10 +956,110 @@ export function FeedbackDetailPageComponent({
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">
                       Lựa chọn hành động xử lý
                     </label>
+                    {report?.status === "IN_PROGRESS" && (
+                      <div className="mb-6 bg-gradient-to-br from-slate-50 to-blue-50/30 border border-slate-200 rounded-2xl p-5 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-xs font-black text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
+                            <CheckCircle2 size={16} className="text-blue-600" />
+                            Các bước nghiệp vụ xử lý
+                          </label>
+                          <span className="text-[11px] font-black text-blue-700 bg-blue-100 px-2.5 py-0.5 rounded-full shadow-sm">
+                            {opSteps.filter(Boolean).length} / 4
+                          </span>
+                        </div>
+
+                        <div className="h-1.5 w-full bg-slate-200/80 rounded-full overflow-hidden mb-5">
+                          <div
+                            className="h-full bg-blue-600 transition-all duration-500 ease-out"
+                            style={{ width: `${(opSteps.filter(Boolean).length / 4) * 100}%` }}
+                          />
+                        </div>
+
+                        <div className="space-y-2.5">
+                          {[
+                            "Xác minh sự cố tại hiện trường",
+                            "Triển khai lực lượng / phương án giải quyết",
+                            "Khắc phục / Xử lý vi phạm",
+                            "Dọn dẹp & Báo cáo kết quả",
+                          ].map((stepLabel, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              disabled={!hasWriteAccess}
+                              onClick={() => {
+                                const newSteps = [...opSteps];
+                                newSteps[idx] = !newSteps[idx];
+                                setOpSteps(newSteps);
+
+                                const allCheckedNow = newSteps.every((s) => s);
+                                if (allCheckedNow) {
+                                  setSelectedStatus("RESOLVED");
+                                } else if (!newSteps[idx] && selectedStatus === "RESOLVED") {
+                                  setSelectedStatus("");
+                                }
+                              }}
+                              className={`w-full flex items-center gap-3.5 p-3.5 rounded-xl border transition-all duration-300 outline-none focus:ring-2 focus:ring-blue-200 ${
+                                opSteps[idx]
+                                  ? "bg-blue-50/80 border-blue-200 shadow-sm"
+                                  : "bg-white border-slate-200 hover:border-blue-300 hover:shadow-sm"
+                              } disabled:opacity-50 disabled:cursor-not-allowed group`}
+                            >
+                              <div
+                                className={`w-5 h-5 shrink-0 rounded-full flex items-center justify-center border transition-all duration-300 ${
+                                  opSteps[idx]
+                                    ? "bg-blue-600 border-blue-600 text-white scale-110"
+                                    : "border-slate-300 text-transparent bg-slate-50 group-hover:border-blue-400"
+                                }`}
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="12"
+                                  height="12"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                              </div>
+                              <span
+                                className={`text-sm font-bold transition-all duration-300 ${
+                                  opSteps[idx]
+                                    ? "text-blue-900"
+                                    : "text-slate-600 group-hover:text-slate-800"
+                                }`}
+                              >
+                                {stepLabel}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                        {allStepsChecked && (
+                          <div className="mt-5 p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl animate-fadeIn text-xs font-bold text-emerald-800 flex items-center gap-2.5 shadow-sm">
+                            <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+                            Đã hoàn tất các bước nghiệp vụ. Form báo cáo kết quả đã được mở bên
+                            dưới.
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <div className="flex flex-wrap gap-2.5">
                       {targetTransitions.map((target) => {
                         const details = TARGET_STATUS_DETAILS[target];
                         if (!details) return null;
+
+                        // Hide RESOLVED button if not all steps are checked in IN_PROGRESS
+                        if (
+                          report?.status === "IN_PROGRESS" &&
+                          target === "RESOLVED" &&
+                          !allStepsChecked
+                        ) {
+                          return null;
+                        }
+
                         const IconComponent = details.icon;
                         const isActive = selectedStatus === target;
 
@@ -930,7 +1126,8 @@ export function FeedbackDetailPageComponent({
                             </label>
                           </div>
                           <p className="text-[10px] text-blue-800/80 font-medium">
-                            * Yêu cầu này sẽ hiển thị trực tiếp trên tài khoản ứng dụng di động của người dân.
+                            * Yêu cầu này sẽ hiển thị trực tiếp trên tài khoản ứng dụng di động của
+                            người dân.
                           </p>
                         </div>
                       )}
@@ -951,15 +1148,19 @@ export function FeedbackDetailPageComponent({
 
                           <div className="space-y-2">
                             <label className="block text-xs font-bold text-green-900 uppercase">
-                              Hình ảnh / Video bằng chứng xử lý <span className="text-red-500">*</span>
+                              Hình ảnh / Video bằng chứng xử lý{" "}
+                              <span className="text-red-500">*</span>
                             </label>
-                            
+
                             {resolutionFiles.length > 0 && (
                               <div className="flex flex-wrap gap-2 pb-1">
                                 {resolutionFiles.map((file, idx) => {
                                   const isVideo = file.type.startsWith("video/");
                                   return (
-                                    <div key={idx} className="relative h-16 w-20 shrink-0 rounded-lg overflow-hidden border border-green-205 group bg-white shadow-sm">
+                                    <div
+                                      key={idx}
+                                      className="relative h-16 w-20 shrink-0 rounded-lg overflow-hidden border border-green-205 group bg-white shadow-sm"
+                                    >
                                       {isVideo ? (
                                         <div className="w-full h-full bg-slate-900 flex items-center justify-center">
                                           <Play size={16} className="text-white fill-white" />
@@ -975,7 +1176,9 @@ export function FeedbackDetailPageComponent({
                                         type="button"
                                         disabled={isUploadingEvidence}
                                         onClick={() => {
-                                          setResolutionFiles(prev => prev.filter((_, i) => i !== idx));
+                                          setResolutionFiles((prev) =>
+                                            prev.filter((_, i) => i !== idx),
+                                          );
                                         }}
                                         className="absolute top-0.5 right-0.5 bg-red-500/80 hover:bg-red-600 text-white rounded-full p-0.5 shadow transition-colors cursor-pointer"
                                       >
@@ -993,7 +1196,9 @@ export function FeedbackDetailPageComponent({
                             <div
                               onClick={() => {
                                 if (!isUploadingEvidence && hasWriteAccess) {
-                                  document.getElementById("resolution-evidence-file-input")?.click();
+                                  document
+                                    .getElementById("resolution-evidence-file-input")
+                                    ?.click();
                                 }
                               }}
                               className={`border-2 border-dashed border-green-300 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-green-100/50 hover:border-green-400 transition-all text-green-700 bg-white/70 shadow-inner ${isUploadingEvidence ? "opacity-50 cursor-not-allowed" : ""}`}
@@ -1015,12 +1220,16 @@ export function FeedbackDetailPageComponent({
                                 onChange={(e) => {
                                   if (e.target.files) {
                                     const selected = Array.from(e.target.files);
-                                    const invalid = selected.filter(f => !f.type.startsWith("image/") && !f.type.startsWith("video/"));
+                                    const invalid = selected.filter(
+                                      (f) =>
+                                        !f.type.startsWith("image/") &&
+                                        !f.type.startsWith("video/"),
+                                    );
                                     if (invalid.length > 0) {
                                       toast.error("Chỉ chấp nhận file hình ảnh hoặc video.");
                                       return;
                                     }
-                                    setResolutionFiles(prev => [...prev, ...selected]);
+                                    setResolutionFiles((prev) => [...prev, ...selected]);
                                   }
                                 }}
                               />
@@ -1062,7 +1271,7 @@ export function FeedbackDetailPageComponent({
                       )}
 
                       {/* Submit action */}
-                       <button
+                      <button
                         type="submit"
                         disabled={
                           !hasWriteAccess ||
@@ -1107,7 +1316,7 @@ export function FeedbackDetailPageComponent({
                     if (log.action === "PROVIDE_INFO") {
                       statusInfo = {
                         label: "Đã bổ sung thông tin",
-                        className: "bg-blue-50 text-blue-700 border-blue-200"
+                        className: "bg-blue-50 text-blue-700 border-blue-200",
                       };
                     }
                     const actorName = log.actorName || log.actionByName || "Hệ thống";
@@ -1127,7 +1336,7 @@ export function FeedbackDetailPageComponent({
                                 {actorName}
                               </span>
                               <span className="px-2 py-0.5 text-[10px] font-extrabold tracking-wide uppercase rounded-md bg-slate-100 text-slate-500 border border-slate-200">
-                                {translateRole(log.actorRole || log.actionByRole)}
+                                {translateRole(log.actorRole || (log as any).actionByRole)}
                               </span>
                             </div>
                             <span className="text-[10px] font-medium text-slate-400 shrink-0">
@@ -1136,7 +1345,9 @@ export function FeedbackDetailPageComponent({
                           </div>
 
                           <div className="flex flex-wrap items-center gap-1.5">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusInfo.className}`}>
+                            <span
+                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusInfo.className}`}
+                            >
                               {statusInfo.label}
                             </span>
                             {log.action && (
@@ -1146,79 +1357,100 @@ export function FeedbackDetailPageComponent({
                             )}
                           </div>
 
-                            {log.note && (
-                             <div className="mt-1.5 p-2.5 bg-slate-50 border border-slate-150 rounded-lg text-xs font-medium text-slate-600 whitespace-pre-wrap leading-relaxed shadow-sm">
-                               {log.note}
-                               {((log.newStatus === "RESOLVED") || (log.action === "RESOLVE")) && resolutionAttachments.length > 0 && (
-                                 <div className="mt-3 space-y-2 border-t border-slate-200/60 pt-2.5">
-                                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                     📸 Bằng chứng xử lý từ cán bộ:
-                                   </p>
-                                   <div className="flex flex-wrap gap-2 pt-1">
-                                     {resolutionAttachments.map((att) => {
-                                       const isVideo = att.fileType?.startsWith("video/") || att.fileUrl.endsWith(".mp4");
-                                       return (
-                                         <div key={att.id} className="relative h-16 w-20 shrink-0 rounded-lg overflow-hidden border border-slate-200 bg-slate-950 shadow-sm">
-                                           {isVideo ? (
-                                             <video src={att.fileUrl} className="w-full h-full object-cover" controls />
-                                           ) : (
-                                             <img
-                                               src={att.fileUrl}
-                                               alt=""
-                                               className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
-                                               onClick={() => window.open(att.fileUrl, "_blank")}
-                                             />
-                                           )}
-                                         </div>
-                                       );
-                                     })}
-                                   </div>
-                                 </div>
-                               )}
+                          {log.note && (
+                            <div className="mt-1.5 p-2.5 bg-slate-50 border border-slate-150 rounded-lg text-xs font-medium text-slate-600 whitespace-pre-wrap leading-relaxed shadow-sm">
+                              {log.note}
+                              {(log.newStatus === "RESOLVED" || log.action === "RESOLVE") &&
+                                resolutionAttachments.length > 0 && (
+                                  <div className="mt-3 space-y-2 border-t border-slate-200/60 pt-2.5">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                      📸 Bằng chứng xử lý từ cán bộ:
+                                    </p>
+                                    <div className="flex flex-wrap gap-2 pt-1">
+                                      {resolutionAttachments.map((att) => {
+                                        const isVideo =
+                                          att.fileType?.startsWith("video/") ||
+                                          att.fileUrl.endsWith(".mp4");
+                                        return (
+                                          <div
+                                            key={att.id}
+                                            className="relative h-16 w-20 shrink-0 rounded-lg overflow-hidden border border-slate-200 bg-slate-950 shadow-sm"
+                                          >
+                                            {isVideo ? (
+                                              <video
+                                                src={att.fileUrl}
+                                                className="w-full h-full object-cover"
+                                                controls
+                                              />
+                                            ) : (
+                                              <img
+                                                src={att.fileUrl}
+                                                alt=""
+                                                className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
+                                                onClick={() => window.open(att.fileUrl, "_blank")}
+                                              />
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
 
-                               {(() => {
-                                 if (log.action !== "PROVIDE_INFO" || !report.attachments) return null;
-                                 const suppAtts = report.attachments.filter((att) => {
-                                   if (att.attachmentPurpose !== "SUPPLEMENTARY_EVIDENCE") return false;
-                                   const logTime = new Date(log.createdAt).getTime();
-                                   const uploadTime = new Date(att.uploadedAt || "").getTime();
-                                   return Math.abs(uploadTime - logTime) < 60000;
-                                 });
-                                 if (suppAtts.length === 0) return null;
-                                 return (
-                                   <div className="mt-3 space-y-2 border-t border-slate-200/60 pt-2.5">
-                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                       📸 Hình ảnh bổ sung từ người dân:
-                                     </p>
-                                     <div className="flex flex-wrap gap-2 pt-1">
-                                       {suppAtts.map((att) => {
-                                         const isVideo = att.fileType?.startsWith("video/") || att.fileUrl.endsWith(".mp4");
-                                         return (
-                                           <div key={att.id} className="relative h-16 w-20 shrink-0 rounded-lg overflow-hidden border border-slate-200 bg-slate-950 shadow-sm">
-                                             {isVideo ? (
-                                               <video src={att.fileUrl} className="w-full h-full object-cover" controls />
-                                             ) : (
-                                               <img
-                                                 src={att.fileUrl}
-                                                 alt=""
-                                                 className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
-                                                 onClick={() => window.open(att.fileUrl, "_blank")}
-                                               />
-                                             )}
-                                           </div>
-                                         );
-                                       })}
-                                     </div>
-                                   </div>
-                                 );
-                               })()}
-                             </div>
-                           )}
+                              {(() => {
+                                if (log.action !== "PROVIDE_INFO" || !report.attachments)
+                                  return null;
+                                const suppAtts = report.attachments.filter((att) => {
+                                  if (att.attachmentPurpose !== "SUPPLEMENTARY_EVIDENCE")
+                                    return false;
+                                  const logTime = new Date(log.createdAt).getTime();
+                                  const uploadTime = new Date(att.uploadedAt || "").getTime();
+                                  return Math.abs(uploadTime - logTime) < 60000;
+                                });
+                                if (suppAtts.length === 0) return null;
+                                return (
+                                  <div className="mt-3 space-y-2 border-t border-slate-200/60 pt-2.5">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                      📸 Hình ảnh bổ sung từ người dân:
+                                    </p>
+                                    <div className="flex flex-wrap gap-2 pt-1">
+                                      {suppAtts.map((att) => {
+                                        const isVideo =
+                                          att.fileType?.startsWith("video/") ||
+                                          att.fileUrl.endsWith(".mp4");
+                                        return (
+                                          <div
+                                            key={att.id}
+                                            className="relative h-16 w-20 shrink-0 rounded-lg overflow-hidden border border-slate-200 bg-slate-950 shadow-sm"
+                                          >
+                                            {isVideo ? (
+                                              <video
+                                                src={att.fileUrl}
+                                                className="w-full h-full object-cover"
+                                                controls
+                                              />
+                                            ) : (
+                                              <img
+                                                src={att.fileUrl}
+                                                alt=""
+                                                className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
+                                                onClick={() => window.open(att.fileUrl, "_blank")}
+                                              />
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
                   })}
-                  
+
                   {sortedLogs.length > 3 && (
                     <div className="flex justify-center pt-2 border-t border-slate-100 -mx-5 px-5">
                       <button
@@ -1249,260 +1481,314 @@ export function FeedbackDetailPageComponent({
 
       {/* Campaign Dialog Modal */}
       <Dialog open={isCampaignModalOpen} onOpenChange={setIsCampaignModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-xl shadow-lg border border-slate-200 p-6">
-          <DialogHeader className="border-b border-slate-100 pb-3 mb-4">
-            <DialogTitle className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-              <Rocket className="text-emerald-600 h-5 w-5" />
-              Tạo chiến dịch liên kết phản ánh
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border-0 p-0 sm:rounded-2xl">
+          <div className="bg-gradient-to-r from-emerald-600 to-teal-700 p-6 sm:p-8 relative overflow-hidden">
+            <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
+            <DialogTitle className="relative z-10 text-xl font-black text-white flex items-center gap-3">
+              <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-sm border border-white/20 shadow-inner">
+                <Rocket className="text-white h-6 w-6" />
+              </div>
+              Phát Động Chiến Dịch Liên Kết
             </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500 font-medium">
-              Thiết lập chiến dịch cộng đồng liên kết với phản ánh này để cùng người dân xử lý sự
-              cố.
+            <DialogDescription className="relative z-10 text-xs text-emerald-50 font-semibold mt-3 max-w-lg leading-relaxed">
+              Thiết lập thông tin chiến dịch cộng đồng để huy động lực lượng tham gia xử lý triệt để
+              sự cố phản ánh này.
             </DialogDescription>
-          </DialogHeader>
+          </div>
 
-          {/* Form */}
-          <form onSubmit={handleCreateCampaign} className="space-y-4">
+          <form onSubmit={handleCreateCampaign} className="space-y-6 p-6 sm:p-8 pt-6">
             {/* Read-Only Prefilled Section */}
-            <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 space-y-3">
-              <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Thông tin pre-fill từ phản ánh
+            <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-100 shadow-inner">
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                <FileText size={12} /> Dữ liệu từ phản ánh
               </h3>
-              <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-y-3 gap-x-4 text-xs">
                 <div>
-                  <span className="text-slate-400 font-semibold">Mã tra cứu:</span>{" "}
-                  <span className="text-slate-800 font-bold">
+                  <span className="text-slate-400 font-semibold block mb-0.5">Mã tra cứu:</span>
+                  <span className="text-slate-800 font-extrabold bg-white px-1.5 py-0.5 rounded border border-slate-200">
                     {report.trackingCode || report.code || report.id}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 font-semibold">Mức độ ưu tiên:</span>{" "}
-                  <span className="text-slate-800 font-bold uppercase">{report.priority}</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 font-semibold">Phường/Xã:</span>{" "}
+                  <span className="text-slate-400 font-semibold block mb-0.5">Phường/Xã:</span>
                   <span className="text-slate-800 font-bold">{report.wardName || "-"}</span>
                 </div>
-                <div>
-                  <span className="text-slate-400 font-semibold">Vĩ độ:</span>{" "}
-                  <span className="text-slate-800 font-bold">{report.latitude}</span>
+                <div className="col-span-2 md:col-span-1">
+                  <span className="text-slate-400 font-semibold block mb-0.5">Địa chỉ:</span>
+                  <span
+                    className="text-slate-800 font-bold truncate block"
+                    title={report.addressDetails || report.address || undefined}
+                  >
+                    {report.addressDetails || report.address}
+                  </span>
                 </div>
-                <div>
-                  <span className="text-slate-400 font-semibold">Kinh độ:</span>{" "}
-                  <span className="text-slate-800 font-bold">{report.longitude}</span>
-                </div>
-              </div>
-              <div>
-                <span className="text-xs text-slate-400 font-semibold">Địa chỉ:</span>{" "}
-                <span className="text-xs text-slate-800 font-bold block mt-0.5">
-                  {report.addressDetails || report.address}
-                </span>
               </div>
             </div>
 
             {/* Editable Fields */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                Tiêu đề chiến dịch
-              </label>
-              <input
-                type="text"
-                value={campaignTitle}
-                onChange={(e) => setCampaignTitle(e.target.value)}
-                placeholder="Nhập tiêu đề chiến dịch kêu gọi..."
-                className="w-full h-9 border border-slate-250 rounded-lg px-3 text-xs font-semibold outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-100"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                Mô tả mục tiêu hoạt động
-              </label>
-              <textarea
-                value={campaignDesc}
-                onChange={(e) => setCampaignDesc(e.target.value)}
-                placeholder="Mô tả cụ thể hoạt động dọn dẹp, xử lý..."
-                rows={3}
-                className="w-full border border-slate-250 rounded-lg p-2.5 text-xs font-semibold outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-100"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-5">
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Lĩnh vực
-                </label>
-                <select
-                  value={campaignCategory}
-                  onChange={(e) => setCampaignCategory(e.target.value)}
-                  className="w-full h-9 border border-slate-250 bg-white rounded-lg px-2 text-xs font-semibold outline-none"
-                >
-                  <option value="environment">Môi trường</option>
-                  <option value="infrastructure">Hạ tầng đô thị</option>
-                  <option value="public_safety">An ninh trật tự</option>
-                  <option value="construction">Xây dựng</option>
-                  <option value="fire_safety">Phòng cháy chữa cháy</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Số lượng tối đa tham gia
+                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                  <FileText size={14} className="text-emerald-600" /> Tiêu đề chiến dịch
                 </label>
                 <input
-                  type="number"
-                  value={campaignParticipants}
-                  onChange={(e) => setCampaignParticipants(e.target.value)}
-                  min={5}
-                  className="w-full h-9 border border-slate-250 rounded-lg px-3 text-xs font-semibold outline-none"
+                  type="text"
+                  value={campaignTitle}
+                  onChange={(e) => setCampaignTitle(e.target.value)}
+                  placeholder="Ví dụ: Ra quân dọn dẹp vệ sinh đường ABC..."
+                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm font-semibold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-sm"
+                />
+              </div>
+
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                  <Rocket size={14} className="text-emerald-600" /> Mô tả mục tiêu hoạt động
+                </label>
+                <textarea
+                  value={campaignDesc}
+                  onChange={(e) => setCampaignDesc(e.target.value)}
+                  placeholder="Mô tả chi tiết công việc cần làm, lý do tổ chức..."
+                  rows={3}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm font-semibold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-sm"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                    <Compass size={14} className="text-emerald-600" /> Lĩnh vực
+                  </label>
+                  <select
+                    value={campaignCategory}
+                    onChange={(e) => setCampaignCategory(e.target.value)}
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm font-semibold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-sm cursor-pointer"
+                  >
+                    <option value="environment">Môi trường</option>
+                    <option value="infrastructure">Hạ tầng đô thị</option>
+                    <option value="construction">Xây dựng</option>
+                    <option value="public_safety">An ninh trật tự</option>
+                    <option value="fire_safety">An toàn PCCC</option>
+                    <option value="other">Khác...</option>
+                  </select>
+                  {campaignCategory === "other" && (
+                    <input
+                      type="text"
+                      value={customCampaignCategory}
+                      onChange={(e) => setCustomCampaignCategory(e.target.value)}
+                      placeholder="Nhập tên lĩnh vực khác"
+                      className="w-full h-10 mt-3 bg-white border border-emerald-300 rounded-xl px-3.5 text-sm font-semibold outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-sm placeholder:text-slate-400"
+                    />
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                      <Users size={14} className="text-emerald-600" /> Tối thiểu
+                    </label>
+                    <input
+                      type="number"
+                      value={campaignMinParticipants}
+                      onChange={(e) => setCampaignMinParticipants(e.target.value)}
+                      min={1}
+                      className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-2 text-sm font-semibold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                      <Users size={14} className="text-emerald-600" /> Tối đa
+                    </label>
+                    <input
+                      type="number"
+                      value={campaignParticipants}
+                      onChange={(e) => setCampaignParticipants(e.target.value)}
+                      min={5}
+                      className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-2 text-sm font-semibold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                    <MapPin size={14} className="text-emerald-600" /> Địa điểm công khai{" "}
+                    <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={campaignLocation}
+                    onChange={(e) => setCampaignLocation(e.target.value)}
+                    placeholder="Địa chỉ hiển thị công khai"
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm font-semibold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-sm"
+                  />
+                </div>
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                    <MapPin size={14} className="text-emerald-600" /> Vị trí chi tiết/nội bộ
+                  </label>
+                  <input
+                    type="text"
+                    value={campaignPrivateLocation}
+                    onChange={(e) => setCampaignPrivateLocation(e.target.value)}
+                    placeholder="Chỉ hiển thị cho thành viên đã tham gia"
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm font-semibold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-4 bg-emerald-50/50 border border-emerald-100 rounded-xl">
+                <div className="space-y-2">
+                  <span className="flex items-center gap-1.5 text-xs font-extrabold text-emerald-800 uppercase tracking-wide">
+                    <Clock size={14} /> Bắt đầu lúc
+                  </span>
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      min={todayStr}
+                      value={campaignStartDate}
+                      onChange={(e) => setCampaignStartDate(e.target.value)}
+                      className="flex-[2] h-10 bg-white border border-emerald-200 rounded-lg px-2.5 text-xs font-bold outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                    />
+                    <select
+                      value={campaignStartHour}
+                      onChange={(e) => setCampaignStartHour(e.target.value)}
+                      className="flex-1 h-10 bg-white border border-emerald-200 rounded-lg px-1.5 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500"
+                    >
+                      {Array.from({ length: 24 }).map((_, i) => {
+                        const val = String(i).padStart(2, "0");
+                        return (
+                          <option key={val} value={val}>
+                            {val}h
+                          </option>
+                        );
+                      })}
+                    </select>
+                    <select
+                      value={campaignStartMinute}
+                      onChange={(e) => setCampaignStartMinute(e.target.value)}
+                      className="flex-1 h-10 bg-white border border-emerald-200 rounded-lg px-1.5 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500"
+                    >
+                      {Array.from({ length: 60 }).map((_, i) => {
+                        const val = String(i).padStart(2, "0");
+                        return (
+                          <option key={val} value={val}>
+                            {val}m
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="flex items-center gap-1.5 text-xs font-extrabold text-emerald-800 uppercase tracking-wide">
+                    <CheckCircle2 size={14} /> Dự kiến kết thúc
+                  </span>
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      min={campaignStartDate || todayStr}
+                      value={campaignEndDate}
+                      onChange={(e) => setCampaignEndDate(e.target.value)}
+                      className="flex-[2] h-10 bg-white border border-emerald-200 rounded-lg px-2.5 text-xs font-bold outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                    />
+                    <select
+                      value={campaignEndHour}
+                      onChange={(e) => setCampaignEndHour(e.target.value)}
+                      className="flex-1 h-10 bg-white border border-emerald-200 rounded-lg px-1.5 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500"
+                    >
+                      {Array.from({ length: 24 }).map((_, i) => {
+                        const val = String(i).padStart(2, "0");
+                        return (
+                          <option key={val} value={val}>
+                            {val}h
+                          </option>
+                        );
+                      })}
+                    </select>
+                    <select
+                      value={campaignEndMinute}
+                      onChange={(e) => setCampaignEndMinute(e.target.value)}
+                      className="flex-1 h-10 bg-white border border-emerald-200 rounded-lg px-1.5 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500"
+                    >
+                      {Array.from({ length: 60 }).map((_, i) => {
+                        const val = String(i).padStart(2, "0");
+                        return (
+                          <option key={val} value={val}>
+                            {val}m
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                    <Plus size={14} className="text-emerald-600" /> Dụng cụ hỗ trợ cần thiết{" "}
+                    <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={campaignTools}
+                    onChange={(e) => setCampaignTools(e.target.value)}
+                    placeholder="Ví dụ: Còi, gậy chỉ huy, chổi, xẻng..."
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm font-semibold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                    <User size={14} className="text-emerald-600" /> Đơn vị đứng ra tổ chức{" "}
+                    <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={campaignOrganizer}
+                    onChange={(e) => setCampaignOrganizer(e.target.value)}
+                    placeholder="Ví dụ: Công an phường Hải Châu I"
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm font-semibold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                  <Compass size={14} className="text-emerald-600" /> Link ảnh bìa chiến dịch (Cover
+                  Image URL)
+                </label>
+                <input
+                  type="text"
+                  value={campaignCoverUrl}
+                  onChange={(e) => setCampaignCoverUrl(e.target.value)}
+                  placeholder="Để trống nếu muốn sử dụng ảnh mặc định của lĩnh vực"
+                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm font-semibold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-sm"
                 />
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                Địa điểm diễn ra <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={campaignLocation}
-                onChange={(e) => setCampaignLocation(e.target.value)}
-                className="w-full h-9 border border-slate-250 rounded-lg px-3 text-xs font-semibold outline-none"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <span className="block text-xs font-bold text-slate-700 uppercase">
-                  Thời gian bắt đầu
-                </span>
-                <div className="flex gap-2">
-                  <input
-                    type="date"
-                    min={todayStr}
-                    value={campaignStartDate}
-                    onChange={(e) => setCampaignStartDate(e.target.value)}
-                    className="flex-[2] h-9 border border-slate-250 rounded-lg px-2 text-xs font-semibold outline-none focus:border-blue-500"
-                  />
-                  <select
-                    value={campaignStartHour}
-                    onChange={(e) => setCampaignStartHour(e.target.value)}
-                    className="flex-1 h-9 border border-slate-250 bg-white rounded-lg px-1.5 text-xs font-semibold outline-none focus:border-blue-500"
-                  >
-                    {Array.from({ length: 24 }).map((_, i) => {
-                      const val = String(i).padStart(2, "0");
-                      return (
-                        <option key={val} value={val}>
-                          {val} giờ
-                        </option>
-                      );
-                    })}
-                  </select>
-                  <select
-                    value={campaignStartMinute}
-                    onChange={(e) => setCampaignStartMinute(e.target.value)}
-                    className="flex-1 h-9 border border-slate-250 bg-white rounded-lg px-1.5 text-xs font-semibold outline-none focus:border-blue-500"
-                  >
-                    {Array.from({ length: 60 }).map((_, i) => {
-                      const val = String(i).padStart(2, "0");
-                      return (
-                        <option key={val} value={val}>
-                          {val} phút
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <span className="block text-xs font-bold text-slate-700 uppercase">
-                  Thời gian kết thúc
-                </span>
-                <div className="flex gap-2">
-                  <input
-                    type="date"
-                    min={campaignStartDate || todayStr}
-                    value={campaignEndDate}
-                    onChange={(e) => setCampaignEndDate(e.target.value)}
-                    className="flex-[2] h-9 border border-slate-250 rounded-lg px-2 text-xs font-semibold outline-none focus:border-blue-500"
-                  />
-                  <select
-                    value={campaignEndHour}
-                    onChange={(e) => setCampaignEndHour(e.target.value)}
-                    className="flex-1 h-9 border border-slate-250 bg-white rounded-lg px-1.5 text-xs font-semibold outline-none focus:border-blue-500"
-                  >
-                    {Array.from({ length: 24 }).map((_, i) => {
-                      const val = String(i).padStart(2, "0");
-                      return (
-                        <option key={val} value={val}>
-                          {val} giờ
-                        </option>
-                      );
-                    })}
-                  </select>
-                  <select
-                    value={campaignEndMinute}
-                    onChange={(e) => setCampaignEndMinute(e.target.value)}
-                    className="flex-1 h-9 border border-slate-250 bg-white rounded-lg px-1.5 text-xs font-semibold outline-none focus:border-blue-500"
-                  >
-                    {Array.from({ length: 60 }).map((_, i) => {
-                      const val = String(i).padStart(2, "0");
-                      return (
-                        <option key={val} value={val}>
-                          {val} phút
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                Dụng cụ hỗ trợ cần thiết <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={campaignTools}
-                onChange={(e) => setCampaignTools(e.target.value)}
-                placeholder="Bao tay, xẻng, chổi..."
-                className="w-full h-9 border border-slate-250 rounded-lg px-3 text-xs font-semibold outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                Đơn vị đứng ra tổ chức <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={campaignOrganizer}
-                onChange={(e) => setCampaignOrganizer(e.target.value)}
-                className="w-full h-9 border border-slate-250 rounded-lg px-3 text-xs font-semibold outline-none"
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <div className="flex justify-end gap-3 pt-6 pb-2">
               <button
                 type="button"
                 onClick={() => setIsCampaignModalOpen(false)}
-                className="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-xl transition-colors cursor-pointer"
               >
                 Hủy bỏ
               </button>
               <button
                 type="submit"
                 disabled={isCreatingCampaign}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-8 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white text-sm font-extrabold rounded-xl shadow-[0_4px_12px_rgba(5,150,105,0.3)] transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2 cursor-pointer"
               >
                 {isCreatingCampaign ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" /> Đang tạo...
+                    <Loader2 className="h-5 w-5 animate-spin" /> Đang phát động...
                   </>
                 ) : (
                   <>
-                    <Plus size={14} /> Tạo chiến dịch
+                    <Rocket size={18} /> Phát động chiến dịch
                   </>
                 )}
               </button>
@@ -1576,7 +1862,12 @@ function isPoliceCategory(value?: string | null) {
     return true;
   }
   const text = normalized.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  return text.includes("AN NINH") || text.includes("PCCC") || text.includes("GIAO THONG") || text.includes("CHAY NO");
+  return (
+    text.includes("AN NINH") ||
+    text.includes("PCCC") ||
+    text.includes("GIAO THONG") ||
+    text.includes("CHAY NO")
+  );
 }
 
 function invalidateFeedbackSyncQueries(queryClient: QueryClient, feedbackId?: string | number) {

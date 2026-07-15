@@ -51,6 +51,9 @@ public class User extends BaseEntity {
     @JoinColumn(name = "ward_id")
     private Ward ward;
 
+    @Column(name = "warning_count", nullable = false)
+    private int warningCount = 0;
+
     // [SECURITY FIX] AES-256/GCM encrypted at rest via AttributeEncryptor
     @Convert(converter = AttributeEncryptor.class)
     @Column(name = "mfa_secret")
@@ -58,6 +61,12 @@ public class User extends BaseEntity {
 
     @Column(name = "is_mfa_enabled", nullable = false)
     private boolean isMfaEnabled = false;
+
+    @Column(name = "is_campaign_banned", nullable = false, columnDefinition = "boolean default false")
+    private boolean isCampaignBanned = false;
+
+    @Column(name = "last_campaign_unban_at")
+    private LocalDateTime lastCampaignUnbanAt;
 
     // [SECURITY] Brute-force login protection
     @Column(name = "login_attempts", nullable = false)
@@ -81,6 +90,9 @@ public class User extends BaseEntity {
 
     @Column(name = "deleted_by", length = 100)
     private String deletedBy;
+
+    @Column(name = "avatar_url", length = 255)
+    private String avatarUrl;
 
     public User() {
     }
@@ -138,6 +150,12 @@ public class User extends BaseEntity {
     public boolean isMfaEnabled() { return isMfaEnabled; }
     public void setMfaEnabled(boolean isMfaEnabled) { this.isMfaEnabled = isMfaEnabled; }
 
+    public boolean isCampaignBanned() { return isCampaignBanned; }
+    public void setCampaignBanned(boolean campaignBanned) { isCampaignBanned = campaignBanned; }
+
+    public LocalDateTime getLastCampaignUnbanAt() { return lastCampaignUnbanAt; }
+    public void setLastCampaignUnbanAt(LocalDateTime lastCampaignUnbanAt) { this.lastCampaignUnbanAt = lastCampaignUnbanAt; }
+
     public int getLoginAttempts() { return loginAttempts; }
     public void setLoginAttempts(int loginAttempts) { this.loginAttempts = loginAttempts; }
 
@@ -163,5 +181,11 @@ public class User extends BaseEntity {
     public LocalDateTime getDeletedAt() { return deletedAt; }
     public String getDeletedBy() { return deletedBy; }
     public void setDeletedBy(String deletedBy) { this.deletedBy = deletedBy; }
+
+    public int getWarningCount() { return warningCount; }
+    public void setWarningCount(int warningCount) { this.warningCount = warningCount; }
+
+    public String getAvatarUrl() { return avatarUrl; }
+    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
 }
 

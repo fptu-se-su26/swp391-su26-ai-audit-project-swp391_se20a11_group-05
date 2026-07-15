@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 import com.example.smartcity.modules.auth.service.AuthService;
+import com.example.smartcity.modules.core.repository.WardRepository;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -42,6 +43,7 @@ public class AuthController {
     private final UserMapper userMapper;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final WardRepository wardRepository;
 
     /** Lấy IP thực của client, hỗ trợ reverse proxy (X-Forwarded-For) */
     private String getClientIp(HttpServletRequest request) {
@@ -57,6 +59,8 @@ public class AuthController {
             @Valid @RequestBody LoginRequest loginRequest,
             HttpServletRequest httpRequest) {
         // [SECURITY] Rate limit: 5 lần / 15 phút theo IP
+        rateLimiter.checkLoginLimit(getClientIp(httpRequest));
+
         AuthResponse result = authService.authenticateUser(loginRequest);
         if (result.isMfaRequired()) {
             return ResponseEntity.ok(ApiResponse.success("Yêu cầu xác thực MFA", result));
@@ -89,11 +93,21 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<UserDTO>> registerUser(
+    public ResponseEntity<ApiResponse<Object>> registerUser(
             @Valid @RequestBody RegisterRequest registerRequest,
             HttpServletRequest httpRequest) {
         // [SECURITY] Rate limit: 5 lần / 1 giờ theo IP
         rateLimiter.checkRegisterLimit(getClientIp(httpRequest));
+
+        String authHeader = httpRequest.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            // [SECURITY] Rate limit: 5 lần / 1 giờ theo IP và số điện thoại cho Firebase OTP
+            rateLimiter.checkFirebaseOtpLimit(getClientIp(httpRequest), registerRequest.getPhoneNumber());
+            String firebaseToken = authHeader.substring(7);
+            AuthResponse response = authService.registerWithFirebaseToken(registerRequest, firebaseToken);
+            return ResponseEntity.ok(ApiResponse.success("Đăng ký và đăng nhập thành công", response));
+        }
+
         User result = authService.registerUser(registerRequest);
         return ResponseEntity.ok(ApiResponse.success("Đăng ký nháp thành công. Vui lòng xác thực mã OTP gửi về điện thoại.", userMapper.toDto(result)));
     }
@@ -168,6 +182,9 @@ public class AuthController {
         User user = new User(username, passwordEncoder.encode(password), fullName, phone, email, role);
         user.setStatus("ACTIVE");
         user.setPhoneVerified(true);
+        if (role != Role.SUPER_ADMIN) {
+            wardRepository.findById(1L).or(() -> wardRepository.findAll().stream().findFirst()).ifPresent(user::setWard);
+        }
         userRepository.save(user);
 
         return ResponseEntity.ok(ApiResponse.success(

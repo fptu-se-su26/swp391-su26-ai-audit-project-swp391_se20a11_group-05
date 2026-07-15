@@ -264,6 +264,151 @@ Chưa commit. Sau khi commit có thể bổ sung hash/link commit vào đây.
 Thay đổi này tập trung vào security và UX của đăng nhập.
 Cần chạy lại backend test/build và kiểm tra thủ công hai cổng /login, /authority-login trước khi merge.
 ```
+---
+
+# [Phase 04 - Tiếp tục] Tối ưu hóa Điểm danh, Lịch sử Hoạt động & Đồng bộ Trạng thái Chiến dịch
+
+## Ngày thực hiện
+
+```text
+06/07/2026
+```
+
+## Đã hoàn thành
+
+- [x] Tích hợp xem tóm tắt lịch sử hoạt động của Tình nguyện viên trong hồ sơ công dân (`CitizenProfileModal.tsx`).
+- [x] Tách biệt kết quả điểm danh khỏi trạng thái đăng ký của chiến dịch (giữ trạng thái `APPROVED` cho cả người vắng mặt, ghi nhận cờ `attended = false`).
+- [x] Tối ưu hóa câu truy vấn đếm số chiến dịch vắng mặt, tương thích ngược với dữ liệu cũ (`NO_SHOW` cũ và `attended = false` mới).
+- [x] Khắc phục lỗi hiển thị sai lệch trạng thái chiến dịch do không đồng bộ múi giờ (UTC vs GMT+7) giữa Frontend và Backend.
+- [x] Đồng bộ các API kiểm tra trạng thái temporal của chiến dịch tại Backend Service để khớp 100% dữ liệu hiển thị.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Thêm API endpoint và UI click-to-expand xem lịch sử hoạt động của tình nguyện viên | Phan Thanh Bình | CampaignParticipantResponse.java; CampaignParticipantRepository.java; CampaignServiceImpl.java; CampaignController.java; api.ts; CitizenProfileModal.tsx | |
+| 2 | Sửa đổi logic mark vắng mặt giữ nguyên APPROVED và set attended = false. Bổ sung JPA Query đếm số lần vắng mặt có toán tử OR tương thích dữ liệu cũ. | Phan Thanh Bình | CampaignParticipantRepository.java; UserMapper.java; CampaignServiceImpl.java; CampaignScheduler.java | |
+| 3 | Sửa đổi và đồng bộ cách so sánh thời gian temporal trạng thái chiến dịch dựa trên milliseconds chuẩn múi giờ | Phan Thanh Bình | campaignStore.ts; CampaignServiceImpl.java; Campaign.java | |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI đề xuất query JPA và cấu trúc layout click-to-expand ban đầu cho phần lịch sử hoạt động. Đối với điểm danh và lệch múi giờ, AI gợi ý hướng thiết kế tách biệt trạng thái và xử lý UTC Date. Sinh viên chủ động tối ưu lớp bảo mật API (existsByCitizenIdAndWardId), logic lưu trữ audit log (không xóa thông tin người duyệt khi vắng mặt), và tự đồng bộ logic múi giờ từ Entity lên Service.
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+mvn compile: PASS; npx tsc --noEmit: PASS.
+```
+
+## Ghi chú
+
+```text
+Mọi thay đổi đã được compile và test cục bộ thành công. Sẵn sàng tích hợp và merge.
+```
+
+---
+
+# [Phase 04 - Tiếp tục] Cải thiện Bố cục Giao diện Khung chat (Chat UI Layout Improvement)
+
+## Ngày thực hiện
+
+```text
+07/07/2026
+```
+
+## Đã hoàn thành
+
+- [x] Tăng giới hạn độ rộng container tin nhắn và thanh nhập liệu từ `max-w-2xl` / `max-w-3xl` lên `max-w-5xl` để giảm khoảng trống 2 bên.
+- [x] Mở rộng thanh chat input (từ `h-9` lên `h-11`) và tăng kích thước chữ, icon để cân đối tỷ lệ trên các màn hình rộng.
+- [x] Nâng font-size của tiêu đề nhóm chat và thông tin số lượng thành viên ở header để có bố cục hài hòa hơn.
+- [x] Loại bỏ hoàn toàn các cảnh báo linter liên quan đến kiểu `any` trong file `campaigns.$id.group-chat.tsx` để tối ưu chất lượng code.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Căn chỉnh `max-w-5xl`, tăng chiều cao input/button lên `h-11`, tăng cỡ font header, item chat | Phan Thanh Bình | WardChatDashboardPage.tsx; campaigns.$id.group-chat.tsx | |
+| 2 | Thay đổi kiểu dữ liệu từ `any` sang các kiểu tường minh (`unknown`, object type định dạng sẵn) để làm sạch code | Phan Thanh Bình | campaigns.$id.group-chat.tsx | |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI phân tích các class hạn chế chiều ngang (max-w) của Tailwind và gợi ý giải pháp tăng container. Sinh viên tự rà soát, căn chỉnh lại các tỷ lệ font chữ xung quanh (header, badges) để giữ giao diện cân đối và thực hiện refactor ép kiểu TypeScript thô ('any') thành kiểu dữ liệu an toàn.
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+npx tsc --noEmit: PASS; npx eslint: PASS.
+```
+
+## Ghi chú
+
+```text
+Giao diện chat sau khi mở rộng trông thoáng và dễ đọc hơn rất nhiều trên màn hình Desktop mà vẫn giữ responsive tốt trên Mobile. Việc dọn linter giúp nhánh code an toàn để chuẩn bị merge.
+```
+
+---
+
+# [Phase 04 - Tiếp tục] Tích hợp Hệ thống Cấm Chiến dịch Tự động & Cơ chế Duyệt đơn Giải trình
+
+## Ngày thực hiện
+
+```text
+10/07/2026
+```
+
+## Đã hoàn thành
+
+- [x] Tự động hóa quét vắng mặt cuối ngày và cập nhật warningCount bằng cờ vật lý trong User Entity.
+- [x] Gửi thông báo & email warning cho Citizens khi vắng mặt 2 lần và cấm tham gia chiến dịch khi vắng mặt đủ 3 lần (`isCampaignBanned = true`).
+- [x] Triển khai luồng Appeal Submission (người dân bị cấm gửi đơn giải trình kèm lý do).
+- [x] Triển khai API duyệt/từ chối đơn giải trình tại `CampaignAppealServiceImpl` kèm cơ chế bảo mật BOLA/IDOR (check wardId chéo giữa Ward Staff và Citizen).
+- [x] Tối ưu hóa reset cấm bằng cách thêm `lastCampaignUnbanAt` để giữ nguyên lịch sử vắng mặt cũ (không xóa bản ghi).
+- [x] Cập nhật Frontend UI: tab Blacklist tại `WardBlacklistPage.tsx` để duyệt đơn, deep-linking điều hướng từ Notification trực tiếp vào chi tiết đơn giải trình.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Thêm các trường cờ vật lý `isCampaignBanned`, `warningCount`, `lastCampaignUnbanAt` và scheduler quét tự động cấm sau 3 lần vắng | Phan Thanh Bình | User.java; CampaignScheduler.java; CampaignServiceImpl.java | |
+| 2 | Triển khai API Appeal Submission & Review với BOLA check bảo mật phân cấp phường xã | Phan Thanh Bình | CampaignAppealController.java; CampaignAppealServiceImpl.java; CampaignAppealRepository.java | |
+| 3 | Cập nhật frontend hiển thị danh sách Blacklist, form gửi giải trình, modal phê duyệt và deep-linking từ Notification | Phan Thanh Bình | WardBlacklistPage.tsx; WardDashboard.tsx; NotificationsPage.tsx | |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI đề xuất query COUNT động và việc xóa dữ liệu lịch sử khi unban. Sinh viên đã phản biện và bác bỏ: sử dụng cờ vật lý trên User để tối ưu O(1) hiệu năng, dùng lastCampaignUnbanAt để lưu vết lịch sử (Audit Trail). Ngoài ra, sinh viên tự bổ sung logic kiểm tra chéo wardId để chống lỗ hổng bảo mật IDOR/BOLA.
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+mvn compile: PASS; mvn test -Dtest=CampaignAppealServiceImplTest: PASS.
+```
+
+## Ghi chú
+
+```text
+Tính năng đã hoàn thiện cả backend và frontend, đảm bảo bảo mật dữ liệu cấp phân quyền phường và hiệu năng cao cho scheduler.
+```
 
 ---
 
@@ -272,22 +417,22 @@ Cần chạy lại backend test/build và kiểm tra thủ công hai cổng /log
 ## Ngày thực hiện
 
 ```text
-28/05/2026
+11/07/2026 - 12/07/2026
 ```
 
 ## Đã hoàn thành
 
-- [ ] Viết test case
-- [ ] Chạy test chức năng chính
-- [ ] Kiểm tra output
-- [ ] Kiểm tra validation
-- [ ] Kiểm tra lỗi giao diện
-- [ ] Kiểm tra lỗi database
-- [ ] Kiểm tra phân quyền
-- [ ] Kiểm tra bảo mật cơ bản
-- [ ] Fix bug
-- [ ] Chạy lại sau khi fix bug
-- [ ] Ghi nhận kết quả test
+- [x] Viết test case
+- [x] Chạy test chức năng chính
+- [x] Kiểm tra output
+- [x] Kiểm tra validation
+- [x] Kiểm tra lỗi giao diện
+- [x] Kiểm tra lỗi database
+- [x] Kiểm tra phân quyền
+- [x] Kiểm tra bảo mật cơ bản
+- [x] Fix bug
+- [x] Chạy lại sau khi fix bug
+- [x] Ghi nhận kết quả test
 
 ## Danh sách lỗi đã xử lý
 
@@ -297,37 +442,40 @@ Cần chạy lại backend test/build và kiểm tra thủ công hai cổng /log
 | 2 | Trùng dòng fetch trong helper frontend | Patch chồng khi chỉnh endpoint | Xóa dòng thừa, giữ 1 lệnh fetch duy nhất | Fixed |
 | 3 | Runtime risk khi thiếu categoryId từ template report | Payload hiện tại frontend chưa luôn gửi categoryId | Cho phép categoryId optional + validate mềm trong service | Fixed |
 | 4 | Build risk khi merge nhánh | Thiếu bước compile sau chỉnh sửa | Chạy compile backend sau cập nhật | Fixed |
-| 5 |  |  |  | Open / Fixed / Pending |
+| 5 | Nguy cơ lỗ hổng bảo mật BOLA chéo phường trong API duyệt giải trình | Phân quyền chỉ check role WARD_STAFF ở controller mà không check wardId của citizen | Thêm check chéo wardId ở service layer, trả 403 Forbidden nếu không khớp địa bàn | Fixed |
+| 6 | Trùng lặp/lệch đếm vắng mặt sau khi mở khóa | Đề xuất xóa dữ liệu vắng mặt gây mất lịch sử hoạt động | Dùng lastCampaignUnbanAt làm mốc thời gian bắt đầu đếm vắng mặt mới | Fixed |
+| 7 | Điều hướng thông báo đơn giải trình bị lỗi | Click thông báo không tự chọn đơn giải trình tương ứng | Thêm defaultAppealId và tích hợp deep-linking chọn tự động khi load tab blacklist | Fixed |
 
 ## Thay đổi chi tiết
 
 | STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
 |---:|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
+| 1 | Viết unit test Mockito kiểm chứng các trạng thái duyệt/từ chối đơn giải trình | Phan Thanh Bình | CampaignAppealServiceImplTest.java | PASS |
+| 2 | Sửa lỗi phân quyền chéo wardId ở service layer | Phan Thanh Bình | CampaignAppealServiceImpl.java | Code check wardId |
+| 3 | Sửa lỗi điều hướng tab blacklist và deep-linking thông báo | Phan Thanh Bình | WardBlacklistPage.tsx; WardDashboard.tsx | UI works |
 
 ## AI có hỗ trợ không?
 
-- [ ] Có
+- [x] Có
 - [ ] Không
 
 Nếu có, mô tả AI đã hỗ trợ phần nào:
 
 ```text
-Viết tại đây...
+AI hỗ trợ sinh khung sườn unit test mẫu ban đầu. Sinh viên tự chỉnh sửa mock data, thêm các mock test case giả lập chéo wardId để kiểm chứng BOLA guard, sửa lại assert cho chính xác và chạy pass compile.
 ```
 
 ## Commit/Screenshot minh chứng
 
 ```text
-Dán link commit, screenshot hoặc mô tả minh chứng tại đây...
+mvn test: PASS.
 ```
 
 ## Ghi chú
 
 ```text
-Viết tại đây...
+Các lỗi bảo mật và điều hướng đã được khắc phục hoàn toàn trước khi tiến hành bàn giao/merge code.
+```
 ```
 
 ---

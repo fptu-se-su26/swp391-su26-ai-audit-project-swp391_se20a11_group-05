@@ -25,6 +25,11 @@ public interface UserRepository extends BaseRepository<User, Long> {
 
     java.util.List<User> findByRoleAndWardId(com.example.smartcity.modules.user.entity.Role role, Long wardId);
 
+    java.util.List<User> findByStatus(String status);
+
+    @Query("SELECT u FROM User u WHERE u.status = 'BANNED' OR u.isCampaignBanned = true")
+    java.util.List<User> findBannedOrCampaignBannedUsers();
+
     Optional<User> findByPhoneNumber(String phoneNumber);
 
     /** Hard delete kể cả soft-deleted rows — chỉ dùng cho dev seed */

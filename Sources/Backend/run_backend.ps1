@@ -1,4 +1,5 @@
-$env:ENCRYPTION_SECRET="my-local-dev-32-chars-secret-key"
+$env:ENCRYPTION_SECRET="CHANGE_ME_32_CHARS_PLACEHOLDER!!"
+$env:MAVEN_USER_HOME="$PSScriptRoot\.m2"
 
 $envFile = ".\.env.local.ps1"
 if (Test-Path $envFile) {
@@ -8,3 +9,4 @@ if (Test-Path $envFile) {
 }
 
 .\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=supabase"
+

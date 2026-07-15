@@ -14,11 +14,12 @@ import java.util.Deque;
 /**
  * Sliding Window Rate Limiter — dùng Caffeine in-memory cache.
  *
- * <p>Bảo vệ 3 endpoint:
+ * <p>Bảo vệ 4 endpoint:
  * <ul>
  *   <li><b>Login</b>: 5 lần / 15 phút theo IP (chống Brute-force password)</li>
  *   <li><b>SMS OTP Send</b>: 3 lần / 10 phút theo số điện thoại (chống spam SMS)</li>
  *   <li><b>Register</b>: 5 lần / 1 giờ theo IP (chống tạo tài khoản ảo hàng loạt)</li>
+ *   <li><b>Firebase Phone OTP</b>: 5 lần / 1 giờ theo IP VÀ theo số điện thoại (chống spam OTP)</li>
  * </ul>
  *
  * <p><b>Algorithm:</b> Sliding Window — chỉ đếm các request trong khoảng thời gian
@@ -46,6 +47,12 @@ public class AuthRateLimiter {
     @Value("${rate-limit.register.window-minutes:60}")
     private int registerWindowMinutes;
 
+    @Value("${rate-limit.firebase-otp.max-attempts:5}")
+    private int firebaseOtpMaxAttempts;
+
+    @Value("${rate-limit.firebase-otp.window-minutes:60}")
+    private int firebaseOtpWindowMinutes;
+
     // Cache cho từng loại endpoint — key = IP hoặc phone number
     private final Cache<String, SlidingWindowBucket> loginBuckets = Caffeine.newBuilder()
             .maximumSize(10_000)
@@ -58,6 +65,17 @@ public class AuthRateLimiter {
             .build();
 
     private final Cache<String, SlidingWindowBucket> registerBuckets = Caffeine.newBuilder()
+            .maximumSize(10_000)
+            .expireAfterWrite(Duration.ofMinutes(65))
+            .build();
+
+    // Separate buckets for Firebase OTP: one keyed by IP, one by phone number
+    private final Cache<String, SlidingWindowBucket> firebaseOtpByIpBuckets = Caffeine.newBuilder()
+            .maximumSize(10_000)
+            .expireAfterWrite(Duration.ofMinutes(65))
+            .build();
+
+    private final Cache<String, SlidingWindowBucket> firebaseOtpByPhoneBuckets = Caffeine.newBuilder()
             .maximumSize(10_000)
             .expireAfterWrite(Duration.ofMinutes(65))
             .build();
@@ -92,6 +110,24 @@ public class AuthRateLimiter {
         checkLimit(registerBuckets, "REGISTER:" + ipAddress,
                 registerMaxAttempts, Duration.ofMinutes(registerWindowMinutes),
                 "Đăng ký");
+    }
+
+    /**
+     * Kiểm tra rate limit cho việc gửi OTP Firebase Phone Auth.
+     * Giới hạn theo cả IP (5 lần / 1 giờ) VÀ số điện thoại (5 lần / 1 giờ).
+     * Ném RateLimitExceededException nếu vượt ngưỡng ở một trong hai.
+     *
+     * @param ipAddress   địa chỉ IP của client
+     * @param phoneNumber số điện thoại đăng ký (dạng 0xxxxxxxxx hoặc +84xxxxxxxxx)
+     */
+    public void checkFirebaseOtpLimit(String ipAddress, String phoneNumber) {
+        Duration window = Duration.ofMinutes(firebaseOtpWindowMinutes);
+        // 1. Kiểm tra theo IP
+        checkLimit(firebaseOtpByIpBuckets, "FIREBASE_OTP_IP:" + ipAddress,
+                firebaseOtpMaxAttempts, window, "Gửi OTP (IP)");
+        // 2. Kiểm tra theo số điện thoại
+        checkLimit(firebaseOtpByPhoneBuckets, "FIREBASE_OTP_PHONE:" + phoneNumber,
+                firebaseOtpMaxAttempts, window, "Gửi OTP (SĐT)");
     }
 
     // ─── Core Sliding Window Algorithm ──────────────────────────────────────

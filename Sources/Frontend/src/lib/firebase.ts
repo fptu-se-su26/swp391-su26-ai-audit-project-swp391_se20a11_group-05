@@ -38,7 +38,7 @@ function getFirebaseApp(): FirebaseApp {
   return app;
 }
 
-function getFirebaseAuth(): Auth {
+export function getFirebaseAuth(): Auth {
   if (!auth) {
     auth = getAuth(getFirebaseApp());
   }

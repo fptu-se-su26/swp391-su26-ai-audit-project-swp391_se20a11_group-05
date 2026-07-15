@@ -30,6 +30,10 @@ public class CampaignChatMessage {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String message;
 
+    @Column(name = "image_url", columnDefinition = "TEXT")
+    private String imageUrl;
+
+
     @Column(nullable = false)
     @Builder.Default
     private boolean pinned = false;

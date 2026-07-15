@@ -11,7 +11,10 @@ import { reports as mockReports, kpis } from "@/lib/mock-data";
 import { useNewsList } from "@/hooks/useNews";
 import { StatusBadge } from "@/components/site/StatusBadge";
 import { mapStatus } from "@/lib/status";
+import { useQuery } from "@tanstack/react-query";
+import { campaignApi } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCampaignList } from "@/hooks/useCampaigns";
 import {
   BarChart,
   Bar,
@@ -36,6 +39,13 @@ import {
   Shield,
   Store,
   Grid,
+  Users,
+  LogIn,
+  FileText,
+  Image as ImageIcon,
+  SendHorizontal,
+  ClipboardCheck,
+  X,
   PenLine,
   Send,
   CheckCircle2,
@@ -47,20 +57,14 @@ import {
   ShieldCheck,
   Clock,
   HeartHandshake,
-  X,
-  LogIn,
-  FileText,
-  Image,
-  MapPinned,
-  SendHorizonal,
-  ClipboardCheck,
+  Rocket,
 } from "lucide-react";
 import { lazy, Suspense, useState, useEffect } from "react";
 import { staticNews, staticFaqs } from "@/lib/static-content";
 
 const CivicMap = clientOnly(() =>
-  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
-);
+  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
+) as any;
 
 // ── Da Nang city slideshow images (Unsplash)
 const DA_NANG_SLIDES = [
@@ -168,6 +172,10 @@ function HomePage() {
 
   const { data: newsData, isLoading: isNewsLoading } = useNewsList(0, 6);
   const realNews = newsData?.content || [];
+  const allCampaigns = useCampaignList();
+  const activeCampaigns = allCampaigns
+    .filter((c) => c.status === "recruiting" || c.status === "active" || c.status === "inProgress")
+    .slice(0, 4);
 
   const refetch = () => {
     refetchList();
@@ -851,90 +859,92 @@ function HomePage() {
             </button>
           </div>
 
-          {/* Grouped Bar Chart */}
-          <div className="hidden w-full bg-white border border-[#E4EAF2] rounded-xl p-5 hover:shadow-sm transition">
-            <div className="h-[320px] md:h-[400px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={getGroupedChartData()}
-                  margin={{ top: 20, right: 10, left: -10, bottom: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                  <XAxis
-                    dataKey="name"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#64748B", fontSize: 12, fontWeight: 500 }}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#64748B", fontSize: 12 }}
-                    allowDecimals={false}
-                  />
-                  <Tooltip
-                    cursor={{ fill: "#F8FAFC" }}
-                    contentStyle={{
-                      backgroundColor: "#FFFFFF",
-                      border: "1px solid #E2E8F0",
-                      borderRadius: "8px",
-                      boxShadow:
-                        "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-                    }}
-                    labelStyle={{ fontWeight: 600, color: "#1E293B", marginBottom: "4px" }}
-                  />
-                  <Legend
-                    verticalAlign="top"
-                    height={36}
-                    iconType="circle"
-                    iconSize={8}
-                    formatter={(value) => {
-                      if (value === "total")
-                        return (
-                          <span className="text-sm font-medium text-[#475569]">
-                            {t("home.stats.total")}
-                          </span>
-                        );
-                      if (value === "processing")
-                        return (
-                          <span className="text-sm font-medium text-[#475569]">
-                            {t("home.stats.inProgress")}
-                          </span>
-                        );
-                      if (value === "processed")
-                        return (
-                          <span className="text-sm font-medium text-[#475569]">
-                            {t("home.stats.resolved")}
-                          </span>
-                        );
-                      return value;
-                    }}
-                  />
-                  <Bar
-                    dataKey="total"
-                    name="total"
-                    fill="#0B4FC4"
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={32}
-                  />
-                  <Bar
-                    dataKey="processing"
-                    name="processing"
-                    fill="#F97316"
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={32}
-                  />
-                  <Bar
-                    dataKey="processed"
-                    name="processed"
-                    fill="#16A34A"
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={32}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+          {/* Grouped Bar Chart - hidden by design, wrapped in conditional false to prevent mounting warnings */}
+          {false && (
+            <div className="hidden w-full bg-white border border-[#E4EAF2] rounded-xl p-5 hover:shadow-sm transition">
+              <div className="h-[320px] md:h-[400px]">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                  <BarChart
+                    data={getGroupedChartData()}
+                    margin={{ top: 20, right: 10, left: -10, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                    <XAxis
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#64748B", fontSize: 12, fontWeight: 500 }}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#64748B", fontSize: 12 }}
+                      allowDecimals={false}
+                    />
+                    <Tooltip
+                      cursor={{ fill: "#F8FAFC" }}
+                      contentStyle={{
+                        backgroundColor: "#FFFFFF",
+                        border: "1px solid #E2E8F0",
+                        borderRadius: "8px",
+                        boxShadow:
+                          "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                      }}
+                      labelStyle={{ fontWeight: 600, color: "#1E293B", marginBottom: "4px" }}
+                    />
+                    <Legend
+                      verticalAlign="top"
+                      height={36}
+                      iconType="circle"
+                      iconSize={8}
+                      formatter={(value) => {
+                        if (value === "total")
+                          return (
+                            <span className="text-sm font-medium text-[#475569]">
+                              {t("home.stats.total")}
+                            </span>
+                          );
+                        if (value === "processing")
+                          return (
+                            <span className="text-sm font-medium text-[#475569]">
+                              {t("home.stats.inProgress")}
+                            </span>
+                          );
+                        if (value === "processed")
+                          return (
+                            <span className="text-sm font-medium text-[#475569]">
+                              {t("home.stats.resolved")}
+                            </span>
+                          );
+                        return value;
+                      }}
+                    />
+                    <Bar
+                      dataKey="total"
+                      name="total"
+                      fill="#0B4FC4"
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={32}
+                    />
+                    <Bar
+                      dataKey="processing"
+                      name="processing"
+                      fill="#F97316"
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={32}
+                    />
+                    <Bar
+                      dataKey="processed"
+                      name="processed"
+                      fill="#16A34A"
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={32}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-          </div>
+          )}
         </section>
 
         {/* Sections 3, 4, 5, 6 — MAIN CONTENT GRID */}
@@ -1114,6 +1124,58 @@ function HomePage() {
                 ))}
             </div>
           </section>
+
+          {/* NEW SECTION: ACTIVE CAMPAIGNS */}
+          {activeCampaigns.length > 0 && (
+            <section className="lg:col-span-8 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border border-emerald-200 p-5 md:p-6 animate-fade-in-up mt-6">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-6 bg-emerald-600 rounded-sm" />
+                  <h2 className="text-emerald-900 font-bold text-lg md:text-xl font-sans flex items-center gap-2">
+                    <Rocket size={20} className="text-emerald-600 animate-pulse" />
+                    Chiến dịch đang gọi đăng ký
+                  </h2>
+                </div>
+                <Link
+                  to="/campaigns"
+                  className="text-sm font-semibold text-emerald-700 hover:underline flex items-center gap-1 font-sans"
+                >
+                  Xem tất cả &rarr;
+                </Link>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                {activeCampaigns.map((campaign) => (
+                  <Link
+                    key={campaign.id}
+                    to="/campaigns/$id"
+                    params={{ id: campaign.id.toString() }}
+                    className="bg-white rounded-xl border border-emerald-100 p-4 hover:shadow-[0_8px_24px_rgba(5,150,105,0.12)] hover:-translate-y-1 transition-all group flex flex-col"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[10px] font-bold uppercase tracking-wider font-sans">
+                        {campaign.category === "infrastructure" ? "Hạ tầng" : campaign.category === "fire_safety" ? "PCCC" : campaign.category === "public_safety" ? "An ninh" : "Cộng đồng"}
+                      </span>
+                      <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 flex items-center gap-1">
+                        <Users size={12} />
+                        {campaign.participants}/{campaign.target || "∞"}
+                      </span>
+                    </div>
+                    <h3 className="text-base font-bold text-slate-900 group-hover:text-emerald-600 transition-colors line-clamp-2 mb-3 leading-tight font-sans flex-1">
+                      {campaign.name}
+                    </h3>
+                    <div className="flex items-center text-xs font-medium text-slate-500 gap-1.5 mb-4 truncate font-sans">
+                      <MapPin size={14} className="shrink-0 text-slate-400" />
+                      <span className="truncate">{campaign.locationText || campaign.ward || "Đà Nẵng"}</span>
+                    </div>
+                    <div className="w-full bg-emerald-600 text-white text-sm font-bold py-2.5 rounded-lg text-center group-hover:bg-emerald-700 transition-colors font-sans shadow-sm">
+                      Tham gia ngay
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* Right Column: Map + Hotline (Sections 5, 6) */}
           <div className="lg:col-span-4 flex flex-col justify-between lg:space-y-0 space-y-6">
@@ -1565,7 +1627,7 @@ const GUIDE_STEPS: GuideStep[] = [
     bg: "#FFF7ED",
   },
   {
-    icon: Image,
+    icon: ImageIcon,
     title: { vi: "Bước 4: Đính kèm hình ảnh/video", en: "Step 4: Attach photos/videos" },
     desc: {
       vi: "Chụp ảnh hoặc quay video hiện trường để minh chứng. Hệ thống hỗ trợ tối đa 5 file ảnh/video cho mỗi phản ánh.",
@@ -1575,7 +1637,7 @@ const GUIDE_STEPS: GuideStep[] = [
     bg: "#FDF2F8",
   },
   {
-    icon: MapPinned,
+    icon: MapPin,
     title: { vi: "Bước 5: Xác định vị trí", en: "Step 5: Pin the location" },
     desc: {
       vi: "Nhấn vào bản đồ để đánh dấu vị trí xảy ra sự việc, hoặc nhập địa chỉ cụ thể. Vị trí chính xác giúp cơ quan chức năng xử lý nhanh hơn.",
@@ -1585,7 +1647,7 @@ const GUIDE_STEPS: GuideStep[] = [
     bg: "#F0FDF4",
   },
   {
-    icon: SendHorizonal,
+    icon: SendHorizontal,
     title: { vi: "Bước 6: Gửi phản ánh", en: "Step 6: Submit the report" },
     desc: {
       vi: "Kiểm tra lại thông tin và nhấn \"Gửi phản ánh\". Hệ thống sẽ cấp mã theo dõi để bạn tra cứu tình trạng xử lý.",

@@ -109,3 +109,39 @@ CREATE TABLE IF NOT EXISTS email_verifications (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_email_is_used ON email_verifications(email, is_used);
+
+-- 14. Optimize campaign chat message query with composite index
+CREATE INDEX IF NOT EXISTS idx_campaign_chat_msg_campaign_created ON campaign_chat_messages(campaign_id, created_at DESC);
+
+-- 15. Add image_url to campaign chat messages
+ALTER TABLE campaign_chat_messages ADD COLUMN IF NOT EXISTS image_url TEXT;
+ALTER TABLE campaign_chat_messages ALTER COLUMN image_url TYPE TEXT;
+
+
+-- 16. User warnings table
+CREATE TABLE IF NOT EXISTS user_warnings (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    warned_by_id BIGINT NOT NULL,
+    reason VARCHAR(500) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP,
+    deleted_by VARCHAR(100)
+);
+
+-- 17. Add warning_count to users table
+ALTER TABLE users ADD COLUMN IF NOT EXISTS warning_count INT NOT NULL DEFAULT 0;
+
+-- 18. Campaigns table - announcement_mode column
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS announcement_mode BOOLEAN;
+UPDATE campaigns SET announcement_mode = FALSE WHERE announcement_mode IS NULL;
+ALTER TABLE campaigns ALTER COLUMN announcement_mode SET DEFAULT FALSE;
+ALTER TABLE campaigns ALTER COLUMN announcement_mode SET NOT NULL;
+
+-- 19. Add avatar_url to users table
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(255);
+
+
+
+

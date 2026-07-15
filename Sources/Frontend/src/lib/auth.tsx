@@ -10,6 +10,7 @@
  */
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { getToken, setToken, removeToken, setOnUnauthorized, userApi } from "./api";
 import {
   Role,
@@ -27,13 +28,16 @@ export type { RoleType };
 // ─── Types ───────────────────────────────────────────────────
 
 export interface AuthUser {
+  id?: number | null;
   name: string;
   role: RoleType;
   org: string;
   wardName?: string | null;
   wardType?: string | null;
   wardId?: number | null;
+  avatarUrl?: string | null;
   token?: string;
+  campaignBanned?: boolean;
 }
 
 interface AuthCtx {
@@ -56,6 +60,7 @@ const STORAGE_KEY = "dn_auth_user_v2";
 
 // ─── Provider ────────────────────────────────────────────────
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const navigate = useNavigate();
   const [user, setUser] = useState<AuthUser | null>(null);
 
   // Rehydrate from localStorage on mount (SSR-safe)
@@ -87,15 +92,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setUser(parsed);
 
-        // Fetch full profile info to get the full name and wardId
+        // Fetch full profile info to get the full name, wardId and avatarUrl
         userApi
           .profile()
           .then((profile) => {
             if (profile) {
               const updated = {
                 ...parsed,
+                id: profile.id,
                 name: profile.fullName || parsed.name,
                 wardId: profile.wardId !== undefined ? profile.wardId : parsed.wardId,
+                avatarUrl: profile.avatarUrl || parsed.avatarUrl || null,
+                campaignBanned: profile.campaignBanned !== undefined ? profile.campaignBanned : parsed.campaignBanned,
               };
               setUser(updated);
               localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
@@ -119,16 +127,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (typeof window !== "undefined") {
         localStorage.removeItem(STORAGE_KEY);
         removeToken();
-        
         const path = window.location.pathname;
-        if (path.startsWith("/city-admin") || path.startsWith("/ward") || path.startsWith("/police") || path.startsWith("/assistant")) {
-          window.location.href = "/authority-login";
-        } else {
-          window.location.href = "/login";
-        }
+        const isAuthority = ["/ward", "/police", "/city-admin", "/assistant"].some((p) =>
+          path.startsWith(p),
+        );
+        void navigate({ to: isAuthority ? "/authority-login" : "/login", replace: true });
       }
     });
-  }, []);
+  }, [navigate]);
 
   const login = (u: AuthUser) => {
     setUser(u);
@@ -138,15 +144,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(u.token);
       }
     }
-    // Fetch profile to get full name and wardId
+    // Fetch profile to get full name, wardId and avatarUrl
     userApi
       .profile()
       .then((profile) => {
         if (profile) {
           const updated = {
             ...u,
+            id: profile.id,
             name: profile.fullName || u.name,
             wardId: profile.wardId !== undefined ? profile.wardId : u.wardId,
+            avatarUrl: profile.avatarUrl || u.avatarUrl || null,
+            campaignBanned: profile.campaignBanned !== undefined ? profile.campaignBanned : u.campaignBanned,
           };
           setUser(updated);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));

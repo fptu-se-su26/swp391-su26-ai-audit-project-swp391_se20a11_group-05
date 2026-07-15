@@ -10,11 +10,11 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-07-15T10:40:23+0700",
+    date = "2026-07-15T11:11:24+0700",
     comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.11 (Eclipse Adoptium)"
 )
 @Component
-public class UserMapperImpl implements UserMapper {
+public class UserMapperImpl extends UserMapper {
 
     @Override
     public User toEntity(UserDTO dto) {
@@ -30,8 +30,12 @@ public class UserMapperImpl implements UserMapper {
         user.setPhoneNumber( dto.getPhoneNumber() );
         user.setEmail( dto.getEmail() );
         user.setRole( dto.getRole() );
-        user.setActive( dto.isActive() );
-        user.setMfaEnabled( dto.isMfaEnabled() );
+        user.setStatus( dto.getStatus() );
+        user.setLastCampaignUnbanAt( dto.getLastCampaignUnbanAt() );
+        if ( dto.getWarningCount() != null ) {
+            user.setWarningCount( dto.getWarningCount() );
+        }
+        user.setAvatarUrl( dto.getAvatarUrl() );
 
         return user;
     }
@@ -73,12 +77,25 @@ public class UserMapperImpl implements UserMapper {
         UserDTO.UserDTOBuilder userDTO = UserDTO.builder();
 
         userDTO.wardId( entityWardId( entity ) );
+        userDTO.wardName( entityWardName( entity ) );
+        userDTO.wardType( entityWardType( entity ) );
+        userDTO.isActive( entity.isActive() );
+        userDTO.isMfaEnabled( entity.isMfaEnabled() );
+        userDTO.isCampaignBanned( entity.isCampaignBanned() );
         userDTO.id( entity.getId() );
         userDTO.username( entity.getUsername() );
         userDTO.fullName( entity.getFullName() );
         userDTO.phoneNumber( entity.getPhoneNumber() );
         userDTO.email( entity.getEmail() );
+        userDTO.avatarUrl( entity.getAvatarUrl() );
         userDTO.role( entity.getRole() );
+        userDTO.warningCount( entity.getWarningCount() );
+        userDTO.lastCampaignUnbanAt( entity.getLastCampaignUnbanAt() );
+        userDTO.status( entity.getStatus() );
+
+        userDTO.completedCampaignCount( countCompletedCampaigns(entity) );
+        userDTO.noShowCampaignCount( countNoShowCampaigns(entity) );
+        userDTO.reputationBadge( determineReputationBadge(countCompletedCampaigns(entity)) );
 
         return userDTO.build();
     }
@@ -96,5 +113,35 @@ public class UserMapperImpl implements UserMapper {
             return null;
         }
         return id;
+    }
+
+    private String entityWardName(User user) {
+        if ( user == null ) {
+            return null;
+        }
+        Ward ward = user.getWard();
+        if ( ward == null ) {
+            return null;
+        }
+        String name = ward.getName();
+        if ( name == null ) {
+            return null;
+        }
+        return name;
+    }
+
+    private String entityWardType(User user) {
+        if ( user == null ) {
+            return null;
+        }
+        Ward ward = user.getWard();
+        if ( ward == null ) {
+            return null;
+        }
+        String type = ward.getType();
+        if ( type == null ) {
+            return null;
+        }
+        return type;
     }
 }

@@ -21,7 +21,7 @@ import { CampaignMap } from "@/components/site/CampaignMap";
 import type { Campaign } from "@/lib/campaignStore";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
-import { CampaignDetailPageComponent } from "@/routes/campaigns.$id";
+import { WardCampaignDetailPage } from "./WardCampaignDetailPage";
 
 function formatDate(dateStr?: string) {
   if (!dateStr) return "Chưa cập nhật";
@@ -52,15 +52,18 @@ function getCategoryInfo(category?: string) {
 
 function getStatusInfo(status?: string) {
   switch (status) {
-    case "active":
     case "recruiting":
+      return { label: "Chưa diễn ra", bg: "bg-amber-100 text-amber-800 border border-amber-200" };
+    case "active":
     case "inProgress":
-      return { label: "Đang hoạt động", bg: "bg-emerald-100 text-emerald-800 border border-emerald-200" };
+      return { label: "Đang diễn ra", bg: "bg-blue-100 text-blue-800 border border-blue-200" };
     case "ended":
     case "completed":
       return { label: "Đã kết thúc", bg: "bg-red-100 text-red-800 border border-red-200" };
+    case "cancelled":
+      return { label: "Đã bị hủy", bg: "bg-slate-100 text-slate-800 border border-slate-200" };
     default:
-      return { label: "Đang hoạt động", bg: "bg-emerald-100 text-emerald-800 border border-emerald-200" };
+      return { label: "Chưa diễn ra", bg: "bg-amber-100 text-amber-800 border border-amber-200" };
   }
 }
 
@@ -72,9 +75,19 @@ export function WardCampaignPage({ hideHeader = false }: WardCampaignPageProps) 
   const { user } = useAuth();
   const campaigns = useCampaignList();
   const navigate = useNavigate();
-  const { tab } = Route.useSearch();
+  const { tab, detailId } = Route.useSearch();
   const [activeCampaignId, setActiveCampaignId] = useState<string | null>(null);
-  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
+  const selectedCampaignId = detailId || null;
+  const setSelectedCampaignId = (id: string | null) => {
+    navigate({
+      to: "/ward",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      search: (prev: any) => ({
+        ...prev,
+        detailId: id || undefined,
+      }),
+    });
+  };
   const [editModeOnOpen, setEditModeOnOpen] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -94,17 +107,14 @@ export function WardCampaignPage({ hideHeader = false }: WardCampaignPageProps) 
 
       const matchesStatus =
         selectedStatus === "all" ||
-        (selectedStatus === "active" && (c.status === "active" || c.status === "recruiting" || c.status === "inProgress")) ||
-        (selectedStatus === "ended" && (c.status === "ended" || c.status === "completed"));
+        c.status === selectedStatus ||
+        (selectedStatus === "inProgress" && c.status === "active") ||
+        (selectedStatus === "ended" && c.status === "completed");
 
-      const matchesCategory =
-        selectedCategory === "all" ||
-        c.category === selectedCategory;
+      const matchesCategory = selectedCategory === "all" || c.category === selectedCategory;
 
       const matchesViewMode =
-        viewMode === "city" ||
-        !user?.wardId ||
-        String(c.wardId) === String(user.wardId);
+        viewMode === "city" || !user?.wardId || String(c.wardId) === String(user.wardId);
 
       return matchesSearch && matchesStatus && matchesCategory && matchesViewMode;
     });
@@ -118,19 +128,13 @@ export function WardCampaignPage({ hideHeader = false }: WardCampaignPageProps) 
   // Statistics calculated from real-time backend data
   const stats = useMemo(() => {
     const total = campaigns.length;
-    const recruiting = campaigns.filter(
-      (c) => (c.status === "active" || c.status === "recruiting") && c.participants < c.target,
+    const recruiting = campaigns.filter((c) => c.status === "recruiting").length;
+    const inProgress = campaigns.filter(
+      (c) => c.status === "inProgress" || c.status === "active",
     ).length;
-    const full = campaigns.filter(
-      (c) => (c.status === "active" || c.status === "recruiting") && c.participants >= c.target,
-    ).length;
-    const ended = campaigns.filter(
-      (c) => c.status === "ended" || c.status === "completed",
-    ).length;
-    return { total, recruiting, full, ended };
+    const ended = campaigns.filter((c) => c.status === "ended" || c.status === "completed").length;
+    return { total, recruiting, inProgress, ended };
   }, [campaigns]);
-
-
 
   const handleCreateRedirect = () => {
     navigate({
@@ -143,8 +147,6 @@ export function WardCampaignPage({ hideHeader = false }: WardCampaignPageProps) 
     setSelectedCampaignId(id);
     setEditModeOnOpen(true);
   };
-
-
 
   const handleViewDetail = (id: string) => {
     setSelectedCampaignId(id);
@@ -173,7 +175,7 @@ export function WardCampaignPage({ hideHeader = false }: WardCampaignPageProps) 
 
   if (selectedCampaignId) {
     return (
-      <CampaignDetailPageComponent
+      <WardCampaignDetailPage
         key={selectedCampaignId}
         campaignId={selectedCampaignId}
         initialEditMode={editModeOnOpen}
@@ -217,16 +219,16 @@ export function WardCampaignPage({ hideHeader = false }: WardCampaignPageProps) 
         />
         <KpiCard
           icon={Users}
-          label="Đang tuyển thành viên"
+          label="Chưa diễn ra"
           value={stats.recruiting}
-          note="Thành viên chưa đầy"
+          note="Sắp khởi tranh"
           tone="amber"
         />
         <KpiCard
           icon={CheckCircle2}
-          label="Đã tuyển đủ thành viên"
-          value={stats.full}
-          note="Thành viên đã đầy"
+          label="Đang diễn ra"
+          value={stats.inProgress}
+          note="Đang tiến hành"
           tone="emerald"
         />
         <KpiCard
@@ -274,7 +276,9 @@ export function WardCampaignPage({ hideHeader = false }: WardCampaignPageProps) 
         <div className="p-5 border-b border-slate-100 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h2 className="text-lg font-extrabold text-[#0B2545]">
-              {viewMode === "city" ? "Danh sách tất cả chiến dịch" : "Danh sách chiến dịch đang quản lý"}
+              {viewMode === "city"
+                ? "Danh sách tất cả chiến dịch"
+                : "Danh sách chiến dịch đang quản lý"}
             </h2>
             <p className="text-xs font-medium text-slate-400 mt-1">
               Đang hiển thị {filteredCampaigns.length} trên tổng số {campaigns.length} chiến dịch
@@ -283,7 +287,10 @@ export function WardCampaignPage({ hideHeader = false }: WardCampaignPageProps) 
           <div className="flex flex-wrap items-center gap-3">
             {/* Search Input */}
             <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search
+                size={14}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              />
               <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -298,8 +305,10 @@ export function WardCampaignPage({ hideHeader = false }: WardCampaignPageProps) 
               className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100/50 transition-all cursor-pointer"
             >
               <option value="all">Tất cả trạng thái</option>
-              <option value="active">Đang hoạt động</option>
+              <option value="recruiting">Chưa diễn ra</option>
+              <option value="inProgress">Đang diễn ra</option>
               <option value="ended">Đã kết thúc</option>
+              <option value="cancelled">Đã bị hủy</option>
             </select>
             {/* Category Select */}
             <select
@@ -316,32 +325,32 @@ export function WardCampaignPage({ hideHeader = false }: WardCampaignPageProps) 
             </select>
           </div>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto max-h-[550px] overflow-y-auto">
           <table className="w-full min-w-[850px] text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/70">
-                <th className="px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400">
+              <tr className="sticky top-0 z-10 bg-slate-50 text-slate-500 border-b border-slate-100">
+                <th className="sticky top-0 z-10 bg-slate-50 px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400 border-b border-slate-100">
                   Tên chiến dịch
                 </th>
-                <th className="px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400">
+                <th className="sticky top-0 z-10 bg-slate-50 px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400 border-b border-slate-100">
                   Lĩnh vực
                 </th>
-                <th className="px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400">
+                <th className="sticky top-0 z-10 bg-slate-50 px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400 border-b border-slate-100">
                   Địa bàn
                 </th>
-                <th className="px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400">
+                <th className="sticky top-0 z-10 bg-slate-50 px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400 border-b border-slate-100">
                   Thời gian
                 </th>
-                <th className="px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400">
+                <th className="sticky top-0 z-10 bg-slate-50 px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400 border-b border-slate-100">
                   Trạng thái
                 </th>
-                <th className="px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400">
+                <th className="sticky top-0 z-10 bg-slate-50 px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400 border-b border-slate-100">
                   Thành viên
                 </th>
-                <th className="px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400">
+                <th className="sticky top-0 z-10 bg-slate-50 px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400 border-b border-slate-100">
                   Người tạo
                 </th>
-                <th className="px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400">
+                <th className="sticky top-0 z-10 bg-slate-50 px-5 py-3.5 text-xs font-extrabold uppercase tracking-wide text-slate-400 border-b border-slate-100">
                   Thao tác
                 </th>
               </tr>
@@ -349,7 +358,10 @@ export function WardCampaignPage({ hideHeader = false }: WardCampaignPageProps) 
             <tbody className="divide-y divide-slate-100">
               {filteredCampaigns.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-5 py-12 text-center text-xs text-slate-400 font-bold bg-slate-50/10">
+                  <td
+                    colSpan={8}
+                    className="px-5 py-12 text-center text-xs text-slate-400 font-bold bg-slate-50/10"
+                  >
                     Không tìm thấy chiến dịch phù hợp với bộ lọc.
                   </td>
                 </tr>
@@ -397,7 +409,13 @@ export function WardCampaignPage({ hideHeader = false }: WardCampaignPageProps) 
                       </td>
                       <td className="px-5 py-4">
                         {(() => {
-                          const isClosed = c.status === "ended" || c.status === "completed";
+                          const isClosed =
+                            c.status === "ended" ||
+                            c.status === "completed" ||
+                            c.status === "cancelled" ||
+                            c.status === "inProgress" ||
+                            c.status === "active" ||
+                            (c.startTime ? new Date() >= new Date(c.startTime) : false);
                           const isFull = c.participants >= c.target;
                           return (
                             <span
@@ -405,11 +423,13 @@ export function WardCampaignPage({ hideHeader = false }: WardCampaignPageProps) 
                                 isClosed
                                   ? "bg-slate-50 text-slate-600 border-slate-200"
                                   : isFull
-                                  ? "bg-red-50 text-red-700 border-red-200"
-                                  : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                    ? "bg-red-50 text-red-700 border-red-200"
+                                    : "bg-emerald-50 text-emerald-700 border-emerald-200"
                               }`}
                             >
-                              {isClosed ? "Đã đóng" : `${isFull ? "Đã đầy" : "Đang tuyển"} ${c.participants}/${c.target}`}
+                              {isClosed
+                                ? "Đã đóng"
+                                : `${isFull ? "Đã đầy" : "Đang tuyển"} ${c.participants}/${c.target}`}
                             </span>
                           );
                         })()}

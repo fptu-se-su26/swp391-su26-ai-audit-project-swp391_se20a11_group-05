@@ -292,7 +292,7 @@ export function FeedbacksPage() {
     try {
       // Mock bulk update - replace with actual API call
       await Promise.all(
-        Array.from(selectedIds).map((id) => feedbackApi.updateStatus(id, newStatus)),
+        Array.from(selectedIds).map((id) => feedbackApi.changeStatus(id, newStatus)),
       );
 
       await queryClient.invalidateQueries({ queryKey: ["admin", "feedbacks", "all"] });

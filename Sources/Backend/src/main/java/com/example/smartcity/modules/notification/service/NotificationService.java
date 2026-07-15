@@ -23,6 +23,8 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import com.example.smartcity.modules.user.entity.User;
+import com.example.smartcity.modules.campaign.entity.CampaignParticipant;
+import com.example.smartcity.modules.campaign.repository.CampaignParticipantRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +35,7 @@ public class NotificationService extends BaseServiceImpl<Notification, Long> {
     private final FeedbackRepository feedbackRepository;
     private final com.example.smartcity.modules.user.repository.UserRepository userRepository;
     private final com.example.smartcity.modules.notification.WebSocketNotificationService webSocketNotificationService;
+    private final CampaignParticipantRepository participantRepository;
 
     @Override
     protected BaseRepository<Notification, Long> getRepository() {
@@ -114,6 +117,12 @@ public class NotificationService extends BaseServiceImpl<Notification, Long> {
         notification.setCreatedAt(now);
         notification.setUpdatedAt(now);
         notificationRepository.save(notification);
+
+        // Real-time broadcast to staff if the recipient is WARD_STAFF or POLICE
+        if (user.getRole() == com.example.smartcity.modules.user.entity.Role.WARD_STAFF || 
+            user.getRole() == com.example.smartcity.modules.user.entity.Role.POLICE) {
+            webSocketNotificationService.broadcastToStaff(type, title, content);
+        }
     }
 
     /**
@@ -336,6 +345,197 @@ public class NotificationService extends BaseServiceImpl<Notification, Long> {
         // Broadcast via WebSocket to staff so that they get it in real-time
         if (!wardStaffs.isEmpty()) {
             webSocketNotificationService.broadcastToStaff("FEEDBACK_ASSIGNED_TO_WARD", title, content);
+        }
+    }
+
+    @Transactional
+    public void createFeedbackStatusChangedNotification(Long feedbackId, String statusName, String note) {
+        Feedback feedback = feedbackRepository.findById(feedbackId).orElse(null);
+        if (feedback == null || feedback.getCitizen() == null) {
+            log.warn("[Notification] Không tìm thấy feedback hoặc citizen. feedbackId={}", feedbackId);
+            return;
+        }
+        String title;
+        String content;
+        String type;
+        if ("RESOLVED".equals(statusName)) {
+            title = "Phản ánh đã hoàn thành";
+            content = String.format("Phản ánh %s đã được hoàn thành. Kết quả: %s", feedback.getTrackingCode(), note != null && !note.isBlank() ? note : "Đã xử lý xong.");
+            type = "FEEDBACK_COMPLETED";
+        } else if ("IN_PROGRESS".equals(statusName)) {
+            title = "Phản ánh đang xử lý";
+            content = String.format("Phản ánh %s đang được tiến hành xử lý.", feedback.getTrackingCode());
+            type = "FEEDBACK_IN_PROGRESS";
+        } else if ("REJECTED".equals(statusName)) {
+            title = "Phản ánh bị từ chối";
+            content = String.format("Phản ánh %s đã bị từ chối. Lý do: %s", feedback.getTrackingCode(), note != null && !note.isBlank() ? note : "Nội dung không phù hợp quy định.");
+            type = "FEEDBACK_REJECTED";
+        } else {
+            title = "Cập nhật trạng thái phản ánh";
+            content = String.format("Phản ánh %s đã được cập nhật trạng thái mới: %s.", feedback.getTrackingCode(), statusName);
+            type = "FEEDBACK_IN_PROGRESS";
+        }
+
+        Notification notification = Notification.builder()
+                .user(feedback.getCitizen())
+                .referenceId(feedbackId)
+                .feedbackId(feedbackId)
+                .title(title)
+                .content(content)
+                .type(type)
+                .isRead(false)
+                .build();
+        LocalDateTime now = LocalDateTime.now();
+        notification.setCreatedAt(now);
+        notification.setUpdatedAt(now);
+        notificationRepository.save(notification);
+
+        // Gửi WebSocket cho người dân nhận được real-time
+        webSocketNotificationService.notifyFeedbackStatusChange(
+                feedbackId, statusName,
+                "Feedback #" + feedback.getTrackingCode() + " -> " + statusName);
+    }
+
+    @Transactional
+    public void notifyCampaignCancelled(Long campaignId, String campaignTitle, String reason, User creator) {
+        List<CampaignParticipant> participants = participantRepository.findByCampaign_IdAndJoinStatusIn(
+                campaignId, List.of("PENDING", "APPROVED", "CONFIRMED", "MAYBE", "PENDING_CONFIRM")
+        );
+        String title = "Chiến dịch đã bị hủy";
+        String content = String.format("Chiến dịch '%s' đã bị cán bộ hủy. Lý do: %s", campaignTitle, reason != null && !reason.isBlank() ? reason : "Cán bộ hủy chiến dịch.");
+        LocalDateTime now = LocalDateTime.now();
+        for (CampaignParticipant participant : participants) {
+            Notification notification = Notification.builder()
+                    .user(participant.getCitizen())
+                    .referenceId(campaignId)
+                    .title(title)
+                    .content(content)
+                    .type("CAMPAIGN_CANCELLED")
+                    .isRead(false)
+                    .build();
+            notification.setCreatedAt(now);
+            notification.setUpdatedAt(now);
+            notificationRepository.save(notification);
+        }
+
+        // Thông báo cho cán bộ tạo chiến dịch để nhận real-time và hiển thị trong danh sách thông báo
+        if (creator != null) {
+            createCampaignNotification(creator, campaignId, "Hủy chiến dịch thành công", 
+                    String.format("Chiến dịch '%s' đã được bạn hủy thành công. Lý do: %s", campaignTitle, reason != null && !reason.isBlank() ? reason : "Cán bộ hủy chiến dịch."), 
+                    "CAMPAIGN_CANCELLED");
+        }
+    }
+
+    @Transactional
+    public void notifyCampaignRescheduled(Long campaignId, String campaignTitle, User creator) {
+        List<CampaignParticipant> participants = participantRepository.findByCampaign_IdAndJoinStatusIn(
+                campaignId, List.of("PENDING", "APPROVED", "CONFIRMED", "MAYBE", "PENDING_CONFIRM")
+        );
+        String title = "Chiến dịch thay đổi lịch trình";
+        String content = String.format("Chiến dịch '%s' đã thay đổi thời gian hoặc địa điểm. Vui lòng kiểm tra lại thông tin.", campaignTitle);
+        LocalDateTime now = LocalDateTime.now();
+        for (CampaignParticipant participant : participants) {
+            Notification notification = Notification.builder()
+                    .user(participant.getCitizen())
+                    .referenceId(campaignId)
+                    .title(title)
+                    .content(content)
+                    .type("CAMPAIGN_RESCHEDULED")
+                    .isRead(false)
+                    .build();
+            notification.setCreatedAt(now);
+            notification.setUpdatedAt(now);
+            notificationRepository.save(notification);
+        }
+
+        // Thông báo cho cán bộ tạo chiến dịch để nhận real-time và hiển thị trong danh sách thông báo
+        if (creator != null) {
+            createCampaignNotification(creator, campaignId, "Cập nhật chiến dịch thành công", 
+                    String.format("Thông tin lịch trình chiến dịch '%s' đã được cập nhật thành công.", campaignTitle), 
+                    "CAMPAIGN_RESCHEDULED");
+        }
+    }
+
+    @Transactional
+    public void notifyCampaignFinalized(Long campaignId, String campaignTitle, User creator) {
+        List<CampaignParticipant> participants = participantRepository.findByCampaign_IdAndJoinStatusIn(
+                campaignId, List.of("APPROVED", "CONFIRMED")
+        );
+        String title = "Chiến dịch bắt đầu hoạt động";
+        String content = String.format("Chiến dịch '%s' đã được chốt danh sách và chính thức bắt đầu hoạt động.", campaignTitle);
+        LocalDateTime now = LocalDateTime.now();
+        for (CampaignParticipant participant : participants) {
+            Notification notification = Notification.builder()
+                    .user(participant.getCitizen())
+                    .referenceId(campaignId)
+                    .title(title)
+                    .content(content)
+                    .type("CAMPAIGN_FINALIZED")
+                    .isRead(false)
+                    .build();
+            notification.setCreatedAt(now);
+            notification.setUpdatedAt(now);
+            notificationRepository.save(notification);
+        }
+
+        // Thông báo cho cán bộ tạo chiến dịch để nhận real-time và hiển thị trong danh sách thông báo
+        if (creator != null) {
+            createCampaignNotification(creator, campaignId, "Chốt chiến dịch thành công", 
+                    String.format("Chiến dịch '%s' đã được chốt thành công và bắt đầu đi vào hoạt động.", campaignTitle), 
+                    "CAMPAIGN_FINALIZED");
+        }
+    }
+
+    @Transactional
+    public void notifyCampaignEndedManually(Long campaignId, String campaignTitle, User creator) {
+        List<CampaignParticipant> participants = participantRepository.findByCampaign_IdAndJoinStatusIn(
+                campaignId, List.of("APPROVED")
+        );
+        String title = "Chiến dịch đã kết thúc";
+        String content = String.format("Chiến dịch '%s' đã được ban tổ chức kết thúc. Cảm ơn sự tham gia của bạn!", campaignTitle);
+        LocalDateTime now = LocalDateTime.now();
+        for (CampaignParticipant participant : participants) {
+            Notification notification = Notification.builder()
+                    .user(participant.getCitizen())
+                    .referenceId(campaignId)
+                    .title(title)
+                    .content(content)
+                    .type("CAMPAIGN_ENDED")
+                    .isRead(false)
+                    .build();
+            notification.setCreatedAt(now);
+            notification.setUpdatedAt(now);
+            notificationRepository.save(notification);
+        }
+
+        // Thông báo cho cán bộ tạo chiến dịch để nhận real-time và hiển thị trong danh sách thông báo
+        if (creator != null) {
+            createCampaignNotification(creator, campaignId, "Kết thúc chiến dịch thành công", 
+                    String.format("Chiến dịch '%s' đã được bạn kết thúc thành công. Vui lòng hoàn thành điểm danh.", campaignTitle), 
+                    "CAMPAIGN_ENDED");
+        }
+    }
+
+    @Transactional
+    public void notifyCampaignEndedAutomatically(Long campaignId, String campaignTitle) {
+        List<CampaignParticipant> participants = participantRepository.findByCampaign_IdAndJoinStatusIn(
+                campaignId, List.of("APPROVED")
+        );
+        String title = "Chiến dịch đã kết thúc";
+        String content = String.format("Chiến dịch '%s' đã kết thúc. Cảm ơn sự tham gia của bạn!", campaignTitle);
+        LocalDateTime now = LocalDateTime.now();
+        for (CampaignParticipant participant : participants) {
+            Notification notification = Notification.builder()
+                    .user(participant.getCitizen())
+                    .referenceId(campaignId)
+                    .title(title)
+                    .content(content)
+                    .type("CAMPAIGN_ENDED")
+                    .isRead(false)
+                    .build();
+            notification.setCreatedAt(now);
+            notification.setUpdatedAt(now);
+            notificationRepository.save(notification);
         }
     }
 }

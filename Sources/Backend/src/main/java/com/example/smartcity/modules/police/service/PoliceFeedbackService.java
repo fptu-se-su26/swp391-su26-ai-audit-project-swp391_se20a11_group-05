@@ -33,6 +33,9 @@ public class PoliceFeedbackService {
     private final UserRepository userRepository;
     private final ExternalNotificationService externalNotificationService;
     private final AttachmentRepository attachmentRepository;
+    private final com.example.smartcity.ai_orchestrator.router.AiRouterService aiRouterService;
+    private final com.example.smartcity.modules.notification.service.NotificationService notificationService;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
 
     /**
      * Lấy danh sách phản ánh được phân công cho cán bộ công an
@@ -91,9 +94,10 @@ public class PoliceFeedbackService {
     public PoliceFeedbackResponse acceptFeedback(Long feedbackId, String username) {
         Feedback feedback = getFeedback(feedbackId);
 
-        // Nút Tiếp nhận: Cán bộ sẽ nhận việc xử lý phản ánh này
         User policeUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy user công an: " + username));
+                
+        validatePolicePermission(policeUser, feedback);
 
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setAssignee(policeUser);
@@ -123,6 +127,9 @@ public class PoliceFeedbackService {
     @Transactional
     public PoliceFeedbackResponse updateStatus(Long feedbackId, String username, UpdateFeedbackStatusRequest request) {
         Feedback feedback = getFeedback(feedbackId);
+        User policeUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy user: " + username));
+        validatePolicePermission(policeUser, feedback);
 
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setStatus(request.getStatus());
@@ -141,6 +148,9 @@ public class PoliceFeedbackService {
     @Transactional
     public PoliceFeedbackResponse submitResult(Long feedbackId, String username, SubmitFeedbackResultRequest request) {
         Feedback feedback = getFeedback(feedbackId);
+        User policeUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy user: " + username));
+        validatePolicePermission(policeUser, feedback);
 
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setStatus(FeedbackStatus.RESOLVED);
@@ -152,6 +162,17 @@ public class PoliceFeedbackService {
         
         saveFeedbackLog(updated, username, oldStatus, FeedbackStatus.RESOLVED, request.getResultNote());
         
+        // Gửi thông báo cho người dân
+        notificationService.createFeedbackStatusChangedNotification(updated.getId(), "RESOLVED", request.getResultNote());
+        if (updated.getCitizen() != null && updated.getCitizen().getEmail() != null) {
+            String subject = "[Đà Nẵng Smart City] Phản ánh đã được xử lý hoàn tất";
+            String body = "Xin chào " + updated.getCitizen().getFullName() + ",\n\n"
+                    + "Phản ánh của bạn (Mã: " + updated.getTrackingCode() + ") đã được xử lý hoàn tất với kết quả như sau:\n\n"
+                    + request.getResultNote() + "\n\n"
+                    + "Cảm ơn bạn đã đóng góp bảo vệ an ninh trật tự thành phố!";
+            externalNotificationService.sendEmailNotification(updated.getCitizen().getEmail(), subject, body);
+        }
+        
         return mapToResponse(updated);
     }
 
@@ -161,6 +182,9 @@ public class PoliceFeedbackService {
     @Transactional
     public PoliceFeedbackResponse rejectFeedback(Long feedbackId, String username, RejectFeedbackRequest request) {
         Feedback feedback = getFeedback(feedbackId);
+        User policeUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy user: " + username));
+        validatePolicePermission(policeUser, feedback);
 
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setStatus(FeedbackStatus.REJECTED);
@@ -169,6 +193,17 @@ public class PoliceFeedbackService {
         Feedback updated = feedbackRepository.save(feedback);
         
         saveFeedbackLog(updated, username, oldStatus, FeedbackStatus.REJECTED, "Từ chối/Chuyển tiếp: " + request.getReason());
+        
+        // Gửi thông báo từ chối cho người dân
+        notificationService.createFeedbackRejectedNotification(updated.getId(), request.getReason());
+        if (updated.getCitizen() != null && updated.getCitizen().getEmail() != null) {
+            String subject = "[Đà Nẵng Smart City] Phản ánh bị từ chối";
+            String body = "Xin chào " + updated.getCitizen().getFullName() + ",\n\n"
+                    + "Rất tiếc, phản ánh của bạn (Mã: " + updated.getTrackingCode() + ") đã bị từ chối với lý do sau:\n\n"
+                    + request.getReason() + "\n\n"
+                    + "Vui lòng gửi lại phản ánh mới với thông tin chính xác hơn hoặc liên hệ tổng đài để được hỗ trợ.";
+            externalNotificationService.sendEmailNotification(updated.getCitizen().getEmail(), subject, body);
+        }
         
         return mapToResponse(updated);
     }
@@ -179,6 +214,9 @@ public class PoliceFeedbackService {
     @Transactional
     public PoliceFeedbackResponse requestMoreInfo(Long feedbackId, String username, RequestMoreInfoRequest request) {
         Feedback feedback = getFeedback(feedbackId);
+        User policeUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy user: " + username));
+        validatePolicePermission(policeUser, feedback);
 
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setStatus(FeedbackStatus.WAITING_INFO);
@@ -200,6 +238,65 @@ public class PoliceFeedbackService {
     private Feedback getFeedback(Long id) {
         return feedbackRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phản ánh"));
+    }
+
+    private void validatePolicePermission(User policeUser, Feedback feedback) {
+        if (!"POLICE".equals(feedback.getManagedByRole())) {
+            throw new com.example.smartcity.common.exception.CustomException("Phản ánh này không thuộc thẩm quyền xử lý của công an.", org.springframework.http.HttpStatus.FORBIDDEN.value());
+        }
+        if (policeUser.getWard() == null || feedback.getWard() == null || !policeUser.getWard().getId().equals(feedback.getWard().getId())) {
+            throw new com.example.smartcity.common.exception.CustomException("Cán bộ công an chỉ có quyền xử lý phản ánh thuộc địa bàn phường quản lý.", org.springframework.http.HttpStatus.FORBIDDEN.value());
+        }
+    }
+
+    /**
+     * Phân tích và gom nhóm các phản ánh trùng lặp bằng AI
+     */
+    public List<com.example.smartcity.modules.police.dto.AiDeduplicationResponse> analyzeDuplicates(String username) {
+        User policeUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy user công an: " + username));
+
+        if (policeUser.getWard() == null) {
+            return java.util.Collections.emptyList();
+        }
+
+        // Lấy danh sách phản ánh đang chờ xử lý của phường
+        List<Feedback> feedbacks = feedbackRepository.findByManagedByRoleAndWardId(
+                "POLICE", policeUser.getWard().getId(), org.springframework.data.domain.PageRequest.of(0, 50))
+                .getContent();
+
+        if (feedbacks.size() < 2) {
+            return java.util.Collections.emptyList(); // Không đủ để gom nhóm
+        }
+
+        // Chuẩn bị dữ liệu gửi cho AI
+        StringBuilder dataBuilder = new StringBuilder();
+        for (Feedback f : feedbacks) {
+            dataBuilder.append(String.format("ID: %d | Tiêu đề: %s | Địa chỉ: %s | Mô tả: %s\n",
+                    f.getId(), f.getTitle(), f.getAddressDetails(), f.getDescription()));
+        }
+
+        String systemPrompt = "Bạn là AI phân tích dữ liệu đô thị. Nhiệm vụ của bạn là tìm các phản ánh trùng lặp (miêu tả cùng một sự cố tại cùng một vị trí). " +
+                "Chỉ trả về DUY NHẤT một mảng JSON (không có markdown, không giải thích). " +
+                "Định dạng JSON yêu cầu: [{\"groupId\": \"Tên nhóm sự cố\", \"feedbackIds\": [danh sách các ID trùng lặp], \"matchScore\": điểm_tương_đồng_từ_0_đến_100, \"reason\": \"Lý do ngắn gọn\"}]";
+
+        try {
+            // Lấy provider tốt nhất (VD: userId = 1 để mock)
+            com.example.smartcity.ai_orchestrator.adapter.AiProviderAdapter provider = aiRouterService.routeToBestProvider("1", dataBuilder.toString());
+            
+            // Gọi AI
+            String jsonResult = aiRouterService.executeWithFallback(provider, systemPrompt, dataBuilder.toString()).join();
+            
+            // Làm sạch kết quả (loại bỏ markdown block nếu có)
+            jsonResult = jsonResult.replaceAll("```json", "").replaceAll("```", "").trim();
+
+            // Parse JSON thành List DTO
+            return objectMapper.readValue(jsonResult, new com.fasterxml.jackson.core.type.TypeReference<List<com.example.smartcity.modules.police.dto.AiDeduplicationResponse>>() {});
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(PoliceFeedbackService.class).error("Lỗi khi phân tích AI", e);
+            // Fallback: Trả về danh sách rỗng nếu AI lỗi để không sập trang
+            return java.util.Collections.emptyList();
+        }
     }
 
     private void saveFeedbackLog(Feedback feedback, String username, FeedbackStatus oldStatus, FeedbackStatus newStatus, String note) {

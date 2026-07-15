@@ -35,8 +35,8 @@ import { OFFICIAL_CATEGORIES } from "@/lib/categoryConfig";
 import { WardFeedbackManagementPage } from "@/features/ward/WardFeedbackManagementPage";
 
 const CivicMap = clientOnly(() =>
-  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
-);
+  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
+) as any;
 
 export const Route = createFileRoute("/feedback-search")({
   validateSearch: (

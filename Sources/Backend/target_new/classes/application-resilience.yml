@@ -1,0 +1,29 @@
+resilience4j.circuitbreaker:
+  configs:
+    default:
+      registerHealthIndicator: true
+      slidingWindowSize: 10
+      minimumNumberOfCalls: 5
+      permittedNumberOfCallsInHalfOpenState: 3
+      automaticTransitionFromOpenToHalfOpenEnabled: true
+      waitDurationInOpenState: 10s
+      failureRateThreshold: 50
+      eventConsumerBufferSize: 10
+  instances:
+    groqLLM:
+      baseConfig: default
+      waitDurationInOpenState: 15s
+      failureRateThreshold: 40
+    geminiLLM:
+      baseConfig: default
+      waitDurationInOpenState: 30s
+      failureRateThreshold: 50
+
+resilience4j.retry:
+  configs:
+    default:
+      maxAttempts: 3
+      waitDuration: 2s
+  instances:
+    groqLLM:
+      baseConfig: default

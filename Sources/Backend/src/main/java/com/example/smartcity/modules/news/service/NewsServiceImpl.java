@@ -28,8 +28,10 @@ public class NewsServiceImpl implements NewsService {
 
     @Override
     public Page<NewsResponseDTO> getAllNews(String category, String keyword, int page, int size) {
+        String effectiveCategory = category == null ? "" : category;
+        String effectiveKeyword = keyword == null ? "" : keyword;
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<News> newsPage = newsRepository.findNewsWithFilters(category, keyword, pageable);
+        Page<News> newsPage = newsRepository.findNewsWithFilters(effectiveCategory, effectiveKeyword, pageable);
         return newsPage.map(this::mapToDTO);
     }
 

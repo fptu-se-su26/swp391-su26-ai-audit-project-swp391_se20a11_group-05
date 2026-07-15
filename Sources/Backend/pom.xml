@@ -251,6 +251,7 @@
     </dependencies>
 
     <build>
+        <directory>target_new</directory>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

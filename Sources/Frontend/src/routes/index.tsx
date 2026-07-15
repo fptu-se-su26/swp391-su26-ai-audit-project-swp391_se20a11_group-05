@@ -152,7 +152,7 @@ function HomePage() {
     data: feedbacksPage,
     isLoading: listLoading,
     refetch: refetchList,
-  } = usePublicFeedbacks(0, 100);
+  } = usePublicFeedbacks(0, 50);
   const {
     data: statsData,
     isLoading: statsLoading,

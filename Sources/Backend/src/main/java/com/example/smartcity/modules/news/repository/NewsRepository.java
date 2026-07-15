@@ -14,8 +14,8 @@ import java.util.List;
 public interface NewsRepository extends JpaRepository<News, Long> {
 
     @Query("SELECT n FROM News n WHERE " +
-           "(:category IS NULL OR n.category = :category) AND " +
-           "(:keyword IS NULL OR LOWER(n.title) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) OR LOWER(n.summary) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')))")
+           "(:category IS NULL OR :category = '' OR n.category = :category) AND " +
+           "(:keyword IS NULL OR :keyword = '' OR LOWER(n.title) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) OR LOWER(n.summary) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')))")
     Page<News> findNewsWithFilters(@Param("category") String category, @Param("keyword") String keyword, Pageable pageable);
 
     @Query("SELECT n FROM News n ORDER BY n.views DESC")

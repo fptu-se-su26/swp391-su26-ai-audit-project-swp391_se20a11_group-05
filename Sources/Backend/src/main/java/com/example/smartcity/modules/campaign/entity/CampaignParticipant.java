@@ -52,7 +52,7 @@ public class CampaignParticipant {
     @Column(name = "volunteer_experience", length = 1000)
     private String volunteerExperience;
 
-    @Column(name = "availability_hours", length = 200)
+    @Column(name = "availability_hours", length = 1000)
     private String availabilityHours;
 
     @Column(name = "cancellation_reason", length = 500)

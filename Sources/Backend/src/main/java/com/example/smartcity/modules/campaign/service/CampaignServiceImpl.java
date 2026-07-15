@@ -454,6 +454,7 @@ public class CampaignServiceImpl implements CampaignService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<CampaignChatMessageResponse> getChatMessages(Long campaignId, Long beforeId, String username) {
         User currentUser = requireUser(username);
         Campaign campaign = getCampaign(campaignId);

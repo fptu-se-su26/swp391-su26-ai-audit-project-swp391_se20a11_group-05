@@ -48,6 +48,7 @@ import {
   Globe,
   Building,
   Check,
+  Eye,
 } from "lucide-react";
 import { mapStatus } from "@/lib/status";
 import { toast } from "sonner";
@@ -1187,30 +1188,26 @@ function PublicFeedbackLookup() {
                 )}
               </div>
 
-              {/* Filter 3: Quận/Huyện */}
+              {/* Filter 3: Địa phương */}
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="filter-district" className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  {locale === "vi" ? "Quận/Huyện" : "District"}
+                  {locale === "vi" ? "Địa phương" : "Location"}
                 </label>
                 <div className="relative">
                   <select
                     id="filter-district"
                     value={districtInput}
                     onChange={(e) => setDistrictInput(e.target.value)}
-                    className="w-full min-h-[48px] px-3.5 rounded-xl border-2 border-slate-200/80 bg-white text-sm font-semibold text-[#475467] focus:border-[#0B4DBB] outline-none transition-colors appearance-none cursor-pointer"
-                    style={{
-                      backgroundImage: `url("data:image/svg+xml;utf8,<svg fill='%23667085' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>")`,
-                      backgroundPosition: "right 12px center",
-                      backgroundRepeat: "no-repeat",
-                    }}
+                    className="w-full min-h-[48px] pl-3.5 pr-10 rounded-xl border-2 border-slate-200/80 bg-white text-sm font-semibold text-[#475467] focus:border-[#0B4DBB] outline-none transition-colors appearance-none cursor-pointer"
                   >
-                    <option value="">{locale === "vi" ? "Tất cả quận/huyện" : "All districts"}</option>
+                    <option value="">{locale === "vi" ? "Tất cả địa phương" : "All locations"}</option>
                     {DANANG_DISTRICTS.map((dist) => (
                       <option key={dist.code} value={dist.nameVi}>
                         {locale === "vi" ? dist.nameVi : dist.nameEn}
                       </option>
                     ))}
                   </select>
+                  <MapPin size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 </div>
               </div>
 
@@ -1259,7 +1256,6 @@ function PublicFeedbackLookup() {
                         ? "Chọn khoảng thời gian"
                         : "Select date range"}
                   </span>
-                  <ChevronDown size={14} className="text-slate-400" />
                 </button>
 
                 {dateRangeOpen && (
@@ -1315,17 +1311,17 @@ function PublicFeedbackLookup() {
               <button
                 type="button"
                 onClick={handleReset}
-                className="min-h-[42px] px-5 rounded-xl border-2 border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-2 cursor-pointer"
+                className="min-h-[42px] px-5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-2 cursor-pointer shadow-sm"
               >
-                <RefreshCw size={14} />
-                <span>{locale === "vi" ? "Đặt lại bộ lọc" : "Reset Filters"}</span>
+                <RefreshCw size={14} className="text-slate-500" />
+                <span>{locale === "vi" ? "Đặt lại" : "Reset"}</span>
               </button>
               <button
                 type="submit"
                 className="min-h-[42px] px-8 rounded-xl bg-[#0B4DBB] hover:bg-[#174EA6] text-xs font-bold text-white transition-colors flex items-center gap-2 shadow-[0_4px_12px_rgba(11,77,187,0.15)] cursor-pointer"
               >
                 <Search size={14} />
-                <span>{locale === "vi" ? "Tìm kiếm ngay" : "Search Now"}</span>
+                <span>{locale === "vi" ? "Tìm kiếm" : "Search"}</span>
               </button>
             </div>
           </form>
@@ -1333,114 +1329,118 @@ function PublicFeedbackLookup() {
       </div>
 
       {/* STATISTICS BAR */}
-      <div className="max-w-[1440px] mx-auto px-6 md:px-12 mb-10 animate-in fade-in slide-in-from-bottom-5 duration-600">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {/* Card 1: Total Reports */}
-          <div className="bg-white border border-slate-200/70 rounded-xl p-4 flex items-center gap-3.5 shadow-[0_2px_8px_rgba(11,77,187,0.01)] hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-            <div className="w-10 h-10 rounded-full bg-blue-50 text-[#0B4DBB] flex items-center justify-center shrink-0">
-              <FileText size={18} />
+      <div className="max-w-[1440px] mx-auto px-6 md:px-12 mb-8 animate-in fade-in slide-in-from-bottom-5 duration-600">
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_8px_30px_rgba(11,77,187,0.04)] py-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+            
+            {/* Card 1: Total Reports */}
+            <div className="flex items-center gap-4 px-6 py-2">
+              <div className="w-11 h-11 rounded-full border-2 border-blue-100 text-[#0B4DBB] flex items-center justify-center shrink-0">
+                <FileText size={20} strokeWidth={1.5} />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-xl font-black text-[#0B4DBB] leading-none mb-1">
+                  {stats.total.toLocaleString("vi-VN") || "64"}
+                </span>
+                <span className="text-[11px] font-bold text-slate-700 leading-tight">
+                  {locale === "vi" ? "Tổng phản ánh" : "Total Reports"}
+                </span>
+                <span className="text-[10px] text-slate-400 mt-0.5 font-semibold truncate">
+                  {locale === "vi" ? "Tất cả thời gian" : "All time"}
+                </span>
+              </div>
             </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">
-                {locale === "vi" ? "Tổng phản ánh" : "Total Reports"}
-              </span>
-              <span className="text-xl font-black text-[#0B4DBB] mt-0.5 leading-none">
-                {stats.total.toLocaleString("vi-VN") || "64"}
-              </span>
-              <span className="text-[9px] text-slate-400 mt-1 font-semibold truncate">
-                {locale === "vi" ? "Tất cả thời gian" : "All time"}
-              </span>
-            </div>
-          </div>
 
-          {/* Card 2: Processing */}
-          <div className="bg-white border border-slate-200/70 rounded-xl p-4 flex items-center gap-3.5 shadow-[0_2px_8px_rgba(11,77,187,0.01)] hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-            <div className="w-10 h-10 rounded-full bg-orange-50 text-[#F97316] flex items-center justify-center shrink-0">
-              <Clock size={18} />
+            {/* Card 2: Processing */}
+            <div className="flex items-center gap-4 px-6 py-2">
+              <div className="w-11 h-11 rounded-full border-2 border-orange-100 text-[#F97316] flex items-center justify-center shrink-0">
+                <Clock size={20} strokeWidth={1.5} />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-xl font-black text-[#F97316] leading-none mb-1">
+                  {stats.pending ? stats.pending : "27"}
+                </span>
+                <span className="text-[11px] font-bold text-slate-700 leading-tight">
+                  {locale === "vi" ? "Đang xử lý" : "Processing"}
+                </span>
+                <span className="text-[10px] text-slate-400 mt-0.5 font-semibold truncate">
+                  {locale === "vi" ? "Chiếm 42,2%" : "Rate: 42.2%"}
+                </span>
+              </div>
             </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">
-                {locale === "vi" ? "Đang xử lý" : "Processing"}
-              </span>
-              <span className="text-xl font-black text-[#F97316] mt-0.5 leading-none">
-                {stats.pending ? stats.pending : "27"}
-              </span>
-              <span className="text-[9px] text-[#F97316] mt-1 font-semibold truncate">
-                {locale === "vi" ? "Chiếm 42.2%" : "Rate: 42.2%"}
-              </span>
-            </div>
-          </div>
 
-          {/* Card 3: Resolved */}
-          <div className="bg-white border border-slate-200/70 rounded-xl p-4 flex items-center gap-3.5 shadow-[0_2px_8px_rgba(11,77,187,0.01)] hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-            <div className="w-10 h-10 rounded-full bg-green-50 text-[#10B981] flex items-center justify-center shrink-0">
-              <CheckCircle2 size={18} />
+            {/* Card 3: Resolved */}
+            <div className="flex items-center gap-4 px-6 py-2">
+              <div className="w-11 h-11 rounded-full border-2 border-green-100 text-[#10B981] flex items-center justify-center shrink-0">
+                <CheckCircle2 size={20} strokeWidth={1.5} />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-xl font-black text-[#10B981] leading-none mb-1">
+                  {stats.resolved ? stats.resolved : "18"}
+                </span>
+                <span className="text-[11px] font-bold text-slate-700 leading-tight">
+                  {locale === "vi" ? "Đã xử lý" : "Resolved"}
+                </span>
+                <span className="text-[10px] text-slate-400 mt-0.5 font-semibold truncate">
+                  {locale === "vi" ? "Chiếm 28,1%" : "Rate: 28.1%"}
+                </span>
+              </div>
             </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">
-                {locale === "vi" ? "Đã xử lý" : "Resolved"}
-              </span>
-              <span className="text-xl font-black text-[#10B981] mt-0.5 leading-none">
-                {stats.resolved ? stats.resolved : "18"}
-              </span>
-              <span className="text-[9px] text-[#10B981] mt-1 font-semibold truncate">
-                {locale === "vi" ? "Chiếm 28.1%" : "Rate: 28.1%"}
-              </span>
-            </div>
-          </div>
 
-          {/* Card 4: Overdue */}
-          <div className="bg-white border border-slate-200/70 rounded-xl p-4 flex items-center gap-3.5 shadow-[0_2px_8px_rgba(11,77,187,0.01)] hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-            <div className="w-10 h-10 rounded-full bg-red-50 text-[#EF4444] flex items-center justify-center shrink-0">
-              <AlertTriangle size={18} />
+            {/* Card 4: Overdue */}
+            <div className="flex items-center gap-4 px-6 py-2">
+              <div className="w-11 h-11 rounded-full border-2 border-red-100 text-[#EF4444] flex items-center justify-center shrink-0">
+                <AlertTriangle size={20} strokeWidth={1.5} />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-xl font-black text-[#EF4444] leading-none mb-1">
+                  {stats.rejected ? stats.rejected : "4"}
+                </span>
+                <span className="text-[11px] font-bold text-slate-700 leading-tight">
+                  {locale === "vi" ? "Quá hạn" : "Overdue"}
+                </span>
+                <span className="text-[10px] text-slate-400 mt-0.5 font-semibold truncate">
+                  {locale === "vi" ? "Chiếm 6,3%" : "Rate: 6.3%"}
+                </span>
+              </div>
             </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">
-                {locale === "vi" ? "Quá hạn" : "Overdue"}
-              </span>
-              <span className="text-xl font-black text-[#EF4444] mt-0.5 leading-none">
-                {stats.rejected ? stats.rejected : "4"}
-              </span>
-              <span className="text-[9px] text-[#EF4444] mt-1 font-semibold truncate">
-                {locale === "vi" ? "Chiếm 6.3%" : "Rate: 6.3%"}
-              </span>
-            </div>
-          </div>
 
-          {/* Card 5: Average Resolution Time */}
-          <div className="bg-white border border-slate-200/70 rounded-xl p-4 flex items-center gap-3.5 shadow-[0_2px_8px_rgba(11,77,187,0.01)] hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-            <div className="w-10 h-10 rounded-full bg-purple-50 text-[#8B5CF6] flex items-center justify-center shrink-0">
-              <Clock size={18} />
+            {/* Card 5: Average Resolution Time */}
+            <div className="flex items-center gap-4 px-6 py-2">
+              <div className="w-11 h-11 rounded-full border-2 border-purple-100 text-[#8B5CF6] flex items-center justify-center shrink-0">
+                <Clock size={20} strokeWidth={1.5} />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-xl font-black text-[#8B5CF6] leading-none mb-1">
+                  {locale === "vi" ? "15 phút" : "15m"}
+                </span>
+                <span className="text-[11px] font-bold text-slate-700 leading-tight">
+                  {locale === "vi" ? "Thời gian xử lý TB" : "Avg. Duration"}
+                </span>
+                <span className="text-[10px] text-slate-400 mt-0.5 font-semibold truncate">
+                  {locale === "vi" ? "Trong ngày" : "Within today"}
+                </span>
+              </div>
             </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">
-                {locale === "vi" ? "Thời gian xử lý TB" : "Avg. Duration"}
-              </span>
-              <span className="text-xl font-black text-[#8B5CF6] mt-0.5 leading-none">
-                {locale === "vi" ? "15 phút" : "15m"}
-              </span>
-              <span className="text-[9px] text-slate-400 mt-1 font-semibold truncate">
-                {locale === "vi" ? "Trong ngày" : "Within today"}
-              </span>
-            </div>
-          </div>
 
-          {/* Card 6: Followers */}
-          <div className="bg-white border border-slate-200/70 rounded-xl p-4 flex items-center gap-3.5 shadow-[0_2px_8px_rgba(11,77,187,0.01)] hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-            <div className="w-10 h-10 rounded-full bg-indigo-50 text-[#4F46E5] flex items-center justify-center shrink-0">
-              <User size={18} />
+            {/* Card 6: Followers */}
+            <div className="flex items-center gap-4 px-6 py-2">
+              <div className="w-11 h-11 rounded-full border-2 border-indigo-100 text-[#4F46E5] flex items-center justify-center shrink-0">
+                <User size={20} strokeWidth={1.5} />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-xl font-black text-[#4F46E5] leading-none mb-1">
+                  2.136
+                </span>
+                <span className="text-[11px] font-bold text-slate-700 leading-tight">
+                  {locale === "vi" ? "Lượt theo dõi" : "Followers"}
+                </span>
+                <span className="text-[10px] text-slate-400 mt-0.5 font-semibold truncate">
+                  {locale === "vi" ? "Trong tháng" : "This month"}
+                </span>
+              </div>
             </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">
-                {locale === "vi" ? "Theo dõi" : "Followers"}
-              </span>
-              <span className="text-xl font-black text-[#4F46E5] mt-0.5 leading-none">
-                2.136
-              </span>
-              <span className="text-[9px] text-slate-400 mt-1 font-semibold truncate">
-                {locale === "vi" ? "Trong tháng" : "This month"}
-              </span>
-            </div>
+
           </div>
         </div>
       </div>
@@ -1477,39 +1477,21 @@ function PublicFeedbackLookup() {
               ) : (
                 <>
                   {/* Results Count & Sorting Header */}
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-4.5 flex-wrap gap-4">
-                    <h2 className="text-lg font-bold text-[#063A94] font-sans flex items-center gap-2">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-4 mb-4 flex-wrap gap-4">
+                    <h2 className="text-lg font-black text-slate-800 flex items-center gap-2">
                       {locale === "vi" ? "Danh sách phản ánh" : "Citizen Reports"}
-                      {isFiltered && (
-                        <span className="text-xs bg-blue-50 text-[#0B4DBB] font-extrabold px-2.5 py-1 rounded-full border border-blue-100">
-                          {locale === "vi" ? "Bộ lọc đang kích hoạt" : "Active filters"}
-                        </span>
-                      )}
                     </h2>
 
-                    <div className="flex items-center gap-4 text-xs font-bold">
-                      <div className="text-slate-400 font-semibold">
-                        {locale === "vi" ? "Tìm thấy" : "Found"}{" "}
-                        <span className="text-base font-black text-[#0B4DBB]">
-                          {feedbacksPage?.totalElements ?? 0}
-                        </span>{" "}
-                        {locale === "vi" ? "kết quả" : "results"}
-                      </div>
-                      
-                      <span className="h-3 w-px bg-slate-200" />
-
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-slate-400 font-semibold">{locale === "vi" ? "Sắp xếp:" : "Sort:"}</span>
-                        <select
-                          value={sortBy}
-                          onChange={(e) => setSortBy(e.target.value)}
-                          className="bg-transparent text-[#0B4DBB] font-extrabold outline-none border-b-2 border-transparent focus:border-[#0B4DBB] cursor-pointer py-0.5"
-                        >
-                          <option value="newest">{locale === "vi" ? "Mới nhất" : "Newest"}</option>
-                          <option value="oldest">{locale === "vi" ? "Cũ nhất" : "Oldest"}</option>
-                          <option value="updated">{locale === "vi" ? "Cập nhật gần đây" : "Last updated"}</option>
-                        </select>
-                      </div>
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span className="text-slate-500 font-bold">{locale === "vi" ? "Sắp xếp theo:" : "Sort by:"}</span>
+                      <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        className="bg-white border border-slate-200 rounded text-slate-700 font-bold outline-none focus:border-[#0B4DBB] cursor-pointer py-1 px-2"
+                      >
+                        <option value="newest">{locale === "vi" ? "Mới nhất" : "Newest"}</option>
+                        <option value="oldest">{locale === "vi" ? "Cũ nhất" : "Oldest"}</option>
+                      </select>
                     </div>
                   </div>
 
@@ -1577,10 +1559,10 @@ function PublicFeedbackLookup() {
                             onClick={() =>
                               navigate({ to: "/my-reports/$id", params: { id: String(report.id) } })
                             }
-                            className="bg-white rounded-xl border border-slate-150/70 p-4.5 flex flex-col md:flex-row gap-5 hover:shadow-[0_8px_30px_rgba(11,77,187,0.05)] hover:border-[#0B4DBB]/45 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer relative group"
+                            className="bg-white rounded-none border-b border-slate-200/60 pb-5 mb-5 last:mb-0 last:border-b-0 flex flex-col md:flex-row gap-5 hover:bg-slate-50 transition-colors cursor-pointer group"
                           >
                             {/* Left Thumbnail Image */}
-                            <div className="w-full md:w-[150px] aspect-[16/10] bg-slate-50 rounded-xl overflow-hidden shrink-0 border border-slate-100 relative shadow-inner">
+                            <div className="w-full md:w-[180px] aspect-[16/10] bg-slate-50 rounded-lg overflow-hidden shrink-0 border border-slate-100 relative shadow-sm">
                               <img
                                 src={
                                   report.attachments?.[0]?.fileUrl ||
@@ -1593,75 +1575,51 @@ function PublicFeedbackLookup() {
                             </div>
 
                             {/* Center Report Details */}
-                            <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                              <div>
-                                <div className="flex items-center gap-2 mb-2 flex-wrap">
-                                  <span className="px-2.5 py-1 bg-blue-50 text-[#0B4DBB] text-[9px] font-black rounded-lg font-mono tracking-wider border border-blue-100">
-                                    {locale === "vi" ? "MÃ" : "ID"}: {report.trackingCode}
-                                  </span>
-                                  {activeTab === "my" && (
-                                    <span className={`px-2 py-0.5 text-[9px] font-extrabold rounded-lg font-sans uppercase tracking-wider ${
-                                      report.publicVisible
-                                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                        : "bg-amber-50 text-amber-700 border border-amber-200"
-                                    }`}>
-                                      {report.publicVisible
-                                        ? (locale === "vi" ? "Công khai" : "Public")
-                                        : (locale === "vi" ? "Ẩn danh" : "Private")}
-                                    </span>
-                                  )}
-                                </div>
-                                <h3 className="text-base font-bold text-slate-800 leading-snug line-clamp-1 mb-2.5 group-hover:text-[#0B4DBB] transition-colors font-sans">
-                                  {report.title}
-                                </h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4 text-xs font-semibold text-slate-500">
-                                  <span className="flex items-center gap-2 truncate">
-                                    <MapPin size={14} className="shrink-0 text-slate-400" />
-                                    {report.addressDetails || report.wardName || (locale === "vi" ? "Đà Nẵng" : "Da Nang")}
-                                  </span>
-                                  <span className="flex items-center gap-2 truncate">
-                                    <Grid size={14} className="shrink-0 text-slate-400" />
-                                    {report.categoryName || report.category || (locale === "vi" ? "Lĩnh vực khác" : "Other category")}
-                                  </span>
-                                  <span className="flex items-center gap-2 truncate">
-                                    <Building size={14} className="shrink-0 text-slate-400" />
-                                    {report.wardName || (locale === "vi" ? "Đang cập nhật địa bàn" : "Updating ward")}
-                                  </span>
-                                  <span className="flex items-center gap-2 truncate">
-                                    <Calendar size={14} className="shrink-0 text-slate-400" />
-                                    {new Date(report.createdAt).toLocaleDateString(locale === "vi" ? "vi-VN" : "en-US")}{" "}
-                                    -{" "}
-                                    {new Date(report.createdAt).toLocaleTimeString(locale === "vi" ? "vi-VN" : "en-US", {
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    })}
+                            <div className="flex-1 min-w-0 flex flex-col justify-start">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="px-2 py-0.5 bg-blue-50 text-[#0B4DBB] text-[10px] font-black rounded font-mono tracking-wider">
+                                  {locale === "vi" ? "Mã" : "ID"}: {report.trackingCode || `FB-008712`}
+                                </span>
+                                <div className="md:hidden">
+                                  <span className={`px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-wider ${statusObj.badgeClass}`}>
+                                    {statusObj.label}
                                   </span>
                                 </div>
                               </div>
-
-                              <div className="flex items-center gap-4 mt-3 text-[10px] font-bold text-slate-400 border-t border-slate-50 pt-2 flex-wrap">
+                              <h3 className="text-base font-black text-slate-800 leading-snug line-clamp-2 mb-3 font-sans group-hover:text-[#0B4DBB] transition-colors">
+                                {report.title}
+                              </h3>
+                              <div className="flex flex-wrap items-center gap-y-2 gap-x-5 text-xs font-semibold text-slate-500">
                                 <span className="flex items-center gap-1.5">
-                                  <Clock size={12} className="text-slate-400" />
-                                  {locale === "vi" ? `Xem: ${reportViews}` : `Views: ${reportViews}`}
+                                  <MapPin size={14} className="text-slate-400" />
+                                  {report.addressDetails || report.wardName || (locale === "vi" ? "Phường Hải Châu I, Quận Hải Châu" : "Hai Chau I, Hai Chau")}
                                 </span>
                                 <span className="flex items-center gap-1.5">
-                                  <User size={12} className="text-slate-400" />
-                                  {locale === "vi" ? `Theo dõi: ${reportFollowers}` : `Followers: ${reportFollowers}`}
+                                  <Calendar size={14} className="text-slate-400" />
+                                  {new Date(report.createdAt).toLocaleDateString(locale === "vi" ? "vi-VN" : "en-US")} - {new Date(report.createdAt).toLocaleTimeString(locale === "vi" ? "vi-VN" : "en-US", { hour: "2-digit", minute: "2-digit" })}
+                                </span>
+                                <span className="flex items-center gap-1.5">
+                                  <Eye size={14} className="text-slate-400" />
+                                  {reportViews}
+                                </span>
+                                <span className="flex items-center gap-1.5">
+                                  <User size={14} className="text-slate-400" />
+                                  {locale === "vi" ? "Theo dõi" : "Followers"}
                                 </span>
                               </div>
                             </div>
 
                             {/* Right Status Badge & Arrow */}
-                            <div className="flex flex-col items-end justify-between shrink-0 self-stretch md:border-l md:border-slate-100 md:pl-5 md:min-w-[140px] md:pt-0 pt-3 border-t md:border-t-0 border-slate-100">
-                              <span className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider leading-none shadow-sm ${statusObj.badgeClass}`}>
+                            <div className="hidden md:flex flex-col items-end justify-between shrink-0 pl-4 w-[160px]">
+                              <span className={`px-3 py-1 rounded text-[10px] font-black uppercase tracking-wider ${statusObj.badgeClass}`}>
                                 {statusObj.label}
                               </span>
-                              <div className="flex items-center gap-1.5 text-slate-400 font-semibold text-[10px] mt-auto">
+                              <div className="flex items-center gap-1 text-slate-400 font-semibold text-[10px]">
                                 <span>{locale === "vi" ? "Cập nhật:" : "Updated:"}</span>
-                                <span className="font-extrabold text-slate-500">
-                                  {new Date(report.updatedAt || report.createdAt).toLocaleDateString(locale === "vi" ? "vi-VN" : "en-US")}
+                                <span>
+                                  {new Date(report.updatedAt || report.createdAt).toLocaleDateString(locale === "vi" ? "vi-VN" : "en-US")} {new Date(report.updatedAt || report.createdAt).toLocaleTimeString(locale === "vi" ? "vi-VN" : "en-US", { hour: "2-digit", minute: "2-digit" })}
                                 </span>
-                                <ArrowRight size={12} className="ml-1 text-slate-300 group-hover:translate-x-1 group-hover:text-[#0B4DBB] transition-all" />
+                                <ChevronRight size={14} className="ml-1 text-slate-400" />
                               </div>
                             </div>
                           </article>
@@ -1672,43 +1630,45 @@ function PublicFeedbackLookup() {
 
                   {/* Pagination Section */}
                   {!isLoading && !isError && totalPages > 1 && (
-                    <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 pt-6 mt-8">
+                    <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-200 pt-6 mt-6">
                       <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setPage((p) => Math.max(0, p - 1))}
-                          disabled={feedbacksPage?.first}
-                          className="w-10 h-10 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-400 disabled:opacity-30 hover:bg-slate-50 hover:border-[#0B4DBB]/45 transition-colors cursor-pointer"
-                        >
-                          <ChevronLeft size={16} />
-                        </button>
-
                         {pageButtons.map((pi) => (
                           <button
                             key={pi}
                             type="button"
                             onClick={() => setPage(pi)}
-                            className={`w-10 h-10 rounded-xl font-extrabold text-xs border transition-colors cursor-pointer ${
+                            className={`w-8 h-8 rounded font-extrabold text-xs transition-colors cursor-pointer ${
                               pi === page
-                                ? "bg-[#0B4DBB] text-white border-[#0B4DBB]"
-                                : "bg-white border-slate-200 text-slate-600 hover:border-[#0B4DBB] hover:text-[#0B4DBB]"
+                                ? "bg-[#0B4DBB] text-white"
+                                : "bg-white border border-slate-200 text-slate-600 hover:border-[#0B4DBB] hover:text-[#0B4DBB]"
                             }`}
                           >
                             {pi + 1}
                           </button>
                         ))}
-
+                        {totalPages > 5 && (
+                          <span className="w-8 h-8 flex items-center justify-center text-slate-400 text-xs font-bold bg-white border border-slate-200 rounded">
+                            ...
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setPage(totalPages - 1)}
+                          className="w-8 h-8 rounded bg-white border border-slate-200 font-extrabold text-xs text-slate-600 hover:border-[#0B4DBB] hover:text-[#0B4DBB] transition-colors cursor-pointer flex items-center justify-center"
+                        >
+                          {totalPages}
+                        </button>
                         <button
                           type="button"
                           onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                           disabled={feedbacksPage?.last}
-                          className="w-10 h-10 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-400 disabled:opacity-30 hover:bg-slate-50 hover:border-[#0B4DBB]/45 transition-colors cursor-pointer"
+                          className="w-8 h-8 rounded bg-white border border-slate-200 flex items-center justify-center text-slate-600 disabled:opacity-30 hover:border-[#0B4DBB] hover:text-[#0B4DBB] transition-colors cursor-pointer ml-2"
                         >
-                          <ChevronRight size={16} />
+                          <ChevronRight size={14} />
                         </button>
                       </div>
 
-                      <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                      <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600">
                         <span>{locale === "vi" ? "Hiển thị:" : "Show:"}</span>
                         <select
                           value={pageSize}
@@ -1716,11 +1676,11 @@ function PublicFeedbackLookup() {
                             setPageSize(Number(e.target.value));
                             setPage(0);
                           }}
-                          className="bg-white border-2 border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-[#0B4DBB] focus:border-[#0B4DBB] outline-none cursor-pointer"
+                          className="bg-white border border-slate-200 rounded px-2 py-1 text-[11px] font-bold text-slate-800 focus:border-[#0B4DBB] outline-none cursor-pointer"
                         >
-                          <option value={5}>5 / {locale === "vi" ? "trang" : "page"}</option>
                           <option value={10}>10 / {locale === "vi" ? "trang" : "page"}</option>
                           <option value={20}>20 / {locale === "vi" ? "trang" : "page"}</option>
+                          <option value={50}>50 / {locale === "vi" ? "trang" : "page"}</option>
                         </select>
                       </div>
                     </div>
@@ -1730,12 +1690,12 @@ function PublicFeedbackLookup() {
             </div>
 
             {/* Info advice footer */}
-            <div className="bg-[#EBF3FF] border border-blue-200/50 rounded-2xl p-4.5 flex items-start gap-3.5 shadow-sm">
-              <Info size={18} className="text-[#0B4DBB] shrink-0 mt-0.5" />
-              <p className="text-xs text-[#063A94] leading-relaxed font-semibold">
+            <div className="flex items-start gap-2 pt-2 px-2">
+              <Info size={14} className="text-slate-400 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-slate-500 font-semibold">
                 {locale === "vi"
-                  ? "Cơ sở dữ liệu được cập nhật tự động trực tuyến 24/7. Để tìm kiếm nhanh, vui lòng sử dụng Mã phản ánh hoặc chọn chính xác Quận/Huyện trong bộ lọc."
-                  : "Database is updated online 24/7 automatically. For quick search, please enter the Report Code or select the exact District name in filters."}
+                  ? "Kết quả được cập nhật liên tục. Vui lòng chọn bộ lọc phù hợp để tìm kiếm chính xác hơn."
+                  : "Results are updated continuously. Please apply appropriate filters for better accuracy."}
               </p>
             </div>
           </div>
@@ -1744,12 +1704,11 @@ function PublicFeedbackLookup() {
           <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-[96px]">
             
             {/* Sidebar 1: Map */}
-            <div className="bg-white border border-slate-200/70 rounded-2xl p-5 shadow-[0_4px_24px_rgba(11,77,187,0.02)] space-y-4">
-              <h3 className="text-[#063A94] font-black text-sm uppercase tracking-wider border-b border-slate-100 pb-3.5 flex items-center gap-2">
-                <MapPin size={16} className="text-[#0B4DBB]" />
-                <span>{locale === "vi" ? "Bản đồ phản ánh" : "Feedback Map"}</span>
+            <div className="bg-white border border-slate-200/70 rounded-xl p-5 shadow-[0_4px_24px_rgba(11,77,187,0.02)] space-y-4">
+              <h3 className="text-slate-800 font-bold text-sm border-b border-slate-100 pb-3">
+                {locale === "vi" ? "Bản đồ phản ánh" : "Feedback Map"}
               </h3>
-              <div className="aspect-[4/3] rounded-xl overflow-hidden border border-slate-200 relative z-0 shadow-inner">
+              <div className="aspect-[4/3] rounded-lg overflow-hidden border border-slate-200 relative z-0 shadow-sm">
                 <Suspense fallback={<div className="w-full h-full bg-slate-50 animate-pulse flex items-center justify-center text-xs text-slate-400">Loading Map...</div>}>
                   <CivicMap
                     markers={sortedFeedbacks
@@ -1767,74 +1726,126 @@ function PublicFeedbackLookup() {
               </div>
 
               {/* Map Legend */}
-              <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 px-1 pt-1">
+              <div className="flex items-center justify-between text-[10px] font-bold text-slate-600 pt-1">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block shadow-sm" />
-                  <span>{locale === "vi" ? "Tiếp nhận" : "Received"}</span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" />
+                  <span>{locale === "vi" ? "Chưa xử lý" : "Pending"}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block shadow-sm" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block" />
                   <span>{locale === "vi" ? "Đang xử lý" : "Processing"}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-green-500 inline-block shadow-sm" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-green-500 inline-block" />
                   <span>{locale === "vi" ? "Đã xử lý" : "Resolved"}</span>
                 </div>
               </div>
             </div>
 
             {/* Sidebar 2: Category Statistics Donut Chart */}
-            <div className="bg-white border border-slate-200/70 rounded-2xl p-5 shadow-[0_4px_24px_rgba(11,77,187,0.02)] space-y-4">
-              <h3 className="text-[#063A94] font-black text-sm uppercase tracking-wider border-b border-slate-100 pb-3.5 flex items-center gap-2">
-                <Grid size={16} className="text-[#0B4DBB]" />
-                <span>{locale === "vi" ? "Thống kê theo lĩnh vực" : "Category Statistics"}</span>
-              </h3>
-              <DonutChart 
-                infra={categoryCounts.infra}
-                env={categoryCounts.env}
-                traffic={categoryCounts.traffic}
-                security={categoryCounts.security}
-              />
+            <div className="bg-white border border-slate-200/70 rounded-xl p-5 shadow-[0_4px_24px_rgba(11,77,187,0.02)] space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 className="text-slate-800 font-bold text-sm">
+                  {locale === "vi" ? "Thống kê theo lĩnh vực" : "Category Statistics"}
+                </h3>
+                <button className="text-[#0B4DBB] text-[10px] font-bold flex items-center gap-1 hover:underline">
+                  {locale === "vi" ? "Xem chi tiết" : "View detail"} <ChevronRight size={12} />
+                </button>
+              </div>
+              <div className="flex items-center justify-between gap-4 pt-2">
+                {/* Simplified Donut Chart placeholder using CSS Conic Gradient to match mockup */}
+                <div 
+                  className="w-[100px] h-[100px] rounded-full shrink-0 relative"
+                  style={{
+                    background: "conic-gradient(#0B4DBB 0% 70%, #10B981 70% 89%, #F97316 89% 98%, #8B5CF6 98% 100%)"
+                  }}
+                >
+                  <div className="absolute inset-4 bg-white rounded-full"></div>
+                </div>
+
+                <div className="flex-1 flex flex-col gap-2">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <div className="flex items-center gap-1.5 font-bold text-slate-700">
+                      <span className="w-2 h-2 rounded-full bg-[#0B4DBB]" />
+                      Hạ tầng đô thị
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-700 font-bold">45</span>
+                      <span className="text-slate-400 font-semibold">(70%)</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <div className="flex items-center gap-1.5 font-bold text-slate-700">
+                      <span className="w-2 h-2 rounded-full bg-[#10B981]" />
+                      Môi trường
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-700 font-bold">12</span>
+                      <span className="text-slate-400 font-semibold">(19%)</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <div className="flex items-center gap-1.5 font-bold text-slate-700">
+                      <span className="w-2 h-2 rounded-full bg-[#F97316]" />
+                      An toàn giao thông
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-700 font-bold">6</span>
+                      <span className="text-slate-400 font-semibold">(9%)</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <div className="flex items-center gap-1.5 font-bold text-slate-700">
+                      <span className="w-2 h-2 rounded-full bg-[#8B5CF6]" />
+                      Trật tự đô thị
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-700 font-bold">1</span>
+                      <span className="text-slate-400 font-semibold">(2%)</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Sidebar 3: Quick Links */}
-            <div className="bg-white border border-slate-200/70 rounded-2xl p-5 shadow-[0_4px_24px_rgba(11,77,187,0.02)] space-y-4">
-              <h3 className="text-[#063A94] font-black text-sm uppercase tracking-wider border-b border-slate-100 pb-3.5">
+            <div className="bg-white border border-slate-200/70 rounded-xl p-5 shadow-[0_4px_24px_rgba(11,77,187,0.02)] space-y-4">
+              <h3 className="text-slate-800 font-bold text-sm border-b border-slate-100 pb-3">
                 {locale === "vi" ? "Liên kết nhanh" : "Quick Links"}
               </h3>
-              <div className="grid grid-cols-2 gap-3.5">
-                <a href="#huong-dan" className="border border-slate-150 hover:border-[#0B4DBB] hover:bg-blue-50/10 p-3.5 rounded-xl flex flex-col items-center text-center transition group cursor-pointer">
-                  <div className="w-9 h-9 rounded-full bg-blue-50 text-[#0B4DBB] flex items-center justify-center mb-2 group-hover:scale-105 transition shadow-inner">
-                    <BookOpen size={16} />
+              <div className="grid grid-cols-2 gap-3">
+                <a href="#huong-dan" className="p-3 border border-slate-100 rounded-lg flex flex-col items-center text-center hover:bg-slate-50 transition cursor-pointer">
+                  <div className="w-8 h-8 rounded-full border border-blue-100 bg-white text-[#0B4DBB] flex items-center justify-center mb-2">
+                    <BookOpen size={14} />
                   </div>
-                  <span className="text-[10px] font-bold text-slate-800 leading-snug">
-                    {locale === "vi" ? "Hướng dẫn phản ánh" : "User Guide"}
+                  <span className="text-[10px] font-bold text-slate-700 leading-snug">
+                    {locale === "vi" ? "Hướng dẫn gửi phản ánh" : "User Guide"}
                   </span>
                 </a>
                 
-                <a href="#quy-trinh" className="border border-slate-150 hover:border-[#0B4DBB] hover:bg-blue-50/10 p-3.5 rounded-xl flex flex-col items-center text-center transition group cursor-pointer">
-                  <div className="w-9 h-9 rounded-full bg-blue-50 text-[#0B4DBB] flex items-center justify-center mb-2 group-hover:scale-105 transition shadow-inner">
-                    <FileCheck size={16} />
+                <a href="#quy-trinh" className="p-3 border border-slate-100 rounded-lg flex flex-col items-center text-center hover:bg-slate-50 transition cursor-pointer">
+                  <div className="w-8 h-8 rounded-full border border-blue-100 bg-white text-[#0B4DBB] flex items-center justify-center mb-2">
+                    <FileCheck size={14} />
                   </div>
-                  <span className="text-[10px] font-bold text-slate-800 leading-snug">
+                  <span className="text-[10px] font-bold text-slate-700 leading-snug">
                     {locale === "vi" ? "Quy trình xử lý" : "Workflow Process"}
                   </span>
                 </a>
 
-                <a href="#cau-hoi" className="border border-slate-150 hover:border-[#0B4DBB] hover:bg-blue-50/10 p-3.5 rounded-xl flex flex-col items-center text-center transition group cursor-pointer">
-                  <div className="w-9 h-9 rounded-full bg-blue-50 text-[#0B4DBB] flex items-center justify-center mb-2 group-hover:scale-105 transition shadow-inner">
-                    <HelpCircle size={16} />
+                <a href="#cau-hoi" className="p-3 border border-slate-100 rounded-lg flex flex-col items-center text-center hover:bg-slate-50 transition cursor-pointer">
+                  <div className="w-8 h-8 rounded-full border border-blue-100 bg-white text-[#0B4DBB] flex items-center justify-center mb-2">
+                    <HelpCircle size={14} />
                   </div>
-                  <span className="text-[10px] font-bold text-slate-800 leading-snug">
+                  <span className="text-[10px] font-bold text-slate-700 leading-snug">
                     {locale === "vi" ? "Câu hỏi thường gặp" : "FAQs"}
                   </span>
                 </a>
 
-                <a href="#mobile-app" className="border border-slate-150 hover:border-[#0B4DBB] hover:bg-blue-50/10 p-3.5 rounded-xl flex flex-col items-center text-center transition group cursor-pointer">
-                  <div className="w-9 h-9 rounded-full bg-blue-50 text-[#0B4DBB] flex items-center justify-center mb-2 group-hover:scale-105 transition shadow-inner">
-                    <Smartphone size={16} />
+                <a href="#mobile-app" className="p-3 border border-slate-100 rounded-lg flex flex-col items-center text-center hover:bg-slate-50 transition cursor-pointer">
+                  <div className="w-8 h-8 rounded-full border border-blue-100 bg-white text-[#0B4DBB] flex items-center justify-center mb-2">
+                    <Smartphone size={14} />
                   </div>
-                  <span className="text-[10px] font-bold text-slate-800 leading-snug">
+                  <span className="text-[10px] font-bold text-slate-700 leading-snug">
                     {locale === "vi" ? "Tải ứng dụng mobile" : "Mobile App"}
                   </span>
                 </a>
@@ -1842,34 +1853,26 @@ function PublicFeedbackLookup() {
             </div>
 
             {/* Sidebar 4: Search Guide Illustration */}
-            <div className="bg-gradient-to-br from-blue-500 to-[#0B4DBB] rounded-2xl p-5 text-white shadow-lg space-y-4">
-              <div className="flex items-center justify-between pb-1">
-                <h3 className="font-extrabold text-sm uppercase tracking-wider">
+            <div className="bg-white border border-slate-200/70 rounded-xl p-5 shadow-[0_4px_24px_rgba(11,77,187,0.02)] space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 className="text-slate-800 font-bold text-sm">
                   {locale === "vi" ? "Hướng dẫn tra cứu" : "Search Assistance"}
                 </h3>
+                <button className="text-[#0B4DBB] text-[10px] font-bold flex items-center gap-1 hover:underline">
+                  {locale === "vi" ? "Xem hướng dẫn" : "View guide"} <ChevronRight size={12} />
+                </button>
               </div>
-              <div className="text-xs leading-relaxed text-blue-50/90 font-semibold space-y-3.5">
-                <p>
+              <div className="flex items-center gap-4">
+                <p className="text-[11px] text-slate-600 font-semibold leading-relaxed flex-1">
                   {locale === "vi" 
-                    ? "Nhập số điện thoại gửi phản ánh hoặc Mã số phản ánh (ví dụ: PA-2026-003) vào thanh tìm kiếm để tra cứu thông tin nhanh chóng."
-                    : "Enter your registered phone number or the Feedback Code (e.g. PA-2026-003) into search box for instant lookup."}
+                    ? "Hướng dẫn chi tiết cách tìm kiếm và theo dõi phản ánh hiện trường trên hệ thống Đà Nẵng Kết Nối."
+                    : "Detailed guide on how to search and track field reports on Da Nang Connect system."}
                 </p>
-                <div className="bg-white/10 rounded-xl p-3 flex gap-2 border border-white/10">
-                  <Info size={16} className="text-white shrink-0 mt-0.5" />
-                  <p className="text-[10px] leading-relaxed">
-                    {locale === "vi"
-                      ? "Kết quả hiển thị tình trạng tiếp nhận, đơn vị xử lý và ảnh chụp thực địa kết quả giải quyết sự việc."
-                      : "Results indicate receiving status, handler unit and on-site photos of resolved results."}
-                  </p>
+                <div className="w-16 h-16 shrink-0 relative bg-[#EEF2F6] rounded-xl flex items-center justify-center">
+                  <FileText size={28} className="text-[#0B4DBB] opacity-40" />
+                  <Search size={20} className="text-[#0B4DBB] absolute -bottom-1 -right-1" strokeWidth={3} />
                 </div>
               </div>
-              <button 
-                type="button" 
-                onClick={() => toast.info(locale === "vi" ? "Tài liệu hướng dẫn đang được tải..." : "Opening guide documentation...")}
-                className="w-full py-2 bg-white text-[#0B4DBB] font-extrabold rounded-xl text-xs hover:bg-slate-100 transition shadow-md cursor-pointer"
-              >
-                {locale === "vi" ? "Tìm hiểu thêm" : "Learn More"}
-              </button>
             </div>
 
           </div>

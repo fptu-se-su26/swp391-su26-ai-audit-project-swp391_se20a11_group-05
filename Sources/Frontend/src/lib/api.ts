@@ -16,15 +16,28 @@ const TOKEN_KEY = "dn_jwt_token";
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(TOKEN_KEY);
+  return localStorage.getItem(TOKEN_KEY) ?? sessionStorage.getItem(TOKEN_KEY);
 }
 
-export function setToken(token: string) {
-  if (typeof window !== "undefined") localStorage.setItem(TOKEN_KEY, token);
+/**
+ * persist = true  → localStorage (giữ đăng nhập lâu dài — "Ghi nhớ đăng nhập")
+ * persist = false → sessionStorage (hết phiên khi đóng trình duyệt)
+ */
+export function setToken(token: string, persist = true) {
+  if (typeof window === "undefined") return;
+  if (persist) {
+    localStorage.setItem(TOKEN_KEY, token);
+    sessionStorage.removeItem(TOKEN_KEY);
+  } else {
+    sessionStorage.setItem(TOKEN_KEY, token);
+    localStorage.removeItem(TOKEN_KEY);
+  }
 }
 
 export function removeToken() {
-  if (typeof window !== "undefined") localStorage.removeItem(TOKEN_KEY);
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
 }
 
 // ─── Error types ──────────────────────────────────────────────
@@ -1378,7 +1391,7 @@ export interface WardRankingDetail {
   avgResolutionHours: number;
   speedScore: number;
   lowIncidenceScore: number;
-  satisfactionScore: number;
+  satisfactionScore: number | null;
   trendScore: number;
   totalFeedbacks: number;
   resolvedCount: number;

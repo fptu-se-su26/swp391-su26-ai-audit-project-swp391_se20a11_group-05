@@ -54,18 +54,21 @@ public class UserController extends BaseGenericController<User, UserDTO, Long> {
     // ─── OVERRIDE BASE METHODS WITH ROBUST SECURITY ──────────────────────────
 
     @Override
+    @GetMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'WARD_STAFF', 'POLICE')")
     public ResponseEntity<List<UserDTO>> getAll() {
         return super.getAll();
     }
 
     @Override
+    @GetMapping("/page")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'WARD_STAFF', 'POLICE')")
     public ResponseEntity<Page<UserDTO>> getAllPaged(Pageable pageable) {
         return super.getAllPaged(pageable);
     }
 
     @Override
+    @GetMapping("/{id}")
     public ResponseEntity<UserDTO> getById(@PathVariable Long id) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String currentUsername = auth.getName();
@@ -94,6 +97,7 @@ public class UserController extends BaseGenericController<User, UserDTO, Long> {
 
 
     @Override
+    @PutMapping("/{id}")
     public ResponseEntity<UserDTO> update(@PathVariable Long id, @RequestBody UserDTO dto) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String currentUsername = auth.getName();
@@ -120,6 +124,7 @@ public class UserController extends BaseGenericController<User, UserDTO, Long> {
     }
 
     @Override
+    @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         return super.delete(id);

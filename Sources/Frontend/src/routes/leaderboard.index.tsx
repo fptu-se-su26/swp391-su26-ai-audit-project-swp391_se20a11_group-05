@@ -242,7 +242,7 @@ function LeaderboardPage() {
         
         {activeTab === "map" && (
           <div className="bg-white p-6 rounded-[18px] border border-slate-200 shadow-sm mt-8">
-            <h2 className="text-lg font-black text-[#1E3A8A] mb-4">Bản đồ nhiệt năng lực các phường (Đà Nẵng)</h2>
+            <h2 className="font-sans text-lg font-black text-[#1E3A8A] mb-4">Bản đồ nhiệt năng lực các phường (Đà Nẵng)</h2>
             <p className="text-sm text-slate-500 mb-6 font-medium">Màu xanh thể hiện điểm số cao, màu đỏ/vàng thể hiện khu vực cần cải thiện.</p>
             {leaderboard && (
               <div className="rounded-xl overflow-hidden border border-slate-100">
@@ -257,13 +257,13 @@ function LeaderboardPage() {
 
         {activeTab === "unranked" && (
           <div className="bg-white p-6 rounded-[18px] border border-slate-200 shadow-sm mt-8">
-            <h2 className="text-lg font-black text-[#1E3A8A] mb-4">Phường chưa đủ dữ liệu</h2>
+            <h2 className="font-sans text-lg font-black text-[#1E3A8A] mb-4">Phường chưa đủ dữ liệu</h2>
             <p className="text-sm text-slate-500 mb-6 font-medium">Các phường có ít hơn 5 phản ánh trong tháng sẽ không được xếp hạng để đảm bảo tính khách quan.</p>
             {unrankedWards.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {unrankedWards.map(w => (
                   <div key={w.wardId} className="border border-slate-200 p-4 rounded-[16px] shadow-sm hover:shadow-md cursor-pointer transition-shadow" onClick={() => setSelectedWardId(w.wardId)}>
-                    <h3 className="font-black text-[#1E3A8A]">{w.wardName}</h3>
+                    <h3 className="font-sans font-black text-[#1E3A8A]">{w.wardName}</h3>
                     <div className="mt-3 text-sm text-slate-500 flex justify-between font-bold bg-slate-50 p-2.5 rounded-lg border border-slate-100">
                       <span>Tổng phản ánh: {w.totalFeedbacks}</span>
                     </div>
@@ -294,7 +294,7 @@ function LeaderboardPage() {
                     
                     <div className="flex justify-between items-start mb-6 mt-2 ml-8">
                       <div>
-                        <h3 className="text-[#1E3A8A] font-black text-xl tracking-tight mb-1">{top3[1].wardName}</h3>
+                        <h3 className="font-sans text-[#1E3A8A] font-black text-xl tracking-tight mb-1">{top3[1].wardName}</h3>
                         <div className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Tổng điểm</div>
                         <div className="text-3xl font-black text-[#1E3A8A] flex items-baseline gap-1 mt-1">
                           {top3[1].overallScore.toFixed(1)}
@@ -337,7 +337,7 @@ function LeaderboardPage() {
                     
                     <div className="flex justify-between items-start mb-6 mt-2 ml-10">
                       <div>
-                        <h3 className="text-[#1E3A8A] font-black text-[22px] tracking-tight mb-1">{top3[0].wardName}</h3>
+                        <h3 className="font-sans text-[#1E3A8A] font-black text-[22px] tracking-tight mb-1">{top3[0].wardName}</h3>
                         <div className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">Tổng điểm</div>
                         <div className="text-[40px] font-black text-[#D97706] flex items-baseline gap-1 mt-1 leading-none drop-shadow-sm">
                           {top3[0].overallScore.toFixed(1)}
@@ -380,7 +380,7 @@ function LeaderboardPage() {
                     
                     <div className="flex justify-between items-start mb-6 mt-2 ml-8">
                       <div>
-                        <h3 className="text-[#1E3A8A] font-black text-xl tracking-tight mb-1">{top3[2].wardName}</h3>
+                        <h3 className="font-sans text-[#1E3A8A] font-black text-xl tracking-tight mb-1">{top3[2].wardName}</h3>
                         <div className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Tổng điểm</div>
                         <div className="text-3xl font-black text-[#92400E] flex items-baseline gap-1 mt-1">
                           {top3[2].overallScore.toFixed(1)}
@@ -423,7 +423,7 @@ function LeaderboardPage() {
               {/* LEFT COLUMN: TABLE (70%) */}
               <div className="w-full lg:w-[70%] bg-white rounded-[18px] border border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
-                  <h2 className="text-lg font-black text-[#1E3A8A]">Bảng xếp hạng đầy đủ</h2>
+                  <h2 className="font-sans text-lg font-black text-[#1E3A8A]">Bảng xếp hạng đầy đủ</h2>
                 </div>
                 
                 <div className="overflow-x-auto">
@@ -510,7 +510,7 @@ function LeaderboardPage() {
                 {/* Overall Widget */}
                 <div className="bg-white rounded-[18px] border border-slate-200 shadow-sm p-6">
                   <div className="flex items-center justify-between mb-6">
-                    <h3 className="font-black text-[#1E3A8A]">Tổng quan toàn thành phố</h3>
+                    <h3 className="font-sans font-black text-[#1E3A8A]">Tổng quan toàn thành phố</h3>
                     <button className="text-xs font-bold text-[#2563EB] hover:underline flex items-center gap-1">
                       Xem chi tiết <ArrowRight size={12} />
                     </button>
@@ -542,7 +542,7 @@ function LeaderboardPage() {
 
                 {/* Resolution Rate Chart */}
                 <div className="bg-white rounded-[18px] border border-slate-200 shadow-sm p-6">
-                  <h3 className="font-black text-[#1E3A8A] mb-6">Tỷ lệ giải quyết</h3>
+                  <h3 className="font-sans font-black text-[#1E3A8A] mb-6">Tỷ lệ giải quyết</h3>
                   <div className="flex items-center gap-6">
                     <div className="w-[120px] h-[120px] relative">
                       <ResponsiveContainer width="100%" height="100%">

@@ -13,6 +13,7 @@ import {
   campaignApi,
   notificationApi,
   policeApi,
+  getToken,
   type FeedbackResponse,
   type CategoryResponse,
   type ChatbotResponse,
@@ -463,6 +464,7 @@ export function useNotifications(enabled = true) {
   return useQuery<NotificationResponse[]>({
     queryKey: queryKeys.notifications.all,
     queryFn: () => notificationApi.getAll(),
+    enabled: !!token,
     staleTime: 30_000,
     enabled: enabled && !!token,
     refetchInterval: 10_000,
@@ -485,6 +487,7 @@ export function useInfiniteNotifications(size = 5) {
   return useInfiniteQuery<PageResponse<NotificationResponse>>({
     queryKey: queryKeys.notifications.page(size),
     queryFn: ({ pageParam }) => notificationApi.getPage(Number(pageParam ?? 0), size),
+    enabled: !!token,
     initialPageParam: 0,
     getNextPageParam: (lastPage) => {
       const currentPage = lastPage.page ?? lastPage.number ?? 0;

@@ -204,20 +204,29 @@ function ConfigField({
   onChange?: (value: string) => void;
 }) {
   return (
-    <label className={`block ${className}`}>
-      <span className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-slate-400 font-mono">
+    <label className={`block group ${className}`}>
+      <span className="mb-2 block text-[11px] font-extrabold uppercase tracking-wider text-slate-400 group-focus-within:text-[#0F5BD8] transition-colors">
         {label}
       </span>
       <div
-        className={`flex items-center gap-3 rounded-xl border px-3 transition-all duration-200 ${
+        className={`flex items-center gap-3 rounded-xl border border-[#E4EAF2] bg-slate-50/70 px-3 transition-all duration-200 ${
           compact ? "h-10" : "h-12"
         } ${
           readOnly
-            ? "border-slate-100 bg-slate-50/40"
-            : "border-slate-200 bg-slate-50/50 focus-within:border-indigo-600 focus-within:ring-2 focus-within:ring-indigo-100/50 focus-within:bg-white"
+            ? "opacity-80"
+            : "hover:bg-white hover:border-slate-300 focus-within:border-[#0F5BD8] focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgba(15,91,216,0.1)]"
         }`}
       >
-        {Icon && <Icon size={16} className="shrink-0 text-slate-400" />}
+        {Icon && (
+          <Icon
+            size={16}
+            className={`shrink-0 transition-colors ${
+              readOnly
+                ? "text-slate-400"
+                : "text-slate-400 group-focus-within:text-[#0F5BD8]"
+            }`}
+          />
+        )}
         {loading ? (
           <div className="h-3.5 w-28 animate-pulse rounded bg-slate-200" />
         ) : (
@@ -226,11 +235,7 @@ function ConfigField({
             value={value}
             readOnly={readOnly}
             onChange={(event) => onChange?.(event.target.value)}
-            className={`min-w-0 flex-1 bg-transparent text-sm outline-none ${
-              readOnly
-                ? "font-semibold text-slate-500 cursor-default select-none"
-                : "font-bold text-slate-800"
-            }`}
+            className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-[#0B2545] outline-none read-only:cursor-default placeholder:text-slate-400"
           />
         )}
       </div>

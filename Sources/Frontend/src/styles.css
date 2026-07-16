@@ -44,7 +44,7 @@
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
 
-  --font-heading: "Playfair Display", ui-serif, Georgia, serif;
+  --font-heading: "Public Sans", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "Public Sans", ui-sans-serif, system-ui, sans-serif;
 }
 

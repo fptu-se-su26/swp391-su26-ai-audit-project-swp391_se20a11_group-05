@@ -369,6 +369,9 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         String normalizedKeyword = keyword == null ? null : keyword.trim();
         List<FeedbackStatus> statusFilter = resolveStatusFilter(status);
         boolean hasStatusFilter = !statusFilter.isEmpty();
+        if (!hasStatusFilter) {
+            statusFilter = List.of(FeedbackStatus.SUBMITTED);
+        }
         String normalizedPriority = normalizePriorityFilter(priority);
         LocalDateTime effectiveFromDate = fromDate == null
                 ? LocalDate.of(1970, 1, 1).atStartOfDay()
@@ -556,6 +559,9 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         String normalizedCategory = category == null ? null : category.trim();
         List<FeedbackStatus> statusFilter = resolveStatusFilter(status);
         boolean hasStatusFilter = !statusFilter.isEmpty();
+        if (!hasStatusFilter) {
+            statusFilter = List.of(FeedbackStatus.SUBMITTED);
+        }
         LocalDateTime effectiveFromDate = fromDate == null
                 ? LocalDate.of(1970, 1, 1).atStartOfDay()
                 : fromDate;
@@ -567,6 +573,9 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         List<String> effectiveCategories = categories;
 
         boolean hasCategories = (effectiveCategories != null && !effectiveCategories.isEmpty());
+        if (!hasCategories) {
+            effectiveCategories = List.of("DUMMY_CATEGORY");
+        }
 
         return feedbackRepository.searchPublicFeedbacks(
                 normalizedKeyword,
@@ -596,6 +605,9 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         String normalizedCategory = category == null ? null : category.trim();
         List<FeedbackStatus> statusFilter = resolveStatusFilter(status);
         boolean hasStatusFilter = !statusFilter.isEmpty();
+        if (!hasStatusFilter) {
+            statusFilter = List.of(FeedbackStatus.SUBMITTED);
+        }
         LocalDateTime effectiveFromDate = fromDate == null
                 ? LocalDate.of(1970, 1, 1).atStartOfDay()
                 : fromDate;
@@ -607,6 +619,9 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         List<String> effectiveCategories = categories;
 
         boolean hasCategories = (effectiveCategories != null && !effectiveCategories.isEmpty());
+        if (!hasCategories) {
+            effectiveCategories = List.of("DUMMY_CATEGORY");
+        }
 
         List<Object[]> rawCounts = feedbackRepository.countPublicFeedbacksByStatus(
                 normalizedKeyword,

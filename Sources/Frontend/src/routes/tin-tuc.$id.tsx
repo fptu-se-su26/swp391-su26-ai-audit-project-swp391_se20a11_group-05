@@ -3,6 +3,7 @@ import { useNewsDetail } from "@/hooks/useNews";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { Calendar, Eye, ArrowLeft, User } from "lucide-react";
+import { sanitizeNewsHtml } from "@/lib/sanitizeHtml";
 
 export const Route = routerCreateFileRoute("/tin-tuc/$id")({
   component: NewsDetailComponent,
@@ -101,7 +102,7 @@ function NewsDetailComponent() {
 
             {/* Content */}
             <div className="prose prose-slate max-w-none prose-lg prose-headings:text-[#0B2545] prose-headings:font-extrabold prose-a:text-[#0F5BD8] hover:prose-a:text-[#0B4FC4] prose-img:rounded-xl prose-p:leading-loose prose-p:text-slate-700">
-              <div dangerouslySetInnerHTML={{ __html: news.content || news.summary }} />
+              <div dangerouslySetInnerHTML={{ __html: sanitizeNewsHtml(news.content || news.summary) }} />
             </div>
             
             {/* End of article marker */}

@@ -45,6 +45,16 @@ function getRankStyle(rank: number) {
   return { color: "#E2E8F0", text: `TOP ${rank}`, bg: "#F8FAFC", border: "#CBD5E1", textFill: "#64748B" };
 }
 
+function getPageItems(current: number, total: number): (number | "...")[] {
+  if (total <= 5) return Array.from({ length: total }, (_, i) => i);
+  const items: (number | "...")[] = [0];
+  if (current > 2) items.push("...");
+  for (let i = Math.max(1, current - 1); i <= Math.min(total - 2, current + 1); i++) items.push(i);
+  if (current < total - 3) items.push("...");
+  items.push(total - 1);
+  return items;
+}
+
 function StatusBadge({ status }: { status: string }) {
   if (status === "RESOLVED") {
     return <span className="inline-flex px-2.5 py-1 rounded-md bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-semibold">Đã xử lý</span>;
@@ -76,11 +86,17 @@ function WardDetailPage() {
     staleTime: 60_000,
   });
 
-  const { data: recentReportsData } = useQuery({
-    queryKey: ["ward-feedbacks", wardId],
-    queryFn: () => feedbackApi.getRecentPublicFeedback(5, { wardId: Number(wardId) }),
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(5);
+
+  const { data: recentReportsData, isFetching: isFetchingReports } = useQuery({
+    queryKey: ["ward-feedbacks", wardId, page, pageSize],
+    queryFn: () => feedbackApi.getPublic(page, pageSize, { wardId: Number(wardId) }),
+    placeholderData: (prev) => prev,
   });
   const recentReports = recentReportsData?.content || [];
+  const totalReports = recentReportsData?.totalElements ?? 0;
+  const totalPages = recentReportsData?.totalPages ?? 0;
 
   if (isLoading) {
     return (
@@ -111,7 +127,7 @@ function WardDetailPage() {
   const radarData = [
     { subject: 'Tốc độ xử lý', A: ward.speedScore, B: 75, fullMark: 100 },
     { subject: 'Tỷ lệ giải quyết', A: ward.resolutionRate, B: 80, fullMark: 100 },
-    { subject: 'Hài lòng', A: ward.satisfactionScore, B: 70, fullMark: 100 },
+    { subject: 'Hài lòng', A: ward.satisfactionScore ?? 0, B: 70, fullMark: 100 },
     { subject: 'Môi trường', A: ward.lowIncidenceScore, B: 65, fullMark: 100 },
     { subject: 'Cải thiện', A: ward.trendScore, B: 60, fullMark: 100 },
   ];
@@ -150,7 +166,7 @@ function WardDetailPage() {
               </div>
               
               <div className="text-white">
-                <h1 className="text-[36px] font-bold tracking-tight mb-1">{ward.wardName}</h1>
+                <h1 className="font-sans text-[36px] font-bold tracking-tight mb-1">{ward.wardName}</h1>
                 <p className="text-blue-100 text-[15px] font-medium mb-4">Phường {ward.wardName}, Quận {ward.wardName === 'Hòa Xuân' ? 'Cẩm Lệ' : 'Liên Chiểu'}</p>
                 
                 <div className="inline-flex items-center gap-2 rounded-full border border-[#D97706]/40 bg-[#D97706]/20 px-3 py-1.5 text-[13px] font-semibold text-amber-300">
@@ -209,7 +225,7 @@ function WardDetailPage() {
               
               {/* Radar Chart */}
               <div className="bg-white rounded-[16px] border border-slate-200 shadow-sm p-6">
-                <h3 className="text-[13px] font-bold text-slate-500 uppercase tracking-wider mb-6">PHÂN TÍCH ĐIỂM</h3>
+                <h3 className="font-sans text-[13px] font-bold text-slate-500 uppercase tracking-wider mb-6">PHÂN TÍCH ĐIỂM</h3>
                 <div className="h-[250px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
@@ -226,7 +242,7 @@ function WardDetailPage() {
 
               {/* Line Chart */}
               <div className="bg-white rounded-[16px] border border-slate-200 shadow-sm p-6 relative">
-                <h3 className="text-[13px] font-bold text-slate-500 uppercase tracking-wider mb-6">XU HƯỚNG ĐIỂM TỔNG HỢP (12 THÁNG)</h3>
+                <h3 className="font-sans text-[13px] font-bold text-slate-500 uppercase tracking-wider mb-6">XU HƯỚNG ĐIỂM TỔNG HỢP (12 THÁNG)</h3>
                 
                 {/* Highlight Badge */}
                 <div className="absolute right-6 top-14 bg-[#1E40AF] text-white px-3 py-1.5 rounded-lg text-xs font-bold text-center shadow-md">
@@ -238,7 +254,7 @@ function WardDetailPage() {
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 10, angle: -45, textAnchor: 'end' }} tickLine={false} axisLine={false} />
+                      <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 10, angle: -45, textAnchor: 'end' } as any} tickLine={false} axisLine={false} />
                       <YAxis domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 11 }} tickLine={false} axisLine={false} />
                       <RechartsTooltip 
                          contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
@@ -254,7 +270,7 @@ function WardDetailPage() {
             {/* Recent Reports Table */}
             <div className="bg-white rounded-[16px] border border-slate-200 shadow-sm overflow-hidden">
                <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-                 <h3 className="text-[14px] font-bold text-slate-700 uppercase tracking-wider">DANH SÁCH PHẢN ÁNH GẦN NHẤT</h3>
+                 <h3 className="font-sans text-[14px] font-bold text-slate-700 uppercase tracking-wider">DANH SÁCH PHẢN ÁNH GẦN NHẤT</h3>
                </div>
                <div className="overflow-x-auto">
                  <table className="w-full text-left border-collapse">
@@ -269,13 +285,13 @@ function WardDetailPage() {
                          <th className="py-3 px-4 font-semibold w-28 text-center">Trạng thái</th>
                       </tr>
                     </thead>
-                    <tbody className="text-[13px] text-slate-700">
+                    <tbody className={`text-[13px] text-slate-700 transition-opacity ${isFetchingReports ? "opacity-50" : ""}`}>
                        {recentReports.length > 0 ? recentReports.map((report, idx) => {
                          const timeToResolve = report.resolvedAt ? differenceInHours(new Date(report.resolvedAt), new Date(report.createdAt)) : differenceInHours(new Date(), new Date(report.createdAt));
                          const processingTimeStr = timeToResolve > 24 ? `${Math.floor(timeToResolve/24)} ngày` : `${timeToResolve} giờ`;
                          return (
                          <tr key={report.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                            <td className="py-3 px-4 text-center text-slate-400 font-medium">{idx + 1}</td>
+                            <td className="py-3 px-4 text-center text-slate-400 font-medium">{page * pageSize + idx + 1}</td>
                             <td className="py-3 px-4 font-semibold text-slate-600">{report.trackingCode || `PA-${report.id}`}</td>
                             <td className="py-3 px-4 font-medium max-w-[200px] truncate" title={report.title}>{report.title}</td>
                             <td className="py-3 px-4 text-center"><CategoryBadge category={report.categoryName || 'Khác'} /></td>
@@ -291,21 +307,48 @@ function WardDetailPage() {
                     </tbody>
                  </table>
                </div>
+               {totalReports > 0 && (
                <div className="p-4 border-t border-slate-100 flex items-center justify-between text-sm text-slate-500 font-medium">
-                  <div>Hiển thị 1 - 5 trong tổng số 20</div>
+                  <div>Hiển thị {page * pageSize + 1} - {Math.min((page + 1) * pageSize, totalReports)} trong tổng số {totalReports}</div>
                   <div className="flex items-center gap-1">
-                     <button className="w-8 h-8 flex items-center justify-center rounded border border-slate-200 hover:bg-slate-50"><ChevronLeft size={16} /></button>
-                     <button className="w-8 h-8 flex items-center justify-center rounded bg-[#2563EB] text-white font-bold">1</button>
-                     <button className="w-8 h-8 flex items-center justify-center rounded border border-slate-200 hover:bg-slate-50">2</button>
-                     <button className="w-8 h-8 flex items-center justify-center rounded border border-slate-200 hover:bg-slate-50">3</button>
-                     <span className="px-1">...</span>
-                     <button className="w-8 h-8 flex items-center justify-center rounded border border-slate-200 hover:bg-slate-50"><ChevronRight size={16} /></button>
-                     <select className="ml-2 border border-slate-200 rounded px-2 py-1 outline-none text-slate-600 bg-white">
-                        <option>5 / trang</option>
-                        <option>10 / trang</option>
+                     <button
+                        onClick={() => setPage((p) => Math.max(0, p - 1))}
+                        disabled={page === 0}
+                        aria-label="Trang trước"
+                        className="w-8 h-8 flex items-center justify-center rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
+                     ><ChevronLeft size={16} /></button>
+                     {getPageItems(page, totalPages).map((item, i) =>
+                        item === "..." ? (
+                           <span key={`ellipsis-${i}`} className="px-1">...</span>
+                        ) : (
+                           <button
+                              key={item}
+                              onClick={() => setPage(item)}
+                              className={`w-8 h-8 flex items-center justify-center rounded ${
+                                 item === page
+                                    ? "bg-[#2563EB] text-white font-bold"
+                                    : "border border-slate-200 hover:bg-slate-50"
+                              }`}
+                           >{item + 1}</button>
+                        )
+                     )}
+                     <button
+                        onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                        disabled={page >= totalPages - 1}
+                        aria-label="Trang sau"
+                        className="w-8 h-8 flex items-center justify-center rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
+                     ><ChevronRight size={16} /></button>
+                     <select
+                        value={pageSize}
+                        onChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }}
+                        className="ml-2 border border-slate-200 rounded px-2 py-1 outline-none text-slate-600 bg-white"
+                     >
+                        <option value={5}>5 / trang</option>
+                        <option value={10}>10 / trang</option>
                      </select>
                   </div>
                </div>
+               )}
             </div>
           </div>
           
@@ -315,7 +358,7 @@ function WardDetailPage() {
              {/* Ranking Information */}
              <div className="bg-white rounded-[16px] border border-slate-200 shadow-sm p-6 text-center relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-bl-full -z-0 opacity-50"></div>
-                <h3 className="text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-2 text-left relative z-10">THÔNG TIN XẾP HẠNG</h3>
+                <h3 className="font-sans text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-2 text-left relative z-10">THÔNG TIN XẾP HẠNG</h3>
                 <div className="flex items-center gap-6 mt-4 relative z-10">
                    <div className="relative">
                       {/* Dynamic Medal */}
@@ -342,7 +385,7 @@ function WardDetailPage() {
 
              {/* Comparison with City Average */}
              <div className="bg-white rounded-[16px] border border-slate-200 shadow-sm p-6">
-                <h3 className="text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-6">SO SÁNH TRUNG BÌNH THÀNH PHỐ</h3>
+                <h3 className="font-sans text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-6">SO SÁNH TRUNG BÌNH THÀNH PHỐ</h3>
                 <div className="flex items-end justify-between gap-4 h-[120px] px-4">
                    <div className="flex-1 flex flex-col items-center gap-2">
                       <div className="w-12 bg-slate-300 rounded-t-sm relative" style={{ height: '60.4%' }}>
@@ -369,7 +412,7 @@ function WardDetailPage() {
 
              {/* Ward Location Map */}
              <div className="bg-white rounded-[16px] border border-slate-200 shadow-sm p-6">
-                <h3 className="text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-4">VỊ TRÍ TRÊN BẢN ĐỒ</h3>
+                <h3 className="font-sans text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-4">VỊ TRÍ TRÊN BẢN ĐỒ</h3>
                 <WardMiniMap wardName={ward.wardName} />
                 <div className="text-[13px] font-semibold text-slate-700 mb-3">Phường {ward.wardName}, Quận {ward.wardName === 'Hòa Xuân' ? 'Cẩm Lệ' : 'Liên Chiểu'}, TP. Đà Nẵng</div>
                 <button className="w-full py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-[#2563EB] font-bold text-[13px] flex items-center justify-center gap-2 transition-colors">
@@ -379,7 +422,7 @@ function WardDetailPage() {
 
              {/* Quick Statistics */}
              <div className="bg-white rounded-[16px] border border-slate-200 shadow-sm p-6">
-                <h3 className="text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-5">THỐNG KÊ THỰC TẾ</h3>
+                <h3 className="font-sans text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-5">THỐNG KÊ THỰC TẾ</h3>
                 <div className="flex flex-col gap-5">
                    <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600"><FileText size={20}/></div>
@@ -421,7 +464,7 @@ function WardDetailPage() {
 
              {/* Process Timeline */}
              <div className="bg-white rounded-[16px] border border-slate-200 shadow-sm p-6">
-                <h3 className="text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-6">QUY TRÌNH XỬ LÝ PHẢN ÁNH</h3>
+                <h3 className="font-sans text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-6">QUY TRÌNH XỬ LÝ PHẢN ÁNH</h3>
                 <div className="flex items-start justify-between relative px-2">
                    {/* Connector Line */}
                    <div className="absolute top-4 left-6 right-6 h-0.5 bg-slate-200 -z-10"></div>
@@ -463,8 +506,9 @@ function WardDetailPage() {
 function KPICard({
   title, score, weight, icon: Icon, color, barColor, desc
 }: {
-  title: string; score: number; weight: string; icon: any; color: string; barColor: string; desc: string;
+  title: string; score: number | null | undefined; weight: string; icon: any; color: string; barColor: string; desc: string;
 }) {
+  const hasScore = score !== null && score !== undefined;
   return (
     <div className="bg-white rounded-[16px] border border-slate-200 shadow-sm p-5 relative overflow-hidden group hover:border-[#1E40AF]/30 transition-colors">
        <div className="flex items-start justify-between mb-4">
@@ -473,13 +517,21 @@ function KPICard({
              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-300 cursor-help ml-0.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
           </div>
        </div>
-       <div className="flex items-baseline gap-1 mb-3">
-          <div className={`text-3xl font-black ${color}`}>{score.toFixed(0)}</div>
-          <div className="text-[13px] font-bold text-slate-400">/ 100</div>
-       </div>
-       <div className="w-full bg-slate-100 h-1.5 rounded-full mb-3 overflow-hidden">
-          <div className={`h-full ${barColor} rounded-full`} style={{ width: `${score}%` }}></div>
-       </div>
+       {hasScore ? (
+         <>
+           <div className="flex items-baseline gap-1 mb-3">
+              <div className={`text-3xl font-black ${color}`}>{score.toFixed(0)}</div>
+              <div className="text-[13px] font-bold text-slate-400">/ 100</div>
+           </div>
+           <div className="w-full bg-slate-100 h-1.5 rounded-full mb-3 overflow-hidden">
+              <div className={`h-full ${barColor} rounded-full`} style={{ width: `${score}%` }}></div>
+           </div>
+         </>
+       ) : (
+         <div className="flex items-baseline gap-1 mb-3 h-[calc(1.875rem+0.375rem+0.75rem)]">
+            <div className="text-sm font-semibold text-slate-400">Chưa có đánh giá</div>
+         </div>
+       )}
        <div className="flex items-center justify-between text-[11px] font-bold">
           <span className="text-slate-500">{weight}</span>
        </div>

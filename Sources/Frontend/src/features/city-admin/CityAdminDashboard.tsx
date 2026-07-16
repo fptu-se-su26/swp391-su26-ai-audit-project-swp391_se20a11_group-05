@@ -823,7 +823,7 @@ export function CityAdminDashboard() {
             >
               <Menu size={20} />
             </button>
-            <h2 className="text-lg font-bold text-[#1D2939] font-sans flex items-center gap-2">
+            <h2 className="text-xl font-bold font-heading text-gov-blue-deep flex items-center gap-2">
               {activeTab === "overview" && (
                 <>
                   <Home size={20} className="text-[#0B4FC4]" />

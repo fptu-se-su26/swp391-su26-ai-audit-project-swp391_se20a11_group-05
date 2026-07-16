@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNewsList, useCreateNews, useUpdateNews, useDeleteNews } from "@/hooks/useNews";
+import type { NewsResponse } from "@/lib/api";
+import { sanitizeNewsHtml } from "@/lib/sanitizeHtml";
 import { useAuth } from "@/lib/auth";
 import { Plus, Edit2, Trash2, Image as ImageIcon, FileText, Search, Filter, Eye, Code } from "lucide-react";
 import { format } from "date-fns";
@@ -15,13 +17,24 @@ const API_BASE: string =
 export function NewsManagement() {
   const { user } = useAuth();
   const [page, setPage] = useState(0);
+  const [searchInput, setSearchInput] = useState("");
   const [keyword, setKeyword] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | string | null>(null);
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
-  
+  const [isUploading, setIsUploading] = useState(false);
+
+  // Debounce từ khóa tìm kiếm để tránh gọi API theo từng phím gõ
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setKeyword(searchInput);
+      setPage(0);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   const [formData, setFormData] = useState({
     title: "",
     summary: "",
@@ -35,12 +48,20 @@ export function NewsManagement() {
   const updateMutation = useUpdateNews();
   const deleteMutation = useDeleteNews();
 
+  // Kéo về trang cuối còn dữ liệu khi trang hiện tại vượt quá tổng số trang
+  // (ví dụ: xóa tin cuối cùng của trang cuối)
+  useEffect(() => {
+    if (newsData && page > 0 && page >= newsData.totalPages) {
+      setPage(Math.max(0, newsData.totalPages - 1));
+    }
+  }, [newsData, page]);
+
   const isPolice = user?.role === "POLICE";
   const categories = isPolice 
     ? ["An ninh - Trật tự", "Thông báo"]
     : ["Thông báo", "Chính sách", "Hoạt động", "Hạ tầng - Đô thị", "Kinh tế - Xã hội", "An ninh - Trật tự", "Khác", "Hướng dẫn", "Tin tức"];
 
-  const handleOpenModal = (news?: any, tab: "edit" | "preview" = "edit") => {
+  const handleOpenModal = (news?: NewsResponse, tab: "edit" | "preview" = "edit") => {
     setActiveTab(tab);
     if (news) {
       setEditingId(news.id);
@@ -69,14 +90,28 @@ export function NewsManagement() {
     setEditingId(null);
   };
 
+  const MAX_IMAGE_SIZE_MB = 5;
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    // Reset để chọn lại cùng một file vẫn kích hoạt onChange
+    e.target.value = "";
     if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Vui lòng chọn tệp hình ảnh");
+      return;
+    }
+    if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
+      toast.error(`Ảnh vượt quá dung lượng cho phép (${MAX_IMAGE_SIZE_MB}MB)`);
+      return;
+    }
 
     const token = localStorage.getItem("dn_jwt_token");
     const formDataObj = new FormData();
     formDataObj.append("file", file);
 
+    setIsUploading(true);
     try {
       const response = await fetch(`${API_BASE}/api/files/upload`, {
         method: "POST",
@@ -93,27 +128,50 @@ export function NewsManagement() {
       if (fileUrl) {
         setFormData(prev => ({ ...prev, imageUrl: fileUrl }));
         toast.success("Upload ảnh thành công");
+      } else {
+        toast.error("Máy chủ không trả về đường dẫn ảnh");
       }
     } catch (error) {
       toast.error("Lỗi khi upload ảnh");
       console.error(error);
+    } finally {
+      setIsUploading(false);
     }
   };
 
+  // Nội dung Quill coi là rỗng khi bỏ hết thẻ HTML không còn chữ nào
+  // và cũng không nhúng ảnh/video
+  const isContentEmpty = (html: string) =>
+    !html ||
+    (html.replace(/<[^>]*>/g, "").trim() === "" && !/<(img|iframe|video)\b/i.test(html));
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.content || formData.content === "<p><br></p>") {
+    if (isUploading) {
+      toast.error("Vui lòng chờ upload ảnh hoàn tất");
+      return;
+    }
+    const payload = {
+      ...formData,
+      title: formData.title.trim(),
+      summary: formData.summary.trim(),
+    };
+    if (!payload.title) {
+      toast.error("Vui lòng nhập tiêu đề tin tức");
+      return;
+    }
+    if (isContentEmpty(payload.content)) {
       toast.error("Vui lòng nhập nội dung chi tiết");
       return;
     }
 
     if (editingId) {
       updateMutation.mutate(
-        { id: editingId, data: formData },
+        { id: editingId, data: payload },
         { onSuccess: handleCloseModal }
       );
     } else {
-      createMutation.mutate(formData, { onSuccess: handleCloseModal });
+      createMutation.mutate(payload, { onSuccess: handleCloseModal });
     }
   };
 
@@ -159,11 +217,8 @@ export function NewsManagement() {
           <input
             type="text"
             placeholder="Tìm kiếm theo tiêu đề hoặc nội dung..."
-            value={keyword}
-            onChange={(e) => {
-              setKeyword(e.target.value);
-              setPage(0);
-            }}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-[#E4EAF2] rounded-xl text-sm focus:border-[#0F5BD8] focus:ring-1 focus:ring-[#0F5BD8] outline-none transition-all placeholder:text-slate-400 bg-white"
           />
         </div>
@@ -388,6 +443,10 @@ export function NewsManagement() {
                           className="w-full border border-[#E4EAF2] rounded-xl px-4 py-2.5 text-sm appearance-none focus:border-[#0F5BD8] focus:ring-1 focus:ring-[#0F5BD8] outline-none bg-white transition-all font-medium text-slate-700"
                         >
                           {!formData.category && <option value="" disabled>-- Chọn chuyên mục --</option>}
+                          {/* Giữ chuyên mục hiện tại của bài viết nếu nằm ngoài danh sách được phép (vd: Công an sửa tin cũ) */}
+                          {formData.category && !categories.includes(formData.category) && (
+                            <option value={formData.category}>{formData.category}</option>
+                          )}
                           {categories.map(c => (
                             <option key={c} value={c}>{c}</option>
                           ))}
@@ -401,10 +460,16 @@ export function NewsManagement() {
                     <div>
                       <label className="block text-sm font-bold text-[#0B2545] mb-1.5">Ảnh đại diện</label>
                       <div className="flex items-center gap-3">
-                        <label className="cursor-pointer bg-white hover:bg-blue-50 border border-[#E4EAF2] hover:border-blue-200 text-[#0F5BD8] rounded-xl px-4 py-2.5 flex items-center justify-center gap-2 text-sm font-bold transition-all w-full md:w-auto shadow-sm">
-                          <ImageIcon size={18} />
-                          <span>Tải ảnh lên</span>
-                          <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+                        <label className={`bg-white border border-[#E4EAF2] text-[#0F5BD8] rounded-xl px-4 py-2.5 flex items-center justify-center gap-2 text-sm font-bold transition-all w-full md:w-auto shadow-sm ${
+                          isUploading ? "cursor-wait opacity-60" : "cursor-pointer hover:bg-blue-50 hover:border-blue-200"
+                        }`}>
+                          {isUploading ? (
+                            <div className="w-4 h-4 border-2 border-[#0F5BD8]/30 border-t-[#0F5BD8] rounded-full animate-spin" />
+                          ) : (
+                            <ImageIcon size={18} />
+                          )}
+                          <span>{isUploading ? "Đang tải ảnh..." : "Tải ảnh lên"}</span>
+                          <input type="file" className="hidden" accept="image/*" disabled={isUploading} onChange={handleFileChange} />
                         </label>
                         {formData.imageUrl && (
                           <div className="relative w-11 h-11 rounded-lg overflow-hidden border border-slate-200 shadow-sm shrink-0 group">
@@ -465,7 +530,7 @@ export function NewsManagement() {
 
                   <div 
                     className="prose prose-slate prose-blue max-w-none prose-img:rounded-xl prose-headings:text-[#0B2545] prose-a:text-[#0F5BD8]"
-                    dangerouslySetInnerHTML={{ __html: formData.content || "<p class='text-slate-400 italic'>Nội dung bài viết sẽ hiển thị ở đây...</p>" }}
+                    dangerouslySetInnerHTML={{ __html: formData.content ? sanitizeNewsHtml(formData.content) : "<p class='text-slate-400 italic'>Nội dung bài viết sẽ hiển thị ở đây...</p>" }}
                   />
                 </div>
               )}
@@ -483,7 +548,7 @@ export function NewsManagement() {
                 <button
                   type="submit"
                   form="news-form"
-                  disabled={createMutation.isPending || updateMutation.isPending}
+                  disabled={createMutation.isPending || updateMutation.isPending || isUploading}
                   className="px-6 py-2.5 bg-[#0F5BD8] hover:bg-[#0B4FC4] text-white rounded-xl font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center justify-center min-w-[120px]"
                 >
                   {createMutation.isPending || updateMutation.isPending ? (

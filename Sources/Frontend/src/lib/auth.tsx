@@ -42,7 +42,7 @@ export interface AuthUser {
 
 interface AuthCtx {
   user: AuthUser | null;
-  login: (u: AuthUser) => void;
+  login: (u: AuthUser, opts?: { remember?: boolean }) => void;
   logout: () => void;
   hasRole: (...roles: RoleType[]) => boolean;
   isAuthenticated: boolean;
@@ -57,6 +57,17 @@ const AuthContext = createContext<AuthCtx | null>(null);
  * can be isolated once we move to separate subdomains.
  */
 const STORAGE_KEY = "dn_auth_user_v2";
+
+/**
+ * Lưu user vào localStorage NHƯNG loại bỏ token — token do api.ts quản lý
+ * (localStorage hoặc sessionStorage tùy lựa chọn "Ghi nhớ đăng nhập").
+ * Nếu lưu token trong JSON này thì phiên tạm vẫn tồn tại vĩnh viễn.
+ */
+function persistUser(u: AuthUser) {
+  if (typeof window === "undefined") return;
+  const { token: _omitted, ...rest } = u;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(rest));
+}
 
 // ─── Provider ────────────────────────────────────────────────
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -81,14 +92,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // Set token to ensure API calls work immediately after reload
-        if (parsed.token) {
-          setToken(parsed.token);
-        } else if (storedToken) {
-          // If user doesn't have token but localStorage has it, use that
-          parsed.token = storedToken;
-          setToken(storedToken);
-        }
+        // Token đã nằm sẵn trong storage (local hoặc session) — chỉ gắn vào
+        // state, KHÔNG ghi lại bằng setToken vì sẽ nâng phiên tạm thành vĩnh viễn
+        parsed.token = parsed.token || storedToken;
 
         setUser(parsed);
 
@@ -106,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 campaignBanned: profile.campaignBanned !== undefined ? profile.campaignBanned : parsed.campaignBanned,
               };
               setUser(updated);
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+              persistUser(updated);
             }
           })
           .catch(() => {});
@@ -136,12 +142,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, [navigate]);
 
-  const login = (u: AuthUser) => {
+  const login = (u: AuthUser, opts?: { remember?: boolean }) => {
     setUser(u);
     if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
+      persistUser(u);
       if (u.token) {
-        setToken(u.token);
+        setToken(u.token, opts?.remember ?? true);
       }
     }
     // Fetch profile to get full name, wardId and avatarUrl
@@ -158,7 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             campaignBanned: profile.campaignBanned !== undefined ? profile.campaignBanned : u.campaignBanned,
           };
           setUser(updated);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+          persistUser(updated);
         }
       })
       .catch(() => {});

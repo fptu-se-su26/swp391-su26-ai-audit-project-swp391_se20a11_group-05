@@ -8,6 +8,7 @@ import { requestCurrentGpsLocation } from "@/lib/location";
 import { buildLoginLockoutMessage, getLoginLockoutSeconds } from "@/lib/loginLockout";
 import { signInWithGoogle, signOutFirebase } from "@/lib/firebase";
 import { Loader2, AlertCircle, Eye, EyeOff, AtSign, Lock } from "lucide-react";
+import { toast } from "sonner";
 import logoUrl from "@/assets/logo.png";
 import { LoginHeroPanel } from "./LoginHeroPanel";
 import { MfaStep } from "./MfaStep";
@@ -58,6 +59,7 @@ export function LoginPage() {
 
   const citizenRedirect =
     redirect &&
+    redirect.startsWith("/") &&
     !["/ward", "/police", "/city-admin", "/assistant"].some((path) => redirect.startsWith(path))
       ? redirect
       : "/";
@@ -111,16 +113,26 @@ export function LoginPage() {
           return;
         }
 
-        login({
-          name: data.username,
-          role,
-          org: data.org || "",
-          token: data.token,
-        });
+        login(
+          {
+            name: data.username,
+            role,
+            org: data.org || "",
+            token: data.token,
+          },
+          { remember: rememberMe },
+        );
         void requestCurrentGpsLocation().catch(() => {
           // Location is optional after login; feedback submission asks again if needed.
         });
         navigate({ to: citizenRedirect });
+      } else {
+        // Response không có token lẫn mfaRequired — không được im lặng
+        setError(
+          locale === "vi"
+            ? "Phản hồi máy chủ không hợp lệ. Vui lòng thử lại."
+            : "Unexpected server response. Please try again.",
+        );
       }
     } catch (err) {
       if (err instanceof ApiError) {
@@ -137,10 +149,21 @@ export function LoginPage() {
               : "Incorrect phone number or password."
             : err.message,
         );
-      } else {
-        // Demo fallback when backend is offline
-        login({ name: username || "citizen1", role: Role.CITIZEN, org: "", token: "demo-token" });
+      } else if (import.meta.env.DEV) {
+        // Demo fallback khi backend offline — CHỈ trong môi trường dev.
+        // Không được để nhánh này chạy ở production: mọi lỗi bất kỳ sẽ
+        // biến thành "đăng nhập thành công" không cần mật khẩu.
+        login(
+          { name: username || "citizen1", role: Role.CITIZEN, org: "", token: "demo-token" },
+          { remember: rememberMe },
+        );
         navigate({ to: citizenRedirect });
+      } else {
+        setError(
+          locale === "vi"
+            ? "Không thể kết nối tới máy chủ. Vui lòng thử lại."
+            : "Cannot connect to server. Please try again.",
+        );
       }
     } finally {
       setLoading(false);
@@ -160,17 +183,25 @@ export function LoginPage() {
         return;
       }
 
-      login({
-        name: data.username,
-        role,
-        org: data.org || "",
-        token: data.token,
-      });
+      login(
+        {
+          name: data.username,
+          role,
+          org: data.org || "",
+          token: data.token,
+        },
+        { remember: rememberMe },
+      );
       void requestCurrentGpsLocation().catch(() => {
         // Location is optional after login; feedback submission asks again if needed.
       });
       navigate({ to: citizenRedirect });
     } catch (err) {
+      if (err instanceof ApiError && err.status === 429) {
+        setLockoutSeconds(getLoginLockoutSeconds(err.message) ?? 60);
+        setError(err.message);
+        return;
+      }
       setError(
         err instanceof ApiError
           ? locale === "vi"
@@ -211,12 +242,15 @@ export function LoginPage() {
           return;
         }
 
-        login({
-          name: data.username,
-          role,
-          org: data.org || "",
-          token: data.accessToken,   // TokenPairResponse dùng accessToken (không phải token)
-        });
+        login(
+          {
+            name: data.username,
+            role,
+            org: data.org || "",
+            token: data.accessToken, // TokenPairResponse dùng accessToken (không phải token)
+          },
+          { remember: rememberMe },
+        );
         void requestCurrentGpsLocation().catch(() => {});
         navigate({ to: citizenRedirect });
       } catch (apiErr) {
@@ -398,9 +432,19 @@ export function LoginPage() {
                       {locale === "vi" ? "Ghi nhớ đăng nhập" : "Remember me"}
                     </span>
                   </label>
-                  <Link to="/login" className="text-xs font-semibold text-gov-blue hover:underline">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      toast.info(
+                        locale === "vi"
+                          ? "Vui lòng liên hệ tổng đài 1022 hoặc email gopy@danang.gov.vn để được cấp lại mật khẩu."
+                          : "Please contact hotline 1022 or email gopy@danang.gov.vn to reset your password.",
+                      )
+                    }
+                    className="text-xs font-semibold text-gov-blue hover:underline"
+                  >
                     {locale === "vi" ? "Quên mật khẩu?" : "Forgot password?"}
-                  </Link>
+                  </button>
                 </div>
 
                 {/* Submit */}

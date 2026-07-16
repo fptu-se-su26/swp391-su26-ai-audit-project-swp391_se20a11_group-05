@@ -35,7 +35,10 @@ export const Route = createFileRoute("/login")({
       if (user) {
         const role = parseBackendRole(user.role);
         if (role === Role.CITIZEN) {
-          throw redirect({ to: search.redirect || "/" });
+          // Chỉ chấp nhận redirect nội bộ (bắt đầu bằng "/") — chống open redirect
+          const target =
+            search.redirect && search.redirect.startsWith("/") ? search.redirect : "/";
+          throw redirect({ to: target });
         }
         if (AUTHORITY_ROLES.has(role)) {
           throw redirect({ to: getDashboardPathForRole(role) });

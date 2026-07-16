@@ -10,6 +10,7 @@
  */
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { getToken, setToken, removeToken, setOnUnauthorized, userApi } from "./api";
 import {
   Role,
@@ -27,18 +28,21 @@ export type { RoleType };
 // ─── Types ───────────────────────────────────────────────────
 
 export interface AuthUser {
+  id?: number | null;
   name: string;
   role: RoleType;
   org: string;
   wardName?: string | null;
   wardType?: string | null;
   wardId?: number | null;
+  avatarUrl?: string | null;
   token?: string;
+  campaignBanned?: boolean;
 }
 
 interface AuthCtx {
   user: AuthUser | null;
-  login: (u: AuthUser) => void;
+  login: (u: AuthUser, opts?: { remember?: boolean }) => void;
   logout: () => void;
   hasRole: (...roles: RoleType[]) => boolean;
   isAuthenticated: boolean;
@@ -54,8 +58,20 @@ const AuthContext = createContext<AuthCtx | null>(null);
  */
 const STORAGE_KEY = "dn_auth_user_v2";
 
+/**
+ * Lưu user vào localStorage NHƯNG loại bỏ token — token do api.ts quản lý
+ * (localStorage hoặc sessionStorage tùy lựa chọn "Ghi nhớ đăng nhập").
+ * Nếu lưu token trong JSON này thì phiên tạm vẫn tồn tại vĩnh viễn.
+ */
+function persistUser(u: AuthUser) {
+  if (typeof window === "undefined") return;
+  const { token: _omitted, ...rest } = u;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(rest));
+}
+
 // ─── Provider ────────────────────────────────────────────────
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const navigate = useNavigate();
   const [user, setUser] = useState<AuthUser | null>(null);
 
   // Rehydrate from localStorage on mount (SSR-safe)
@@ -76,29 +92,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // Set token to ensure API calls work immediately after reload
-        if (parsed.token) {
-          setToken(parsed.token);
-        } else if (storedToken) {
-          // If user doesn't have token but localStorage has it, use that
-          parsed.token = storedToken;
-          setToken(storedToken);
-        }
+        // Token đã nằm sẵn trong storage (local hoặc session) — chỉ gắn vào
+        // state, KHÔNG ghi lại bằng setToken vì sẽ nâng phiên tạm thành vĩnh viễn
+        parsed.token = parsed.token || storedToken;
 
         setUser(parsed);
 
-        // Fetch full profile info to get the full name and wardId
+        // Fetch full profile info to get the full name, wardId and avatarUrl
         userApi
           .profile()
           .then((profile) => {
             if (profile) {
               const updated = {
                 ...parsed,
+                id: profile.id,
                 name: profile.fullName || parsed.name,
                 wardId: profile.wardId !== undefined ? profile.wardId : parsed.wardId,
+                avatarUrl: profile.avatarUrl || parsed.avatarUrl || null,
+                campaignBanned: profile.campaignBanned !== undefined ? profile.campaignBanned : parsed.campaignBanned,
               };
               setUser(updated);
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+              persistUser(updated);
             }
           })
           .catch(() => {});
@@ -119,30 +133,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (typeof window !== "undefined") {
         localStorage.removeItem(STORAGE_KEY);
         removeToken();
+        const path = window.location.pathname;
+        const isAuthority = ["/ward", "/police", "/city-admin", "/assistant"].some((p) =>
+          path.startsWith(p),
+        );
+        void navigate({ to: isAuthority ? "/authority-login" : "/login", replace: true });
       }
     });
-  }, []);
+  }, [navigate]);
 
-  const login = (u: AuthUser) => {
+  const login = (u: AuthUser, opts?: { remember?: boolean }) => {
     setUser(u);
     if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
+      persistUser(u);
       if (u.token) {
-        setToken(u.token);
+        setToken(u.token, opts?.remember ?? true);
       }
     }
-    // Fetch profile to get full name and wardId
+    // Fetch profile to get full name, wardId and avatarUrl
     userApi
       .profile()
       .then((profile) => {
         if (profile) {
           const updated = {
             ...u,
+            id: profile.id,
             name: profile.fullName || u.name,
             wardId: profile.wardId !== undefined ? profile.wardId : u.wardId,
+            avatarUrl: profile.avatarUrl || u.avatarUrl || null,
+            campaignBanned: profile.campaignBanned !== undefined ? profile.campaignBanned : u.campaignBanned,
           };
           setUser(updated);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+          persistUser(updated);
         }
       })
       .catch(() => {});

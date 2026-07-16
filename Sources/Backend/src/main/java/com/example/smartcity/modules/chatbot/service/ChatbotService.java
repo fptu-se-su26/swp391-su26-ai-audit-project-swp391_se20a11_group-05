@@ -52,8 +52,17 @@ public class ChatbotService {
 
     private ChatIntent detectIntent(String message, List<Map<String, String>> historyContext) {
         String lower = message.toLowerCase();
+
+        // ── NAVIGATION_GUIDE: hỏi về cách dùng app, điều hướng ──
+        if (lower.contains("làm thế nào") || lower.contains("làm sao") || lower.contains("hướng dẫn")
+            || lower.contains("ở đâu") || lower.contains("trang nào") || lower.contains("menu")
+            || lower.contains("chức năng") || lower.contains("tính năng") || lower.contains("cách dùng")
+            || lower.contains("có thể làm gì") || lower.contains("bạn có thể") || lower.contains("bot có thể")
+            || lower.contains("hỗ trợ gì") || lower.contains("giúp gì") || lower.contains("app có gì")) {
+            return ChatIntent.NAVIGATION_GUIDE;
+        }
         
-        // Nhận diện câu hỏi cá nhân hoặc yêu cầu tổng hợp danh sách/phân tích báo cáo
+        // ── REPORT_COPILOT: câu hỏi cá nhân về phản ánh ──
         if (lower.contains("của tôi") || lower.contains("của mình") || lower.contains("tôi đã gửi")
             || lower.contains("danh sách") || lower.contains("liệt kê") || lower.contains("tóm tắt")
             || lower.contains("xem báo cáo") || lower.contains("vụ việc của") || lower.contains("phản ánh của tôi")
@@ -61,6 +70,7 @@ public class ChatbotService {
             return ChatIntent.REPORT_COPILOT;
         }
 
+        // ── LOOKUP_FEEDBACK: tra cứu theo mã ──
         if (FB_PATTERN.matcher(lower).find() 
             || lower.contains("tra cứu") 
             || lower.contains("kiểm tra mã")
@@ -68,6 +78,7 @@ public class ChatbotService {
             return ChatIntent.LOOKUP_FEEDBACK;
         }
         
+        // ── CREATE_FEEDBACK: báo cáo sự cố mới ──
         if (lower.contains("báo cáo") || lower.contains("phản ánh") 
             || lower.contains("sự cố") || lower.contains("hỏng")
             || lower.contains("ngập") || lower.contains("vỡ")
@@ -75,6 +86,7 @@ public class ChatbotService {
             return ChatIntent.CREATE_FEEDBACK;
         }
         
+        // ── STATISTICS: thống kê ──
         if (lower.contains("bao nhiêu") || lower.contains("số lượng") || lower.contains("bn vụ")
             || lower.contains("tổng") || lower.contains("thống kê") || lower.contains("mấy vụ")) {
             return ChatIntent.STATISTICS;
@@ -95,11 +107,13 @@ public class ChatbotService {
             }
         }
         
+        // ── QA_LEGAL: pháp lý, quy định ──
         if (lower.contains("luật") || lower.contains("quy định")
             || lower.contains("thủ tục") || lower.contains("pháp lý")) {
             return ChatIntent.QA_LEGAL;
         }
 
+        // ── DISCOVER_CAMPAIGN: chiến dịch tình nguyện ──
         if (lower.contains("chiến dịch") || lower.contains("sự kiện")
             || lower.contains("tình nguyện") || lower.contains("lễ hội")
             || lower.contains("hiến máu") || lower.contains("dọn rác")) {
@@ -109,7 +123,54 @@ public class ChatbotService {
         return ChatIntent.GENERAL;
     }
 
-    @Transactional
+    /**
+     * Tạo danh sách câu hỏi gợi ý tiếp theo dựa theo intent.
+     */
+    private List<String> buildSuggestedFollowUps(ChatIntent intent) {
+        return switch (intent) {
+            case LOOKUP_FEEDBACK -> List.of(
+                "Phản ánh của tôi được xử lý trong bao lâu?",
+                "Tôi muốn gửi phản ánh mới",
+                "Xem thống kê sự cố hôm nay"
+            );
+            case CREATE_FEEDBACK -> List.of(
+                "Tôi có thể theo dõi phản ánh bằng mã không?",
+                "Khu vực nào được hỗ trợ?",
+                "Quy trình xử lý mất bao lâu?"
+            );
+            case STATISTICS -> List.of(
+                "Lĩnh vực nào có nhiều sự cố nhất?",
+                "Phản ánh của tôi có trong đó không?",
+                "Khám phá chiến dịch tình nguyện"
+            );
+            case QA_LEGAL -> List.of(
+                "Thời hạn xử lý phản ánh là bao lâu?",
+                "Ai chịu trách nhiệm xử lý?",
+                "Tôi muốn gửi phản ánh mới"
+            );
+            case REPORT_COPILOT -> List.of(
+                "Cập nhật mới nhất về phản ánh của tôi?",
+                "Phản ánh nào đang chờ xử lý?",
+                "Liên hệ đơn vị xử lý thế nào?"
+            );
+            case DISCOVER_CAMPAIGN -> List.of(
+                "Làm sao để đăng ký tham gia?",
+                "Chiến dịch nào gần khu vực tôi?",
+                "Tôi đã đăng ký những chiến dịch nào?"
+            );
+            case NAVIGATION_GUIDE -> List.of(
+                "Làm sao để gửi phản ánh sự cố?",
+                "Tra cứu phản ánh của tôi",
+                "Xem thống kê cộng đồng"
+            );
+            default -> List.of(
+                "Hướng dẫn sử dụng ứng dụng",
+                "Gửi phản ánh sự cố",
+                "Đường dây nóng hỗ trợ"
+            );
+        };
+    }
+
     public Map<String, Object> ask(Long userId, String sessionId, String question, List<Map<String, String>> historyContext) {
         long start = System.currentTimeMillis();
         log.info("📨 [Chatbot] userId={} | sessionId={} | question='{}'", userId, sessionId, question);
@@ -148,10 +209,18 @@ public class ChatbotService {
             case DISCOVER_CAMPAIGN:
                 responseData = handleDiscoverCampaign(question);
                 break;
+            case NAVIGATION_GUIDE:
+                responseData = handleNavigationGuide(question);
+                break;
             case GENERAL:
             default:
                 responseData = handleGeneral(question);
                 break;
+        }
+
+        // Thêm suggested follow-up questions vào mọi response
+        if (!responseData.containsKey("suggestedFollowUps")) {
+            responseData.put("suggestedFollowUps", buildSuggestedFollowUps(intent));
         }
 
         long latencyMs = System.currentTimeMillis() - start;
@@ -160,20 +229,72 @@ public class ChatbotService {
 
         String feedbackCreated = (String) responseData.get("trackingCode");
 
+        // Tìm xem session này đã có tin nhắn nào trước đó chưa để giữ nguyên tên session gốc
+        String sessionTitle = "Phiên hội thoại";
+        if (sessionId != null) {
+            java.util.Optional<ChatHistory> firstMsg = chatHistoryRepository.findFirstBySessionIdOrderByCreatedAtAsc(sessionId);
+            if (firstMsg.isPresent()) {
+                sessionTitle = firstMsg.get().getSessionName();
+            } else {
+                sessionTitle = question != null && question.length() > 0
+                    ? (question.length() > 50 ? question.substring(0, 50) + "..." : question)
+                    : "Phiên hội thoại";
+            }
+        }
+
         ChatHistory history = ChatHistory.builder()
                 .user(user)
                 .question(question)
                 .answer((String) responseData.get("reply"))
                 .intent(intent)
                 .sessionId(sessionId)
+                .sessionName(sessionTitle)
                 .feedbackTrackingCode(feedbackCreated != null && !feedbackCreated.isEmpty() ? feedbackCreated : null)
                 .docType(DANANG_DOC_TYPE)
                 .aiProvider(activeProviderName)
                 .latencyMs(latencyMs)
                 .build();
 
-        chatHistoryRepository.save(history);
+        ChatHistory saved = chatHistoryRepository.save(history);
+        responseData.put("messageId", saved.getId().toString()); // Trả về ID để Frontend dùng cho rating
         return responseData;
+    }
+
+    /**
+     * Lấy danh sách sessions của user (Feature 4: Session History).
+     * Trả về tối đa 20 session gần nhất.
+     */
+    public List<Map<String, Object>> getSessionsByUserId(Long userId) {
+        return chatHistoryRepository.findSessionsByUserId(userId).stream()
+            .map(row -> {
+                Map<String, Object> session = new java.util.HashMap<>();
+                session.put("sessionId",   row[0]);
+                session.put("sessionName", row[1] != null ? row[1] : "Phiên hội thoại");
+                session.put("lastMessage", row[2]);
+                session.put("messageCount", row[3]);
+                return session;
+            })
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * Lấy toàn bộ tin nhắn trong một session cụ thể.
+     */
+    public List<Map<String, Object>> getSessionMessages(Long userId, String sessionId) {
+        return chatHistoryRepository.findByUserIdAndSessionId(userId, sessionId).stream()
+            .map(h -> {
+                Map<String, Object> msg = new java.util.HashMap<>();
+                msg.put("messageId",  h.getId().toString());
+                msg.put("question",   h.getQuestion());
+                msg.put("answer",     h.getAnswer());
+                msg.put("intent",     h.getIntent() != null ? h.getIntent().name() : "GENERAL");
+                msg.put("createdAt",  h.getCreatedAt().toString());
+                msg.put("latencyMs",  h.getLatencyMs());
+                msg.put("provider",   h.getAiProvider());
+                msg.put("userRating", h.getUserRating());
+                return msg;
+            })
+            .collect(Collectors.toList());
     }
 
     private Map<String, Object> handleLookupFeedback(String question) {
@@ -458,9 +579,14 @@ public class ChatbotService {
     }
 
     private Map<String, Object> handleGeneral(String question) {
-        String systemPrompt = "Bạn là Bé Rồng, trợ lý ảo thông minh và thân thiện của TP. Đà Nẵng. Hãy trả lời câu hỏi thông thường, chào hỏi hoặc tán gẫu của người dùng một cách vui vẻ, lễ phép, tự nhiên và ngắn gọn (dưới 100 chữ).";
+        String systemPrompt = """
+            Bạn là Bé Rồng 🐉, trợ lý AI thông minh và thân thiện của TP. Đà Nẵng Kết Nối.
+            Hãy trả lời câu hỏi thông thường, chào hỏi hoặc tán gẫu một cách vui vẻ, lễ phép, tự nhiên và ngắn gọn (dưới 100 chữ).
+            Nếu câu hỏi liên quan đến sự cố đô thị, hãy gợi ý người dùng dùng chức năng phản ánh.
+            Tông giọng: thân thiện, dùng emojis vừa phải, ngắn gọn xúc tích.
+            """;
         
-        String reply = "Dạ Bé Rồng em nghe đây ạ! Em có thể hỗ trợ cô chú tra cứu phản ánh sự cố đô thị, hướng dẫn thủ tục hành chính hoặc tiếp nhận báo cáo nhanh tại Đà Nẵng ạ.";
+        String reply = "Dạ Bé Rồng em nghe đây ạ! 🐉 Em có thể hỗ trợ cô chú tra cứu phản ánh sự cố đô thị, hướng dẫn thủ tục hành chính hoặc tiếp nhận báo cáo nhanh tại Đà Nẵng ạ.";
         try {
             AiProviderAdapter activeProvider = aiRouterService.routeToBestProvider("1", question);
             if (activeProvider != null) {
@@ -473,10 +599,73 @@ public class ChatbotService {
         }
 
         return new java.util.HashMap<>(Map.of(
-            "intent", "SMALLTALK",
+            "intent", "GENERAL",
             "emotion", "POSITIVE",
             "reply", reply
         ));
+    }
+
+    /**
+     * Xử lý intent NAVIGATION_GUIDE — hướng dẫn người dùng sử dụng app.
+     */
+    private Map<String, Object> handleNavigationGuide(String question) {
+        String lower = question.toLowerCase();
+        
+        // Map câu hỏi → trang đích và hướng dẫn tương ứng
+        String navigateTo = null;
+        String reply;
+
+        if (lower.contains("phản ánh") || lower.contains("báo cáo") || lower.contains("sự cố")) {
+            navigateTo = "/feedback/create";
+            reply = "📋 Để gửi phản ánh sự cố, cô chú vào **Menu → Phản Ánh → Gửi Phản Ánh Mới**.\n" +
+                    "Cần cung cấp: mô tả, vị trí bản đồ và ảnh hiện trường.\n" +
+                    "Bé Rồng sẽ mở trang này cho cô chú ngay nhé! 🗺️";
+        } else if (lower.contains("chiến dịch") || lower.contains("tình nguyện")) {
+            navigateTo = "/campaigns";
+            reply = "🎯 Trang **Chiến Dịch Tình Nguyện** có tại menu chính.\n" +
+                    "Cô chú có thể xem, đăng ký tham gia và theo dõi các sự kiện tại Đà Nẵng!";
+        } else if (lower.contains("thống kê") || lower.contains("dashboard")) {
+            navigateTo = "/";
+            reply = "📊 **Trang Chủ** hiển thị thống kê tổng quan: số phản ánh, tình trạng xử lý và bản đồ nóng.";
+        } else if (lower.contains("tra cứu") || lower.contains("trạng thái")) {
+            reply = "🔍 Để tra cứu phản ánh, cô chú hỏi Bé Rồng: **'tra cứu FB-XXXXX'** hoặc **'trạng thái DN-XXXXX'** nhé!";
+        } else {
+            // Tổng quan về app
+            reply = "🐉 **Bé Rồng** có thể giúp cô chú:\n\n" +
+                    "📋 **Gửi phản ánh** sự cố đường phố, vỉa hè, môi trường\n" +
+                    "🔍 **Tra cứu trạng thái** phản ánh bằng mã FB-...\n" +
+                    "⚖️ **Hỏi quy định** pháp luật đô thị Đà Nẵng\n" +
+                    "📊 **Xem thống kê** sự cố cộng đồng\n" +
+                    "🎯 **Khám phá chiến dịch** tình nguyện\n\n" +
+                    "Cô chú muốn bắt đầu từ đâu ạ?";
+        }
+
+        java.util.Map<String, Object> res = new java.util.HashMap<>();
+        res.put("intent", "NAVIGATION_GUIDE");
+        res.put("emotion", "POSITIVE");
+        res.put("reply", reply);
+        res.put("suggestedFollowUps", buildSuggestedFollowUps(ChatIntent.NAVIGATION_GUIDE));
+        if (navigateTo != null) {
+            res.put("action", "NAVIGATE");
+            res.put("navigateTo", navigateTo);
+        }
+        return res;
+    }
+
+    /**
+     * Lưu đánh giá chất lượng câu trả lời từ người dùng.
+     */
+    @Transactional
+    public boolean rateMessage(String historyId, int rating) {
+        try {
+            java.util.UUID uuid = java.util.UUID.fromString(historyId);
+            int updated = chatHistoryRepository.updateUserRating(uuid, rating);
+            log.info("✅ [Rating] historyId={} rated={}", historyId, rating);
+            return updated > 0;
+        } catch (Exception e) {
+            log.error("Lỗi khi lưu rating", e);
+            return false;
+        }
     }
 
     @Transactional(readOnly = true)

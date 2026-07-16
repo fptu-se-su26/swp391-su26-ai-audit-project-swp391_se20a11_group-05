@@ -16,8 +16,18 @@ public class UserDTO {
     private String fullName;
     private String phoneNumber;
     private String email;
+    private String avatarUrl;
     private Role role;
-    private boolean isActive;
-    private boolean isMfaEnabled;
+    private Boolean isActive;
+    private Boolean isMfaEnabled;
     private Long wardId;
+    private String wardName;
+    private String wardType;
+    private Integer warningCount;
+    private Integer completedCampaignCount;
+    private Integer noShowCampaignCount;
+    private String reputationBadge;
+    private Boolean isCampaignBanned;
+    private java.time.LocalDateTime lastCampaignUnbanAt;
+    private String status;
 }

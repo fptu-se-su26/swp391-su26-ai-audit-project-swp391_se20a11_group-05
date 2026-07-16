@@ -11,6 +11,8 @@ import com.example.smartcity.modules.campaign.dto.CampaignRequest;
 import com.example.smartcity.modules.campaign.dto.CampaignResponse;
 import com.example.smartcity.modules.campaign.dto.CampaignJoinRequest;
 import com.example.smartcity.modules.campaign.dto.CampaignBatchApproveRequest;
+import com.example.smartcity.modules.campaign.dto.AttendanceBulkRequest;
+import com.example.smartcity.modules.campaign.dto.CampaignChatRoomResponse;
 import com.example.smartcity.modules.campaign.service.CampaignService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -65,19 +67,11 @@ public class CampaignController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('WARD_STAFF')")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'POLICE', 'SUPER_ADMIN')")
     public ResponseEntity<CampaignResponse> create(
             @Valid @RequestBody CampaignRequest request,
             Authentication authentication) {
         return ResponseEntity.ok(campaignService.create(request, authentication.getName()));
-    }
-
-    @PostMapping("/{id}/approve")
-    @Deprecated
-    public ResponseEntity<CampaignResponse> approveCampaign(
-            @PathVariable Long id,
-            Authentication authentication) {
-        throw new UnsupportedOperationException("Approval flow is deprecated; campaigns are active upon creation.");
     }
 
     @PostMapping("/{id}/join")
@@ -131,7 +125,7 @@ public class CampaignController {
     }
 
     @GetMapping("/{id}/participants")
-    @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<CampaignParticipantResponse>> getParticipants(
             @PathVariable Long id,
             Authentication authentication) {
@@ -139,7 +133,7 @@ public class CampaignController {
     }
 
     @PostMapping("/{id}/participants/{participantId}/approve")
-    @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'POLICE', 'SUPER_ADMIN')")
     public ResponseEntity<CampaignParticipantResponse> approveParticipant(
             @PathVariable Long id,
             @PathVariable Long participantId,
@@ -148,7 +142,7 @@ public class CampaignController {
     }
 
     @PostMapping("/{id}/participants/{participantId}/reject")
-    @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'POLICE', 'SUPER_ADMIN')")
     public ResponseEntity<CampaignParticipantResponse> rejectParticipant(
             @PathVariable Long id,
             @PathVariable Long participantId,
@@ -178,8 +172,9 @@ public class CampaignController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<CampaignChatMessageResponse>> getChatMessages(
             @PathVariable Long id,
+            @RequestParam(required = false) Long beforeId,
             Authentication authentication) {
-        return ResponseEntity.ok(campaignService.getChatMessages(id, authentication.getName()));
+        return ResponseEntity.ok(campaignService.getChatMessages(id, beforeId, authentication.getName()));
     }
 
     @PostMapping("/{id}/chat")
@@ -194,7 +189,7 @@ public class CampaignController {
     }
 
     @PostMapping("/{id}/chat/{messageId}/pin")
-    @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'POLICE', 'SUPER_ADMIN')")
     public ResponseEntity<CampaignChatMessageResponse> pinMessage(
             @PathVariable Long id,
             @PathVariable Long messageId,
@@ -205,7 +200,7 @@ public class CampaignController {
     }
 
     @PostMapping("/{id}/chat/{messageId}/unpin")
-    @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'POLICE', 'SUPER_ADMIN')")
     public ResponseEntity<CampaignChatMessageResponse> unpinMessage(
             @PathVariable Long id,
             @PathVariable Long messageId,
@@ -213,6 +208,23 @@ public class CampaignController {
         CampaignChatMessageResponse response = campaignService.unpinMessage(id, messageId, authentication.getName());
         messagingTemplate.convertAndSend("/topic/campaigns/" + id + "/chat", response);
         return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{id}/chat/{messageId}")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN')")
+    public ResponseEntity<Void> deleteMessage(
+            @PathVariable Long id,
+            @PathVariable Long messageId,
+            Authentication authentication) {
+        campaignService.deleteChatMessage(id, messageId, authentication.getName());
+        CampaignChatMessageResponse deleteEvent = CampaignChatMessageResponse.builder()
+                .id(messageId)
+                .message("")
+                .senderName("")
+                .senderRole("")
+                .build();
+        messagingTemplate.convertAndSend("/topic/campaigns/" + id + "/chat", deleteEvent);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/feedback")
@@ -237,7 +249,7 @@ public class CampaignController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('WARD_STAFF')")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'POLICE', 'SUPER_ADMIN')")
     public ResponseEntity<CampaignResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody CampaignRequest request,
@@ -245,8 +257,19 @@ public class CampaignController {
         return ResponseEntity.ok(campaignService.update(id, request, authentication.getName()));
     }
 
+    @PutMapping("/{id}/announcement-mode")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN')")
+    public ResponseEntity<CampaignResponse> setAnnouncementMode(
+            @PathVariable Long id,
+            @RequestParam boolean enabled,
+            Authentication authentication) {
+        CampaignResponse response = campaignService.setAnnouncementMode(id, enabled, authentication.getName());
+        messagingTemplate.convertAndSend("/topic/campaigns/" + id + "/announcement-mode", (Object) java.util.Map.of("announcementMode", enabled));
+        return ResponseEntity.ok(response);
+    }
+
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('WARD_STAFF')")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'POLICE', 'SUPER_ADMIN')")
     public ResponseEntity<Void> delete(
             @PathVariable Long id,
             Authentication authentication) {
@@ -255,11 +278,65 @@ public class CampaignController {
     }
 
     @PostMapping("/{id}/end")
-    @PreAuthorize("hasRole('WARD_STAFF')")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'POLICE', 'SUPER_ADMIN')")
     public ResponseEntity<CampaignResponse> endCampaign(
             @PathVariable Long id,
+            @RequestParam(required = false) String reason,
             Authentication authentication) {
-        return ResponseEntity.ok(campaignService.endCampaign(id, authentication.getName()));
+        return ResponseEntity.ok(campaignService.endCampaign(id, reason, username(authentication)));
+    }
+
+    @PostMapping("/{id}/signal-attendance")
+    @PreAuthorize("hasRole('CITIZEN')")
+    public ResponseEntity<CampaignParticipantResponse> signalAttendance(
+            @PathVariable Long id,
+            @RequestParam String signal,
+            Authentication authentication) {
+        if (!"CONFIRMED".equals(signal) && !"MAYBE".equals(signal)) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(campaignService.signalAttendance(id, authentication.getName(), signal));
+    }
+
+    @PostMapping("/{id}/finalize")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN')")
+    public ResponseEntity<CampaignResponse> finalizeCampaign(
+            @PathVariable Long id,
+            Authentication authentication) {
+        return ResponseEntity.ok(campaignService.finalizeCampaign(id, authentication.getName()));
+    }
+
+    @GetMapping("/{id}/participants/lookup")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN')")
+    public ResponseEntity<CampaignParticipantResponse> lookupParticipantByPhone(
+            @PathVariable Long id,
+            @RequestParam String phone,
+            Authentication authentication) {
+        return ResponseEntity.ok(campaignService.lookupParticipantByPhone(id, phone, authentication.getName()));
+    }
+
+    @PostMapping("/{id}/attendance/bulk")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN')")
+    public ResponseEntity<List<CampaignParticipantResponse>> bulkSaveAttendance(
+            @PathVariable Long id,
+            @Valid @RequestBody AttendanceBulkRequest request,
+            Authentication authentication) {
+        return ResponseEntity.ok(campaignService.bulkSaveAttendance(id, request, authentication.getName()));
+    }
+    
+    @GetMapping("/my-chats")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<CampaignChatRoomResponse>> getMyChatRooms(Authentication authentication) {
+        return ResponseEntity.ok(campaignService.getMyChatRooms(username(authentication)));
+    }
+
+    @GetMapping("/participants/user/{userId}")
+    @PreAuthorize("hasAnyRole('WARD_STAFF', 'SUPER_ADMIN', 'POLICE', 'CITIZEN')")
+
+    public ResponseEntity<List<CampaignParticipantResponse>> getCitizenParticipationHistory(
+            @PathVariable Long userId,
+            Authentication authentication) {
+        return ResponseEntity.ok(campaignService.getCitizenParticipationHistory(userId, username(authentication)));
     }
 
     private String username(Authentication authentication) {

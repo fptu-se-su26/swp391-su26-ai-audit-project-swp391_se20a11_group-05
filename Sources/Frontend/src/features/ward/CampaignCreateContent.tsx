@@ -29,7 +29,6 @@ import { getToken } from "@/lib/api";
 const API_BASE: string =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) || "";
 
-
 const categories: { value: CampaignCategory; label: string }[] = [
   { value: "environment", label: "Môi trường" },
   { value: "infrastructure", label: "Hạ tầng" },
@@ -52,7 +51,7 @@ const categoryImages: Record<CampaignCategory, string> = {
 };
 
 const inputClass =
-  "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900 outline-none transition focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/15 shadow-sm";
+  "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15 shadow-sm";
 
 interface CampaignCreateContentProps {
   onBack?: () => void;
@@ -90,6 +89,7 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
     return `${yyyy}-${mm}-${dd}`;
   }, []);
   const [maxParticipants, setMaxParticipants] = useState("30");
+  const [minParticipants, setMinParticipants] = useState("");
   const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -123,7 +123,7 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
       try {
         const query = encodeURIComponent(`${trimmed}, Đà Nẵng, Việt Nam`);
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${query}`
+          `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${query}`,
         );
         const results = await response.json();
         if (results && results[0]) {
@@ -141,7 +141,7 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
     return () => clearTimeout(timer);
   }, [locationText]);
 
-  const canCreate = isAuthenticated && user?.role === Role.WARD_STAFF;
+  const canCreate = isAuthenticated && (user?.role === Role.WARD_STAFF || user?.role === Role.POLICE);
   const startTime = combineDateTime(startDate, startClock);
   const endTime = combineDateTime(endDate, endClock);
 
@@ -255,6 +255,18 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
       return;
     }
 
+    if (minParticipants.trim() !== "") {
+      const minPartNum = Number.parseInt(minParticipants, 10);
+      if (Number.isNaN(minPartNum) || minPartNum <= 0) {
+        toast.error("Số người tối thiểu phải là số nguyên dương.");
+        return;
+      }
+      if (minPartNum > maxPartNum) {
+        toast.error("Số người tối thiểu không được lớn hơn số người tối đa.");
+        return;
+      }
+    }
+
     setShowConfirmDialog(true);
   };
 
@@ -262,9 +274,8 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
     setShowConfirmDialog(false);
     setIsUploading(true);
     const radiusVal = Number(radiusText) || 0;
-    const boundaryGeojson = radiusVal > 0 
-      ? createGeoJsonCircle(selectedCoordinates, radiusVal)
-      : undefined;
+    const boundaryGeojson =
+      radiusVal > 0 ? createGeoJsonCircle(selectedCoordinates, radiusVal) : undefined;
 
     const uploadedUrls: string[] = [];
 
@@ -305,6 +316,7 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
         startTime,
         endTime,
         maxParticipants,
+        minParticipants: minParticipants.trim() !== "" ? minParticipants : undefined,
         wardId: user?.wardId ?? undefined,
         wardName: user?.wardName || user?.org,
         latitude: selectedCoordinates.lat,
@@ -336,16 +348,27 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
         </div>
         <h1 className="text-2xl font-black text-slate-900">Quyền truy cập bị giới hạn</h1>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Chỉ có cán bộ địa phương phụ trách được cấp quyền tạo các chiến dịch cộng đồng mới.
+          Chỉ có cán bộ địa phương hoặc lực lượng Công an phụ trách được cấp quyền tạo các chiến dịch cộng đồng mới.
           Người dân có thể đăng ký tham gia các chiến dịch khi đã được phê duyệt chính thức.
         </p>
-        <Link
-          to="/campaigns"
-          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-indigo-700 active:scale-[0.97]"
-        >
-          <ArrowLeft size={16} />
-          Quay lại danh sách
-        </Link>
+        {onBack ? (
+          <button
+            onClick={onBack}
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-emerald-700 active:scale-[0.97]"
+          >
+            <ArrowLeft size={16} />
+            Quay lại
+          </button>
+        ) : (
+          <Link
+            to="/ward"
+            search={{ tab: "campaign" }}
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-emerald-700 active:scale-[0.97]"
+          >
+            <ArrowLeft size={16} />
+            Quay lại danh sách
+          </Link>
+        )}
       </section>
     );
   }
@@ -353,444 +376,473 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
   return (
     <>
       <form onSubmit={handleSubmit} className="mx-auto max-w-[1280px]">
-      <header className="mb-6 flex items-center justify-between border-b border-slate-100 pb-4 text-left">
-        <div className="flex items-center gap-3">
-          {onBack ? (
-            <button
-              type="button"
-              onClick={onBack}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-indigo-600 cursor-pointer shadow-sm"
-            >
-              <ArrowLeft size={16} />
-            </button>
-          ) : (
-            <Link
-              to="/campaigns"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-indigo-600 shadow-sm"
-            >
-              <ArrowLeft size={16} />
-            </Link>
-          )}
-          <div>
-            <h1 className="text-xl font-black tracking-tight text-slate-950">Tạo chiến dịch mới</h1>
-            <p className="text-xs font-semibold text-slate-500">Thiết lập các thông tin hoạt động cộng đồng</p>
-          </div>
-        </div>
-      </header>
-
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,60fr)_minmax(320px,40fr)] text-left">
-        <div className="space-y-6">
-          <section className="rounded-2xl border border-slate-100 bg-white p-7 shadow-md">
-            <SectionTitle
-              number="1"
-              title="Thông tin chung"
-              subtitle="Hiển thị công khai cho người dân khi tìm kiếm chiến dịch."
-            />
-
-            <div className="mt-5">
-              <span className="mb-2 flex items-center gap-2 text-sm font-black text-slate-800">
-                <Camera size={15} className="text-indigo-600" />
-                Hình ảnh chiến dịch (Tối đa 5 ảnh, ảnh đầu tiên làm ảnh bìa)
-              </span>
-              
-              {photoPreviews.length > 0 ? (
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
-                  {photoPreviews.map((preview, index) => (
-                    <div key={index} className="group relative aspect-square overflow-hidden rounded-xl border border-slate-200 bg-slate-50 shadow-sm">
-                      <img src={preview} alt={`Preview ${index}`} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
-                      
-                      {index === 0 && (
-                        <span className="absolute left-2 top-2 rounded-lg bg-indigo-600 px-2 py-0.5 text-[10px] font-extrabold text-white shadow-md">
-                          Ảnh bìa
-                        </span>
-                      )}
-                      
-                      <button
-                        type="button"
-                        onClick={() => removePhoto(index)}
-                        className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-slate-900/70 text-white opacity-0 transition duration-200 hover:bg-slate-900 group-hover:opacity-100 cursor-pointer"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                  
-                  {photoPreviews.length < 5 && (
-                    <label className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50/20 transition hover:border-indigo-600 hover:bg-indigo-50/50">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        className="sr-only"
-                        onChange={(event) => handlePhotosUpload(event.target.files)}
-                      />
-                      <Camera size={20} className="text-indigo-600 mb-1" />
-                      <span className="text-[11px] font-black text-slate-700">Thêm ảnh</span>
-                    </label>
-                  )}
-                </div>
-              ) : (
-                <label
-                  className="block cursor-pointer rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50/20 p-6 transition hover:border-indigo-600"
-                  onDragOver={(event) => event.preventDefault()}
-                  onDrop={(event) => {
-                    event.preventDefault();
-                    handlePhotosUpload(event.dataTransfer.files);
-                  }}
-                >
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="sr-only"
-                    onChange={(event) => handlePhotosUpload(event.target.files)}
-                  />
-                  <div className="grid aspect-[16/9] place-items-center rounded-xl bg-white text-center">
-                    <div>
-                      <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-indigo-50 text-indigo-600">
-                        <Camera size={22} />
-                      </div>
-                      <p className="mt-3 text-sm font-black text-slate-800">
-                        Kéo thả hoặc click để upload các ảnh chiến dịch
-                      </p>
-                      <p className="mt-1 text-xs font-semibold text-slate-500">
-                        Hỗ trợ tối đa 5 ảnh. Khuyến nghị tỉ lệ 16:9, ảnh rõ chủ đề chiến dịch.
-                      </p>
-                    </div>
-                  </div>
-                </label>
-              )}
-            </div>
-
-            <div className="mt-6 space-y-5">
-              <Field icon={ClipboardList} label="Tên chiến dịch" required>
-                <input
-                  value={title}
-                  onChange={(event) => setTitle(event.target.value)}
-                  className={inputClass}
-                  placeholder="Ví dụ: Dọn rác bãi biển Mỹ Khê chủ nhật xanh"
-                />
-              </Field>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field icon={Package} label="Lĩnh vực">
-                  <select
-                    value={category}
-                    onChange={(event) => setCategory(event.target.value as CampaignCategory)}
-                    className={inputClass}
-                  >
-                    {categories.map((item) => (
-                      <option key={item.value} value={item.value}>
-                        {item.label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-
-                <Field icon={Users} label="Tình nguyện viên cần tuyển">
-                  <input
-                    value={maxParticipants}
-                    onChange={(event) => setMaxParticipants(event.target.value)}
-                    className={inputClass}
-                    type="number"
-                    min="1"
-                    placeholder="30"
-                  />
-                </Field>
-              </div>
-
-              <Field icon={ClipboardList} label="Mô tả chi tiết chiến dịch" required>
-                <textarea
-                  value={description}
-                  onChange={(event) => setDescription(event.target.value.slice(0, 500))}
-                  className={`${inputClass} min-h-32 resize-y py-3`}
-                  placeholder="Mục đích, thông điệp truyền tải, quyền lợi và nội dung hoạt động..."
-                />
-                <div className="mt-1 text-right text-xs font-semibold text-slate-400">
-                  {description.length}/500 ký tự
-                </div>
-              </Field>
-            </div>
-          </section>
-
-          <section className="rounded-2xl border border-slate-100 bg-white p-7 shadow-md">
-            <SectionTitle
-              number="2"
-              title="Lịch và địa điểm"
-              subtitle="Thời gian, địa chỉ và bản đồ vị trí hoạt động."
-            />
-
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <Field icon={CalendarDays} label="Ngày bắt đầu" required>
-                <input
-                  type="date"
-                  min={todayStr}
-                  value={startDate}
-                  onChange={(event) => setStartDate(event.target.value)}
-                  className={inputClass}
-                />
-              </Field>
-              <Field icon={CalendarDays} label="Giờ bắt đầu" required>
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <select
-                      value={startHour}
-                      onChange={(e) => setStartHour(e.target.value)}
-                      className={`${inputClass} appearance-none pr-8`}
-                    >
-                      {Array.from({ length: 24 }).map((_, i) => {
-                        const val = String(i).padStart(2, "0");
-                        return (
-                          <option key={val} value={val}>
-                            {val} giờ
-                          </option>
-                        );
-                      })}
-                    </select>
-                    <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">
-                      ▼
-                    </div>
-                  </div>
-                  <span className="text-slate-300 font-bold">:</span>
-                  <div className="relative flex-1">
-                    <select
-                      value={startMinute}
-                      onChange={(e) => setStartMinute(e.target.value)}
-                      className={`${inputClass} appearance-none pr-8`}
-                    >
-                      {Array.from({ length: 60 }).map((_, i) => {
-                        const val = String(i).padStart(2, "0");
-                        return (
-                          <option key={val} value={val}>
-                            {val} phút
-                          </option>
-                        );
-                      })}
-                    </select>
-                    <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">
-                      ▼
-                    </div>
-                  </div>
-                </div>
-              </Field>
-              <Field icon={CalendarDays} label="Ngày kết thúc" required>
-                <input
-                  type="date"
-                  min={startDate || todayStr}
-                  value={endDate}
-                  onChange={(event) => setEndDate(event.target.value)}
-                  className={inputClass}
-                />
-              </Field>
-              <Field icon={CalendarDays} label="Giờ kết thúc" required>
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <select
-                      value={endHour}
-                      onChange={(e) => setEndHour(e.target.value)}
-                      className={`${inputClass} appearance-none pr-8`}
-                    >
-                      {Array.from({ length: 24 }).map((_, i) => {
-                        const val = String(i).padStart(2, "0");
-                        return (
-                          <option key={val} value={val}>
-                            {val} giờ
-                          </option>
-                        );
-                      })}
-                    </select>
-                    <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">
-                      ▼
-                    </div>
-                  </div>
-                  <span className="text-slate-300 font-bold">:</span>
-                  <div className="relative flex-1">
-                    <select
-                      value={endMinute}
-                      onChange={(e) => setEndMinute(e.target.value)}
-                      className={`${inputClass} appearance-none pr-8`}
-                    >
-                      {Array.from({ length: 60 }).map((_, i) => {
-                        const val = String(i).padStart(2, "0");
-                        return (
-                          <option key={val} value={val}>
-                            {val} phút
-                          </option>
-                        );
-                      })}
-                    </select>
-                    <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">
-                      ▼
-                    </div>
-                  </div>
-                </div>
-              </Field>
-            </div>
-
-            {durationText && (
-              <div
-                className={`mt-4 flex items-center gap-2 rounded-xl border px-4 py-3 text-xs font-bold ${
-                  isDurationError
-                    ? "border-red-200 bg-red-50 text-red-700"
-                    : "border-emerald-200 bg-emerald-50 text-emerald-800"
-                }`}
+        <header className="mb-6 flex items-center justify-between border-b border-slate-100 pb-4 text-left">
+          <div className="flex items-center gap-3">
+            {onBack ? (
+              <button
+                type="button"
+                onClick={onBack}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-emerald-600 cursor-pointer shadow-sm"
               >
-                <CalendarDays size={15} />
-                <span>{durationText}</span>
-              </div>
+                <ArrowLeft size={16} />
+              </button>
+            ) : (
+              <Link
+                to="/ward"
+                search={{ tab: "campaign" }}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-emerald-600 shadow-sm"
+              >
+                <ArrowLeft size={16} />
+              </Link>
             )}
-
-            <div className="mt-5 grid gap-5 sm:grid-cols-2">
-              <Field icon={MapPin} label="Địa chỉ cụ thể" required>
-                <div className="relative">
-                  <Search
-                    size={16}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                  />
-                  <input
-                    value={locationText}
-                    onChange={(event) => setLocationText(event.target.value)}
-                    className={`${inputClass} pl-9`}
-                    placeholder="Nhập địa chỉ, phường hoặc quận tại Đà Nẵng"
-                  />
-                </div>
-              </Field>
-
-              <Field icon={Search} label="Bán kính hoạt động (mét)" required>
-                <input
-                  type="number"
-                  min="0"
-                  value={radiusText}
-                  onChange={(event) => setRadiusText(event.target.value)}
-                  className={inputClass}
-                  placeholder="VD: 200"
-                />
-              </Field>
+            <div>
+              <h1 className="text-xl font-black tracking-tight text-slate-950">
+                Tạo chiến dịch mới
+              </h1>
+              <p className="text-xs font-semibold text-slate-500">
+                Thiết lập các thông tin hoạt động cộng đồng
+              </p>
             </div>
+          </div>
+        </header>
 
-            <div className="mt-5 overflow-hidden rounded-2xl border border-slate-100">
-              <CampaignLocationPicker
-                coordinates={selectedCoordinates}
-                radius={Number(radiusText) || 0}
-                onLocationSelect={(lat, lng) => {
-                  setSelectedCoordinates({ lat, lng, zoom: 16 });
-                }}
-                onAddressSelect={(address) => {
-                  lastResolvedAddressRef.current = address;
-                  setLocationText(address);
-                }}
+        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,60fr)_minmax(320px,40fr)] text-left">
+          <div className="space-y-6">
+            <section className="rounded-2xl border border-slate-100 bg-white p-7 shadow-md">
+              <SectionTitle
+                number="1"
+                title="Thông tin chung"
+                subtitle="Hiển thị công khai cho người dân khi tìm kiếm chiến dịch."
               />
-            </div>
-          </section>
 
-          <section className="rounded-2xl border border-amber-200 bg-[#FFFBF0] p-7 shadow-md">
-            <SectionTitle
-              number="3"
-              title="Thông tin nội bộ"
-              subtitle="Chỉ tình nguyện viên được duyệt mới thấy thông tin này."
-              icon={Lock}
-            />
-
-            <div className="mt-5 grid gap-5">
-              <Field label="Điểm tập trung / Hẹn gặp" required>
-                <textarea
-                  value={privateLocationText}
-                  onChange={(event) => setPrivateLocationText(event.target.value)}
-                  className={`${inputClass} min-h-24 resize-y py-3`}
-                  placeholder="VD: Cổng trường Tiểu học Trần Cao Vân, số 23 Lê Duẩn"
-                />
-              </Field>
-              <Field label="Công cụ cần mang theo" required>
-                <textarea
-                  value={requiredTools}
-                  onChange={(event) => setRequiredTools(event.target.value)}
-                  className={`${inputClass} min-h-24 resize-y py-3`}
-                  placeholder="VD: Mang theo găng tay cao su, mũ tai bèo, nước cá nhân"
-                />
-              </Field>
-              <Field label="Người phụ trách / SĐT" required>
-                <input
-                  value={organizerContact}
-                  onChange={(event) => setOrganizerContact(event.target.value)}
-                  className={inputClass}
-                  placeholder="VD: Anh Hải (0905.xxx.xxx) - Bí thư chi đoàn"
-                />
-              </Field>
-            </div>
-          </section>
-
-          <footer className="flex rounded-2xl border border-slate-100 bg-white p-4 shadow-md justify-end">
-            <button
-              type="submit"
-              disabled={isLoading || isUploading || isDurationError}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 text-sm font-black text-white shadow-md transition hover:bg-indigo-700 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
-            >
-              <Send size={16} />
-              {isLoading || isUploading ? "Đang tạo..." : "Tạo chiến dịch"}
-            </button>
-          </footer>
-          <p className="text-right text-xs font-semibold text-slate-500">
-            Chiến dịch sẽ hoạt động và công khai ngay sau khi tạo.
-          </p>
-        </div>
-
-        <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
-          <HelperCard title="Quy trình" icon={ShieldCheck}>
-            <div className="space-y-3">
-              <ProcessStep
-                color="bg-indigo-600"
-                label="Tạo chiến dịch"
-                text="Hoàn thành biểu mẫu và tạo chiến dịch."
-              />
-              <ProcessStep
-                color="bg-[#10B981]"
-                label="Mở đăng ký"
-                text="Chiến dịch hoạt động ngay lập tức và công khai cho người dân tham gia."
-              />
-            </div>
-          </HelperCard>
-
-          <HelperCard title="Mẹo tạo chiến dịch hiệu quả" icon={Lightbulb}>
-            <ul className="space-y-3 text-sm font-semibold leading-6 text-slate-600">
-              <li>Đặt tên rõ mục tiêu và địa điểm.</li>
-              <li>Mô tả đầy đủ quyền lợi của tình nguyện viên.</li>
-              <li>Đặt số lượng người tham gia thực tế.</li>
-              <li>Ghi rõ dụng cụ, thời gian và người phụ trách.</li>
-            </ul>
-          </HelperCard>
-
-          <HelperCard title="Xem trước" icon={Eye}>
-            <div className="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm">
-              <div className="relative aspect-video bg-slate-100">
-                <img
-                  src={previewImage}
-                  alt="Preview campaign"
-                  className="h-full w-full object-cover"
-                />
-                <span className="absolute left-3 top-3 rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
-                  Đang tuyển
+              <div className="mt-5">
+                <span className="mb-2 flex items-center gap-2 text-sm font-black text-slate-800">
+                  <Camera size={15} className="text-emerald-600" />
+                  Hình ảnh chiến dịch (Tối đa 5 ảnh, ảnh đầu tiên làm ảnh bìa)
                 </span>
+
+                {photoPreviews.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
+                    {photoPreviews.map((preview, index) => (
+                      <div
+                        key={index}
+                        className="group relative aspect-square overflow-hidden rounded-xl border border-slate-200 bg-slate-50 shadow-sm"
+                      >
+                        <img
+                          src={preview}
+                          alt={`Preview ${index}`}
+                          className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                        />
+
+                        {index === 0 && (
+                          <span className="absolute left-2 top-2 rounded-lg bg-emerald-600 px-2 py-0.5 text-[10px] font-extrabold text-white shadow-md">
+                            Ảnh bìa
+                          </span>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => removePhoto(index)}
+                          className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-slate-900/70 text-white opacity-0 transition duration-200 hover:bg-slate-900 group-hover:opacity-100 cursor-pointer"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+
+                    {photoPreviews.length < 5 && (
+                      <label className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-emerald-200 bg-emerald-50/20 transition hover:border-emerald-600 hover:bg-emerald-50/50">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="sr-only"
+                          onChange={(event) => handlePhotosUpload(event.target.files)}
+                        />
+                        <Camera size={20} className="text-emerald-600 mb-1" />
+                        <span className="text-[11px] font-black text-slate-700">Thêm ảnh</span>
+                      </label>
+                    )}
+                  </div>
+                ) : (
+                  <label
+                    className="block cursor-pointer rounded-2xl border-2 border-dashed border-emerald-200 bg-emerald-50/20 p-6 transition hover:border-emerald-600"
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      handlePhotosUpload(event.dataTransfer.files);
+                    }}
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="sr-only"
+                      onChange={(event) => handlePhotosUpload(event.target.files)}
+                    />
+                    <div className="grid aspect-[16/9] place-items-center rounded-xl bg-white text-center">
+                      <div>
+                        <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-emerald-50 text-emerald-600">
+                          <Camera size={22} />
+                        </div>
+                        <p className="mt-3 text-sm font-black text-slate-800">
+                          Kéo thả hoặc click để upload các ảnh chiến dịch
+                        </p>
+                        <p className="mt-1 text-xs font-semibold text-slate-500">
+                          Hỗ trợ tối đa 5 ảnh. Khuyến nghị tỉ lệ 16:9, ảnh rõ chủ đề chiến dịch.
+                        </p>
+                      </div>
+                    </div>
+                  </label>
+                )}
               </div>
-              <div className="p-4">
-                <p className="line-clamp-2 text-base font-black text-slate-950">
-                  {title.trim() || "Tên chiến dịch sẽ hiển thị tại đây"}
-                </p>
-                <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600">
-                  {description.trim() ||
-                    "Mô tả ngắn của chiến dịch sẽ được cập nhật realtime khi bạn nhập nội dung."}
-                </p>
-                <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-slate-500">
-                  <MapPin size={14} />
-                  {locationText.trim() || "Địa điểm hoạt động"}
+
+              <div className="mt-6 space-y-5">
+                <Field icon={ClipboardList} label="Tên chiến dịch" required>
+                  <input
+                    value={title}
+                    onChange={(event) => setTitle(event.target.value)}
+                    className={inputClass}
+                    placeholder="Ví dụ: Dọn rác bãi biển Mỹ Khê chủ nhật xanh"
+                  />
+                </Field>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Field icon={Package} label="Lĩnh vực">
+                    <select
+                      value={category}
+                      onChange={(event) => setCategory(event.target.value as CampaignCategory)}
+                      className={inputClass}
+                    >
+                      {categories.map((item) => (
+                        <option key={item.value} value={item.value}>
+                          {item.label}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+
+                  <Field icon={Users} label="Tình nguyện viên cần tuyển (tối đa)">
+                    <input
+                      value={maxParticipants}
+                      onChange={(event) => setMaxParticipants(event.target.value)}
+                      className={inputClass}
+                      type="number"
+                      min="1"
+                      placeholder="30"
+                    />
+                  </Field>
                 </div>
-                <div className="mt-4 h-1.5 rounded-full bg-slate-100">
-                  <div className="h-full w-0 rounded-full bg-[#10B981]" />
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Field icon={Users} label="Số người tối thiểu để chốt">
+                    <input
+                      value={minParticipants}
+                      onChange={(event) => setMinParticipants(event.target.value)}
+                      className={inputClass}
+                      type="number"
+                      min="1"
+                      placeholder="Để trống nếu không yêu cầu"
+                    />
+                    <p className="mt-1.5 text-xs font-semibold text-slate-400">
+                      Hệ thống tự động hủy nếu chưa đủ số này khi đến giờ bắt đầu.
+                    </p>
+                  </Field>
+                  <div />
+                </div>
+
+                <Field icon={ClipboardList} label="Mô tả chi tiết chiến dịch" required>
+                  <textarea
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value.slice(0, 500))}
+                    className={`${inputClass} min-h-32 resize-y py-3`}
+                    placeholder="Mục đích, thông điệp truyền tải, quyền lợi và nội dung hoạt động..."
+                  />
+                  <div className="mt-1 text-right text-xs font-semibold text-slate-400">
+                    {description.length}/500 ký tự
+                  </div>
+                </Field>
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-slate-100 bg-white p-7 shadow-md">
+              <SectionTitle
+                number="2"
+                title="Lịch và địa điểm"
+                subtitle="Thời gian, địa chỉ và bản đồ vị trí hoạt động."
+              />
+
+              <div className="mt-5 grid gap-4 md:grid-cols-2">
+                <Field icon={CalendarDays} label="Ngày bắt đầu" required>
+                  <input
+                    type="date"
+                    min={todayStr}
+                    value={startDate}
+                    onChange={(event) => setStartDate(event.target.value)}
+                    className={inputClass}
+                  />
+                </Field>
+                <Field icon={CalendarDays} label="Giờ bắt đầu" required>
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <select
+                        value={startHour}
+                        onChange={(e) => setStartHour(e.target.value)}
+                        className={`${inputClass} appearance-none pr-8`}
+                      >
+                        {Array.from({ length: 24 }).map((_, i) => {
+                          const val = String(i).padStart(2, "0");
+                          return (
+                            <option key={val} value={val}>
+                              {val} giờ
+                            </option>
+                          );
+                        })}
+                      </select>
+                      <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">
+                        ▼
+                      </div>
+                    </div>
+                    <span className="text-slate-300 font-bold">:</span>
+                    <div className="relative flex-1">
+                      <select
+                        value={startMinute}
+                        onChange={(e) => setStartMinute(e.target.value)}
+                        className={`${inputClass} appearance-none pr-8`}
+                      >
+                        {Array.from({ length: 60 }).map((_, i) => {
+                          const val = String(i).padStart(2, "0");
+                          return (
+                            <option key={val} value={val}>
+                              {val} phút
+                            </option>
+                          );
+                        })}
+                      </select>
+                      <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">
+                        ▼
+                      </div>
+                    </div>
+                  </div>
+                </Field>
+                <Field icon={CalendarDays} label="Ngày kết thúc" required>
+                  <input
+                    type="date"
+                    min={startDate || todayStr}
+                    value={endDate}
+                    onChange={(event) => setEndDate(event.target.value)}
+                    className={inputClass}
+                  />
+                </Field>
+                <Field icon={CalendarDays} label="Giờ kết thúc" required>
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <select
+                        value={endHour}
+                        onChange={(e) => setEndHour(e.target.value)}
+                        className={`${inputClass} appearance-none pr-8`}
+                      >
+                        {Array.from({ length: 24 }).map((_, i) => {
+                          const val = String(i).padStart(2, "0");
+                          return (
+                            <option key={val} value={val}>
+                              {val} giờ
+                            </option>
+                          );
+                        })}
+                      </select>
+                      <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">
+                        ▼
+                      </div>
+                    </div>
+                    <span className="text-slate-300 font-bold">:</span>
+                    <div className="relative flex-1">
+                      <select
+                        value={endMinute}
+                        onChange={(e) => setEndMinute(e.target.value)}
+                        className={`${inputClass} appearance-none pr-8`}
+                      >
+                        {Array.from({ length: 60 }).map((_, i) => {
+                          const val = String(i).padStart(2, "0");
+                          return (
+                            <option key={val} value={val}>
+                              {val} phút
+                            </option>
+                          );
+                        })}
+                      </select>
+                      <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">
+                        ▼
+                      </div>
+                    </div>
+                  </div>
+                </Field>
+              </div>
+
+              {durationText && (
+                <div
+                  className={`mt-4 flex items-center gap-2 rounded-xl border px-4 py-3 text-xs font-bold ${
+                    isDurationError
+                      ? "border-red-200 bg-red-50 text-red-700"
+                      : "border-emerald-200 bg-emerald-50 text-emerald-800"
+                  }`}
+                >
+                  <CalendarDays size={15} />
+                  <span>{durationText}</span>
+                </div>
+              )}
+
+              <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                <Field icon={MapPin} label="Địa chỉ cụ thể" required>
+                  <div className="relative">
+                    <Search
+                      size={16}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                    <input
+                      value={locationText}
+                      onChange={(event) => setLocationText(event.target.value)}
+                      className={`${inputClass} pl-9`}
+                      placeholder="Nhập địa chỉ, phường hoặc quận tại Đà Nẵng"
+                    />
+                  </div>
+                </Field>
+
+                <Field icon={Search} label="Bán kính hoạt động (mét)" required>
+                  <input
+                    type="number"
+                    min="0"
+                    value={radiusText}
+                    onChange={(event) => setRadiusText(event.target.value)}
+                    className={inputClass}
+                    placeholder="VD: 200"
+                  />
+                </Field>
+              </div>
+
+              <div className="mt-5 overflow-hidden rounded-2xl border border-slate-100">
+                <CampaignLocationPicker
+                  coordinates={selectedCoordinates}
+                  radius={Number(radiusText) || 0}
+                  onLocationSelect={(lat, lng) => {
+                    setSelectedCoordinates({ lat, lng, zoom: 16 });
+                  }}
+                  onAddressSelect={(address) => {
+                    lastResolvedAddressRef.current = address;
+                    setLocationText(address);
+                  }}
+                />
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-amber-200 bg-[#FFFBF0] p-7 shadow-md">
+              <SectionTitle
+                number="3"
+                title="Thông tin nội bộ"
+                subtitle="Chỉ tình nguyện viên được duyệt mới thấy thông tin này."
+                icon={Lock}
+              />
+
+              <div className="mt-5 grid gap-5">
+                <Field label="Điểm tập trung / Hẹn gặp" required>
+                  <textarea
+                    value={privateLocationText}
+                    onChange={(event) => setPrivateLocationText(event.target.value)}
+                    className={`${inputClass} min-h-24 resize-y py-3`}
+                    placeholder="VD: Cổng trường Tiểu học Trần Cao Vân, số 23 Lê Duẩn"
+                  />
+                </Field>
+                <Field label="Công cụ cần mang theo" required>
+                  <textarea
+                    value={requiredTools}
+                    onChange={(event) => setRequiredTools(event.target.value)}
+                    className={`${inputClass} min-h-24 resize-y py-3`}
+                    placeholder="VD: Mang theo găng tay cao su, mũ tai bèo, nước cá nhân"
+                  />
+                </Field>
+                <Field label="Người phụ trách / SĐT" required>
+                  <input
+                    value={organizerContact}
+                    onChange={(event) => setOrganizerContact(event.target.value)}
+                    className={inputClass}
+                    placeholder="VD: Anh Hải (0905.xxx.xxx) - Bí thư chi đoàn"
+                  />
+                </Field>
+              </div>
+            </section>
+
+            <footer className="flex rounded-2xl border border-slate-100 bg-white p-4 shadow-md justify-end">
+              <button
+                type="submit"
+                disabled={isLoading || isUploading || isDurationError}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-black text-white shadow-md transition hover:bg-emerald-700 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+              >
+                <Send size={16} />
+                {isLoading || isUploading ? "Đang tạo..." : "Tạo chiến dịch"}
+              </button>
+            </footer>
+            <p className="text-right text-xs font-semibold text-slate-500">
+              Chiến dịch sẽ hoạt động và công khai ngay sau khi tạo.
+            </p>
+          </div>
+
+          <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+            <HelperCard title="Quy trình" icon={ShieldCheck}>
+              <div className="space-y-3">
+                <ProcessStep
+                  color="bg-emerald-600"
+                  label="Tạo chiến dịch"
+                  text="Hoàn thành biểu mẫu và tạo chiến dịch."
+                />
+                <ProcessStep
+                  color="bg-[#10B981]"
+                  label="Mở đăng ký"
+                  text="Chiến dịch hoạt động ngay lập tức và công khai cho người dân tham gia."
+                />
+              </div>
+            </HelperCard>
+
+            <HelperCard title="Mẹo tạo chiến dịch hiệu quả" icon={Lightbulb}>
+              <ul className="space-y-3 text-sm font-semibold leading-6 text-slate-600">
+                <li>Đặt tên rõ mục tiêu và địa điểm.</li>
+                <li>Mô tả đầy đủ quyền lợi của tình nguyện viên.</li>
+                <li>Đặt số lượng người tham gia thực tế.</li>
+                <li>Ghi rõ dụng cụ, thời gian và người phụ trách.</li>
+              </ul>
+            </HelperCard>
+
+            <HelperCard title="Xem trước" icon={Eye}>
+              <div className="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm">
+                <div className="relative aspect-video bg-slate-100">
+                  <img
+                    src={previewImage}
+                    alt="Preview campaign"
+                    className="h-full w-full object-cover"
+                  />
+                  <span className="absolute left-3 top-3 rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
+                    Đang tuyển
+                  </span>
+                </div>
+                <div className="p-4">
+                  <p className="line-clamp-2 text-base font-black text-slate-950">
+                    {title.trim() || "Tên chiến dịch sẽ hiển thị tại đây"}
+                  </p>
+                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600">
+                    {description.trim() ||
+                      "Mô tả ngắn của chiến dịch sẽ được cập nhật realtime khi bạn nhập nội dung."}
+                  </p>
+                  <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-slate-500">
+                    <MapPin size={14} />
+                    {locationText.trim() || "Địa điểm hoạt động"}
+                  </div>
+                  <div className="mt-4 h-1.5 rounded-full bg-slate-100">
+                    <div className="h-full w-0 rounded-full bg-[#10B981]" />
+                  </div>
                 </div>
               </div>
-            </div>
-          </HelperCard>
-        </aside>
-      </div>
+            </HelperCard>
+          </aside>
+        </div>
       </form>
 
       {/* Location Scope Error Modal */}
@@ -836,22 +888,22 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
       {/* Confirmation Modal */}
       {showConfirmDialog && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          <div 
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" 
+          <div
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
             onClick={() => setShowConfirmDialog(false)}
           />
           <div className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-200 text-left animate-fade-in">
             <div className="flex flex-col items-center text-center">
-              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-indigo-50 text-indigo-600 mb-4">
+              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-emerald-50 text-emerald-600 mb-4">
                 <HelpCircle size={28} />
               </div>
               <h3 className="text-lg font-black text-slate-900">Xác nhận tạo chiến dịch</h3>
               <p className="mt-2 text-sm font-semibold text-slate-500 leading-relaxed">
-                Bạn có chắc chắn muốn tạo chiến dịch này?
-                Chiến dịch sẽ bắt đầu tuyển quân ngay lập tức sau khi tạo thành công.
+                Bạn có chắc chắn muốn tạo chiến dịch này? Chiến dịch sẽ bắt đầu tuyển quân ngay lập
+                tức sau khi tạo thành công.
               </p>
             </div>
-            
+
             <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
               <button
                 type="button"
@@ -863,7 +915,7 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
               <button
                 type="button"
                 onClick={performSubmit}
-                className="inline-flex h-11 items-center justify-center rounded-xl bg-indigo-600 px-5 text-sm font-black text-white shadow-md transition hover:bg-indigo-700 active:scale-[0.97] cursor-pointer"
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-emerald-600 px-5 text-sm font-black text-white shadow-md transition hover:bg-emerald-700 active:scale-[0.97] cursor-pointer"
               >
                 Đồng ý xác nhận
               </button>
@@ -884,21 +936,24 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
                 </div>
                 <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-amber-400 animate-ping opacity-75" />
               </div>
-              
+
               <h3 className="text-xl font-black text-slate-900">Tạo chiến dịch thành công!</h3>
-              
+
               <div className="mt-3 rounded-xl bg-slate-50 p-4 border border-slate-100 w-full text-left space-y-2">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Trạng thái chiến dịch</p>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Trạng thái chiến dịch
+                </p>
                 <div className="flex items-center gap-2 text-emerald-600 font-extrabold text-sm">
                   <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
                   Đang hoạt động (Đang tuyển)
                 </div>
                 <p className="text-xs font-semibold leading-relaxed text-slate-500">
-                  Chiến dịch đã được kích hoạt trực tiếp. Người dân có thể theo dõi và đăng ký tham gia ngay.
+                  Chiến dịch đã được kích hoạt trực tiếp. Người dân có thể theo dõi và đăng ký tham
+                  gia ngay.
                 </p>
               </div>
             </div>
-            
+
             <div className="mt-6 flex flex-col gap-2.5 sm:flex-row w-full">
               <button
                 type="button"
@@ -926,7 +981,7 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
                     }
                   }
                 }}
-                className="flex-1 inline-flex h-11 items-center justify-center rounded-xl bg-indigo-600 text-sm font-black text-white shadow-md transition hover:bg-indigo-700 active:scale-[0.97] cursor-pointer order-1 sm:order-2"
+                className="flex-1 inline-flex h-11 items-center justify-center rounded-xl bg-emerald-600 text-sm font-black text-white shadow-md transition hover:bg-emerald-700 active:scale-[0.97] cursor-pointer order-1 sm:order-2"
               >
                 Xem chi tiết
               </button>
@@ -951,7 +1006,7 @@ function SectionTitle({
 }) {
   return (
     <div className="flex items-start gap-3 border-b border-slate-100 pb-4">
-      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-indigo-50 text-sm font-black text-indigo-600">
+      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-50 text-sm font-black text-emerald-600">
         {Icon ? <Icon size={17} /> : number}
       </div>
       <div>
@@ -974,7 +1029,7 @@ function HelperCard({
   return (
     <section className="rounded-2xl border border-slate-100 bg-white p-6 shadow-lg">
       <h3 className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-wider text-slate-500">
-        <Icon size={17} className="text-indigo-600" />
+        <Icon size={17} className="text-emerald-600" />
         {title}
       </h3>
       {children}
@@ -994,7 +1049,6 @@ function ProcessStep({ color, label, text }: { color: string; label: string; tex
   );
 }
 
-
 function Field({
   icon: Icon,
   label,
@@ -1009,7 +1063,7 @@ function Field({
   return (
     <label className="block">
       <span className="mb-2 flex items-center gap-2 text-sm font-black text-slate-800">
-        {Icon && <Icon size={15} className="text-indigo-600" />}
+        {Icon && <Icon size={15} className="text-emerald-600" />}
         {label}
         {required && <span className="text-red-500">*</span>}
       </span>
@@ -1114,7 +1168,7 @@ function CampaignLocationPicker({
     onLocationSelect(lat, lng);
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
       );
       const data = await response.json();
       const address = data.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
@@ -1161,7 +1215,7 @@ function CampaignLocationPicker({
                 }}
                 className={`w-full text-left px-3 py-2 text-xs transition ${
                   mapLayerType === "osm"
-                    ? "bg-indigo-50 text-indigo-600 font-extrabold"
+                    ? "bg-emerald-50 text-emerald-600 font-extrabold"
                     : "text-slate-700 hover:bg-slate-50 font-semibold"
                 }`}
               >
@@ -1175,7 +1229,7 @@ function CampaignLocationPicker({
                 }}
                 className={`w-full text-left px-3 py-2 text-xs transition ${
                   mapLayerType === "satellite"
-                    ? "bg-indigo-50 text-indigo-600 font-extrabold"
+                    ? "bg-emerald-50 text-emerald-600 font-extrabold"
                     : "text-slate-700 hover:bg-slate-50 font-semibold"
                 }`}
               >
@@ -1218,9 +1272,9 @@ function CampaignLocationPicker({
             center={position}
             radius={radius}
             pathOptions={{
-              color: "#4F46E5",
+              color: "#059669",
               weight: 2.5,
-              fillColor: "#4F46E5",
+              fillColor: "#059669",
               fillOpacity: 0.12,
             }}
           />
@@ -1230,7 +1284,11 @@ function CampaignLocationPicker({
   );
 }
 
-function createGeoJsonCircle(center: { lat: number; lng: number }, radiusMeters: number, points = 64) {
+function createGeoJsonCircle(
+  center: { lat: number; lng: number },
+  radiusMeters: number,
+  points = 64,
+) {
   const coords = [];
   const km = radiusMeters / 1000;
   const latitude = center.lat;
@@ -1243,14 +1301,13 @@ function createGeoJsonCircle(center: { lat: number; lng: number }, radiusMeters:
   for (let i = 0; i <= points; i++) {
     const angle = (i * 2 * Math.PI) / points;
     const pointLatRad = Math.asin(
-      Math.sin(latRad) * Math.cos(dDivR) +
-        Math.cos(latRad) * Math.sin(dDivR) * Math.cos(angle)
+      Math.sin(latRad) * Math.cos(dDivR) + Math.cos(latRad) * Math.sin(dDivR) * Math.cos(angle),
     );
     const pointLngRad =
       lngRad +
       Math.atan2(
         Math.sin(angle) * Math.sin(dDivR) * Math.cos(latRad),
-        Math.cos(dDivR) - Math.sin(latRad) * Math.sin(pointLatRad)
+        Math.cos(dDivR) - Math.sin(latRad) * Math.sin(pointLatRad),
       );
 
     const pointLat = (pointLatRad * 180) / Math.PI;

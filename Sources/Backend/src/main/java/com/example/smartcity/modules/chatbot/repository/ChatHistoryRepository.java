@@ -47,6 +47,49 @@ public interface ChatHistoryRepository extends JpaRepository<ChatHistory, UUID> 
 
     /** Tổng số câu hỏi đã xử lý */
     long count();
+
+    /**
+     * Cập nhật đánh giá của người dùng cho một tin nhắn.
+     * @param historyId ID của ChatHistory
+     * @param rating 1 = helpful, -1 = not helpful
+     */
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("UPDATE ChatHistory c SET c.userRating = :rating WHERE c.id = :historyId")
+    int updateUserRating(@Param("historyId") UUID historyId, @Param("rating") int rating);
+
+    /**
+     * Lấy danh sách sessions (phân biệt theo sessionId) của một user.
+     * Trả về: [sessionId, sessionName, lastMessageTime, messageCount]
+     */
+    @Query("""
+        SELECT c.sessionId, MIN(c.sessionName), MAX(c.createdAt), COUNT(c)
+        FROM ChatHistory c
+        WHERE c.user.id = :userId
+          AND c.sessionId IS NOT NULL
+        GROUP BY c.sessionId
+        ORDER BY MAX(c.createdAt) DESC
+        LIMIT 20
+        """)
+    List<Object[]> findSessionsByUserId(@Param("userId") Long userId);
+
+    /**
+     * Lấy toàn bộ tin nhắn trong một session.
+     */
+    @Query("""
+        SELECT c FROM ChatHistory c
+        WHERE c.user.id = :userId
+          AND c.sessionId = :sessionId
+        ORDER BY c.createdAt ASC
+        """)
+    List<ChatHistory> findByUserIdAndSessionId(
+        @Param("userId") Long userId,
+        @Param("sessionId") String sessionId
+    );
+
+    /**
+     * Tìm tin nhắn đầu tiên của một session để lấy tên session gốc.
+     */
+    java.util.Optional<ChatHistory> findFirstBySessionIdOrderByCreatedAtAsc(String sessionId);
 }
 
 

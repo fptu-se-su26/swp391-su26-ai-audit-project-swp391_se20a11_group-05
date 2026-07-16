@@ -1,7 +1,7 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { useI18n, type Locale } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
-import { getLoginPathForRole, ROLE_LABEL, Role } from "@/lib/roles";
+import { getLoginPathForRole, ROLE_LABEL, Role, getDashboardPathForRole } from "@/lib/roles";
 import {
   Menu,
   X,
@@ -18,8 +18,11 @@ import {
   FileClock,
   CheckCircle2,
   MessageSquareWarning,
+  MessageSquare,
   Clock3,
   Route as RouteIcon,
+  Sliders,
+  RefreshCw,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import logoUrl from "@/assets/logo.png";
@@ -30,8 +33,9 @@ import {
   useNotificationUnreadCount,
 } from "@/lib/hooks";
 import { toast } from "sonner";
-import { authApi, type NotificationResponse } from "@/lib/api";
-import { useQueryClient } from "@tanstack/react-query";
+import { authApi, campaignApi, type NotificationResponse } from "@/lib/api";
+import { highlightNotificationContent } from "@/lib/notificationHelper";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,6 +46,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { FloatingCampaignChat } from "@/components/chat/FloatingCampaignChat";
 
 function timeAgo(dateStr: string, locale: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -56,10 +61,17 @@ function timeAgo(dateStr: string, locale: string): string {
 function iconForType(type?: string) {
   switch (type) {
     case "FEEDBACK_SUBMITTED":
+    case "CAMPAIGN_JOINED":
       return Send;
+    case "CAMPAIGN_CONFIRMED":
+      return ClipboardList;
     case "FEEDBACK_ACCEPTED":
       return ClipboardCheck;
     case "FEEDBACK_REJECTED":
+    case "CAMPAIGN_REJECTED":
+    case "CAMPAIGN_CANCELLED":
+    case "CAMPAIGN_LEFT":
+    case "CAMPAIGN_AUTO_CANCELLED":
       return AlertCircle;
     case "FEEDBACK_ASSIGNED":
     case "FEEDBACK_ASSIGNED_TO_WARD":
@@ -69,9 +81,15 @@ function iconForType(type?: string) {
       return FileClock;
     case "FEEDBACK_COMPLETED":
     case "FEEDBACK_CLOSED":
+    case "CAMPAIGN_APPROVED":
+    case "CAMPAIGN_AUTO_ENDED":
+    case "CAMPAIGN_FINALIZED":
+    case "CAMPAIGN_ENDED":
       return CheckCircle2;
     case "FEEDBACK_WAITING_INFO":
       return MessageSquareWarning;
+    case "CAMPAIGN_RESCHEDULED":
+      return RefreshCw;
     default:
       return Clock3;
   }
@@ -89,7 +107,7 @@ const LANGUAGE_OPTIONS: Array<{
 
 export function Header() {
   const { locale, setLocale, t } = useI18n();
-  const { user, logout, hasRole } = useAuth();
+  const { user, logout } = useAuth();
   const isWardStaff = user?.role === Role.WARD_STAFF;
   const path = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
@@ -99,13 +117,36 @@ export function Header() {
   const [langOpen, setLangOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatSearch, setChatSearch] = useState("");
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const [activeFloatingChatId, setActiveFloatingChatId] = useState<string | null>(null);
 
   const notifRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
   const langRef = useRef<HTMLDivElement>(null);
+  const chatRef = useRef<HTMLDivElement>(null);
   const activeLanguage =
     LANGUAGE_OPTIONS.find((language) => language.code === locale) ?? LANGUAGE_OPTIONS[0];
+
+  // Campaigns Chat rooms
+  const { data: chatRooms = [], isLoading: chatRoomsLoading } = useQuery({
+    queryKey: ["my-chat-rooms"],
+    queryFn: () => campaignApi.getMyChatRooms(),
+    enabled: !!user,
+    refetchInterval: 15000,
+  });
+
+  const unreadChatCount = chatRooms.filter((room) => {
+    if (!room.lastMessage) return false;
+    if (user && room.lastMessage.senderName === user.name) return false;
+    const seenId = localStorage.getItem(`campaign-chat-seen-${room.campaignId}`);
+    return !seenId || Number(seenId) < room.lastMessage.id;
+  }).length;
+
+  const filteredChatRooms = chatRooms.filter((room) =>
+    room.campaignTitle.toLowerCase().includes(chatSearch.toLowerCase()),
+  );
 
   // Notifications logic
   const {
@@ -113,7 +154,7 @@ export function Header() {
     isLoading: notifLoading,
     isError: notifError,
     refetch: notifRefetch,
-  } = useNotifications();
+  } = useNotifications(!!user);
   const markRead = useMarkNotificationReadMutation();
   const markAllRead = useMarkAllNotificationsReadMutation();
 
@@ -146,6 +187,9 @@ export function Header() {
       if (langRef.current && !langRef.current.contains(event.target as Node)) {
         setLangOpen(false);
       }
+      if (chatRef.current && !chatRef.current.contains(event.target as Node)) {
+        setChatOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -158,6 +202,7 @@ export function Header() {
         setNotifOpen(false);
         setUserOpen(false);
         setLangOpen(false);
+        setChatOpen(false);
       }
     }
     document.addEventListener("keydown", handleKeyDown);
@@ -168,6 +213,7 @@ export function Header() {
     setNotifOpen(!notifOpen);
     setUserOpen(false);
     setLangOpen(false);
+    setChatOpen(false);
     setOpen(false);
   };
 
@@ -175,6 +221,7 @@ export function Header() {
     setUserOpen(!userOpen);
     setNotifOpen(false);
     setLangOpen(false);
+    setChatOpen(false);
     setOpen(false);
   };
 
@@ -182,6 +229,15 @@ export function Header() {
     setLangOpen(!langOpen);
     setNotifOpen(false);
     setUserOpen(false);
+    setChatOpen(false);
+    setOpen(false);
+  };
+
+  const toggleChat = () => {
+    setChatOpen(!chatOpen);
+    setNotifOpen(false);
+    setUserOpen(false);
+    setLangOpen(false);
     setOpen(false);
   };
 
@@ -205,10 +261,24 @@ export function Header() {
         await markRead.mutateAsync(item.id);
       }
       if (feedbackId) {
-        if (isWardStaff) {
-          await navigate({ to: "/ward", search: { tab: "feedback", detailId: String(feedbackId) } });
+        if (item.type?.startsWith("CAMPAIGN")) {
+          if (isWardStaff) {
+            await navigate({
+              to: "/ward",
+              search: { tab: "campaign", detailId: String(feedbackId) },
+            });
+          } else {
+            await navigate({ to: "/campaigns/$id", params: { id: String(feedbackId) } });
+          }
         } else {
-          await navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
+          if (isWardStaff) {
+            await navigate({
+              to: "/ward",
+              search: { tab: "feedback", detailId: String(feedbackId) },
+            });
+          } else {
+            await navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
+          }
         }
       } else {
         await navigate({ to: "/notifications" });
@@ -226,8 +296,10 @@ export function Header() {
       // noop
     }
     logout();
-    queryClient.clear();
     void navigate({ to: loginPath });
+    setTimeout(() => {
+      queryClient.clear();
+    }, 0);
   };
 
   // Simplified core navigation items
@@ -236,24 +308,15 @@ export function Header() {
     { to: "/tin-tuc", label: locale === "vi" ? "Tin tức" : "News" },
     { to: "/feedback-search", label: locale === "vi" ? "Tra cứu" : "Search" },
     { to: "/campaigns", label: locale === "vi" ? "Chiến dịch" : "Campaigns" },
-    { to: "/", hash: "huong-dan", label: locale === "vi" ? "Hướng dẫn" : "Guides" },
-    ...(!isWardStaff
-      ? [{ to: "/", hash: "lien-he", label: locale === "vi" ? "Liên hệ" : "Contact" }]
-      : []),
+    { to: "/leaderboard", label: locale === "vi" ? "Xếp hạng" : "Leaderboard" },
   ];
-  const menuItems = isWardStaff
-    ? publicMenuItems.filter((item) => item.to !== "/" || item.hash === "lien-he")
-    : publicMenuItems;
-
-  const staffItemsAll = [
-    { to: "/ward", label: t("nav.ward"), roles: [Role.WARD_STAFF, Role.SUPER_ADMIN] as const },
-    { to: "/police", label: t("nav.police"), roles: [Role.POLICE, Role.SUPER_ADMIN] as const },
-    { to: "/city-admin", label: t("nav.cityAdmin"), roles: [Role.SUPER_ADMIN] as const },
-  ] as const;
-  const staffItems = staffItemsAll.filter((i) => hasRole(...i.roles));
-
-  // Nếu là SUPER_ADMIN, không hiện menu public — chỉ hiện nút vào dashboard
-  const isSuperAdmin = user?.role === Role.SUPER_ADMIN;
+  const isAuthority =
+    user && ([Role.WARD_STAFF, Role.POLICE, Role.SUPER_ADMIN] as Role[]).includes(user.role);
+  const isDashboard = user && path.startsWith(getDashboardPathForRole(user.role));
+  const menuItems =
+    isAuthority && isDashboard
+      ? [] // Clean layout: hide public links when IN the dashboard
+      : publicMenuItems;
 
   // Determine active item based on pathname and label
   const isItemActive = (item: (typeof menuItems)[number]) => {
@@ -274,6 +337,9 @@ export function Header() {
     if (item.label === "Chiến dịch" || item.label === "Campaigns") {
       return path.startsWith("/campaigns");
     }
+    if (item.label === "Xếp hạng" || item.label === "Leaderboard") {
+      return path.startsWith("/leaderboard");
+    }
     if (item.label === "Hướng dẫn" || item.label === "Guides") {
       return path === "/" && hash === "#huong-dan";
     }
@@ -287,7 +353,10 @@ export function Header() {
     <header className="sticky top-0 z-50 bg-white border-b border-[#E4EAF2] shadow-sm">
       <div className="max-w-[1440px] mx-auto px-4 md:px-8 h-[76px] flex items-center justify-between">
         {/* Left: Brand logo & text */}
-        <Link to="/" className="flex items-center gap-2 group shrink-0">
+        <Link
+          to={user ? getDashboardPathForRole(user.role) : "/"}
+          className="flex items-center gap-2 group shrink-0"
+        >
           <img src={logoUrl} alt="Đà Nẵng Kết Nối" className="h-9 w-auto object-contain md:h-10" />
           <div className="flex flex-col leading-none">
             <span className="text-sm md:text-base font-extrabold tracking-tight text-[#0B4FC4] uppercase font-sans">
@@ -301,51 +370,51 @@ export function Header() {
 
         {/* Center: Navigation Links */}
         <nav className="hidden lg:flex items-center gap-1 xl:gap-2 h-full" aria-label="Main">
-          <ul className="flex items-center gap-5 xl:gap-7 h-full">
-            {/* Nếu là SUPER_ADMIN: chỉ hiện nút vào dashboard, ẩn toàn bộ menu public */}
-            {isSuperAdmin ? (
-              <li className="h-full flex items-center">
-                <Link
-                  to="/city-admin"
-                  className="px-4 py-2 bg-[#0B4FC4] text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition shadow-sm font-sans flex items-center gap-2"
-                >
-                  Bảng điều hành IOC
-                </Link>
-              </li>
-            ) : (
-              <>
-                {menuItems.map((item, index) => {
-                  const active = isItemActive(item);
-                  return (
-                    <li key={index} className="h-full flex items-center">
-                      <Link
-                        to={item.to}
-                        hash={item.hash}
-                        className={`relative py-2 text-sm font-semibold transition-all font-sans ${
-                          active
-                            ? "text-[#0B4FC4] border-b-2 border-[#0B4FC4] pt-2"
-                            : "text-[#123E8A] hover:text-[#0B4FC4]"
-                        }`}
-                      >
-                        {item.label}
-                      </Link>
-                    </li>
-                  );
-                })}
-
-                {/* Staff access links nếu là WARD_STAFF hoặc POLICE */}
-                {staffItems.map((item, index) => (
-                  <li key={`staff-${index}`} className="h-full flex items-center">
+          <ul className="flex items-center gap-4 xl:gap-6 h-full">
+            <>
+              {menuItems.map((item, index) => {
+                const active = isItemActive(item);
+                return (
+                  <li key={index} className="h-full flex items-center shrink-0">
                     <Link
                       to={item.to}
-                      className="px-2.5 py-1 bg-amber-50 text-amber-700 rounded text-xs font-bold border border-amber-200 hover:bg-amber-100 transition font-sans"
+                      hash={item.hash}
+                      className={`relative py-2 text-sm font-semibold transition-all font-sans whitespace-nowrap ${
+                        active
+                          ? "text-[#0B4FC4] border-b-2 border-[#0B4FC4] pt-2"
+                          : "text-[#123E8A] hover:text-[#0B4FC4]"
+                      }`}
                     >
                       {item.label}
                     </Link>
                   </li>
-                ))}
-              </>
-            )}
+                );
+              })}
+              {isAuthority && user && (
+                <li className="h-full flex items-center pl-1 xl:pl-2 shrink-0">
+                  {isDashboard ? (
+                    <Link
+                      to="/"
+                      className="px-4 py-2 rounded-full border border-slate-200 text-slate-700 bg-slate-50 hover:bg-white hover:text-[#0B4FC4] hover:border-[#0B4FC4] transition-all duration-300 font-semibold text-sm flex items-center gap-2 shadow-sm whitespace-nowrap"
+                    >
+                      Quay về Trang chủ
+                    </Link>
+                  ) : (
+                    <Link
+                      to={getDashboardPathForRole(user.role)}
+                      className="px-4 py-1.5 rounded-full border border-[#0B4FC4] text-[#0B4FC4] bg-[#F5F9FF] hover:bg-[#0B4FC4] hover:text-white transition-all duration-300 font-bold text-sm flex items-center gap-2 shadow-sm whitespace-nowrap"
+                    >
+                      <Sliders size={16} />
+                      {user.role === Role.SUPER_ADMIN
+                        ? "Bảng điều hành IOC"
+                        : locale === "vi"
+                          ? "Trang làm việc"
+                          : "Workspace"}
+                    </Link>
+                  )}
+                </li>
+              )}
+            </>
           </ul>
         </nav>
 
@@ -356,21 +425,31 @@ export function Header() {
             <div className="relative hidden md:block" ref={langRef}>
               <button
                 onClick={toggleLang}
-                className="group flex min-h-[40px] items-center gap-2 rounded-full border border-transparent px-2.5 text-sm font-semibold text-[#123E8A] transition hover:border-[#E4EAF2] hover:bg-[#F5F9FF] hover:text-[#0B4FC4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B4FC4]/20 cursor-pointer"
+                className={
+                  user?.role === Role.CITIZEN
+                    ? "group w-10 h-10 bg-slate-100 text-[#123E8A] hover:bg-slate-200 hover:text-[#0B4FC4] transition rounded-full flex items-center justify-center cursor-pointer font-bold text-[11px] font-sans"
+                    : "group flex min-h-[40px] items-center gap-2 rounded-full border border-transparent px-2.5 text-sm font-semibold text-[#123E8A] transition hover:border-[#E4EAF2] hover:bg-[#F5F9FF] hover:text-[#0B4FC4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B4FC4]/20 cursor-pointer"
+                }
                 aria-label="Select Language"
                 aria-haspopup="menu"
                 aria-expanded={langOpen}
               >
-                <span className="grid h-6 w-8 place-items-center rounded-md bg-[#EEF4FF] text-[11px] font-extrabold tracking-wide text-[#0B4FC4] font-sans">
-                  {activeLanguage.shortLabel}
-                </span>
-                <span className="hidden xl:inline font-sans">{activeLanguage.nativeLabel}</span>
-                <ChevronDown
-                  size={14}
-                  className={`text-[#667085] transition-transform group-hover:text-[#0B4FC4] ${
-                    langOpen ? "rotate-180" : ""
-                  }`}
-                />
+                {user?.role === Role.CITIZEN ? (
+                  <span>{activeLanguage.shortLabel}</span>
+                ) : (
+                  <>
+                    <span className="grid h-6 w-8 place-items-center rounded-md bg-[#EEF4FF] text-[11px] font-extrabold tracking-wide text-[#0B4FC4] font-sans">
+                      {activeLanguage.shortLabel}
+                    </span>
+                    <span className="hidden xl:inline font-sans">{activeLanguage.nativeLabel}</span>
+                    <ChevronDown
+                      size={14}
+                      className={`text-[#667085] transition-transform group-hover:text-[#0B4FC4] ${
+                        langOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </>
+                )}
               </button>
 
               {langOpen && (
@@ -423,11 +502,220 @@ export function Header() {
             </div>
           )}
 
+          {/* Chat/Messenger bell & dropdown */}
+          {user && (
+            <div className="relative" ref={chatRef}>
+              <button
+                onClick={toggleChat}
+                className={
+                  user.role === Role.CITIZEN
+                    ? "relative w-10 h-10 bg-slate-100 text-[#123E8A] hover:bg-slate-200 hover:text-[#0B4FC4] transition rounded-full flex items-center justify-center cursor-pointer"
+                    : "relative p-2 text-[#123E8A] hover:text-[#0B4FC4] transition rounded-full hover:bg-slate-50 min-w-[40px] min-h-[40px] flex items-center justify-center cursor-pointer"
+                }
+                aria-label="Mở danh sách tin nhắn"
+                aria-expanded={chatOpen}
+              >
+                <MessageSquare size={20} />
+                {unreadChatCount > 0 && (
+                  <span className="absolute top-0.5 right-0.5 w-[18px] h-[18px] bg-[#0B4FC4] text-white text-[10px] font-bold rounded-full flex items-center justify-center border border-white font-sans animate-pulse">
+                    {unreadChatCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Chat Dropdown Panel */}
+              {chatOpen && (
+                <div className="absolute right-0 mt-2 w-[320px] sm:w-[360px] bg-white border border-[#E4EAF2] rounded-xl shadow-lg py-3 z-50 animate-fade-in">
+                  {/* Header */}
+                  <div className="px-4 pb-2 border-b border-[#E4EAF2]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-[#123E8A] font-sans">
+                        {locale === "vi" ? "Đoạn chat chiến dịch" : "Campaign Chats"}
+                      </span>
+                    </div>
+                    {/* Search Bar */}
+                    <div className="mt-2 relative">
+                      <input
+                        type="text"
+                        placeholder={
+                          locale === "vi" ? "Tìm kiếm chiến dịch..." : "Search campaigns..."
+                        }
+                        value={chatSearch}
+                        onChange={(e) => setChatSearch(e.target.value)}
+                        className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-[#E4EAF2] rounded-lg text-xs font-sans focus:outline-none focus:ring-1 focus:ring-[#0B4FC4] focus:bg-white transition"
+                      />
+                      <span className="absolute left-2.5 top-2 text-slate-400">
+                        <svg
+                          className="w-3.5 h-3.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                          />
+                        </svg>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Body */}
+                  <div className="max-h-[320px] overflow-y-auto divide-y divide-[#E4EAF2]">
+                    {chatRoomsLoading && (
+                      <div className="p-4 space-y-3">
+                        {[1, 2, 3].map((i) => (
+                          <div key={i} className="flex gap-3 animate-pulse">
+                            <div className="w-10 h-10 bg-slate-100 rounded-full shrink-0" />
+                            <div className="flex-1 space-y-2">
+                              <div className="h-3.5 bg-slate-100 rounded w-1/3" />
+                              <div className="h-3 bg-slate-100 rounded w-4/5" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {!chatRoomsLoading && filteredChatRooms.length === 0 && (
+                      <div className="py-8 text-center text-xs text-[#667085] font-sans px-4">
+                        {chatSearch
+                          ? locale === "vi"
+                            ? "Không tìm thấy chiến dịch nào."
+                            : "No campaigns found."
+                          : locale === "vi"
+                            ? "Bạn chưa tham gia chiến dịch nào hoặc không có quyền chat."
+                            : "No active campaigns found."}
+                      </div>
+                    )}
+
+                    {!chatRoomsLoading &&
+                      filteredChatRooms.map((room) => {
+                        const isUnread =
+                          room.lastMessage &&
+                          (!user || room.lastMessage.senderName !== user.name) &&
+                          (!localStorage.getItem(`campaign-chat-seen-${room.campaignId}`) ||
+                            Number(localStorage.getItem(`campaign-chat-seen-${room.campaignId}`)) <
+                              room.lastMessage.id);
+
+                        const innerContent = (
+                          <>
+                            {/* Avatar */}
+                            <div className="relative shrink-0">
+                              {room.coverImageUrl ? (
+                                <img
+                                  src={room.coverImageUrl}
+                                  alt={room.campaignTitle}
+                                  className="w-10 h-10 rounded-full object-cover border border-[#E4EAF2]"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-[#EEF4FF] text-[#0B4FC4] font-bold flex items-center justify-center text-sm border border-[#E4EAF2] font-sans">
+                                  {room.campaignTitle.charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              {/* Status indicator */}
+                              {room.status === "IN_PROGRESS" && (
+                                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border border-white rounded-full" />
+                              )}
+                            </div>
+
+                            {/* Info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-1 mb-0.5">
+                                <h4
+                                  className={`text-xs text-[#123E8A] truncate font-sans ${isUnread ? "font-bold" : "font-semibold"}`}
+                                >
+                                  {room.campaignTitle}
+                                </h4>
+                                {room.lastMessage && (
+                                  <span className="text-[9px] text-[#667085] shrink-0 font-sans">
+                                    {timeAgo(room.lastMessage.createdAt, locale)}
+                                  </span>
+                                )}
+                              </div>
+                              <p
+                                className={`text-[11px] truncate font-sans ${isUnread ? "text-slate-900 font-semibold" : "text-[#667085]"}`}
+                              >
+                                {room.lastMessage ? (
+                                  <>
+                                    <span className="font-semibold">
+                                      {room.lastMessage.senderName}:{" "}
+                                    </span>
+                                    {room.lastMessage.message ||
+                                      (locale === "vi" ? "[Hình ảnh]" : "[Image]")}
+                                  </>
+                                ) : (
+                                  <span className="italic text-slate-400">
+                                    {locale === "vi" ? "Chưa có tin nhắn nào" : "No messages yet"}
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+                          </>
+                        );
+
+                        return isWardStaff ? (
+                          <Link
+                            key={room.campaignId}
+                            to="/ward"
+                            search={{ tab: "chat", detailId: String(room.campaignId) }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setChatOpen(false);
+                              setActiveFloatingChatId(String(room.campaignId));
+                              if (room.lastMessage) {
+                                localStorage.setItem(
+                                  `campaign-chat-seen-${room.campaignId}`,
+                                  String(room.lastMessage.id),
+                                );
+                              }
+                            }}
+                            className={`w-full text-left p-3 flex gap-3 transition-colors hover:bg-slate-50 border-l-4 ${
+                              isUnread ? "bg-[#EFF6FF] border-l-[#0B4FC4]" : "border-l-transparent"
+                            }`}
+                          >
+                            {innerContent}
+                          </Link>
+                        ) : (
+                          <Link
+                            key={room.campaignId}
+                            to="/campaigns/$id/group-chat"
+                            params={{ id: String(room.campaignId) }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setChatOpen(false);
+                              setActiveFloatingChatId(String(room.campaignId));
+                              if (room.lastMessage) {
+                                localStorage.setItem(
+                                  `campaign-chat-seen-${room.campaignId}`,
+                                  String(room.lastMessage.id),
+                                );
+                              }
+                            }}
+                            className={`w-full text-left p-3 flex gap-3 transition-colors hover:bg-slate-50 border-l-4 ${
+                              isUnread ? "bg-[#EFF6FF] border-l-[#0B4FC4]" : "border-l-transparent"
+                            }`}
+                          >
+                            {innerContent}
+                          </Link>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Notification bell & dropdown */}
           <div className="relative" ref={notifRef}>
             <button
               onClick={toggleNotif}
-              className={`relative p-2 text-[#123E8A] hover:text-[#0B4FC4] transition rounded-full hover:bg-slate-50 min-w-[40px] min-h-[40px] flex items-center justify-center cursor-pointer`}
+              className={
+                user?.role === Role.CITIZEN
+                  ? "relative w-10 h-10 bg-slate-100 text-[#123E8A] hover:bg-slate-200 hover:text-[#0B4FC4] transition rounded-full flex items-center justify-center cursor-pointer"
+                  : "relative p-2 text-[#123E8A] hover:text-[#0B4FC4] transition rounded-full hover:bg-slate-50 min-w-[40px] min-h-[40px] flex items-center justify-center cursor-pointer"
+              }
               aria-label="Mở danh sách thông báo"
               aria-expanded={notifOpen}
             >
@@ -506,7 +794,7 @@ export function Header() {
                           className={`w-full text-left p-3.5 flex gap-3 transition-colors cursor-pointer border-l-4 ${
                             item.isRead
                               ? "bg-[#FFFFFF] hover:bg-[#F8FAFC] border-l-transparent"
-                              : "bg-[#EFF6FF] hover:bg-[#DBEAFE] border-l-[#0F5BD8]"
+                              : "bg-[#D0E2FF] hover:bg-[#B3D1FF] border-l-[#0F5BD8]"
                           }`}
                         >
                           <div
@@ -539,7 +827,7 @@ export function Header() {
                               </span>
                             </div>
                             <p className="text-[11px] text-[#667085] line-clamp-2 leading-relaxed font-sans">
-                              {item.content}
+                              {highlightNotificationContent(item.content)}
                             </p>
                           </div>
                         </button>
@@ -566,25 +854,58 @@ export function Header() {
             <div className="relative" ref={userRef}>
               <button
                 onClick={toggleUser}
-                className="flex items-center gap-2 border-l border-[#E4EAF2] pl-2 sm:pl-3 md:pl-4 lg:pl-6 focus:outline-none group min-h-[40px] text-left cursor-pointer"
+                className={
+                  user.role === Role.CITIZEN
+                    ? "relative w-10 h-10 rounded-full focus:outline-none group cursor-pointer shrink-0 select-none flex items-center justify-center"
+                    : "flex items-center gap-2 border-l border-[#E4EAF2] pl-2 sm:pl-3 md:pl-4 lg:pl-6 focus:outline-none group min-h-[40px] text-left cursor-pointer"
+                }
                 aria-expanded={userOpen}
                 aria-haspopup="true"
               >
-                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[#0B4FC4] border border-[#E4EAF2] group-hover:bg-[#F5F9FF] transition shrink-0">
-                  <User size={16} />
-                </div>
-                <div className="text-right leading-tight hidden md:block">
-                  <div className="text-sm font-bold text-[#123E8A] font-sans group-hover:text-[#0B4FC4] transition flex items-center gap-1">
-                    {user.name}
-                    <ChevronDown
-                      size={14}
-                      className="text-[#667085] group-hover:text-[#0B4FC4] transition"
-                    />
-                  </div>
-                  <div className="text-[9px] uppercase tracking-widest text-[#667085] font-extrabold font-sans">
-                    {ROLE_LABEL[user.role][locale]}
-                  </div>
-                </div>
+                {user.role === Role.CITIZEN ? (
+                  <>
+                    {user.avatarUrl ? (
+                      <img
+                        src={user.avatarUrl}
+                        alt={user.name}
+                        className="w-10 h-10 rounded-full object-cover border border-[#E4EAF2] group-hover:opacity-90 transition shrink-0"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-[#EFF6FF] text-[#0F5BD8] font-bold flex items-center justify-center text-sm border border-[#E4EAF2] font-sans group-hover:bg-[#E0E7FF] transition shrink-0">
+                        {user.name.trim().split(" ").at(-1)?.[0]?.toUpperCase() || "U"}
+                      </div>
+                    )}
+                    <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center shadow-md border border-slate-200 dark:border-slate-700">
+                      <ChevronDown size={10} className="text-[#667085]" />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[#0B4FC4] border border-[#E4EAF2] group-hover:bg-[#F5F9FF] transition shrink-0">
+                      {user.avatarUrl ? (
+                        <img
+                          src={user.avatarUrl}
+                          alt={user.name}
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
+                      ) : (
+                        <User size={16} />
+                      )}
+                    </div>
+                    <div className="text-right leading-tight hidden md:block">
+                      <div className="text-sm font-bold text-[#123E8A] font-sans group-hover:text-[#0B4FC4] transition flex items-center gap-1">
+                        {user.name}
+                        <ChevronDown
+                          size={14}
+                          className="text-[#667085] group-hover:text-[#0B4FC4] transition"
+                        />
+                      </div>
+                      <div className="text-[9px] uppercase tracking-widest text-[#667085] font-extrabold font-sans">
+                        {ROLE_LABEL[user.role][locale]}
+                      </div>
+                    </div>
+                  </>
+                )}
               </button>
 
               {/* User Dropdown Menu */}
@@ -609,15 +930,26 @@ export function Header() {
                     {t("header.profile")}
                   </Link>
 
-                  <Link
-                    to="/feedback-search"
-                    search={{ tab: "my" }}
-                    onClick={() => setUserOpen(false)}
-                    className="w-full text-left px-4 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2.5 font-sans"
-                  >
-                    <ClipboardList size={14} className="text-[#667085]" />
-                    {t("header.myReports")}
-                  </Link>
+                  {isAuthority ? (
+                    <Link
+                      to={getDashboardPathForRole(user.role)}
+                      onClick={() => setUserOpen(false)}
+                      className="w-full text-left px-4 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2.5 font-sans"
+                    >
+                      <Sliders size={14} className="text-[#667085]" />
+                      {locale === "vi" ? "Trang quản trị" : "Admin Dashboard"}
+                    </Link>
+                  ) : (
+                    <Link
+                      to="/feedback-search"
+                      search={{ tab: "my" }}
+                      onClick={() => setUserOpen(false)}
+                      className="w-full text-left px-4 py-2 text-xs font-semibold text-[#123E8A] hover:bg-slate-50 transition flex items-center gap-2.5 font-sans"
+                    >
+                      <ClipboardList size={14} className="text-[#667085]" />
+                      {t("header.myReports")}
+                    </Link>
+                  )}
 
                   <Link
                     to="/notifications"
@@ -677,55 +1009,51 @@ export function Header() {
           className="lg:hidden bg-white border-t border-[#E4EAF2] py-4 px-4 space-y-1 animate-fade-in"
           aria-label="Mobile"
         >
-          {isSuperAdmin ? (
-            <Link
-              to="/city-admin"
-              onClick={() => setOpen(false)}
-              className="block min-h-[48px] px-4 py-3 rounded-md font-bold text-white bg-[#0B4FC4] text-center font-sans"
-            >
-              Bảng điều hành IOC
-            </Link>
-          ) : (
-            <>
-              {menuItems.map((item, index) => {
-                return (
-                  <Link
-                    key={index}
-                    to={item.to}
-                    hash={item.hash}
-                    onClick={() => setOpen(false)}
-                    className={`block min-h-[48px] px-4 py-3 rounded-md font-semibold transition-all font-sans ${
-                      isItemActive(item)
-                        ? "bg-[#F5F9FF] text-[#0B4FC4]"
-                        : "text-[#123E8A] hover:bg-slate-50"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
-
-              {staffItems.length > 0 && (
-                <>
-                  <div className="pt-2 pb-1 px-4 text-[10px] uppercase tracking-widest text-[#667085] font-extrabold font-sans">
-                    {t("header.staffArea")}
-                  </div>
-                  {staffItems.map((item, index) => {
-                    return (
-                      <Link
-                        key={`mobile-staff-${index}`}
-                        to={item.to}
-                        onClick={() => setOpen(false)}
-                        className="block min-h-[48px] px-4 py-3 rounded-md text-amber-700 bg-amber-50 border border-amber-100 font-bold font-sans"
-                      >
-                        {item.label}
-                      </Link>
-                    );
-                  })}
-                </>
+          {isAuthority && user && (
+            <div className="mb-2 pb-2 border-b border-[#E4EAF2]">
+              {isDashboard ? (
+                <Link
+                  to="/"
+                  onClick={() => setOpen(false)}
+                  className="block min-h-[48px] px-4 py-3 rounded-md font-bold text-[#123E8A] bg-slate-100 border border-slate-200 text-center font-sans flex items-center justify-center gap-2"
+                >
+                  Quay về Trang chủ
+                </Link>
+              ) : (
+                <Link
+                  to={getDashboardPathForRole(user.role)}
+                  onClick={() => setOpen(false)}
+                  className="block min-h-[48px] px-4 py-3 rounded-md font-bold text-[#0B4FC4] bg-[#F5F9FF] border border-[#0B4FC4] text-center font-sans flex items-center justify-center gap-2 shadow-sm transition hover:bg-[#0B4FC4] hover:text-white"
+                >
+                  <Sliders size={18} />
+                  {user.role === Role.SUPER_ADMIN
+                    ? "Bảng điều hành IOC"
+                    : locale === "vi"
+                      ? "Trang làm việc"
+                      : "Workspace"}
+                </Link>
               )}
-            </>
+            </div>
           )}
+          <>
+            {menuItems.map((item, index) => {
+              return (
+                <Link
+                  key={index}
+                  to={item.to}
+                  hash={item.hash}
+                  onClick={() => setOpen(false)}
+                  className={`block min-h-[48px] px-4 py-3 rounded-md font-semibold transition-all font-sans ${
+                    isItemActive(item)
+                      ? "bg-[#F5F9FF] text-[#0B4FC4]"
+                      : "text-[#123E8A] hover:bg-slate-50"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </>
 
           {/* Mobile Utility Actions */}
           <div className="pt-3 mt-3 border-t border-[#E4EAF2] flex flex-col gap-3">
@@ -768,14 +1096,24 @@ export function Header() {
                 >
                   {t("header.profile")}
                 </Link>
-                <Link
-                  to="/feedback-search"
-                  search={{ tab: "my" }}
-                  onClick={() => setOpen(false)}
-                  className="block min-h-[48px] px-4 py-3 rounded-md font-semibold text-[#123E8A] hover:bg-slate-50 font-sans"
-                >
-                  {t("header.myReports")}
-                </Link>
+                {isAuthority ? (
+                  <Link
+                    to={getDashboardPathForRole(user.role)}
+                    onClick={() => setOpen(false)}
+                    className="block min-h-[48px] px-4 py-3 rounded-md font-semibold text-[#123E8A] hover:bg-slate-50 font-sans"
+                  >
+                    {locale === "vi" ? "Trang quản trị" : "Admin Dashboard"}
+                  </Link>
+                ) : (
+                  <Link
+                    to="/feedback-search"
+                    search={{ tab: "my" }}
+                    onClick={() => setOpen(false)}
+                    className="block min-h-[48px] px-4 py-3 rounded-md font-semibold text-[#123E8A] hover:bg-slate-50 font-sans"
+                  >
+                    {t("header.myReports")}
+                  </Link>
+                )}
                 <button
                   onClick={() => {
                     setLogoutConfirmOpen(true);
@@ -826,6 +1164,13 @@ export function Header() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {activeFloatingChatId && (
+        <FloatingCampaignChat
+          campaignId={activeFloatingChatId}
+          onClose={() => setActiveFloatingChatId(null)}
+        />
+      )}
     </header>
   );
 }

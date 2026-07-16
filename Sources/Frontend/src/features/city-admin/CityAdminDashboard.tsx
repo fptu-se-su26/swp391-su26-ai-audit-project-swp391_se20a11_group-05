@@ -2,6 +2,7 @@ import { lazy, Suspense, useState, useEffect, useRef, useMemo } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNotifications, useMarkNotificationReadMutation } from "@/hooks";
+import { highlightNotificationContent } from "@/lib/notificationHelper";
 import { useFeedbackNotification } from "@/hooks/use-notification";
 import { useAuth } from "@/lib/auth";
 import { getLoginPathForRole } from "@/lib/roles";
@@ -27,6 +28,7 @@ import { FeedbacksPage } from "./pages/FeedbacksPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { UsersPage } from "./pages/UsersPage";
 import { PermissionsPage } from "./pages/PermissionsPage";
+import { NewsManagement } from "../news/NewsManagement";
 import { toast } from "sonner";
 import {
   LayoutDashboard,
@@ -147,7 +149,7 @@ export function CityAdminDashboard() {
   const [userOpen, setUserOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<
-    "overview" | "feedbacks" | "reports" | "users" | "permissions"
+    "overview" | "feedbacks" | "reports" | "users" | "news" | "permissions"
   >("overview");
   const [fullscreen, setFullscreen] = useState(false);
 
@@ -278,6 +280,13 @@ export function CityAdminDashboard() {
       icon: Users,
       badge: null,
       description: "Quản lý người dùng",
+    },
+    {
+      name: "Tin tức",
+      tab: "news" as const,
+      icon: FileText,
+      badge: null,
+      description: "Quản lý tin tức",
     },
     // Tạm ẩn Phân quyền theo yêu cầu
     // {
@@ -814,7 +823,7 @@ export function CityAdminDashboard() {
             >
               <Menu size={20} />
             </button>
-            <h2 className="text-lg font-bold text-[#1D2939] font-sans flex items-center gap-2">
+            <h2 className="text-xl font-bold font-heading text-gov-blue-deep flex items-center gap-2">
               {activeTab === "overview" && (
                 <>
                   <Home size={20} className="text-[#0B4FC4]" />
@@ -944,15 +953,15 @@ export function CityAdminDashboard() {
                           onClick={() =>
                             handleNotifClick(item.id, item.feedbackId ?? item.referenceId)
                           }
-                          className={`w-full text-left p-3 flex flex-col transition-colors hover:bg-slate-50 ${
-                            item.isRead ? "opacity-75" : "bg-blue-50/40"
+                          className={`w-full text-left p-3 flex flex-col transition-colors hover:bg-slate-100 ${
+                            item.isRead ? "opacity-75" : "bg-blue-100 hover:bg-blue-200/80"
                           }`}
                         >
                           <span className="text-xs font-bold text-slate-800 leading-snug">
                             {item.title}
                           </span>
                           <span className="text-[10px] text-slate-500 mt-1 leading-snug">
-                            {item.content}
+                            {highlightNotificationContent(item.content)}
                           </span>
                         </button>
                       ))
@@ -1048,6 +1057,7 @@ export function CityAdminDashboard() {
                 {activeTab === "feedbacks" && <FeedbacksPage />}
                 {activeTab === "reports" && <ReportsPage />}
                 {activeTab === "users" && <UsersPage />}
+                {activeTab === "news" && <NewsManagement />}
                 {/* Tạm ẩn PermissionsPage */}
                 {/* {activeTab === "permissions" && <PermissionsPage />} */}
               </>

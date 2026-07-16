@@ -52,7 +52,7 @@ public class CampaignParticipant {
     @Column(name = "volunteer_experience", length = 1000)
     private String volunteerExperience;
 
-    @Column(name = "availability_hours", length = 200)
+    @Column(name = "availability_hours", length = 1000)
     private String availabilityHours;
 
     @Column(name = "cancellation_reason", length = 500)
@@ -64,6 +64,16 @@ public class CampaignParticipant {
 
     @Column(name = "confirmation_deadline")
     private LocalDateTime confirmationDeadline;
+
+    @Column(name = "confirmed_at")
+    private LocalDateTime confirmedAt;
+
+    @Column(name = "attended")
+    @Builder.Default
+    private Boolean attended = false;
+
+    @Column(name = "attended_at")
+    private LocalDateTime attendedAt;
 
     @Column(name = "created_at", updatable = false)
     @Builder.Default

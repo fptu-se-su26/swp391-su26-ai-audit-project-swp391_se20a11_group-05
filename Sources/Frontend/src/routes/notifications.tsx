@@ -16,6 +16,7 @@ import { useEffect, useMemo, useRef, useState, type ComponentType } from "react"
 import { toast } from "sonner";
 import { getToken, type NotificationResponse } from "@/lib/api";
 import { useInfiniteNotifications, useMarkNotificationReadMutation } from "@/lib/hooks";
+import { highlightNotificationContent } from "@/lib/notificationHelper";
 import { useI18n } from "@/lib/i18n";
 import { useAuth, Role } from "@/lib/auth";
 
@@ -89,10 +90,33 @@ function NotificationsPage() {
         return;
       }
 
-      if (user?.role === Role.WARD_STAFF) {
-        await navigate({ to: "/ward", search: { tab: "feedback", detailId: String(feedbackId) } });
+      if (item.type === "NEW_CAMPAIGN_APPEAL") {
+        if (user?.role === Role.WARD_STAFF) {
+          await navigate({
+            to: "/ward",
+            search: { tab: "blacklist", detailId: String(feedbackId) },
+          });
+        }
+      } else if (item.type === "CAMPAIGN_APPEAL_APPROVED" || item.type === "CAMPAIGN_APPEAL_REJECTED") {
+        await navigate({ to: "/profile" });
+      } else if (item.type?.startsWith("CAMPAIGN")) {
+        if (user?.role === Role.WARD_STAFF) {
+          await navigate({
+            to: "/ward",
+            search: { tab: "campaign", detailId: String(feedbackId) },
+          });
+        } else {
+          await navigate({ to: "/campaigns/$id", params: { id: String(feedbackId) } });
+        }
       } else {
-        await navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
+        if (user?.role === Role.WARD_STAFF) {
+          await navigate({
+            to: "/ward",
+            search: { tab: "feedback", detailId: String(feedbackId) },
+          });
+        } else {
+          await navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
+        }
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Update failed");
@@ -210,7 +234,7 @@ function NotificationCard({
       className={`card-civic p-5 border-l-4 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gov-blue ${
         item.isRead
           ? "!bg-white !border-slate-200 border-l-slate-200"
-          : "!bg-blue-50 !border-gov-blue border-l-gov-blue ring-1 ring-gov-blue/20"
+          : "!bg-blue-100/70 hover:!bg-blue-200/50 !border-gov-blue border-l-gov-blue ring-1 ring-gov-blue/20"
       }`}
     >
       <div className="grid grid-cols-[44px_minmax(0,1fr)_auto] gap-4 items-start">
@@ -229,7 +253,9 @@ function NotificationCard({
               </span>
             )}
           </div>
-          <p className="text-ink-soft mb-3 leading-relaxed">{item.content}</p>
+          <p className="text-ink-soft mb-3 leading-relaxed">
+            {highlightNotificationContent(item.content)}
+          </p>
 
           {(item.feedbackTrackingCode || item.feedbackTitle || statusLabel) && (
             <div className="rounded-lg border border-slate-200 bg-white/80 px-3 py-2 mb-3">
@@ -294,6 +320,22 @@ function iconForType(type?: string): ComponentType<{ size?: number; className?: 
     FEEDBACK_COMPLETED: CheckCircle2,
     FEEDBACK_CLOSED: CheckCircle2,
     FEEDBACK_WAITING_INFO: MessageSquareWarning,
+    CAMPAIGN_APPROVED: CheckCircle2,
+    CAMPAIGN_REJECTED: AlertCircle,
+    CAMPAIGN_CANCELLED: AlertCircle,
+    CAMPAIGN_RESCHEDULED: RefreshCw,
+    CAMPAIGN_JOINED: Send,
+    CAMPAIGN_LEFT: AlertCircle,
+    CAMPAIGN_AUTO_CANCELLED: AlertCircle,
+    CAMPAIGN_AUTO_ENDED: CheckCircle2,
+    CAMPAIGN_FINALIZED: CheckCircle2,
+    CAMPAIGN_ENDED: CheckCircle2,
+    CAMPAIGN_CONFIRMED: ClipboardCheck,
+    CAMPAIGN_WARNING: MessageSquareWarning,
+    CAMPAIGN_BANNED: AlertCircle,
+    NEW_CAMPAIGN_APPEAL: FileClock,
+    CAMPAIGN_APPEAL_APPROVED: CheckCircle2,
+    CAMPAIGN_APPEAL_REJECTED: AlertCircle,
   };
   return icons[type || ""] || Clock3;
 }
@@ -310,6 +352,22 @@ function typeText(type: string | undefined, locale: string) {
     FEEDBACK_COMPLETED: locale === "vi" ? "Hoàn thành" : "Completed",
     FEEDBACK_CLOSED: locale === "vi" ? "Đã đóng" : "Closed",
     FEEDBACK_WAITING_INFO: locale === "vi" ? "Cần bổ sung thông tin" : "Need more info",
+    CAMPAIGN_APPROVED: locale === "vi" ? "Đăng ký được duyệt" : "Registration approved",
+    CAMPAIGN_REJECTED: locale === "vi" ? "Đăng ký bị từ chối" : "Registration rejected",
+    CAMPAIGN_CANCELLED: locale === "vi" ? "Chiến dịch bị hủy" : "Campaign cancelled",
+    CAMPAIGN_RESCHEDULED: locale === "vi" ? "Thay đổi lịch trình" : "Schedule changed",
+    CAMPAIGN_JOINED: locale === "vi" ? "Đăng ký mới" : "New registration",
+    CAMPAIGN_LEFT: locale === "vi" ? "Hủy tham gia" : "Registration cancelled",
+    CAMPAIGN_AUTO_CANCELLED: locale === "vi" ? "Chiến dịch tự động hủy" : "Campaign auto-cancelled",
+    CAMPAIGN_AUTO_ENDED: locale === "vi" ? "Chiến dịch tự động kết thúc" : "Campaign auto-ended",
+    CAMPAIGN_FINALIZED: locale === "vi" ? "Chiến dịch đã chốt" : "Campaign finalized",
+    CAMPAIGN_ENDED: locale === "vi" ? "Chiến dịch kết thúc" : "Campaign ended",
+    CAMPAIGN_CONFIRMED: locale === "vi" ? "Xác nhận tham gia" : "Attendance confirmed",
+    CAMPAIGN_WARNING: locale === "vi" ? "Cảnh cáo vắng mặt" : "Attendance warning",
+    CAMPAIGN_BANNED: locale === "vi" ? "Cấm tham gia chiến dịch" : "Campaign banned",
+    NEW_CAMPAIGN_APPEAL: locale === "vi" ? "Có đơn giải trình mới" : "New campaign appeal",
+    CAMPAIGN_APPEAL_APPROVED: locale === "vi" ? "Đơn giải trình được duyệt" : "Appeal approved",
+    CAMPAIGN_APPEAL_REJECTED: locale === "vi" ? "Đơn giải trình bị từ chối" : "Appeal rejected",
   };
   return labels[type || ""] || type || "SYSTEM";
 }

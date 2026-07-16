@@ -225,6 +225,17 @@ public class DataInitializer implements CommandLineRunner {
                 log.info("Assigned default ward {} to police1.", defaultWard.getName());
             });
         });
+
+        userRepository.findByUsername("citizen1").ifPresent(citizen -> {
+            if (citizen.getWard() != null) {
+                return;
+            }
+            wardRepository.findById(1L).or(() -> wardRepository.findAll().stream().findFirst()).ifPresent(defaultWard -> {
+                citizen.setWard(defaultWard);
+                userRepository.save(citizen);
+                log.info("Assigned default ward {} to citizen1.", defaultWard.getName());
+            });
+        });
     }
 
     private void seedDefaultCategories() {
@@ -294,6 +305,7 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void ensureLoginLockoutSchema() {
+        executeSchemaSql("ALTER TABLE IF EXISTS users DROP CONSTRAINT IF EXISTS users_status_check");
         executeSchemaSql("ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS login_lock_stage INTEGER NOT NULL DEFAULT 0");
         executeSchemaSql("ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS login_otp_required BOOLEAN NOT NULL DEFAULT FALSE");
         executeSchemaSql("ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS last_failed_login_at TIMESTAMP");

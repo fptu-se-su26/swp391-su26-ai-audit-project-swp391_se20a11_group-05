@@ -31,6 +31,11 @@ public class EmailOtpService {
 
     @Transactional
     public String generateAndSendOtp(User user, String email) {
+        return generateAndSendOtp(user, email, "CAMPAIGN_JOIN");
+    }
+
+    @Transactional
+    public String generateAndSendOtp(User user, String email, String purpose) {
         // Invalidate old unused OTPs
         List<EmailVerification> oldTokens = emailVerificationRepository.findByEmailAndIsUsedFalse(email);
         if (!oldTokens.isEmpty()) {
@@ -50,20 +55,23 @@ public class EmailOtpService {
         }
 
         // Save hashed OTP in database
-        saveOtpRecord(user, email, passwordEncoder.encode(otpCode));
+        saveOtpRecord(user, email, passwordEncoder.encode(otpCode), purpose);
 
         // Send via background external notification service (mocked)
-        String subject = "Mã xác thực đăng ký chiến dịch - Đà Nẵng Kết Nối";
+        String subject = "PASSWORD_CHANGE".equalsIgnoreCase(purpose)
+                ? "Mã xác thực đổi mật khẩu - Đà Nẵng Kết Nối"
+                : "Mã xác thực đăng ký chiến dịch - Đà Nẵng Kết Nối";
         String body = "Xin chào " + user.getFullName() + ",\n\n" +
                 "Mã xác thực OTP của bạn là: " + otpCode + "\n" +
                 "Mã này có hiệu lực trong " + OTP_VALID_DURATION_MINUTES + " phút.\n" +
                 "Vui lòng không chia sẻ mã này với bất kỳ ai.\n\n" +
-                "Trân trọng,\nBan Tổ Chức Chiến Dịch Cộng Đồng";
+                "Trân trọng,\nBan Tổ Chức";
 
         externalNotificationService.sendEmailNotification(email, subject, body);
 
         // Also log directly so developer can see it in terminal easily
         log.info("========== EMAIL OTP GENERATED ==========");
+        log.info("Purpose: {}", purpose);
         log.info("To: {}", email);
         log.info("OTP Code: {}", otpCode);
         log.info("=========================================");
@@ -72,11 +80,15 @@ public class EmailOtpService {
     }
 
     private void saveOtpRecord(User user, String email, String hashedOtp) {
+        saveOtpRecord(user, email, hashedOtp, "CAMPAIGN_JOIN");
+    }
+
+    private void saveOtpRecord(User user, String email, String hashedOtp, String purpose) {
         EmailVerification verification = EmailVerification.builder()
                 .user(user)
                 .email(email)
                 .otpCode(hashedOtp)
-                .purpose("CAMPAIGN_JOIN")
+                .purpose(purpose != null ? purpose : "CAMPAIGN_JOIN")
                 .expiresAt(LocalDateTime.now().plusMinutes(OTP_VALID_DURATION_MINUTES))
                 .build();
         emailVerificationRepository.save(verification);

@@ -50,6 +50,9 @@ public class Campaign extends BaseEntity {
 
     private Double longitude;
 
+    @Column(name = "min_participants")
+    private Integer minParticipants;
+
     @Column(name = "max_participants")
     private Integer maxParticipants;
 
@@ -74,4 +77,11 @@ public class Campaign extends BaseEntity {
 
     @Column(name = "image_urls", columnDefinition = "TEXT")
     private String imageUrls;
+
+    @Column(name = "announcement_mode", nullable = false)
+    @Builder.Default
+    private boolean announcementMode = false;
+
+    @Column(name = "cancellation_reason", length = 500)
+    private String cancellationReason;
 }

@@ -59,6 +59,7 @@ import {
   type FeedbackResponse,
   type PoliceFeedbackResponse,
 } from "@/lib/api";
+import { highlightNotificationContent } from "@/lib/notificationHelper";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -74,14 +75,15 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
+import { NewsManagement } from "../news/NewsManagement";
 
-const CivicMap = clientOnly(() =>
-  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
-);
+const CivicMap = clientOnly(
+  () => import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
+) as any;
 
-const HeatmapMap = clientOnly(() =>
-  import("@/components/site/HeatmapMap").then((m) => ({ default: m.HeatmapMap })),
-);
+const HeatmapMap = clientOnly(
+  () => import("@/components/site/HeatmapMap").then((m) => ({ default: m.HeatmapMap })) as any,
+) as any;
 
 // Date formatting helper
 function formatDate(dateStr: string, includeTime = true): string {
@@ -340,21 +342,21 @@ export function PoliceDashboard() {
   const getKpiTrend = (
     statusType: "total" | "pending" | "accepted" | "inProgress" | "resolved" | "rejected",
   ) => {
-    let filterFn = (f: FeedbackResponse) => true;
+    let filterFn = (f: any) => true;
     if (statusType === "pending") {
-      filterFn = (f: FeedbackResponse) =>
+      filterFn = (f: any) =>
         f.status === "PENDING" ||
         f.status === "PENDING_RECEIVE" ||
         f.status === "SUBMITTED" ||
         f.status === "NEED_LOCATION_REVIEW";
     } else if (statusType === "accepted") {
-      filterFn = (f: FeedbackResponse) => f.status === "ASSIGNED";
+      filterFn = (f: any) => f.status === "ASSIGNED";
     } else if (statusType === "inProgress") {
-      filterFn = (f: FeedbackResponse) => f.status === "IN_PROGRESS" || f.status === "WAITING_INFO";
+      filterFn = (f: any) => f.status === "IN_PROGRESS" || f.status === "WAITING_INFO";
     } else if (statusType === "resolved") {
-      filterFn = (f: FeedbackResponse) => f.status === "RESOLVED";
+      filterFn = (f: any) => f.status === "RESOLVED";
     } else if (statusType === "rejected") {
-      filterFn = (f: FeedbackResponse) => f.status === "REJECTED";
+      filterFn = (f: any) => f.status === "REJECTED";
     }
 
     const now = new Date().getTime();
@@ -389,11 +391,11 @@ export function PoliceDashboard() {
 
     let color = "text-green-600";
     if (diff > 0) {
-      if (statusType === "overdue" || statusType === "pending") {
+      if ((statusType as string) === "overdue" || statusType === "pending") {
         color = "text-red-500";
       }
     } else if (diff < 0) {
-      if (statusType === "overdue" || statusType === "pending") {
+      if ((statusType as string) === "overdue" || statusType === "pending") {
         color = "text-green-600";
       } else {
         color = "text-red-500";
@@ -640,14 +642,17 @@ export function PoliceDashboard() {
       await authApi.logout().catch(() => {});
     } catch {}
     logout();
-    queryClient.clear();
     navigate({ to: loginPath });
+    setTimeout(() => {
+      queryClient.clear();
+    }, 0);
   };
 
   const menuItems = [
     { name: "Tổng quan", id: "overview", icon: Grid },
     { name: "Phản ánh", id: "feedbacks", icon: FileText },
     { name: "Theo dõi xử lý", id: "tracking", icon: Activity },
+    { name: "Tin tức", id: "news", icon: FileText },
     { name: "Báo cáo", id: "reports", icon: BarChart3 },
     { name: "Cấu hình", id: "settings", icon: Sliders },
   ];
@@ -811,8 +816,8 @@ export function PoliceDashboard() {
                         <button
                           key={item.id}
                           onClick={() => handleNotifClick(item)}
-                          className={`w-full text-left p-3.5 flex gap-3 transition-colors hover:bg-slate-50 ${
-                            item.isRead ? "opacity-70" : "bg-[#EFF6FF]"
+                          className={`w-full text-left p-3.5 flex gap-3 transition-colors hover:bg-slate-100 ${
+                            item.isRead ? "opacity-70" : "bg-[#D0E2FF] hover:bg-[#B3D1FF]"
                           }`}
                         >
                           <div className="w-8 h-8 rounded-full bg-[#0F5BD8]/10 text-[#0F5BD8] flex items-center justify-center shrink-0">
@@ -823,7 +828,7 @@ export function PoliceDashboard() {
                               {item.title}
                             </span>
                             <span className="text-[11px] text-slate-500 mt-0.5 line-clamp-2 leading-relaxed block">
-                              {item.content}
+                              {highlightNotificationContent(item.content)}
                             </span>
                           </div>
                         </button>
@@ -1072,7 +1077,10 @@ export function PoliceDashboard() {
                               ))
                             ) : priorityReports.length === 0 ? (
                               <tr>
-                                <td colSpan={6} className="px-5 py-8 text-center text-xs text-slate-400">
+                                <td
+                                  colSpan={6}
+                                  className="px-5 py-8 text-center text-xs text-slate-400"
+                                >
                                   Chưa có phản ánh mới cần xử lý.
                                 </td>
                               </tr>

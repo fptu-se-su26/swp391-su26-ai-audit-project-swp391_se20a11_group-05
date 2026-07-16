@@ -8,7 +8,13 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "feedbacks")
+@Table(name = "feedbacks", indexes = {
+    @Index(name = "idx_feedback_status", columnList = "status"),
+    @Index(name = "idx_feedback_public", columnList = "publicVisible"),
+    @Index(name = "idx_feedback_created", columnList = "createdAt"),
+    @Index(name = "idx_feedback_category", columnList = "category_id"),
+    @Index(name = "idx_feedback_ward", columnList = "ward_id")
+})
 public class Feedback extends BaseEntity {
 
     @Column(nullable = false, unique = true, length = 20)

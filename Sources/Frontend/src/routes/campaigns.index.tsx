@@ -1,25 +1,47 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { format } from "date-fns";
 import {
+  AlertTriangle,
+  ArrowRight,
+  BarChart3,
   CheckCircle2,
-  Clock3,
-  Grid3X3,
-  LayoutList,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  Flame,
+  Hammer,
+  Landmark,
   Leaf,
-  ListChecks,
+  Mail,
   MapPin,
   Megaphone,
+  MessageSquareText,
+  Newspaper,
+  Phone,
   Plus,
-  Search,
-  Sparkles,
+  Search as SearchIcon,
+  Send,
+  ShieldCheck,
+  Trophy,
   Users,
-  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useCampaignList, useJoinCampaign } from "@/hooks/useCampaigns";
+import { useCampaignList } from "@/hooks/useCampaigns";
 import { Role, useAuth } from "@/lib/auth";
+import { feedbackApi, newsApi } from "@/lib/api";
 import type { Campaign, CampaignCategory } from "@/lib/campaignStore";
-import heroBg from "@/assets/campaign-hero-bg.jpg";
+import { useI18n } from "@/lib/i18n";
+import { CampaignAppealModal } from "@/components/site/CampaignAppealModal";
+import causonghanImg from "@/assets/causonghan.png";
+import { CampaignCard, campaignCategoryLabel } from "@/features/campaigns/CampaignCard";
+import { StatisticCard } from "@/features/campaigns/StatisticCard";
+import {
+  DEFAULT_FILTERS,
+  FilterBar,
+  type CampaignFilters,
+} from "@/features/campaigns/FilterBar";
 
 export const Route = createFileRoute("/campaigns/")({
   head: () => ({
@@ -34,55 +56,112 @@ export const Route = createFileRoute("/campaigns/")({
   component: CampaignList,
 });
 
+const categoryOptions = [
+  { value: "all", label: "Tất cả lĩnh vực" },
+  ...Object.entries(campaignCategoryLabel).map(([value, label]) => ({ value, label })),
+];
+
 const statusOptions = [
   { value: "all", label: "Tất cả trạng thái" },
-  { value: "active", label: "Đang hoạt động" },
+  { value: "recruiting", label: "Sắp diễn ra" },
+  { value: "inProgress", label: "Đang diễn ra" },
   { value: "ended", label: "Đã kết thúc" },
+  { value: "cancelled", label: "Đã hủy" },
 ];
 
-const categoryOptions: { value: "all" | CampaignCategory; label: string }[] = [
-  { value: "all", label: "Tất cả lĩnh vực" },
-  { value: "environment", label: "Môi trường" },
-  { value: "infrastructure", label: "Hạ tầng" },
-  { value: "public_safety", label: "An toàn cộng đồng" },
-  { value: "construction", label: "Xây dựng" },
-  { value: "fire_safety", label: "PCCC" },
+const timeOptions = [
+  { value: "all", label: "Tất cả thời gian" },
+  { value: "month", label: "Tháng này" },
+  { value: "quarter", label: "Quý này" },
+  { value: "year", label: "Năm nay" },
 ];
 
-const categoryLabel: Record<CampaignCategory, string> = {
-  environment: "Môi trường",
-  infrastructure: "Hạ tầng",
-  public_safety: "An toàn",
-  construction: "Xây dựng",
-  fire_safety: "PCCC",
-};
+const sortOptions = [
+  { value: "newest", label: "Mới nhất" },
+  { value: "oldest", label: "Cũ nhất" },
+  { value: "participants", label: "Nhiều người tham gia" },
+];
 
 const categoryIcon: Record<CampaignCategory, typeof Leaf> = {
   environment: Leaf,
-  infrastructure: MapPin,
-  public_safety: Users,
-  construction: Zap,
-  fire_safety: Sparkles,
+  infrastructure: Landmark,
+  public_safety: ShieldCheck,
+  construction: Hammer,
+  fire_safety: Flame,
 };
 
-const mockImages = [
+const fallbackImages = [
   "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&auto=format&fit=crop&q=80",
   "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=600&auto=format&fit=crop&q=80",
   "https://images.unsplash.com/photo-1593113598332-cd288d649433?w=600&auto=format&fit=crop&q=80",
   "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600&auto=format&fit=crop&q=80",
 ];
 
+function isUpcoming(c: Campaign) {
+  return c.status === "recruiting";
+}
+function isOngoing(c: Campaign) {
+  return c.status === "inProgress" || c.status === "active";
+}
+function isEnded(c: Campaign) {
+  return c.status === "ended" || c.status === "completed";
+}
+
+function matchesTime(campaign: Campaign, time: string) {
+  if (time === "all") return true;
+  const raw = campaign.startTime ?? campaign.createdAt;
+  if (!raw) return false;
+  const date = new Date(raw);
+  const now = new Date();
+  if (date.getFullYear() !== now.getFullYear()) return false;
+  if (time === "year") return true;
+  if (time === "quarter") {
+    return Math.floor(date.getMonth() / 3) === Math.floor(now.getMonth() / 3);
+  }
+  return date.getMonth() === now.getMonth();
+}
+
 function CampaignList() {
   const campaigns = useCampaignList();
   const { user, isAuthenticated } = useAuth();
-  const joinCampaign = useJoinCampaign();
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("all");
-  const [category, setCategory] = useState<"all" | CampaignCategory>("all");
-  const [view, setView] = useState<"grid" | "list">("grid");
+  const { locale } = useI18n();
+  const navigate = useNavigate();
+  const [filters, setFilters] = useState<CampaignFilters>(DEFAULT_FILTERS);
+  const [sort, setSort] = useState("newest");
+  const [page, setPage] = useState(0);
+  const [showAppealModal, setShowAppealModal] = useState(false);
 
-  const filtered = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
+  const updateFilters = (next: Partial<CampaignFilters>) => {
+    setFilters((prev) => ({ ...prev, ...next }));
+    setPage(0);
+  };
+
+  const { data: feedbackStats } = useQuery({
+    queryKey: ["public-feedback-stats"],
+    queryFn: () => feedbackApi.getPublicStats(),
+    staleTime: 60_000,
+  });
+
+  const { data: newsData } = useQuery({
+    queryKey: ["news", "latest", 3],
+    queryFn: () => newsApi.getAll(0, 3),
+    staleTime: 60_000,
+  });
+  const latestNews = newsData?.content ?? [];
+
+  const wardOptions = useMemo(() => {
+    const wards = [...new Set(campaigns.map((c) => c.ward).filter(Boolean))].sort((a, b) =>
+      a.localeCompare(b, "vi"),
+    );
+    return [
+      { value: "all", label: "Tất cả địa phương" },
+      ...wards.map((ward) => ({ value: ward, label: ward })),
+    ];
+  }, [campaigns]);
+
+  // Mọi bộ lọc trừ trạng thái — tab đếm số lượng trên tập này
+  const preFiltered = useMemo(() => {
+    const keyword = filters.keyword.trim().toLowerCase();
     return campaigns.filter((campaign) => {
       const matchesSearch =
         !keyword ||
@@ -90,489 +169,543 @@ function CampaignList() {
         campaign.ward.toLowerCase().includes(keyword) ||
         campaign.desc.toLowerCase().includes(keyword) ||
         (campaign.locationText ?? "").toLowerCase().includes(keyword);
-      const matchesStatus =
-        status === "all" ||
-        (status === "active" && (campaign.status === "active" || campaign.status === "recruiting" || campaign.status === "inProgress")) ||
-        (status === "ended" && (campaign.status === "ended" || campaign.status === "completed"));
-      const matchesCategory = category === "all" || campaign.category === category;
-      return matchesSearch && matchesStatus && matchesCategory;
+      const matchesCategory =
+        filters.category === "all" || campaign.category === filters.category;
+      const matchesWard = filters.ward === "all" || campaign.ward === filters.ward;
+      return matchesSearch && matchesCategory && matchesWard && matchesTime(campaign, filters.time);
     });
-  }, [campaigns, search, status, category]);
+  }, [campaigns, filters.keyword, filters.category, filters.ward, filters.time]);
+
+  const filtered = useMemo(() => {
+    const byStatus = preFiltered.filter((campaign) => {
+      if (filters.status === "all") return true;
+      if (filters.status === "recruiting") return isUpcoming(campaign);
+      if (filters.status === "inProgress") return isOngoing(campaign);
+      if (filters.status === "ended") return isEnded(campaign);
+      return campaign.status === filters.status;
+    });
+    return [...byStatus].sort((a, b) => {
+      if (sort === "participants") return b.participants - a.participants;
+      const timeA = new Date(a.createdAt).getTime();
+      const timeB = new Date(b.createdAt).getTime();
+      return sort === "oldest" ? timeA - timeB : timeB - timeA;
+    });
+  }, [preFiltered, filters.status, sort]);
+
+  const PAGE_SIZE = 12;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const paginated = filtered.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
+
+  const goToPage = (next: number) => {
+    setPage(next);
+    document.getElementById("campaigns-list")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const tabs = [
+    { value: "all", label: "Tất cả", count: preFiltered.length },
+    { value: "recruiting", label: "Sắp diễn ra", count: preFiltered.filter(isUpcoming).length },
+    { value: "inProgress", label: "Đang diễn ra", count: preFiltered.filter(isOngoing).length },
+    { value: "ended", label: "Đã kết thúc", count: preFiltered.filter(isEnded).length },
+  ];
+
+  const totalParticipants = campaigns.reduce((sum, c) => sum + c.participants, 0);
+  const campaignsThisMonth = campaigns.filter((c) => matchesTime(c, "month")).length;
+
+  const categoryStats = useMemo(() => {
+    return (Object.keys(campaignCategoryLabel) as CampaignCategory[])
+      .map((category) => ({
+        category,
+        count: campaigns.filter((c) => c.category === category).length,
+      }))
+      .filter((entry) => entry.count > 0)
+      .sort((a, b) => b.count - a.count);
+  }, [campaigns]);
 
   const canCreate = isAuthenticated && user?.role === Role.WARD_STAFF;
 
-  const handleJoin = async (campaign: Campaign) => {
+  const handleJoin = (campaign: Campaign) => {
     if (!isAuthenticated) {
       toast.error("Vui lòng đăng nhập để tham gia chiến dịch.");
+      return;
+    }
+    if (user?.campaignBanned) {
+      setShowAppealModal(true);
       return;
     }
     if (!campaign.canJoin) {
       toast.error("Chiến dịch hiện không mở đăng ký.");
       return;
     }
-    await joinCampaign.mutateAsync(campaign.id);
-    toast.success("Đã gửi yêu cầu tham gia, vui lòng chờ người quản lý duyệt.");
+    navigate({
+      to: "/campaigns/$id",
+      params: { id: campaign.id },
+      search: { join: true },
+    });
   };
 
-  const stats = [
-    { label: "Tất cả chiến dịch", value: campaigns.length, icon: ListChecks, color: "#7C3AED", border: "border-l-[#7C3AED]" },
-    {
-      label: "Đang tuyển quân",
-      value: campaigns.filter((c) => (c.status === "active" || c.status === "recruiting") && c.participants < c.target).length,
-      icon: Megaphone,
-      color: "#10B981",
-      border: "border-l-[#10B981]",
-    },
-    {
-      label: "Tuyển đủ thành viên",
-      value: campaigns.filter((c) => (c.status === "active" || c.status === "recruiting") && c.participants >= c.target).length,
-      icon: Zap,
-      color: "#3B82F6",
-      border: "border-l-[#3B82F6]",
-    },
-    {
-      label: "Đã kết thúc",
-      value: campaigns.filter((c) => c.status === "ended" || c.status === "completed").length,
-      icon: CheckCircle2,
-      color: "#EF4444",
-      border: "border-l-[#EF4444]",
-    },
-  ];
-
   return (
-    <main className="min-h-screen bg-[#F8F7FF] pb-16 text-slate-950">
-      <div className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 lg:px-8">
-        <section
-          className="relative mb-10 overflow-hidden rounded-[28px] p-8 shadow-2xl md:p-12 min-h-[440px] flex items-center border border-white/10"
-        >
-          {/* Blurred realistic background image */}
-          <div
-            className="absolute inset-0 bg-cover bg-center blur-[4px] scale-[1.03] pointer-events-none"
-            style={{ backgroundImage: `url(${heroBg})` }}
-          />
-          {/* Uniform light overlay to ensure text contrast while revealing the full background */}
-          <div className="absolute inset-0 bg-slate-950/30 pointer-events-none" />
+    <main className="min-h-screen bg-[#F5F7FB] pb-16">
+      {/* ── Hero: tiêu đề trang + thống kê trên nền minh họa thành phố ── */}
+      <section
+        aria-labelledby="page-title"
+        className="relative overflow-hidden border-b border-[#E6ECF5] bg-gradient-to-r from-[#E9F1FB] to-[#F6FAFE]"
+      >
+        {/* Ảnh cầu sông Hàn phủ tông xanh, mờ dần về bên trái để giữ độ tương phản chữ */}
+        <div
+          aria-hidden
+          className="absolute inset-y-0 right-0 hidden w-[58%] bg-cover bg-center opacity-45 mix-blend-luminosity md:block"
+          style={{
+            backgroundImage: `url(${causonghanImg})`,
+            maskImage: "linear-gradient(to right, transparent, black 48%)",
+            WebkitMaskImage: "linear-gradient(to right, transparent, black 48%)",
+          }}
+        />
+        <div
+          aria-hidden
+          className="absolute inset-y-0 right-0 hidden w-[58%] bg-gradient-to-r from-transparent via-[#2E6AE6]/5 to-[#0A4DA2]/15 md:block"
+        />
+        <div className="relative mx-auto max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
+          <nav aria-label="Breadcrumb" className="mb-3">
+            <ol className="flex items-center gap-1.5 text-[13px] font-medium text-[#64748B]">
+              <li>
+                <Link to="/" className="transition-colors hover:text-[#0A4DA2]">
+                  Trang chủ
+                </Link>
+              </li>
+              <li aria-hidden>
+                <ChevronRight size={14} />
+              </li>
+              <li aria-current="page" className="text-[#182230]">
+                Chiến dịch
+              </li>
+            </ol>
+          </nav>
 
-          <div className="absolute -top-40 -right-40 h-96 w-96 rounded-full bg-violet-600/10 blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-20 -left-20 h-80 w-80 rounded-full bg-emerald-600/10 blur-3xl pointer-events-none" />
-
-          <div className="relative z-10 grid gap-10 lg:grid-cols-[45%_55%] items-center w-full">
-            {/* Left content area */}
-            <div className="flex flex-col items-start text-left">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-black uppercase tracking-[0.15em] text-violet-200 backdrop-blur-md border border-white/10">
-                <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                Chiến dịch đã phê duyệt
-              </div>
-
-              <h1 className="mt-5 text-4xl sm:text-5xl font-black tracking-tight text-white leading-[1.15]">
-                Chiến dịch <br className="hidden sm:inline" />
-                <span className="bg-gradient-to-r from-violet-200 via-indigo-100 to-white bg-clip-text text-transparent">cộng đồng</span>
+          <div className="grid items-center gap-8 lg:grid-cols-[minmax(300px,420px)_1fr]">
+            <div>
+              <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#C9DAF2] bg-white/80 px-3 py-1 text-xs font-semibold text-[#0A4DA2]">
+                <Landmark size={13} aria-hidden />
+                Cổng thông tin phản ánh hiện trường · TP. Đà Nẵng
+              </span>
+              <h1 id="page-title" className="font-sans text-[32px] font-bold tracking-tight text-[#182230]">
+                Chiến dịch cộng đồng
               </h1>
-
-              <p className="mt-4 max-w-xl text-base leading-relaxed text-slate-300 font-medium">
-                Xem các chiến dịch đã được phê duyệt, đăng ký tham gia và theo dõi tiến độ cải thiện đô thị tại địa phương của bạn.
+              <p className="mt-2 max-w-md text-[15px] leading-relaxed text-[#64748B]">
+                Nơi kết nối các chiến dịch cộng đồng, tiếp nhận phản ánh và lan tỏa những giá trị
+                tốt đẹp đến cộng đồng.
               </p>
-
-              <div className="mt-8 flex flex-wrap gap-4 w-full sm:w-auto">
-                <button
-                  onClick={() => {
-                    setStatus("recruiting");
-                    document.getElementById("campaigns-list")?.scrollIntoView({ behavior: "smooth" });
-                  }}
-                  className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-600 px-6 text-sm font-black text-white shadow-lg shadow-indigo-500/25 transition-all hover:-translate-y-0.5 hover:shadow-indigo-500/40 active:translate-y-0 cursor-pointer"
-                >
-                  <Users size={16} />
-                  Tham gia chiến dịch
-                </button>
-                <button
-                  onClick={() => {
-                    setStatus("inProgress");
-                    document.getElementById("campaigns-list")?.scrollIntoView({ behavior: "smooth" });
-                  }}
-                  className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-white/10 border border-white/20 px-6 text-sm font-black text-white backdrop-blur-md transition-all hover:bg-white/20 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
-                >
-                  <Clock3 size={16} />
-                  Xem tiến độ
-                </button>
-              </div>
             </div>
 
-            {/* Right illustration + floating cards */}
-            <div className="relative flex justify-center lg:justify-end items-center h-[320px] lg:h-[360px] w-full select-none">
-              {/* Main vector graphic */}
-              <div className="relative w-full max-w-[480px] h-full flex items-center justify-center">
-                <VolunteerIllustration />
-              </div>
-
-              {/* Floating Card 1: Social Proof / Participants */}
-              <div className="absolute top-4 left-0 sm:left-4 md:left-8 backdrop-blur-lg bg-slate-900/40 border border-white/10 shadow-2xl rounded-2xl p-3 flex items-center gap-3 text-white transition-all hover:scale-105 duration-300 hover:border-white/20">
-                <div className="flex -space-x-2.5">
-                  <img className="h-8 w-8 rounded-full border-2 border-slate-900 object-cover" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=60" alt="Participant" />
-                  <img className="h-8 w-8 rounded-full border-2 border-slate-900 object-cover" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=60" alt="Participant" />
-                  <img className="h-8 w-8 rounded-full border-2 border-slate-900 object-cover" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&auto=format&fit=crop&q=60" alt="Participant" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[11px] font-bold text-violet-200 tracking-wider uppercase">Đồng hành</span>
-                  <span className="text-xs font-black text-white">1.248 người đã tham gia</span>
-                </div>
-                <div className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm">
-                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-              </div>
-
-              {/* Floating Card 2: Progress & Interest */}
-              <div className="absolute bottom-4 right-0 sm:right-4 backdrop-blur-lg bg-slate-900/40 border border-white/10 shadow-2xl rounded-2xl p-4 text-white w-[200px] transition-all hover:scale-105 duration-300 hover:border-white/20">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-emerald-300 tracking-wider uppercase">Chiến dịch xanh</span>
-                  <button className="text-rose-400 hover:text-rose-500 transition-colors">
-                    <svg className="h-4.5 w-4.5 fill-current" viewBox="0 0 24 24">
-                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                    </svg>
-                  </button>
-                </div>
-                <p className="mt-1 text-sm font-black text-white">82% hoàn thành</p>
-                <div className="h-1.5 w-full bg-white/20 rounded-full mt-2.5 overflow-hidden">
-                  <div className="h-full w-[82%] bg-gradient-to-r from-emerald-400 to-teal-300 rounded-full" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section id="campaigns-list" className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <div key={stat.label} className={`rounded-xl border border-white bg-white p-5 shadow-md border-l-4 ${stat.border}`}>
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{stat.label}</p>
-                    <p className="mt-2 text-3xl font-black" style={{ color: stat.color }}>
-                      {stat.value}
-                    </p>
-                  </div>
-                  <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#F3F0FF]">
-                    <Icon size={20} style={{ color: stat.color }} />
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </section>
-
-        <section className="mb-6 rounded-xl border border-violet-100 bg-white p-4 shadow-sm">
-          <div className="grid gap-3 lg:grid-cols-[1fr_190px_190px_auto]">
-            <label className="relative block">
-              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                className="h-12 w-full rounded-lg border border-slate-200 bg-white pl-11 pr-3 text-sm outline-none transition focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/15"
-                placeholder="Tìm theo tên, phường hoặc mô tả..."
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <StatisticCard
+                icon={ClipboardList}
+                value={campaigns.length}
+                label="Tổng chiến dịch"
+                tone="blue"
               />
-            </label>
-            <select
-              value={category}
-              onChange={(event) => setCategory(event.target.value as "all" | CampaignCategory)}
-              className="h-12 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold outline-none transition focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/15"
-            >
-              {categoryOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <select
-              value={status}
-              onChange={(event) => setStatus(event.target.value)}
-              className="h-12 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold outline-none transition focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/15"
-            >
-              {statusOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <div className="inline-flex h-12 rounded-lg border border-slate-200 bg-slate-50 p-1">
-              <button
-                type="button"
-                onClick={() => setView("grid")}
-                className={`grid h-10 w-10 place-items-center rounded-md transition ${view === "grid" ? "bg-white text-[#7C3AED] shadow-sm" : "text-slate-500"}`}
-                aria-label="Hiển thị dạng lưới"
-              >
-                <Grid3X3 size={17} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setView("list")}
-                className={`grid h-10 w-10 place-items-center rounded-md transition ${view === "list" ? "bg-white text-[#7C3AED] shadow-sm" : "text-slate-500"}`}
-                aria-label="Hiển thị dạng danh sách"
-              >
-                <LayoutList size={18} />
-              </button>
+              <StatisticCard
+                icon={Users}
+                value={totalParticipants.toLocaleString("vi-VN")}
+                label="Người tham gia"
+                tone="green"
+              />
+              <StatisticCard
+                icon={BarChart3}
+                value={feedbackStats ? feedbackStats.resolved.toLocaleString("vi-VN") : "—"}
+                label="Phản ánh đã xử lý"
+                tone="amber"
+              />
+              <StatisticCard
+                icon={CheckCircle2}
+                value={campaigns.filter(isEnded).length}
+                label="Chiến dịch hoàn thành"
+                tone="indigo"
+              />
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section className={view === "grid" ? "grid gap-6 lg:grid-cols-2" : "grid gap-5"}>
-          {filtered.map((campaign, index) => (
-            <CampaignCard
-              key={campaign.id}
-              campaign={campaign}
-              image={campaign.cover || mockImages[index % mockImages.length]}
-              compact={view === "list"}
-              isJoining={joinCampaign.isPending}
-              onJoin={() => handleJoin(campaign)}
-            />
-          ))}
-        </section>
-
-        {filtered.length === 0 && (
-          <div className="mt-6 rounded-xl border border-dashed border-violet-200 bg-white p-10 text-center text-sm font-semibold text-slate-500">
-            Chưa có chiến dịch phù hợp với bộ lọc hiện tại.
+      <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
+        {isAuthenticated && user?.campaignBanned && (
+          <div className="mt-6 flex flex-col justify-between gap-4 rounded-[16px] border border-[#F3D3D3] bg-[#FDF4F4] p-5 sm:flex-row sm:items-center">
+            <div className="flex items-start gap-3.5">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-[#F8E1E1] text-[#B23B3B]">
+                <AlertTriangle size={20} aria-hidden />
+              </div>
+              <div>
+                <h2 className="font-sans text-sm font-bold text-[#8F2F2F]">
+                  Quyền tham gia chiến dịch đang bị khóa
+                </h2>
+                <p className="mt-1 text-[13px] leading-relaxed text-[#9A4A4A]">
+                  Tài khoản của bạn đã bị tạm dừng đăng ký tham gia các chiến dịch cộng đồng mới do
+                  vắng mặt không lý do. Vui lòng gửi đơn giải trình để được mở khóa.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAppealModal(true)}
+              className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-[#E05252] px-4 text-[13px] font-semibold text-white transition-colors duration-200 hover:bg-[#C74444]"
+            >
+              <Send size={14} aria-hidden />
+              Gửi đơn giải trình mở khóa
+            </button>
           </div>
         )}
+
+        <div className="mt-6">
+          <FilterBar
+            filters={filters}
+            categoryOptions={categoryOptions}
+            wardOptions={wardOptions}
+            statusOptions={statusOptions}
+            timeOptions={timeOptions}
+            onChange={updateFilters}
+            onReset={() => {
+              setFilters(DEFAULT_FILTERS);
+              setPage(0);
+            }}
+          />
+        </div>
+
+        <div className="mt-6 grid items-start gap-6 lg:grid-cols-[1fr_320px]">
+          {/* ── Cột trái: tabs + danh sách chiến dịch + tin tức ── */}
+          <div>
+            <div
+              id="campaigns-list"
+              className="flex scroll-mt-24 flex-wrap items-center justify-between gap-3 border-b border-[#E6ECF5]"
+            >
+              <div role="tablist" aria-label="Lọc theo trạng thái chiến dịch" className="flex gap-1">
+                {tabs.map((tab) => {
+                  const selected = filters.status === tab.value;
+                  return (
+                    <button
+                      key={tab.value}
+                      role="tab"
+                      aria-selected={selected}
+                      onClick={() => updateFilters({ status: tab.value })}
+                      className={`relative px-4 pb-3 pt-2 text-sm font-semibold transition-colors duration-200 ${
+                        selected ? "text-[#0A4DA2]" : "text-[#64748B] hover:text-[#182230]"
+                      }`}
+                    >
+                      {tab.label} ({tab.count})
+                      <span
+                        aria-hidden
+                        className={`absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[#0A4DA2] transition-transform duration-200 ${
+                          selected ? "scale-x-100" : "scale-x-0"
+                        }`}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+              <label className="flex items-center gap-2 pb-2 text-[13px] font-medium text-[#64748B]">
+                Sắp xếp theo:
+                <select
+                  value={sort}
+                  onChange={(event) => {
+                    setSort(event.target.value);
+                    setPage(0);
+                  }}
+                  className="h-9 rounded-lg border border-[#E6ECF5] bg-white px-2.5 text-[13px] font-semibold text-[#182230] outline-none transition focus:border-[#2E6AE6]"
+                >
+                  {sortOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            {filtered.length > 0 ? (
+              <>
+                <div
+                  role="tabpanel"
+                  className="mt-6 grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+                >
+                  {paginated.map((campaign, index) => (
+                    <CampaignCard
+                      key={campaign.id}
+                      campaign={campaign}
+                      image={
+                        campaign.coverImageUrl ||
+                        campaign.cover ||
+                        fallbackImages[index % fallbackImages.length]
+                      }
+                      onJoin={() => handleJoin(campaign)}
+                    />
+                  ))}
+                </div>
+                {totalPages > 1 && (
+                  <nav
+                    aria-label="Phân trang danh sách chiến dịch"
+                    className="mt-8 flex items-center justify-center gap-1.5"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => goToPage(Math.max(0, safePage - 1))}
+                      disabled={safePage === 0}
+                      aria-label="Trang trước"
+                      className="grid h-9 w-9 place-items-center rounded-lg border border-[#E6ECF5] bg-white text-[#64748B] transition-colors hover:bg-[#F5F7FB] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white"
+                    >
+                      <ChevronLeft size={16} aria-hidden />
+                    </button>
+                    {getPageItems(safePage, totalPages).map((item, i) =>
+                      item === "..." ? (
+                        <span key={`ellipsis-${i}`} className="px-1 text-sm text-[#64748B]">
+                          ...
+                        </span>
+                      ) : (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => goToPage(item)}
+                          aria-current={item === safePage ? "page" : undefined}
+                          className={`grid h-9 w-9 place-items-center rounded-lg text-sm font-semibold transition-colors ${
+                            item === safePage
+                              ? "bg-[#0A4DA2] text-white"
+                              : "border border-[#E6ECF5] bg-white text-[#182230] hover:bg-[#F5F7FB]"
+                          }`}
+                        >
+                          {item + 1}
+                        </button>
+                      ),
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => goToPage(Math.min(totalPages - 1, safePage + 1))}
+                      disabled={safePage >= totalPages - 1}
+                      aria-label="Trang sau"
+                      className="grid h-9 w-9 place-items-center rounded-lg border border-[#E6ECF5] bg-white text-[#64748B] transition-colors hover:bg-[#F5F7FB] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white"
+                    >
+                      <ChevronRight size={16} aria-hidden />
+                    </button>
+                  </nav>
+                )}
+              </>
+            ) : (
+              <div className="mt-6 rounded-[16px] border border-dashed border-[#C9D8EE] bg-white p-12 text-center">
+                <SearchIcon size={32} className="mx-auto text-[#94A3B8]" aria-hidden />
+                <p className="mt-3 text-sm font-semibold text-[#182230]">
+                  Không tìm thấy chiến dịch phù hợp
+                </p>
+                <p className="mt-1 text-[13px] text-[#64748B]">
+                  Hãy thử thay đổi từ khóa hoặc đặt lại bộ lọc để xem tất cả chiến dịch.
+                </p>
+              </div>
+            )}
+
+            {latestNews.length > 0 && (
+              <section aria-labelledby="news-heading" className="mt-8 rounded-[16px] border border-[#E6ECF5] bg-white p-6 shadow-[0_1px_3px_rgba(16,42,83,0.06)]">
+                <div className="mb-5 flex items-center justify-between">
+                  <h2 id="news-heading" className="font-sans flex items-center gap-2 text-[15px] font-bold uppercase tracking-wide text-[#182230]">
+                    <Newspaper size={18} className="text-[#0A4DA2]" aria-hidden />
+                    Tin tức &amp; thông báo
+                  </h2>
+                  <Link
+                    to="/tin-tuc"
+                    className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#0A4DA2] hover:underline"
+                  >
+                    Xem tất cả
+                    <ArrowRight size={14} aria-hidden />
+                  </Link>
+                </div>
+                <div className="grid gap-6 md:grid-cols-3">
+                  {latestNews.map((news) => (
+                    <Link
+                      key={news.id}
+                      to="/tin-tuc/$id"
+                      params={{ id: String(news.id) }}
+                      className="group flex gap-3.5"
+                    >
+                      <img
+                        src={news.imageUrl}
+                        alt=""
+                        loading="lazy"
+                        className="h-[72px] w-[96px] shrink-0 rounded-lg border border-[#E6ECF5] object-cover"
+                      />
+                      <div className="min-w-0">
+                        <time
+                          dateTime={news.createdAt}
+                          className="text-xs font-medium text-[#64748B]"
+                        >
+                          {format(new Date(news.createdAt), "dd/MM/yyyy")}
+                        </time>
+                        <h3 className="font-sans mt-0.5 line-clamp-2 text-[13px] font-semibold leading-snug text-[#182230] transition-colors group-hover:text-[#0A4DA2]">
+                          {news.title}
+                        </h3>
+                        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[#64748B]">
+                          {news.summary}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+
+          {/* ── Sidebar phải ── */}
+          <aside aria-label="Thông tin bổ sung" className="flex flex-col gap-6">
+            {categoryStats.length > 0 && (
+              <section className="rounded-[16px] border border-[#E6ECF5] bg-white p-5 shadow-[0_1px_3px_rgba(16,42,83,0.06)]">
+                <h2 className="font-sans mb-4 text-[15px] font-bold text-[#182230]">Lĩnh vực nổi bật</h2>
+                <ul className="divide-y divide-[#F0F4FA]">
+                  {categoryStats.map(({ category, count }) => {
+                    const Icon = categoryIcon[category];
+                    return (
+                      <li key={category}>
+                        <button
+                          type="button"
+                          onClick={() => updateFilters({ category })}
+                          className="flex w-full items-center gap-3 py-2.5 text-left transition-colors hover:text-[#0A4DA2]"
+                        >
+                          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#EDF3FC] text-[#0A4DA2]">
+                            <Icon size={15} aria-hidden />
+                          </span>
+                          <span className="flex-1 text-sm font-medium text-[#182230]">
+                            {campaignCategoryLabel[category]}
+                          </span>
+                          <span className="text-[13px] font-semibold text-[#64748B]">{count}</span>
+                          <ChevronRight size={15} className="text-[#94A3B8]" aria-hidden />
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            )}
+
+            <section className="rounded-[16px] border border-[#D7E4F6] bg-[#EDF3FC] p-5">
+              <h2 className="font-sans text-[15px] font-bold text-[#0A4DA2]">
+                Bạn muốn tổ chức chiến dịch?
+              </h2>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-[#3D5A80]">
+                {canCreate
+                  ? "Tạo chiến dịch mới để huy động cộng đồng chung tay cải thiện địa phương của bạn."
+                  : "Đăng nhập để tham gia chiến dịch và kết nối cộng đồng dễ dàng hơn."}
+              </p>
+              {canCreate ? (
+                <Link
+                  to="/campaigns/create"
+                  className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#0A4DA2] text-[13px] font-semibold text-white transition-colors duration-200 hover:bg-[#08408A]"
+                >
+                  <Plus size={15} aria-hidden />
+                  Tạo chiến dịch mới
+                </Link>
+              ) : isAuthenticated ? (
+                <button
+                  type="button"
+                  onClick={() => updateFilters({ status: "recruiting" })}
+                  className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#0A4DA2] text-[13px] font-semibold text-white transition-colors duration-200 hover:bg-[#08408A]"
+                >
+                  <Megaphone size={15} aria-hidden />
+                  Xem chiến dịch sắp diễn ra
+                </button>
+              ) : (
+                <Link
+                  to="/login"
+                  className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#0A4DA2] text-[13px] font-semibold text-white transition-colors duration-200 hover:bg-[#08408A]"
+                >
+                  <Users size={15} aria-hidden />
+                  Đăng nhập ngay
+                </Link>
+              )}
+            </section>
+
+            <section className="rounded-[16px] border border-[#E6ECF5] bg-white p-5 shadow-[0_1px_3px_rgba(16,42,83,0.06)]">
+              <h2 className="font-sans mb-4 text-[15px] font-bold text-[#182230]">Thống kê nhanh</h2>
+              <dl className="space-y-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <dt className="font-medium text-[#64748B]">Chiến dịch trong tháng</dt>
+                  <dd className="font-bold text-[#182230]">{campaignsThisMonth}</dd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <dt className="font-medium text-[#64748B]">Đang diễn ra</dt>
+                  <dd className="font-bold text-[#182230]">
+                    {campaigns.filter(isOngoing).length}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <dt className="font-medium text-[#64748B]">Tổng người tham gia</dt>
+                  <dd className="font-bold text-[#182230]">
+                    {totalParticipants.toLocaleString("vi-VN")}
+                  </dd>
+                </div>
+              </dl>
+            </section>
+
+            <section className="rounded-[16px] border border-[#E6ECF5] bg-white p-5 shadow-[0_1px_3px_rgba(16,42,83,0.06)]">
+              <h2 className="font-sans mb-4 text-[15px] font-bold text-[#182230]">Liên kết hữu ích</h2>
+              <ul className="space-y-1 text-sm font-medium">
+                {[
+                  { to: "/report", label: "Gửi phản ánh hiện trường", icon: MessageSquareText },
+                  { to: "/feedback-search", label: "Tra cứu phản ánh", icon: SearchIcon },
+                  { to: "/leaderboard", label: "Xếp hạng phường xã", icon: Trophy },
+                  { to: "/tin-tuc", label: "Tin tức thành phố", icon: Newspaper },
+                ].map(({ to, label, icon: Icon }) => (
+                  <li key={to}>
+                    <Link
+                      to={to}
+                      className="flex items-center gap-2.5 rounded-lg px-2 py-2 text-[#182230] transition-colors hover:bg-[#F5F7FB] hover:text-[#0A4DA2]"
+                    >
+                      <Icon size={15} className="text-[#0A4DA2]" aria-hidden />
+                      {label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <section className="rounded-[16px] border border-[#E6ECF5] bg-white p-5 shadow-[0_1px_3px_rgba(16,42,83,0.06)]">
+              <h2 className="font-sans mb-4 text-[15px] font-bold text-[#182230]">Thông tin liên hệ</h2>
+              <ul className="space-y-3 text-[13px] font-medium text-[#64748B]">
+                <li className="flex items-center gap-2.5">
+                  <Phone size={15} className="shrink-0 text-[#0A4DA2]" aria-hidden />
+                  <span>
+                    Hotline:{" "}
+                    <a href="tel:1022" className="font-semibold text-[#182230] hover:text-[#0A4DA2]">
+                      1022
+                    </a>
+                  </span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Mail size={15} className="shrink-0 text-[#0A4DA2]" aria-hidden />
+                  <a
+                    href="mailto:gopy@danang.gov.vn"
+                    className="font-semibold text-[#182230] hover:text-[#0A4DA2]"
+                  >
+                    gopy@danang.gov.vn
+                  </a>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <MapPin size={15} className="shrink-0 text-[#0A4DA2]" aria-hidden />
+                  <span>24 Trần Phú, Hải Châu, Đà Nẵng</span>
+                </li>
+              </ul>
+            </section>
+          </aside>
+        </div>
       </div>
+
+      <CampaignAppealModal
+        isOpen={showAppealModal}
+        onOpenChange={setShowAppealModal}
+        locale={locale}
+      />
     </main>
   );
 }
 
-function CampaignCard({
-  campaign,
-  image,
-  compact,
-  isJoining,
-  onJoin,
-}: {
-  campaign: Campaign;
-  image: string;
-  compact: boolean;
-  isJoining: boolean;
-  onJoin: () => void;
-}) {
-  const progressPercent = campaign.target > 0 ? Math.min(100, Math.round((campaign.participants / campaign.target) * 100)) : 0;
-  const CategoryIcon = categoryIcon[campaign.category] ?? Leaf;
-  const hasJoined = campaign.currentUserJoinStatus &&
-    ["PENDING", "APPROVED", "WAITLIST", "PENDING_CONFIRM"].includes(campaign.currentUserJoinStatus);
-
-  return (
-    <article
-      className={`overflow-hidden rounded-xl border border-violet-100 bg-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:shadow-lg ${compact ? "grid md:grid-cols-[280px_1fr]" : ""
-        }`}
-    >
-      <div className={`relative bg-slate-100 ${compact ? "min-h-56 md:min-h-full" : "aspect-video"}`}>
-        <img src={image} alt={campaign.name} className="h-full w-full object-cover" loading="lazy" />
-        <div className="absolute left-4 top-4">
-          <StatusBadge status={campaign.status} />
-        </div>
-        <div className="absolute right-4 top-4 inline-flex items-center gap-1.5 rounded-full border border-white/50 bg-white/90 px-3 py-1 text-xs font-black text-slate-700 shadow-sm backdrop-blur">
-          <CategoryIcon size={14} className="text-emerald-600" />
-          {categoryLabel[campaign.category] ?? "Khác"}
-        </div>
-      </div>
-
-      <div className="p-5">
-        <Link
-          to="/campaigns/$id"
-          params={{ id: campaign.id }}
-          className="line-clamp-2 text-lg font-black leading-7 text-slate-950 transition hover:text-[#6D28D9]"
-        >
-          {campaign.name}
-        </Link>
-        <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600">{campaign.desc || "Chưa có mô tả công khai."}</p>
-
-        <div className="mt-4 flex flex-wrap gap-3 text-xs font-semibold text-slate-500">
-          <span className="inline-flex items-center gap-1.5">
-            <MapPin size={14} />
-            {campaign.locationText || campaign.ward}
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <Users size={14} />
-            {campaign.participants}/{campaign.target} người
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <Clock3 size={14} />
-            {campaign.daysLeft > 0 ? `Còn ${campaign.daysLeft} ngày` : "Đã kết thúc"}
-          </span>
-        </div>
-
-        <div className="mt-5">
-          <div className="mb-2 flex items-center justify-between gap-3 text-xs font-black text-slate-600">
-            <span>Tiến độ tuyển quân</span>
-            <span>
-              {campaign.participants}/{campaign.target} ({progressPercent}%)
-            </span>
-          </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full rounded-full bg-[#10B981] transition-all duration-500" style={{ width: `${progressPercent}%` }} />
-          </div>
-        </div>
-
-        {campaign.currentUserJoinStatus && (
-          <div className="mt-4 inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">
-            {joinLabel(campaign.currentUserJoinStatus)}
-          </div>
-        )}
-
-        <div className="mt-5 grid grid-cols-2 gap-3">
-          <Link
-            to="/campaigns/$id"
-            params={{ id: campaign.id }}
-            className={campaign.status === "pending_review" ? "col-span-2 inline-flex h-11 items-center justify-center rounded-lg border border-slate-200 text-sm font-black text-slate-700 transition hover:bg-slate-50" : "inline-flex h-11 items-center justify-center rounded-lg border border-slate-200 text-sm font-black text-slate-700 transition hover:bg-slate-50"}
-          >
-            Chi tiết
-          </Link>
-          {campaign.status !== "pending_review" && (
-            hasJoined ? (
-              <button
-                disabled
-                className="inline-flex h-11 items-center justify-center rounded-lg bg-slate-100 border border-slate-200 text-sm font-black text-slate-400 disabled:cursor-not-allowed cursor-not-allowed"
-              >
-                Đã yêu cầu tham gia
-              </button>
-            ) : (
-              <Link
-                to="/campaigns/$id"
-                params={{ id: campaign.id }}
-                search={{ join: true }}
-                disabled={!campaign.canJoin || campaign.status !== "recruiting"}
-                className="inline-flex h-11 items-center justify-center rounded-lg bg-[#7C3AED] text-sm font-black text-white shadow-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Tham gia
-              </Link>
-            )
-          )}
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function StatusBadge({ status }: { status: Campaign["status"] }) {
-  const meta = {
-    pending_review: { label: "Chờ duyệt", className: "border-slate-200 bg-slate-100 text-slate-600" },
-    recruiting: { label: "Đang hoạt động", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
-    inProgress: { label: "Đang hoạt động", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
-    completed: { label: "Đã kết thúc", className: "border-red-200 bg-red-50 text-red-700" },
-    active: { label: "Đang hoạt động", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
-    ended: { label: "Đã kết thúc", className: "border-red-200 bg-red-50 text-red-700" },
-  }[status] ?? { label: "Đang hoạt động", className: "border-emerald-200 bg-emerald-50 text-emerald-700" };
-
-  return <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black shadow-sm ${meta.className}`}>{meta.label}</span>;
-}
-
-function VolunteerIllustration() {
-  return (
-    <div className="w-full h-full flex items-center justify-center">
-      <svg viewBox="0 0 500 360" className="w-full h-full max-w-[460px] drop-shadow-2xl">
-        <defs>
-          <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#8B5CF6" stopOpacity="0" />
-            <stop offset="100%" stopColor="#8B5CF6" stopOpacity="0.1" />
-          </linearGradient>
-          <linearGradient id="groundGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#10B981" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.2" />
-          </linearGradient>
-        </defs>
-
-        {/* Ambient background glow */}
-        <circle cx="250" cy="180" r="140" fill="url(#skyGrad)" />
-
-        {/* Stylized background trees/bushes */}
-        <g opacity="0.35">
-          <path d="M50 300 C80 240, 120 240, 150 300 Z" fill="#059669" />
-          <path d="M120 310 C160 220, 220 220, 260 310 Z" fill="#047857" />
-          <path d="M380 300 C410 250, 440 250, 470 300 Z" fill="#047857" />
-          <path d="M320 315 C350 230, 400 230, 430 315 Z" fill="#065F46" />
-        </g>
-
-        {/* Smooth park ground line */}
-        <path d="M20 300 Q250 330 480 300 T480 330 L20 330 Z" fill="url(#groundGrad)" />
-
-        {/* --- Volunteer 1: Planting a Tree (Left side) --- */}
-        <g transform="translate(60, 160)">
-          {/* Plant/Sapling */}
-          <path d="M80 140 Q80 110 85 90 T95 60" fill="none" stroke="#34D399" strokeWidth="4" strokeLinecap="round" />
-          <path d="M85 90 C70 85, 60 95, 75 100 Z" fill="#10B981" />
-          <path d="M87 75 C100 70, 105 85, 90 85 Z" fill="#059669" />
-          {/* Soil/Pot */}
-          <ellipse cx="80" cy="140" rx="18" ry="6" fill="#78350F" />
-
-          {/* Person Kneeling */}
-          {/* Legs/knees */}
-          <path d="M25 140 Q35 125 50 125 T70 140" fill="none" stroke="#818CF8" strokeWidth="10" strokeLinecap="round" />
-          {/* Torso */}
-          <path d="M35 125 Q25 90 40 80 T65 110" fill="none" stroke="#E0E7FF" strokeWidth="16" strokeLinecap="round" />
-          {/* Arms reaching down to plant */}
-          <path d="M35 90 C45 95, 60 115, 75 125" fill="none" stroke="#FEE2E2" strokeWidth="6" strokeLinecap="round" />
-          {/* Head */}
-          <circle cx="32" cy="62" r="11" fill="#FCA5A5" />
-          {/* Hair */}
-          <path d="M22 62 C22 52, 42 52, 42 62 Z" fill="#1E1B4B" />
-        </g>
-
-        {/* --- Volunteer 2: Cleaning the Park with Grabber (Middle-Right) --- */}
-        <g transform="translate(240, 120)">
-          {/* Trash bag / Bin */}
-          <path d="M95 180 C95 155, 120 155, 120 180 Z" fill="#64748B" />
-          {/* Person Standing/Bending */}
-          {/* Legs */}
-          <path d="M40 180 L45 140 M60 180 L55 140" stroke="#475569" strokeWidth="8" strokeLinecap="round" />
-          {/* Torso */}
-          <path d="M50 140 Q40 90 55 80" fill="none" stroke="#10B981" strokeWidth="18" strokeLinecap="round" />
-          {/* Head */}
-          <circle cx="60" cy="60" r="11" fill="#FED7AA" />
-          {/* Cap */}
-          <path d="M50 56 C50 48, 70 48, 70 56 L76 58 Z" fill="#3B82F6" />
-          {/* Grabber Tool & arm */}
-          <path d="M42 95 Q20 120 5 160" fill="none" stroke="#94A3B8" strokeWidth="3" strokeLinecap="round" />
-          {/* Arm holding tool */}
-          <path d="M45 95 C30 100, 25 115, 20 120" fill="none" stroke="#FED7AA" strokeWidth="6" strokeLinecap="round" />
-          {/* Small trash piece being picked up */}
-          <circle cx="4" cy="162" r="3" fill="#F87171" />
-        </g>
-
-        {/* --- Volunteer 3: Holding Donation/Support Box (Center-Left) --- */}
-        <g transform="translate(150, 100)">
-          {/* Legs */}
-          <path d="M45 200 L45 155 M60 200 L60 155" stroke="#312E81" strokeWidth="8" strokeLinecap="round" />
-          {/* Torso */}
-          <path d="M52 155 L52 110" stroke="#F59E0B" strokeWidth="20" strokeLinecap="round" />
-          {/* Donation Box */}
-          <rect x="28" y="115" width="48" height="34" rx="4" fill="#D97706" stroke="#FCD34D" strokeWidth="2" />
-          <path d="M52 125 C47 125, 47 132, 52 132 C57 132, 57 125, 52 125" fill="#EF4444" /> {/* Heart symbol on box */}
-          {/* Arms holding box */}
-          <path d="M38 100 Q25 110 32 130" fill="none" stroke="#FDBA74" strokeWidth="6" strokeLinecap="round" />
-          <path d="M66 100 Q75 110 68 130" fill="none" stroke="#FDBA74" strokeWidth="6" strokeLinecap="round" />
-          {/* Head */}
-          <circle cx="52" cy="84" r="11" fill="#FDBA74" />
-          {/* Hair */}
-          <path d="M41 84 C41 74, 63 74, 63 84 Z" fill="#78350F" />
-        </g>
-
-        {/* Decorative Map Pins & Connection Waves */}
-        <g transform="translate(380, 80)" opacity="0.85">
-          {/* Floating Map Pin */}
-          <path d="M20 10 Q20 30 35 45 Q50 30 50 10 A15 15 0 0 0 20 10 Z" fill="#EF4444" />
-          <circle cx="35" cy="18" r="6" fill="#ffffff" />
-          <path d="M35 45 L35 60" stroke="#EF4444" strokeWidth="3" strokeDasharray="3 3" />
-        </g>
-
-        <g transform="translate(70, 70)" opacity="0.75">
-          {/* Floating Heart / Like Icon */}
-          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#EC4899" />
-        </g>
-      </svg>
-    </div>
-  );
-}
-
-function joinLabel(status: NonNullable<Campaign["currentUserJoinStatus"]>) {
-  if (status === "APPROVED") return "Đã duyệt tham gia";
-  if (status === "PENDING") return "Chờ duyệt tham gia";
-  if (status === "REJECTED") return "Bị từ chối";
-  return "Đã hủy";
+function getPageItems(current: number, total: number): (number | "...")[] {
+  if (total <= 5) return Array.from({ length: total }, (_, i) => i);
+  const items: (number | "...")[] = [0];
+  if (current > 2) items.push("...");
+  for (let i = Math.max(1, current - 1); i <= Math.min(total - 2, current + 1); i++) items.push(i);
+  if (current < total - 3) items.push("...");
+  items.push(total - 1);
+  return items;
 }

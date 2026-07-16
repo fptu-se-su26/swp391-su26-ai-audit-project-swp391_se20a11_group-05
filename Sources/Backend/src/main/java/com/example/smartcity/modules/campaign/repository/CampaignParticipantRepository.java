@@ -18,11 +18,44 @@ public interface CampaignParticipantRepository extends JpaRepository<CampaignPar
 
     long countByCitizen_IdAndJoinStatus(Long citizenId, String joinStatus);
 
+    long countByCitizen_IdAndAttendedTrue(Long citizenId);
+
+    @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM CampaignParticipant p WHERE p.citizen.id = :citizenId AND " +
+            "((p.joinStatus = 'APPROVED' AND p.attended = false AND p.attendedAt IS NOT NULL) OR p.joinStatus = 'NO_SHOW')")
+    long countNoShowCampaigns(@org.springframework.data.repository.query.Param("citizenId") Long citizenId);
+
+    @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM CampaignParticipant p WHERE p.citizen.id = :citizenId AND " +
+            "((p.joinStatus = 'APPROVED' AND p.attended = false AND p.attendedAt IS NOT NULL AND p.attendedAt > :since) OR " +
+            " (p.joinStatus = 'NO_SHOW' AND p.createdAt > :since))")
+    long countNoShowCampaignsAfter(@org.springframework.data.repository.query.Param("citizenId") Long citizenId, 
+                                   @org.springframework.data.repository.query.Param("since") java.time.LocalDateTime since);
+
     java.util.Optional<CampaignParticipant> findFirstByCampaign_IdAndJoinStatusOrderByCreatedAtAsc(Long campaignId, String joinStatus);
 
     java.util.List<CampaignParticipant> findByJoinStatusAndConfirmationDeadlineBefore(String joinStatus, java.time.LocalDateTime now);
 
     List<CampaignParticipant> findByCampaign_IdOrderByCreatedAtDesc(Long campaignId);
 
+    List<CampaignParticipant> findByCitizen_IdOrderByCampaign_StartTimeDesc(Long citizenId);
+
     void deleteByCampaign_Id(Long campaignId);
+
+    long countByCampaign_IdAndJoinStatusIn(Long campaignId, java.util.List<String> statuses);
+
+    java.util.List<CampaignParticipant> findByCampaign_IdAndJoinStatusIn(Long campaignId, java.util.List<String> statuses);
+
+    long countByCampaign_Id(Long campaignId);
+
+    @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) > 0 FROM CampaignParticipant p " +
+            "WHERE p.citizen.id = :citizenId AND p.campaign.ward.id = :wardId")
+    boolean existsByCitizenIdAndWardId(
+            @org.springframework.data.repository.query.Param("citizenId") Long citizenId,
+            @org.springframework.data.repository.query.Param("wardId") Long wardId);
+
+    Optional<CampaignParticipant> findByCampaign_IdAndCitizen_PhoneNumberAndJoinStatus(
+            Long campaignId, String phoneNumber, String joinStatus);
+
+    List<CampaignParticipant> findByJoinStatusAndCampaign_StartTimeBefore(
+            String joinStatus, java.time.LocalDateTime dateTime);
 }
+

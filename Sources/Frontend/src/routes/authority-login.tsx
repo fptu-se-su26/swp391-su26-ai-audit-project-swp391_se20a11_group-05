@@ -159,7 +159,6 @@ function AuthorityLoginPage() {
           return;
         }
 
-        console.log("LOGIN SUCCESS! Response data:", data);
         login({
           name: data.username,
           role,
@@ -225,6 +224,11 @@ function AuthorityLoginPage() {
       });
       navigate({ to: getAuthorityRedirect(role, redirect) as any });
     } catch (err) {
+      if (err instanceof ApiError && err.status === 429) {
+        setLockoutSeconds(getLoginLockoutSeconds(err.message) ?? 60);
+        setError(err.message);
+        return;
+      }
       if (err instanceof ApiError) {
         setError(locale === "vi" ? "Mã xác thực không đúng" : "Invalid MFA code");
       } else {

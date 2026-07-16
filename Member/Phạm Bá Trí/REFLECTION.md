@@ -489,6 +489,12 @@ Khi 2 đầu Frontend và Backend phát triển song song mà thiếu API contra
 - Kinh nghiệm: "Kiểm tra logic nghiệp vụ trước, cấu hình sau" là nguyên tắc vàng khi tích hợp các dịch vụ bên thứ 3 (Third-party services). Việc dành thêm 15 phút để AI đọc và đối chiếu từng field Response DTO giữa Backend Java và Frontend TypeScript đã giúp tiết kiệm hàng giờ debug về sau. Đây là minh chứng cho giá trị của "Code Review tự động" bằng AI trước khi deploy.
 ```
 
+### 9.21. Bài học về Tái cấu trúc Modular Monolith & Tối ưu hóa Session AI
+
+- **Vấn đề**: Module chatbot AI ban đầu bị rò rỉ (leak) ra ngoài gói `rag` gây vi phạm nguyên tắc tự đóng gói (Encapsulation). Phía Frontend thì các phiên chat bị phân mảnh do lỗi câu query GROUP BY ở Backend, đồng thời khung chat nổi và trang chat chính chưa có cơ chế đồng bộ hóa.
+- **Giải pháp từ AI**: AI đề xuất di chuyển toàn bộ REST API chatbot về đúng gói `modules.chatbot.controller` để cô lập mã nguồn nghiệp vụ. Phía Frontend, AI viết code xử lý Autocomplete, phím tắt và đồng bộ session ID dùng chung thông qua `sessionStorage` để duy trì cuộc hội thoại liền mạch khi phóng to.
+- **Kinh nghiệm**: Tái cấu trúc theo Feature (Modular Monolith) giúp hệ thống gọn gàng, giảm thiểu nợ kỹ thuật và dễ dàng bảo trì. Đồng thời, việc đồng bộ hóa session ID bằng cơ chế lưu trữ phía Client (`sessionStorage`) giúp giải quyết bài toán UX cực kỳ khéo léo mà không làm tăng tải cho cơ sở dữ liệu.
+
 ---
 
 ## 17. Cam kết Reflection
@@ -504,6 +510,7 @@ Sinh viên/nhóm hiểu rằng:
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-| Phạm Bá Trí | 2026-06-27 |
+| Phạm Bá Trí | 2026-07-01 |
+
 
 

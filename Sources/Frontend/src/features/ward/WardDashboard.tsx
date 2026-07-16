@@ -5,6 +5,7 @@ import { getGroupedFeedbackStatus } from "@/lib/status";
 import {
   useFeedbacks,
   useNotifications,
+  useInfiniteNotifications,
   useMarkNotificationReadMutation,
   useMarkAllNotificationsReadMutation,
   useNotificationUnreadCount,
@@ -38,25 +39,42 @@ import {
   BarChart3,
   Settings,
   Plus,
+  ShieldAlert,
+  MessageSquare,
 } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { toast } from "sonner";
 import { authApi, type NotificationResponse, type FeedbackResponse } from "@/lib/api";
+import { highlightNotificationContent } from "@/lib/notificationHelper";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAdministrativeUnitLabel, getAdministrativeUnitName } from "@/lib/administrativeUnit";
 import { WardFeedbackManagementPage } from "./WardFeedbackManagementPage";
 import { WardCampaignPage } from "./WardCampaignPage";
 import { WardProfileConfigPage } from "./WardProfileConfigPage";
+import { NewsManagement } from "../news/NewsManagement";
 import { WardStatisticsPage } from "./WardStatisticsPage";
+import WardBlacklistPage from "./WardBlacklistPage";
+import { WardChatDashboardPage } from "./WardChatDashboardPage";
+import { WardNotificationsPage } from "./WardNotificationsPage";
 
-const CivicMap = clientOnly(() =>
-  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
-);
+const CivicMap = clientOnly(
+  () => import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
+) as any;
 
 import { WARD_CENTERS } from "@/lib/geojson";
 
-type WardSection = "overview" | "feedback" | "campaign" | "statistics" | "schedule" | "config";
+type WardSection =
+  | "overview"
+  | "feedback"
+  | "campaign"
+  | "news"
+  | "statistics"
+  | "schedule"
+  | "config"
+  | "blacklist"
+  | "chat"
+  | "notifications";
 
 // Date formatting helper
 function formatDate(dateStr: string, includeTime = true): string {
@@ -101,8 +119,6 @@ const mapCategoryName = (name: string | null | undefined): string => {
   return "Hạ tầng đô thị";
 };
 
-
-
 export function WardDashboard() {
   const { locale } = useI18n();
   const navigate = useNavigate();
@@ -117,8 +133,23 @@ export function WardDashboard() {
   const [userOpen, setUserOpen] = useState(false);
   const { tab, detailId } = Route.useSearch();
   const activeSection = (
-    tab && (["overview", "feedback", "campaign", "statistics", "schedule", "config"].includes(tab) || tab.startsWith("campaign/"))
-      ? (tab.startsWith("campaign/") ? "campaign" : tab)
+    tab &&
+    ([
+      "overview",
+      "feedback",
+      "campaign",
+      "news",
+      "statistics",
+      "schedule",
+      "config",
+      "blacklist",
+      "chat",
+      "notifications",
+    ].includes(tab) ||
+      tab.startsWith("campaign/"))
+      ? tab.startsWith("campaign/")
+        ? "campaign"
+        : tab
       : "overview"
   ) as WardSection;
 
@@ -214,8 +245,8 @@ export function WardDashboard() {
     data: feedbacksPage,
     isLoading: feedbacksLoading,
     refetch,
-  } = useFeedbacks(0, 500, feedbackDateFilters);
-  const { data: notifications = [], isLoading: notifLoading } = useNotifications();
+  } = useFeedbacks(0, 500, feedbackDateFilters, { enabled: !!user });
+  const { data: notifications = [], isLoading: notifLoading } = useNotifications(!!user);
   const { data: unreadCountData } = useNotificationUnreadCount(!!user);
   const markRead = useMarkNotificationReadMutation();
   const markAllRead = useMarkAllNotificationsReadMutation();
@@ -245,7 +276,7 @@ export function WardDashboard() {
     data: todayFeedbacksPage,
     isLoading: todayFeedbacksLoading,
     refetch: refetchToday,
-  } = useFeedbacks(0, 500, todayFeedbackFilters);
+  } = useFeedbacks(0, 500, todayFeedbackFilters, { enabled: !!user });
 
   const todayFeedbacks = useMemo(() => {
     const rawToday = todayFeedbacksPage?.content ?? [];
@@ -304,7 +335,7 @@ export function WardDashboard() {
     data: statsData,
     isLoading: statsLoading,
     refetch: refetchStats,
-  } = useWardStaffStatistics(dateStr || undefined);
+  } = useWardStaffStatistics(dateStr || undefined, { enabled: !!user });
 
   const dateLabel = selectedDate
     ? isTodayDate(selectedDate)
@@ -477,48 +508,7 @@ export function WardDashboard() {
     }));
   }, [feedbacks]);
 
-  // Inter-agency coordination counts â€” police-transferred feedback in selected date (from rawFeedbacks)
-  const coordinationStats = useMemo(() => {
-    const policeCount = rawFeedbacks.filter((fb) => {
-      const n = (fb.categoryName || fb.category || "").toLowerCase();
-      return (
-        n.includes("an ninh") ||
-        n.includes("security") ||
-        n.includes("trật tự") ||
-        n.includes("công an")
-      );
-    }).length;
-
-    return { policeCount };
-  }, [rawFeedbacks]);
-
-  // Quick info statistics â€” all counts use feedbacks already filtered by selectedDate
-  const quickInfo = useMemo(() => {
-    const newInDate = feedbacks.length;
-
-    const resolvedInDate = feedbacks.filter((f) => {
-      const grp = getGroupedFeedbackStatus(f.status);
-      return grp === "RESOLVED";
-    }).length;
-
-    const inProgressOverdue = feedbacks.filter((f) => {
-      const grp = getGroupedFeedbackStatus(f.status);
-      const isInProgress = grp === "IN_PROGRESS";
-      const now = new Date();
-      const diffTime = Math.abs(now.getTime() - new Date(f.createdAt).getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      return isInProgress && diffDays > 3;
-    }).length;
-
-    const hasRating = resolvedInDate > 0;
-
-    return {
-      newInDate,
-      resolvedInDate,
-      inProgressOverdue,
-      hasRating,
-    };
-  }, [feedbacks]);
+  // Stats calculations
 
   // High-priority reports table â€” uses feedbacks already filtered by selectedDate
   const priorityReports = useMemo(() => {
@@ -556,23 +546,43 @@ export function WardDashboard() {
       }
       const feedbackId = item.feedbackId ?? item.referenceId;
       if (feedbackId) {
-        if (user?.role === Role.WARD_STAFF) {
-          navigate({ to: "/ward", search: { tab: "feedback", detailId: String(feedbackId) } });
+        if (item.type === "NEW_CAMPAIGN_APPEAL") {
+          if (user?.role === Role.WARD_STAFF) {
+            navigate({ to: "/ward", search: { tab: "blacklist", detailId: String(feedbackId) } });
+          }
+        } else if (item.type === "CAMPAIGN_APPEAL_APPROVED" || item.type === "CAMPAIGN_APPEAL_REJECTED") {
+          navigate({ to: "/profile" });
+        } else if (item.type?.startsWith("CAMPAIGN")) {
+          if (user?.role === Role.WARD_STAFF) {
+            navigate({ to: "/ward", search: { tab: "campaign", detailId: String(feedbackId) } });
+          } else {
+            navigate({ to: "/campaigns/$id", params: { id: String(feedbackId) } });
+          }
         } else {
-          navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
+          if (user?.role === Role.WARD_STAFF) {
+            navigate({ to: "/ward", search: { tab: "feedback", detailId: String(feedbackId) } });
+          } else {
+            navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
+          }
         }
       }
-    } catch {}
+    } catch (e) {
+      // Ignore error
+    }
   };
 
   const handleLogout = async () => {
     const loginPath = getLoginPathForRole(user?.role);
     try {
       await authApi.logout().catch(() => {});
-    } catch {}
+    } catch (e) {
+      // Ignore error
+    }
     logout();
-    queryClient.clear();
     navigate({ to: loginPath });
+    setTimeout(() => {
+      queryClient.clear();
+    }, 0);
   };
   const handleSectionChange = (section: WardSection) => {
     setSidebarOpen(false);
@@ -589,12 +599,23 @@ export function WardDashboard() {
     { name: "Tổng quan", section: "overview" as const, icon: Sliders },
     { name: "Phản ánh", section: "feedback" as const, icon: FileText },
     { name: "Chiến dịch", section: "campaign" as const, icon: Activity },
+    { name: "Tin tức", section: "news" as const, icon: FileText },
+    { name: "Tin nhắn", section: "chat" as const, icon: MessageSquare },
     { name: "Thống kê", section: "statistics" as const, icon: BarChart3 },
+    { name: "Danh sách chặn", section: "blacklist" as const, icon: ShieldAlert },
     { name: "Cấu hình", section: "config" as const, icon: Settings },
   ];
 
   const activeSectionTitle =
-    menuItems.find((item) => item.section === activeSection)?.name || "Tổng quan";
+    activeSection === "notifications"
+      ? locale === "vi"
+        ? "Thông báo hệ thống"
+        : "System Notifications"
+      : menuItems.find((item) => item.section === activeSection)?.name || "Tổng quan";
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50/50 text-slate-800 font-sans antialiased flex">
@@ -709,6 +730,11 @@ export function WardDashboard() {
                   Theo dõi và điều phối các chiến dịch cộng đồng trên địa bàn
                 </span>
               )}
+              {activeSection === "chat" && (
+                <span className="text-[11px] text-slate-400 font-medium mt-0.5 block">
+                  Trò chuyện nhóm và truyền thông hoạt động chiến dịch với người dân
+                </span>
+              )}
               {activeSection === "statistics" && (
                 <span className="text-[11px] text-slate-400 font-medium mt-0.5 block">
                   Phân tích xu hướng, tỷ lệ xử lý và các điểm cần ưu tiên trong địa bàn phụ trách
@@ -766,7 +792,7 @@ export function WardDashboard() {
               </div>
             )}
 
-            {activeSection === "campaign" && !detailId && (
+            {activeSection === "campaign" && !detailId && tab !== "campaign/create" && (
               <button
                 onClick={() => navigate({ to: "/ward", search: { tab: "campaign/create" } })}
                 className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#0F5BD8] px-3.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#0B4FC0] active:scale-[0.98] mr-2 cursor-pointer"
@@ -852,8 +878,8 @@ export function WardDashboard() {
                         <button
                           key={item.id}
                           onClick={() => handleNotifClick(item)}
-                          className={`w-full text-left p-3.5 flex gap-3 transition-colors hover:bg-slate-50/70 ${
-                            item.isRead ? "opacity-75" : "bg-indigo-50/30"
+                          className={`w-full text-left p-3.5 flex gap-3 transition-colors hover:bg-slate-100 ${
+                            item.isRead ? "opacity-75" : "bg-indigo-100 hover:bg-indigo-200/80"
                           }`}
                         >
                           <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-100/50">
@@ -864,7 +890,7 @@ export function WardDashboard() {
                               {item.title}
                             </span>
                             <span className="text-[11px] text-slate-500 mt-0.5 block line-clamp-2 leading-relaxed font-semibold">
-                              {item.content}
+                              {highlightNotificationContent(item.content)}
                             </span>
                           </div>
                         </button>
@@ -872,13 +898,15 @@ export function WardDashboard() {
                     )}
                   </div>
                   <div className="pt-2 text-center border-t border-slate-100">
-                    <Link
-                      to="/notifications"
-                      onClick={() => setNotifOpen(false)}
-                      className="text-xs font-bold text-indigo-600 hover:underline inline-block py-1"
+                    <button
+                      onClick={() => {
+                        handleSectionChange("notifications");
+                        setNotifOpen(false);
+                      }}
+                      className="text-xs font-bold text-indigo-600 hover:underline inline-block py-1 bg-transparent border-0 cursor-pointer"
                     >
-                      Xem tất cả thông báo
-                    </Link>
+                      {locale === "vi" ? "Xem tất cả" : "See all"}
+                    </button>
                   </div>
                 </div>
               )}
@@ -918,7 +946,8 @@ export function WardDashboard() {
                     </div>
                   </div>
                   <Link
-                    to="/profile"
+                    to="/ward"
+                    search={{ tab: "config" }}
                     onClick={() => setUserOpen(false)}
                     className="w-full text-left px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition flex items-center gap-2.5"
                   >
@@ -1055,7 +1084,8 @@ export function WardDashboard() {
                       {
                         key: "PENDING",
                         label: "Chờ xử lý",
-                        color: "bg-indigo-50/50 text-indigo-700 border-indigo-100/30 hover:border-indigo-100",
+                        color:
+                          "bg-indigo-50/50 text-indigo-700 border-indigo-100/30 hover:border-indigo-100",
                         activeColor: "bg-indigo-600 text-white border-indigo-600",
                       },
                       {
@@ -1087,9 +1117,7 @@ export function WardDashboard() {
                             setActiveTaskGroupFilter(null);
                           }}
                           className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border transition-all duration-200 active:scale-[0.97] ${
-                            isActive
-                              ? chip.activeColor
-                              : `${chip.color} cursor-pointer`
+                            isActive ? chip.activeColor : `${chip.color} cursor-pointer`
                           }`}
                         >
                           <span>{chip.label}</span>
@@ -1107,15 +1135,14 @@ export function WardDashboard() {
                     {activeTaskGroupFilter && (
                       <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#E8F0FE] text-indigo-600 border border-indigo-100 animate-fadeIn">
                         <span>
-                          Bộ lọc công việc: {
-                            activeTaskGroupFilter === "OVERDUE_RECEIVE"
-                              ? "Quá hạn tiếp nhận"
-                              : activeTaskGroupFilter === "PENDING_12H"
-                                ? "Chờ xử lý > 12 giờ"
-                                : activeTaskGroupFilter === "WAITING_INFO"
-                                  ? "Yêu cầu bổ sung"
-                                  : "Đã chuyển liên ngành"
-                          }
+                          Bộ lọc công việc:{" "}
+                          {activeTaskGroupFilter === "OVERDUE_RECEIVE"
+                            ? "Quá hạn tiếp nhận"
+                            : activeTaskGroupFilter === "PENDING_12H"
+                              ? "Chờ xử lý > 12 giờ"
+                              : activeTaskGroupFilter === "WAITING_INFO"
+                                ? "Yêu cầu bổ sung"
+                                : "Đã chuyển liên ngành"}
                         </span>
                         <button
                           type="button"
@@ -1150,10 +1177,10 @@ export function WardDashboard() {
                           activeMarkerId={selectedFeedbackId || undefined}
                           layerType={mapLayerType}
                           detailUrlTemplate="/ward?tab=feedback&detailId=:id"
-                          onMarkerClick={(id) => {
+                          onMarkerClick={(id: any) => {
                             setSelectedFeedbackId(Number(id));
                           }}
-                          onViewportChange={(center, zoom) => {
+                          onViewportChange={(center: any, zoom: any) => {
                             setMapCenterState(center);
                             setMapZoomState(zoom);
                           }}
@@ -1165,7 +1192,9 @@ export function WardDashboard() {
                     {/* Sidebar Scrollable Feedback List */}
                     <div className="w-full md:w-80 flex flex-col h-full bg-slate-50/50 shrink-0 border-t md:border-t-0 md:border-l border-slate-100">
                       <div className="p-3 border-b border-slate-100 bg-white font-bold text-xs text-slate-400 flex items-center justify-between shrink-0">
-                        <span className="text-[10px] uppercase tracking-wider">DANH SÁCH PHẢN ÁNH</span>
+                        <span className="text-[10px] uppercase tracking-wider">
+                          DANH SÁCH PHẢN ÁNH
+                        </span>
                         <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold">
                           {filteredFeedbacks.length}
                         </span>
@@ -1268,105 +1297,109 @@ export function WardDashboard() {
                       </button>
                     </div>
                     <div className="space-y-3">
-                      {feedbacksLoading ? (
-                        [1, 2, 3, 4].map((i) => (
-                          <div key={i} className="flex gap-3 animate-pulse py-2">
-                            <div className="w-3 h-3 bg-slate-100 rounded-full shrink-0" />
-                            <div className="flex-1 space-y-2">
-                              <div className="h-3 bg-slate-100 rounded w-1/3" />
-                              <div className="h-2.5 bg-slate-100 rounded w-2/3" />
+                      {feedbacksLoading
+                        ? [1, 2, 3, 4].map((i) => (
+                            <div key={i} className="flex gap-3 animate-pulse py-2">
+                              <div className="w-3 h-3 bg-slate-100 rounded-full shrink-0" />
+                              <div className="flex-1 space-y-2">
+                                <div className="h-3 bg-slate-100 rounded w-1/3" />
+                                <div className="h-2.5 bg-slate-100 rounded w-2/3" />
+                              </div>
                             </div>
-                          </div>
-                        ))
-                      ) : (
-                        [
-                          {
-                            key: "OVERDUE_RECEIVE" as const,
-                            title: "Quá hạn tiếp nhận",
-                            desc: "Phản ánh chờ tiếp nhận quá 24 giờ",
-                            color: "bg-rose-500",
-                            textColor: "text-rose-700",
-                            bgColor: "bg-rose-50/70",
-                            borderColor: "border-rose-100/50",
-                            activeBorderColor: "border-rose-400",
-                            count: taskGroupCounts.OVERDUE_RECEIVE,
-                          },
-                          {
-                            key: "PENDING_12H" as const,
-                            title: "Chờ xử lý > 12 giờ",
-                            desc: "Sắp quá hạn xử lý",
-                            color: "bg-amber-500",
-                            textColor: "text-amber-700",
-                            bgColor: "bg-amber-50/70",
-                            borderColor: "border-amber-100/50",
-                            activeBorderColor: "border-amber-400",
-                            count: taskGroupCounts.PENDING_12H,
-                          },
-                          {
-                            key: "WAITING_INFO" as const,
-                            title: "Yêu cầu bổ sung thông tin",
-                            desc: "Đang chờ người dân phản hồi",
-                            color: "bg-indigo-500",
-                            textColor: "text-indigo-700",
-                            bgColor: "bg-indigo-50/70",
-                            borderColor: "border-indigo-100/50",
-                            activeBorderColor: "border-indigo-400",
-                            count: taskGroupCounts.WAITING_INFO,
-                          },
-                          {
-                            key: "TRANSFERRED" as const,
-                            title: "Đã chuyển liên ngành",
-                            desc: "Cần theo dõi tiến độ phối hợp",
-                            color: "bg-purple-500",
-                            textColor: "text-purple-700",
-                            bgColor: "bg-purple-50/70",
-                            borderColor: "border-purple-100/50",
-                            activeBorderColor: "border-purple-400",
-                            count: taskGroupCounts.TRANSFERRED,
-                          },
-                        ].map((group) => {
-                          const isZero = group.count === 0;
-                          const isActive = activeTaskGroupFilter === group.key;
-                          return (
-                            <button
-                              key={group.key}
-                              type="button"
-                              onClick={() => {
-                                if (isActive) {
-                                  setActiveTaskGroupFilter(null);
-                                } else {
-                                  setActiveTaskGroupFilter(group.key);
-                                  setActiveStatusFilter("ALL");
-                                }
-                              }}
-                              className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all duration-200 text-left ${
-                                isActive
-                                  ? `${group.bgColor} border-2 ${group.activeBorderColor} shadow-sm`
-                                  : isZero
-                                    ? "bg-white border-slate-100 opacity-40 hover:opacity-100 hover:border-slate-200 cursor-pointer"
-                                    : "bg-white border-slate-100 hover:border-slate-200 hover:shadow-sm cursor-pointer"
-                              }`}
-                            >
-                              <div className="flex items-center gap-3 min-w-0">
-                                <span className={`w-2 h-2 rounded-full shrink-0 ${group.color}`} />
-                                <div className="min-w-0">
-                                  <span className={`text-xs font-bold block truncate ${isZero ? "text-slate-500 font-medium" : "text-slate-800"}`}>
-                                    {group.title}
-                                  </span>
-                                  <span className="text-[10px] text-slate-400 font-medium block truncate mt-1">
-                                    {group.desc}
+                          ))
+                        : [
+                            {
+                              key: "OVERDUE_RECEIVE" as const,
+                              title: "Quá hạn tiếp nhận",
+                              desc: "Phản ánh chờ tiếp nhận quá 24 giờ",
+                              color: "bg-rose-500",
+                              textColor: "text-rose-700",
+                              bgColor: "bg-rose-50/70",
+                              borderColor: "border-rose-100/50",
+                              activeBorderColor: "border-rose-400",
+                              count: taskGroupCounts.OVERDUE_RECEIVE,
+                            },
+                            {
+                              key: "PENDING_12H" as const,
+                              title: "Chờ xử lý > 12 giờ",
+                              desc: "Sắp quá hạn xử lý",
+                              color: "bg-amber-500",
+                              textColor: "text-amber-700",
+                              bgColor: "bg-amber-50/70",
+                              borderColor: "border-amber-100/50",
+                              activeBorderColor: "border-amber-400",
+                              count: taskGroupCounts.PENDING_12H,
+                            },
+                            {
+                              key: "WAITING_INFO" as const,
+                              title: "Yêu cầu bổ sung thông tin",
+                              desc: "Đang chờ người dân phản hồi",
+                              color: "bg-indigo-500",
+                              textColor: "text-indigo-700",
+                              bgColor: "bg-indigo-50/70",
+                              borderColor: "border-indigo-100/50",
+                              activeBorderColor: "border-indigo-400",
+                              count: taskGroupCounts.WAITING_INFO,
+                            },
+                            {
+                              key: "TRANSFERRED" as const,
+                              title: "Đã chuyển liên ngành",
+                              desc: "Cần theo dõi tiến độ phối hợp",
+                              color: "bg-purple-500",
+                              textColor: "text-purple-700",
+                              bgColor: "bg-purple-50/70",
+                              borderColor: "border-purple-100/50",
+                              activeBorderColor: "border-purple-400",
+                              count: taskGroupCounts.TRANSFERRED,
+                            },
+                          ].map((group) => {
+                            const isZero = group.count === 0;
+                            const isActive = activeTaskGroupFilter === group.key;
+                            return (
+                              <button
+                                key={group.key}
+                                type="button"
+                                onClick={() => {
+                                  if (isActive) {
+                                    setActiveTaskGroupFilter(null);
+                                  } else {
+                                    setActiveTaskGroupFilter(group.key);
+                                    setActiveStatusFilter("ALL");
+                                  }
+                                }}
+                                className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all duration-200 text-left ${
+                                  isActive
+                                    ? `${group.bgColor} border-2 ${group.activeBorderColor} shadow-sm`
+                                    : isZero
+                                      ? "bg-white border-slate-100 opacity-40 hover:opacity-100 hover:border-slate-200 cursor-pointer"
+                                      : "bg-white border-slate-100 hover:border-slate-200 hover:shadow-sm cursor-pointer"
+                                }`}
+                              >
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <span
+                                    className={`w-2 h-2 rounded-full shrink-0 ${group.color}`}
+                                  />
+                                  <div className="min-w-0">
+                                    <span
+                                      className={`text-xs font-bold block truncate ${isZero ? "text-slate-500 font-medium" : "text-slate-800"}`}
+                                    >
+                                      {group.title}
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 font-medium block truncate mt-1">
+                                      {group.desc}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <span
+                                    className={`text-xs font-bold font-mono px-2.5 py-0.5 rounded-full ${isZero ? "bg-slate-50 text-slate-400" : `${group.bgColor} ${group.textColor}`}`}
+                                  >
+                                    {group.count}
                                   </span>
                                 </div>
-                              </div>
-                              <div className="text-right shrink-0">
-                                <span className={`text-xs font-bold font-mono px-2.5 py-0.5 rounded-full ${isZero ? "bg-slate-50 text-slate-400" : `${group.bgColor} ${group.textColor}`}`}>
-                                  {group.count}
-                                </span>
-                              </div>
-                            </button>
-                          );
-                        })
-                      )}
+                              </button>
+                            );
+                          })}
                     </div>
                   </div>
                   <div className="pt-2 text-[10px] text-slate-400 font-bold italic text-center border-t border-slate-50 shrink-0">
@@ -1377,15 +1410,16 @@ export function WardDashboard() {
 
               {/* ─── BOTTOM ROW GRID ─── */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-                {/* Reports by Category Panel (30%) */}
-                <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col justify-between min-h-[380px]">
+                {/* Reports by Category Panel (50%) */}
+                <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col justify-between min-h-[380px]">
                   <div>
                     <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
                       <h3 className="text-sm font-bold uppercase tracking-tight text-slate-900">
                         Phản ánh theo lĩnh vực
                       </h3>
                       <Link
-                        to="/my-reports"
+                        to="/ward"
+                        search={{ tab: "feedback" }}
                         className="text-xs font-bold text-indigo-600 hover:text-indigo-700 transition"
                       >
                         Xem chi tiết
@@ -1427,15 +1461,16 @@ export function WardDashboard() {
                   </div>
                 </div>
 
-                {/* High Priority Reports Table (50%) */}
-                <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col justify-between min-h-[380px]">
+                {/* High Priority Reports Table (70%) */}
+                <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col justify-between min-h-[380px]">
                   <div>
                     <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
                       <h3 className="text-sm font-bold uppercase tracking-tight text-slate-900">
                         Phản ánh ưu tiên cao
                       </h3>
                       <Link
-                        to="/my-reports"
+                        to="/ward"
+                        search={{ tab: "feedback" }}
                         className="text-xs font-bold text-indigo-600 hover:text-indigo-700 transition"
                       >
                         Xem tất cả →
@@ -1444,7 +1479,10 @@ export function WardDashboard() {
                     <div className="space-y-3">
                       {feedbacksLoading ? (
                         [1, 2, 3].map((i) => (
-                          <div key={i} className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
+                          <div
+                            key={i}
+                            className="rounded-xl border border-slate-100 bg-slate-50/60 p-4"
+                          >
                             <div className="flex items-start justify-between gap-3">
                               <div className="space-y-2">
                                 <Skeleton className="h-3 w-20" />
@@ -1478,7 +1516,8 @@ export function WardDashboard() {
                                 : grp === "RESOLVED"
                                   ? {
                                       label: "Đã xử lý",
-                                      className: "bg-emerald-50 border-emerald-100 text-emerald-700",
+                                      className:
+                                        "bg-emerald-50 border-emerald-100 text-emerald-700",
                                     }
                                   : grp === "REJECTED"
                                     ? {
@@ -1517,7 +1556,10 @@ export function WardDashboard() {
                                         {mapCategoryName(row.categoryName)}
                                       </b>
                                     </span>
-                                    <span className="truncate" title={row.addressDetails || row.address || "Tân Bình"}>
+                                    <span
+                                      className="truncate"
+                                      title={row.addressDetails || row.address || "Tân Bình"}
+                                    >
                                       Địa chỉ: {row.addressDetails || row.address || "Tân Bình"}
                                     </span>
                                     <span className="font-mono text-slate-400 text-[10px]">
@@ -1669,96 +1711,6 @@ export function WardDashboard() {
                     </div>
                   </div>
                 </div>
-
-                {/* Right Panel Stack: Coordination & Quick Info (30%) */}
-                <div className="lg:col-span-3 flex flex-col gap-6">
-                  {/* Inter-agency Coordination */}
-                  <div className="hidden">
-                    <div className="flex items-center gap-1 pb-2 border-b border-slate-100">
-                      <h3 className="font-extrabold text-sm text-[#0B2545]">Phối hợp liên ngành</h3>
-                      <span className="text-[10px] text-slate-400 cursor-pointer">ⓘ</span>
-                    </div>
-                    <div className="border border-slate-100 rounded-xl p-4 bg-slate-50/50">
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className="w-8 h-8 rounded-full bg-[#198754]/10 text-[#198754] flex items-center justify-center shrink-0">
-                          <Shield size={16} />
-                        </span>
-                        <span className="text-xs font-semibold text-slate-600">Chuyển công an</span>
-                      </div>
-                      <h4 className="text-3xl font-extrabold text-[#0B2545] leading-none mb-1">
-                        {feedbacksLoading ? (
-                          <Skeleton className="h-8 w-12" />
-                        ) : (
-                          coordinationStats.policeCount
-                        )}
-                      </h4>
-                      <p className="text-[10px] text-slate-400 font-medium mt-2">
-                        {selectedDate
-                          ? `Phản ánh trong ngày ${formatDateToDisplay(selectedDate)}`
-                          : "Tất cả thời gian"}
-                      </p>
-                      <Link
-                        to="/my-reports"
-                        className="text-[10px] font-extrabold text-indigo-600 hover:underline mt-3 block"
-                      >
-                        Xem chi tiết
-                      </Link>
-                    </div>
-                  </div>
-
-                  {/* Quick Info Panel */}
-                  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-3">
-                    <h3 className="text-xs font-bold uppercase tracking-tight text-slate-900 pb-2 border-b border-slate-100">
-                      Thông tin nhanh
-                    </h3>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-xs font-bold text-slate-600">
-                        <span className="flex items-center gap-2">
-                          <FileText size={14} className="text-slate-400 shrink-0" />
-                          {selectedDate
-                            ? isTodayDate(selectedDate)
-                              ? "Phản ánh mới hôm nay"
-                              : "Phản ánh mới trong ngày"
-                            : "Tổng số phản ánh mới"}
-                        </span>
-                        <span className="text-slate-900 font-bold font-mono">
-                          {quickInfo.newInDate}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs font-bold text-slate-600">
-                        <span className="flex items-center gap-2">
-                          <CheckCircle2 size={14} className="text-slate-400 shrink-0" />
-                          {selectedDate
-                            ? isTodayDate(selectedDate)
-                              ? "Phản ánh đã xử lý hôm nay"
-                              : "Phản ánh đã xử lý trong ngày"
-                            : "Tổng phản ánh đã xử lý"}
-                        </span>
-                        <span className="text-slate-900 font-bold font-mono">
-                          {quickInfo.resolvedInDate}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs font-bold text-slate-600">
-                        <span className="flex items-center gap-2">
-                          <Clock size={14} className="text-slate-400 shrink-0" />
-                          Đang xử lý quá hạn
-                        </span>
-                        <span className="text-rose-600 font-bold font-mono">
-                          {quickInfo.inProgressOverdue}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs font-bold text-slate-600">
-                        <span className="flex items-center gap-2">
-                          <UserCheck size={14} className="text-slate-400 shrink-0" />
-                          Tỷ lệ hài lòng người dân
-                        </span>
-                        <span className="text-slate-400 font-bold text-[10px] shrink-0 font-mono">
-                          N/A
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
 
               {/* ─── TODAY'S PENDING FEEDBACKS SECTION ─── */}
@@ -1827,7 +1779,10 @@ export function WardDashboard() {
                         ))
                       ) : todayFeedbacks.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="px-6 py-8 text-center text-xs font-bold text-slate-400">
+                          <td
+                            colSpan={7}
+                            className="px-6 py-8 text-center text-xs font-bold text-slate-400"
+                          >
                             Hôm nay chưa có phản ánh mới chờ xử lý.
                           </td>
                         </tr>
@@ -1905,8 +1860,14 @@ export function WardDashboard() {
             </>
           ) : activeSection === "campaign" ? (
             <WardCampaignPage hideHeader={true} />
+          ) : activeSection === "news" ? (
+            <NewsManagement />
+          ) : activeSection === "chat" ? (
+            <WardChatDashboardPage />
           ) : activeSection === "statistics" ? (
             <WardStatisticsPage range={statsRange} setRange={setStatsRange} hideHeader={true} />
+          ) : activeSection === "blacklist" ? (
+            <WardBlacklistPage defaultAppealId={detailId ? Number(detailId) : undefined} />
           ) : activeSection === "config" ? (
             <WardProfileConfigPage
               user={user}
@@ -1921,8 +1882,10 @@ export function WardDashboard() {
                 });
               }}
             />
+          ) : activeSection === "notifications" ? (
+            <WardNotificationsPage />
           ) : (
-            <WardSectionPlaceholder section={activeSection} />
+            <WardSectionPlaceholder section={activeSection as "schedule"} />
           )}
         </main>
       </div>
@@ -1930,11 +1893,7 @@ export function WardDashboard() {
   );
 }
 
-function WardSectionPlaceholder({
-  section,
-}: {
-  section: "schedule";
-}) {
+function WardSectionPlaceholder({ section }: { section: "schedule" }) {
   const labels: Record<"schedule", { title: string; description: string }> = {
     schedule: {
       title: "L\u1ecbch ti\u1ebfp c\u00f4ng d\u00e2n",

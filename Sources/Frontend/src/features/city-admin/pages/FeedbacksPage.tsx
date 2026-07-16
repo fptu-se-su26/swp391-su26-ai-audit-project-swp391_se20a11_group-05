@@ -6,6 +6,7 @@ import {
   Search,
   X,
   Eye,
+  ExternalLink,
   Clock,
   CheckCircle,
   AlertCircle,
@@ -291,7 +292,7 @@ export function FeedbacksPage() {
     try {
       // Mock bulk update - replace with actual API call
       await Promise.all(
-        Array.from(selectedIds).map((id) => feedbackApi.updateStatus(id, newStatus)),
+        Array.from(selectedIds).map((id) => feedbackApi.changeStatus(id, newStatus)),
       );
 
       await queryClient.invalidateQueries({ queryKey: ["admin", "feedbacks", "all"] });
@@ -657,7 +658,11 @@ export function FeedbacksPage() {
                 </tr>
               ) : (
                 paginated.map((fb) => (
-                  <tr key={fb.id} className="hover:bg-slate-50/60 transition-colors group">
+                  <tr 
+                    key={fb.id} 
+                    className="hover:bg-slate-50/60 transition-colors group cursor-pointer"
+                    onClick={() => setSelectedId(fb.id)}
+                  >
                     <td className="px-5 py-3.5 font-mono text-xs font-bold text-slate-700 group-hover:text-[#0B4FC4]">
                       {fb.trackingCode || `#${fb.id}`}
                     </td>
@@ -678,12 +683,28 @@ export function FeedbacksPage() {
                       {fb.createdAt ? new Date(fb.createdAt).toLocaleDateString("vi-VN") : "—"}
                     </td>
                     <td className="px-4 py-3.5 text-center">
-                      <button
-                        onClick={() => setSelectedId(fb.id)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-[#0B4FC4] hover:bg-blue-50 transition cursor-pointer"
-                      >
-                        <Eye size={15} />
-                      </button>
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedId(fb.id);
+                          }}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-[#0B4FC4] hover:bg-blue-50 transition cursor-pointer"
+                          title="Xem nhanh"
+                        >
+                          <Eye size={15} />
+                        </button>
+                        <a
+                          href={`/my-reports/${fb.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer inline-block"
+                          title="Xem trên trang người dân"
+                        >
+                          <ExternalLink size={15} />
+                        </a>
+                      </div>
                     </td>
                   </tr>
                 ))

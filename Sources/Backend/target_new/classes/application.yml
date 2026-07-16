@@ -1,0 +1,4 @@
+supabase:
+  url: ${SUPABASE_URL:}
+  key: ${SUPABASE_ANON_KEY:${SUPABASE_SERVICE_ROLE_KEY:}}
+  bucket: ${SUPABASE_STORAGE_BUCKET:feedback-images}

@@ -19,9 +19,10 @@ public interface CampaignRepository extends JpaRepository<Campaign, Long> {
             SELECT c
             FROM Campaign c
             WHERE (:status IS NULL 
-               OR (:status = 'ACTIVE' AND c.status NOT IN ('ENDED', 'COMPLETED', 'CANCELLED') AND (c.endTime IS NULL OR c.endTime >= :now))
-               OR (:status = 'ENDED' AND (c.status IN ('ENDED', 'COMPLETED', 'CANCELLED') OR (c.endTime IS NOT NULL AND c.endTime < :now)))
-               OR (:status NOT IN ('ACTIVE', 'ENDED') AND c.status = :status)
+               OR (:status = 'RECRUITING' AND c.status = 'RECRUITING' AND (c.startTime IS NULL OR c.startTime > :now) AND (c.endTime IS NULL OR c.endTime >= :now))
+               OR (:status = 'IN_PROGRESS' AND c.status <> 'CANCELLED' AND (c.status = 'IN_PROGRESS' OR (c.status = 'RECRUITING' AND c.startTime IS NOT NULL AND c.startTime <= :now)) AND (c.endTime IS NULL OR c.endTime >= :now))
+               OR (:status = 'ENDED' AND c.status <> 'CANCELLED' AND (c.status = 'ENDED' OR c.status = 'COMPLETED' OR (c.endTime IS NOT NULL AND c.endTime < :now)))
+               OR (:status = 'CANCELLED' AND c.status = 'CANCELLED')
             )
             ORDER BY c.createdAt DESC
             """)
@@ -34,11 +35,11 @@ public interface CampaignRepository extends JpaRepository<Campaign, Long> {
             SELECT c
             FROM Campaign c
             WHERE (:status IS NULL 
-               OR (:status = 'ACTIVE' AND c.status NOT IN ('ENDED', 'COMPLETED', 'CANCELLED') AND (c.endTime IS NULL OR c.endTime >= :now))
-               OR (:status = 'ENDED' AND (c.status IN ('ENDED', 'COMPLETED', 'CANCELLED') OR (c.endTime IS NOT NULL AND c.endTime < :now)))
-               OR (:status NOT IN ('ACTIVE', 'ENDED') AND c.status = :status)
+               OR (:status = 'RECRUITING' AND c.status = 'RECRUITING' AND (c.startTime IS NULL OR c.startTime > :now) AND (c.endTime IS NULL OR c.endTime >= :now))
+               OR (:status = 'IN_PROGRESS' AND c.status <> 'CANCELLED' AND (c.status = 'IN_PROGRESS' OR (c.status = 'RECRUITING' AND c.startTime IS NOT NULL AND c.startTime <= :now)) AND (c.endTime IS NULL OR c.endTime >= :now))
+               OR (:status = 'ENDED' AND c.status <> 'CANCELLED' AND (c.status = 'ENDED' OR c.status = 'COMPLETED' OR (c.endTime IS NOT NULL AND c.endTime < :now)))
+               OR (:status = 'CANCELLED' AND c.status = 'CANCELLED')
             )
-              AND c.status <> 'PENDING_APPROVAL'
             ORDER BY c.createdAt DESC
             """)
     Page<Campaign> findPublicVisibleCampaigns(
@@ -50,14 +51,11 @@ public interface CampaignRepository extends JpaRepository<Campaign, Long> {
             SELECT c
             FROM Campaign c
             WHERE (:status IS NULL 
-               OR (:status = 'ACTIVE' AND c.status NOT IN ('ENDED', 'COMPLETED', 'CANCELLED') AND (c.endTime IS NULL OR c.endTime >= :now))
-               OR (:status = 'ENDED' AND (c.status IN ('ENDED', 'COMPLETED', 'CANCELLED') OR (c.endTime IS NOT NULL AND c.endTime < :now)))
-               OR (:status NOT IN ('ACTIVE', 'ENDED') AND c.status = :status)
+               OR (:status = 'RECRUITING' AND c.status = 'RECRUITING' AND (c.startTime IS NULL OR c.startTime > :now) AND (c.endTime IS NULL OR c.endTime >= :now))
+               OR (:status = 'IN_PROGRESS' AND c.status <> 'CANCELLED' AND (c.status = 'IN_PROGRESS' OR (c.status = 'RECRUITING' AND c.startTime IS NOT NULL AND c.startTime <= :now)) AND (c.endTime IS NULL OR c.endTime >= :now))
+               OR (:status = 'ENDED' AND c.status <> 'CANCELLED' AND (c.status = 'ENDED' OR c.status = 'COMPLETED' OR (c.endTime IS NOT NULL AND c.endTime < :now)))
+               OR (:status = 'CANCELLED' AND c.status = 'CANCELLED')
             )
-              AND (
-                   c.status <> 'PENDING_APPROVAL'
-                   OR c.createdByUser.id = :userId
-              )
             ORDER BY c.createdAt DESC
             """)
     Page<Campaign> findVisibleCampaignsForUser(
@@ -66,6 +64,9 @@ public interface CampaignRepository extends JpaRepository<Campaign, Long> {
             @Param("now") java.time.LocalDateTime now,
             Pageable pageable);
 
-    @Query("SELECT COUNT(p) FROM CampaignParticipant p WHERE p.campaign.id = :campaignId AND p.joinStatus = 'APPROVED'")
+    @Query("SELECT COUNT(p) FROM CampaignParticipant p WHERE p.campaign.id = :campaignId AND p.joinStatus IN ('APPROVED', 'MAYBE')")
     long countActiveParticipants(@Param("campaignId") Long campaignId);
+
+    java.util.List<Campaign> findByWard_Id(Long wardId);
 }
+

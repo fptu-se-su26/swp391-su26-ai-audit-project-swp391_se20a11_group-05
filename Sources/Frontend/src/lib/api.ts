@@ -8,7 +8,7 @@
  *  - Error handling tập trung với ApiError
  */
 
-const API_BASE: string =
+export const API_BASE: string =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) || "";
 
 // ─── JWT Token Management ─────────────────────────────────────
@@ -16,15 +16,28 @@ const TOKEN_KEY = "dn_jwt_token";
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(TOKEN_KEY);
+  return localStorage.getItem(TOKEN_KEY) ?? sessionStorage.getItem(TOKEN_KEY);
 }
 
-export function setToken(token: string) {
-  if (typeof window !== "undefined") localStorage.setItem(TOKEN_KEY, token);
+/**
+ * persist = true  → localStorage (giữ đăng nhập lâu dài — "Ghi nhớ đăng nhập")
+ * persist = false → sessionStorage (hết phiên khi đóng trình duyệt)
+ */
+export function setToken(token: string, persist = true) {
+  if (typeof window === "undefined") return;
+  if (persist) {
+    localStorage.setItem(TOKEN_KEY, token);
+    sessionStorage.removeItem(TOKEN_KEY);
+  } else {
+    sessionStorage.setItem(TOKEN_KEY, token);
+    localStorage.removeItem(TOKEN_KEY);
+  }
 }
 
 export function removeToken() {
-  if (typeof window !== "undefined") localStorage.removeItem(TOKEN_KEY);
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
 }
 
 // ─── Error types ──────────────────────────────────────────────
@@ -119,7 +132,12 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
       const error = ApiError.fromResponse(response, body);
 
       // Auto-logout on 401, but bypass if using the dummy demo token
-      if (error.isUnauthorized && onUnauthorized && getToken() !== "demo-token") {
+      if (!skipAuth && error.isUnauthorized && onUnauthorized && getToken() !== "demo-token") {
+        onUnauthorized();
+      }
+
+      // Hack: Treat 500 "User not found" as Unauthorized (happens after DB reset)
+      if (!skipAuth && error.status === 500 && error.message?.includes("User not found") && onUnauthorized) {
         onUnauthorized();
       }
 
@@ -134,7 +152,10 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
         // Backend trả về chuẩn { status, message, data }
         if (body.status >= 400) {
           const error = new ApiError(body.status, body.message, body.data);
-          if (error.isUnauthorized && onUnauthorized && getToken() !== "demo-token")
+          if (!skipAuth && error.isUnauthorized && onUnauthorized && getToken() !== "demo-token")
+            onUnauthorized();
+          
+          if (!skipAuth && body.status === 500 && error.message?.includes("User not found") && onUnauthorized)
             onUnauthorized();
           throw error;
         }
@@ -209,18 +230,47 @@ export interface UserProfile {
   fullName: string;
   phoneNumber?: string;
   email?: string;
+  avatarUrl?: string;
   role: BackendRole;
   active: boolean;
+  isActive: boolean;
   mfaEnabled: boolean;
+  isMfaEnabled: boolean;
   wardName?: string | null;
   wardType?: string | null;
   wardId?: number | null;
+  warningCount?: number;
+  completedCampaignCount?: number;
+  noShowCampaignCount?: number;
+  reputationBadge?: string;
+  campaignBanned?: boolean;
+  lastCampaignUnbanAt?: string | null;
+  status?: string;
+}
+
+export function mapUserProfile(profile: any): UserProfile {
+  if (!profile) return profile;
+  const active = profile.isActive !== undefined ? profile.isActive : profile.active;
+  const mfaEnabled = profile.isMfaEnabled !== undefined ? profile.isMfaEnabled : profile.mfaEnabled;
+  const campaignBanned = profile.isCampaignBanned !== undefined ? profile.isCampaignBanned : profile.campaignBanned;
+  return {
+    status: profile.status,
+    ...profile,
+    active,
+    isActive: active,
+    mfaEnabled,
+    isMfaEnabled: mfaEnabled,
+    campaignBanned,
+    isCampaignBanned: campaignBanned,
+  };
 }
 
 export interface UpdateProfileRequest {
   fullName: string;
   phoneNumber?: string;
   email?: string;
+  avatarUrl?: string;
+  wardId?: number | null;
 }
 
 // ─── Feedback Types ───────────────────────────────────────────
@@ -242,6 +292,7 @@ export interface FeedbackResponse {
   trackingCode: string;
   code?: string;
   title: string;
+  publicVisible?: boolean;
   description: string;
   content?: string;
   latitude: number | null;
@@ -299,6 +350,11 @@ export interface PoliceFeedbackResponse {
   updatedAt: string;
   resolutionNote?: string | null;
   rejectionReason?: string | null;
+  priority?: string;
+  citizenName?: string | null;
+  address?: string;
+  wardName?: string;
+  assigneeName?: string | null;
 }
 
 export interface FeedbackAttachmentResponse {
@@ -431,12 +487,34 @@ export interface RagResponse {
 }
 
 export interface ChatbotResponse {
+  // Legacy fields
   answer: string;
-  citations: Citation[];
+  citations?: Citation[];
   latencyMs: number;
   provider: string;
-  userId: number;
-  chatId: string;
+  userId?: number;
+  chatId?: string;
+  // Enhanced fields
+  reply?: string; // Primary reply text (same as answer but from new format)
+  intent?: string; // LOOKUP_FEEDBACK | CREATE_FEEDBACK | QA_LEGAL | STATISTICS | REPORT_COPILOT | DISCOVER_CAMPAIGN | NAVIGATION_GUIDE | GENERAL
+  emotion?: string; // POSITIVE | NEGATIVE | NEUTRAL
+  action?: string; // OPEN_FEEDBACK_FORM | NAVIGATE
+  navigateTo?: string; // e.g. /feedback/create
+  messageId?: string; // UUID for rating
+  suggestedFollowUps?: string[];
+  // Feedback lookup fields
+  trackingCode?: string;
+  feedbackStatus?: string;
+  feedbackCategory?: string;
+  feedbackAddress?: string;
+  feedbackDescription?: string;
+  feedbackCreatedAt?: string;
+  feedbackUpdatedAt?: string;
+  // Create feedback fields
+  location?: string;
+  category?: string;
+  description?: string;
+  needsMoreInfo?: string[];
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -451,17 +529,21 @@ export const authApi = {
       skipAuth: true,
     }),
 
-  register: (data: {
-    username: string;
-    password: string;
-    fullName: string;
-    phoneNumber?: string;
-    email: string;
-  }) =>
-    request<unknown>("/api/auth/register", {
+  register: (
+    data: {
+      username: string;
+      password: string;
+      fullName: string;
+      phoneNumber?: string;
+      email: string;
+    },
+    firebaseToken?: string,
+  ) =>
+    request<any>("/api/auth/register", {
       method: "POST",
       body: JSON.stringify(data),
       skipAuth: true,
+      headers: firebaseToken ? { Authorization: `Bearer ${firebaseToken}` } : undefined,
     }),
 
   registerConfirm: (phoneNumber: string, otpCode: string) =>
@@ -644,29 +726,75 @@ export const feedbackApi = {
 };
 
 export const userApi = {
-  profile: () => request<UserProfile>("/api/users/profile"),
+  profile: () => request<UserProfile>("/api/users/profile").then(mapUserProfile),
 
   updateProfile: (data: UpdateProfileRequest) =>
     request<UserProfile>("/api/users/profile", {
       method: "PUT",
       body: JSON.stringify(data),
+    }).then(mapUserProfile),
+
+  changePassword: (data: { currentPassword: string; newPassword: string; confirmPassword: string; otpCode: string }) =>
+    request<void>("/api/users/profile/change-password", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  sendChangePasswordOtp: () =>
+    request<{ status: number; message: string; data: string }>("/api/users/profile/change-password/otp", {
+      method: "POST",
+    }),
+
+  deleteOwnProfile: () =>
+    request<void>("/api/users/profile", {
+      method: "DELETE",
     }),
 
   // SUPER_ADMIN: lấy tất cả users có phân trang
   getAll: (page = 0, size = 200) =>
-    request<PageResponse<UserProfile>>(`/api/users/page?page=${page}&size=${size}`),
+    request<PageResponse<UserProfile>>(`/api/users/page?page=${page}&size=${size}`).then((res) => {
+      if (res && Array.isArray(res.content)) {
+        res.content = res.content.map(mapUserProfile);
+      }
+      return res;
+    }),
 
   // SUPER_ADMIN: đổi role
   changeRole: (id: number, role: string) =>
     request<UserProfile>(`/api/users/${id}/role?role=${encodeURIComponent(role)}`, {
       method: "PATCH",
-    }),
+    }).then(mapUserProfile),
 
   // SUPER_ADMIN: khóa/mở tài khoản
   changeStatus: (id: number, active: boolean) =>
     request<UserProfile>(`/api/users/${id}/status?active=${active}`, {
       method: "PATCH",
+    }).then(mapUserProfile),
+
+  // SUPER_ADMIN: xóa tài khoản
+  delete: (id: number) =>
+    request<void>(`/api/users/${id}`, {
+      method: "DELETE",
     }),
+
+  getById: (id: number) => request<UserProfile>(`/api/users/${id}`).then(mapUserProfile),
+
+  warn: (id: number, reason: string) =>
+    request<UserProfile>(`/api/users/${id}/warn?reason=${encodeURIComponent(reason)}`, {
+      method: "POST",
+    }).then(mapUserProfile),
+
+  getBlacklist: () => request<UserProfile[]>("/api/users/blacklist").then((res) => (res || []).map(mapUserProfile)),
+
+  unban: (id: number) =>
+    request<UserProfile>(`/api/users/${id}/unban`, {
+      method: "POST",
+    }).then(mapUserProfile),
+
+  ban: (id: number, reason: string) =>
+    request<UserProfile>(`/api/users/${id}/ban?reason=${encodeURIComponent(reason)}`, {
+      method: "POST",
+    }).then(mapUserProfile),
 };
 
 export const notificationApi = {
@@ -707,7 +835,7 @@ export const policeApi = {
     }),
 
   getHotspots: () =>
-    request<any[]>("/api/police/feedbacks/hotspots", {
+    request<unknown[]>("/api/police/feedbacks/hotspots", {
       method: "GET",
     }),
 
@@ -726,6 +854,11 @@ export const policeApi = {
     request<PoliceFeedbackResponse>(`/api/police/feedbacks/${id}/result`, {
       method: "POST",
       body: JSON.stringify({ resultNote }),
+    }),
+
+  analyzeDuplicates: () =>
+    request<any[]>("/api/police/feedbacks/analyze-duplicates", {
+      method: "GET",
     }),
 };
 
@@ -754,13 +887,56 @@ export const ragApi = {
       }),
     }),
 
-  chatbot: (question: string, userId: string | number) =>
-    request<ChatbotResponse>(`/api/rag/chatbot?q=${encodeURIComponent(question)}&userId=${userId}`),
+  chatbot: (question: string, userId: string | number, sessionId?: string) =>
+    request<ChatbotResponse>(
+      `/api/chatbot/query?q=${encodeURIComponent(question)}&userId=${userId}${sessionId ? `&sessionId=${encodeURIComponent(sessionId)}` : ""}`,
+    ),
 
   chatHistory: (userId: string | number) =>
-    request<unknown[]>(`/api/rag/chat-history?userId=${userId}`),
+    request<unknown[]>(`/api/chatbot/chat-history?userId=${userId}`),
 
-  stats: () => request<Record<string, unknown>>("/api/rag/stats"),
+  stats: () => request<Record<string, unknown>>("/api/chatbot/chat-stats"),
+
+  /**
+   * Đánh giá chất lượng câu trả lời của bot.
+   * @param messageId UUID của ChatHistory
+   * @param rating 1 = helpful, -1 = not helpful
+   */
+  rateMessage: (messageId: string, rating: 1 | -1) =>
+    request<{ success: boolean; message: string }>(
+      `/api/chatbot/rate?messageId=${encodeURIComponent(messageId)}&rating=${rating}`,
+      { method: "POST" },
+    ),
+
+  /**
+   * [Feature 4] Lấy danh sách sessions của user.
+   */
+  getSessions: (userId: string | number) =>
+    request<
+      Array<{
+        sessionId: string;
+        sessionName: string;
+        lastMessage: string;
+        messageCount: number;
+      }>
+    >(`/api/chatbot/chat-sessions?userId=${userId}`),
+
+  /**
+   * [Feature 4] Lấy toàn bộ tin nhắn trong một session.
+   */
+  getSessionMessages: (sessionId: string, userId: string | number) =>
+    request<
+      Array<{
+        messageId: string;
+        question: string;
+        answer: string;
+        intent: string;
+        createdAt: string;
+        latencyMs: number;
+        provider: string;
+        userRating: number | null;
+      }>
+    >(`/api/chatbot/chat-sessions/${encodeURIComponent(sessionId)}?userId=${userId}`),
 };
 
 export const aiApi = {
@@ -836,21 +1012,34 @@ export interface CampaignResponse {
   latitude: number | null;
   longitude: number | null;
   maxParticipants: number | null;
+  minParticipants: number | null;
   startTime: string | null;
   endTime: string | null;
-  status: "PENDING_APPROVAL" | "RECRUITING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "ACTIVE" | "ENDED";
+  status: "RECRUITING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "ACTIVE" | "ENDED";
   wardId: number | null;
   wardName: string | null;
   createdByUserId: number;
   createdByName: string | null;
   participantCount: number;
-  currentUserJoinStatus: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "WAITLIST" | "PENDING_CONFIRM" | "NO_SHOW" | null;
+  currentUserJoinStatus:
+    | "PENDING"
+    | "APPROVED"
+    | "REJECTED"
+    | "CANCELLED"
+    | "WAITLIST"
+    | "PENDING_CONFIRM"
+    | "NO_SHOW"
+    | "CONFIRMED"
+    | "MAYBE"
+    | null;
   privateDetailsVisible: boolean;
   canJoin: boolean;
   canLeave: boolean;
   canManage: boolean;
   canComment: boolean;
   canFeedback: boolean;
+  announcementMode: boolean;
+  cancellationReason?: string | null;
   createdAt: string;
   updatedAt: string;
   linkedFeedbackId?: number | null;
@@ -870,6 +1059,7 @@ export interface CampaignCreateRequest {
   latitude?: number;
   longitude?: number;
   maxParticipants?: number;
+  minParticipants?: number;
   startTime?: string;
   endTime?: string;
   wardId?: number;
@@ -884,7 +1074,17 @@ export interface CampaignParticipantResponse {
   campaignId: number;
   citizenId: number;
   citizenName: string;
-  joinStatus: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "WAITLIST" | "PENDING_CONFIRM" | "NO_SHOW";
+  citizenEmail?: string;
+  joinStatus:
+    | "PENDING"
+    | "APPROVED"
+    | "REJECTED"
+    | "CANCELLED"
+    | "WAITLIST"
+    | "PENDING_CONFIRM"
+    | "NO_SHOW"
+    | "CONFIRMED"
+    | "MAYBE";
   volunteerExperience?: string;
   availabilityHours?: string;
   cancellationReason?: string | null;
@@ -896,9 +1096,24 @@ export interface CampaignParticipantResponse {
   approvedAt: string | null;
   rejectedAt: string | null;
   rejectionReason: string | null;
+  confirmedAt: string | null;
+  attended?: boolean | null;
+  attendedAt?: string | null;
+  citizenPhone?: string | null;
+  campaignTitle?: string | null;
+}
+
+export interface CampaignChatRoomResponse {
+  campaignId: number;
+  campaignTitle: string;
+  coverImageUrl?: string;
+  status: string;
+  lastMessage?: CampaignChatMessageResponse;
 }
 
 export const campaignApi = {
+  getMyChatRooms: () => request<CampaignChatRoomResponse[]>("/api/campaigns/my-chats"),
+
   getAll: (page = 0, size = 20, status?: string) => {
     const params = new URLSearchParams({ page: String(page), size: String(size) });
     if (status) params.set("status", status);
@@ -927,13 +1142,17 @@ export const campaignApi = {
       method: "DELETE",
     }),
 
-  approve: (id: number | string) =>
-    request<CampaignResponse>(`/api/campaigns/${id}/approve`, { method: "POST" }),
+  end: (id: number | string, reason?: string) => {
+    const url = reason
+      ? `/api/campaigns/${id}/end?reason=${encodeURIComponent(reason)}`
+      : `/api/campaigns/${id}/end`;
+    return request<CampaignResponse>(url, { method: "POST" });
+  },
 
-  end: (id: number | string) =>
-    request<CampaignResponse>(`/api/campaigns/${id}/end`, { method: "POST" }),
-
-  join: (id: number | string, data: { volunteerExperience?: string; availabilityHours?: string; otpCode: string }) =>
+  join: (
+    id: number | string,
+    data: { volunteerExperience?: string; availabilityHours?: string; otpCode: string },
+  ) =>
     request<CampaignResponse>(`/api/campaigns/${id}/join`, {
       method: "POST",
       body: JSON.stringify(data),
@@ -955,12 +1174,14 @@ export const campaignApi = {
     }),
 
   markNoShow: (id: number | string, participantId: number | string) =>
-    request<CampaignParticipantResponse>(`/api/campaigns/${id}/participants/${participantId}/no-show`, {
-      method: "POST",
-    }),
+    request<CampaignParticipantResponse>(
+      `/api/campaigns/${id}/participants/${participantId}/no-show`,
+      {
+        method: "POST",
+      },
+    ),
 
-  sendEmailOtp: () =>
-    request<string>("/api/campaigns/email-otp/send", { method: "POST" }),
+  sendEmailOtp: () => request<string>("/api/campaigns/email-otp/send", { method: "POST" }),
 
   getParticipants: (id: number | string) =>
     request<CampaignParticipantResponse[]>(`/api/campaigns/${id}/participants`),
@@ -991,13 +1212,17 @@ export const campaignApi = {
       body: JSON.stringify({ content }),
     }),
 
-  getChatMessages: (id: number | string) =>
-    request<CampaignChatMessageResponse[]>(`/api/campaigns/${id}/chat`),
+  getChatMessages: (id: number | string, beforeId?: number | string) => {
+    const url = beforeId
+      ? `/api/campaigns/${id}/chat?beforeId=${beforeId}`
+      : `/api/campaigns/${id}/chat`;
+    return request<CampaignChatMessageResponse[]>(url);
+  },
 
-  addChatMessage: (id: number | string, content: string) =>
+  addChatMessage: (id: number | string, content: string, imageUrls?: string[]) =>
     request<CampaignChatMessageResponse>(`/api/campaigns/${id}/chat`, {
       method: "POST",
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ content, imageUrls }),
     }),
 
   pinMessage: (id: number | string, messageId: number | string) =>
@@ -1009,6 +1234,46 @@ export const campaignApi = {
     request<CampaignChatMessageResponse>(`/api/campaigns/${id}/chat/${messageId}/unpin`, {
       method: "POST",
     }),
+
+  deleteChatMessage: (id: number | string, messageId: number | string) =>
+    request<void>(`/api/campaigns/${id}/chat/${messageId}`, {
+      method: "DELETE",
+    }),
+
+  signalAttendance: (id: number | string, signal: "CONFIRMED" | "MAYBE") =>
+    request<CampaignParticipantResponse>(
+      `/api/campaigns/${id}/signal-attendance?signal=${signal}`,
+      {
+        method: "POST",
+      },
+    ),
+
+  finalizeCampaign: (id: number | string) =>
+    request<CampaignResponse>(`/api/campaigns/${id}/finalize`, {
+      method: "POST",
+    }),
+
+  setAnnouncementMode: (id: number | string, enabled: boolean) =>
+    request<CampaignResponse>(`/api/campaigns/${id}/announcement-mode?enabled=${enabled}`, {
+      method: "PUT",
+    }),
+
+  lookupParticipantByPhone: (id: number | string, phone: string) =>
+    request<CampaignParticipantResponse>(
+      `/api/campaigns/${id}/participants/lookup?phone=${encodeURIComponent(phone)}`,
+    ),
+
+  bulkSaveAttendance: (
+    id: number | string,
+    data: { attendances: { participantId: number; attended: boolean }[] },
+  ) =>
+    request<CampaignParticipantResponse[]>(`/api/campaigns/${id}/attendance/bulk`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  getCitizenParticipationHistory: (userId: number | string) =>
+    request<CampaignParticipantResponse[]>(`/api/campaigns/participants/user/${userId}`),
 };
 
 export interface CampaignCommentResponse {
@@ -1026,6 +1291,173 @@ export interface CampaignChatMessageResponse {
   senderName: string;
   senderRole: BackendRole;
   message: string;
+  imageUrls?: string[];
   pinned: boolean;
   createdAt: string;
+  status?: "sending" | "failed" | "sent" | "seen";
+  senderAvatar?: string;
+  pastCampaignCount?: number;
 }
+
+
+// ─── News API ────────────────────────────────────────────────
+
+export interface NewsResponse {
+  id: number;
+  title: string;
+  summary: string;
+  content: string;
+  category: string;
+  imageUrl: string;
+  views: number;
+  authorId: number;
+  authorName: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NewsRequest {
+  title: string;
+  summary: string;
+  content: string;
+  category: string;
+  imageUrl: string;
+}
+
+export const newsApi = {
+  getAll: (page = 0, size = 10, category?: string, keyword?: string) => {
+    const params = new URLSearchParams({ page: String(page), size: String(size) });
+    if (category && category !== 'Tất cả') params.set('category', category);
+    if (keyword) params.set('keyword', keyword);
+    return request<PageResponse<NewsResponse>>(`/api/news?${params.toString()}`);
+  },
+
+  getById: (id: number | string) => request<NewsResponse>(`/api/news/${id}`),
+
+  create: (data: NewsRequest) =>
+    request<NewsResponse>('/api/news', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  update: (id: number | string, data: NewsRequest) =>
+    request<NewsResponse>(`/api/news/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  delete: (id: number | string) =>
+    request<void>(`/api/news/${id}`, {
+      method: 'DELETE',
+    }),
+};
+
+// ─── Ward Ranking Types ──────────────────────────────────────
+
+export interface WardRankingEntry {
+  wardId: number;
+  wardName: string;
+  overallScore: number;
+  rankPosition: number;
+  previousRank: number | null;
+  rankChange: number;
+  resolutionRate: number;
+  speedScore: number;
+  totalFeedbacks: number;
+  resolvedCount: number;
+  avgResolutionHours: number;
+  badges: string[];
+}
+
+export interface WardRankingMonthlyScore {
+  year: number;
+  month: number;
+  score: number;
+  rank: number;
+}
+
+export interface WardRankingAchievement {
+  badgeCode: string;
+  badgeLabel: string;
+  earnedAt: string | null;
+}
+
+export interface WardRankingDetail {
+  wardId: number;
+  wardName: string;
+  currentScore: number;
+  currentRank: number;
+  resolutionRate: number;
+  avgResolutionHours: number;
+  speedScore: number;
+  lowIncidenceScore: number;
+  satisfactionScore: number | null;
+  trendScore: number;
+  totalFeedbacks: number;
+  resolvedCount: number;
+  history: WardRankingMonthlyScore[];
+  achievements: WardRankingAchievement[];
+}
+
+export const wardRankingApi = {
+  getLeaderboard: (year?: number, month?: number) => {
+    const params = new URLSearchParams();
+    if (year) params.set("year", String(year));
+    if (month) params.set("month", String(month));
+    const qs = params.toString();
+    return request<WardRankingEntry[]>(`/api/ward-ranking/leaderboard${qs ? `?${qs}` : ""}`, { skipAuth: true });
+  },
+
+  getTop: (limit = 3) =>
+    request<WardRankingEntry[]>(`/api/ward-ranking/top?limit=${limit}`, { skipAuth: true }),
+
+  getWardDetail: (wardId: number | string) =>
+    request<WardRankingDetail>(`/api/ward-ranking/${wardId}`, { skipAuth: true }),
+
+  recalculate: (year?: number, month?: number) => {
+    const params = new URLSearchParams();
+    if (year) params.set("year", String(year));
+    if (month) params.set("month", String(month));
+    const qs = params.toString();
+    return request<string>(`/api/ward-ranking/recalculate${qs ? `?${qs}` : ""}`, { method: "POST" });
+  },
+
+  getPdfReportUrl: (wardId: number | string) => {
+    return `/api/ward-ranking/${wardId}/report-pdf`;
+  }
+};
+
+export interface CampaignAppealResponse {
+  id: number;
+  citizenId: number;
+  citizenName: string;
+  reason: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  reviewNotes: string | null;
+  reviewedBy: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
+}
+
+export const campaignAppealApi = {
+  submit: (reason: string) =>
+    request<CampaignAppealResponse>("/api/campaigns/appeals", {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
+  getMyLastAppeal: () =>
+    request<CampaignAppealResponse>("/api/campaigns/appeals/my-appeal"),
+  getPending: () =>
+    request<CampaignAppealResponse[]>("/api/campaigns/appeals/pending"),
+  approve: (id: number, reviewNotes?: string) =>
+    request<CampaignAppealResponse>(`/api/campaigns/appeals/${id}/approve`, {
+      method: "POST",
+      body: JSON.stringify({ notes: reviewNotes, reviewNotes }),
+    }),
+  reject: (id: number, reviewNotes?: string) =>
+    request<CampaignAppealResponse>(`/api/campaigns/appeals/${id}/reject`, {
+      method: "POST",
+      body: JSON.stringify({ notes: reviewNotes, reviewNotes }),
+
+    }),
+};

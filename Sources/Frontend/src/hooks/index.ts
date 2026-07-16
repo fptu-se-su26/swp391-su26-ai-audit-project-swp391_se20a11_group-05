@@ -10,8 +10,10 @@ import {
   ragApi,
   authApi,
   userApi,
+  campaignApi,
   notificationApi,
   policeApi,
+  getToken,
   type FeedbackResponse,
   type CategoryResponse,
   type ChatbotResponse,
@@ -26,6 +28,7 @@ import {
   type NotificationResponse,
   type FeedbackLookupStatsResponse,
   type PoliceFeedbackResponse,
+  type CampaignParticipantResponse,
 } from "@/lib/api";
 import {
   submitCitizenFeedbackMedia,
@@ -90,11 +93,12 @@ export function useFeedbackStatuses() {
   });
 }
 
-export function useFeedbackDetail(id: string | number) {
+export function useFeedbackDetail(id: string | number, options?: { enabled?: boolean }) {
   return useQuery<FeedbackResponse>({
     queryKey: queryKeys.feedbacks.detail(id),
     queryFn: () => feedbackApi.getById(id),
-    enabled: !!id,
+    ...options,
+    enabled: options?.enabled !== false && !!id,
   });
 }
 
@@ -112,11 +116,15 @@ export function usePublicFeedbacks(
   });
 }
 
-export function usePublicFeedbackStats(filters: FeedbackListFilters = {}) {
+export function usePublicFeedbackStats(
+  filters: FeedbackListFilters = {},
+  options?: { enabled?: boolean },
+) {
   return useQuery<FeedbackLookupStatsResponse>({
     queryKey: queryKeys.feedbacks.publicStats(filters),
     queryFn: () => feedbackApi.getPublicStats(filters),
     staleTime: 30_000,
+    ...options,
   });
 }
 
@@ -128,11 +136,12 @@ export function usePublicFeedbackStatistics(filters: FeedbackListFilters = {}) {
   });
 }
 
-export function useWardStaffStatistics(date?: string) {
+export function useWardStaffStatistics(date?: string, options?: { enabled?: boolean }) {
   return useQuery<FeedbackLookupStatsResponse>({
     queryKey: ["ward-staff-dashboard-statistics", date || "all"],
     queryFn: () => feedbackApi.getWardStaffStatistics(date),
     staleTime: 30_000,
+    ...options,
   });
 }
 
@@ -144,11 +153,12 @@ export function useRecentPublicFeedback(limit = 5, filters: FeedbackListFilters 
   });
 }
 
-export function usePublicFeedbackDetail(id: string | number) {
+export function usePublicFeedbackDetail(id: string | number, options?: { enabled?: boolean }) {
   return useQuery<FeedbackResponse>({
     queryKey: queryKeys.feedbacks.publicDetail(id),
     queryFn: () => feedbackApi.getPublicById(id),
-    enabled: !!id,
+    ...options,
+    enabled: options?.enabled !== false && !!id,
   });
 }
 
@@ -288,7 +298,11 @@ export function useRequestMoreInfo() {
 
 export function useSupplementFeedbackInfo() {
   const queryClient = useQueryClient();
-  return useMutation<FeedbackResponse, Error, { id: number | string; content?: string; imageUrls?: string[] }>({
+  return useMutation<
+    FeedbackResponse,
+    Error,
+    { id: number | string; content?: string; imageUrls?: string[] }
+  >({
     mutationFn: ({ id, content, imageUrls }) => feedbackApi.supplementInfo(id, content, imageUrls),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
@@ -299,7 +313,7 @@ export function useSupplementFeedbackInfo() {
 }
 
 export function useHotspots() {
-  return useQuery<any[]>({
+  return useQuery<unknown[]>({
     queryKey: ["feedbacks", "hotspots"],
     queryFn: () => policeApi.getHotspots(),
     staleTime: 60_000, // 1 min cache
@@ -358,13 +372,19 @@ export function useLoginMutation() {
 
 export function useRegisterMutation() {
   return useMutation({
-    mutationFn: (data: {
-      username: string;
-      password: string;
-      fullName: string;
-      phoneNumber?: string;
-      email: string;
-    }) => authApi.register(data),
+    mutationFn: ({
+      data,
+      firebaseToken,
+    }: {
+      data: {
+        username: string;
+        password: string;
+        fullName: string;
+        phoneNumber?: string;
+        email: string;
+      };
+      firebaseToken?: string;
+    }) => authApi.register(data, firebaseToken),
   });
 }
 
@@ -402,29 +422,72 @@ export function useUpdateProfileMutation() {
   });
 }
 
-export function useNotifications() {
+export function useChangePasswordMutation() {
+  return useMutation<void, Error, { currentPassword: string; newPassword: string; confirmPassword: string; otpCode: string }>({
+    mutationFn: (data) => userApi.changePassword(data),
+  });
+}
+
+export function useSendChangePasswordOtp() {
+  return useMutation<{ status: number; message: string; data: string }, Error, void>({
+    mutationFn: () => userApi.sendChangePasswordOtp(),
+  });
+}
+
+export function useCitizenParticipationHistory(
+  userId: number | string,
+  options?: { enabled?: boolean },
+) {
+  return useQuery<CampaignParticipantResponse[]>({
+    queryKey: ["campaigns", "participants", "user", userId],
+    queryFn: () => campaignApi.getCitizenParticipationHistory(userId),
+    ...options,
+    enabled: options?.enabled !== false && !!userId,
+  });
+}
+
+export function useDeleteOwnProfileMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, void>({
+    mutationFn: () => userApi.deleteOwnProfile(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth.profile });
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
+    },
+  });
+}
+
+import { getToken } from "@/lib/api";
+
+export function useNotifications(enabled = true) {
+  const token = getToken();
   return useQuery<NotificationResponse[]>({
     queryKey: queryKeys.notifications.all,
     queryFn: () => notificationApi.getAll(),
+    enabled: !!token,
     staleTime: 30_000,
+    enabled: enabled && !!token,
     refetchInterval: 10_000,
   });
 }
 
 export function useNotificationUnreadCount(enabled = true) {
+  const token = getToken();
   return useQuery<number>({
     queryKey: queryKeys.notifications.unreadCount,
     queryFn: () => notificationApi.getUnreadCount(),
     staleTime: 30_000,
-    enabled,
+    enabled: enabled && !!token,
     refetchInterval: 10_000,
   });
 }
 
 export function useInfiniteNotifications(size = 5) {
+  const token = getToken();
   return useInfiniteQuery<PageResponse<NotificationResponse>>({
     queryKey: queryKeys.notifications.page(size),
     queryFn: ({ pageParam }) => notificationApi.getPage(Number(pageParam ?? 0), size),
+    enabled: !!token,
     initialPageParam: 0,
     getNextPageParam: (lastPage) => {
       const currentPage = lastPage.page ?? lastPage.number ?? 0;
@@ -432,6 +495,7 @@ export function useInfiniteNotifications(size = 5) {
     },
     staleTime: 30_000,
     refetchInterval: 10_000,
+    enabled: !!token,
   });
 }
 

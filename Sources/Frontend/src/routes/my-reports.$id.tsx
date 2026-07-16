@@ -54,8 +54,8 @@ import { toast } from "sonner";
 
 // Lazy load CivicMap to prevent SSR issues with Leaflet
 const CivicMap = clientOnly(() =>
-  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
-);
+  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
+) as any;
 
 const API_BASE: string =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) || "";
@@ -159,21 +159,17 @@ function ReportDetail() {
         id: found.id,
         title: found.name,
         status:
-          found.status === "pending_review"
+          found.status === "recruiting"
             ? isVi
-              ? "Chờ duyệt"
-              : "Pending Review"
-            : found.status === "recruiting"
+              ? "Đang tuyển"
+              : "Recruiting"
+            : found.status === "completed"
               ? isVi
-                ? "Đang tuyển"
-                : "Recruiting"
-              : found.status === "completed"
-                ? isVi
-                  ? "Đã hoàn thành"
-                  : "Completed"
-                : isVi
-                  ? "Đang tiến hành"
-                  : "In Progress",
+                ? "Đã hoàn thành"
+                : "Completed"
+              : isVi
+                ? "Đang tiến hành"
+                : "In Progress",
         participants: found.participants,
         progress: found.progress,
       });
@@ -187,21 +183,17 @@ function ReportDetail() {
           id: updated.id,
           title: updated.name,
           status:
-            updated.status === "pending_review"
+            updated.status === "recruiting"
               ? isVi
-                ? "Chờ duyệt"
-                : "Pending Review"
-              : updated.status === "recruiting"
+                ? "Đang tuyển"
+                : "Recruiting"
+              : updated.status === "completed"
                 ? isVi
-                  ? "Đang tuyển"
-                  : "Recruiting"
-                : updated.status === "completed"
-                  ? isVi
-                    ? "Đã hoàn thành"
-                    : "Completed"
-                  : isVi
-                    ? "Đang tiến hành"
-                    : "In Progress",
+                  ? "Đã hoàn thành"
+                  : "Completed"
+                : isVi
+                  ? "Đang tiến hành"
+                  : "In Progress",
           participants: updated.participants,
           progress: updated.progress,
         });
@@ -808,7 +800,7 @@ function ReportDetail() {
                 {locale === "vi" ? "Phản ánh chưa được tiếp nhận" : "Report not accepted"}
               </p>
               <p className="text-sm text-red-600 leading-relaxed">
-                {(report as any).resolutionNote ||
+                {report.rejectionReason ||
                   (locale === "vi"
                     ? "Phản ánh của bạn chưa đáp ứng yêu cầu xét duyệt. Vui lòng xem lý do bên dưới và gửi lại."
                     : "Your report did not meet the review requirements. Please check the reason below and resubmit.")}
@@ -826,6 +818,26 @@ function ReportDetail() {
               >
                 ↩ {locale === "vi" ? "Gửi lại phản ánh" : "Resubmit report"}
               </Link>
+            </div>
+          </div>
+        )}
+
+        {/* ── RESOLVED Banner ── */}
+        {report.status === "RESOLVED" && (
+          <div className="mb-5 rounded-2xl border border-green-200 bg-green-50 p-5 flex flex-col sm:flex-row sm:items-start gap-4 animate-fade-in">
+            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-green-100 grid place-items-center">
+              <CheckCircle2 size={26} className="text-green-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-green-700 text-base mb-1">
+                {locale === "vi" ? "Phản ánh đã được xử lý hoàn tất" : "Report has been resolved"}
+              </p>
+              <p className="text-sm text-green-600 leading-relaxed whitespace-pre-wrap">
+                {report.resultContent ||
+                  (locale === "vi"
+                    ? "Phản ánh của bạn đã được cơ quan chức năng xử lý hoàn tất."
+                    : "Your report has been completely resolved by the authorities.")}
+              </p>
             </div>
           </div>
         )}

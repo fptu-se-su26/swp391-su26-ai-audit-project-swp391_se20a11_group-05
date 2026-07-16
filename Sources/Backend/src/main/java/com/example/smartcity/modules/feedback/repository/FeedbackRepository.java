@@ -17,6 +17,7 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"category", "ward", "citizen"})
     Page<Feedback> findAll(Pageable pageable);
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"category", "ward", "citizen"})
     Optional<Feedback> findByTrackingCode(String trackingCode);
 
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
@@ -365,4 +366,32 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
     List<Object[]> getMonthlyTrendStats(
             @org.springframework.data.repository.query.Param("from") java.time.LocalDateTime from,
             @org.springframework.data.repository.query.Param("to") java.time.LocalDateTime to);
+    // ─── Ward Ranking aggregate query ───────────────────────────────
+
+    /**
+     * Per-ward aggregate statistics for ranking calculation.
+     * Returns [ward_id, ward_name, total, resolved, avg_resolution_hours, pending_count, avg_rating, population]
+     */
+    @org.springframework.data.jpa.repository.Query(value = """
+            SELECT w.id AS ward_id,
+                   w.name AS ward_name,
+                   COUNT(f.id) AS total,
+                   SUM(CASE WHEN f.status = 'RESOLVED' THEN 1 ELSE 0 END) AS resolved,
+                   AVG(CASE WHEN f.resolved_at IS NOT NULL
+                       THEN EXTRACT(EPOCH FROM (f.resolved_at - f.created_at)) / 3600.0
+                       ELSE NULL END) AS avg_resolution_hours,
+                   SUM(CASE WHEN f.status = 'RESOLVED' AND f.resolved_at IS NOT NULL 
+                                 AND EXTRACT(EPOCH FROM (f.resolved_at - f.created_at)) / 3600.0 <= 48.0
+                       THEN 1 ELSE 0 END) AS on_time_resolved_count,
+                   AVG(e.rating) AS avg_rating,
+                   15000 AS population
+            FROM feedbacks f
+            JOIN wards w ON f.ward_id = w.id
+            LEFT JOIN feedback_evaluations e ON e.feedback_id = f.id
+            WHERE f.created_at >= :fromDate AND f.created_at < :toDate
+            GROUP BY w.id, w.name
+            """, nativeQuery = true)
+    List<Object[]> getWardRankingStats(
+            @org.springframework.data.repository.query.Param("fromDate") java.time.LocalDateTime fromDate,
+            @org.springframework.data.repository.query.Param("toDate") java.time.LocalDateTime toDate);
 }

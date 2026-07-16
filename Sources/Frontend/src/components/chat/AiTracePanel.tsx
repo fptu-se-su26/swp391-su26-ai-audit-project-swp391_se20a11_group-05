@@ -37,9 +37,9 @@ export function AiTracePanel({ intent, latency }: AiTracePanelProps) {
             <div className="flex gap-2">
               <span className="font-medium text-slate-500 min-w-[70px]">Confidence:</span>
               <span
-                className={`font-semibold ${intent.confidence >= 0.8 ? "text-green-600" : "text-amber-600"}`}
+                className={`font-semibold ${(intent.confidence ?? 0) >= 0.8 ? "text-green-600" : "text-amber-600"}`}
               >
-                {Math.round(intent.confidence * 100)}%
+                {Math.round((intent.confidence ?? 0) * 100)}%
               </span>
             </div>
             {intent.needsMoreInfo.length > 0 && (
@@ -60,7 +60,7 @@ export function AiTracePanel({ intent, latency }: AiTracePanelProps) {
               Citations Used:
             </span>
             <ul className="list-disc list-inside space-y-1">
-              {intent.citations.map((cite, i) => (
+              {intent.citations.map((cite: any, i: number) => (
                 <li key={i} className="text-slate-600 truncate">
                   <a
                     href={cite.url}

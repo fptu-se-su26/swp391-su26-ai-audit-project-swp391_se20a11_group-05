@@ -222,15 +222,30 @@ export function FeedbackDetailModal({ feedbackId, onClose }: Props) {
               </div>
 
               {/* Description */}
-              {fb.description && (
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                <div className="flex items-center gap-2 mb-3">
+                  <MessageSquare size={14} className="text-slate-500" />
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    Nội dung phản ánh
+                  </p>
+                </div>
+                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                  {fb.description || fb.content || <span className="italic text-slate-400">Không có nội dung phản ánh.</span>}
+                </p>
+              </div>
+
+              {/* Result Content */}
+              {fb.resultContent && (
+                <div className="bg-green-50 rounded-xl p-4 border border-green-100">
                   <div className="flex items-center gap-2 mb-3">
-                    <MessageSquare size={14} className="text-slate-500" />
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                      Mô tả chi tiết
+                    <CheckCircle size={14} className="text-green-600" />
+                    <p className="text-xs font-bold text-green-600 uppercase tracking-wider">
+                      Kết quả xử lý
                     </p>
                   </div>
-                  <p className="text-sm text-slate-700 leading-relaxed">{fb.description}</p>
+                  <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                    {fb.resultContent}
+                  </p>
                 </div>
               )}
 

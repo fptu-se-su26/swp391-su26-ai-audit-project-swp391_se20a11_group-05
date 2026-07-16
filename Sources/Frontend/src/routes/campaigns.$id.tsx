@@ -1,7 +1,8 @@
 import { createFileRoute, Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import type { ElementType, ReactNode } from "react";
 import {
+  AlertCircle,
   ArrowLeft,
   ArrowRight,
   CalendarDays,
@@ -30,16 +31,26 @@ import {
   useLeaveCampaign,
   useConfirmWaitlist,
   useSendEmailOtp,
+  useBatchApproveParticipants,
+  useMarkNoShow,
+  useUpdateCampaign,
+  useEndCampaign,
+  useSignalAttendance,
+  useFinalizeCampaign,
 } from "@/hooks/useCampaigns";
 import { useAuth } from "@/lib/auth";
+import { Role } from "@/lib/roles";
 import type { Campaign } from "@/lib/campaignStore";
 import { buildGoogleMapsSearchUrl, resolveCampaignCoordinates } from "@/lib/campaignLocation";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { SingleCampaignMap } from "@/components/site/SingleCampaignMap";
+import { useI18n } from "@/lib/i18n";
+import { CampaignAppealModal } from "@/components/site/CampaignAppealModal";
 
 export const Route = createFileRoute("/campaigns/$id")({
-  validateSearch: (search: Record<string, unknown>) => {
+  validateSearch: (search: Record<string, unknown>): { join?: boolean } => {
     return {
-      join: search.join === "true" || search.join === true,
+      join: search.join === "true" || search.join === true ? true : undefined,
     };
   },
   head: () => ({
@@ -67,12 +78,14 @@ type CampaignDetailPageComponentProps = {
   campaignId: string;
   join?: boolean;
   onBack?: () => void;
+  initialEditMode?: boolean;
 };
 
 export function CampaignDetailPageComponent({
   campaignId,
   join = false,
   onBack,
+  initialEditMode = false,
 }: CampaignDetailPageComponentProps) {
   const theme = {
     primaryText: "text-[#7C3AED]",
@@ -97,10 +110,179 @@ export function CampaignDetailPageComponent({
   });
   const campaign = useCampaignDetail(campaignId);
   const { user, isAuthenticated } = useAuth();
+  const { locale } = useI18n();
+  const hasJoined = !!(
+    campaign &&
+    (campaign.canManage ||
+      (campaign.currentUserJoinStatus &&
+        ["APPROVED", "CONFIRMED", "MAYBE", "PENDING_CONFIRM", "PENDING"].includes(
+          campaign.currentUserJoinStatus,
+        )))
+  );
   const joinCampaign = useJoinCampaign();
   const leaveCampaign = useLeaveCampaign();
   const confirmWaitlist = useConfirmWaitlist();
   const sendEmailOtp = useSendEmailOtp();
+
+  const updateCampaign = useUpdateCampaign();
+  const endCampaign = useEndCampaign();
+  const signalAttendance = useSignalAttendance(campaignId);
+  const finalizeCampaign = useFinalizeCampaign();
+
+  const [isEditing, setIsEditing] = useState(initialEditMode || false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editCategory, setEditCategory] = useState<any>("environment");
+  const [editTarget, setEditTarget] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editLocationText, setEditLocationText] = useState("");
+  const [editPrivateLocationText, setEditPrivateLocationText] = useState("");
+  const [editRequiredTools, setEditRequiredTools] = useState("");
+  const [editOrganizerContact, setEditOrganizerContact] = useState("");
+  const [editStartTime, setEditStartTime] = useState("");
+  const [editEndTime, setEditEndTime] = useState("");
+  const [editLatitude, setEditLatitude] = useState<number | null>(null);
+  const [editLongitude, setEditLongitude] = useState<number | null>(null);
+
+  const hasInitializedRef = useRef(false);
+
+  useEffect(() => {
+    hasInitializedRef.current = false;
+  }, [campaignId]);
+
+  useEffect(() => {
+    if (campaign && (!hasInitializedRef.current || !isEditing)) {
+      setEditTitle(campaign.name || "");
+      setEditCategory(campaign.category || "environment");
+      setEditTarget(String(campaign.target || 30));
+      setEditDescription(campaign.desc || "");
+      setEditLocationText(campaign.locationText || "");
+      setEditPrivateLocationText(campaign.privateLocationText || "");
+      setEditRequiredTools(campaign.requiredTools || "");
+      setEditOrganizerContact(campaign.organizerContact || "");
+      setEditStartTime(campaign.startTime ? campaign.startTime.slice(0, 16) : "");
+      setEditEndTime(campaign.endTime ? campaign.endTime.slice(0, 16) : "");
+      setEditLatitude(campaign.latitude ?? null);
+      setEditLongitude(campaign.longitude ?? null);
+      hasInitializedRef.current = true;
+    }
+  }, [campaign, isEditing]);
+
+  const handleSave = async () => {
+    if (!editTitle.trim()) {
+      toast.error("Vui lòng nhập tên chiến dịch.");
+      return;
+    }
+    if (!editLocationText.trim()) {
+      toast.error("Vui lòng nhập địa chỉ cụ thể.");
+      return;
+    }
+    if (!editDescription.trim()) {
+      toast.error("Vui lòng nhập mô tả chi tiết chiến dịch.");
+      return;
+    }
+    if (!editPrivateLocationText.trim()) {
+      toast.error("Vui lòng nhập điểm tập trung nội bộ.");
+      return;
+    }
+    if (!editRequiredTools.trim()) {
+      toast.error("Vui lòng nhập dụng cụ cần mang theo.");
+      return;
+    }
+    if (!editOrganizerContact.trim()) {
+      toast.error("Vui lòng nhập thông tin liên hệ ban tổ chức.");
+      return;
+    }
+    if (!editStartTime) {
+      toast.error("Vui lòng chọn thời gian bắt đầu.");
+      return;
+    }
+    if (!editEndTime) {
+      toast.error("Vui lòng chọn thời gian kết thúc.");
+      return;
+    }
+
+    const start = new Date(editStartTime);
+    const end = new Date(editEndTime);
+    if (end <= start) {
+      toast.error("Thời gian kết thúc phải diễn ra sau thời gian bắt đầu.");
+      return;
+    }
+
+    const maxPartNum = Number.parseInt(editTarget, 10);
+    if (Number.isNaN(maxPartNum) || maxPartNum <= 0) {
+      toast.error("Số lượng tình nguyện viên tối đa phải là số nguyên dương.");
+      return;
+    }
+
+    try {
+      await updateCampaign.mutateAsync({
+        id: campaignId,
+        data: {
+          title: editTitle.trim(),
+          category: editCategory,
+          description: editDescription.trim(),
+          locationText: editLocationText.trim(),
+          privateLocationText: editPrivateLocationText.trim(),
+          requiredTools: editRequiredTools.trim(),
+          organizerContact: editOrganizerContact.trim(),
+          maxParticipants: maxPartNum,
+          startTime: editStartTime || undefined,
+          endTime: editEndTime || undefined,
+          latitude: editLatitude ?? undefined,
+          longitude: editLongitude ?? undefined,
+          boundaryGeojson: campaign?.boundaryGeojson ?? undefined,
+          coverImageUrl: campaign?.coverImageUrl || undefined,
+          imageUrls: campaign?.imageUrls || undefined,
+        },
+      });
+      toast.success("Cập nhật chiến dịch thành công.");
+      setIsEditing(false);
+    } catch (err) {
+      toast.error(
+        "Lỗi khi cập nhật chiến dịch: " + (err instanceof Error ? err.message : "Lỗi hệ thống"),
+      );
+    }
+  };
+
+  const handleEndCampaign = async () => {
+    if (
+      !window.confirm(
+        "Bạn có chắc chắn muốn kết thúc sớm chiến dịch này? Hành động này sẽ khóa đơn đăng ký và dừng tuyển quân.",
+      )
+    ) {
+      return;
+    }
+    try {
+      await endCampaign.mutateAsync({ id: campaignId });
+      toast.success("Đã kết thúc chiến dịch thành công.");
+    } catch (err) {
+      toast.error(
+        "Lỗi khi kết thúc chiến dịch: " + (err instanceof Error ? err.message : "Lỗi hệ thống"),
+      );
+    }
+  };
+
+  const handleFinalizeCampaign = async () => {
+    if (
+      !window.confirm(
+        "Bạn có chắc chắn muốn chốt chiến dịch? Hệ thống sẽ kiểm tra số người tham gia và chuyển trạng thái chiến dịch.",
+      )
+    ) {
+      return;
+    }
+    try {
+      const result = await finalizeCampaign.mutateAsync(campaignId);
+      if (result.status === "IN_PROGRESS") {
+        toast.success("Chiến dịch đã bắt đầu! Đủ số người tối thiểu.");
+      } else {
+        toast.error("Chiến dịch bị hủy do không đủ số người tối thiểu.");
+      }
+    } catch (err) {
+      toast.error(
+        "Lỗi khi chốt chiến dịch: " + (err instanceof Error ? err.message : "Lỗi hệ thống"),
+      );
+    }
+  };
 
   // Smart Join Modal states
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -112,8 +294,9 @@ export function CampaignDetailPageComponent({
   // Leave Modal states
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [leaveReason, setLeaveReason] = useState("");
+  const [showAppealModal, setShowAppealModal] = useState(false);
 
-  const navigate = useNavigate();
+  const navigate = useNavigate({ from: "/campaigns/$id" });
 
   const handleCloseJoinModal = () => {
     setShowJoinModal(false);
@@ -163,13 +346,21 @@ export function CampaignDetailPageComponent({
 
   useEffect(() => {
     if (join && isAuthenticated && campaign?.canJoin && campaign?.status === "recruiting") {
+      if (user?.campaignBanned) {
+        setShowAppealModal(true);
+        navigate({
+          search: (prev) => ({ ...prev, join: undefined }),
+          replace: true,
+        });
+        return;
+      }
       setShowJoinModal(true);
       navigate({
         search: (prev) => ({ ...prev, join: undefined }),
         replace: true,
       });
     }
-  }, [join, isAuthenticated, campaign, navigate]);
+  }, [join, isAuthenticated, campaign, navigate, user?.campaignBanned]);
 
   if (isGroupChatRoute) {
     return <Outlet />;
@@ -202,7 +393,10 @@ export function CampaignDetailPageComponent({
     campaign.target > 0
       ? Math.min(100, Math.round((campaign.participants / campaign.target) * 100))
       : 0;
-  const approvedStatus = campaign.currentUserJoinStatus === "APPROVED";
+  const approvedStatus =
+    campaign.currentUserJoinStatus === "APPROVED" ||
+    (campaign.currentUserJoinStatus as string) === "CONFIRMED" ||
+    (campaign.currentUserJoinStatus as string) === "MAYBE";
 
   const handleSendOtp = async () => {
     try {
@@ -230,16 +424,23 @@ export function CampaignDetailPageComponent({
         availabilityHours: availabilityHours.trim() || undefined,
         otpCode: otpCode.trim(),
       });
-      toast.success("Đăng ký thành công! Hãy đợi cán bộ phường phê duyệt hoặc theo dõi hàng đợi.");
+      toast.success("Tham gia và kết nối chat chiến dịch thành công!");
       setShowJoinModal(false);
       setVolunteerExperience("");
       setAvailabilityHours("");
       setOtpCode("");
       setOtpSent(false);
-      navigate({
-        search: (prev) => ({ ...prev, join: undefined }),
-        replace: true,
-      });
+      if (user?.role === Role.WARD_STAFF) {
+        navigate({
+          to: "/ward",
+          search: { tab: "chat", detailId: campaign.id },
+        });
+      } else {
+        navigate({
+          to: "/campaigns/$id/group-chat",
+          params: { id: campaign.id },
+        });
+      }
     } catch (error) {
       const err = error as Error;
       toast.error(err?.message || "Đăng ký không thành công. Vui lòng kiểm tra lại mã OTP.");
@@ -361,17 +562,7 @@ export function CampaignDetailPageComponent({
               </div>
             </section>
 
-            <Panel title="Về chiến dịch này" icon={ListIcon} theme={theme}>
-              <p className="text-sm leading-7 text-slate-600">
-                Chiến dịch được phát động nhằm kêu gọi cộng đồng chung tay dọn dẹp bãi biển Xuân
-                Thiều, một trong những bãi biển đẹp của Đà Nẵng. Hoạt động gồm thu gom rác thải
-                nhựa, phân loại rác tại chỗ, trồng cây ven biển và tuyên truyền bảo vệ môi trường.
-                Đây là cơ hội để người dân Đà Nẵng thể hiện tình yêu quê hương và ý thức bảo vệ
-                thiên nhiên.
-              </p>
-            </Panel>
-
-            {campaign.privateDetailsVisible ? (
+            {approvedStatus || campaign.canManage ? (
               <PrivateDetails campaign={campaign} theme={theme} />
             ) : (
               <section className="rounded-2xl border border-dashed border-amber-200 bg-[#FFFBF0] p-6 shadow-sm">
@@ -391,6 +582,7 @@ export function CampaignDetailPageComponent({
             )}
 
             <MapPanel campaign={campaign} theme={theme} />
+            <DiscussionPanel campaign={campaign} theme={theme} />
           </article>
 
           <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
@@ -398,6 +590,25 @@ export function CampaignDetailPageComponent({
               <h2 className="mb-4 text-sm font-black uppercase tracking-wider text-slate-500">
                 Hành động
               </h2>
+              {campaign.canManage && campaign.status === "recruiting" && (
+                <button
+                  onClick={handleFinalizeCampaign}
+                  disabled={finalizeCampaign.isPending}
+                  className="mb-3 h-12 w-full rounded-xl bg-indigo-600 text-sm font-black text-white shadow-md transition hover:bg-indigo-700 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {finalizeCampaign.isPending ? "Đang xử lý..." : "Chốt chiến dịch"}
+                </button>
+              )}
+              {campaign.canManage &&
+                (campaign.status === "recruiting" || campaign.status === "inProgress") && (
+                  <button
+                    onClick={handleEndCampaign}
+                    disabled={endCampaign.isPending}
+                    className="mb-3 h-12 w-full rounded-xl bg-red-600 text-sm font-black text-white shadow-md transition hover:bg-red-700 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {endCampaign.isPending ? "Đang xử lý..." : "Kết thúc chiến dịch"}
+                  </button>
+                )}
               {(campaign.status === "recruiting" ||
                 campaign.status === "completed" ||
                 campaign.status === "ended" ||
@@ -406,33 +617,60 @@ export function CampaignDetailPageComponent({
                   title={campaign.status !== "recruiting" ? "Chiến dịch đã đóng" : undefined}
                   className="w-full"
                 >
-                  <button
-                    onClick={() => {
-                      if (!isAuthenticated) {
-                        toast.error("Vui lòng đăng nhập để tham gia chiến dịch.");
-                        return;
-                      }
-                      setShowJoinModal(true);
-                    }}
-                    disabled={
-                      campaign.status !== "recruiting" ||
-                      joinCampaign.isPending ||
-                      !campaign.canJoin
-                    }
-                    className={`h-12 w-full rounded-xl ${theme.primaryBg} text-sm font-black text-white shadow-md transition ${theme.primaryHover} active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50`}
-                  >
-                    {campaign.currentUserJoinStatus === "PENDING"
-                      ? "Đang chờ duyệt"
-                      : campaign.currentUserJoinStatus === "APPROVED"
-                        ? "Đã tham gia"
-                        : campaign.currentUserJoinStatus === "WAITLIST"
-                          ? "Đang ở danh sách chờ"
-                          : campaign.currentUserJoinStatus === "PENDING_CONFIRM"
-                            ? "Chờ xác nhận"
-                            : campaign.status !== "recruiting"
-                              ? "Chiến dịch đã đóng"
-                              : "Đăng ký tham gia"}
-                  </button>
+                  {hasJoined ? (
+                    user?.role === Role.WARD_STAFF ? (
+                      <Link
+                        to="/ward"
+                        search={{ tab: "chat", detailId: campaign.id }}
+                        className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#7C3AED] text-sm font-black text-white shadow-sm transition hover:brightness-110"
+                      >
+                        Vào nhóm chat
+                      </Link>
+                    ) : (
+                      <Link
+                        to="/campaigns/$id/group-chat"
+                        params={{ id: campaign.id }}
+                        className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#7C3AED] text-sm font-black text-white shadow-sm transition hover:brightness-110"
+                      >
+                        Vào nhóm chat
+                      </Link>
+                    )
+                  ) : (
+                    <div>
+                      {isAuthenticated && user?.campaignBanned ? (
+                        <div className="space-y-3">
+                          <button
+                            onClick={() => setShowAppealModal(true)}
+                            className="h-12 w-full rounded-xl bg-rose-600 text-sm font-black text-white shadow-sm transition hover:bg-rose-700 active:scale-[0.97]"
+                          >
+                            Giải trình để mở khóa
+                          </button>
+                          <p className="text-[11px] font-semibold text-rose-650 text-center leading-normal">
+                            Tài khoản bị cấm đăng ký tham gia chiến dịch do vắng mặt. Vui lòng gửi đơn giải trình để được xem xét mở khóa.
+                          </p>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            if (!isAuthenticated) {
+                              toast.error("Vui lòng đăng nhập để tham gia chiến dịch.");
+                              return;
+                            }
+                            if (user?.campaignBanned) {
+                              setShowAppealModal(true);
+                              return;
+                            }
+
+                            setShowJoinModal(true);
+                          }}
+                          disabled={campaign.status !== "recruiting" || joinCampaign.isPending}
+                          className="h-12 w-full rounded-xl bg-[#7C3AED] text-sm font-black text-white shadow-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Đăng ký & Vào Chat
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -506,7 +744,9 @@ export function CampaignDetailPageComponent({
               campaign={campaign}
               approvedStatus={approvedStatus}
               theme={theme}
+              hasJoined={hasJoined}
             />
+            <RegulationsCard theme={theme} />
             <ShareCard theme={theme} />
           </aside>
         </section>
@@ -586,13 +826,36 @@ export function CampaignDetailPageComponent({
                       {otpSent ? "Gửi lại mã OTP" : "Nhận mã qua Gmail"}
                     </button>
                   </div>
-                  <input
-                    value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value)}
-                    placeholder="Nhập 6 ký tự OTP"
-                    maxLength={6}
-                    className="w-full text-center tracking-widest font-mono font-black h-11 rounded-xl border border-slate-200 px-3 text-sm outline-none transition focus:border-[#7C3AED] focus:ring focus:ring-[#7C3AED]/15"
-                  />
+                  <div className="flex justify-center">
+                    <InputOTP maxLength={6} value={otpCode} onChange={setOtpCode}>
+                      <InputOTPGroup>
+                        <InputOTPSlot
+                          index={0}
+                          className="w-10 h-11 text-base font-bold bg-white"
+                        />
+                        <InputOTPSlot
+                          index={1}
+                          className="w-10 h-11 text-base font-bold bg-white"
+                        />
+                        <InputOTPSlot
+                          index={2}
+                          className="w-10 h-11 text-base font-bold bg-white"
+                        />
+                        <InputOTPSlot
+                          index={3}
+                          className="w-10 h-11 text-base font-bold bg-white"
+                        />
+                        <InputOTPSlot
+                          index={4}
+                          className="w-10 h-11 text-base font-bold bg-white"
+                        />
+                        <InputOTPSlot
+                          index={5}
+                          className="w-10 h-11 text-base font-bold bg-white"
+                        />
+                      </InputOTPGroup>
+                    </InputOTP>
+                  </div>
                 </div>
 
                 <button
@@ -659,6 +922,12 @@ export function CampaignDetailPageComponent({
             </div>
           </div>
         )}
+
+        <CampaignAppealModal
+          isOpen={showAppealModal}
+          onOpenChange={setShowAppealModal}
+          locale={locale}
+        />
       </div>
     </main>
   );
@@ -725,7 +994,13 @@ function MapPanel({ campaign, theme }: { campaign: Campaign; theme: Record<strin
     </Panel>
   );
 }
-function DiscussionPanel({ campaign }: { campaign: Campaign }) {
+function DiscussionPanel({
+  campaign,
+  theme,
+}: {
+  campaign: Campaign;
+  theme: Record<string, string>;
+}) {
   const comments = useCampaignComments(campaign.id);
   const [commentText, setCommentText] = useState("");
   const fallbackComments = [
@@ -757,7 +1032,7 @@ function DiscussionPanel({ campaign }: { campaign: Campaign }) {
   };
 
   return (
-    <Panel title="Bình luận chiến dịch" icon={MessageCircle}>
+    <Panel title="Bình luận chiến dịch" icon={MessageCircle} theme={theme}>
       <div className="mb-4 space-y-3">
         {visibleComments.map((comment) => (
           <div
@@ -793,6 +1068,7 @@ function DiscussionPanel({ campaign }: { campaign: Campaign }) {
           onSubmit={submitComment}
           disabled={comments.addComment.isPending}
           placeholder="Nhập bình luận..."
+          theme={theme}
         />
       )}
     </Panel>
@@ -803,18 +1079,47 @@ function GroupChatNavigationCard({
   campaign,
   approvedStatus,
   theme,
+  hasJoined,
 }: {
   campaign: Campaign;
   approvedStatus: boolean;
-  theme: Record<string, string>;
+  theme: any;
+  hasJoined: boolean;
 }) {
-  const chat = useCampaignChat(campaign.id);
+  const chat = useCampaignChat(campaign.id, { enabled: hasJoined });
+  const signalAttendance = useSignalAttendance(campaign.id);
+  const { user } = useAuth();
   const memberCount = Math.max(1, campaign.participants || 0);
-  const latest = chat.data?.at(-1);
+  const latest = chat.chatMessages?.at(-1);
   const latestPreview = latest
     ? `${latest.senderName}: ${latest.message}`
-    : "Cán Bộ Phường 1: Chiến dịch sẽ bắt đầu lúc 6h sáng 19/6.";
-  const avatars = ["CB", "A", "B"];
+    : `${campaign.createdBy || "Người chủ trì"}: Chiến dịch sẽ bắt đầu lúc 6h sáng 19/6.`;
+  const avatars = [
+    campaign.createdBy ? campaign.createdBy.split(" ").at(-1)?.[0] || "H" : "CB",
+    "A",
+    "B",
+  ];
+
+  // Check if within 24h window
+  const startTime = campaign.startTime ? new Date(campaign.startTime) : null;
+  const now = new Date();
+  const withinConfirmWindow =
+    startTime !== null &&
+    now < startTime &&
+    now >= new Date(startTime.getTime() - 24 * 60 * 60 * 1000);
+
+  const currentStatus = campaign.currentUserJoinStatus as string | undefined;
+
+  const handleSignal = async (signal: "CONFIRMED" | "MAYBE") => {
+    try {
+      await signalAttendance.mutateAsync(signal);
+      toast.success(
+        signal === "CONFIRMED" ? "Đã xác nhận tham gia chiến dịch!" : "Đã chọn 'Có thể tham gia'.",
+      );
+    } catch (err: any) {
+      toast.error(err?.message || "Không thể gửi xác nhận.");
+    }
+  };
 
   return (
     <section className={`rounded-2xl border ${theme.lightBorder} bg-white p-6 shadow-lg`}>
@@ -843,14 +1148,91 @@ function GroupChatNavigationCard({
         {memberCount} thành viên đang trong nhóm
       </p>
       <p className="mt-1 truncate text-sm font-semibold text-slate-500">{latestPreview}</p>
-      <Link
-        to="/campaigns/$id/group-chat"
-        params={{ id: campaign.id }}
-        className={`mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl ${theme.primaryBg} px-4 text-sm font-black text-white shadow-sm transition ${theme.primaryHover} active:scale-[0.97]`}
-      >
-        Vào nhóm chat
-        <ArrowRight size={16} />
-      </Link>
+      {/* Attendance signal banner — shown 24h before startTime for APPROVED/PENDING participants */}
+      {withinConfirmWindow && (currentStatus === "APPROVED" || currentStatus === "PENDING") && (
+        <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 p-4 space-y-3 shadow-sm">
+          <div>
+            <p className="text-xs font-black text-slate-800 uppercase tracking-wider">
+              Xác nhận tham gia trước 24 giờ
+            </p>
+            <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+              Chiến dịch sắp khởi chạy. Vui lòng cập nhật khả năng tham gia của bạn để ban tổ chức
+              chuẩn bị chu đáo.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              id="btn-confirm-attendance"
+              onClick={() => handleSignal("CONFIRMED")}
+              disabled={signalAttendance.isPending}
+              className="flex-1 h-10 rounded-lg bg-[#7C3AED] text-xs font-black text-white shadow-sm transition hover:bg-[#6D28D9] active:scale-[0.97] disabled:opacity-50 cursor-pointer"
+            >
+              Xác nhận tham gia
+            </button>
+            <button
+              id="btn-maybe-attendance"
+              onClick={() => handleSignal("MAYBE")}
+              disabled={signalAttendance.isPending}
+              className="flex-1 h-10 rounded-lg border border-slate-200 bg-white text-xs font-black text-slate-700 transition hover:bg-slate-50 active:scale-[0.97] disabled:opacity-50 cursor-pointer"
+            >
+              Có thể tham gia
+            </button>
+          </div>
+        </div>
+      )}
+      {withinConfirmWindow && currentStatus === "CONFIRMED" && (
+        <div className="mt-4 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3.5 text-xs font-bold text-emerald-800 leading-relaxed shadow-sm">
+          Bạn đã xác nhận tham gia. Vui lòng chờ cán bộ phường phê duyệt chính thức.
+        </div>
+      )}
+      {withinConfirmWindow && currentStatus === "MAYBE" && (
+        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-100 px-4 py-3.5 text-xs font-bold text-slate-700 leading-relaxed shadow-sm">
+          Bạn đã chọn khả năng Có thể tham gia chiến dịch (Không cần duyệt).
+        </div>
+      )}
+      {hasJoined ? (
+        user?.role === Role.WARD_STAFF ? (
+          <Link
+            to="/ward"
+            search={{ tab: "chat", detailId: campaign.id }}
+            className={`mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl ${theme.primaryBg} px-4 text-sm font-black text-white shadow-sm transition ${theme.primaryHover} active:scale-[0.97]`}
+          >
+            Vào nhóm chat
+            <ArrowRight size={16} />
+          </Link>
+        ) : (
+          <Link
+            to="/campaigns/$id/group-chat"
+            params={{ id: campaign.id }}
+            className={`mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl ${theme.primaryBg} px-4 text-sm font-black text-white shadow-sm transition ${theme.primaryHover} active:scale-[0.97]`}
+          >
+            Vào nhóm chat
+            <ArrowRight size={16} />
+          </Link>
+        )
+      ) : (
+        <div className="mt-5 rounded-xl border border-slate-100 bg-slate-50 p-4 text-center">
+          <p className="text-xs font-semibold text-slate-500">
+            Bạn cần đăng ký tham gia chiến dịch để truy cập vào nhóm chat này.
+          </p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function RegulationsCard({ theme }: { theme: Record<string, string> }) {
+  return (
+    <section className={`rounded-2xl border ${theme.lightBorder} bg-white p-6 shadow-lg`}>
+      <h2 className="mb-3 flex items-center gap-2 text-sm font-black uppercase tracking-wider text-slate-900">
+        <AlertCircle size={16} className="text-amber-500" />
+        Thể lệ & Quy định
+      </h2>
+      <ul className="space-y-2 text-xs font-semibold text-slate-600 list-disc pl-4 leading-relaxed">
+        <li>Tích lũy điểm cống hiến và ghi nhận thành tích tình nguyện.</li>
+        <li><strong>Vắng mặt lần 2:</strong> Nhận thông báo cảnh cáo từ Cán bộ Phường.</li>
+        <li><strong>Vắng mặt lần 3:</strong> <span className="text-red-600 font-bold">Cấm tham gia</span> các chiến dịch mới trên toàn hệ thống.</li>
+      </ul>
     </section>
   );
 }
@@ -981,33 +1363,36 @@ function StatusBadge({
   status: Campaign["status"];
   theme?: Record<string, string>;
 }) {
-  const meta: Record<string, { label: string; className: string }> = {
-    pending_review: {
-      label: "Chờ duyệt",
-      className: "border-slate-200 bg-slate-100 text-slate-600",
-    },
-    recruiting: {
-      label: "Đang tuyển",
-      className: "border-emerald-200 bg-emerald-50 text-emerald-700",
-    },
-    inProgress: { label: "Đang thực hiện", className: "border-blue-200 bg-blue-50 text-blue-700" },
-    active: { label: "Đang thực hiện", className: "border-blue-200 bg-blue-50 text-blue-700" },
-    completed: {
-      label: "Hoàn thành",
-      className:
-        theme && theme.primaryBorder && theme.lightBg && theme.primaryText
-          ? `${theme.primaryBorder} ${theme.lightBg} ${theme.primaryText}`
-          : "border-violet-200 bg-violet-50 text-[#7C3AED]",
-    },
-    ended: {
-      label: "Đã kết thúc",
-      className: "border-red-200 bg-red-50 text-red-700",
-    },
-  };
-
-  const currentMeta = meta[status] ?? {
-    label: "Đã kết thúc",
-    className: "border-red-200 bg-red-50 text-red-700",
+  const currentMeta = (
+    {
+      pending_review: {
+        label: "Chờ duyệt",
+        className: "border-slate-200 bg-slate-100 text-slate-600",
+      },
+      recruiting: {
+        label: "Đang tuyển",
+        className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      },
+      inProgress: {
+        label: "Đang thực hiện",
+        className: "border-blue-200 bg-blue-50 text-blue-700",
+      },
+      completed: {
+        label: "Hoàn thành",
+        className: "border-violet-200 bg-violet-50 text-[#7C3AED]",
+      },
+      active: {
+        label: "Đang hoạt động",
+        className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      },
+      ended: { label: "Đã kết thúc", className: "border-red-200 bg-red-50 text-red-700" },
+      CANCELLED: { label: "Đã hủy", className: "border-red-200 bg-red-50 text-red-700" },
+      cancelled: { label: "Đã hủy", className: "border-red-200 bg-red-50 text-red-700" },
+      IN_PROGRESS: { label: "Đang diễn ra", className: "border-blue-200 bg-blue-50 text-blue-700" },
+    } as Record<string, { label: string; className: string }>
+  )[status] ?? {
+    label: status || "Không rõ",
+    className: "border-slate-200 bg-slate-50 text-slate-600",
   };
 
   return (
@@ -1049,12 +1434,14 @@ function formatDisplayTime(value: string) {
   return formatDateTime(value);
 }
 
-function joinLabel(status: NonNullable<Campaign["currentUserJoinStatus"]>) {
+function joinLabel(status: string) {
   if (status === "APPROVED") return "Đã được duyệt";
   if (status === "PENDING") return "Chờ duyệt";
   if (status === "REJECTED") return "Bị từ chối";
   if (status === "WAITLIST") return "Đang trong danh sách chờ";
   if (status === "PENDING_CONFIRM") return "Chờ bạn xác nhận (2h)";
   if (status === "NO_SHOW") return "Vắng mặt không lý do";
+  if (status === "CONFIRMED") return "Đã xác nhận tham gia";
+  if (status === "MAYBE") return "Có thể tham gia";
   return "Đã hủy";
 }

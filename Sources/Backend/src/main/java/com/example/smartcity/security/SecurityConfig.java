@@ -56,6 +56,7 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health").permitAll() // Health check only
                         .requestMatchers("/api/feedbacks/public/**", "/api/feedbacks/statuses").permitAll() // Public Feedback Lookups & Statuses
                         .requestMatchers(HttpMethod.GET, "/api/campaigns", "/api/campaigns/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/news", "/api/news/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/ward-ranking/**").permitAll() // Public Ward Ranking
                         .requestMatchers(HttpMethod.POST, "/api/ward-ranking/recalculate").permitAll() // TEMPORARY
                         .requestMatchers("/ws", "/ws/**", "/ws-native", "/ws-native/**").permitAll()

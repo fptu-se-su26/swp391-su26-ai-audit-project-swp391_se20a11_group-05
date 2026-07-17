@@ -16,6 +16,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.smartcity.common.base.BaseGenericController;
 import com.example.smartcity.common.base.BaseMapper;
@@ -94,6 +95,7 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
 
     @Override
     @GetMapping("/{id}")
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public ResponseEntity<FeedbackResponse> getById(@PathVariable Long id) {
         Feedback feedback = feedbackService.findById(id);
         org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
@@ -249,6 +251,7 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
     }
 
     @GetMapping("/public/{id}")
+    @Transactional(readOnly = true)
     public ResponseEntity<FeedbackResponse> getPublicById(@PathVariable Long id) {
         Feedback feedback = feedbackService.findById(id);
         if (Boolean.FALSE.equals(feedback.getPublicVisible())) {

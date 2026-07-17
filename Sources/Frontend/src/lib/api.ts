@@ -16,15 +16,28 @@ const TOKEN_KEY = "dn_jwt_token";
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(TOKEN_KEY);
+  return localStorage.getItem(TOKEN_KEY) ?? sessionStorage.getItem(TOKEN_KEY);
 }
 
-export function setToken(token: string) {
-  if (typeof window !== "undefined") localStorage.setItem(TOKEN_KEY, token);
+/**
+ * persist = true  → localStorage (giữ đăng nhập lâu dài — "Ghi nhớ đăng nhập")
+ * persist = false → sessionStorage (hết phiên khi đóng trình duyệt)
+ */
+export function setToken(token: string, persist = true) {
+  if (typeof window === "undefined") return;
+  if (persist) {
+    localStorage.setItem(TOKEN_KEY, token);
+    sessionStorage.removeItem(TOKEN_KEY);
+  } else {
+    sessionStorage.setItem(TOKEN_KEY, token);
+    localStorage.removeItem(TOKEN_KEY);
+  }
 }
 
 export function removeToken() {
-  if (typeof window !== "undefined") localStorage.removeItem(TOKEN_KEY);
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
 }
 
 // ─── Error types ──────────────────────────────────────────────
@@ -118,8 +131,13 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
     if (!response.ok) {
       const error = ApiError.fromResponse(response, body);
 
-      // Auto-logout only for authenticated API calls. Public auth endpoints keep form state.
+      // Auto-logout on 401, but bypass if using the dummy demo token
       if (!skipAuth && error.isUnauthorized && onUnauthorized && getToken() !== "demo-token") {
+        onUnauthorized();
+      }
+
+      // Hack: Treat 500 "User not found" as Unauthorized (happens after DB reset)
+      if (!skipAuth && error.status === 500 && error.message?.includes("User not found") && onUnauthorized) {
         onUnauthorized();
       }
 
@@ -135,6 +153,9 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
         if (body.status >= 400) {
           const error = new ApiError(body.status, body.message, body.data);
           if (!skipAuth && error.isUnauthorized && onUnauthorized && getToken() !== "demo-token")
+            onUnauthorized();
+          
+          if (!skipAuth && body.status === 500 && error.message?.includes("User not found") && onUnauthorized)
             onUnauthorized();
           throw error;
         }
@@ -1278,6 +1299,59 @@ export interface CampaignChatMessageResponse {
   pastCampaignCount?: number;
 }
 
+
+// ─── News API ────────────────────────────────────────────────
+
+export interface NewsResponse {
+  id: number;
+  title: string;
+  summary: string;
+  content: string;
+  category: string;
+  imageUrl: string;
+  views: number;
+  authorId: number;
+  authorName: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NewsRequest {
+  title: string;
+  summary: string;
+  content: string;
+  category: string;
+  imageUrl: string;
+}
+
+export const newsApi = {
+  getAll: (page = 0, size = 10, category?: string, keyword?: string) => {
+    const params = new URLSearchParams({ page: String(page), size: String(size) });
+    if (category && category !== 'Tất cả') params.set('category', category);
+    if (keyword) params.set('keyword', keyword);
+    return request<PageResponse<NewsResponse>>(`/api/news?${params.toString()}`);
+  },
+
+  getById: (id: number | string) => request<NewsResponse>(`/api/news/${id}`),
+
+  create: (data: NewsRequest) =>
+    request<NewsResponse>('/api/news', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  update: (id: number | string, data: NewsRequest) =>
+    request<NewsResponse>(`/api/news/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  delete: (id: number | string) =>
+    request<void>(`/api/news/${id}`, {
+      method: 'DELETE',
+    }),
+};
+
 // ─── Ward Ranking Types ──────────────────────────────────────
 
 export interface WardRankingEntry {
@@ -1317,7 +1391,7 @@ export interface WardRankingDetail {
   avgResolutionHours: number;
   speedScore: number;
   lowIncidenceScore: number;
-  satisfactionScore: number;
+  satisfactionScore: number | null;
   trendScore: number;
   totalFeedbacks: number;
   resolvedCount: number;
@@ -1384,5 +1458,6 @@ export const campaignAppealApi = {
     request<CampaignAppealResponse>(`/api/campaigns/appeals/${id}/reject`, {
       method: "POST",
       body: JSON.stringify({ notes: reviewNotes, reviewNotes }),
+
     }),
 };

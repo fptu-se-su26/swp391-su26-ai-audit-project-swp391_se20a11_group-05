@@ -8,6 +8,7 @@ import {
 } from "@/lib/hooks";
 import { OFFICIAL_CATEGORIES } from "@/lib/categoryConfig";
 import { reports as mockReports, kpis } from "@/lib/mock-data";
+import { useNewsList } from "@/hooks/useNews";
 import { StatusBadge } from "@/components/site/StatusBadge";
 import { mapStatus } from "@/lib/status";
 import { useQuery } from "@tanstack/react-query";
@@ -155,7 +156,7 @@ function HomePage() {
     data: feedbacksPage,
     isLoading: listLoading,
     refetch: refetchList,
-  } = usePublicFeedbacks(0, 100);
+  } = usePublicFeedbacks(0, 50);
   const {
     data: statsData,
     isLoading: statsLoading,
@@ -169,6 +170,8 @@ function HomePage() {
     refetch: refetchRecent,
   } = useRecentPublicFeedback(5);
 
+  const { data: newsData, isLoading: isNewsLoading } = useNewsList(0, 6);
+  const realNews = newsData?.content || [];
   const allCampaigns = useCampaignList();
   const activeCampaigns = allCampaigns
     .filter((c) => c.status === "recruiting" || c.status === "active" || c.status === "inProgress")
@@ -1390,21 +1393,25 @@ function HomePage() {
                 </Link>
               </div>
 
-              {staticNews.length === 0 ? (
+              {isNewsLoading ? (
+                <div className="py-10 text-center text-[#667085] font-sans flex items-center justify-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin" /> Đang tải dữ liệu...
+                </div>
+              ) : realNews.length === 0 ? (
                 <div className="py-10 text-center text-[#667085] font-sans">
                   {t("home.news.empty")}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {staticNews.map((n) => (
-                    <a
+                  {realNews.map((n) => (
+                    <Link
                       key={n.id}
-                      href={n.link}
+                      to={`/tin-tuc/${n.id}` as any}
                       className="flex flex-col bg-white rounded-xl border border-[#E4EAF2] overflow-hidden hover:shadow-md transition duration-200 group h-full"
                     >
                       <div className="aspect-[16/10] overflow-hidden bg-slate-100 relative">
                         <img
-                          src={n.image}
+                          src={n.imageUrl || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&q=80"}
                           alt={n.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition duration-200"
                         />
@@ -1414,17 +1421,17 @@ function HomePage() {
                           <div className="flex items-center gap-2 mb-2">
                             <span
                               className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                                n.badge === "Thông báo"
+                                n.category === "Thông báo"
                                   ? "bg-[#0B4FC4] text-white"
-                                  : n.badge === "Hướng dẫn"
+                                  : n.category === "Hướng dẫn"
                                     ? "bg-[#FFF8E1] text-[#F97316]"
                                     : "bg-[#F5F9FF] text-[#0B4FC4]"
                               }`}
                             >
-                              {n.badge}
+                              {n.category}
                             </span>
                             <span className="text-[11px] text-[#667085] font-semibold font-sans">
-                              {n.date}
+                              {n.createdAt ? new Date(n.createdAt).toLocaleDateString("vi-VN") : ""}
                             </span>
                           </div>
                           <h3 className="text-sm font-bold text-[#123E8A] line-clamp-2 mb-1 group-hover:text-[#0B4FC4] transition leading-snug font-sans">
@@ -1435,7 +1442,7 @@ function HomePage() {
                           </p>
                         </div>
                       </div>
-                    </a>
+                    </Link>
                   ))}
                 </div>
               )}

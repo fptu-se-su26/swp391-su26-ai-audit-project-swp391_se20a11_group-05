@@ -891,68 +891,94 @@ export function UsersPage() {
                 </div>
               ) : (
                 /* Add New User Form */
-                <form className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                        Họ và tên *
+                <form className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-5 bg-slate-50/50 rounded-2xl border border-slate-100/60">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                        Họ và tên <span className="text-red-500">*</span>
                       </label>
-                      <input
-                        type="text"
-                        className="mt-2 w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:border-[#0B4FC4]"
-                        placeholder="Nhập họ và tên"
-                      />
+                      <div className="relative">
+                        <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <input
+                          type="text"
+                          className="w-full pl-11 pr-4 py-3 border border-slate-200 bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:border-[#0B4FC4] transition-all hover:border-slate-300 shadow-sm font-medium text-slate-800"
+                          placeholder="Nguyễn Văn A"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                        Tên đăng nhập *
+                    
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                        Tên đăng nhập <span className="text-red-500">*</span>
                       </label>
-                      <input
-                        type="text"
-                        className="mt-2 w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:border-[#0B4FC4]"
-                        placeholder="Nhập tên đăng nhập"
-                      />
+                      <div className="relative">
+                        <UserCheck className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <input
+                          type="text"
+                          className="w-full pl-11 pr-4 py-3 border border-slate-200 bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:border-[#0B4FC4] transition-all hover:border-slate-300 shadow-sm font-medium text-slate-800"
+                          placeholder="nguyenvana"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                        Email *
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                        Email <span className="text-red-500">*</span>
                       </label>
-                      <input
-                        type="email"
-                        className="mt-2 w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:border-[#0B4FC4]"
-                        placeholder="Nhập địa chỉ email"
-                      />
+                      <div className="relative">
+                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <input
+                          type="email"
+                          className="w-full pl-11 pr-4 py-3 border border-slate-200 bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:border-[#0B4FC4] transition-all hover:border-slate-300 shadow-sm font-medium text-slate-800"
+                          placeholder="email@example.com"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
                         Số điện thoại
                       </label>
-                      <input
-                        type="tel"
-                        className="mt-2 w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:border-[#0B4FC4]"
-                        placeholder="Nhập số điện thoại"
-                      />
+                      <div className="relative">
+                        <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <input
+                          type="tel"
+                          className="w-full pl-11 pr-4 py-3 border border-slate-200 bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:border-[#0B4FC4] transition-all hover:border-slate-300 shadow-sm font-medium text-slate-800"
+                          placeholder="0912 345 678"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                        Vai trò *
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                        Vai trò <span className="text-red-500">*</span>
                       </label>
-                      <select className="mt-2 w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 cursor-pointer">
-                        <option value="CITIZEN">👥 Người dân</option>
-                        <option value="WARD_STAFF">🏢 Cán bộ phường</option>
-                        <option value="POLICE">👮 Công an</option>
-                        <option value="SUPER_ADMIN">⭐ Lãnh đạo TP</option>
-                      </select>
+                      <div className="relative">
+                        <Shield className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <select className="w-full pl-11 pr-10 py-3 border border-slate-200 bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:border-[#0B4FC4] transition-all hover:border-slate-300 shadow-sm appearance-none font-bold text-slate-700 cursor-pointer">
+                          <option value="CITIZEN">Người dân</option>
+                          <option value="WARD_STAFF">Cán bộ phường</option>
+                          <option value="POLICE">Công an</option>
+                          <option value="SUPER_ADMIN">Lãnh đạo TP</option>
+                        </select>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                        Mật khẩu tạm thời *
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                        Mật khẩu tạm thời <span className="text-red-500">*</span>
                       </label>
-                      <input
-                        type="password"
-                        className="mt-2 w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:border-[#0B4FC4]"
-                        placeholder="Nhập mật khẩu tạm thời"
-                      />
+                      <div className="relative">
+                        <Key className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <input
+                          type="password"
+                          className="w-full pl-11 pr-4 py-3 border border-slate-200 bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:border-[#0B4FC4] transition-all hover:border-slate-300 shadow-sm font-medium text-slate-800"
+                          placeholder="Nhập mật khẩu..."
+                        />
+                      </div>
                     </div>
                   </div>
                 </form>

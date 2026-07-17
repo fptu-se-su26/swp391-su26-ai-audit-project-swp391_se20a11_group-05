@@ -28,14 +28,20 @@ public class WardRankingService {
     private final WardRankingSnapshotRepository snapshotRepository;
     private final WardAchievementRepository achievementRepository;
 
-    // Scoring weights
-    private static final double W_RESOLUTION_RATE = 0.35;
-    private static final double W_SPEED = 0.30;
-    private static final double W_LOW_PENDING = 0.20;
-    private static final double W_CONSISTENCY = 0.15;
+    // Trọng số điểm tổng hợp — PHẢI khớp với nhãn hiển thị trên trang xếp hạng
+    // (frontend leaderboard.$wardId.tsx). Tổng = 1.00.
+    private static final double W_SPEED = 0.35;         // Tốc độ xử lý
+    private static final double W_RESOLUTION = 0.30;    // Tỷ lệ giải quyết
+    private static final double W_SATISFACTION = 0.20;  // Hài lòng của người dân
+    private static final double W_LOW_INCIDENCE = 0.10; // Mức phát sinh (môi trường)
+    private static final double W_TREND = 0.05;         // Xu hướng cải thiện
+    // Tổng trọng số 4 thành phần nền (không tính xu hướng) = 0.95
+    private static final double W_BASE_TOTAL = W_SPEED + W_RESOLUTION + W_SATISFACTION + W_LOW_INCIDENCE;
 
-    // Speed mapping: <24h = 100, >336h (14 days) = 0
-    private static final double MAX_HOURS = 336.0;
+    // Placeholder dân số: chưa có dữ liệu điều tra dân số theo phường nên dùng
+    // hằng số chung. Vì mọi phường cùng giá trị, điểm "mức phát sinh" thực chất
+    // được chuẩn hóa theo số lượng phản ánh (min-max) chứ không theo mật độ dân.
+    private static final int DEFAULT_POPULATION = 15000;
 
     /**
      * Calculate and persist monthly ranking for a given period.
@@ -72,8 +78,8 @@ public class WardRankingService {
         for (Object[] row : rawStats) {
             int total = ((Number) row[2]).intValue();
             if (total < 5) continue; // Exclude from normalization scale to avoid skew
-            int pop = row[7] != null ? ((Number) row[7]).intValue() : 20000;
-            if (pop == 0) pop = 20000;
+            int pop = row[7] != null ? ((Number) row[7]).intValue() : DEFAULT_POPULATION;
+            if (pop == 0) pop = DEFAULT_POPULATION;
             double rpc = (double) total / pop * 10000;
             if (rpc > maxRpc) maxRpc = rpc;
             if (rpc < minRpc) minRpc = rpc;
@@ -89,8 +95,8 @@ public class WardRankingService {
             Double avgHours = row[4] != null ? ((Number) row[4]).doubleValue() : null;
             int onTimeResolved = row[5] != null ? ((Number) row[5]).intValue() : 0;
             Double avgRating = row[6] != null ? ((Number) row[6]).doubleValue() : null;
-            int pop = row[7] != null ? ((Number) row[7]).intValue() : 20000;
-            if (pop == 0) pop = 20000;
+            int pop = row[7] != null ? ((Number) row[7]).intValue() : DEFAULT_POPULATION;
+            if (pop == 0) pop = DEFAULT_POPULATION;
 
             WardRankingSnapshot snapshot = new WardRankingSnapshot();
             snapshot.setWardId(wardId);
@@ -107,34 +113,54 @@ public class WardRankingService {
                 continue; // Skip calculating scores
             }
 
-            // 1. SpeedScore (0-100)
+            // 1. Điểm tốc độ xử lý (0-100): kết hợp tỷ lệ đúng hạn (≤48h) và thời gian TB
             double onTimeRate = resolved > 0 ? (double) onTimeResolved / resolved : 0;
             double hoursNorm = avgHours == null ? 1.0 : Math.max(0, 1.0 - (avgHours / 48.0));
             double speedScore = (onTimeRate * 100.0 * 0.70) + (hoursNorm * 100.0 * 0.30);
 
-            // 2. LowIncidenceScore (0-100)
+            // 2. Điểm tỷ lệ giải quyết (0-100): % phản ánh đã RESOLVED
+            double resolutionScore = total > 0 ? (double) resolved / total * 100.0 : 0.0;
+
+            // 3. Điểm mức phát sinh (0-100): ít phản ánh trên quy mô → điểm cao
             double rpc = (double) total / pop * 10000;
             double rpcNorm = (rpc - minRpc) / (maxRpc - minRpc); // 0 to 1
             double lowIncidenceScore = 100.0 - (rpcNorm * 100.0);
 
-            // 3. SatisfactionScore (0-100)
-            double satisfactionScore = avgRating != null ? (avgRating / 5.0) * 100.0 : 100.0; // Assume 100 if no ratings yet? Or maybe 50? The prompt says (avgRating/5)*100. Let's use 100 if no rating to not penalize them for no feedback ratings.
+            // 4. Điểm hài lòng (0-100). Nếu CHƯA có đánh giá nào → không tính điểm này
+            // (loại khỏi công thức và phân bổ lại trọng số) thay vì tặng điểm tối đa.
+            boolean hasRating = avgRating != null;
+            double satisfactionScore = hasRating ? (avgRating / 5.0) * 100.0 : 0.0;
 
-            // Base score without trend (weight total = 0.85)
-            double baseScore = speedScore * 0.35 + lowIncidenceScore * 0.30 + satisfactionScore * 0.20;
-            double baseScoreScaled = baseScore / 0.85; // Scale to 100 for comparison
+            // Trọng số 4 thành phần nền; nếu thiếu điểm hài lòng thì chia đều phần
+            // trọng số của nó cho 3 thành phần còn lại theo tỷ lệ.
+            double wSpeed = W_SPEED, wRes = W_RESOLUTION, wLow = W_LOW_INCIDENCE, wSat = W_SATISFACTION;
+            if (!hasRating) {
+                double others = W_SPEED + W_RESOLUTION + W_LOW_INCIDENCE;
+                wSpeed += W_SATISFACTION * (W_SPEED / others);
+                wRes += W_SATISFACTION * (W_RESOLUTION / others);
+                wLow += W_SATISFACTION * (W_LOW_INCIDENCE / others);
+                wSat = 0.0;
+            }
 
-            // 4. TrendScore (0-100)
+            // Điểm nền (tổng trọng số = W_BASE_TOTAL = 0.95)
+            double baseScore = speedScore * wSpeed
+                    + resolutionScore * wRes
+                    + satisfactionScore * wSat
+                    + lowIncidenceScore * wLow;
+            double baseScoreScaled = baseScore / W_BASE_TOTAL; // quy về thang 0-100 để so sánh xu hướng
+
+            // 5. Điểm xu hướng cải thiện (0-100): so với điểm tổng tháng trước
             double prevScore = prevSnapshots.containsKey(wardId) ? prevSnapshots.get(wardId).getOverallScore().doubleValue() : 50.0;
             double trendScore = 50.0 + (baseScoreScaled - prevScore) * 5.0;
             trendScore = Math.max(0.0, Math.min(100.0, trendScore));
 
-            // Final Overall Score
-            double overallScore = baseScore + trendScore * 0.15;
+            // Điểm tổng hợp cuối cùng (0-100)
+            double overallScore = baseScore + trendScore * W_TREND;
 
             snapshot.setSpeedScore(toBigDecimal(speedScore));
             snapshot.setLowIncidenceScore(toBigDecimal(lowIncidenceScore));
-            snapshot.setSatisfactionScore(toBigDecimal(satisfactionScore));
+            // Lưu null khi chưa có đánh giá để giao diện hiển thị "Chưa có đánh giá"
+            snapshot.setSatisfactionScore(hasRating ? toBigDecimal(satisfactionScore) : null);
             snapshot.setTrendScore(toBigDecimal(trendScore));
             snapshot.setOverallScore(toBigDecimal(overallScore));
             snapshot.setStatus("RANKED");
@@ -255,7 +281,7 @@ public class WardRankingService {
                 current != null && current.getAvgResolutionHours() != null ? current.getAvgResolutionHours() : BigDecimal.ZERO,
                 current != null && current.getSpeedScore() != null ? current.getSpeedScore() : BigDecimal.ZERO,
                 current != null && current.getLowIncidenceScore() != null ? current.getLowIncidenceScore() : BigDecimal.ZERO,
-                current != null && current.getSatisfactionScore() != null ? current.getSatisfactionScore() : BigDecimal.ZERO,
+                current != null ? current.getSatisfactionScore() : null,
                 current != null && current.getTrendScore() != null ? current.getTrendScore() : BigDecimal.ZERO,
                 current != null ? current.getTotalFeedbacks() : 0,
                 current != null ? current.getResolvedCount() : 0,
@@ -265,13 +291,6 @@ public class WardRankingService {
     }
 
     // ─── Private helpers ────────────────────────────────────────
-
-    private double computeSpeedScore(Double avgHours) {
-        if (avgHours == null || avgHours <= 0) return 50.0; // No data → neutral score
-        if (avgHours <= 24.0) return 100.0;
-        if (avgHours >= MAX_HOURS) return 0.0;
-        return 100.0 - (avgHours / MAX_HOURS) * 100.0;
-    }
 
     private BigDecimal toBigDecimal(double value) {
         return BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP);
@@ -384,7 +403,7 @@ public class WardRankingService {
             document.add(new com.lowagie.text.Paragraph("Chi tiet diem:", titleFont));
             document.add(new com.lowagie.text.Paragraph("- Toc do xu ly (Speed Score): " + detail.speedScore(), normalFont));
             document.add(new com.lowagie.text.Paragraph("- Muc do phat sinh (Low Incidence): " + detail.lowIncidenceScore(), normalFont));
-            document.add(new com.lowagie.text.Paragraph("- Muc do hai long (Satisfaction): " + detail.satisfactionScore(), normalFont));
+            document.add(new com.lowagie.text.Paragraph("- Muc do hai long (Satisfaction): " + (detail.satisfactionScore() != null ? detail.satisfactionScore() : "Chua co danh gia"), normalFont));
             document.add(new com.lowagie.text.Paragraph("- Diem xu huong (Trend Score): " + detail.trendScore(), normalFont));
             document.add(new com.lowagie.text.Paragraph(" "));
             

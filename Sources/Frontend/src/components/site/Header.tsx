@@ -309,10 +309,6 @@ export function Header() {
     { to: "/feedback-search", label: locale === "vi" ? "Tra cứu" : "Search" },
     { to: "/campaigns", label: locale === "vi" ? "Chiến dịch" : "Campaigns" },
     { to: "/leaderboard", label: locale === "vi" ? "Xếp hạng" : "Leaderboard" },
-    { to: "/", hash: "huong-dan", label: locale === "vi" ? "Hướng dẫn" : "Guides" },
-    ...(!isWardStaff
-      ? [{ to: "/", hash: "lien-he", label: locale === "vi" ? "Liên hệ" : "Contact" }]
-      : []),
   ];
   const isAuthority =
     user && ([Role.WARD_STAFF, Role.POLICE, Role.SUPER_ADMIN] as Role[]).includes(user.role);

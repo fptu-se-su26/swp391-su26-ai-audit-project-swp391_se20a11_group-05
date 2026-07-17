@@ -245,7 +245,7 @@ export function OverviewPage() {
       color: "border-orange-500",
       icon: Clock,
       iconBg: "bg-orange-50 text-orange-500",
-      textColor: "text-orange-600",
+      textColor: "text-[#1D2939]",
       trend: totalTrend,
       loading: feedbacksLoading,
     },
@@ -255,7 +255,7 @@ export function OverviewPage() {
       color: "border-blue-500",
       icon: RefreshCw,
       iconBg: "bg-blue-50 text-blue-500",
-      textColor: "text-blue-600",
+      textColor: "text-[#1D2939]",
       trend: resolvedTrend,
       loading: feedbacksLoading,
     },
@@ -265,7 +265,7 @@ export function OverviewPage() {
       color: "border-red-500",
       icon: AlertCircle,
       iconBg: "bg-red-50 text-red-500",
-      textColor: "text-red-600",
+      textColor: "text-[#1D2939]",
       trend: resolvedTrend,
       loading: feedbacksLoading,
     },
@@ -280,18 +280,20 @@ export function OverviewPage() {
           return (
             <div
               key={i}
-              className={`bg-white rounded-2xl p-5 border-l-4 ${kpi.color} shadow-sm flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all`}
+              className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md hover:-translate-y-0.5 transition-all"
             >
-              <div
-                className={`w-12 h-12 rounded-full ${kpi.iconBg} flex items-center justify-center shrink-0`}
-              >
-                <Icon size={22} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-sm font-sans font-medium text-slate-600 uppercase tracking-wide">
                   {kpi.label}
                 </span>
-                <h3 className={`text-2xl font-extrabold mt-0.5 font-sans ${kpi.textColor}`}>
+                <div
+                  className={`w-10 h-10 rounded-lg ${kpi.iconBg} flex items-center justify-center shrink-0`}
+                >
+                  <Icon size={20} />
+                </div>
+              </div>
+              <div>
+                <h3 className={`text-4xl font-bold font-sans ${kpi.textColor}`}>
                   {kpi.loading ? (
                     <Skeleton className="h-8 w-20" />
                   ) : (
@@ -315,7 +317,7 @@ export function OverviewPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-7 bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col min-h-[440px]">
           <div className="p-4 border-b border-slate-100 bg-slate-50/50">
-            <h3 className="text-lg font-bold text-[#0B4FC4]">Bản đồ điểm nóng theo khu vực</h3>
+            <h3 className="text-lg font-bold font-heading text-[#0B4FC4]">Bản đồ điểm nóng theo khu vực</h3>
           </div>
           <div className="flex-1 relative min-h-[300px]">
             <Suspense
@@ -364,7 +366,7 @@ export function OverviewPage() {
         </div>
 
         <div className="lg:col-span-5 bg-white rounded-2xl shadow-sm p-5 flex flex-col">
-          <h3 className="text-lg font-bold text-[#0B4FC4] border-b border-slate-100 pb-3 mb-4">
+          <h3 className="text-xl font-bold font-heading text-[#0B4FC4] border-b border-slate-100 pb-3 mb-4">
             Khu vực cần ưu tiên
           </h3>
           {feedbacksLoading ? (
@@ -435,7 +437,7 @@ export function OverviewPage() {
       {/* Category + Priority */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-5 bg-white rounded-2xl shadow-sm p-5">
-          <h3 className="text-lg font-bold text-[#0B4FC4] border-b border-slate-100 pb-3 mb-4">
+          <h3 className="text-xl font-bold font-heading text-[#0B4FC4] border-b border-slate-100 pb-3 mb-4">
             Phản ánh chưa xử lý theo lĩnh vực
           </h3>
           <div className="space-y-3">
@@ -472,7 +474,7 @@ export function OverviewPage() {
         </div>
 
         <div className="lg:col-span-7 bg-white rounded-2xl shadow-sm p-5">
-          <h3 className="text-lg font-bold text-[#0B4FC4] border-b border-slate-100 pb-3 mb-4">
+          <h3 className="text-xl font-bold font-heading text-[#0B4FC4] border-b border-slate-100 pb-3 mb-4">
             Phản ánh ưu tiên cao
           </h3>
           {feedbacksLoading ? (

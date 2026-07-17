@@ -52,6 +52,7 @@ import { getAdministrativeUnitLabel, getAdministrativeUnitName } from "@/lib/adm
 import { WardFeedbackManagementPage } from "./WardFeedbackManagementPage";
 import { WardCampaignPage } from "./WardCampaignPage";
 import { WardProfileConfigPage } from "./WardProfileConfigPage";
+import { NewsManagement } from "../news/NewsManagement";
 import { WardStatisticsPage } from "./WardStatisticsPage";
 import WardBlacklistPage from "./WardBlacklistPage";
 import { WardChatDashboardPage } from "./WardChatDashboardPage";
@@ -67,6 +68,7 @@ type WardSection =
   | "overview"
   | "feedback"
   | "campaign"
+  | "news"
   | "statistics"
   | "schedule"
   | "config"
@@ -136,6 +138,7 @@ export function WardDashboard() {
       "overview",
       "feedback",
       "campaign",
+      "news",
       "statistics",
       "schedule",
       "config",
@@ -596,6 +599,7 @@ export function WardDashboard() {
     { name: "Tổng quan", section: "overview" as const, icon: Sliders },
     { name: "Phản ánh", section: "feedback" as const, icon: FileText },
     { name: "Chiến dịch", section: "campaign" as const, icon: Activity },
+    { name: "Tin tức", section: "news" as const, icon: FileText },
     { name: "Tin nhắn", section: "chat" as const, icon: MessageSquare },
     { name: "Thống kê", section: "statistics" as const, icon: BarChart3 },
     { name: "Danh sách chặn", section: "blacklist" as const, icon: ShieldAlert },
@@ -1856,6 +1860,8 @@ export function WardDashboard() {
             </>
           ) : activeSection === "campaign" ? (
             <WardCampaignPage hideHeader={true} />
+          ) : activeSection === "news" ? (
+            <NewsManagement />
           ) : activeSection === "chat" ? (
             <WardChatDashboardPage />
           ) : activeSection === "statistics" ? (

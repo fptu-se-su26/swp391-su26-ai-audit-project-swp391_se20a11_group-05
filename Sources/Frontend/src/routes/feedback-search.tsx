@@ -7,13 +7,9 @@ import {
   usePublicFeedbacks, 
   usePublicFeedbackStats, 
   useFeedbackStatuses, 
-  useFeedbacks,
-  useNotifications,
-  useNotificationUnreadCount,
-  useMarkNotificationReadMutation,
-  useMarkAllNotificationsReadMutation
+  useFeedbacks
 } from "@/hooks";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { EmptyState, ErrorState } from "@/components/site/EmptyState";
 import {
   Search,
@@ -35,30 +31,21 @@ import {
   Loader2,
   X,
   User,
-  Mail,
-  Phone,
-  ArrowRight,
   BookOpen,
   FileCheck,
   HelpCircle,
   Smartphone,
-  Bell,
-  LogOut,
-  Sliders,
-  Globe,
   Building,
-  Check,
   Eye,
 } from "lucide-react";
 import { mapStatus } from "@/lib/status";
 import { toast } from "sonner";
-import { Role, getLoginPathForRole, getDashboardPathForRole } from "@/lib/roles";
-import { authApi, feedbackApi, type FeedbackStatus } from "@/lib/api";
+import { Role } from "@/lib/roles";
+import { feedbackApi, type FeedbackStatus } from "@/lib/api";
 import { OFFICIAL_CATEGORIES } from "@/lib/categoryConfig";
 import { WardFeedbackManagementPage } from "@/features/ward/WardFeedbackManagementPage";
 import toanhatraibap from "@/assets/toanhatraibap.png";
 import trongdong from "@/assets/trongdong.png";
-import logoImg from "@/assets/logo.png";
 
 const CivicMap = clientOnly(() =>
   import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
@@ -141,8 +128,7 @@ function PublicFeedbackLookup() {
   const { locale, t, setLocale } = useI18n();
   const navigate = useNavigate({ from: "/feedback-search" });
   const { category = "", q = "", status = "", range = "", wardId, categories, tab } = Route.useSearch();
-  const { isAuthenticated, user: currentUser, logout } = useAuth();
-  const queryClient = useQueryClient();
+  const { isAuthenticated, user: currentUser } = useAuth();
 
   const [activeTab, setActiveTab] = useState<"public" | "my">(() => {
     return tab === "my" ? "my" : "public";
@@ -202,23 +188,7 @@ function PublicFeedbackLookup() {
   const [dateRangeOpen, setDateRangeOpen] = useState(false);
   const [sortBy, setSortBy] = useState("newest");
 
-  // Dropdown states for custom header
-  const [langOpen, setLangOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
-  const [userOpen, setUserOpen] = useState(false);
 
-  // Dropdown refs
-  const langRef = useRef<HTMLDivElement>(null);
-  const notifRef = useRef<HTMLDivElement>(null);
-  const userRef = useRef<HTMLDivElement>(null);
-
-  // Fetch notifications for the logged-in citizen
-  const { data: notifications = [], isLoading: notifLoading } = useNotifications(!!currentUser);
-  const { data: unreadCountData } = useNotificationUnreadCount(!!currentUser);
-  const unreadCount = unreadCountData ?? notifications.filter((n) => !n.isRead).length;
-  
-  const markRead = useMarkNotificationReadMutation();
-  const markAllRead = useMarkAllNotificationsReadMutation();
 
   // Committed search filters
   const [filters, setFilters] = useState(() => {
@@ -257,20 +227,11 @@ function PublicFeedbackLookup() {
     );
   }, [filters]);
 
-  // Close dropdowns on outside click
+  // Close category dropdown on outside click
   useEffect(() => {
     const handleOutside = (e: MouseEvent) => {
       if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(e.target as Node)) {
         setCategoryDropdownOpen(false);
-      }
-      if (langRef.current && !langRef.current.contains(e.target as Node)) {
-        setLangOpen(false);
-      }
-      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
-        setNotifOpen(false);
-      }
-      if (userRef.current && !userRef.current.contains(e.target as Node)) {
-        setUserOpen(false);
       }
     };
     document.addEventListener("mousedown", handleOutside);
@@ -661,51 +622,7 @@ function PublicFeedbackLookup() {
     });
   };
 
-  const handleLogout = async () => {
-    const loginPath = getLoginPathForRole(currentUser?.role);
-    try {
-      await authApi.logout().catch(() => {});
-    } catch (err) {
-      // noop
-    }
-    logout();
-    void navigate({ to: loginPath });
-    setTimeout(() => {
-      queryClient.clear();
-    }, 0);
-  };
 
-  const handleMarkAllRead = async () => {
-    try {
-      await markAllRead.mutateAsync();
-      toast.success(
-        locale === "vi" ? "Đã đánh dấu đọc tất cả thông báo" : "All notifications marked as read",
-      );
-    } catch (err) {
-      toast.error(locale === "vi" ? "Thao tác thất bại" : "Action failed");
-    }
-  };
-
-  const handleNotifClick = async (item: any) => {
-    const feedbackId = item.feedbackId ?? item.referenceId;
-    setNotifOpen(false);
-    try {
-      if (!item.isRead) {
-        await markRead.mutateAsync(item.id);
-      }
-      if (feedbackId) {
-        if (item.type?.startsWith("CAMPAIGN")) {
-          await navigate({ to: "/campaigns/$id", params: { id: String(feedbackId) } });
-        } else {
-          await navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
-        }
-      } else {
-        await navigate({ to: "/notifications" });
-      }
-    } catch (err) {
-      // noop
-    }
-  };
 
   const getStatusInfo = (status: string) => {
     switch (status) {
@@ -762,261 +679,7 @@ function PublicFeedbackLookup() {
       <div className="absolute top-[-10%] left-[-15%] w-[60%] aspect-square rounded-full bg-gradient-to-tr from-[#1E88E5]/5 to-transparent blur-[140px] pointer-events-none" />
       <div className="absolute bottom-[20%] right-[-15%] w-[50%] aspect-square rounded-full bg-gradient-to-br from-[#0B4DBB]/5 to-transparent blur-[140px] pointer-events-none" />
 
-      {/* HEADER SECTION */}
-      {/* 1. Top Government Bar */}
-      <div className="relative z-50 w-full bg-[#063A94] text-white border-b border-blue-900/40">
-        <div className="max-w-[1440px] mx-auto px-6 md:px-12 h-10 flex items-center justify-between text-xs font-semibold">
-          <div className="flex items-center gap-3">
-            <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center p-0.5 shadow-sm">
-              <img src={logoImg} alt="Crest" className="h-full w-full object-contain" />
-            </div>
-            <span className="tracking-wider uppercase font-bold text-slate-100 sm:block hidden">
-              {locale === "vi" ? "Ủy ban Nhân dân Thành phố Đà Nẵng" : "Da Nang City People's Committee"}
-            </span>
-            <span className="tracking-wider uppercase font-bold text-slate-100 sm:hidden">
-              {locale === "vi" ? "UBND TP Đà Nẵng" : "Da Nang City"}
-            </span>
-          </div>
 
-          <div className="flex items-center gap-6 text-slate-200">
-            <a href="tel:1022" className="hover:text-white transition flex items-center gap-1.5">
-              <Phone size={12} className="text-blue-300" />
-              <span>1022</span>
-            </a>
-            <a href="mailto:gopy@danang.gov.vn" className="hover:text-white transition md:flex hidden items-center gap-1.5">
-              <Mail size={12} className="text-blue-300" />
-              <span>gopy@danang.gov.vn</span>
-            </a>
-            <span className="h-3 w-px bg-blue-800 md:block hidden" />
-            <div className="flex items-center gap-2">
-              <Globe size={12} className="text-blue-300" />
-              <button 
-                onClick={() => setLocale("vi")}
-                className={`hover:text-white transition uppercase text-[10px] ${locale === "vi" ? "text-white font-extrabold" : "text-slate-400"}`}
-              >
-                VI
-              </button>
-              <span className="text-blue-800 text-[10px]">|</span>
-              <button 
-                onClick={() => setLocale("en")}
-                className={`hover:text-white transition uppercase text-[10px] ${locale === "en" ? "text-white font-extrabold" : "text-slate-400"}`}
-              >
-                EN
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Main Navigation Bar */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/60 shadow-[0_1px_3px_rgba(11,77,187,0.02)]">
-        <div className="max-w-[1440px] mx-auto px-6 md:px-12 h-[76px] flex items-center justify-between">
-          {/* Logo Brand */}
-          <Link to="/" className="flex items-center gap-3 shrink-0 group">
-            <img src={logoImg} alt="Đà Nẵng Kết Nối" className="h-[44px] w-auto object-contain transition-transform group-hover:scale-105" />
-            <div className="flex flex-col justify-center">
-              <span className="text-base font-black tracking-tight text-[#0B4DBB] uppercase font-sans leading-none">
-                ĐÀ NẴNG KẾT NỐI
-              </span>
-              <span className="text-[9px] text-slate-500 font-extrabold uppercase tracking-widest mt-1 font-sans leading-none">
-                {locale === "vi" ? "Cổng phản ánh hiện trường" : "Citizen Feedback Portal"}
-              </span>
-            </div>
-          </Link>
-
-          {/* Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-1 xl:gap-2 h-full">
-            <ul className="flex items-center gap-6 xl:gap-8 h-full">
-              <li>
-                <Link to="/" className="text-slate-600 hover:text-[#0B4DBB] py-2 text-sm font-bold transition-all">
-                  {locale === "vi" ? "Trang chủ" : "Home"}
-                </Link>
-              </li>
-              <li>
-                <Link to="/tin-tuc" className="text-slate-600 hover:text-[#0B4DBB] py-2 text-sm font-bold transition-all">
-                  {locale === "vi" ? "Tin tức" : "News"}
-                </Link>
-              </li>
-              <li>
-                <Link to="/feedback-search" className="text-[#0B4DBB] border-b-[3px] border-[#0B4DBB] py-6 text-sm font-extrabold transition-all relative">
-                  {locale === "vi" ? "Tra cứu" : "Lookup"}
-                </Link>
-              </li>
-              <li>
-                <Link to="/campaigns" className="text-slate-600 hover:text-[#0B4DBB] py-2 text-sm font-bold transition-all">
-                  {locale === "vi" ? "Chiến dịch" : "Campaigns"}
-                </Link>
-              </li>
-              <li>
-                <Link to="/leaderboard" className="text-slate-600 hover:text-[#0B4DBB] py-2 text-sm font-bold transition-all">
-                  {locale === "vi" ? "Thống kê" : "Statistics"}
-                </Link>
-              </li>
-              <li>
-                <a href="#huong-dan" className="text-slate-600 hover:text-[#0B4DBB] py-2 text-sm font-bold transition-all">
-                  {locale === "vi" ? "Hướng dẫn" : "Guide"}
-                </a>
-              </li>
-            </ul>
-          </nav>
-
-          {/* Controls & Account */}
-          <div className="flex items-center gap-4 relative">
-            <button 
-              type="button"
-              onClick={() => handleSearchSubmit()} 
-              className="text-slate-500 hover:text-[#0B4DBB] p-2 rounded-full hover:bg-slate-50 transition"
-              aria-label="Search"
-            >
-              <Search size={18} />
-            </button>
-
-            {/* Notifications */}
-            {isAuthenticated && (
-              <div className="relative" ref={notifRef}>
-                <button
-                  onClick={() => {
-                    setNotifOpen(!notifOpen);
-                    setUserOpen(false);
-                    setLangOpen(false);
-                  }}
-                  className="relative p-2 text-slate-600 hover:text-[#0B4DBB] transition rounded-full hover:bg-slate-50 min-w-[38px] min-h-[38px] flex items-center justify-center cursor-pointer"
-                  aria-label="Notifications"
-                >
-                  <Bell size={18} />
-                  {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 w-[16px] h-[16px] bg-red-500 text-white text-[9px] font-extrabold rounded-full flex items-center justify-center border border-white font-sans animate-pulse">
-                      {unreadCount}
-                    </span>
-                  )}
-                </button>
-
-                {/* Notifications Dropdown */}
-                {notifOpen && (
-                  <div className="absolute right-0 mt-3.5 w-[320px] sm:w-[380px] bg-white border border-slate-200/80 rounded-2xl shadow-[0_12px_36px_rgba(11,77,187,0.1)] py-3 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="flex items-center justify-between px-4 pb-2 border-b border-slate-100">
-                      <span className="text-xs font-bold text-[#063A94] uppercase tracking-wider">
-                        {locale === "vi" ? "Thông báo mới nhất" : "Latest Notifications"}
-                      </span>
-                      {unreadCount > 0 && (
-                        <button
-                          onClick={handleMarkAllRead}
-                          className="text-xs text-[#0B4DBB] hover:underline font-extrabold"
-                        >
-                          {locale === "vi" ? "Đọc tất cả" : "Mark read"}
-                        </button>
-                      )}
-                    </div>
-                    <div className="max-h-[320px] overflow-y-auto divide-y divide-slate-100/60">
-                      {notifLoading ? (
-                        <div className="p-4 text-center text-xs text-slate-400">Loading...</div>
-                      ) : notifications.length === 0 ? (
-                        <div className="p-6 text-center text-xs text-slate-400">
-                          {locale === "vi" ? "Không có thông báo nào." : "No notifications."}
-                        </div>
-                      ) : (
-                        notifications.slice(0, 5).map((item) => (
-                          <button
-                            key={item.id}
-                            onClick={() => handleNotifClick(item)}
-                            className={`w-full text-left p-3.5 flex gap-3 transition-colors hover:bg-slate-50 border-l-4 ${
-                              item.isRead ? "border-l-transparent bg-white" : "border-l-[#0B4DBB] bg-blue-50/20"
-                            }`}
-                          >
-                            <div className="w-8 h-8 rounded-full bg-blue-50 text-[#0B4DBB] flex items-center justify-center shrink-0">
-                              <Bell size={14} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className={`text-xs leading-normal ${item.isRead ? "text-slate-600" : "text-slate-900 font-bold"}`}>
-                                {item.title}
-                              </p>
-                              <p className="text-[10px] text-slate-400 mt-1 flex items-center gap-1 font-semibold">
-                                <Clock size={10} />
-                                {new Date(item.createdAt).toLocaleDateString(locale === "vi" ? "vi-VN" : "en-US")}
-                              </p>
-                            </div>
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Profile Dropdown or Login Button */}
-            {isAuthenticated ? (
-              <div className="relative" ref={userRef}>
-                <button
-                  onClick={() => {
-                    setUserOpen(!userOpen);
-                    setNotifOpen(false);
-                    setLangOpen(false);
-                  }}
-                  className="flex items-center gap-2 rounded-full border border-slate-200/80 p-1 hover:border-[#0B4DBB]/40 hover:bg-slate-50 transition cursor-pointer"
-                >
-                  <div className="w-8 h-8 rounded-full bg-[#0B4DBB] text-white text-xs font-bold flex items-center justify-center shadow-sm">
-                    {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : "U"}
-                  </div>
-                  <span className="text-xs font-bold text-slate-700 pr-2 hidden md:block max-w-[100px] truncate">
-                    {currentUser?.name}
-                  </span>
-                  <ChevronDown size={12} className="text-slate-400 pr-1 hidden md:block" />
-                </button>
-
-                {/* Profile menu */}
-                {userOpen && (
-                  <div className="absolute right-0 mt-3.5 w-56 bg-white border border-slate-200/80 rounded-2xl shadow-[0_12px_36px_rgba(11,77,187,0.1)] p-1.5 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="px-3 py-2.5 border-b border-slate-100 mb-1">
-                      <p className="text-xs font-bold text-slate-800">{currentUser?.name}</p>
-                      <p className="text-[10px] text-slate-400 truncate mt-0.5">{currentUser?.wardName || currentUser?.org}</p>
-                      <span className="inline-block mt-1.5 px-2 py-0.5 bg-[#EAF2FF] text-[#0B4DBB] text-[8px] font-bold rounded uppercase tracking-wider">
-                        {currentUser?.role === Role.SUPER_ADMIN ? "Quản trị viên" : currentUser?.role === Role.WARD_STAFF ? "Cán bộ phường" : "Công dân"}
-                      </span>
-                    </div>
-
-                    <Link
-                      to="/profile"
-                      className="flex items-center gap-2.5 w-full px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 hover:text-[#0B4DBB] rounded-lg transition-colors font-bold"
-                      onClick={() => setUserOpen(false)}
-                    >
-                      <User size={14} />
-                      {locale === "vi" ? "Trang cá nhân" : "Profile Settings"}
-                    </Link>
-
-                    {currentUser && (currentUser.role === Role.WARD_STAFF || currentUser.role === Role.SUPER_ADMIN || currentUser.role === Role.POLICE) && (
-                      <Link
-                        to={getDashboardPathForRole(currentUser.role)}
-                        className="flex items-center gap-2.5 w-full px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 hover:text-[#0B4DBB] rounded-lg transition-colors font-bold"
-                        onClick={() => setUserOpen(false)}
-                      >
-                        <Sliders size={14} />
-                        {locale === "vi" ? "Trang làm việc" : "Officer Board"}
-                      </Link>
-                    )}
-
-                    <button
-                      onClick={handleLogout}
-                      className="flex items-center gap-2.5 w-full px-3 py-2 text-xs text-red-600 hover:bg-red-50 rounded-lg transition-colors font-bold mt-1 text-left"
-                    >
-                      <LogOut size={14} />
-                      {locale === "vi" ? "Đăng xuất" : "Logout"}
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <Link
-                to="/login"
-                className="bg-[#0B4DBB] hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all px-5 py-2.5 shadow-[0_2px_8px_rgba(11,77,187,0.15)] flex items-center gap-2"
-              >
-                <User size={14} />
-                <span>{locale === "vi" ? "Đăng nhập" : "Login"}</span>
-              </Link>
-            )}
-          </div>
-        </div>
-      </header>
 
       {/* HERO SECTION */}
       <section
@@ -1879,141 +1542,7 @@ function PublicFeedbackLookup() {
         </div>
       </div>
 
-      {/* FOOTER SECTION */}
-      <footer className="relative z-30 bg-[#051D45] text-slate-300 mt-20 border-t-4 border-[#0B4DBB]">
-        <div className="max-w-[1440px] mx-auto px-6 md:px-12 py-12 md:py-16">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
-            {/* Col 1: Logo Portal info */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center p-1.5 shadow-md">
-                  <img src={logoImg} alt="Da Nang Emblem" className="h-full w-full object-contain" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-black text-white uppercase tracking-tight leading-none">
-                    ĐÀ NẴNG KẾT NỐI
-                  </span>
-                  <span className="text-[8px] text-slate-400 font-extrabold uppercase tracking-wider mt-1.5 leading-none">
-                    {locale === "vi" ? "Hệ thống phản ánh ý kiến công dân" : "Da Nang Civic Feedback System"}
-                  </span>
-                </div>
-              </div>
-              <p className="text-xs text-slate-400 leading-relaxed pt-2 font-semibold">
-                {locale === "vi"
-                  ? "Cổng thông tin tương tác trực tuyến giữa chính quyền và người dân Thành phố Đà Nẵng. Tiếp nhận, lắng nghe và giải quyết kịp thời các kiến nghị của cử tri."
-                  : "Online interactive portal between municipal government and citizens of Da Nang. Receive, listen and timely resolve voter proposals."}
-              </p>
-            </div>
 
-            {/* Col 2: Sitemap links */}
-            <div className="space-y-4">
-              <h4 className="text-white text-xs font-black uppercase tracking-widest border-l-2 border-[#0B4DBB] pl-2.5">
-                {locale === "vi" ? "Liên kết dịch vụ công" : "Citizen Services"}
-              </h4>
-              <ul className="space-y-2 text-xs font-semibold">
-                <li>
-                  <Link to="/" className="hover:text-white transition flex items-center gap-1 text-slate-400">
-                    <ArrowRight size={10} />
-                    <span>{locale === "vi" ? "Trang chủ cổng thông tin" : "Home Portal"}</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/tin-tuc" className="hover:text-white transition flex items-center gap-1 text-slate-400">
-                    <ArrowRight size={10} />
-                    <span>{locale === "vi" ? "Tin tức & Thông báo" : "News & Announcements"}</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/feedback-search" className="hover:text-white transition flex items-center gap-1 text-slate-400">
-                    <ArrowRight size={10} />
-                    <span>{locale === "vi" ? "Tra cứu phản ánh trực tuyến" : "Online Feedback Lookup"}</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/campaigns" className="hover:text-white transition flex items-center gap-1 text-slate-400">
-                    <ArrowRight size={10} />
-                    <span>{locale === "vi" ? "Chiến dịch dọn vệ sinh" : "Civic Clean campaigns"}</span>
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            {/* Col 3: Legal & Help info */}
-            <div className="space-y-4">
-              <h4 className="text-white text-xs font-black uppercase tracking-widest border-l-2 border-[#0B4DBB] pl-2.5">
-                {locale === "vi" ? "Văn bản pháp lý" : "Resources"}
-              </h4>
-              <ul className="space-y-2 text-xs font-semibold">
-                <li>
-                  <a href="#quy-trinh" className="hover:text-white transition flex items-center gap-1 text-slate-400">
-                    <ArrowRight size={10} />
-                    <span>{locale === "vi" ? "Quy trình giải quyết 1022" : "Workflow Resolution 1022"}</span>
-                  </a>
-                </li>
-                <li>
-                  <a href="#bao-mat" className="hover:text-white transition flex items-center gap-1 text-slate-400">
-                    <ArrowRight size={10} />
-                    <span>{locale === "vi" ? "Chính sách quyền riêng tư" : "Privacy Policy"}</span>
-                  </a>
-                </li>
-                <li>
-                  <a href="#dieu-khoan" className="hover:text-white transition flex items-center gap-1 text-slate-400">
-                    <ArrowRight size={10} />
-                    <span>{locale === "vi" ? "Điều khoản dịch vụ" : "Terms of Service"}</span>
-                  </a>
-                </li>
-                <li>
-                  <a href="#gop-y" className="hover:text-white transition flex items-center gap-1 text-slate-400">
-                    <ArrowRight size={10} />
-                    <span>{locale === "vi" ? "Câu hỏi & Giải đáp FAQ" : "FAQ Help Center"}</span>
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            {/* Col 4: Contact details */}
-            <div className="space-y-4">
-              <h4 className="text-white text-xs font-black uppercase tracking-widest border-l-2 border-[#0B4DBB] pl-2.5">
-                {locale === "vi" ? "Thông tin liên hệ" : "Contact Information"}
-              </h4>
-              <div className="space-y-3.5 text-xs text-slate-400 font-semibold pt-1">
-                <p className="leading-relaxed flex items-start gap-2">
-                  <MapPin size={16} className="text-[#0B4DBB] shrink-0 mt-0.5" />
-                  <span>
-                    {locale === "vi"
-                      ? "Tòa nhà Trung tâm Hành chính, số 24 Trần Phú, Hải Châu, Đà Nẵng, Việt Nam"
-                      : "Administrative Center Building, 24 Tran Phu St, Hai Chau Dist, Da Nang, Vietnam"}
-                  </span>
-                </p>
-                <p className="flex items-center gap-2">
-                  <Mail size={14} className="text-[#0B4DBB] shrink-0" />
-                  <span>gopy@danang.gov.vn</span>
-                </p>
-                <p className="flex items-center gap-2">
-                  <Phone size={14} className="text-[#0B4DBB] shrink-0" />
-                  <span>{locale === "vi" ? "Đường dây nóng: 1022 (Trong nước)" : "Hotline: 1022"}</span>
-                </p>
-                <p className="text-[10px] text-slate-500 font-extrabold italic pl-6 leading-none">
-                  {locale === "vi" ? "Giờ làm việc: 24/7 các ngày trong tuần" : "Working Hours: 24/7"}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-slate-800/80 mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 font-bold">
-            <p>
-              © {new Date().getFullYear()} {locale === "vi" ? "UBND Thành phố Đà Nẵng. Bản quyền đã được bảo lưu." : "Da Nang City People's Committee. All rights reserved."}
-            </p>
-            <button 
-              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-              className="text-[#0B4DBB] hover:text-[#174EA6] hover:underline cursor-pointer flex items-center gap-1.5"
-            >
-              <span>{locale === "vi" ? "Lên đầu trang" : "Back to top"}</span>
-              <ChevronDown size={14} className="rotate-180" />
-            </button>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

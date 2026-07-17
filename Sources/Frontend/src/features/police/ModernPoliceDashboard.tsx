@@ -53,25 +53,89 @@ const initialSchedule = [
   { day: "Chủ nhật", date: "05/07", morning: "Trực ban", mOfficer: "Đ/c Đặng L", afternoon: "Trực ban", aOfficer: "Đ/c Đặng L", night: "Tuần tra đêm", nOfficer: "Đ/c Trần H" },
 ];
 
-const DutyRoster = () => {
+const DutyRoster = ({ onSave }: { onSave?: () => void }) => {
   const [view, setView] = useState<'week'|'month'|'year'>('week');
   const [isEditing, setIsEditing] = useState(false);
-  const [schedule, setSchedule] = useState(initialSchedule);
+  const [schedule, setSchedule] = useState<any[]>([]);
   const [weekOffset, setWeekOffset] = useState(0);
+
+  const getMondayKey = (offset: number) => {
+    const today = new Date();
+    const dayOfWeek = today.getDay() || 7;
+    const diff = today.getDate() - dayOfWeek + 1 + offset * 7;
+    const monday = new Date(today.getFullYear(), today.getMonth(), diff);
+    return `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+  };
 
   useEffect(() => {
     if (view === 'week') {
-      const today = new Date();
-      const dayOfWeek = today.getDay() || 7;
-      const diff = today.getDate() - dayOfWeek + 1 + weekOffset * 7;
-      const monday = new Date(today.getFullYear(), today.getMonth(), diff);
+      const key = getMondayKey(weekOffset);
       
-      setSchedule(prev => prev.map((row, idx) => {
-        const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + idx);
-        const dayStr = String(d.getDate()).padStart(2, '0');
-        const monthStr = String(d.getMonth() + 1).padStart(2, '0');
-        return { ...row, date: `${dayStr}/${monthStr}` };
-      }));
+      policeApi.getSchedule(key)
+        .then(res => {
+          if (res?.data?.scheduleData) {
+            try {
+              setSchedule(JSON.parse(res.data.scheduleData));
+              return;
+            } catch (e) {
+              console.error("Failed to parse backend schedule", e);
+            }
+          }
+          
+          // Fallback to local storage (if any) or fallback to initial template
+          const localSaved = localStorage.getItem(`police_schedule_week_${key}`);
+          if (localSaved) {
+            try {
+              setSchedule(JSON.parse(localSaved));
+              return;
+            } catch (e) {
+              // ignore
+            }
+          }
+          
+          // Generate from template
+          const parts = key.split("-");
+          const year = parseInt(parts[0]);
+          const month = parseInt(parts[1]) - 1;
+          const dateStr = parseInt(parts[2]);
+          const monday = new Date(year, month, dateStr);
+
+          const defaultSchedule = initialSchedule.map((row, idx) => {
+            const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + idx);
+            const dayStr = String(d.getDate()).padStart(2, '0');
+            const monthStr = String(d.getMonth() + 1).padStart(2, '0');
+            return { ...row, date: `${dayStr}/${monthStr}` };
+          });
+          setSchedule(defaultSchedule);
+        })
+        .catch(err => {
+          console.error("Failed to fetch schedule from backend", err);
+          
+          // Fallback to local storage or template
+          const localSaved = localStorage.getItem(`police_schedule_week_${key}`);
+          if (localSaved) {
+            try {
+              setSchedule(JSON.parse(localSaved));
+              return;
+            } catch (e) {
+              // ignore
+            }
+          }
+
+          const parts = key.split("-");
+          const year = parseInt(parts[0]);
+          const month = parseInt(parts[1]) - 1;
+          const dateStr = parseInt(parts[2]);
+          const monday = new Date(year, month, dateStr);
+
+          const defaultSchedule = initialSchedule.map((row, idx) => {
+            const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + idx);
+            const dayStr = String(d.getDate()).padStart(2, '0');
+            const monthStr = String(d.getMonth() + 1).padStart(2, '0');
+            return { ...row, date: `${dayStr}/${monthStr}` };
+          });
+          setSchedule(defaultSchedule);
+        });
     }
   }, [weekOffset, view]);
 
@@ -94,9 +158,22 @@ const DutyRoster = () => {
           )}
           {view === 'week' && (
             <button 
-              onClick={() => {
+              onClick={async () => {
                 if (isEditing) {
-                  toast.success("Đã lưu lịch phân công trực thành công!");
+                  const key = getMondayKey(weekOffset);
+                  const scheduleStr = JSON.stringify(schedule);
+                  
+                  localStorage.setItem(`police_schedule_week_${key}`, scheduleStr);
+                  
+                  try {
+                    await policeApi.saveSchedule(key, scheduleStr);
+                    toast.success("Đã lưu lịch phân công trực vào cơ sở dữ liệu thành công!");
+                    if (onSave) onSave();
+                  } catch (err) {
+                    console.error("Failed to save schedule to database", err);
+                    toast.error("Không thể lưu vào cơ sở dữ liệu. Đã lưu tạm ở trình duyệt.");
+                    if (onSave) onSave();
+                  }
                 }
                 setIsEditing(!isEditing);
               }} 
@@ -275,6 +352,91 @@ const iconMap = {
 export function ModernPoliceDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("overview");
+
+  // Load today's active duty officer name
+  const [currentDutyOfficerName, setCurrentDutyOfficerName] = useState<string>("");
+  const [currentWeekSchedule, setCurrentWeekSchedule] = useState<any[]>([]);
+
+  const fetchCurrentWeekSchedule = () => {
+    const today = new Date();
+    const dayOfWeek = today.getDay() || 7;
+    const diff = today.getDate() - dayOfWeek + 1;
+    const monday = new Date(today.getFullYear(), today.getMonth(), diff);
+    const key = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+
+    policeApi.getSchedule(key)
+      .then(res => {
+        let activeSchedule = null;
+        if (res?.data?.scheduleData) {
+          try {
+            activeSchedule = JSON.parse(res.data.scheduleData);
+          } catch (e) {
+            console.error("Failed to parse schedule", e);
+          }
+        }
+        
+        if (!activeSchedule) {
+          const localSaved = localStorage.getItem(`police_schedule_week_${key}`);
+          if (localSaved) {
+            try {
+              activeSchedule = JSON.parse(localSaved);
+            } catch (e) {}
+          }
+        }
+
+        if (activeSchedule && Array.isArray(activeSchedule)) {
+          setCurrentWeekSchedule(activeSchedule);
+          const now = new Date();
+          const days = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+          const todayDayName = days[now.getDay()];
+          const todayRow = activeSchedule.find((s: any) => s.day === todayDayName);
+          
+          if (todayRow) {
+            const hour = now.getHours();
+            let currentOfficer = "";
+            if (hour >= 7 && hour < 11.5) {
+              currentOfficer = todayRow.mOfficer;
+            } else if (hour >= 11.5 && hour < 17.5) {
+              currentOfficer = todayRow.aOfficer;
+            } else {
+              currentOfficer = todayRow.nOfficer;
+            }
+            
+            if (currentOfficer && currentOfficer !== "-") {
+              setCurrentDutyOfficerName(currentOfficer);
+            } else {
+              setCurrentDutyOfficerName("");
+            }
+          } else {
+            setCurrentDutyOfficerName("");
+          }
+        }
+      })
+      .catch(err => {
+        console.error("Failed to fetch schedule in header", err);
+      });
+  };
+
+  useEffect(() => {
+    fetchCurrentWeekSchedule();
+  }, [activeTab]);
+
+  const getDefaultSchedule = () => {
+    const today = new Date();
+    const dayOfWeek = today.getDay() || 7;
+    const diff = today.getDate() - dayOfWeek + 1;
+    const monday = new Date(today.getFullYear(), today.getMonth(), diff);
+    
+    return initialSchedule.map((row, idx) => {
+      const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + idx);
+      const dayStr = String(d.getDate()).padStart(2, '0');
+      const monthStr = String(d.getMonth() + 1).padStart(2, '0');
+      return { ...row, date: `${dayStr}/${monthStr}` };
+    });
+  };
+
+  const displaySchedule = currentWeekSchedule.length > 0 ? currentWeekSchedule : getDefaultSchedule();
 
   const policeUnitName = useMemo(() => {
     if (user?.org) return user.org.toUpperCase();
@@ -290,7 +452,6 @@ export function ModernPoliceDashboard() {
 
   const { data: hotspots } = useHotspots();
   const { data: feedbacksData } = usePoliceAssignedFeedbacks();
-  const [activeTab, setActiveTab] = useState("overview");
   const [filterStatus, setFilterStatus] = useState<"ALL" | "PENDING" | "ASSIGNED" | "IN_PROGRESS" | "RESOLVED" | "REJECTED">("ALL");
   const [filterDate, setFilterDate] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -324,6 +485,12 @@ export function ModernPoliceDashboard() {
   const [showPassword, setShowPassword] = useState(false);
   
   const [selectedFeedbackId, setSelectedFeedbackId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user?.name) {
+      setProfileForm((prev) => ({ ...prev, name: user.name }));
+    }
+  }, [user?.name]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -772,6 +939,10 @@ export function ModernPoliceDashboard() {
               )}
             </div>
             <div className="flex items-center pl-5 border-l shrink-0 relative" style={{ borderColor: colors.border }} ref={dropdownRef}>
+              <div className="mr-3 text-right hidden sm:block">
+                <div className="text-[12px] font-bold text-slate-800 leading-tight">{user?.name || "Cán bộ trực ban"}</div>
+                <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">{user?.org || "Quản trị viên"}</div>
+              </div>
               <button 
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="relative w-[48px] h-[34px] rounded overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.1)] border border-black/5 cursor-pointer hover:shadow-md transition-all waving-flag-container" 
@@ -826,6 +997,9 @@ export function ModernPoliceDashboard() {
                     <p className="text-[11px] font-semibold text-blue-600 mt-1 uppercase tracking-wide truncate">
                       {policeUnitName}
                     </p>
+                    {currentDutyOfficerName && (
+                      <p className="text-[10px] text-slate-500 mt-1">Trực ban: <span className="font-semibold">{currentDutyOfficerName}</span></p>
+                    )}
                   </div>
                   <button 
                     onClick={() => { setIsProfileDialogOpen(true); setIsDropdownOpen(false); }}
@@ -1188,7 +1362,7 @@ export function ModernPoliceDashboard() {
             <PoliceCampaignPage />
           )}
           {activeTab === "schedule" && (
-            <DutyRoster />
+            <DutyRoster onSave={fetchCurrentWeekSchedule} />
           )}
           {activeTab === "reports" && (
             <PoliceStatisticalReports feedbacks={feedbacksData || []} />
@@ -1423,28 +1597,35 @@ export function ModernPoliceDashboard() {
                     </tr>
                   </thead>
                   <tbody className="text-[13px]">
-                    {[
-                      { day: "Thứ 2", date: "29/06", morning: "Trực ban hành chính", afternoon: "Xử lý hồ sơ", night: "-" },
-                      { day: "Thứ 3", date: "30/06", morning: "Tuần tra địa bàn", afternoon: "Tuần tra địa bàn", night: "Trực chỉ huy" },
-                      { day: "Thứ 4", date: "01/07", morning: "Nghỉ bù", afternoon: "Nghỉ bù", night: "-" },
-                      { day: "Thứ 5", date: "02/07", morning: "Xử lý hồ sơ", afternoon: "Tiếp công dân", night: "-" },
-                      { day: "Thứ 6", date: "03/07", morning: "Họp giao ban", afternoon: "Trực ban hành chính", night: "Tuần tra đêm" },
-                      { day: "Thứ 7", date: "04/07", morning: "-", afternoon: "-", night: "-" },
-                      { day: "Chủ nhật", date: "05/07", morning: "Trực ban", afternoon: "Trực ban", night: "-" },
-                    ].map((row, idx) => (
+                    {displaySchedule.map((row, idx) => (
                       <tr key={idx} className="border-b last:border-b-0 hover:bg-slate-50/50">
                         <td className="px-4 py-3 border-r bg-slate-50/30">
                           <div className="font-semibold text-slate-700">{row.day}</div>
                           <div className="text-[11px] text-slate-400">{row.date}</div>
                         </td>
                         <td className="px-4 py-3 border-r text-center">
-                          {row.morning !== "-" ? <span className="inline-block px-2 py-1 bg-blue-50 text-blue-700 rounded text-[12px] font-medium">{row.morning}</span> : <span className="text-slate-300">-</span>}
+                          {row.morning !== "-" ? (
+                            <div className="flex flex-col items-center">
+                              <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-[12px] font-medium mb-0.5">{row.morning}</span>
+                              <span className="text-[10px] text-slate-500 font-medium truncate max-w-[120px]">{row.mOfficer}</span>
+                            </div>
+                          ) : <span className="text-slate-300">-</span>}
                         </td>
                         <td className="px-4 py-3 border-r text-center">
-                          {row.afternoon !== "-" ? <span className="inline-block px-2 py-1 bg-amber-50 text-amber-700 rounded text-[12px] font-medium">{row.afternoon}</span> : <span className="text-slate-300">-</span>}
+                          {row.afternoon !== "-" ? (
+                            <div className="flex flex-col items-center">
+                              <span className="inline-block px-2 py-0.5 bg-amber-50 text-amber-700 rounded text-[12px] font-medium mb-0.5">{row.afternoon}</span>
+                              <span className="text-[10px] text-slate-500 font-medium truncate max-w-[120px]">{row.aOfficer}</span>
+                            </div>
+                          ) : <span className="text-slate-300">-</span>}
                         </td>
                         <td className="px-4 py-3 text-center">
-                          {row.night !== "-" ? <span className="inline-block px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-[12px] font-medium">{row.night}</span> : <span className="text-slate-300">-</span>}
+                          {row.night !== "-" ? (
+                            <div className="flex flex-col items-center">
+                              <span className="inline-block px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded text-[12px] font-medium mb-0.5">{row.night}</span>
+                              <span className="text-[10px] text-slate-500 font-medium truncate max-w-[120px]">{row.nOfficer}</span>
+                            </div>
+                          ) : <span className="text-slate-300">-</span>}
                         </td>
                       </tr>
                     ))}

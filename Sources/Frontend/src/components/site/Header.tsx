@@ -261,7 +261,9 @@ export function Header() {
         await markRead.mutateAsync(item.id);
       }
       if (feedbackId) {
-        if (item.type?.startsWith("CAMPAIGN")) {
+        if (item.type === "CAMPAIGN_APPEAL_APPROVED" || item.type === "CAMPAIGN_APPEAL_REJECTED") {
+          await navigate({ to: "/profile" });
+        } else if (item.type?.startsWith("CAMPAIGN")) {
           if (isWardStaff) {
             await navigate({
               to: "/ward",

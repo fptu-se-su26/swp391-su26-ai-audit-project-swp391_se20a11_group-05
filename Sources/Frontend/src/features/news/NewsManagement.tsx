@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { useNewsList, useCreateNews, useUpdateNews, useDeleteNews } from "@/hooks/useNews";
 import type { NewsResponse } from "@/lib/api";
 import { sanitizeNewsHtml } from "@/lib/sanitizeHtml";
@@ -306,15 +307,16 @@ export function NewsManagement() {
                       </td>
                       <td className="p-4">
                         <div className="flex items-center justify-center gap-2">
-                          <a
-                            href={`/tin-tuc/${item.id}`}
+                          <Link
+                            to="/tin-tuc/$id"
+                            params={{ id: String(item.id) }}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors inline-block"
                             title="Xem trên trang người dân"
                           >
                             <Eye size={18} />
-                          </a>
+                          </Link>
                           <button
                             onClick={() => handleOpenModal(item, "edit")}
                             className="p-1.5 text-slate-400 hover:text-[#0F5BD8] hover:bg-blue-50 rounded-lg transition-colors"

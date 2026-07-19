@@ -1,3 +1,0 @@
-ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS linked_feedback_id BIGINT REFERENCES feedbacks(id) ON DELETE SET NULL;
-ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS boundary_geojson TEXT;
-ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS cover_image_url VARCHAR(512);

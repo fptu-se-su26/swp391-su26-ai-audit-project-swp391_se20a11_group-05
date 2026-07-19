@@ -5,13 +5,16 @@ import {
   useMarkNotificationReadMutation,
   useMarkAllNotificationsReadMutation,
 } from "@/hooks";
-import { highlightNotificationContent } from "@/lib/notificationHelper";
+import { highlightNotificationContent, translateNotificationTitle } from "@/lib/notificationHelper";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n";
+import { type NotificationResponse } from "@/lib/api";
 
 const PAGE_SIZE = 5;
 
 export function WardNotificationsPage() {
+  const { locale } = useI18n();
   const navigate = useNavigate();
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const [openingId, setOpeningId] = useState<number | null>(null);
@@ -55,13 +58,17 @@ export function WardNotificationsPage() {
   const handleMarkAllRead = async () => {
     try {
       await markAllRead.mutateAsync();
-      toast.success("Đã đánh dấu tất cả thông báo là đã đọc");
+      toast.success(
+        locale === "vi"
+          ? "Đã đánh dấu tất cả thông báo là đã đọc"
+          : "All notifications marked as read",
+      );
     } catch {
-      toast.error("Thao tác thất bại");
+      toast.error(locale === "vi" ? "Thao tác thất bại" : "Action failed");
     }
   };
 
-  const handleNotificationClick = async (item: any) => {
+  const handleNotificationClick = async (item: NotificationResponse) => {
     const feedbackId = item.feedbackId ?? item.referenceId;
     try {
       setOpeningId(item.id);
@@ -82,10 +89,18 @@ export function WardNotificationsPage() {
           });
         }
       } else {
-        toast.info("Thông báo này không kèm theo phản ánh hoặc chiến dịch chi tiết.");
+        toast.info(
+          locale === "vi"
+            ? "Thông báo này không kèm theo phản ánh hoặc chiến dịch chi tiết."
+            : "This notification is not linked to any report or campaign details.",
+        );
       }
     } catch (err) {
-      toast.error("Không thể cập nhật trạng thái thông báo");
+      toast.error(
+        locale === "vi"
+          ? "Không thể cập nhật trạng thái thông báo"
+          : "Could not update notification status",
+      );
     } finally {
       setOpeningId(null);
     }
@@ -98,10 +113,12 @@ export function WardNotificationsPage() {
         <div>
           <h2 className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100 flex items-center gap-2">
             <Bell className="h-5.5 w-5.5 text-indigo-600" />
-            Thông báo hệ thống
+            {locale === "vi" ? "Thông báo hệ thống" : "System Notifications"}
           </h2>
           <p className="text-sm font-medium text-slate-500 mt-1">
-            Theo dõi, cập nhật trạng thái các phản ánh hiện trường và hoạt động chiến dịch trên địa bàn.
+            {locale === "vi"
+              ? "Theo dõi, cập nhật trạng thái các phản ánh hiện trường và hoạt động chiến dịch trên địa bàn."
+              : "Monitor and update statuses of field reports and campaigns in the area."}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -111,15 +128,18 @@ export function WardNotificationsPage() {
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-750 border border-indigo-200 bg-indigo-50 hover:bg-indigo-100/50 rounded-lg transition-all cursor-pointer shadow-sm"
             >
               <CheckCircle2 size={13} />
-              Đọc tất cả
+              {locale === "vi" ? "Đọc tất cả" : "Mark all read"}
             </button>
           )}
           <button
             onClick={() => refetch()}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-800 border border-slate-200 hover:border-slate-350 bg-white rounded-lg transition-all cursor-pointer shadow-sm animate-fade-in"
           >
-            <RefreshCw size={13} className={isFetching && !isFetchingNextPage ? "animate-spin" : ""} />
-            Làm mới
+            <RefreshCw
+              size={13}
+              className={isFetching && !isFetchingNextPage ? "animate-spin" : ""}
+            />
+            {locale === "vi" ? "Làm mới" : "Refresh"}
           </button>
         </div>
       </div>
@@ -128,21 +148,30 @@ export function WardNotificationsPage() {
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20 gap-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-150/80 dark:border-slate-800/80 shadow-sm animate-pulse">
           <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
-          <p className="text-sm font-semibold text-slate-500">Đang tải thông báo...</p>
+          <p className="text-sm font-semibold text-slate-500">
+            {locale === "vi" ? "Đang tải thông báo..." : "Loading notifications..."}
+          </p>
         </div>
       ) : isError ? (
         <div className="p-6 bg-rose-50/50 border border-rose-100 rounded-xl text-center">
-          <p className="text-sm font-bold text-rose-700">Không thể tải thông báo</p>
+          <p className="text-sm font-bold text-rose-700">
+            {locale === "vi" ? "Không thể tải thông báo" : "Failed to load notifications"}
+          </p>
           <p className="text-xs text-slate-500 mt-1">
-            {(error as any)?.message || "Vui lòng thử lại sau"}
+            {(error as Error)?.message ||
+              (locale === "vi" ? "Vui lòng thử lại sau" : "Please try again later")}
           </p>
         </div>
       ) : notifications.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center bg-white dark:bg-slate-900 rounded-xl border border-slate-150/80 dark:border-slate-800/80 shadow-sm">
           <Bell className="h-12 w-12 text-slate-300 mb-4" />
-          <p className="text-sm font-bold text-slate-700">Chưa có thông báo nào</p>
+          <p className="text-sm font-bold text-slate-700">
+            {locale === "vi" ? "Chưa có thông báo nào" : "No notifications"}
+          </p>
           <p className="text-xs text-slate-400 mt-1">
-            Thông báo về hoạt động địa bàn của bạn sẽ xuất hiện tại đây.
+            {locale === "vi"
+              ? "Thông báo về hoạt động địa bàn của bạn sẽ xuất hiện tại đây."
+              : "Notifications about your ward activities will appear here."}
           </p>
         </div>
       ) : (
@@ -173,12 +202,14 @@ export function WardNotificationsPage() {
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <h4 className={`text-sm font-bold ${isUnread ? "text-slate-900" : "text-slate-700"}`}>
-                      {item.title}
+                    <h4
+                      className={`text-sm font-bold ${isUnread ? "text-slate-900" : "text-slate-700"}`}
+                    >
+                      {translateNotificationTitle(item.title, item.type, locale)}
                     </h4>
                   </div>
                   <p className="text-xs text-slate-500 leading-relaxed">
-                    {highlightNotificationContent(item.content)}
+                    {highlightNotificationContent(item.content, item.type, locale)}
                   </p>
                 </div>
               </div>
@@ -190,12 +221,16 @@ export function WardNotificationsPage() {
             {isFetchingNextPage ? (
               <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
                 <Loader2 size={14} className="animate-spin text-indigo-600" />
-                <span>Đang tải thêm...</span>
+                <span>{locale === "vi" ? "Đang tải thêm..." : "Loading more..."}</span>
               </div>
             ) : hasNextPage ? (
-              <span className="text-xs font-bold text-slate-400">Cuộn xuống để tải thêm</span>
+              <span className="text-xs font-bold text-slate-400">
+                {locale === "vi" ? "Cuộn xuống để tải thêm" : "Scroll down to load more"}
+              </span>
             ) : (
-              <span className="text-xs font-semibold text-slate-400">Đã hiển thị tất cả thông báo</span>
+              <span className="text-xs font-semibold text-slate-400">
+                {locale === "vi" ? "Đã hiển thị tất cả thông báo" : "All notifications are shown"}
+              </span>
             )}
           </div>
         </div>

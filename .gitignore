@@ -19,6 +19,7 @@ SKILL.md
 
 # Java
 target/
+target_new/
 *.log
 
 # React

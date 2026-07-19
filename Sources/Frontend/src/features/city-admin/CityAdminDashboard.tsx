@@ -2,7 +2,7 @@ import { lazy, Suspense, useState, useEffect, useRef, useMemo } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNotifications, useMarkNotificationReadMutation } from "@/hooks";
-import { highlightNotificationContent } from "@/lib/notificationHelper";
+import { highlightNotificationContent, translateNotificationTitle } from "@/lib/notificationHelper";
 import { useFeedbackNotification } from "@/hooks/use-notification";
 import { useAuth } from "@/lib/auth";
 import { getLoginPathForRole } from "@/lib/roles";
@@ -504,9 +504,11 @@ export function CityAdminDashboard() {
     if (unreadItems.length === 0) return;
     try {
       await Promise.all(unreadItems.map((item) => markRead.mutateAsync(item.id)));
-      toast.success("Đã đánh dấu đọc tất cả thông báo");
+      toast.success(
+        locale === "vi" ? "Đã đánh dấu đọc tất cả thông báo" : "All notifications marked as read",
+      );
     } catch (err) {
-      toast.error("Thao tác thất bại");
+      toast.error(locale === "vi" ? "Thao tác thất bại" : "Action failed");
     }
   };
 
@@ -931,20 +933,22 @@ export function CityAdminDashboard() {
               {notifOpen && (
                 <div className="absolute right-0 mt-2 w-[320px] bg-white border border-[#E4EAF2] rounded-xl shadow-lg py-2.5 z-50 animate-fade-in">
                   <div className="flex items-center justify-between px-4 pb-2 border-b border-slate-100">
-                    <span className="text-xs font-bold text-slate-700">Thông báo mới</span>
+                    <span className="text-xs font-bold text-slate-700">
+                      {locale === "vi" ? "Thông báo mới" : "New Notifications"}
+                    </span>
                     {unreadCount > 0 && (
                       <button
                         onClick={handleMarkAllRead}
                         className="text-[11px] text-[#0B4FC4] hover:underline font-bold"
                       >
-                        Đọc tất cả
+                        {locale === "vi" ? "Đọc tất cả" : "Mark all read"}
                       </button>
                     )}
                   </div>
                   <div className="max-h-[240px] overflow-y-auto divide-y divide-slate-100">
                     {notifications.length === 0 ? (
                       <div className="py-6 text-center text-xs text-slate-400">
-                        Không có thông báo mới
+                        {locale === "vi" ? "Không có thông báo mới" : "No new notifications"}
                       </div>
                     ) : (
                       notifications.slice(0, 5).map((item) => (
@@ -958,10 +962,10 @@ export function CityAdminDashboard() {
                           }`}
                         >
                           <span className="text-xs font-bold text-slate-800 leading-snug">
-                            {item.title}
+                            {translateNotificationTitle(item.title, item.type, locale)}
                           </span>
                           <span className="text-[10px] text-slate-500 mt-1 leading-snug">
-                            {highlightNotificationContent(item.content)}
+                            {highlightNotificationContent(item.content, item.type, locale)}
                           </span>
                         </button>
                       ))
@@ -973,7 +977,7 @@ export function CityAdminDashboard() {
                       onClick={() => setNotifOpen(false)}
                       className="text-xs font-bold text-[#0B4FC4] hover:underline inline-block py-0.5"
                     >
-                      Xem tất cả
+                      {locale === "vi" ? "Xem tất cả" : "See all"}
                     </Link>
                   </div>
                 </div>

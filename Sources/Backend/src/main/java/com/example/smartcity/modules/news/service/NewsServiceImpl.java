@@ -81,7 +81,7 @@ public class NewsServiceImpl implements NewsService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (!news.getAuthor().getId().equals(user.getId()) && user.getRole() != Role.SUPER_ADMIN) {
+        if (user.getRole() != Role.SUPER_ADMIN && user.getRole() != Role.WARD_STAFF && user.getRole() != Role.POLICE) {
             throw new RuntimeException("Not authorized to update this news");
         }
 
@@ -109,7 +109,7 @@ public class NewsServiceImpl implements NewsService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (!news.getAuthor().getId().equals(user.getId()) && user.getRole() != Role.SUPER_ADMIN) {
+        if (user.getRole() != Role.SUPER_ADMIN && user.getRole() != Role.WARD_STAFF && user.getRole() != Role.POLICE) {
             throw new RuntimeException("Not authorized to delete this news");
         }
 

@@ -45,13 +45,14 @@ import {
 import logoImg from "@/assets/logo.png";
 import { toast } from "sonner";
 import { authApi, type NotificationResponse, type FeedbackResponse } from "@/lib/api";
-import { highlightNotificationContent } from "@/lib/notificationHelper";
+import { highlightNotificationContent, translateNotificationTitle } from "@/lib/notificationHelper";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAdministrativeUnitLabel, getAdministrativeUnitName } from "@/lib/administrativeUnit";
 import { WardFeedbackManagementPage } from "./WardFeedbackManagementPage";
 import { WardCampaignPage } from "./WardCampaignPage";
 import { WardProfileConfigPage } from "./WardProfileConfigPage";
+import { NewsManagement } from "../news/NewsManagement";
 import { WardStatisticsPage } from "./WardStatisticsPage";
 import WardBlacklistPage from "./WardBlacklistPage";
 import { WardChatDashboardPage } from "./WardChatDashboardPage";
@@ -67,6 +68,7 @@ type WardSection =
   | "overview"
   | "feedback"
   | "campaign"
+  | "news"
   | "statistics"
   | "schedule"
   | "config"
@@ -136,6 +138,7 @@ export function WardDashboard() {
       "overview",
       "feedback",
       "campaign",
+      "news",
       "statistics",
       "schedule",
       "config",
@@ -547,7 +550,10 @@ export function WardDashboard() {
           if (user?.role === Role.WARD_STAFF) {
             navigate({ to: "/ward", search: { tab: "blacklist", detailId: String(feedbackId) } });
           }
-        } else if (item.type === "CAMPAIGN_APPEAL_APPROVED" || item.type === "CAMPAIGN_APPEAL_REJECTED") {
+        } else if (
+          item.type === "CAMPAIGN_APPEAL_APPROVED" ||
+          item.type === "CAMPAIGN_APPEAL_REJECTED"
+        ) {
           navigate({ to: "/profile" });
         } else if (item.type?.startsWith("CAMPAIGN")) {
           if (user?.role === Role.WARD_STAFF) {
@@ -596,6 +602,7 @@ export function WardDashboard() {
     { name: "Tổng quan", section: "overview" as const, icon: Sliders },
     { name: "Phản ánh", section: "feedback" as const, icon: FileText },
     { name: "Chiến dịch", section: "campaign" as const, icon: Activity },
+    { name: "Tin tức", section: "news" as const, icon: FileText },
     { name: "Tin nhắn", section: "chat" as const, icon: MessageSquare },
     { name: "Thống kê", section: "statistics" as const, icon: BarChart3 },
     { name: "Danh sách chặn", section: "blacklist" as const, icon: ShieldAlert },
@@ -883,10 +890,10 @@ export function WardDashboard() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <span className="text-xs font-bold text-slate-800 block truncate">
-                              {item.title}
+                              {translateNotificationTitle(item.title, item.type, locale)}
                             </span>
                             <span className="text-[11px] text-slate-500 mt-0.5 block line-clamp-2 leading-relaxed font-semibold">
-                              {highlightNotificationContent(item.content)}
+                              {highlightNotificationContent(item.content, item.type, locale)}
                             </span>
                           </div>
                         </button>
@@ -1856,6 +1863,8 @@ export function WardDashboard() {
             </>
           ) : activeSection === "campaign" ? (
             <WardCampaignPage hideHeader={true} />
+          ) : activeSection === "news" ? (
+            <NewsManagement />
           ) : activeSection === "chat" ? (
             <WardChatDashboardPage />
           ) : activeSection === "statistics" ? (

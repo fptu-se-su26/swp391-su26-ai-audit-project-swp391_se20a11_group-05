@@ -113,8 +113,10 @@ function mapResponseToCampaign(response: CampaignResponse): Campaign {
 }
 
 export function useCampaignList(): Campaign[] {
+  const { user } = useAuth();
+  const token = typeof window !== "undefined" ? getToken() : null;
   const { data: backendPage } = useQuery<PageResponse<CampaignResponse>>({
-    queryKey: ["campaigns", "list"],
+    queryKey: ["campaigns", "list", token, user?.wardId],
     queryFn: () => campaignApi.getAll(0, 50),
     staleTime: 30_000,
     retry: false,
@@ -610,7 +612,8 @@ export function useCampaignChat(campaignId: string, options?: { enabled?: boolea
                       m.message === message.message &&
                       JSON.stringify(m.imageUrls || []) ===
                         JSON.stringify(message.imageUrls || []) &&
-                      (m.senderName === message.senderName ||
+                      (Number(message.senderId) === Number(user?.id) ||
+                        m.senderName === message.senderName ||
                         m.senderName === "Tôi" ||
                         message.senderName === user?.name),
                   );
@@ -680,7 +683,7 @@ export function useCampaignChat(campaignId: string, options?: { enabled?: boolea
       }
       setIsWsConnected(false);
     };
-  }, [campaignId, enabled, queryClient, token, user?.name]);
+  }, [campaignId, enabled, queryClient, token, user?.name, user?.id]);
 
   const sendMessage = useMutation({
     mutationFn: ({
@@ -709,7 +712,7 @@ export function useCampaignChat(campaignId: string, options?: { enabled?: boolea
 
       const optimisticMessage: CampaignChatMessageResponse = {
         id: -Date.now(),
-        senderId: 0,
+        senderId: user?.id || 0,
         senderName: user?.name || "Tôi",
         senderRole: user?.role || "CITIZEN",
         message: content.trim(),
@@ -778,7 +781,8 @@ export function useCampaignChat(campaignId: string, options?: { enabled?: boolea
                 m.message === savedMessage.message &&
                 JSON.stringify(m.imageUrls || []) ===
                   JSON.stringify(savedMessage.imageUrls || []) &&
-                (m.senderName === savedMessage.senderName ||
+                (Number(savedMessage.senderId) === Number(user?.id) ||
+                  m.senderName === savedMessage.senderName ||
                   m.senderName === "Tôi" ||
                   savedMessage.senderName === user?.name),
             );

@@ -2,7 +2,7 @@ import { lazy, Suspense, useState, useEffect, useRef, useMemo } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNotifications, useMarkNotificationReadMutation } from "@/hooks";
-import { highlightNotificationContent } from "@/lib/notificationHelper";
+import { highlightNotificationContent, translateNotificationTitle } from "@/lib/notificationHelper";
 import { useFeedbackNotification } from "@/hooks/use-notification";
 import { useAuth } from "@/lib/auth";
 import { getLoginPathForRole } from "@/lib/roles";
@@ -28,6 +28,7 @@ import { FeedbacksPage } from "./pages/FeedbacksPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { UsersPage } from "./pages/UsersPage";
 import { PermissionsPage } from "./pages/PermissionsPage";
+import { NewsManagement } from "../news/NewsManagement";
 import { toast } from "sonner";
 import {
   LayoutDashboard,
@@ -148,7 +149,7 @@ export function CityAdminDashboard() {
   const [userOpen, setUserOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<
-    "overview" | "feedbacks" | "reports" | "users" | "permissions"
+    "overview" | "feedbacks" | "reports" | "users" | "news" | "permissions"
   >("overview");
   const [fullscreen, setFullscreen] = useState(false);
 
@@ -279,6 +280,13 @@ export function CityAdminDashboard() {
       icon: Users,
       badge: null,
       description: "Quản lý người dùng",
+    },
+    {
+      name: "Tin tức",
+      tab: "news" as const,
+      icon: FileText,
+      badge: null,
+      description: "Quản lý tin tức",
     },
     // Tạm ẩn Phân quyền theo yêu cầu
     // {
@@ -496,9 +504,11 @@ export function CityAdminDashboard() {
     if (unreadItems.length === 0) return;
     try {
       await Promise.all(unreadItems.map((item) => markRead.mutateAsync(item.id)));
-      toast.success("Đã đánh dấu đọc tất cả thông báo");
+      toast.success(
+        locale === "vi" ? "Đã đánh dấu đọc tất cả thông báo" : "All notifications marked as read",
+      );
     } catch (err) {
-      toast.error("Thao tác thất bại");
+      toast.error(locale === "vi" ? "Thao tác thất bại" : "Action failed");
     }
   };
 
@@ -815,7 +825,7 @@ export function CityAdminDashboard() {
             >
               <Menu size={20} />
             </button>
-            <h2 className="text-lg font-bold text-[#1D2939] font-sans flex items-center gap-2">
+            <h2 className="text-xl font-bold font-heading text-gov-blue-deep flex items-center gap-2">
               {activeTab === "overview" && (
                 <>
                   <Home size={20} className="text-[#0B4FC4]" />
@@ -923,20 +933,22 @@ export function CityAdminDashboard() {
               {notifOpen && (
                 <div className="absolute right-0 mt-2 w-[320px] bg-white border border-[#E4EAF2] rounded-xl shadow-lg py-2.5 z-50 animate-fade-in">
                   <div className="flex items-center justify-between px-4 pb-2 border-b border-slate-100">
-                    <span className="text-xs font-bold text-slate-700">Thông báo mới</span>
+                    <span className="text-xs font-bold text-slate-700">
+                      {locale === "vi" ? "Thông báo mới" : "New Notifications"}
+                    </span>
                     {unreadCount > 0 && (
                       <button
                         onClick={handleMarkAllRead}
                         className="text-[11px] text-[#0B4FC4] hover:underline font-bold"
                       >
-                        Đọc tất cả
+                        {locale === "vi" ? "Đọc tất cả" : "Mark all read"}
                       </button>
                     )}
                   </div>
                   <div className="max-h-[240px] overflow-y-auto divide-y divide-slate-100">
                     {notifications.length === 0 ? (
                       <div className="py-6 text-center text-xs text-slate-400">
-                        Không có thông báo mới
+                        {locale === "vi" ? "Không có thông báo mới" : "No new notifications"}
                       </div>
                     ) : (
                       notifications.slice(0, 5).map((item) => (
@@ -950,10 +962,10 @@ export function CityAdminDashboard() {
                           }`}
                         >
                           <span className="text-xs font-bold text-slate-800 leading-snug">
-                            {item.title}
+                            {translateNotificationTitle(item.title, item.type, locale)}
                           </span>
                           <span className="text-[10px] text-slate-500 mt-1 leading-snug">
-                            {highlightNotificationContent(item.content)}
+                            {highlightNotificationContent(item.content, item.type, locale)}
                           </span>
                         </button>
                       ))
@@ -965,7 +977,7 @@ export function CityAdminDashboard() {
                       onClick={() => setNotifOpen(false)}
                       className="text-xs font-bold text-[#0B4FC4] hover:underline inline-block py-0.5"
                     >
-                      Xem tất cả
+                      {locale === "vi" ? "Xem tất cả" : "See all"}
                     </Link>
                   </div>
                 </div>
@@ -1049,6 +1061,7 @@ export function CityAdminDashboard() {
                 {activeTab === "feedbacks" && <FeedbacksPage />}
                 {activeTab === "reports" && <ReportsPage />}
                 {activeTab === "users" && <UsersPage />}
+                {activeTab === "news" && <NewsManagement />}
                 {/* Tạm ẩn PermissionsPage */}
                 {/* {activeTab === "permissions" && <PermissionsPage />} */}
               </>

@@ -21,9 +21,11 @@ import { Route as FeedbackSearchRouteImport } from './routes/feedback-search'
 import { Route as AuthorityLoginRouteImport } from './routes/authority-login'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TinTucIndexRouteImport } from './routes/tin-tuc.index'
 import { Route as MyReportsIndexRouteImport } from './routes/my-reports.index'
 import { Route as LeaderboardIndexRouteImport } from './routes/leaderboard.index'
 import { Route as CampaignsIndexRouteImport } from './routes/campaigns.index'
+import { Route as TinTucIdRouteImport } from './routes/tin-tuc.$id'
 import { Route as MyReportsIdRouteImport } from './routes/my-reports.$id'
 import { Route as LeaderboardWardIdRouteImport } from './routes/leaderboard.$wardId'
 import { Route as CampaignsCreateRouteImport } from './routes/campaigns.create'
@@ -94,6 +96,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TinTucIndexRoute = TinTucIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => TinTucRoute,
+} as any)
 const MyReportsIndexRoute = MyReportsIndexRouteImport.update({
   id: '/my-reports/',
   path: '/my-reports/',
@@ -108,6 +115,11 @@ const CampaignsIndexRoute = CampaignsIndexRouteImport.update({
   id: '/campaigns/',
   path: '/campaigns/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const TinTucIdRoute = TinTucIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => TinTucRoute,
 } as any)
 const MyReportsIdRoute = MyReportsIdRouteImport.update({
   id: '/my-reports/$id',
@@ -171,7 +183,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/tin-tuc': typeof TinTucRoute
+  '/tin-tuc': typeof TinTucRouteWithChildren
   '/verify-otp': typeof VerifyOtpRoute
   '/assistant': typeof AuthAssistantRoute
   '/city-admin': typeof AuthCityAdminRoute
@@ -181,9 +193,11 @@ export interface FileRoutesByFullPath {
   '/campaigns/create': typeof CampaignsCreateRoute
   '/leaderboard/$wardId': typeof LeaderboardWardIdRoute
   '/my-reports/$id': typeof MyReportsIdRoute
+  '/tin-tuc/$id': typeof TinTucIdRoute
   '/campaigns/': typeof CampaignsIndexRoute
   '/leaderboard/': typeof LeaderboardIndexRoute
   '/my-reports/': typeof MyReportsIndexRoute
+  '/tin-tuc/': typeof TinTucIndexRoute
   '/campaigns/$id/group-chat': typeof CampaignsIdGroupChatRoute
   '/authority/feedback/$feedbackId': typeof AuthAuthorityFeedbackFeedbackIdRoute
 }
@@ -197,7 +211,6 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/tin-tuc': typeof TinTucRoute
   '/verify-otp': typeof VerifyOtpRoute
   '/assistant': typeof AuthAssistantRoute
   '/city-admin': typeof AuthCityAdminRoute
@@ -207,9 +220,11 @@ export interface FileRoutesByTo {
   '/campaigns/create': typeof CampaignsCreateRoute
   '/leaderboard/$wardId': typeof LeaderboardWardIdRoute
   '/my-reports/$id': typeof MyReportsIdRoute
+  '/tin-tuc/$id': typeof TinTucIdRoute
   '/campaigns': typeof CampaignsIndexRoute
   '/leaderboard': typeof LeaderboardIndexRoute
   '/my-reports': typeof MyReportsIndexRoute
+  '/tin-tuc': typeof TinTucIndexRoute
   '/campaigns/$id/group-chat': typeof CampaignsIdGroupChatRoute
   '/authority/feedback/$feedbackId': typeof AuthAuthorityFeedbackFeedbackIdRoute
 }
@@ -225,7 +240,7 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/tin-tuc': typeof TinTucRoute
+  '/tin-tuc': typeof TinTucRouteWithChildren
   '/verify-otp': typeof VerifyOtpRoute
   '/_auth/assistant': typeof AuthAssistantRoute
   '/_auth/city-admin': typeof AuthCityAdminRoute
@@ -235,9 +250,11 @@ export interface FileRoutesById {
   '/campaigns/create': typeof CampaignsCreateRoute
   '/leaderboard/$wardId': typeof LeaderboardWardIdRoute
   '/my-reports/$id': typeof MyReportsIdRoute
+  '/tin-tuc/$id': typeof TinTucIdRoute
   '/campaigns/': typeof CampaignsIndexRoute
   '/leaderboard/': typeof LeaderboardIndexRoute
   '/my-reports/': typeof MyReportsIndexRoute
+  '/tin-tuc/': typeof TinTucIndexRoute
   '/campaigns/$id/group-chat': typeof CampaignsIdGroupChatRoute
   '/_auth/authority/feedback/$feedbackId': typeof AuthAuthorityFeedbackFeedbackIdRoute
 }
@@ -263,9 +280,11 @@ export interface FileRouteTypes {
     | '/campaigns/create'
     | '/leaderboard/$wardId'
     | '/my-reports/$id'
+    | '/tin-tuc/$id'
     | '/campaigns/'
     | '/leaderboard/'
     | '/my-reports/'
+    | '/tin-tuc/'
     | '/campaigns/$id/group-chat'
     | '/authority/feedback/$feedbackId'
   fileRoutesByTo: FileRoutesByTo
@@ -279,7 +298,6 @@ export interface FileRouteTypes {
     | '/register'
     | '/report'
     | '/sitemap.xml'
-    | '/tin-tuc'
     | '/verify-otp'
     | '/assistant'
     | '/city-admin'
@@ -289,9 +307,11 @@ export interface FileRouteTypes {
     | '/campaigns/create'
     | '/leaderboard/$wardId'
     | '/my-reports/$id'
+    | '/tin-tuc/$id'
     | '/campaigns'
     | '/leaderboard'
     | '/my-reports'
+    | '/tin-tuc'
     | '/campaigns/$id/group-chat'
     | '/authority/feedback/$feedbackId'
   id:
@@ -316,9 +336,11 @@ export interface FileRouteTypes {
     | '/campaigns/create'
     | '/leaderboard/$wardId'
     | '/my-reports/$id'
+    | '/tin-tuc/$id'
     | '/campaigns/'
     | '/leaderboard/'
     | '/my-reports/'
+    | '/tin-tuc/'
     | '/campaigns/$id/group-chat'
     | '/_auth/authority/feedback/$feedbackId'
   fileRoutesById: FileRoutesById
@@ -334,7 +356,7 @@ export interface RootRouteChildren {
   RegisterRoute: typeof RegisterRoute
   ReportRoute: typeof ReportRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
-  TinTucRoute: typeof TinTucRoute
+  TinTucRoute: typeof TinTucRouteWithChildren
   VerifyOtpRoute: typeof VerifyOtpRoute
   CampaignsIdRoute: typeof CampaignsIdRouteWithChildren
   CampaignsCreateRoute: typeof CampaignsCreateRoute
@@ -431,6 +453,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tin-tuc/': {
+      id: '/tin-tuc/'
+      path: '/'
+      fullPath: '/tin-tuc/'
+      preLoaderRoute: typeof TinTucIndexRouteImport
+      parentRoute: typeof TinTucRoute
+    }
     '/my-reports/': {
       id: '/my-reports/'
       path: '/my-reports'
@@ -451,6 +480,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/campaigns/'
       preLoaderRoute: typeof CampaignsIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/tin-tuc/$id': {
+      id: '/tin-tuc/$id'
+      path: '/$id'
+      fullPath: '/tin-tuc/$id'
+      preLoaderRoute: typeof TinTucIdRouteImport
+      parentRoute: typeof TinTucRoute
     }
     '/my-reports/$id': {
       id: '/my-reports/$id'
@@ -543,6 +579,19 @@ const AuthRouteChildren: AuthRouteChildren = {
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
+interface TinTucRouteChildren {
+  TinTucIdRoute: typeof TinTucIdRoute
+  TinTucIndexRoute: typeof TinTucIndexRoute
+}
+
+const TinTucRouteChildren: TinTucRouteChildren = {
+  TinTucIdRoute: TinTucIdRoute,
+  TinTucIndexRoute: TinTucIndexRoute,
+}
+
+const TinTucRouteWithChildren =
+  TinTucRoute._addFileChildren(TinTucRouteChildren)
+
 interface CampaignsIdRouteChildren {
   CampaignsIdGroupChatRoute: typeof CampaignsIdGroupChatRoute
 }
@@ -566,7 +615,7 @@ const rootRouteChildren: RootRouteChildren = {
   RegisterRoute: RegisterRoute,
   ReportRoute: ReportRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
-  TinTucRoute: TinTucRoute,
+  TinTucRoute: TinTucRouteWithChildren,
   VerifyOtpRoute: VerifyOtpRoute,
   CampaignsIdRoute: CampaignsIdRouteWithChildren,
   CampaignsCreateRoute: CampaignsCreateRoute,

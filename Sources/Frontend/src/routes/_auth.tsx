@@ -33,29 +33,18 @@ export const Route = createFileRoute("/_auth")({
    * Once httpOnly cookies are in place, replace with: fetch("/api/auth/me")
    */
   beforeLoad: async () => {
-    console.log("=== [_auth] Authentication Check Started ===");
-
     // ── Read stored session ──────────────────────────────────
     // Ensure we're in browser environment
     if (typeof window === "undefined") {
-      console.log("[_auth] SSR environment detected");
       return;
     }
 
     const token = getToken();
     const raw = localStorage.getItem("dn_auth_user_v2");
 
-    console.log("[_auth] Token exists:", !!token, token ? `(${token.substring(0, 15)}...)` : "");
-    console.log("[_auth] User data exists:", !!raw);
-    if (raw) {
-      console.log("[_auth] Raw user data:", raw);
-    }
-
     // ── 1. Not authenticated ─────────────────────────────────
     if (!token || !raw) {
       console.warn("❌ [_auth] Authentication FAILED - Missing credentials");
-      console.log("[_auth] Token present:", !!token);
-      console.log("[_auth] User data present:", !!raw);
       throw redirect({ to: "/authority-login", search: { redirect: undefined, error: undefined } });
     }
 
@@ -70,7 +59,6 @@ export const Route = createFileRoute("/_auth")({
     } | null = null;
     try {
       user = JSON.parse(raw);
-      console.log("[_auth] Parsed user:", { name: user?.name, role: user?.role, org: user?.org });
 
       if (!user || !user.role) {
         console.error("❌ [_auth] Invalid user data structure");
@@ -84,7 +72,6 @@ export const Route = createFileRoute("/_auth")({
     }
 
     const role = parseBackendRole(user.role);
-    console.log("[_auth] Parsed role:", role);
 
     // ── 2. SECURITY: Cross-portal escalation check ───────────
     if (CITIZEN_ROLES.has(role)) {
@@ -98,8 +85,6 @@ export const Route = createFileRoute("/_auth")({
     }
 
     // ── 3. Confirmed authority user — inject into context ────
-    console.log("✅ [_auth] Authentication SUCCESS -", user.name, "as", role);
-    console.log("=== [_auth] Authentication Check Complete ===\n");
 
     return {
       currentUser: {

@@ -13,6 +13,7 @@ import {
   campaignApi,
   notificationApi,
   policeApi,
+  getToken,
   type FeedbackResponse,
   type CategoryResponse,
   type ChatbotResponse,
@@ -456,7 +457,6 @@ export function useDeleteOwnProfileMutation() {
   });
 }
 
-import { getToken } from "@/lib/api";
 
 export function useNotifications(enabled = true) {
   const token = getToken();

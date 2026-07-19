@@ -59,7 +59,7 @@ import {
   type FeedbackResponse,
   type PoliceFeedbackResponse,
 } from "@/lib/api";
-import { highlightNotificationContent } from "@/lib/notificationHelper";
+import { highlightNotificationContent, translateNotificationTitle } from "@/lib/notificationHelper";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -75,6 +75,7 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
+import { NewsManagement } from "../news/NewsManagement";
 
 const CivicMap = clientOnly(
   () => import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
@@ -651,6 +652,7 @@ export function PoliceDashboard() {
     { name: "Tổng quan", id: "overview", icon: Grid },
     { name: "Phản ánh", id: "feedbacks", icon: FileText },
     { name: "Theo dõi xử lý", id: "tracking", icon: Activity },
+    { name: "Tin tức", id: "news", icon: FileText },
     { name: "Báo cáo", id: "reports", icon: BarChart3 },
     { name: "Cấu hình", id: "settings", icon: Sliders },
   ];
@@ -782,13 +784,15 @@ export function PoliceDashboard() {
               {notifOpen && (
                 <div className="absolute right-0 mt-2 w-[340px] bg-white border border-[#E4EAF2] rounded-xl shadow-xl py-3 z-50 animate-fade-in">
                   <div className="flex items-center justify-between px-4 pb-2 border-b border-[#E4EAF2]">
-                    <span className="text-xs font-bold text-[#0B2545]">Thông báo mới</span>
+                    <span className="text-xs font-bold text-[#0B2545]">
+                      {locale === "vi" ? "Thông báo mới" : "New Notifications"}
+                    </span>
                     {unreadCount > 0 && (
                       <button
                         onClick={handleMarkAllRead}
                         className="text-[11px] text-[#0F5BD8] hover:underline font-bold"
                       >
-                        Đánh dấu đã đọc
+                        {locale === "vi" ? "Đánh dấu đã đọc" : "Mark as read"}
                       </button>
                     )}
                   </div>
@@ -807,7 +811,7 @@ export function PoliceDashboard() {
                       </div>
                     ) : notifications.length === 0 ? (
                       <div className="py-8 text-center text-xs text-slate-400">
-                        Không có thông báo mới
+                        {locale === "vi" ? "Không có thông báo mới" : "No new notifications"}
                       </div>
                     ) : (
                       notifications.slice(0, 5).map((item) => (
@@ -823,10 +827,10 @@ export function PoliceDashboard() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <span className="text-xs font-bold text-slate-800 leading-snug block">
-                              {item.title}
+                              {translateNotificationTitle(item.title, item.type, locale)}
                             </span>
                             <span className="text-[11px] text-slate-500 mt-0.5 line-clamp-2 leading-relaxed block">
-                              {highlightNotificationContent(item.content)}
+                              {highlightNotificationContent(item.content, item.type, locale)}
                             </span>
                           </div>
                         </button>
@@ -839,7 +843,7 @@ export function PoliceDashboard() {
                       onClick={() => setNotifOpen(false)}
                       className="text-xs font-bold text-[#0F5BD8] hover:underline inline-block py-1"
                     >
-                      Xem tất cả thông báo
+                      {locale === "vi" ? "Xem tất cả thông báo" : "See all notifications"}
                     </Link>
                   </div>
                 </div>

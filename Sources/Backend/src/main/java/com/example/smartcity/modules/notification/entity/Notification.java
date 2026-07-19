@@ -27,6 +27,7 @@ public class Notification extends BaseEntity {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
+    @Builder.Default
     @Column(name = "type", length = 50)
     private String type = "SYSTEM";
 
@@ -36,6 +37,7 @@ public class Notification extends BaseEntity {
     @Column(name = "feedback_id")
     private Long feedbackId;
 
+    @Builder.Default
     @Column(name = "is_read", nullable = false)
     private boolean isRead = false;
 }

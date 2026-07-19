@@ -201,8 +201,7 @@ function RootComponent() {
     pathname.startsWith("/ward") ||
     pathname.includes("/group-chat") ||
     pathname.startsWith("/city-admin") ||
-    pathname.startsWith("/assistant") ||
-    pathname.startsWith("/feedback-search");
+    pathname.startsWith("/assistant");
 
   return (
     <QueryClientProvider client={queryClient}>

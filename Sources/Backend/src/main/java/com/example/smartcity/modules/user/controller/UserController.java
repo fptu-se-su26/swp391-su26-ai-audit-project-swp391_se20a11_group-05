@@ -20,11 +20,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.transaction.annotation.Transactional;
 import com.example.smartcity.modules.core.repository.WardRepository;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
+@Transactional
 public class UserController extends BaseGenericController<User, UserDTO, Long> {
 
     private final UserService userService;
@@ -115,8 +117,6 @@ public class UserController extends BaseGenericController<User, UserDTO, Long> {
         user.setAvatarUrl(dto.getAvatarUrl());
         if (dto.getWardId() != null) {
             wardRepository.findById(dto.getWardId()).ifPresent(user::setWard);
-        } else {
-            user.setWard(null);
         }
 
         User updated = userService.save(user);
@@ -152,8 +152,6 @@ public class UserController extends BaseGenericController<User, UserDTO, Long> {
         user.setAvatarUrl(dto.getAvatarUrl());
         if (dto.getWardId() != null) {
             wardRepository.findById(dto.getWardId()).ifPresent(user::setWard);
-        } else {
-            user.setWard(null);
         }
 
         User updated = userService.save(user);

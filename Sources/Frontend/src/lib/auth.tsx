@@ -107,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 ...parsed,
                 id: profile.id,
                 name: profile.fullName || parsed.name,
-                wardId: profile.wardId !== undefined ? profile.wardId : parsed.wardId,
+                wardId: (profile.wardId !== undefined && profile.wardId !== null) ? profile.wardId : parsed.wardId,
                 avatarUrl: profile.avatarUrl || parsed.avatarUrl || null,
                 campaignBanned: profile.campaignBanned !== undefined ? profile.campaignBanned : parsed.campaignBanned,
               };
@@ -159,7 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             ...u,
             id: profile.id,
             name: profile.fullName || u.name,
-            wardId: profile.wardId !== undefined ? profile.wardId : u.wardId,
+            wardId: (profile.wardId !== undefined && profile.wardId !== null) ? profile.wardId : u.wardId,
             avatarUrl: profile.avatarUrl || u.avatarUrl || null,
             campaignBanned: profile.campaignBanned !== undefined ? profile.campaignBanned : u.campaignBanned,
           };

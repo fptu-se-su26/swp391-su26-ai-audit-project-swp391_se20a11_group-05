@@ -291,8 +291,22 @@ function ActiveChatArea({ campaignId, onBack }: { campaignId: string; onBack: ()
           (msg.message && msg.message.trim() !== "") || (msg.imageUrls && msg.imageUrls.length > 0),
       )
       .map((msg) => {
-        const isMe = user && user.name === msg.senderName;
+        const isMe =
+          !!user &&
+          (user.id != null && msg.senderId != null && msg.senderId !== 0
+            ? Number(user.id) === Number(msg.senderId)
+            : user.name === msg.senderName || msg.senderName === "Tôi");
         const isHost = msg.senderRole === "WARD_STAFF" || msg.senderRole === "SUPER_ADMIN";
+
+        // Diagnostic log to investigate identity matching issues
+        console.log("[WardChat] isMe check:", {
+          messageId: msg.id,
+          isMe,
+          userId: user?.id,
+          msgSenderId: msg.senderId,
+          userName: user?.name,
+          msgSenderName: msg.senderName,
+        });
 
         let timeStr = "";
         try {

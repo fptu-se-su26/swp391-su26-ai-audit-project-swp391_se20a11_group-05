@@ -62,10 +62,15 @@ public class AuthController {
         rateLimiter.checkLoginLimit(getClientIp(httpRequest));
 
         AuthResponse result = authService.authenticateUser(loginRequest);
-        if (result.isMfaRequired()) {
-            return ResponseEntity.ok(ApiResponse.success("Yêu cầu xác thực MFA", result));
+
+        // [SECURITY] Reset bucket sau khi xác thực thành công — user hợp lệ
+        // không bị phạt vì các lần nhập sai trước đó trong cùng session.
+        // MFA flow không reset ngay vì chưa hoàn thành xác thực đầy đủ.
+        if (!result.isMfaRequired()) {
+            rateLimiter.clearLoginLimit(getClientIp(httpRequest));
+            return ResponseEntity.ok(ApiResponse.success("Đăng nhập thành công", result));
         }
-        return ResponseEntity.ok(ApiResponse.success("Đăng nhập thành công", result));
+        return ResponseEntity.ok(ApiResponse.success("Yêu cầu xác thực MFA", result));
     }
 
     @PostMapping("/mfa/setup")

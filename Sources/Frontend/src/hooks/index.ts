@@ -457,7 +457,6 @@ export function useDeleteOwnProfileMutation() {
   });
 }
 
-
 export function useNotifications(enabled = true) {
   const token = getToken();
   return useQuery<NotificationResponse[]>({

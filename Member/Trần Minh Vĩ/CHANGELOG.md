@@ -534,6 +534,51 @@ Sự khác biệt giữa lập trình viên sơ cấp và kỹ sư thực thụ 
 
 ---
 
+# [Phase 11] Telemetry & Contextual UI Engineering
+
+## Ngày thực hiện
+
+```text
+03/08/2026
+```
+
+## Đã hoàn thành
+
+- [x] Hệ thống giám sát lỗi toàn cục (Global Error Tracking): Triển khai file `error-capture.ts` bắt mọi ngoại lệ (Unhandled Rejections) trước khi framework nuốt lỗi thành mã 500, bảo toàn Stack Trace phục vụ gỡ lỗi.
+- [x] Thiết kế UI/UX theo Ngữ cảnh (Contextual UI) cho Công an Phường: Bác bỏ template Admin truyền thống, tái thiết kế hoàn toàn `PoliceDashboard.tsx` thành dạng tối giản (Minimalist), tập trung vào Nhật ký vận hành (Operation Log) và Huy hiệu danh dự.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Viết cơ chế bắt lỗi Out-of-band (OOB) | Trần Minh Vĩ | error-capture.ts, server.ts | Commit (Phase 11) |
+| 2 | Redesign Giao diện Công an Phường | Trần Minh Vĩ | PoliceDashboard.tsx | Commit (Phase 11) |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI cung cấp ý tưởng dùng Sentry để bắt lỗi và sinh template Admin có biểu đồ. Sinh viên tự viết cơ chế bắt lỗi thủ công bằng Vanilla JS (để tiết kiệm tài nguyên) và thiết kế lại UI bằng mắt thẩm mỹ cá nhân.
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+Commit liên quan đến Phase 11
+```
+
+## Ghi chú
+
+```text
+Phase này chứng minh sinh viên không chỉ biết code theo lối mòn, mà có khả năng tùy biến sâu vào Framework (Error Handling) và thấu hiểu Tâm lý người dùng (Police UX).
+```
+
+---
+
 # 4. Tổng kết thay đổi cuối project
 
 ## 4.1. Các chức năng đã hoàn thành

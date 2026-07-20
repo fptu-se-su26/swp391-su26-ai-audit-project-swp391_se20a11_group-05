@@ -905,6 +905,117 @@ Làm chủ hoàn toàn cơ chế Server-side Pagination & Debounce Search:
 Sự khác biệt giữa Đồ án sinh viên và Phần mềm Doanh nghiệp là khả năng thao tác với tập dữ liệu khổng lồ mà tốc độ vẫn được duy trì.
 ```
 
+---
+
+### Lần sử dụng AI số 15
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Xây dựng cơ chế giám sát lỗi toàn cục (Global Error Tracking) |
+| Phần việc liên quan | Core Framework / Telemetry |
+| Mức độ sử dụng | Hỗ trợ tìm kiếm API nền tảng (Vanilla JS) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Khi ứng dụng React chạy trên Server-Side Rendering (SSR) bị lỗi, framework thường nuốt (swallow) mất Stack Trace và chỉ ném ra một phản hồi HTTP 500 chung chung. Làm sao tôi có thể theo dõi và tóm gọn các lỗi ngoại lệ (Unhandled Rejections) này trước khi chúng bị framework can thiệp?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đề xuất sử dụng dịch vụ trả phí như Sentry.io hoặc Datadog. AI cũng cung cấp đoạn mã mẫu tích hợp Sentry SDK bằng `Sentry.init()`. Ngoài ra, AI nhắc đến sự tồn tại của các sự kiện cấp thấp trong JavaScript như `window.addEventListener('error')`.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Từ chối sử dụng Sentry vì vượt quá ngân sách và không cần thiết cho quy mô sinh viên.
+- Nhận thức được sự tồn tại của sự kiện `unhandledrejection` do AI cung cấp.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Tự thiết kế hệ thống Error Capture Out-Of-Band (OOB):
+- Critical Thinking: Bằng cách lắng nghe sự kiện ở cấp độ `globalThis` thay vì `window` (để hỗ trợ cả môi trường Node.js Server và Browser), tôi có thể bắt mọi lỗi ném ra từ bất kỳ đâu trong hệ thống.
+- Decision Ownership & Creative Synthesis: Tôi tự viết file `error-capture.ts`. Thuật toán của tôi sẽ ghi nhận lại lỗi (record) kèm theo Timestamp (thời gian). Tôi thiết lập một cơ chế Time-To-Live (TTL) là 5 giây. Trong vòng 5 giây đó, nếu Server.ts (engine chính) cần trả về lỗi 500, nó sẽ gọi hàm `consumeLastCapturedError()` của tôi để lôi Stack Trace gốc ra và in vào Log. Kiến trúc siêu nhẹ, không tốn thêm 1 byte thư viện bên ngoài nào, thể hiện sự am hiểu sâu sắc về JavaScript Event Loop.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Telemetry Phase 11 |
+| File liên quan | error-capture.ts, server.ts |
+| Screenshot |  |
+| Kết quả chạy/test | Mọi lỗi crash app đều được hệ thống tóm gọn và in ra Console với đầy đủ dòng code gây lỗi. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Kỹ sư giỏi không phải là người import thư viện (Sentry) giỏi, mà là người hiểu được tại sao thư viện đó hoạt động bằng mã nguồn gốc (Native APIs).
+```
+
+---
+
+### Lần sử dụng AI số 16
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Redesign Giao diện Công an Phường (Police UX) |
+| Phần việc liên quan | Frontend / UI-UX Design |
+| Mức độ sử dụng | Gợi ý Template ban đầu |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Hãy thiết kế cho tôi một giao diện Dashboard cho lực lượng Công an Phường sử dụng để xem danh sách phản ánh an ninh trật tự.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI sinh ra một giao diện Admin tiêu chuẩn (Standard Admin Template) giống hệt trang của UBND Phường: Bao gồm thanh Sidebar lớn nhiều màu sắc, biểu đồ tròn (Pie Chart) thống kê số lượng tội phạm, và một bảng dữ liệu chật kín màn hình.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Giữ lại cấu trúc Grid cơ bản của TailwindCSS.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Thiết kế lại toàn bộ UX dựa trên Ngữ cảnh thực tế (Contextual Design):
+- Contextualization: Môi trường làm việc của Công an Phường đòi hỏi sự tập trung cao độ, tốc độ phản hồi nhanh, và tính kỷ luật. Họ không có thời gian ngồi ngắm "Biểu đồ tròn".
+- Creative Synthesis & Decision Ownership: Tôi bác bỏ Template sặc sỡ của AI. Tôi thiết kế lại trang `PoliceDashboard.tsx` theo phong cách Tối giản (Minimalist). Sidebar được thu nhỏ tối đa. Đặt một Huy hiệu Công an (Emblem) lớn để tạo sự uy nghiêm. Trung tâm màn hình thay vì là biểu đồ, tôi thay bằng Nhật ký vận hành (Operation Log) chạy theo thời gian thực (Real-time). Lực lượng an ninh chỉ cần nhìn vào màn hình là biết ngay khu vực nào đang có biến động khẩn cấp.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Contextual UX Phase 11 |
+| File liên quan | PoliceDashboard.tsx |
+| Screenshot |  |
+| Kết quả chạy/test | Giao diện sắc lạnh, chuyên nghiệp, hiển thị đúng các KPI về An ninh trật tự. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Đừng mang tư duy của dân kinh tế (thích biểu đồ) áp đặt vào UI của lực lượng an ninh (cần hành động nhanh).
+```
+
 ## 5. Bảng tổng hợp mức độ sử dụng AI
 
 Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.

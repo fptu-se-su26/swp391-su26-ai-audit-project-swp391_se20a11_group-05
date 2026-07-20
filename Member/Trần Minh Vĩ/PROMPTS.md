@@ -1077,6 +1077,142 @@ Xử lý dữ liệu lớn bắt buộc phải tính toán ở cấp độ Datab
 
 ---
 
+### Lần 15: Tích hợp Telemetry bắt lỗi toàn cục (Global Error Tracking)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 4/5 |
+| Mục đích | Bắt lỗi Crash ngầm trên Server |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Quá trình Server-Side Rendering (SSR) thi thoảng bị crash ngầm. Framework React/Vite/H3 tự động nuốt (swallow) mất dòng lỗi (Stack Trace) và chỉ trả về mã 500 ra trình duyệt. Tôi không biết dòng code nào gây ra lỗi để sửa.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI đề xuất sử dụng `Sentry.io`. AI viết nguyên một đoạn code `Sentry.init()` và bảo tôi cài đặt thư viện `@sentry/react`. AI cũng nhắc qua về hàm `window.addEventListener('error')` của JavaScript.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Tôi đã từ chối dùng Sentry. Nhưng tôi áp dụng kiến thức về Event Listener cấp thấp của JS do AI nhắc đến.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Xây dựng cơ chế bắt lỗi siêu nhẹ Out-Of-Band (OOB):
+- Critical Thinking: Sentry là một công cụ quá cồng kềnh (bloated) và tốn phí cho một dự án sinh viên. Trong khi đó, Core JS đã cung cấp đủ API để bắt lỗi.
+- Decision Ownership & Creative Synthesis: Tôi tự viết ra `error-capture.ts`. Thay vì bắt lỗi trên `window`, tôi lắng nghe sự kiện `unhandledrejection` trên `globalThis` để cover cả môi trường Node.js (Server). Tôi thiết kế một bộ nhớ tạm (Temporary Buffer) có vòng đời TTL = 5 giây. Nếu lỗi xuất hiện, file của tôi sẽ tóm lấy Stack Trace trước khi Framework kịp can thiệp. Nhờ vậy, mọi lỗi crash ngầm đều hiện rõ mồn một trên Console.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Gợi ý dùng thư viện bên thứ 3 cồng kềnh)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Telemetry Phase 11 |
+| File liên quan | error-capture.ts, server.ts |
+| Screenshot | |
+| Kết quả chạy/test | Bắt thành công 100% lỗi SSR. Console hiển thị Stack Trace rõ ràng. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Nắm vững Core API của JavaScript giá trị hơn việc thuộc lòng cách dùng các thư viện ngoài.
+```
+
+---
+
+### Lần 16: Tái thiết kế Giao diện Công an Phường (Contextual UX)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 3/5 |
+| Mục đích | Tối ưu hóa không gian làm việc của lực lượng an ninh |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Chức năng dành cho Công an Phường cần một màn hình riêng biệt. Tôi muốn thiết kế một Dashboard hiển thị thông tin phản ánh về an ninh trật tự.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI tạo ra một giao diện y hệt trang của UBND Phường: Có Sidebar rất to, ở giữa là các biểu đồ tròn (Pie Chart) và biểu đồ cột (Bar Chart) vẽ bằng `recharts` để "thống kê tội phạm", phía dưới là một cái bảng dài.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Tôi chỉ giữ lại bộ khung HTML Grid. Xóa bỏ toàn bộ biểu đồ và sidebar cồng kềnh.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Contextualization (Thiết kế theo ngữ cảnh thực tế):
+- Critical Thinking: Trưởng công an phường không có thời gian ngồi ngắm "Biểu đồ tròn tỉ lệ %". Khi có vụ đánh nhau hay trộm cắp được báo lên, họ cần biết NGAY LẬP TỨC nó ở đâu và ai đang xử lý. Giao diện của AI là giao diện dành cho Dân văn phòng/Kế toán, không phải dành cho Lực lượng phản ứng nhanh.
+- Decision Ownership & Creative Synthesis: Tôi thiết kế lại `PoliceDashboard.tsx` theo chuẩn Minimalist (Tối giản). Sidebar được thu lại siêu mỏng. Logo thay bằng Huy hiệu Công an lớn để tạo sự uy nghiêm. Phần trung tâm màn hình biến thành một "Nhật ký vận hành" (Operation Log) Real-time. Cán bộ trực ban chỉ cần nhìn lướt là nắm bắt được toàn bộ dòng chảy sự kiện.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Sai lệch UX)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Contextual UX Phase 11 |
+| File liên quan | PoliceDashboard.tsx |
+| Screenshot | |
+| Kết quả chạy/test | Giao diện sắc bén, thao tác xử lý báo cáo an ninh trật tự chỉ mất 2 click. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+AI không hiểu được tâm lý và môi trường làm việc đặc thù của người dùng cuối. UX/UI phải do con người quyết định.
+```
+
+---
+
 ## 6. Prompt quan trọng nhất
 
 Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.

@@ -13,7 +13,7 @@
 | MSSV / Danh sách MSSV | DE190182 |
 | Giảng viên hướng dẫn | Lê Thiện Nhật Quang |
 | Ngày bắt đầu | 2026-05-12 |
-| Ngày cập nhật gần nhất | 2026-06-30 |
+| Ngày cập nhật gần nhất | 2026-08-02 |
 
 ---
 
@@ -58,6 +58,8 @@ Sinh viên/nhóm cần ghi lại:
 | 4 | 15/06/2026 | Antigravity | UI/UX Redesign & Optimization | Thiết kế lại giao diện UBND & Công an Phường | Giao diện dashboard tối ưu kèm bản đồ Leaflet động | Có | AI_AUDIT_LOG.md |
 | 5 | 28/06/2026 | Antigravity | Code frontend & Tối ưu | Xây dựng UsersPage, NewsManagement và xử lý DataGrid lớn | Gợi ý Client-side Virtualization, Layout khung | Có | AI_AUDIT_LOG.md |
 | 6 | 30/06/2026 | Antigravity, Gemini | Thiết kế Backend & Tích hợp AI | Tích hợp AI Vision API lọc ảnh rác | Đề xuất phân tích ảnh Base64 đồng bộ | Có | AI_AUDIT_LOG.md |
+| 7 | 01/08/2026 | Antigravity | Thiết kế & Code frontend | Xây dựng Cổng Du khách (Tourist Portal) | Code khung UI, gợi ý grid layout | Có | AI_AUDIT_LOG.md |
+| 8 | 02/08/2026 | Antigravity | Khắc phục xung đột Git & Code | Thiết kế bản đồ Chiến dịch tình nguyện & Xử lý lỗi Git | Gợi ý dùng Zustand và PowerShell Stop-Process | Có | AI_AUDIT_LOG.md |
 
 ---
 
@@ -523,6 +525,148 @@ Sử dụng 4 kỹ năng chính để cải tiến:
 Sự khác biệt giữa code chạy được và code đưa vào Production thực tế nằm ở tư duy kiến trúc và tối ưu luồng (Workflow Optimization).
 ```
 
+### Prompt số 7
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-01 |
+| Công cụ AI | Antigravity |
+| Mục đích | Thiết kế & Code frontend |
+| Phần việc liên quan | Frontend / Cổng Du khách (Tourist Portal) |
+| Mức độ sử dụng | Hỏi ý tưởng / Thiết kế giải pháp |
+
+#### 5.1. Prompt nguyên văn
+
+```text
+- Xây dựng Cổng Du khách (Tourist Portal) cho ứng dụng Đà Nẵng Kết Nối. Giao diện cần có các tiện ích khám phá điểm đến, tin tức sự kiện du lịch, danh bạ khẩn cấp và tab thông tin du khách (Bản đồ tiện ích).
+```
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Dự án cần bổ sung giao diện Cổng Du khách (Tourist Portal) dành riêng cho đối tượng du khách tới Đà Nẵng. Mục tiêu là giúp họ tra cứu nhanh thông tin khẩn cấp, xem bản đồ tiện ích và cập nhật sự kiện sự cố giao thông/ngập lụt nhanh chóng mà không cần phải thực hiện các bước đăng ký hay đăng nhập rườm rà.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI đề xuất sử dụng React, Tailwind và Lucide Icons để code các component `TouristExploreCards` (thẻ khám phá), `TouristNewsSlider` (tin tức trượt), `TouristInfoTabs` (tab thông tin), `DisasterContactDirectory` (danh bạ khẩn cấp). Giao diện AI sinh ra thiên về thiết kế lưới trực quan (grid layout), tập trung vào hiển thị văn bản (Read-only UI) với các thẻ tĩnh.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Sử dụng các file khung component do AI tạo ra (cấu trúc React component, class Tailwind CSS cho màu sắc và kích thước) để làm xương sống giao diện. Tái sử dụng cách AI phân bổ các Grid Layout giúp responsive tốt trên thiết bị di động.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Cải tiến lớn nhất là tư duy UX (User Experience) trong bối cảnh thực tế: Biến UI tĩnh thành UI tương tác (Actionable UI). Khi một du khách gặp nạn trên phố, họ không thể bình tĩnh mở app, copy số điện thoại, thoát app và mở ứng dụng gọi điện.
+- Critical Thinking & Contextualization: Tôi đã bác bỏ thiết kế hiển thị số đơn thuần của AI. Thay vào đó, tôi bổ sung thẻ `href="tel:..."` cho toàn bộ danh bạ để khách du lịch có thể chạm (tap) để gọi điện ngay lập tức đến cơ quan chức năng.
+- Creative Synthesis: Tích hợp thêm một bản đồ nhỏ (Mini Map) dùng thư viện Leaflet vào thẳng trong thẻ thông tin. Điều này giúp du khách không những gọi được điện mà còn định hướng đường đi gần nhất tới đồn công an hoặc bệnh viện. Quyết định thiết kế này giúp hệ thống mang lại giá trị cứu hộ thực sự.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Phase 07 |
+| File liên quan | TouristInfoTabs.tsx, DisasterContactDirectory.tsx |
+| Screenshot | |
+| Kết quả chạy/test | Click gọi điện hoạt động bình thường, layout responsve tốt trên mobile. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Luôn chú ý tính thực dụng khi thiết kế UI cho khách vãng lai.
+```
+
+---
+
+### Prompt số 8
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-02 |
+| Công cụ AI | Antigravity |
+| Mục đích | Phát triển tính năng & Xử lý Git Conflict |
+| Phần việc liên quan | Frontend / State Management / Git Workflow |
+| Mức độ sử dụng | Hỏi ý tưởng / Hỗ trợ xử lý lỗi |
+
+#### 5.1. Prompt nguyên văn
+
+```text
+- Thiết kế trang bản đồ hiển thị các Chiến dịch tình nguyện, tích hợp cửa sổ chat (FloatingCampaignChat) thời gian thực và xử lý lỗi xung đột Git phức tạp khi merge nhánh Vi vào main do Server Vite build file tự động gây lỗi.
+```
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Team đang triển khai tính năng hiển thị Chiến dịch tình nguyện lên bản đồ và cần kết nối nó với khung chat thời gian thực (FloatingCampaignChat) để người dân trao đổi. Đồng thời, toàn bộ hệ thống đang bị đình trệ do một lỗi Git Merge Loop nghiêm trọng: Lệnh `git merge` nhánh Vi vào nhánh main liên tục thất bại do file `routeTree.gen.ts` bị thay đổi ngoài ý muốn và không thể resolve conflict.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+Về tính năng: AI đề xuất sử dụng thư viện Zustand (`useCampaignStore`) để tạo Global State, giúp đồng bộ dữ liệu giữa Map Component và Chat Component mượt mà không cần truyền prop. Về lỗi Git: AI phân tích nguyên nhân gốc rễ là do tiến trình watch của server Vite chạy ngầm và liên tục sinh lại (re-generate) file `routeTree.gen.ts`. AI gợi ý dùng lệnh `Stop-Process` trên PowerShell để tắt server trước khi merge, và dùng `git filter-branch` để dọn sạch các commit hỏng trước đó.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Khởi tạo Zustand store thành công để quản lý ID của chiến dịch đang được người dùng chọn. Làm theo chính xác các bước dừng tiến trình Node trên Terminal và dọn dẹp lịch sử bằng các lệnh Git nâng cao.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Làm chủ hoàn toàn hệ thống Build Tools và Version Control:
+- Decision Ownership: Thay vì sợ hãi mất code hay nhờ sự trợ giúp bên ngoài, tôi quyết định trực tiếp xử lý tận gốc rễ. Tôi viết một quy trình (script) dọn dẹp lịch sử commit lỗi.
+- Critical Thinking: Nhận ra việc thao tác Git trong lúc đang chạy hot-reload là hành động cực kỳ rủi ro. Tôi chủ động ngắt mọi tiến trình có khả năng can thiệp file rác (`Stop-Process -Name "node"`), tạo ra một môi trường "tĩnh" an toàn. Sau đó, tôi gộp nhánh (merge) một cách có kiểm soát và đẩy code thành công lên `main`, bảo vệ toàn vẹn kiến trúc của dự án, chứng minh năng lực System Troubleshooting thực tế.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Merge commit Phase 07 |
+| File liên quan | SingleCampaignMap.tsx, useCampaignStore.ts |
+| Screenshot | |
+| Kết quả chạy/test | Xóa hoàn toàn xung đột trên Git, nhánh Vi merge mượt mà. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Luôn chú ý tắt các tool auto-build khi thao tác Git Merge.
+```
+
 ---
 
 ## 6. Prompt quan trọng nhất
@@ -596,7 +740,7 @@ Sẽ yêu cầu thêm những giới hạn về mặt ngân sách và công ngh�
 |---|---:|---|
 | Prompt phân tích yêu cầu | 1 | Lỗ hổng hệ thống thực tế |
 | Prompt giải thích kiến thức |  |  |
-| Prompt thiết kế giải pháp | 2 | Quy trình GitHub Flow & API Contract; Thiết kế lại giao diện UBND & Công an Phường |
+| Prompt thiết kế giải pháp | 4 | Quy trình GitHub Flow & API Contract; Thiết kế lại giao diện UBND & Công an Phường, Thiết kế Cổng Du khách, Thiết kế chat thời gian thực |
 | Prompt thiết kế database |  |  |
 | Prompt sinh code mẫu | 1 | Cấu hình @Async Thread Pool & SMS OTP |
 
@@ -631,4 +775,4 @@ Sinh viên/nhóm cam kết rằng:
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-| Trần Minh Vĩ | 2026-06-30 |
+| Trần Minh Vĩ | 2026-08-02 |

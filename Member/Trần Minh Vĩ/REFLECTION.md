@@ -12,7 +12,7 @@
 | Tên sinh viên / Nhóm | Trần Minh Vĩ / Group05 |
 | MSSV / Danh sách MSSV | DE190182 |
 | Giảng viên hướng dẫn | Lê Thiện Nhật Quang |
-| Ngày hoàn thành reflection | 2026-06-15 |
+| Ngày hoàn thành reflection | 2026-08-02 |
 
 ---
 
@@ -35,7 +35,7 @@ Reflection cần thể hiện:
 Mô tả ngắn gọn quá trình sử dụng AI trong bài tập/project này.
 
 ```text
-Em đã sử dụng AI ở các giai đoạn phân tích yêu cầu (Requirement) để phân rã bài toán lớn và nhận diện rủi ro thực tế; thiết kế kiến trúc hệ thống để xử lý các tác vụ bất đồng bộ; và phát triển giao diện (Implementation) để tái thiết kế lại giao diện dashboard của UBND và Công an Phường. Công cụ dùng nhiều nhất là Gemini và Antigravity. AI giúp nâng tầm thiết kế giao diện và code khung nhanh, nhưng em luôn trực tiếp cải tiến logic để phù hợp với nghiệp vụ hành chính công thực địa.
+Em đã sử dụng AI ở các giai đoạn phân tích yêu cầu (Requirement) để phân rã bài toán lớn và nhận diện rủi ro thực tế; thiết kế kiến trúc hệ thống để xử lý các tác vụ bất đồng bộ; phát triển giao diện (Implementation) để tái thiết kế lại giao diện dashboard của UBND và Công an Phường, xây dựng Cổng Du khách (Tourist Portal); và cuối cùng là hỗ trợ phát triển tính năng chat thời gian thực cho Chiến dịch tình nguyện và gỡ lỗi xung đột Git (Git Conflict Resolution). Công cụ dùng nhiều nhất là Gemini và Antigravity. AI giúp nâng tầm thiết kế giao diện và code khung nhanh, nhưng em luôn trực tiếp cải tiến logic để phù hợp với nghiệp vụ hành chính công thực địa và bảo vệ an toàn cho hệ thống mã nguồn.
 ```
 
 ---
@@ -186,6 +186,20 @@ Em đã áp dụng Critical Thinking để bác bỏ những đề xuất chưa 
 - **Cách sửa đổi:** Tự thiết lập CivicMap.tsx để sử dụng L.divIcon tạo HTML/CSS Marker động tùy biến màu sắc dựa trên trạng thái (Đỏ, Cam, Xanh dương, Xanh lá). Tự viết hàm trích xuất tên đường phố động từ chuỗi địa chỉ đầy đủ của các phản ánh được fetch từ database và sắp xếp theo số lượng phản ánh giảm dần để xác định khu vực cần ưu tiên.
 - **Bài học rút ra:** Luôn phân tích nghiệp vụ thực tế của người sử dụng (cán bộ) trước khi chấp nhận các giải pháp giao diện đơn giản từ AI. Cần động hóa các thành phần hiển thị dựa trên dữ liệu thật để hệ thống có tính thực tiễn cao.
 
+### Ví dụ 5: AI thiết kế giao diện Cổng Du khách tĩnh (Read-only UI)
+- **AI đã gợi ý gì:** Thiết kế Cổng Du khách với các khối thông tin hiển thị danh bạ khẩn cấp dưới dạng text tĩnh để người dùng đọc.
+- **Vì sao chưa phù hợp:** Khách du lịch sử dụng điện thoại khi đang di chuyển trên đường. Khi gặp nạn hoặc cần cứu hộ khẩn cấp, họ cần thao tác bấm để gọi ngay lập tức chứ không thể đọc số và ghi nhớ để gõ lại.
+- **Phát hiện bằng cách nào:** Dùng Contextualization (bối cảnh hóa), đặt bản thân vào vị trí người bị nạn.
+- **Cách sửa đổi:** Bổ sung ngay thẻ `href="tel:..."` để kích hoạt tính năng gọi điện trực tiếp, đồng thời tích hợp Mini Map vào tab thông tin để du khách định vị nhanh chóng.
+- **Bài học rút ra:** Thiết kế UI không chỉ để cho đẹp (thẩm mỹ) mà phải nhắm tới khả năng tương tác (Actionable) và giải quyết nhu cầu tức thì của người dùng.
+
+### Ví dụ 6: Gộp nhánh Git (Merge Conflict) bị lỗi do Tool Build tự động
+- **AI đã gợi ý gì:** Khi tôi thắc mắc tại sao lệnh `git merge` bị lỗi đè file `routeTree.gen.ts`, AI giải thích do server Vite sinh tự động. AI gợi ý một số cách xóa file hoặc commit đè.
+- **Vì sao chưa phù hợp:** Các công cụ build như Vite hoặc Webpack (ở chế độ watch/hot-reload) liên tục quét và sửa đổi hệ thống file ngầm. Việc cố gắng commit thủ công khi tiến trình vẫn đang chạy sẽ sinh ra lỗi liên hoàn (Merge Loop).
+- **Phát hiện bằng cách nào:** Nhận thấy file `routeTree.gen.ts` cứ bị thay đổi trở lại sau mỗi vài giây ngay cả khi vừa dọn dẹp.
+- **Cách sửa đổi:** Tắt triệt để nguyên nhân gốc: Sử dụng lệnh PowerShell `Stop-Process` để tắt mọi server Node/Vite đang chạy ẩn. Dùng `git filter-branch` xóa commit rác. Cuối cùng thực hiện gộp nhánh một cách an toàn.
+- **Bài học rút ra:** Khi xử lý Git Conflict, phải đảm bảo toàn bộ các tiến trình build tự động đang chạy ngầm đã được tắt hoàn toàn để hệ thống file ở trạng thái tĩnh.
+
 ---
 
 ## 9. Phần đóng góp thật sự của sinh viên/nhóm
@@ -200,6 +214,8 @@ Mô tả rõ phần nào là đóng góp chính của sinh viên/nhóm, không p
 - Xây dựng tư duy Contextualization cho đặc thù TP Đà Nẵng.
 - Quyết định tối biến Marker Leaflet động bằng CSS/HTML divIcon phân loại mức độ khẩn cấp (Đỏ, Cam, Xanh dương, Xanh lá) trên CivicMap.tsx.
 - Xây dựng giải thuật trích xuất địa bàn từ dữ liệu thật để hiển thị các Tổ dân phố / Khu vực cần ưu tiên động.
+- Cải biến giao diện tĩnh Cổng Du khách thành giao diện có tính tương tác cao (Actionable UI) với nút bấm gọi điện khẩn cấp.
+- Đưa ra quyết định dừng hoàn toàn các tiến trình tự động (Vite server) trước khi xử lý xung đột Git để bảo vệ an toàn nhánh `main`.
 ```
 
 ---
@@ -307,4 +323,4 @@ Em/nhóm cam kết rằng nội dung reflection này phản ánh trung thực qu
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-| Trần Minh Vĩ | 2026-06-15 |
+| Trần Minh Vĩ | 2026-08-02 |

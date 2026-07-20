@@ -350,6 +350,55 @@ Hoàn tất việc vá "Lỗ hổng rác dữ liệu" đã được nhận diệ
 
 ---
 
+# [Phase 07] Tourist Portal & Active Campaigns
+
+## Ngày thực hiện
+
+```text
+01/08/2026 - 03/08/2026
+```
+
+## Đã hoàn thành
+
+- [x] Xây dựng Cổng Du khách (Tourist Portal) với danh bạ khẩn cấp, tin tức sự kiện và thẻ khám phá.
+- [x] Thiết kế tính năng Chiến dịch tình nguyện (Active Campaigns) với bản đồ tình nguyện viên và khung chat thời gian thực.
+- [x] Sử dụng Zustand quản lý state đồng bộ giữa bản đồ và khung chat (`useCampaignStore`).
+- [x] Xử lý triệt để xung đột Git khi gộp nhánh `Vi` vào `main`, dọn dẹp lịch sử commit lỗi.
+- [x] Sửa lỗi xung đột do Server Vite tự động sinh file `routeTree.gen.ts`.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Xây dựng Cổng Du khách (Tourist components) | Trần Minh Vĩ | TouristExploreCards.tsx, DisasterContactDirectory.tsx, TouristInfoTabs.tsx | Commit (Phase 07) |
+| 2 | Tính năng Chiến dịch tình nguyện & Chat | Trần Minh Vĩ | SingleCampaignMap.tsx, FloatingCampaignChat.tsx, useCampaignStore.ts | Commit (Phase 07) |
+| 3 | Xử lý Git Conflict & Dọn lịch sử | Trần Minh Vĩ | Git / Repository | Terminal logs |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+Sử dụng Antigravity để code khung giao diện Tourist Portal, xây dựng tính năng bản đồ và chat cho Chiến dịch tình nguyện. Tư vấn các lệnh PowerShell và Git để xử lý merge conflict phức tạp.
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+Commit liên quan đến Tourist Portal, Active Campaigns và Merge nhánh Vi vào main
+```
+
+## Ghi chú
+
+```text
+Giải quyết thành công vấn đề Vite tự động sinh file rác gây lỗi Git Merge bằng cách dừng hẳn process trước khi gộp code.
+```
+
+---
+
 # 4. Tổng kết thay đổi cuối project
 
 ## 4.1. Các chức năng đã hoàn thành
@@ -364,6 +413,9 @@ Hoàn tất việc vá "Lỗ hổng rác dữ liệu" đã được nhận diệ
 | 6 | Quản lý Người dùng City Admin | Completed | [UsersPage.tsx](file:///d:/FPT/ki5/SWP302/swp391-su26-ai-audit-project-swp391_se20a11_group-05/Sources/Frontend/src/features/city-admin/pages/UsersPage.tsx) | Server-side Pagination & Filtering |
 | 7 | Quản lý Tin tức và Cấu hình Phường | Completed | [NewsManagement.tsx](file:///d:/FPT/ki5/SWP302/swp391-su26-ai-audit-project-swp391_se20a11_group-05/Sources/Frontend/src/features/news/NewsManagement.tsx) | Giao diện cho Admin và Ward |
 | 8 | Tích hợp AI Vision lọc rác dữ liệu | Completed | Backend (VisionAIWorker, EventPublisher) | Tự động reject ảnh selfie, ảnh lỗi |
+| 9 | Xây dựng Cổng Du khách (Tourist Portal) | Completed | Các component Tourist*.tsx | Đầy đủ thẻ khám phá, danh bạ khẩn cấp, tin tức |
+| 10 | Chiến dịch tình nguyện (Active Campaigns) | Completed | SingleCampaignMap.tsx, useCampaignStore.ts | Map kết hợp chat thời gian thực |
+| 11 | Git Workflow & Conflict Resolution | Completed | Lịch sử Git Terminal | Khắc phục triệt để lỗi gộp nhánh do Vite |
 
 ---
 

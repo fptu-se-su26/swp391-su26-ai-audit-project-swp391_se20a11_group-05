@@ -13,7 +13,7 @@
 | MSSV / Danh sách MSSV | DE190182 |
 | Giảng viên hướng dẫn | Lê Thiện Nhật Quang |
 | Ngày bắt đầu | 2026-05-12 |
-| Ngày hoàn thành | 2026-06-30 |
+| Ngày cập nhật gần nhất | 2026-08-02 |
 
 ---
 
@@ -447,6 +447,122 @@ Lần sử dụng AI này thực sự là một bài kiểm tra trình độ Sys
 
 ---
 
+### Lần sử dụng AI số 7
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-01 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Thiết kế & Code frontend Cổng Du khách |
+| Phần việc liên quan | Frontend / UI/UX / Cổng Du khách (Tourist Portal) |
+| Mức độ sử dụng | Hỗ trợ nhiều |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Xây dựng Cổng Du khách (Tourist Portal) cho ứng dụng Đà Nẵng Kết Nối. Giao diện cần có các tiện ích khám phá điểm đến, tin tức sự kiện du lịch, danh bạ khẩn cấp và tab thông tin du khách (Bản đồ tiện ích).
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI sử dụng React, Tailwind, Lucide Icons để thiết kế mã nguồn các component `TouristExploreCards`, `TouristNewsSlider`, `TouristInfoTabs`, `DisasterContactDirectory`. Gợi ý bố cục lưới (grid layout) để hiển thị thông tin trực quan.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Sử dụng toàn bộ cấu trúc thư mục và layout component do AI sinh ra để đảm bảo tính nhất quán với thiết kế tổng thể của dự án (React Functional Components, Tailwind CSS classes).
+- Tái sử dụng các thẻ Card từ thư viện Lucide Icons mà AI đã gợi ý để dựng khung giao diện nhanh chóng cho phần hiển thị tin tức sự kiện (TouristNewsSlider) và danh bạ liên hệ (DisasterContactDirectory).
+- Học hỏi cách AI phân chia các tab (Tabs) để tránh nhồi nhét quá nhiều thông tin lên một màn hình, giúp trải nghiệm cuộn trang (scroll) mượt mà hơn.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Sử dụng 4 kỹ năng chính để cải tiến giải pháp của AI (chuyển đổi từ UI tĩnh sang UI tương tác khẩn cấp):
+- Critical Thinking: Khi nhận được code từ AI, tôi nhận thấy đây chỉ là một "Read-only UI" (giao diện chỉ đọc). Đối với người dùng thông thường thì không sao, nhưng với đối tượng là khách du lịch vãng lai, họ thường sử dụng điện thoại khi đang di chuyển trên đường. Việc bắt họ phải đọc dòng text số điện thoại khẩn cấp, thoát ứng dụng ra, rồi mở bàn phím điện thoại để gõ lại là một thiết kế UX tồi, có thể gây nguy hiểm trong các tình huống cứu hộ khẩn cấp.
+- Contextualization: Đặt mình vào bối cảnh một du khách gặp tai nạn hoặc bị mất trộm tại Đà Nẵng, tâm lý của họ rất hoảng loạn. Giao diện lúc này cần sự tối giản nhưng phải trực tiếp tạo ra hành động (Actionable). Do đó, tôi cần biến mọi số điện thoại thành nút bấm kích hoạt cuộc gọi.
+- Creative Synthesis: Tôi đã can thiệp vào component `DisasterContactDirectory` và `TouristInfoTabs`. Cụ thể, tôi bọc các số điện thoại bằng thẻ `href="tel:..."` kết hợp CSS làm nổi bật thành một nút Call-to-Action (CTA) màu đỏ/cam. Đồng thời, tôi tích hợp thêm một bản đồ nhỏ (Mini Map) ngay trong tab thông tin để du khách không chỉ gọi điện mà còn thấy được vị trí trạm hỗ trợ gần nhất so với tọa độ GPS hiện tại của họ.
+- Decision Ownership: Tôi quyết định không chấp nhận giải pháp "đẹp nhưng thiếu thực dụng" của AI. Việc nâng cấp giao diện từ tĩnh sang tương tác đã thay đổi hoàn toàn giá trị cốt lõi của tính năng, biến Cổng Du khách thành một công cụ cứu trợ thực sự chứ không chỉ là một trang tin tức du lịch thông thường.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Phase 07 |
+| File liên quan | TouristExploreCards.tsx, DisasterContactDirectory.tsx, TouristInfoTabs.tsx |
+| Screenshot |  |
+| Kết quả chạy/test | Các tab chuyển động mượt mà, bấm gọi điện trực tiếp hoạt động tốt. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Em đã áp dụng thành công kỹ năng thiết kế UI/UX nhắm vào đối tượng đặc thù (khách du lịch) và luôn biết cách bổ sung giá trị hành động (Call-to-Action) vào các gợi ý giao diện tĩnh của AI.
+```
+
+---
+
+### Lần sử dụng AI số 8
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-02 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Phát triển tính năng phức tạp & Khắc phục xung đột Git |
+| Phần việc liên quan | Frontend / State Management / Git Workflow |
+| Mức độ sử dụng | Hỗ trợ nhiều |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Thiết kế trang bản đồ hiển thị các Chiến dịch tình nguyện, tích hợp cửa sổ chat (FloatingCampaignChat) thời gian thực và xử lý lỗi xung đột Git phức tạp khi merge nhánh Vi vào main do Server Vite build file tự động gây lỗi.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI code giao diện bản đồ `SingleCampaignMap`, cửa sổ chat và gợi ý dùng `Zustand` để đồng bộ state chat và map (`useCampaignStore`). Về Git, AI giải thích Vite tự động ghi đè `routeTree.gen.ts` gây lỗi và gợi ý dùng lệnh dừng tiến trình Node (`Stop-Process`) trước khi gộp nhánh, kết hợp với script `git filter-branch` để xóa các commit hỏng.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Kế thừa cấu trúc Store của Zustand (`useCampaignStore`) để quản lý global state, giúp tránh việc truyền props (props drilling) lằng nhằng giữa bản đồ và khung chat.
+- Sử dụng các code mẫu của AI để khởi tạo bản đồ `SingleCampaignMap` và component `FloatingCampaignChat`.
+- Áp dụng triệt để những hướng dẫn của AI trên Terminal (PowerShell) để tìm kiếm và tiêu diệt các tiến trình ẩn (PID) đang can thiệp vào quá trình xử lý Git.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Sử dụng 4 kỹ năng chính để cải tiến giải pháp (Làm chủ công cụ Git và gỡ lỗi hệ thống):
+- Critical Thinking: Khi đối mặt với tình trạng Git báo lỗi Conflict liên tục tại file `routeTree.gen.ts`, thay vì bối rối gõ các lệnh `git merge --abort` hay cố gắng commit đè một cách mù quáng như những lần trước, tôi đã dừng lại để phân tích nguyên nhân gốc rễ (Root Cause Analysis). Tôi nhận ra rằng file này do Vite (công cụ build frontend) tự động sinh ra khi nó chạy ở chế độ watch. Nghĩa là hệ thống file đang bị thay đổi ngầm liên tục, khiến Git không thể chốt được trạng thái để merge.
+- Contextualization: Trong môi trường làm việc nhóm, nhánh `main` là trái tim của dự án. Nếu tôi cố tình ép merge (Force Merge) khi có file rác, nó sẽ làm hỏng toàn bộ lịch sử commit của nhóm, hoặc tệ hơn là làm sập build pipeline. Các lỗi lầm từ các agent AI trước đó đã để lại rất nhiều commit hỏng trên nhánh `Vi`. Tôi cần một giải pháp dọn dẹp sạch sẽ trước khi hợp nhất.
+- Creative Synthesis: Tôi thiết kế một kịch bản gỡ lỗi 3 bước vô cùng chặt chẽ. Bước 1: Dùng lệnh `Stop-Process` của PowerShell để cưỡng chế tắt hoàn toàn server Vite, đảm bảo không còn tiến trình nào can thiệp ngầm vào hệ thống file. Bước 2: Dạy lại lịch sử Git bằng cách chạy lệnh nâng cao để gỡ các commit lỗi ra khỏi nhánh `Vi`. Bước 3: Thực hiện gộp nhánh (`git merge main`) trong một môi trường tĩnh hoàn toàn an toàn, xử lý conflict thủ công một cách chính xác.
+- Decision Ownership: Thay vì sợ hãi việc "mất code" khi can thiệp vào lịch sử Git, tôi đã chủ động kiểm soát hoàn toàn bộ máy Version Control. Quyết định tắt server trước khi thao tác Git là một quyết định kỹ thuật nhỏ nhưng cho thấy sự thấu hiểu sâu sắc về cách thức hoạt động đồng thời (Concurrency) giữa các công cụ trong môi trường lập trình (Build Tool vs. Version Control).
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Merge commit Phase 07 |
+| File liên quan | SingleCampaignMap.tsx, FloatingCampaignChat.tsx, useCampaignStore.ts |
+| Screenshot |  |
+| Kết quả chạy/test | Nhánh `Vi` đã được gộp an toàn vào nhánh `main` mà không làm hỏng file `routeTree.gen.ts`. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Em rút ra bài học xương máu về Git: Không bao giờ thực hiện Merge nhánh khi Server (như Vite/Webpack) đang chạy ở chế độ Watch/Hot-Reload, vì hệ thống file sẽ bị thay đổi ngầm gây thất bại quá trình gộp code.
+```
+
 ## 5. Bảng tổng hợp mức độ sử dụng AI
 
 Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.
@@ -480,6 +596,8 @@ Ghi lại các trường hợp AI trả lời sai, thiếu, chưa phù hợp ho�
 | 3 | AI đề xuất sử dụng Marker mặc định màu xanh của Leaflet cho mọi phản ánh trên bản đồ. | Xem giao diện bản đồ, nhận thấy tất cả ghim đều hiển thị cùng màu xanh dương, không khớp với Legend phân màu trạng thái. | Tự cấu hình CivicMap.tsx dùng L.divIcon tạo HTML/CSS Marker động đổi màu tương ứng với trạng thái (Đỏ, Cam, Xanh dương, Xanh lá). |
 | 4 | AI đề xuất dùng kỹ thuật Virtualization ở Frontend (react-window) để hiển thị bảng dữ liệu người dùng hàng trăm ngàn bản ghi. | Đánh giá kiến trúc hệ thống: Giải pháp này tải quá nhiều dữ liệu JSON về trình duyệt gây nghẽn băng thông và rủi ro bảo mật thông tin. | Chuyển sang mô hình Server-Side Pagination, Filtering & Sorting. Tự viết Custom Hook dùng React Query để chỉ fetch dữ liệu theo trang. |
 | 5 | AI gợi ý gọi API Google Cloud Vision phân tích ảnh một cách đồng bộ (Synchronous) và gửi ảnh dạng Base64 qua HTTP. | Tư duy phản biện: Gửi Base64 tốn RAM, gọi API đồng bộ khiến thời gian phản hồi kéo dài 3-5 giây, làm treo UI của ứng dụng phía người dân và chặn (block) Thread của server. | Chuyển sang Kiến trúc Event-Driven (Message Queue) để xử lý ảnh nền (Background Processing) và dùng Pre-signed URL upload ảnh trực tiếp lên Storage. |
+| 6 | AI thiết kế Cổng Du khách với giao diện chỉ đọc (Read-only UI) thiếu tính tương tác khẩn cấp. Mọi thông tin (số điện thoại, địa chỉ) đều chỉ là các thẻ text đơn điệu. | Dựa vào bối cảnh thực tế (Contextualization), khi du khách gặp nạn trên đường, tâm lý họ rất hoảng loạn. Họ cần những nút bấm thật to để gọi điện thoại ngay, chứ không phải chỉ hiển thị số để họ đọc, thoát app, mở bàn phím và bấm gọi. Điều này vi phạm nghiêm trọng nguyên tắc UX khẩn cấp. | Bác bỏ thiết kế tĩnh của AI. Tự bổ sung thẻ `href="tel:..."` vào toàn bộ danh bạ liên hệ để biến text thành nút gọi điện trực tiếp. Tích hợp thêm Mini Map để người dùng tra cứu nhanh vị trí trạm hỗ trợ, tối ưu hóa toàn bộ luồng hành động (Call-to-Action) của du khách. |
+| 7 | AI không cảnh báo rủi ro về việc Vite liên tục ghi đè file `routeTree.gen.ts` ngầm, khiến lệnh `git merge` bị treo hoặc báo lỗi conflict liên tục không thể resolve. | Lệnh `git merge` rơi vào vòng lặp lỗi (Git Loop). Dù đã cố gắng `git add` và resolve conflict thủ công, nhưng vài giây sau trạng thái file lại bị chuyển sang Modified do Vite đang chạy ẩn (watch mode) đã tự động sinh lại file mới. | Tư duy giải quyết vấn đề ở mức hệ thống (System level): Nhận diện lỗi không nằm ở Git mà nằm ở tiến trình Build. Sử dụng PowerShell (`Stop-Process`) để tiêu diệt tận gốc tiến trình server ngầm. Dùng `git clean` và lệnh dọn lịch sử commit rác, sau đó mới thực hiện quy trình merge an toàn nhánh `Vi` vào `main`. |
 
 ---
 
@@ -587,4 +705,4 @@ Sinh viên/nhóm cam kết rằng:
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-| Trần Minh Vĩ | 2026-06-30 |
+| Trần Minh Vĩ | 2026-08-02 |

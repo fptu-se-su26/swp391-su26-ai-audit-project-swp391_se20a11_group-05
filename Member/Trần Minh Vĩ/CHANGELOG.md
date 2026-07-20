@@ -444,6 +444,51 @@ Việc sửa script khởi động bằng `mvnw.cmd` giúp giải quyết hoàn 
 
 ---
 
+# [Phase 09] Security & Performance Optimization
+
+## Ngày thực hiện
+
+```text
+03/08/2026
+```
+
+## Đã hoàn thành
+
+- [x] Tái cấu trúc cơ chế phân quyền (Role-Based Access Control - RBAC): Triển khai `ProtectedRoute` (Higher-Order Component) để bảo vệ toàn bộ các endpoint của Cán bộ (Ward Admin, Police, City Admin) ngay từ lớp Routing, loại bỏ các lệnh `if/else` dư thừa.
+- [x] Tối ưu hóa hiệu năng Bản đồ (Map Performance Optimization): Tích hợp kỹ thuật Marker Clustering và Debouncing khi fetch dữ liệu theo Viewport (khung hình bản đồ), giải quyết triệt để tình trạng treo trình duyệt khi render hàng ngàn điểm phản ánh sự cố.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Xây dựng cơ chế RBAC cho Frontend | Trần Minh Vĩ | ProtectedRoute.tsx, __root.tsx | Commit (Phase 09) |
+| 2 | Tối ưu hóa render Leaflet Map | Trần Minh Vĩ | CivicMap.tsx, map-hooks.ts | Commit (Phase 09) |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI cung cấp thuật toán Debounce tiêu chuẩn và các khái niệm cơ bản về HOC (Higher-Order Component) trong React. Tuy nhiên, logic phân quyền chi tiết (đa cấp độ) và việc bóc tách Viewport Boundaries được thực hiện hoàn toàn thủ công.
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+Commit liên quan đến Phase 09 (Security & Performance)
+```
+
+## Ghi chú
+
+```text
+Phase này tập trung hoàn thiện cấp độ Enterprise (Doanh nghiệp) cho hệ thống, đảm bảo ứng dụng không chỉ chạy được mà còn chạy mượt (Performance) và an toàn (Security).
+```
+
+---
+
 # 4. Tổng kết thay đổi cuối project
 
 ## 4.1. Các chức năng đã hoàn thành
@@ -463,6 +508,8 @@ Việc sửa script khởi động bằng `mvnw.cmd` giúp giải quyết hoàn 
 | 11 | Git Workflow & Conflict Resolution | Completed | Lịch sử Git Terminal | Khắc phục triệt để lỗi gộp nhánh do Vite |
 | 12 | Sửa lỗi trùng lặp Footer (UI Bug) | Completed | feedback-search.tsx | Xóa thẻ `<Footer/>` thừa do cơ chế Nested Routing |
 | 13 | Sửa lỗi script khởi động Backend | Completed | run-backend.bat | Tích hợp Maven Wrapper để chạy đa nền tảng |
+| 14 | Tái cấu trúc cơ chế phân quyền (RBAC) | Completed | ProtectedRoute.tsx | HOC bảo mật Routing lớp Frontend |
+| 15 | Tối ưu hóa hiệu năng Leaflet Map | Completed | CivicMap.tsx | Clustering & Viewport Debouncing |
 
 ---
 

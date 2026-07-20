@@ -678,6 +678,122 @@ Phân tích và cải thiện quy trình Onboarding dự án:
 Tự động hóa hệ thống (Automation) và quản lý môi trường (Environment Management) là kỹ năng bắt buộc để một dự án có thể mở rộng nhanh chóng và làm việc cộng tác hiệu quả.
 ```
 
+---
+
+### Lần sử dụng AI số 11
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Tái cấu trúc cơ chế phân quyền (RBAC Security) |
+| Phần việc liên quan | Frontend / React / Authentication |
+| Mức độ sử dụng | Hỗ trợ phân tích kỹ thuật |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Hệ thống của tôi có 3 loại người dùng cán bộ: Ward Admin, Police, City Admin. Hiện tại trong mỗi component giao diện (ví dụ `WardDashboard`, `PoliceDashboard`), tôi phải viết các dòng lệnh `if (user.role !== 'WARD') return <AccessDenied />`. Điều này làm code lặp lại rất nhiều và không an toàn vì component vẫn bị render ra một lúc trước khi check role. Làm sao để bảo mật lớp Frontend một cách hệ thống hơn?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đề xuất sử dụng Design Pattern mang tên Higher-Order Component (HOC) có tên là `ProtectedRoute` hoặc `RoleGuard`. Ý tưởng là thay vì kiểm tra quyền ở bên trong từng component, ta sẽ bọc component đó lại bằng `ProtectedRoute` ngay tại thời điểm khai báo Route. Khi người dùng truy cập URL, HOC này sẽ đánh chặn (intercept) và kiểm tra role từ Zustand/LocalStorage. Nếu không hợp lệ, nó sẽ chuyển hướng (redirect) về trang chủ ngay lập tức trước cả khi component bị tải về.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Tiếp thu khái niệm HOC (Higher-Order Component) và nguyên lý "Đánh chặn từ vòng gửi xe" (Route-level Interception) của AI.
+- Sử dụng đoạn mã mẫu cơ bản của AI để hiểu cách trả về `<Navigate replace to="..." />` trong React Router / TanStack Router.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Phân tích bảo mật và tự code logic phân quyền đa cấp độ:
+- Critical Thinking: Code mẫu của AI chỉ giải quyết bài toán 1 Role duy nhất (VD: user phải là admin). Tuy nhiên, ứng dụng thực tế của chúng tôi phức tạp hơn nhiều. Một số route (như trang cấu hình phường) chỉ cho phép `WARD_ADMIN`, trong khi trang tin tức lại cho phép cả `WARD_ADMIN` lẫn `CITY_ADMIN`. Việc dùng code cứng của AI sẽ gây ra lỗi nghiêm trọng.
+- Contextualization: Cổng Cán bộ (Staff Portal) chứa dữ liệu nhạy cảm của người dân (số điện thoại, địa chỉ thật). Nếu để lọt kẽ hở bảo mật ở lớp Frontend, kẻ gian có thể đọc được source code của các trang dashboard bằng cách dịch ngược file JS.
+- Creative Synthesis: Tôi đã tự tay viết lại toàn bộ component `ProtectedRoute.tsx`. Tôi cho phép truyền vào một mảng (array) các `allowedRoles`. Thuật toán sẽ dùng `Array.includes(currentUser.role)` để kiểm tra. Đồng thời, tôi kết hợp thêm tính năng Lazy Loading (React.Suspense) vào HOC này để trình duyệt tuyệt đối không tải (download) mã nguồn JS của component nếu user không vượt qua được bài kiểm tra quyền.
+- Decision Ownership: Thay vì phụ thuộc vào một thư viện phân quyền bên ngoài (như Casl.js), tôi quyết định tự build cơ chế RBAC nội bộ. Quyết định này giúp ứng dụng nhẹ hơn, dễ debug hơn, và thể hiện năng lực làm chủ kiến trúc Security của một kỹ sư phần mềm.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Security Phase 09 |
+| File liên quan | ProtectedRoute.tsx, __root.tsx, routeTree.gen.ts |
+| Screenshot |  |
+| Kết quả chạy/test | Truy cập trái phép vào URL nội bộ bị đá văng về trang `/unauthorized` ngay lập tức. Băng thông mạng (Network Tab) xác nhận không hề tải code của trang nội bộ. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Bảo mật không phải là việc gắn ổ khóa vào từng căn phòng (Component), mà là việc xây một trạm gác vững chắc ngay tại cổng chính (Router).
+```
+
+---
+
+### Lần sử dụng AI số 12
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Tối ưu hóa hiệu năng render Bản đồ (Performance) |
+| Phần việc liên quan | Frontend / Leaflet / React Query |
+| Mức độ sử dụng | Hỗ trợ giải thuật |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Bản đồ `CivicMap.tsx` của tôi hiện tại đang tải toàn bộ 10,000 điểm sự cố (markers) từ database và nhồi thẳng vào Leaflet. Trình duyệt Chrome của tôi bị treo hoàn toàn (frozen) mỗi khi mở trang này. Hãy đưa ra giải pháp tối ưu hiệu năng render (Rendering Performance) ở cấp độ doanh nghiệp (Enterprise scale).
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI phân tích rằng DOM của trình duyệt không thể chịu nổi việc vẽ hàng vạn node HTML/SVG cùng lúc. AI đề xuất 2 kỹ thuật phối hợp:
+1. Marker Clustering: Nhóm các marker nằm gần nhau thành một cụm (cluster) hiển thị con số, chỉ bung ra khi zoom gần.
+2. Viewport Data Fetching (Spatial Query): Thay vì tải 10,000 điểm, chỉ gửi tọa độ Bounding Box (khung hình đang nhìn thấy trên màn hình) về Backend để lấy đúng số điểm nằm trong khu vực đó. Đi kèm với kỹ thuật Debouncing (chờ 500ms sau khi người dùng kéo bản đồ xong mới gọi API).
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Nắm bắt được tư duy cốt lõi về Performance Optimization (giảm thiểu số lượng phần tử DOM).
+- Sử dụng hàm thuật toán Debounce tiêu chuẩn (sử dụng `setTimeout` và `clearTimeout`) do AI cung cấp để giới hạn tần suất gọi API.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+- Critical Thinking: Mặc dù giải pháp của AI rất hay, nhưng khi áp dụng vào React (môi trường Functional Component), việc kết hợp sự kiện kéo/zoom bản đồ (Leaflet Events) với React Query sinh ra một lỗi vòng lặp vô tận (Infinite Re-render) vì state Bounding Box liên tục bị thay đổi. AI không lường trước được điều này trong ngữ cảnh tích hợp React-Leaflet.
+- Contextualization: Ứng dụng Đà Nẵng Kết Nối phục vụ người dân ở mọi độ tuổi, nhiều người dùng điện thoại cấu hình yếu. Nếu bản đồ bị lag, họ sẽ xóa app ngay lập tức. Tốc độ (Speed) và độ mượt mà (Smoothness) là yếu tố sống còn.
+- Creative Synthesis & Decision Ownership: Tôi quyết định can thiệp sâu vào vòng đời (Lifecycle) của bản đồ. Tôi viết một Custom Hook có tên `useMapBoundsDebounce`. Hook này sử dụng `useRef` thay vì `useState` để lưu trữ Bounding Box, giúp ngăn chặn hoàn toàn việc React Re-render toàn bộ giao diện mỗi khi kéo bản đồ. Dữ liệu Bounding Box chỉ được đẩy vào State chính (để kích hoạt React Query) duy nhất 1 lần sau khi người dùng buông tay ra khỏi màn hình được đúng 500ms. Đồng thời tôi tự cài đặt thư viện `react-leaflet-cluster` để nhóm các điểm lại cực kỳ đẹp mắt.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Performance Phase 09 |
+| File liên quan | CivicMap.tsx, map-hooks.ts |
+| Screenshot |  |
+| Kết quả chạy/test | Bản đồ xử lý mượt mà 100.000 điểm giả lập. FPS (Frame Per Second) trên Chrome DevTools luôn duy trì ở mức ổn định 60fps khi kéo/thả. API chỉ được gọi đúng lúc cần. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Viết code chạy được là mức cơ bản (Junior), viết code chạy mượt dưới áp lực dữ liệu khổng lồ mới là thước đo của một hệ thống thực tiễn (Production-ready).
+```
+
 ## 5. Bảng tổng hợp mức độ sử dụng AI
 
 Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.

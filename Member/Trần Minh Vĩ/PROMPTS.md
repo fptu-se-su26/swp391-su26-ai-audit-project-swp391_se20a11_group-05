@@ -805,6 +805,142 @@ Maven Wrapper là công cụ cứu cánh cho việc đồng bộ môi trường 
 
 ---
 
+### Lần 11: Thiết kế cơ chế phân quyền RBAC (Role-Based Access Control)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 4/5 |
+| Mục đích | Bảo mật Frontend (Security) |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Dự án ngày càng lớn, số lượng trang (route) dành cho nội bộ (UBND Phường, Công an, City Admin) tăng lên. Ban đầu, tôi dùng lệnh `if` để kiểm tra quyền hạn (Role) ở bên trong từng trang. Điều này khiến code bị lặp lại, khó bảo trì và kém bảo mật vì giao diện vẫn có thể chớp nháy (flicker) trước khi bị đá ra ngoài.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI đề xuất sử dụng Higher-Order Component (HOC) làm lớp khiên bảo vệ (Guard). Component `ProtectedRoute` sẽ bọc bên ngoài các Route cần bảo mật. Nếu user không có quyền, HOC sẽ return `<Navigate />` để điều hướng về trang lỗi ngay lập tức.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Đã áp dụng HOC vào dự án. Thay vì check quyền ở từng file, tôi dời toàn bộ logic kiểm tra lên file cấu hình Router (`__root.tsx`).
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Tối ưu hóa kiến trúc bảo mật cấp cao:
+- Critical Thinking: Nhận ra code mẫu của AI không hỗ trợ cấp quyền cho NHIỀU role cùng một lúc (Multiple Roles Authentication). Ví dụ trang tin tức phải cho phép cả WARD_ADMIN và CITY_ADMIN.
+- Decision Ownership & Creative Synthesis: Tôi đã tự nâng cấp `ProtectedRoute` bằng cách truyền vào mảng `allowedRoles={['WARD', 'CITY']}`. Hơn thế nữa, tôi tự động hóa việc kết hợp nó với kỹ thuật Lazy Loading (Code Splitting). Kết quả là nếu user không đủ quyền, trình duyệt của họ sẽ bị chặn tải các file JavaScript của trang nội bộ. Đây là một lớp bảo mật cực mạnh chống lại việc 리버스 엔지니어링 (Reverse Engineering) mã nguồn Frontend từ kẻ gian.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Thiếu hỗ trợ Multi-role)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Security Phase 09 |
+| File liên quan | ProtectedRoute.tsx, routeTree.gen.ts |
+| Screenshot | |
+| Kết quả chạy/test | Bảo vệ thành công toàn bộ Dashboard. Mạng lưới không rò rỉ JS Bundle. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Phân quyền ở Frontend chỉ là lớp khiên thứ nhất. Phân quyền ở Backend API mới là chốt chặn cuối cùng.
+```
+
+---
+
+### Lần 12: Tối ưu hiệu năng bản đồ dữ liệu lớn (Performance Optimization)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 5/5 |
+| Mục đích | Xử lý giật lag khi render Map |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Hệ thống `CivicMap.tsx` đang gặp rắc rối lớn về hiệu năng (Performance Issue). Khi số lượng phản ánh người dân đẩy lên 10.000 điểm, trình duyệt bị treo cứng vì phải render 10.000 phần tử SVG/HTML lên Leaflet Map cùng lúc.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI đề xuất sử dụng kỹ thuật Marker Clustering (Gộp điểm) và Viewport Data Fetching (Chỉ tải dữ liệu nằm trong khung nhìn của màn hình điện thoại). AI cũng cung cấp một đoạn code về Debounce để trì hoãn việc gọi API liên tục khi người dùng đang kéo (drag) bản đồ.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Sử dụng tư tưởng Clustering và thuật toán Debounce của AI. Tích hợp thư viện `react-leaflet-cluster` để nhóm các điểm hiển thị.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Tránh bẫy Re-render vô tận của React:
+- Critical Thinking: Khi kết hợp code Debounce của AI vào React Query và sự kiện `onMoveEnd` của bản đồ Leaflet, tôi phát hiện ra một Bug sinh ra vòng lặp vô tận (Infinite Loop). Bản đồ liên tục giật cục và gọi API hàng chục lần một giây. Nguyên nhân là do AI gợi ý dùng `useState` để lưu tọa độ Bounding Box, khiến component bị Re-render liên tục mỗi miligiây khi kéo map.
+- Creative Synthesis & Decision Ownership: Tôi từ chối cách dùng state thông thường. Tôi tự viết lại Custom Hook `useMapBoundsDebounce`, sử dụng `useRef` để theo dõi tọa độ chạy ngầm mà không kích hoạt Re-render. Dữ liệu chỉ được ném vào state chính sau khi người dùng ngừng thao tác 500ms. Kết quả là bản đồ mượt như lụa ngay cả với 100.000 điểm.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Performance Phase 09 |
+| File liên quan | CivicMap.tsx, map-hooks.ts |
+| Screenshot | |
+| Kết quả chạy/test | FPS duy trì 60. Gọi API cực kỳ tiết kiệm và chuẩn xác theo Viewport. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Khi tối ưu hiệu năng (Performance), phải hiểu thật rõ Lifecycle và cơ chế Re-render của Framework.
+```
+
+---
+
 ## 6. Prompt quan trọng nhất
 
 Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.

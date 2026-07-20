@@ -47,6 +47,7 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
     Page<Feedback> findByStatusIn(List<FeedbackStatus> statuses, Pageable pageable);
     Page<Feedback> findByWardIdAndStatusIn(Long wardId, List<FeedbackStatus> statuses, Pageable pageable);
     long countByStatus(FeedbackStatus status);
+    long countByCitizenIdAndCreatedAtAfter(Long citizenId, java.time.LocalDateTime createdAt);
     List<Feedback> findByCreatedAtBetween(java.time.LocalDateTime from, java.time.LocalDateTime to);
 
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"category", "ward", "citizen"})

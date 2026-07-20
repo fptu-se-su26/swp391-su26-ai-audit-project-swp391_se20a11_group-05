@@ -46,7 +46,21 @@ public class ChatbotController {
     @PostMapping(value = "/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
     public reactor.core.publisher.Flux<String> streamChat(@RequestBody ChatRequestDto request) {
         log.info("💬 [API STREAM] POST /api/chatbot/stream — sessionId={} | message='{}'", request.getSessionId(), request.getMessage());
-        Long userId = 1L; // Fake User ID for public UI testing
+        
+        Long resolvedUserId = null;
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !auth.getName().equals("anonymousUser")) {
+            try {
+                var userOpt = chatbotService.getUserByUsername(auth.getName());
+                if (userOpt.isPresent()) {
+                    resolvedUserId = userOpt.get().getId();
+                }
+            } catch (Exception e) {
+                log.warn("Lỗi khi lấy thông tin user từ token: {}", e.getMessage());
+            }
+        }
+        final Long finalUserId = resolvedUserId;
+        
         java.util.List<java.util.Map<String, String>> mappedHistory = new java.util.ArrayList<>();
         if (request.getHistory() != null) {
             for (var msg : request.getHistory()) {
@@ -55,7 +69,7 @@ public class ChatbotController {
         }
         
         return reactor.core.publisher.Mono.fromCallable(() -> {
-            return chatbotService.ask(userId, request.getSessionId(), request.getMessage(), mappedHistory);
+            return chatbotService.ask(finalUserId, request.getSessionId(), request.getMessage(), mappedHistory);
         }).subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic())
         .flatMapMany(result -> {
             try {

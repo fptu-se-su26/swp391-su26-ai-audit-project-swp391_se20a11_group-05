@@ -1,98 +1,89 @@
-@startuml Smart City Backend - Package Diagram
+@startuml
 
-skinparam packageStyle rectangle
 skinparam linetype ortho
 skinparam shadowing false
 skinparam defaultFontName "Segoe UI"
 skinparam defaultFontSize 12
-skinparam nodesep 40
-skinparam ranksep 50
+skinparam nodesep 60
+skinparam ranksep 70
+skinparam packageBorderColor #333333
+skinparam packageBackgroundColor #FFFFFF
+skinparam ArrowColor #333333
+skinparam ArrowFontSize 10
 
-title Smart City Backend - Package Diagram\ncom.example.smartcity
+' ═══════════════════════════════════════════════════
+' ALL PACKAGES (flat — standard UML style)
+' ═══════════════════════════════════════════════════
 
-' ═══════════════════════════════════════════
-' ROW 1 — Top: Auth & User modules
-' ═══════════════════════════════════════════
 package "auth" as auth
 package "user" as user
-package "feedback" as feedback
 package "notification" as notification
-
-' ═══════════════════════════════════════════
-' ROW 2 — Middle: Core infrastructure
-' ═══════════════════════════════════════════
-package "campaign" as campaign
-package "chatbot" as chatbot
 package "police" as police
 
-' ═══════════════════════════════════════════
-' ROW 3 — AI & Shared layers
-' ═══════════════════════════════════════════
-package "ai_orchestrator" as ai
+package "feedback" as feedback
+package "campaign" as campaign
+package "chatbot" as chatbot
+
 package "rag" as rag
+package "ai_orchestrator" as ai
+
+package "core" as core
 package "security" as sec
 package "common" as common
 package "config" as config
 
-' ═══════════════════════════════════════════
-' ROW 4 — Bottom: Smaller modules
-' ═══════════════════════════════════════════
-package "core" as core
 package "permission" as perm
-package "warning" as warn
-package "file" as file
-package "analytics" as analytics
 
-' ═══════════════════════════════════════════
-' DEPENDENCIES — all «use»
-' ═══════════════════════════════════════════
+' ═══════════════════════════════════════════════════
+' DEPENDENCIES — verified from actual code imports
+' ═══════════════════════════════════════════════════
 
-' auth dependencies
+' Auth
 auth ..> sec : <<use>>
 auth ..> common : <<use>>
 
-' user dependencies
+' User
 user ..> sec : <<use>>
 user ..> common : <<use>>
 
-' feedback dependencies
-feedback ..> sec : <<use>>
-feedback ..> common : <<use>>
+' Feedback
 feedback ..> ai : <<use>>
+feedback ..> rag : <<use>>
+feedback ..> notification : <<use>>
+feedback ..> core : <<use>>
+feedback ..> common : <<use>>
 
-' notification dependencies
-notification ..> common : <<use>>
-
-' campaign dependencies
+' Campaign
+campaign ..> rag : <<use>>
+campaign ..> notification : <<use>>
+campaign ..> auth : <<use>>
+campaign ..> core : <<use>>
 campaign ..> common : <<use>>
 
-' chatbot dependencies
+' Chatbot
 chatbot ..> rag : <<use>>
-chatbot ..> common : <<use>>
 chatbot ..> ai : <<use>>
+chatbot ..> feedback : <<use>>
+chatbot ..> common : <<use>>
 
-' police dependencies
+' Police
 police ..> sec : <<use>>
+police ..> core : <<use>>
 
-' core dependencies
+' Notification
+notification ..> common : <<use>>
+
+' Permission / Core
+perm ..> common : <<use>>
 core ..> common : <<use>>
 
-' rag -> ai_orchestrator
+' RAG → AI Orchestrator (LLM calls & Embedding)
 rag ..> ai : <<use>>
 
-' ai_orchestrator -> config
+' AI Orchestrator → Config (API keys, provider props)
 ai ..> config : <<use>>
 
-' security -> common
+' Security → Common
 sec ..> common : <<use>>
-
-' analytics -> common
-analytics ..> common : <<use>>
-
-' file -> common
-file ..> common : <<use>>
-
-' permission -> common
-perm ..> common : <<use>>
 
 @enduml

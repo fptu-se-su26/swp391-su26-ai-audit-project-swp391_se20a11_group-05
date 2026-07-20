@@ -63,7 +63,7 @@ public class GeminiAdapter implements AiProviderAdapter {
         log.info("🔵 [Gemini] Gọi API | model={} | key={}...", model, apiKey.substring(0, Math.min(8, apiKey.length())));
 
         Map<String, Object> body = Map.of(
-            "system_instruction", Map.of("parts", List.of(Map.of("text", systemPrompt))),
+            "systemInstruction", Map.of("parts", List.of(Map.of("text", systemPrompt))),
             "contents", List.of(
                 Map.of("role", "user", "parts", List.of(Map.of("text", userMessage)))
             ),
@@ -77,7 +77,7 @@ public class GeminiAdapter implements AiProviderAdapter {
                 .retrieve()
                 .bodyToMono(Map.class)
                 .map(this::parseGeminiResponse)
-                .timeout(Duration.ofSeconds(12))
+                .timeout(Duration.ofSeconds(30))
                 .doOnSuccess(r -> log.info("✅ [Gemini] OK ({} ký tự)", r.length()))
                 .doOnError(e -> {
                     log.error("❌ [Gemini] Lỗi: {}", e.getMessage());
@@ -103,7 +103,7 @@ public class GeminiAdapter implements AiProviderAdapter {
         log.info("🔵 [Gemini] Gọi API Structured JSON | model={} | key={}...", model, apiKey.substring(0, Math.min(8, apiKey.length())));
 
         Map<String, Object> body = Map.of(
-            "system_instruction", Map.of("parts", List.of(Map.of("text", systemPrompt))),
+            "systemInstruction", Map.of("parts", List.of(Map.of("text", systemPrompt))),
             "contents", List.of(
                 Map.of("role", "user", "parts", List.of(Map.of("text", userMessage)))
             ),
@@ -121,7 +121,7 @@ public class GeminiAdapter implements AiProviderAdapter {
                 .retrieve()
                 .bodyToMono(Map.class)
                 .map(this::parseGeminiResponse)
-                .timeout(Duration.ofSeconds(15))
+                .timeout(Duration.ofSeconds(30))
                 .doOnSuccess(r -> log.info("✅ [Gemini Structured] OK ({} ký tự)", r.length()))
                 .doOnError(e -> {
                     log.error("❌ [Gemini Structured] Lỗi: {}", e.getMessage());
@@ -156,7 +156,7 @@ public class GeminiAdapter implements AiProviderAdapter {
         }
 
         Map<String, Object> body = Map.of(
-            "system_instruction", Map.of("parts", List.of(Map.of("text", systemPrompt))),
+            "systemInstruction", Map.of("parts", List.of(Map.of("text", systemPrompt))),
             "contents", List.of(
                 Map.of("role", "user", "parts", userParts)
             ),
@@ -170,7 +170,7 @@ public class GeminiAdapter implements AiProviderAdapter {
                 .retrieve()
                 .bodyToMono(Map.class)
                 .map(this::parseGeminiResponse)
-                .timeout(Duration.ofSeconds(12))
+                .timeout(Duration.ofSeconds(30))
                 .doOnSuccess(r -> log.info("✅ [Gemini] OK ({} ký tự)", r.length()))
                 .doOnError(e -> {
                     log.error("❌ [Gemini Multimodal] Lỗi: {}", e.getMessage());
@@ -236,7 +236,7 @@ public class GeminiAdapter implements AiProviderAdapter {
         }
 
         Map<String, Object> body = Map.of(
-            "system_instruction", Map.of("parts", List.of(Map.of("text", systemPrompt))),
+            "systemInstruction", Map.of("parts", List.of(Map.of("text", systemPrompt))),
             "contents", List.of(
                 Map.of("role", "user", "parts", List.of(Map.of("text", userMessage)))
             ),
@@ -358,7 +358,7 @@ public class GeminiAdapter implements AiProviderAdapter {
         }
 
         Map<String, Object> body = Map.of(
-            "system_instruction", Map.of("parts", List.of(Map.of("text", systemPrompt))),
+            "systemInstruction", Map.of("parts", List.of(Map.of("text", systemPrompt))),
             "contents", List.of(
                 Map.of("role", "user", "parts", userParts)
             ),
@@ -372,11 +372,14 @@ public class GeminiAdapter implements AiProviderAdapter {
                 .retrieve()
                 .bodyToMono(Map.class)
                 .map(this::parseGeminiResponseWithUsage)
-                .timeout(Duration.ofSeconds(15))
+                .timeout(Duration.ofSeconds(30))
                 .doOnSuccess(r -> log.info("✅ [Gemini Multimodal With Usage] OK ({} chars, in_tokens={}, out_tokens={})", 
                     r.getText().length(), r.getInputTokens(), r.getOutputTokens()))
                 .doOnError(e -> {
                     log.error("❌ [Gemini Multimodal With Usage] Lỗi: {}", e.getMessage());
+                    if (e instanceof org.springframework.web.reactive.function.client.WebClientResponseException) {
+                        log.error("Chi tiết lỗi từ Google: {}", ((org.springframework.web.reactive.function.client.WebClientResponseException) e).getResponseBodyAsString());
+                    }
                     if (e.getMessage() != null && e.getMessage().contains("429")) {
                         keyPool.markRateLimited(finalApiKey);
                     }

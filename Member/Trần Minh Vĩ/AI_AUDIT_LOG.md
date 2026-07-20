@@ -1237,6 +1237,116 @@ Bảo mật hệ thống tuyệt đối (Hardening System Security):
 Đừng bao giờ copy-paste code CORS của AI. "Chạy được" và "Chạy an toàn" là hai khái niệm hoàn toàn khác biệt.
 ```
 
+---
+
+### Lần sử dụng AI số 21
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Thiết kế Data Layer cho các bảng dữ liệu tĩnh (Danh mục, Phường xã) |
+| Phần việc liên quan | Backend / Database & Caching |
+| Mức độ sử dụng | Gợi ý cấu trúc Query Database |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Trang chủ của tôi cần hiển thị danh sách các Phường và Danh mục phản ánh. Làm sao để Backend trả dữ liệu nhanh nhất có thể?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI viết một đoạn code `WardRepository.findAll()` và `CategoryRepository.findAll()` bằng Spring Data JPA. Đoạn code này sẽ truy vấn thẳng vào Database (PostgreSQL) mỗi khi có một request từ Client bay tới.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Sử dụng cú pháp khai báo Repository cơ bản của Spring.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Tích hợp Cơ chế Bộ đệm (Caching Mechanism):
+- Critical Thinking: Danh sách các Phường và Danh mục rác thải là dữ liệu "tĩnh" (gần như không bao giờ thay đổi). Nếu 10.000 người dùng truy cập trang chủ cùng lúc, Database sẽ phải thực hiện 10.000 câu lệnh `SELECT` thừa thãi. Lời khuyên của AI sẽ làm nghẽn cổ chai (Bottleneck) hệ thống.
+- Decision Ownership & Creative Synthesis: Tôi đã can thiệp vào tầng Service, gắn annotation `@Cacheable("wards")` và `@Cacheable("categories")` của Spring Cache (có thể dùng kèm Redis). Lần đầu tiên gọi API, dữ liệu sẽ được lấy từ DB và ném vào RAM (Cache). Kể từ request thứ 2 trở đi, dữ liệu được trả về thẳng từ RAM với tốc độ siêu tốc (< 1ms) mà Database không hề bị chạm tới.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Caching Phase 14 |
+| File liên quan | WardService.java, CacheConfig.java |
+| Screenshot |  |
+| Kết quả chạy/test | Nhìn vào Log Console, câu lệnh `Hibernate: SELECT...` chỉ chạy đúng 1 lần duy nhất lúc khởi động, các lần F5 sau không có log DB nữa. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Database là tài nguyên đắt đỏ nhất trong hệ thống. Luôn phải tìm cách che chắn cho nó bằng Cache trước những dữ liệu ít thay đổi.
+```
+
+---
+
+### Lần sử dụng AI số 22
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Gửi Email thông báo trạng thái phản ánh |
+| Phần việc liên quan | Backend / Asynchronous Processing |
+| Mức độ sử dụng | Hỗ trợ cú pháp thư viện gửi mail |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Khi cán bộ Phường duyệt xong một phản ánh, tôi muốn gửi Email thông báo tự động cho người dân. Làm sao để tích hợp JavaMailSender?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đưa ra đoạn code gửi email Đồng bộ (Synchronous). Nghĩa là ngay trong API `approveFeedback()`, AI chèn thêm lệnh `emailService.sendMail()`.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Học cách cấu hình SMTP Server (`application.yml`) và các hàm tạo `MimeMessage`.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Xử lý Bất đồng bộ (Asynchronous Background Jobs):
+- Critical Thinking: Gửi email qua SMTP Google thường mất từ 2-5 giây để hoàn thành. Nếu làm theo code Đồng bộ của AI, cán bộ Phường bấm nút "Duyệt" xong thì màn hình sẽ bị "treo" (loading) 5 giây mới báo thành công. Tệ hơn, nếu Google Mail bị sập, toàn bộ tiến trình duyệt bài sẽ ném ra Exception và thất bại.
+- Decision Ownership & Creative Synthesis: Tôi tách tính năng gửi Email ra một luồng riêng biệt (Thread) bằng cách gắn annotation `@Async` vào hàm `sendMail()`. Nhờ đó, khi cán bộ Phường bấm "Duyệt", API lập tức trả về kết quả thành công (< 0.1s), giải phóng giao diện. Việc gửi Email được quăng vào Background Job để hệ thống tự thong thả gửi ngầm. Nếu gửi lỗi, luồng chính vẫn không bị ảnh hưởng.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Async Email Phase 14 |
+| File liên quan | EmailService.java, AsyncConfig.java |
+| Screenshot |  |
+| Kết quả chạy/test | Bấm duyệt trên giao diện xử lý ngay lập tức. Email vẫn nhận được vài giây sau đó. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Thiết kế hệ thống thông minh là phải biết phân tách rạch ròi đâu là tác vụ cần phản hồi ngay (Synchronous) và đâu là tác vụ chạy ngầm (Asynchronous).
+```
+
 ## 5. Bảng tổng hợp mức độ sử dụng AI
 
 Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.

@@ -1485,6 +1485,142 @@ Bảo mật là thành trì cuối cùng. Một ứng dụng hay đến mấy m�
 
 ---
 
+### Lần 21: Tối ưu hóa Database với Caching (High Performance)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 3/5 |
+| Mục đích | Giảm tải cho Cơ sở dữ liệu |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Trang chủ cần load danh sách 56 Phường xã và 20 Danh mục phản ánh. Dữ liệu này hầu như không bao giờ đổi, nhưng lại được truy vấn liên tục mỗi khi có người vào Web.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI đề xuất sử dụng Spring Data JPA cơ bản: `wardRepository.findAll()` để quét toàn bộ bảng trong PostgreSQL.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Chỉ sử dụng phần định nghĩa Repository của AI, nhưng bác bỏ cách gọi trực tiếp ở tầng Service.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Áp dụng Bộ đệm (Caching):
+- Critical Thinking: Việc bắt Database phải đọc đi đọc lại một bảng dữ liệu tĩnh hàng nghìn lần mỗi giây là nguyên nhân chính gây sập (Crash) hệ thống khi có tải cao (High Concurrency). Lời khuyên của AI chỉ đúng cho đồ án sinh viên, không thể áp dụng cho môi trường thực tế.
+- Decision Ownership & Creative Synthesis: Tôi tự thiết lập Spring Cache (`@EnableCaching`). Tại hàm lấy dữ liệu, tôi thêm `@Cacheable("wards")`. Ở Request đầu tiên, hệ thống sẽ query DB và lưu kết quả vào RAM. Từ Request thứ 2 trở đi, dữ liệu được trả về thẳng từ RAM với tốc độ siêu thanh (<1ms). Database hoàn toàn được giải phóng để tập trung xử lý các nghiệp vụ ghi/đọc phức tạp khác.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Gây nghẽn cổ chai Database)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Caching Phase 14 |
+| File liên quan | WardService.java, CacheConfig.java |
+| Screenshot | |
+| Kết quả chạy/test | Dữ liệu trả về tức thì. Console Backend không còn in ra câu lệnh Hibernate SELECT liên tục. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Code chạy đúng chưa chắc đã là code tốt. Tối ưu hóa hệ thống là quá trình giảm tải triệt để cho Database.
+```
+
+---
+
+### Lần 22: Kiến trúc luồng Bất đồng bộ (Async Background Jobs)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 3/5 |
+| Mục đích | Giải phóng giao diện, ngăn tình trạng "Treo API" khi gửi Email |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Cần gửi Email thông báo tự động ngay sau khi cán bộ duyệt một phản ánh.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI viết code Gửi Mail Đồng bộ (Synchronous). Tức là trong hàm `approve()`, AI gọi thẳng hàm `sendMail()` chờ nó gửi xong rồi mới `return success`.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Chỉ học cách thiết lập SMTP Server của Google và cú pháp khởi tạo JavaMailSender.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Tách luồng Bất đồng bộ (Asynchronous execution):
+- Critical Thinking: Server Google mất khoảng 3 giây để gửi một Email. Nếu làm theo AI, Cán bộ bấm "Duyệt" sẽ phải nhìn vòng tròn xoay xoay tận 3 giây. Nguy hiểm hơn, nếu SMTP của Google chập chờn và ném Exception, toàn bộ quá trình Duyệt bài sẽ bị Rollback oan uổng.
+- Decision Ownership & Creative Synthesis: Tôi đã cấu hình `@EnableAsync` trong Spring Boot. Hàm gửi Mail được đánh dấu `@Async` để nó tách ra chạy trên một Thread pool riêng biệt (Background Job). Khi cán bộ bấm "Duyệt", Database cập nhật trạng thái xong là API trả kết quả thành công ngay (0.1 giây). Việc gửi mail được đẩy vào hàng đợi ngầm, gửi thành công hay thất bại cũng không ảnh hưởng tới tiến trình chính của ứng dụng.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Làm treo API, rủi ro sập dây chuyền)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Async Email Phase 14 |
+| File liên quan | EmailService.java, AsyncConfig.java |
+| Screenshot | |
+| Kết quả chạy/test | Bấm nút duyệt phản hồi ngay tức thì, không bị delay. Vài giây sau điện thoại tinh tinh báo có email. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Các tác vụ giao tiếp với hệ thống bên ngoài (3rd-party) như Email, SMS, Payment luôn phải được xử lý Bất đồng bộ.
+```
+
+---
+
 ## 6. Prompt quan trọng nhất
 
 Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.

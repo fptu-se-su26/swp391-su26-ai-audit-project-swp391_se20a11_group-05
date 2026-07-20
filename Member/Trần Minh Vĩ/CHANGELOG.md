@@ -669,6 +669,51 @@ Hoàn tất 100% quá trình kiểm toán AI (AI Audit). Dự án đã đạt ti
 
 ---
 
+# [Phase 14] Data Layer Optimization & Realtime Systems
+
+## Ngày thực hiện
+
+```text
+03/08/2026
+```
+
+## Đã hoàn thành
+
+- [x] Tối ưu hóa Database (DB Indexing & Caching): Áp dụng Composite Index cho các trường dữ liệu được tìm kiếm nhiều và thiết lập bộ đệm (Cache) cho các dữ liệu ít thay đổi (Danh sách Phường, Danh mục).
+- [x] Kiến trúc thời gian thực (Realtime & Async): Xử lý các tác vụ nặng (như gửi Email) bằng Background Job (Async) và thay thế Polling bằng WebSockets/SSE để giảm tải cho Server.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Thêm Composite Index và Caching | Trần Minh Vĩ | schema.sql, CacheConfig.java | Commit (Phase 14) |
+| 2 | Chuyển đổi Email sang Async và Setup WebSockets | Trần Minh Vĩ | EmailService.java, WebSocketConfig.java | Commit (Phase 14) |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI đề xuất truy vấn DB liên tục cho mỗi request và gửi Email đồng bộ (Synchronous). Sinh viên đã phản biện bằng cách tự xây dựng cơ chế Cache và Async để bảo vệ hiệu năng.
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+Commit liên quan đến Phase 14
+```
+
+## Ghi chú
+
+```text
+Hệ thống lúc này không chỉ chạy được, mà còn chạy mượt mà dưới tải trọng lớn (High Concurrency).
+```
+
+---
+
 # 4. Tổng kết thay đổi cuối project
 
 ## 4.1. Các chức năng đã hoàn thành

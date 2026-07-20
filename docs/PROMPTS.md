@@ -8,10 +8,10 @@
 | Mã môn học |  |
 | Lớp |  |
 | Học kỳ |  |
-| Tên bài tập / Project |  |
+| Tên bài tập / Project | The Listening City Systems |
 | Tên sinh viên / Nhóm |  |
 | MSSV / Danh sách MSSV |  |
-| Giảng viên hướng dẫn |  |
+| Giảng viên hướng dẫn | Lê Thiện Nhật Quang |
 | Ngày bắt đầu |  |
 | Ngày cập nhật gần nhất |  |
 

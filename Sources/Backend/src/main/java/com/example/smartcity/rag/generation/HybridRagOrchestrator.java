@@ -10,12 +10,17 @@ import com.example.smartcity.rag.retrieval.RrfFusionService;
 import com.example.smartcity.rag.selfrag.SelfRagService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.MDC;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * [LAYER 7] HYBRID RAG ORCHESTRATOR — Pipeline chính từ đầu đến cuối.
@@ -37,7 +42,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class HybridRagOrchestrator {
+public class HybridRagOrchestrator implements DisposableBean {
 
     private final HybridRetriever hybridRetriever;
     private final RrfFusionService rrfFusionService;
@@ -49,6 +54,8 @@ public class HybridRagOrchestrator {
     private final com.example.smartcity.rag.metrics.RagMetrics metrics;
     private final GroqAdapter groqAdapter;
     private final GeminiAdapter geminiAdapter;
+
+    private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
     @Value("${rag.grading.threshold:0.4}")
     private double gradingThreshold;
@@ -79,34 +86,63 @@ public class HybridRagOrchestrator {
         String toolContext = "";
 
         // ──────────────────────────────────────────────────────────
-        // BƯỚC 1: Query Transformation
-        // ──────────────────────────────────────────────────────────
-        String effectiveQuery = request.question();
-        if (request.options().useHyDE()) {
-            effectiveQuery = queryTransformer.applyHyDE(request.question());
-            if (log.isDebugEnabled()) {
-                log.debug("   [HyDE] Query biến đổi thành: '{}'...",
-                        effectiveQuery.substring(0, Math.min(80, effectiveQuery.length())));
-            }
-        }
-
-        // ──────────────────────────────────────────────────────────
-        // BƯỚC 2: Tìm kiếm kép Song Song (Vector + BM25)
+        // BƯỚC 1: Query Transformation & BƯỚC 2: Tìm kiếm kép Song Song (Vector + BM25)
         // ──────────────────────────────────────────────────────────
         long retrievalStart = System.currentTimeMillis();
-        HybridRetrievalResult rawResults = hybridRetriever.retrieve(effectiveQuery, request.options());
+        List<DocumentChunk> allVectorChunks = new ArrayList<>();
+        List<DocumentChunk> allBm25Chunks = new ArrayList<>();
+        int rawVectorCount = 0;
+        int rawBm25Count = 0;
+        String effectiveQuery = request.question();
+
+        if (request.options().useMultiQuery()) {
+            List<String> queries = queryTransformer.expandQuery(request.question());
+            log.info("   [Multi-Query] Mở rộng câu hỏi thành {} biến thể: {}", queries.size(), queries);
+
+            List<CompletableFuture<HybridRetrievalResult>> futures = queries.stream()
+                .map(q -> CompletableFuture.supplyAsync(() -> hybridRetriever.retrieve(q, request.options()), executor))
+                .toList();
+
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+
+            for (var future : futures) {
+                try {
+                    HybridRetrievalResult res = future.join();
+                    allVectorChunks.addAll(res.vectorChunks());
+                    allBm25Chunks.addAll(res.bm25Chunks());
+                } catch (Exception e) {
+                    log.error("⚠️ [Multi-Query] Lỗi khi retrieve song song: {}", e.getMessage());
+                }
+            }
+            rawVectorCount = allVectorChunks.size();
+            rawBm25Count = allBm25Chunks.size();
+        } else {
+            if (request.options().useHyDE()) {
+                effectiveQuery = queryTransformer.applyHyDE(request.question());
+                if (log.isDebugEnabled()) {
+                    log.debug("   [HyDE] Query biến đổi thành: '{}'...",
+                            effectiveQuery.substring(0, Math.min(80, effectiveQuery.length())));
+                }
+            }
+            HybridRetrievalResult rawResults = hybridRetriever.retrieve(effectiveQuery, request.options());
+            allVectorChunks.addAll(rawResults.vectorChunks());
+            allBm25Chunks.addAll(rawResults.bm25Chunks());
+            rawVectorCount = rawResults.vectorChunks().size();
+            rawBm25Count = rawResults.bm25Chunks().size();
+        }
+
         long retrievalLatency = System.currentTimeMillis() - retrievalStart;
         metrics.recordRetrievalLatency(retrievalLatency);
 
-        log.info("   [Retrieval] Vector: {} | BM25: {} | Latency: {} ms",
-                rawResults.vectorChunks().size(), rawResults.bm25Chunks().size(), retrievalLatency);
+        log.info("   [Retrieval] Tổng Vector: {} | Tổng BM25: {} | Latency: {} ms",
+                rawVectorCount, rawBm25Count, retrievalLatency);
 
         // ──────────────────────────────────────────────────────────
         // BƯỚC 3: RRF Fusion — Trộn kết quả
         // ──────────────────────────────────────────────────────────
         List<DocumentChunk> fusedChunks = rrfFusionService.fuse(
-                rawResults.vectorChunks(),
-                rawResults.bm25Chunks(),
+                allVectorChunks,
+                allBm25Chunks,
                 request.options().topK());
         log.info("   [RRF Fusion] {} chunk sau khi trộn", fusedChunks.size());
 
@@ -138,8 +174,8 @@ public class HybridRagOrchestrator {
             RetrievalMeta fastFailMeta = new RetrievalMeta(
                     System.currentTimeMillis() - pipelineStart,
                     retrievalLatency,
-                    rawResults.vectorChunks().size(),
-                    rawResults.bm25Chunks().size(),
+                    rawVectorCount,
+                    rawBm25Count,
                     0,
                     "NONE",
                     effectiveQuery,
@@ -205,8 +241,8 @@ public class HybridRagOrchestrator {
         RetrievalMeta meta = new RetrievalMeta(
                 totalLatency,
                 retrievalLatency,
-                rawResults.vectorChunks().size(),
-                rawResults.bm25Chunks().size(),
+                rawVectorCount,
+                rawBm25Count,
                 finalChunks.size(),
                 currentProvider,
                 effectiveQuery,
@@ -268,5 +304,13 @@ public class HybridRagOrchestrator {
                     log.warn("⚠️  [RAG STREAM] Groq lỗi → Fallback Gemini: {}", e.getMessage());
                     return geminiAdapter.generateStream(systemPrompt, userMessage);
                 });
+    }
+
+    @Override
+    public void destroy() {
+        if (executor != null) {
+            log.info("🛑 [RAG ORCHESTRATOR] Đóng Virtual Thread Executor...");
+            executor.shutdown();
+        }
     }
 }

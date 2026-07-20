@@ -196,13 +196,16 @@ public class PoliceFeedbackService {
         
         // Gửi thông báo từ chối cho người dân
         notificationService.createFeedbackRejectedNotification(updated.getId(), request.getReason());
-        if (updated.getCitizen() != null && updated.getCitizen().getEmail() != null) {
-            String subject = "[Đà Nẵng Smart City] Phản ánh bị từ chối";
-            String body = "Xin chào " + updated.getCitizen().getFullName() + ",\n\n"
-                    + "Rất tiếc, phản ánh của bạn (Mã: " + updated.getTrackingCode() + ") đã bị từ chối với lý do sau:\n\n"
-                    + request.getReason() + "\n\n"
-                    + "Vui lòng gửi lại phản ánh mới với thông tin chính xác hơn hoặc liên hệ tổng đài để được hỗ trợ.";
-            externalNotificationService.sendEmailNotification(updated.getCitizen().getEmail(), subject, body);
+        if (updated.getCitizen() != null) {
+            User citizen = userRepository.findById(updated.getCitizen().getId()).orElse(null);
+            if (citizen != null && citizen.getEmail() != null) {
+                String subject = "[Đà Nẵng Smart City] Phản ánh bị từ chối";
+                String body = "Xin chào " + citizen.getFullName() + ",\n\n"
+                        + "Rất tiếc, phản ánh của bạn (Mã: " + updated.getTrackingCode() + ") đã bị từ chối với lý do sau:\n\n"
+                        + request.getReason() + "\n\n"
+                        + "Vui lòng gửi lại phản ánh mới với thông tin chính xác hơn hoặc liên hệ tổng đài để được hỗ trợ.";
+                externalNotificationService.sendEmailNotification(citizen.getEmail(), subject, body);
+            }
         }
         
         return mapToResponse(updated);

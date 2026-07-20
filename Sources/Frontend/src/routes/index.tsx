@@ -58,6 +58,7 @@ import {
   Clock,
   HeartHandshake,
   Rocket,
+  Calendar,
 } from "lucide-react";
 import { lazy, Suspense, useState, useEffect } from "react";
 import { staticNews, staticFaqs } from "@/lib/static-content";

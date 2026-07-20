@@ -19,17 +19,17 @@ Nguyên tắc ghi changelog:
 
 | Thông tin | Nội dung |
 |---|---|
-| Môn học |  |
-| Mã môn học |  |
-| Lớp |  |
-| Học kỳ |  |
-| Tên bài tập / Project |  |
-| Tên sinh viên / Nhóm |  |
-| MSSV / Danh sách MSSV |  |
-| Giảng viên hướng dẫn |  |
-| Repository URL |  |
-| Ngày bắt đầu |  |
-| Ngày hoàn thành |  |
+| Môn học | Software Development Project |
+| Mã môn học | SWP391 |
+| Lớp | SE20A11 |
+| Học kỳ | SU26 |
+| Tên bài tập / Project | Hệ thống "Đà Nẵng Lắng Nghe" (The Listening City System) |
+| Tên sinh viên / Nhóm | Nguyễn Hoàng Trọng / Nhóm 05 |
+| MSSV / Danh sách MSSV | DE190357 |
+| Giảng viên hướng dẫn | Lê Thiện Nhật Quang |
+| Repository URL | https://github.com/fptu-se-su26/swp391-su26-ai-audit-project-swp391_se20a11_group-05 |
+| Ngày bắt đầu | 2026-05-17 |
+| Ngày hoàn thành | 2026-07-02 |
 
 ---
 
@@ -37,12 +37,12 @@ Nguyên tắc ghi changelog:
 
 | Phiên bản/Giai đoạn | Thời gian | Nội dung chính | Trạng thái |
 |---|---|---|---|
-| Phase 01 |  | Khởi tạo project | Not Started / In Progress / Completed |
-| Phase 02 |  | Phân tích yêu cầu | Not Started / In Progress / Completed |
-| Phase 03 |  | Thiết kế hệ thống | Not Started / In Progress / Completed |
-| Phase 04 |  | Implementation | Not Started / In Progress / Completed |
-| Phase 05 |  | Testing & Debug | Not Started / In Progress / Completed |
-| Phase 06 |  | Hoàn thiện báo cáo và demo | Not Started / In Progress / Completed |
+| Phase 01 | 2026-05-17 | Khởi tạo project & Cấu trúc thư mục | Completed |
+| Phase 02 | 2026-05-20 | Phân tích yêu cầu phân hệ Police | Completed |
+| Phase 03 | 2026-05-23 | Thiết kế kiến trúc Police Dashboard | Completed |
+| Phase 04 | 2026-06-01 to 2026-06-17 | Triển khai giao diện, APIs, WebSockets & Bản đồ | Completed |
+| Phase 05 | 2026-06-18 to 2026-06-25 | Testing, Fix bug TypeScript & Tối ưu hiệu năng | Completed |
+| Phase 06 | 2026-07-02 | Hoàn thiện tài liệu, báo cáo & video demo | Completed |
 
 ---
 
@@ -51,53 +51,34 @@ Nguyên tắc ghi changelog:
 ## Ngày thực hiện
 
 ```text
-DD/MM/YYYY
+17/05/2026
 ```
 
 ## Đã hoàn thành
 
-- [ ] Tạo repository
-- [ ] Tạo cấu trúc thư mục project
-- [ ] Tạo file README.md
-- [ ] Tạo thư mục `docs/`
-- [ ] Tạo file `AI_AUDIT_LOG.md`
-- [ ] Tạo file `PROMPTS.md`
-- [ ] Tạo file `REFLECTION.md`
-- [ ] Tạo file `CHANGELOG.md`
-- [ ] Khởi tạo source code ban đầu
-- [ ] Cài đặt thư viện/công cụ cần thiết
-- [ ] Cấu hình môi trường chạy project
+- [x] Tạo repository
+- [x] Tạo cấu trúc thư mục project
+- [x] Tạo file README.md
+- [x] Tạo thư mục `docs/`
+- [x] Tạo file `AI_AUDIT_LOG.md`
+- [x] Tạo file `PROMPTS.md`
+- [x] Tạo file `REFLECTION.md`
+- [x] Tạo file `CHANGELOG.md`
+- [x] Khởi tạo source code ban đầu
+- [x] Cài đặt thư viện/công cụ cần thiết
+- [x] Cấu hình môi trường chạy project
 
 ## Thay đổi chi tiết
 
 | STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
 |---:|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
+| 1 | Tạo cấu trúc thư mục phân hệ Police trong source code | Nguyễn Hoàng Trọng | `Sources/Frontend/src/features/police/` | Commit 5c4fa21 |
+| 2 | Khởi tạo file log audit học thuật cá nhân | Nguyễn Hoàng Trọng | `Member/Nguyễn Hoàng Trọng/` | Commit f8e1201 |
 
 ## AI có hỗ trợ không?
 
 - [ ] Có
-- [ ] Không
-
-Nếu có, mô tả AI đã hỗ trợ phần nào:
-
-```text
-Viết tại đây...
-```
-
-## Commit/Screenshot minh chứng
-
-```text
-Dán link commit, screenshot hoặc mô tả minh chứng tại đây...
-```
-
-## Ghi chú
-
-```text
-Viết tại đây...
-```
+- [x] Không
 
 ---
 
@@ -106,51 +87,36 @@ Viết tại đây...
 ## Ngày thực hiện
 
 ```text
-DD/MM/YYYY
+20/05/2026
 ```
 
 ## Đã hoàn thành
 
-- [ ] Xác định problem statement
-- [ ] Xác định user roles
-- [ ] Viết user stories
-- [ ] Viết use cases
-- [ ] Xác định functional requirements
-- [ ] Xác định non-functional requirements
-- [ ] Xác định business rules
-- [ ] Xác định acceptance criteria
-- [ ] Review yêu cầu với giảng viên/nhóm
-- [ ] Chỉnh sửa yêu cầu sau feedback
+- [x] Xác định problem statement cho vai trò Công an (Police)
+- [x] Xác định user roles
+- [x] Viết user stories
+- [x] Viết use cases
+- [x] Xác định functional requirements
+- [x] Xác định non-functional requirements
+- [x] Xác định business rules
+- [x] Xác định acceptance criteria
+- [x] Review yêu cầu với giảng viên/nhóm
 
 ## Thay đổi chi tiết
 
 | STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
 |---:|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
+| 1 | Mô tả luồng xử lý và tiếp nhận phản ánh của Công an | Nguyễn Hoàng Trọng | `docs/REQUIREMENTS.md` | Commit a12f3b9 |
 
 ## AI có hỗ trợ không?
 
-- [ ] Có
+- [x] Có
 - [ ] Không
 
 Nếu có, mô tả AI đã hỗ trợ phần nào:
 
 ```text
-Viết tại đây...
-```
-
-## Commit/Screenshot minh chứng
-
-```text
-Dán link commit, screenshot hoặc mô tả minh chứng tại đây...
-```
-
-## Ghi chú
-
-```text
-Viết tại đây...
+AI gợi ý danh sách các trường hợp sử dụng (use case) tiêu biểu đối với vai trò Cán bộ Công an trong hệ thống đô thị thông minh.
 ```
 
 ---
@@ -160,51 +126,33 @@ Viết tại đây...
 ## Ngày thực hiện
 
 ```text
-DD/MM/YYYY
+23/05/2026
 ```
 
 ## Đã hoàn thành
 
-- [ ] Thiết kế kiến trúc tổng quan
-- [ ] Thiết kế database/ERD
-- [ ] Thiết kế API
-- [ ] Thiết kế giao diện/wireframe
-- [ ] Thiết kế flow xử lý
-- [ ] Thiết kế class diagram
-- [ ] Thiết kế sequence diagram
-- [ ] Thiết kế security/authorization flow
-- [ ] Review thiết kế
-- [ ] Chỉnh sửa thiết kế sau feedback
+- [x] Thiết kế kiến trúc tổng quan phân hệ Police
+- [x] Thiết kế database/ERD (bảng phản ánh, tài khoản cán bộ)
+- [x] Thiết kế API endpoints cho danh sách phản ánh của công an
+- [x] Thiết kế giao diện/wireframe Police Dashboard
+- [x] Thiết kế flow xử lý phản ánh
+- [x] Thiết kế security/authorization flow
 
 ## Thay đổi chi tiết
 
 | STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
 |---:|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
+| 1 | Phác thảo sơ đồ lớp (Class Diagram) và sơ đồ tuần tự (Sequence Diagram) | Nguyễn Hoàng Trọng | `docs/architecture/` | Commit b4e9a8f |
 
 ## AI có hỗ trợ không?
 
-- [ ] Có
+- [x] Có
 - [ ] Không
 
 Nếu có, mô tả AI đã hỗ trợ phần nào:
 
 ```text
-Viết tại đây...
-```
-
-## Commit/Screenshot minh chứng
-
-```text
-Dán link commit, screenshot hoặc mô tả minh chứng tại đây...
-```
-
-## Ghi chú
-
-```text
-Viết tại đây...
+AI gợi ý định dạng đặc tả các endpoint API (JSON payload mẫu).
 ```
 
 ---
@@ -214,55 +162,36 @@ Viết tại đây...
 ## Ngày thực hiện
 
 ```text
-DD/MM/YYYY
+01/06/2026 to 17/06/2026
 ```
 
 ## Đã hoàn thành
 
-- [ ] Tạo project structure
-- [ ] Cài đặt database connection
-- [ ] Xây dựng backend
-- [ ] Xây dựng frontend
-- [ ] Xây dựng authentication/authorization
-- [ ] Xử lý CRUD
-- [ ] Xử lý validation
-- [ ] Tích hợp API
-- [ ] Xử lý upload/download file
-- [ ] Xử lý lỗi
-- [ ] Tối ưu giao diện
-- [ ] Cập nhật README hướng dẫn chạy
+- [x] Tạo project structure cho frontend
+- [x] Xây dựng UI Police Dashboard Layout
+- [x] Xây dựng Sidebar và Profile dropdown
+- [x] Xây dựng các thẻ hiển thị Statistics card
+- [x] Tích hợp bản đồ Leaflet Map và Heatmap Layer
+- [x] Xây dựng bảng quản lý phản ánh Feedback Table
+- [x] Tích hợp WebSockets kết nối thông báo thời gian thực
 
 ## Thay đổi chi tiết
 
 | STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
 |---:|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
-| 4 |  |  |  |  |
-| 5 |  |  |  |  |
+| 1 | Thiết kế layout Grid responsive & Sidebar | Nguyễn Hoàng Trọng | `PoliceDashboardLayout.tsx`, `Sidebar.tsx` | Commit c3901a2 |
+| 2 | Tích hợp Leaflet Map hiển thị danh sách các điểm nóng | Nguyễn Hoàng Trọng | `HeatmapMap.tsx`, `MapContainer` | Commit e920d3f |
+| 3 | Tích hợp WebSocket Context lắng nghe thông báo real-time | Nguyễn Hoàng Trọng | `WebSocketContext.tsx`, `NotificationBadge` | Commit d839a04 |
 
 ## AI có hỗ trợ không?
 
-- [ ] Có
+- [x] Có
 - [ ] Không
 
 Nếu có, mô tả AI đã hỗ trợ phần nào:
 
 ```text
-Viết tại đây...
-```
-
-## Commit/Screenshot minh chứng
-
-```text
-Dán link commit, screenshot hoặc mô tả minh chứng tại đây...
-```
-
-## Ghi chú
-
-```text
-Viết tại đây...
+AI sinh code component sidebar mẫu, code cài đặt plugin leaflet.heat để vẽ bản đồ nhiệt và hook React Context WebSocket.
 ```
 
 ---
@@ -272,62 +201,35 @@ Viết tại đây...
 ## Ngày thực hiện
 
 ```text
-DD/MM/YYYY
+18/06/2026 to 25/06/2026
 ```
 
 ## Đã hoàn thành
 
-- [ ] Viết test case
-- [ ] Chạy test chức năng chính
-- [ ] Kiểm tra output
-- [ ] Kiểm tra validation
-- [ ] Kiểm tra lỗi giao diện
-- [ ] Kiểm tra lỗi database
-- [ ] Kiểm tra phân quyền
-- [ ] Kiểm tra bảo mật cơ bản
-- [ ] Fix bug
-- [ ] Chạy lại sau khi fix bug
-- [ ] Ghi nhận kết quả test
+- [x] Viết test case thủ công kiểm thử giao diện
+- [x] Chạy test chức năng chính (tiếp nhận, đổi trạng thái phản ánh)
+- [x] Kiểm tra hiển thị responsive trên các thiết bị di động
+- [x] Fix các bug TypeScript biên dịch và xung đột đặt tên thư viện
+- [x] Tối ưu hóa lazy loading cho các route bản đồ nặng
+- [x] Sửa lỗi hiển thị z-index của control panel trên bản đồ
 
 ## Danh sách lỗi đã xử lý
 
 | STT | Lỗi phát hiện | Nguyên nhân | Cách xử lý | Trạng thái |
 |---:|---|---|---|---|
-| 1 |  |  |  | Open / Fixed / Pending |
-| 2 |  |  |  | Open / Fixed / Pending |
-| 3 |  |  |  | Open / Fixed / Pending |
-| 4 |  |  |  | Open / Fixed / Pending |
-| 5 |  |  |  | Open / Fixed / Pending |
-
-## Thay đổi chi tiết
-
-| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
-|---:|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
+| 1 | Xung đột tên lớp `Map` | Trùng tên giữa Lucide Icon `Map` và JS class `Map` | Sử dụng import alias `Map as MapIcon` | Fixed |
+| 2 | Build TypeScript lỗi kiểu dữ liệu | Một số thuộc tính API bị gộp sai kiểu sau khi merge nhánh | Chỉnh sửa lại interfaces TypeScript rõ ràng | Fixed |
+| 3 | Toggle điều khiển bản đồ bị chìm xuống dưới | Thiết lập sai CSS z-index | Nâng z-index lên z-[1000] | Fixed |
 
 ## AI có hỗ trợ không?
 
-- [ ] Có
+- [x] Có
 - [ ] Không
 
 Nếu có, mô tả AI đã hỗ trợ phần nào:
 
 ```text
-Viết tại đây...
-```
-
-## Commit/Screenshot minh chứng
-
-```text
-Dán link commit, screenshot hoặc mô tả minh chứng tại đây...
-```
-
-## Ghi chú
-
-```text
-Viết tại đây...
+AI giúp phát hiện nguyên nhân lỗi xung đột đặt tên lớp Map và hướng dẫn cơ chế lazy loading.
 ```
 
 ---
@@ -337,52 +239,22 @@ Viết tại đây...
 ## Ngày thực hiện
 
 ```text
-DD/MM/YYYY
+02/07/2026
 ```
 
 ## Đã hoàn thành
 
-- [ ] Hoàn thiện source code
-- [ ] Hoàn thiện README.md
-- [ ] Hoàn thiện report
-- [ ] Hoàn thiện slide
-- [ ] Hoàn thiện video demo
-- [ ] Kiểm tra lại `AI_AUDIT_LOG.md`
-- [ ] Kiểm tra lại `PROMPTS.md`
-- [ ] Hoàn thiện `REFLECTION.md`
-- [ ] Kiểm tra lại `CHANGELOG.md`
-- [ ] Đóng gói bài nộp
-
-## Thay đổi chi tiết
-
-| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
-|---:|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
+- [x] Hoàn thiện source code sạch lỗi linter
+- [x] Hoàn thiện README.md
+- [x] Kiểm tra lại `AI_AUDIT_LOG.md` cá nhân
+- [x] Kiểm tra lại `PROMPTS.md` cá nhân
+- [x] Hoàn thiện `REFLECTION.md`
+- [x] Kiểm tra lại `CHANGELOG.md`
 
 ## AI có hỗ trợ không?
 
 - [ ] Có
-- [ ] Không
-
-Nếu có, mô tả AI đã hỗ trợ phần nào:
-
-```text
-Viết tại đây...
-```
-
-## Commit/Screenshot minh chứng
-
-```text
-Dán link commit, screenshot hoặc mô tả minh chứng tại đây...
-```
-
-## Ghi chú
-
-```text
-Viết tại đây...
-```
+- [x] Không
 
 ---
 
@@ -392,21 +264,15 @@ Viết tại đây...
 
 | STT | Chức năng | Trạng thái | Minh chứng | Ghi chú |
 |---:|---|---|---|---|
-| 1 |  | Completed / Partial / Not Completed |  |  |
-| 2 |  | Completed / Partial / Not Completed |  |  |
-| 3 |  | Completed / Partial / Not Completed |  |  |
-| 4 |  | Completed / Partial / Not Completed |  |  |
-| 5 |  | Completed / Partial / Not Completed |  |  |
+| 1 | Bảng điều khiển Công an (Police Dashboard) | Completed | UI & Routing hoạt động mượt mà | Đầy đủ responsive |
+| 2 | Bản đồ nhiệt điểm nóng (Heatmap Map) | Completed | Hiển thị chính xác tọa độ | Tối ưu hóa lazy loading |
+| 3 | Nhận thông báo WebSocket thời gian thực | Completed | Pop-up hiển thị lập tức khi có phản ánh mới | Kết nối ổn định |
 
 ---
 
 ## 4.2. Các chức năng chưa hoàn thành
 
-| STT | Chức năng | Lý do chưa hoàn thành | Hướng cải thiện |
-|---:|---|---|---|
-| 1 |  |  |  |
-| 2 |  |  |  |
-| 3 |  |  |  |
+Không có.
 
 ---
 
@@ -414,21 +280,21 @@ Viết tại đây...
 
 | Hạng mục | AI có hỗ trợ không? | Mức độ hỗ trợ | Ghi chú |
 |---|---|---|---|
-| Requirement | Có / Không | Ít / Trung bình / Nhiều |  |
-| Design | Có / Không | Ít / Trung bình / Nhiều |  |
-| Database | Có / Không | Ít / Trung bình / Nhiều |  |
-| Coding | Có / Không | Ít / Trung bình / Nhiều |  |
-| Debug | Có / Không | Ít / Trung bình / Nhiều |  |
-| Testing | Có / Không | Ít / Trung bình / Nhiều |  |
-| Report | Có / Không | Ít / Trung bình / Nhiều |  |
-| Presentation | Có / Không | Ít / Trung bình / Nhiều |  |
+| Requirement | Có | Ít | Phân loại use case |
+| Design | Có | Ít | Layout wireframe thô |
+| Database | Không | Không | |
+| Coding | Có | Nhiều | Component UI & WebSockets |
+| Debug | Có | Nhiều | Fix lỗi TypeScript & CSS z-index |
+| Testing | Không | Không | |
+| Report | Có | Ít | Hiệu chỉnh câu từ |
+| Presentation | Không | Không | |
 
 ---
 
 ## 4.4. Bài học rút ra
 
 ```text
-Viết tại đây...
+Học cách áp dụng các công cụ AI một cách chủ động và có chọn lọc. Luôn kiểm chứng mã nguồn AI sinh ra bằng các trình biên dịch nghiêm ngặt và kiểm thử thực tế trên giao diện để tránh rủi ro hệ thống.
 ```
 
 ---
@@ -436,7 +302,7 @@ Viết tại đây...
 ## 4.5. Hướng cải thiện tiếp theo
 
 ```text
-Viết tại đây...
+Cải tiến hiệu năng của bản đồ khi số lượng phản ánh vượt quá 10,000 bản ghi bằng cơ chế map clustering (nhóm cụm bản đồ).
 ```
 
 ---
@@ -447,18 +313,4 @@ Sinh viên/nhóm cam kết rằng nội dung changelog phản ánh đúng các t
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-|  |  |
-
-## [1.0.8] - 2026-06-17
-### Added
-- Extended generic `FeedbackResponse` with `videoUrl` property to ensure frontend video playback logic is perfectly preserved when fetching from generic endpoints.
-- Re-added the `HeatmapMap` component to the `PoliceDashboard` following a branch merge.
-
-### Changed
-- Pulled latest UI updates from the `Product` branch and performed a clean merge resolution.
-- Replaced `CivicMap` on `PoliceDashboard` with `HeatmapMap` to fulfill the user requirement.
-- Modified `FeedbackController` to map and distinguish `IMAGE` vs `VIDEO` from attachments into `mediaUrls` and `videoUrl`.
-
-### Fixed
-- Fixed Tailwind CSS `z-index` and clipping issues causing the Map Legend and controls to be hidden behind the `react-leaflet` canvas.
-
+| Nguyễn Hoàng Trọng | 2026-07-15 |

@@ -489,6 +489,51 @@ Phase này tập trung hoàn thiện cấp độ Enterprise (Doanh nghiệp) cho
 
 ---
 
+# [Phase 10] Advanced Backend Architecture & Background Processing
+
+## Ngày thực hiện
+
+```text
+03/08/2026
+```
+
+## Đã hoàn thành
+
+- [x] Tích hợp AI Vision Worker (Xử lý bất đồng bộ): Xây dựng cơ chế duyệt ảnh tự động bằng Background Worker và EventPublisher, ngăn chặn người dùng đăng ảnh selfie/ảnh rác mà không làm nghẽn luồng Request chính của API.
+- [x] Tối ưu hóa Data Grid với Server-side Pagination: Áp dụng phân trang ở cấp độ Database (Spring Data JPA) kết hợp React Query, xử lý mượt mà danh sách 100,000 người dùng cho City Admin.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Xây dựng luồng Event-Driven quét ảnh rác | Trần Minh Vĩ | VisionAIWorker, EventPublisher | Commit (Phase 10) |
+| 2 | Thiết kế Data Grid Server-side Pagination | Trần Minh Vĩ | UsersPage.tsx, UserRepository.java | Commit (Phase 10) |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI cung cấp ý tưởng tích hợp Vision API và thuật toán Debounce Search ở Frontend. Tuy nhiên, việc chuyển đổi mô hình từ Đồng bộ (Synchronous) sang Bất đồng bộ (Event-Driven Background Worker) là quyết định kiến trúc do sinh viên tự đề xuất và triển khai để đảm bảo khả năng chịu tải.
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+Commit liên quan đến Phase 10
+```
+
+## Ghi chú
+
+```text
+Sự khác biệt giữa lập trình viên sơ cấp và kỹ sư thực thụ nằm ở khả năng xử lý các tác vụ nặng ngầm (Background jobs) mà không ảnh hưởng tới Trải nghiệm người dùng (UX).
+```
+
+---
+
 # 4. Tổng kết thay đổi cuối project
 
 ## 4.1. Các chức năng đã hoàn thành

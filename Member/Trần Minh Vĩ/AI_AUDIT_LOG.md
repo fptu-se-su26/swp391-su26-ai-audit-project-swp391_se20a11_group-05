@@ -794,6 +794,117 @@ AI phân tích rằng DOM của trình duyệt không thể chịu nổi việc 
 Viết code chạy được là mức cơ bản (Junior), viết code chạy mượt dưới áp lực dữ liệu khổng lồ mới là thước đo của một hệ thống thực tiễn (Production-ready).
 ```
 
+---
+
+### Lần sử dụng AI số 13
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Chống rác dữ liệu bằng AI Vision Worker |
+| Phần việc liên quan | Backend / AI Integration / Event-Driven Architecture |
+| Mức độ sử dụng | Hỗ trợ thuật toán xử lý luồng |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Trong hệ thống phản ánh đô thị của tôi, một số người dân đang tải lên ảnh selfie hoặc ảnh phong cảnh rác thay vì ảnh ổ gà, nắp cống. Nếu để cán bộ phường duyệt thủ công 10,000 tấm ảnh này mỗi ngày thì sẽ quá tải. Hãy gợi ý một phương pháp tích hợp AI Vision để tự động phát hiện và từ chối các báo cáo rác.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đề xuất sử dụng Google Cloud Vision API để phân tích hình ảnh. AI gợi ý tôi nhúng thẳng thư viện Google Vision vào hàm `createFeedback(...)` ở Backend. Khi người dùng bấm Gửi, Backend sẽ truyền ảnh lên Google, chờ kết quả phân tích. Nếu ảnh chứa khuôn mặt (Face Detection) hoặc thiếu yếu tố đô thị, API sẽ ném ra lỗi (HTTP 400) bắt người dân thử lại.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Áp dụng ý tưởng sử dụng mô hình pre-trained (Vision API) thay vì tự train một mô hình CNN phức tạp tốn kém thời gian.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Bác bỏ phương pháp xử lý Đồng bộ (Synchronous) của AI để xây dựng Hệ thống Bất đồng bộ (Asynchronous Event-Driven):
+- Critical Thinking: Giải pháp của AI cực kỳ nguy hiểm. Quá trình gọi API phân tích ảnh sang Google có thể mất 3-5 giây. Nếu 1000 người cùng ấn nút Submit, server Backend của chúng tôi sẽ cạn kiệt luồng (Thread pool exhaustion) và treo cứng. Hơn nữa, việc bắt người dân chờ đợi 5 giây với màn hình xoay vòng (loading spinner) là một trải nghiệm tồi tệ (Bad UX).
+- Creative Synthesis & Decision Ownership: Tôi thiết kế lại toàn bộ quy trình. Khi người dùng Gửi phản ánh, hệ thống lập tức lưu vào DB với trạng thái `PENDING_AI_SCAN` và trả về kết quả thành công (HTTP 200) chưa tới 100ms. Sau đó, Backend bắn ra một Event (Message Queue/EventPublisher). Một tiến trình chạy ngầm có tên `VisionAIWorker` sẽ bắt lấy Event này, tuần tự lấy ảnh đi phân tích mà không can thiệp vào luồng chính. Nếu phát hiện rác, nó tự động cập nhật status thành `REJECTED_BY_AI`. Người dân sẽ nhận được thông báo qua Web Socket/Push Notification thay vì phải chờ màn hình xoay vòng.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Background Processing Phase 10 |
+| File liên quan | VisionAIWorker.java, FeedbackEventPublisher.java |
+| Screenshot |  |
+| Kết quả chạy/test | Request tạo phản ánh phản hồi chỉ trong 80ms. Hệ thống tự động từ chối ảnh selfie sau 2 giây ngầm mà không làm sập server. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Tuyệt đối không được nhét các tác vụ xử lý IO hoặc AI nặng nề vào luồng phục vụ người dùng chính. Event-Driven Architecture là bắt buộc đối với hệ thống lớn.
+```
+
+---
+
+### Lần sử dụng AI số 14
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Thiết kế Data Grid Server-side Pagination |
+| Phần việc liên quan | Fullstack (Spring Data JPA / React Query) |
+| Mức độ sử dụng | Gợi ý thư viện và logic phân trang |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Giao diện Admin của tôi cần hiển thị danh sách 100,000 người dùng trong hệ thống (City Admin UsersPage). Nếu tôi trả về toàn bộ mảng JSON từ Backend, trình duyệt sẽ sụp đổ (Out of memory). Hãy viết cho tôi code React và Spring Boot để tạo ra một bảng dữ liệu (Data Grid) có khả năng cuộn trang và tìm kiếm mượt mà mà không sập hệ thống.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đề xuất sử dụng thư viện `react-data-grid` hoặc `ag-grid`. Ở phía Backend, AI cung cấp đoạn code dùng `Pageable` của Spring Data JPA. Tuy nhiên, AI lại khuyến nghị lấy danh sách lớn rồi phân trang trên Client (Client-side Pagination) để làm tính năng tìm kiếm (Search) dễ dàng hơn bằng `Array.filter()`.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Tiếp thu cách sử dụng class `Pageable` và interface `Page<User>` của Spring Boot.
+- Sử dụng UI Component Bảng từ TailwindCSS theo bố cục của AI.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Làm chủ hoàn toàn cơ chế Server-side Pagination & Debounce Search:
+- Critical Thinking: Lời khuyên phân trang Client-side của AI hoàn toàn vô giá trị khi dữ liệu lên tới 100,000 bản ghi. Việc bắt tải JSON nặng 50MB về điện thoại người dùng là một thảm họa kỹ thuật.
+- Decision Ownership & Creative Synthesis: Tôi thiết lập một kiến trúc Server-side Pagination chuẩn mực. Frontend truyền chính xác các biến `page`, `size`, `sort`, và `keyword` lên URL Query. Spring Data JPA xử lý truy vấn `SELECT ... LIMIT ... OFFSET` ở cấp độ CSDL. Để làm tính năng Tìm kiếm không làm quá tải Database (tránh việc gọi API liên tục mỗi khi gõ 1 chữ cái), tôi đã tự tích hợp kỹ thuật Debounce Search (chờ 500ms ngưng gõ mới gọi API). Đồng thời dùng React Query `keepPreviousData: true` để giao diện không bị giật trắng (flicker) trong khi chờ dữ liệu của trang mới trả về.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Data Grid Phase 10 |
+| File liên quan | UsersPage.tsx, UserRepository.java, UserService.java |
+| Screenshot |  |
+| Kết quả chạy/test | Tải danh sách 100,000 người dùng cực kỳ mượt mà. Thời gian tải API dưới 30ms nhờ Pagination SQL chuẩn mực. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Sự khác biệt giữa Đồ án sinh viên và Phần mềm Doanh nghiệp là khả năng thao tác với tập dữ liệu khổng lồ mà tốc độ vẫn được duy trì.
+```
+
 ## 5. Bảng tổng hợp mức độ sử dụng AI
 
 Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.

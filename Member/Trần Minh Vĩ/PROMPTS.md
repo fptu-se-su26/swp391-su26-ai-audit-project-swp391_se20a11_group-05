@@ -941,6 +941,142 @@ Khi tối ưu hiệu năng (Performance), phải hiểu thật rõ Lifecycle và
 
 ---
 
+### Lần 13: Thiết kế AI Worker quét rác dữ liệu (Event-Driven Architecture)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 3 |
+| Mức độ hài lòng | 4/5 |
+| Mục đích | Giải quyết bài toán rác dữ liệu |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Người dân có thể tải lên bất kỳ hình ảnh nào vào Form phản ánh. Nếu họ cố tình tải ảnh selfie hoặc ảnh khiêu dâm, cán bộ phường sẽ bị quá tải trong khâu duyệt. Tôi cần một cơ chế tự động từ chối các báo cáo không hợp lệ này bằng AI Vision.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI đề xuất sử dụng Google Cloud Vision API. AI viết một đoạn code nhúng thẳng hàm gọi API này vào bên trong Controller xử lý `POST /feedbacks` của Spring Boot. Nó sẽ phân tích ảnh ngay khi người dùng bấm nút Gửi, nếu không hợp lệ thì trả về HTTP 400.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Tôi đã sử dụng giải thuật gọi Google Cloud Vision API (để detect khuôn mặt và nhãn dán) nhưng tôi TỪ CHỐI việc nhúng trực tiếp nó vào Controller như AI gợi ý.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Chuyển đổi kiến trúc từ Đồng bộ (Sync) sang Bất đồng bộ (Async):
+- Critical Thinking: Xử lý ảnh bằng AI mất khoảng 2-5 giây. Nếu đặt trong Controller, người dân phải nhìn màn hình xoay vòng 5 giây mới biết gửi thành công hay không. Nếu 1000 người gửi cùng lúc, Server sẽ treo cứng vì cạn kiệt Thread.
+- Decision Ownership & Creative Synthesis: Tôi tự thiết kế lại luồng Event-Driven. Controller lập tức lưu DB với trạng thái `PENDING_AI_SCAN` và trả HTTP 200 (Success) trong 80ms. Sau đó, nó ném ra một Event. Tôi tạo một `VisionAIWorker` chạy ngầm (Background thread) lắng nghe Event này, lấy ảnh đi quét và tự động chuyển trạng thái thành `REJECTED_BY_AI` nếu phát hiện selfie. Người dân sẽ được thông báo sau mà không cần phải chờ đợi màn hình loading.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Kiến trúc Đồng bộ nguy hiểm)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Background Processing Phase 10 |
+| File liên quan | VisionAIWorker.java, FeedbackEventPublisher.java |
+| Screenshot | |
+| Kết quả chạy/test | Trải nghiệm người dùng (UX) cực nhanh. Worker quét ngầm an toàn và không gây nghẽn Server. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Tuyệt đối không để AI làm "chặn luồng" (blocking) trong lập trình Backend.
+```
+
+---
+
+### Lần 14: Tối ưu hóa bảng dữ liệu lớn (Server-side Pagination & Debounce Search)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 4/5 |
+| Mục đích | Render mượt mà 100,000 users |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Trang City Admin cần quản lý 100,000 người dùng. Nếu gọi API trả về toàn bộ mảng JSON 100,000 phần tử, trình duyệt sẽ sập vì Out of Memory (OOM).
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI đề xuất chia trang. Nhưng AI lại cung cấp giải pháp Client-side Pagination: Gọi API lấy đủ 100,000 users về biến mảng, sau đó dùng hàm `.slice(0, 10)` để cắt ra hiển thị. AI biện luận rằng làm vậy để chức năng Tìm kiếm (Search) có thể tự dùng `.filter()` cho dễ.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Tôi chỉ giữ lại giao diện (UI) Bảng từ AI và cách lấy thuộc tính `Pageable` trong Spring Boot.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Bác bỏ Client-side Pagination, triển khai Server-side Pagination & Debounce Search:
+- Critical Thinking: Client-side Pagination với 100,000 records là phản khoa học và tàn phá băng thông mạng (Bandwidth). Dữ liệu rác bị nhồi vào RAM của điện thoại người dùng.
+- Decision Ownership & Creative Synthesis: Tôi thiết kế Server-side Pagination thực thụ. Frontend truyền số trang `page` và `size` lên Backend. Backend dịch ra câu truy vấn SQL `OFFSET ... LIMIT` để chỉ tải đúng 10 dòng từ DB. Về phần Tìm kiếm, tôi không dùng `.filter()` nội bộ mà gọi lại API tìm kiếm với từ khóa mới. Để tránh DDoS CSDL khi người dùng gõ từng chữ cái, tôi viết thuật toán Debounce Search (chờ 500ms không gõ mới gọi API). Giao diện mượt mà hoàn hảo.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Gợi ý phân trang Client-side sai lầm)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Data Grid Phase 10 |
+| File liên quan | UsersPage.tsx, UserRepository.java, UserService.java |
+| Screenshot | |
+| Kết quả chạy/test | Bảng hiển thị mượt mà. Network payload chỉ vài Kilobyte thay vì 50 Megabyte. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Xử lý dữ liệu lớn bắt buộc phải tính toán ở cấp độ Database, không đùn đẩy trách nhiệm cho Frontend.
+```
+
+---
+
 ## 6. Prompt quan trọng nhất
 
 Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.

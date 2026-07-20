@@ -1,6 +1,8 @@
 package com.example.smartcity.modules.chatbot.controller;
 
 import com.example.smartcity.modules.chatbot.service.ChatbotService;
+import com.example.smartcity.modules.chatbot.dto.ChatRequestDto;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,7 @@ import java.util.Map;
 public class ChatbotController {
 
     private final ChatbotService chatbotService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * GET /api/chatbot/query?q=...&userId=1&sessionId=xxx
@@ -37,16 +40,64 @@ public class ChatbotController {
     }
 
     /**
-     * GET /api/chatbot/stream?q=...&userId=1
+     * POST /api/chatbot/stream
      * Trả lời câu hỏi dạng SSE Stream (hiệu ứng gõ phím).
      */
-    @GetMapping(value = "/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
-    public reactor.core.publisher.Flux<String> streamChat(
-            @RequestParam String q,
-            @RequestParam(defaultValue = "1") Long userId) {
-
-        log.info("💬 [API STREAM] GET /api/chatbot/stream — userId={} | q='{}'", userId, q);
-        return chatbotService.askStream(userId, q);
+    @PostMapping(value = "/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
+    public reactor.core.publisher.Flux<String> streamChat(@RequestBody ChatRequestDto request) {
+        log.info("💬 [API STREAM] POST /api/chatbot/stream — sessionId={} | message='{}'", request.getSessionId(), request.getMessage());
+        
+        Long resolvedUserId = null;
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !auth.getName().equals("anonymousUser")) {
+            try {
+                var userOpt = chatbotService.getUserByUsername(auth.getName());
+                if (userOpt.isPresent()) {
+                    resolvedUserId = userOpt.get().getId();
+                }
+            } catch (Exception e) {
+                log.warn("Lỗi khi lấy thông tin user từ token: {}", e.getMessage());
+            }
+        }
+        final Long finalUserId = resolvedUserId;
+        
+        java.util.List<java.util.Map<String, String>> mappedHistory = new java.util.ArrayList<>();
+        if (request.getHistory() != null) {
+            for (var msg : request.getHistory()) {
+                mappedHistory.add(java.util.Map.of("role", msg.getRole(), "content", msg.getContent()));
+            }
+        }
+        
+        return reactor.core.publisher.Mono.fromCallable(() -> {
+            return chatbotService.ask(finalUserId, request.getSessionId(), request.getMessage(), mappedHistory);
+        }).subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic())
+        .flatMapMany(result -> {
+            try {
+                String fullReply = (String) result.remove("reply");
+                if (fullReply == null) fullReply = "";
+                
+                result.put("status", "START");
+                String startJson = objectMapper.writeValueAsString(result);
+                
+                // Split by word but keep delimiter using regex lookbehind
+                String[] words = fullReply.split("(?<=\\s)|(?=[\\.,!?])");
+                reactor.core.publisher.Flux<String> wordFlux = reactor.core.publisher.Flux.fromArray(words)
+                    .filter(w -> !w.isEmpty())
+                    .delayElements(java.time.Duration.ofMillis(30))
+                    .map(word -> {
+                        try {
+                            return objectMapper.writeValueAsString(java.util.Map.of("chunk", word));
+                        } catch(Exception e) { return "{}"; }
+                    });
+                
+                reactor.core.publisher.Flux<String> startFlux = reactor.core.publisher.Flux.just(startJson);
+                reactor.core.publisher.Flux<String> endFlux = reactor.core.publisher.Flux.just("{\"status\":\"DONE\"}");
+                
+                return reactor.core.publisher.Flux.concat(startFlux, wordFlux, endFlux);
+            } catch (Exception e) {
+                return reactor.core.publisher.Flux.just("{\"status\":\"ERROR\"}");
+            }
+        });
     }
 
     /**

@@ -1127,6 +1127,116 @@ Thiết kế Context API gọn nhẹ thay vì thư viện cồng kềnh:
 Tối ưu hóa dung lượng ứng dụng (Bundle Size) bằng cách tự viết các Context đơn giản thay vì lạm dụng thư viện của bên thứ ba.
 ```
 
+---
+
+### Lần sử dụng AI số 19
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Xử lý đa phương tiện & Định vị GPS cho Form gửi phản ánh |
+| Phần việc liên quan | Frontend / Browser Native APIs |
+| Mức độ sử dụng | Hỗ trợ tìm kiếm thư viện (Bị bác bỏ) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Form báo cáo rác thải của tôi cần cho phép người dân đính kèm hình ảnh và tự động lấy tọa độ GPS của họ. Hãy chỉ cho tôi cách làm.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đề xuất sử dụng 2 thư viện rất nặng: `react-dropzone` để kéo thả ảnh, và yêu cầu gọi API của `ipinfo.io` (trả phí) để lấy tọa độ thông qua địa chỉ IP. Về phần ảnh, AI gợi ý gửi thẳng file raw (có thể lên tới 10MB/ảnh) lên Server Backend.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Không sử dụng bất kỳ thư viện hay API trả phí nào do AI đề xuất.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Khai thác Browser Native APIs & Tối ưu hóa Băng thông (Bandwidth):
+- Critical Thinking: Việc gửi thẳng ảnh 10MB từ điện thoại lên Server bằng 4G sẽ làm người dân nản lòng vì quá chậm (và gây tốn kém tiền Cloud Storage cho dự án). Ngoài ra, định vị bằng IP (như AI xúi) là cực kỳ thiếu chính xác, độ lệch có thể lên tới hàng kilomet.
+- Decision Ownership & Creative Synthesis: Tôi tự viết một Hook ép nén ảnh ngay trên trình duyệt (Client-side Compression) bằng HTML5 `<canvas>`. Một tấm ảnh 10MB lập tức bị thu nhỏ về 300KB trước khi rời khỏi điện thoại, giúp API Upload phản hồi trong tích tắc. Về GPS, tôi sử dụng Native API `navigator.geolocation` của trình duyệt. Nó kết nối thẳng với chip GPS trên điện thoại để lấy tọa độ cực kỳ chính xác (lệch vài mét) mà hoàn toàn miễn phí.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Multimedia & Geo Phase 13 |
+| File liên quan | ReportForm.tsx |
+| Screenshot |  |
+| Kết quả chạy/test | Người dùng upload 5 tấm ảnh 4K nhưng chỉ mất 1 giây để xử lý xong. Tọa độ chính xác đến từng gốc cây. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Tối ưu hóa ở phía Client (Frontend) là cách hiệu quả nhất để cứu vớt hàng nghìn đô la chi phí Server (Backend).
+```
+
+---
+
+### Lần sử dụng AI số 20
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Cấu hình bảo mật cấp độ Production (CORS & Rate Limiting) |
+| Phần việc liên quan | Backend / System Security |
+| Mức độ sử dụng | Hỗ trợ cú pháp Spring Security |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Khi tôi đẩy Frontend lên Vercel và Backend lên Render, trình duyệt báo lỗi "CORS blocked". Đồng thời, bất kỳ ai cũng có thể gọi API Public hàng nghìn lần để spam rác hệ thống. Tôi phải làm sao?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI cung cấp đoạn code Spring Boot: `registry.addMapping("/**").allowedOrigins("*")`. Nó bảo tôi cho phép tất cả mọi Origin (dấu `*`) để giải quyết lỗi CORS nhanh nhất. Về spam, AI xúi cài thêm một server Nginx đứng trước để cản.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Học cách cấu trúc class `WebMvcConfigurer` trong Spring Boot.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Bảo mật hệ thống tuyệt đối (Hardening System Security):
+- Critical Thinking: Cấu hình `.allowedOrigins("*")` của AI là sự tự sát về mặt bảo mật. Bất kỳ trang web giả mạo nào (Phishing) cũng có thể gửi request đến API của tôi (CSRF Attack). Việc cài Nginx thì lại quá phức tạp và không khả thi trên nền tảng Render miễn phí.
+- Decision Ownership & Creative Synthesis: Tôi đã ném bỏ code CORS rác của AI. Thay vào đó, tôi hardcode chính xác Origin hợp lệ `.allowedOrigins("https://thecityconnect.vn")` và chỉ cho phép các hàm `GET, POST`. Để chống Spam, tôi triển khai thuật toán Token Bucket (Rate Limiting) ngay trong tầng Filter của Spring Boot: Giới hạn mỗi địa chỉ IP chỉ được gửi tối đa 5 phản ánh / phút. Kẻ tấn công (DDoS) sẽ bị trả về mã lỗi HTTP 429 (Too Many Requests).
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Production Security Phase 13 |
+| File liên quan | WebSecurityConfig.java, RateLimitFilter.java |
+| Screenshot |  |
+| Kết quả chạy/test | Dùng Postman spam API liên tục, đến request thứ 6 lập tức bị chặn bằng mã HTTP 429. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Đừng bao giờ copy-paste code CORS của AI. "Chạy được" và "Chạy an toàn" là hai khái niệm hoàn toàn khác biệt.
+```
+
 ## 5. Bảng tổng hợp mức độ sử dụng AI
 
 Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.

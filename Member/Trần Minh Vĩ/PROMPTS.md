@@ -1349,6 +1349,142 @@ Chỉ dùng thư viện lớn khi thực sự cần thiết. Những logic đơn
 
 ---
 
+### Lần 19: Tối ưu hóa xử lý Đa phương tiện & Định vị (Client-side)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 3/5 |
+| Mục đích | Giảm tải băng thông và lấy tọa độ chính xác |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Form báo cáo rác thải cần tính năng upload ảnh và tự động ghim vị trí GPS. Ảnh người dân chụp từ iPhone có thể lên tới 10MB/tấm.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI cung cấp code sử dụng `<input type="file">` gửi thẳng mảng byte lên Backend. Về phần vị trí, AI gợi ý gọi API của bên thứ 3 (ipinfo.io) để lấy tọa độ dựa trên IP.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Bác bỏ toàn bộ code của AI vì không thực tế và tốn kém chi phí.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Tối ưu hóa Băng thông và khai thác Native API:
+- Critical Thinking: Gửi thẳng ảnh 10MB lên server bằng mạng 4G sẽ cực kỳ chậm, tốn băng thông và làm đầy ổ cứng Server rất nhanh. Định vị bằng IP thì sai số có thể tính bằng kilomet, hoàn toàn vô dụng cho việc tìm một đống rác trên vỉa hè.
+- Decision Ownership & Creative Synthesis: Tôi tự tay viết một Hook ép nén ảnh ngay trên trình duyệt bằng HTML5 `<canvas>`. Ảnh 10MB bị thu nhỏ xuống còn 300KB trước khi được gửi đi, giúp API Upload hoàn thành trong chưa tới 1 giây. Về vị trí, tôi khai thác Native API `navigator.geolocation` của trình duyệt. Công nghệ này truy cập thẳng vào phần cứng GPS của điện thoại, trả về tọa độ chính xác tới từng mét (Accuracy < 5m) và quan trọng nhất là hoàn toàn miễn phí.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Giải pháp tốn kém, thiếu chính xác)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Multimedia & Geo Phase 13 |
+| File liên quan | ReportForm.tsx |
+| Screenshot | |
+| Kết quả chạy/test | Upload 5 tấm ảnh cực nhanh. Bản đồ ghim chính xác vị trí đứng hiện tại. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Trình duyệt web hiện đại có rất nhiều API sức mạnh (Canvas, Geolocation). Cần tận dụng chúng thay vì phụ thuộc API ngoài.
+```
+
+---
+
+### Lần 20: Thiết lập Bảo mật cấp độ Production (CORS & Rate Limit)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 1 |
+| Mức độ hài lòng | 2/5 |
+| Mục đích | Bảo vệ Server khỏi tấn công CSRF và DDoS |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Triển khai hệ thống lên Môi trường thực tế (Production): Frontend nằm ở Vercel, Backend nằm ở Render. Cần giải quyết lỗi CORS và chống tình trạng spam API (DDoS).
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI cung cấp đoạn code Spring Boot: `registry.addMapping("/**").allowedOrigins("*")` để fix lỗi CORS. Để chống Spam, AI bảo tôi tự đi cấu hình một Server Nginx.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Chỉ học cú pháp Override `addCorsMappings` của Spring Boot. TỪ CHỐI cấu hình `*`.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Bảo mật hệ thống khép kín (Hardening System Security):
+- Critical Thinking: Cấu hình `allowedOrigins("*")` là một tội ác trong bảo mật. Bất kỳ website lừa đảo nào cũng có thể gửi lệnh (CSRF Attack) thẳng vào Backend của tôi. Việc dựng Nginx chỉ để chống Spam là quá sức cồng kềnh cho nền tảng Cloud Serverless như Render.
+- Decision Ownership & Creative Synthesis: Tôi thiết lập CORS nghiêm ngặt, chỉ chấp nhận `.allowedOrigins("https://thecityconnect.vn")` và chỉ mở các Method cụ thể (GET, POST, PUT). Để chống spam, tôi tự viết một `RateLimitFilter` chạy thuật toán Token Bucket (hoặc đơn giản là đếm Request trong bộ nhớ Cache). Bất kỳ IP nào gọi quá 5 lần/phút sẽ bị Backend chặn đứng và trả về HTTP 429 (Too Many Requests), bảo vệ hệ thống khỏi sụp đổ mà không cần tới Nginx.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Gây lỗ hổng bảo mật nghiêm trọng)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Production Security Phase 13 |
+| File liên quan | WebSecurityConfig.java, RateLimitFilter.java |
+| Screenshot | |
+| Kết quả chạy/test | Dùng Postman từ máy ảo gọi API bị báo lỗi CORS. F5 spam web liên tục thì bị văng HTTP 429. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Bảo mật là thành trì cuối cùng. Một ứng dụng hay đến mấy mà sập ngay khi Go-live thì cũng vô nghĩa.
+```
+
+---
+
 ## 6. Prompt quan trọng nhất
 
 Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.

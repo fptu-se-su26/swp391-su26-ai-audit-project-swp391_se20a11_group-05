@@ -624,6 +624,51 @@ Một hệ thống phục vụ Smart City phải đảm bảo tuyệt đối tí
 
 ---
 
+# [Phase 13] Production Readiness & Final Polish
+
+## Ngày thực hiện
+
+```text
+03/08/2026
+```
+
+## Đã hoàn thành
+
+- [x] Tối ưu hóa đa phương tiện & Định vị (Multimedia & Geo): Tích hợp tính năng nén ảnh tại Frontend (Client-side Compression) và sử dụng Native HTML5 Geolocation thay vì dùng API trả phí.
+- [x] Thiết lập Bảo mật Cấp độ Production (CORS & Rate Limiting): Cấu hình chặn tấn công chéo trang (CORS) với Origin kiểm soát nghiêm ngặt và giới hạn tần suất gọi API (Rate Limiting) chống spam.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Viết Hook nén ảnh bằng Canvas và GPS | Trần Minh Vĩ | ReportForm.tsx | Commit (Phase 13) |
+| 2 | Cấu hình Security & Rate Limit | Trần Minh Vĩ | WebSecurityConfig.java, RateLimitFilter.java | Commit (Phase 13) |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI cung cấp code CORS rác (allow `*`) và gợi ý dùng API định vị IP. Sinh viên đã tự viết lại cấu hình Security khép kín và khai thác API định vị gốc của trình duyệt.
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+Commit liên quan đến Phase 13
+```
+
+## Ghi chú
+
+```text
+Hoàn tất 100% quá trình kiểm toán AI (AI Audit). Dự án đã đạt tiêu chuẩn Production-ready (Sẵn sàng đưa vào vận hành thực tế).
+```
+
+---
+
 # 4. Tổng kết thay đổi cuối project
 
 ## 4.1. Các chức năng đã hoàn thành

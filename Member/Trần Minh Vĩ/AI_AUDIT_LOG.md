@@ -563,6 +563,121 @@ Sử dụng 4 kỹ năng chính để cải tiến giải pháp (Làm chủ côn
 Em rút ra bài học xương máu về Git: Không bao giờ thực hiện Merge nhánh khi Server (như Vite/Webpack) đang chạy ở chế độ Watch/Hot-Reload, vì hệ thống file sẽ bị thay đổi ngầm gây thất bại quá trình gộp code.
 ```
 
+---
+
+### Lần sử dụng AI số 9
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Sửa lỗi UI & Layout |
+| Phần việc liên quan | Frontend / React / TanStack Router |
+| Mức độ sử dụng | Hỗ trợ tìm lỗi và giải pháp |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Giao diện trang Tra cứu phản ánh (`feedback-search.tsx`) của tôi đang bị lỗi hiển thị lặp lại component Footer hai lần chồng lên nhau. Hãy tìm nguyên nhân và cách khắc phục trong hệ thống TanStack Router.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI phân tích cấu trúc file và phát hiện nguyên nhân đến từ cơ chế Nested Routing. AI chỉ ra rằng file `__root.tsx` (Route cha) đã khai báo component `<Footer />` dùng chung cho toàn bộ các route con thông qua `<Outlet />`. Tuy nhiên, trong file `feedback-search.tsx`, tôi lại import và gọi `<Footer />` một lần nữa, dẫn đến việc render kép. AI khuyên nên xóa thẻ `<Footer />` ở file con.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Sử dụng kết luận chẩn đoán lỗi của AI để xác định chính xác dòng code gây lặp layout.
+- Áp dụng nguyên tắc DRY (Don't Repeat Yourself) mà AI gợi ý khi làm việc với Layout Component.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Sử dụng tư duy thiết kế hệ thống (System Design Thinking):
+- Critical Thinking: Thay vì chỉ xóa dòng code bị lỗi như một cái máy, tôi dành thời gian rà soát lại toàn bộ cây thư mục (Route Tree) của dự án. Tôi nhận ra rằng việc để các lập trình viên khác trong nhóm tự do gọi `Header`/`Footer` ở các file route con là một rủi ro lớn về tính nhất quán UI.
+- Contextualization: Ứng dụng Đà Nẵng Kết Nối chia làm 2 cổng hoàn toàn biệt lập: Cổng Công dân (có Header/Footer đầy đủ) và Cổng Cán bộ (chỉ có Sidebar, không có Header/Footer). Nếu không quản lý tập trung, giao diện cán bộ có thể vô tình bị lọt Footer của dân thường vào.
+- Creative Synthesis & Decision Ownership: Tôi thiết lập một bộ quy tắc (Convention) mới cho team. Toàn bộ các component dùng chung cấp cao (Global UI Layout) chỉ được phép khởi tạo và điều khiển trạng thái ẩn/hiện duy nhất tại `__root.tsx` dựa vào hook `useLocation`. Lệnh cấm tuyệt đối việc gọi `Header`/`Footer` trong bất kỳ route con nào. Quyết định quy chuẩn hóa (Standardization) này đã triệt tiêu hoàn toàn rủi ro hiển thị lặp UI trong tương lai.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Phase 08 |
+| File liên quan | feedback-search.tsx |
+| Screenshot |  |
+| Kết quả chạy/test | Trang tra cứu hiển thị đẹp mắt, chỉ còn 1 Footer duy nhất. Layout toàn dự án ổn định. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Em hiểu sâu sắc hơn về cơ chế vòng đời và cây Component của React Router. Lỗi UI đôi khi không xuất phát từ CSS, mà xuất phát từ việc thiết kế kiến trúc phân cấp Layout sai lầm.
+```
+
+---
+
+### Lần sử dụng AI số 10
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Sửa lỗi kịch bản khởi động (Build Script) |
+| Phần việc liên quan | Backend / System Administration / DevOps |
+| Mức độ sử dụng | Hỗ trợ giải pháp tối ưu |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- File script `run-backend.bat` của tôi dùng lệnh `mvn spring-boot:run` nhưng khi một số thành viên trong nhóm tải dự án về chạy thì Windows báo lỗi `'mvn' is not recognized as an internal or external command`. Làm sao để team tôi chạy được code mà không bắt buộc mỗi người phải đi cài đặt môi trường Maven và cấu hình Path thủ công?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI giải thích rằng lỗi do máy tính chưa được cài đặt Maven hoặc chưa thêm biến môi trường (Environment Variables). AI đề xuất sử dụng Maven Wrapper (`mvnw.cmd` cho Windows hoặc `./mvnw` cho Linux/Mac). Đây là công cụ tích hợp sẵn trong thư mục dự án Spring Boot, nó sẽ tự động tải phiên bản Maven phù hợp về máy mà không cần cài đặt trước. AI gợi ý đổi `mvn` thành `mvnw.cmd` trong file `.bat`.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Hiểu được khái niệm và cơ chế hoạt động của "Wrapper" trong hệ sinh thái Java/Spring Boot.
+- Sử dụng cú pháp lệnh thay thế (`mvnw.cmd` thay cho `mvn`) để chạy hệ thống.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Phân tích và cải thiện quy trình Onboarding dự án:
+- Critical Thinking: Rào cản lớn nhất khi làm việc nhóm (Teamwork) là vấn đề "Works on my machine" (Code chạy được trên máy tôi nhưng lỗi trên máy bạn). Việc bắt buộc 5 thành viên phải cài đặt chính xác cùng một phiên bản Maven, Java JDK, Node.js là rất tốn thời gian và dễ sai sót. 
+- Contextualization: Dự án đang bước vào giai đoạn nước rút, các bạn làm Frontend cần một cách chạy Backend API nhanh nhất có thể chỉ bằng 1 cú click đúp chuột (Double-click) vào file `.bat` mà không cần biết cách config Java.
+- Creative Synthesis: Tôi đã chỉnh sửa file `run-backend.bat`, đổi thành lệnh `mvnw.cmd clean spring-boot:run`. Điều này đảm bảo rằng mỗi lần khởi động, hệ thống sẽ tự động dọn dẹp các bản build cũ (clean) và tải đúng phiên bản Maven được chỉ định trong thư mục `.mvn/wrapper`.
+- Decision Ownership: Đưa ra quyết định "Đóng gói hóa môi trường" (Environment Encapsulation). Trách nhiệm của một kỹ sư không chỉ là viết code đúng, mà còn là thiết kế một quy trình làm việc (Developer Experience - DX) trơn tru cho toàn bộ team. Giờ đây, mọi thành viên chỉ cần clone code về và chạy file script là hệ thống tự lên, tiết kiệm hàng giờ đồng hồ rắc rối kỹ thuật.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Phase 08 |
+| File liên quan | run-backend.bat |
+| Screenshot |  |
+| Kết quả chạy/test | Script chạy thành công trên máy tính hoàn toàn mới (chưa cài Maven). Tự động tải Maven Wrapper và boot server ở cổng 8080. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Tự động hóa hệ thống (Automation) và quản lý môi trường (Environment Management) là kỹ năng bắt buộc để một dự án có thể mở rộng nhanh chóng và làm việc cộng tác hiệu quả.
+```
+
 ## 5. Bảng tổng hợp mức độ sử dụng AI
 
 Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.

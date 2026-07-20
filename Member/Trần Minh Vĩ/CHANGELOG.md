@@ -399,6 +399,51 @@ Giải quyết thành công vấn đề Vite tự động sinh file rác gây l�
 
 ---
 
+# [Phase 08] Bug Fixes & System Optimization
+
+## Ngày thực hiện
+
+```text
+03/08/2026
+```
+
+## Đã hoàn thành
+
+- [x] Khắc phục triệt để lỗi giao diện (UI Bug): Hiển thị trùng lặp component Footer trên trang Tra cứu phản ánh (`feedback-search.tsx`).
+- [x] Sửa lỗi kịch bản khởi động Backend (`run-backend.bat`): Sửa lỗi không nhận diện lệnh `mvn` trên môi trường Windows bằng cách tích hợp Maven Wrapper (`mvnw.cmd`).
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Sửa lỗi lặp Footer (Nested Routing) | Trần Minh Vĩ | feedback-search.tsx, __root.tsx | Commit (Phase 08) |
+| 2 | Sửa lỗi script khởi động hệ thống Backend | Trần Minh Vĩ | run-backend.bat | Commit (Phase 08) |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+Sử dụng Antigravity để dò tìm nguyên nhân lỗi hiển thị trùng lặp Footer (do lồng ghép layout sai) và đề xuất sửa script khởi động Batch file của Windows.
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+Commit liên quan đến Bug Fixes và System Optimization
+```
+
+## Ghi chú
+
+```text
+Việc sửa script khởi động bằng `mvnw.cmd` giúp giải quyết hoàn toàn rào cản môi trường (Onboarding) cho các thành viên mới trong team khi chạy dự án.
+```
+
+---
+
 # 4. Tổng kết thay đổi cuối project
 
 ## 4.1. Các chức năng đã hoàn thành
@@ -416,6 +461,8 @@ Giải quyết thành công vấn đề Vite tự động sinh file rác gây l�
 | 9 | Xây dựng Cổng Du khách (Tourist Portal) | Completed | Các component Tourist*.tsx | Đầy đủ thẻ khám phá, danh bạ khẩn cấp, tin tức |
 | 10 | Chiến dịch tình nguyện (Active Campaigns) | Completed | SingleCampaignMap.tsx, useCampaignStore.ts | Map kết hợp chat thời gian thực |
 | 11 | Git Workflow & Conflict Resolution | Completed | Lịch sử Git Terminal | Khắc phục triệt để lỗi gộp nhánh do Vite |
+| 12 | Sửa lỗi trùng lặp Footer (UI Bug) | Completed | feedback-search.tsx | Xóa thẻ `<Footer/>` thừa do cơ chế Nested Routing |
+| 13 | Sửa lỗi script khởi động Backend | Completed | run-backend.bat | Tích hợp Maven Wrapper để chạy đa nền tảng |
 
 ---
 

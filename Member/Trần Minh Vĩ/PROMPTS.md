@@ -669,6 +669,142 @@ Luôn chú ý tắt các tool auto-build khi thao tác Git Merge.
 
 ---
 
+### Lần 9: Sửa lỗi hiển thị lặp Component (Nested Routing Bug)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 1 |
+| Mức độ hài lòng | 5/5 |
+| Mục đích | Sửa lỗi UI lặp Footer |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Trong quá trình kiểm thử giao diện Cổng Du khách và trang Tra cứu phản ánh, tôi phát hiện ra thẻ `<Footer />` bị in ra màn hình đến 2 lần. Cấu trúc Routing của dự án sử dụng thư viện TanStack Router, với cơ chế Nested Routing thông qua file `__root.tsx`. Sự cố này làm giao diện bị đẩy dài xuống một cách vô lý.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI phân tích file `feedback-search.tsx` và `__root.tsx`. AI xác định nguyên nhân là do tôi đã khai báo thẻ `<Footer />` ở file `__root.tsx` (dành cho toàn bộ hệ thống), nhưng lại import và sử dụng thẻ `<Footer />` một lần nữa bên trong `feedback-search.tsx`. AI khuyên chỉ nên render Layout Component ở Root.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Làm theo hướng dẫn của AI, xóa các dòng code gọi Footer trực tiếp trong các file con, lỗi lặp layout được khắc phục ngay lập tức.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Không chỉ xóa code để fix lỗi tạm thời, tôi đã thực hiện một bước cải tiến quy trình (Process Improvement) lớn hơn cho team:
+- Critical Thinking: Tôi nhận thức được kiến trúc lồng ghép (Nested Layouts) có thể gây tai họa nếu team làm việc không có quy tắc chung.
+- Decision Ownership: Tôi thiết lập Convention (quy ước code) bắt buộc cho tất cả các thành viên: Tuyệt đối không được phép import `Header` hay `Footer` ở bất kỳ component route con nào. Mọi logic ẩn/hiện Layout phải được điều khiển tập trung (Centralized Control) tại file `__root.tsx` thông qua cơ chế đọc `pathname`. Điều này giúp quản lý kiến trúc UI vững chắc hơn nhiều.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Bug Fixes Phase 08 |
+| File liên quan | feedback-search.tsx, __root.tsx |
+| Screenshot | |
+| Kết quả chạy/test | Fix thành công lỗi lặp UI. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Bài học về DRY (Don't Repeat Yourself) và Centralized State trong React.
+```
+
+---
+
+### Lần 10: Tự động hóa kịch bản chạy Backend (Build Script)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 1 |
+| Mức độ hài lòng | 5/5 |
+| Mục đích | Sửa lỗi lệnh `mvn` trên Windows |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Script tự động khởi động server backend (`run-backend.bat`) do tôi viết liên tục báo lỗi `'mvn' is not recognized as an internal or external command` trên máy của các bạn làm Frontend. Hệ quả là quá trình phát triển (development) bị nghẽn vì mọi người không thể tự khởi động được API cục bộ (Local API).
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI chỉ ra nguyên nhân là do máy tính các thành viên chưa cấu hình biến môi trường Path cho Maven. Để giải quyết triệt để vấn đề "Works on my machine" mà không cần bắt mọi người tải Maven, AI gợi ý sử dụng tính năng Maven Wrapper (`mvnw.cmd`) được Spring Boot cung cấp sẵn. AI viết lại đoạn script sử dụng `mvnw.cmd clean spring-boot:run`.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Đã thay thế lệnh `mvn` bằng `mvnw.cmd` trong toàn bộ file script khởi động hệ thống. 
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Thay đổi tư duy quản trị hệ thống (System Administration):
+- Contextualization: Khi làm việc nhóm đa chức năng (Cross-functional team), việc yêu cầu Frontend Developer phải am hiểu cấu hình Java/Maven là rất bất hợp lý. Mục tiêu là tạo ra trải nghiệm phát triển (Developer Experience) mượt mà nhất.
+- Decision Ownership: Tôi đã quyết định đóng gói lại môi trường chạy của dự án, đảm bảo script này hoạt động đồng nhất trên mọi máy Windows bất kể họ có cài Maven hay chưa. Điều này giúp đẩy nhanh tốc độ Onboarding cho bất kỳ ai mới tham gia dự án. 
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [x] Prompt tạo ra kết quả tốt
+- [ ] Prompt tạo ra kết quả chưa phù hợp
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit System Optimization Phase 08 |
+| File liên quan | run-backend.bat |
+| Screenshot | |
+| Kết quả chạy/test | File `.bat` chạy mượt mà trên môi trường máy tính chưa cài Maven. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Maven Wrapper là công cụ cứu cánh cho việc đồng bộ môi trường phát triển (Environment Synchronization).
+```
+
+---
+
 ## 6. Prompt quan trọng nhất
 
 Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.
@@ -694,7 +830,7 @@ Giúp nhóm nhận diện 4 lỗ hổng nghiêm trọng (Rác dữ liệu, Hiệ
 ### 6.4. Sinh viên/nhóm đã kiểm tra kết quả như thế nào?
 
 ```text
-Đối chiếu với thực trạng kẹt xe, ngập lụt tại Đà Nẵng để đánh giá xem tình huống server bị ngập dữ liệu trùng lặp có khả thi không, và nhận thấy hoàn toàn chính xác.
+Đối chiếu với thực trạng kẹt thực tế tại Đà Nẵng để đánh giá xem tình huống server bị ngập dữ liệu trùng lặp có khả thi không, và nhận thấy hoàn toàn chính xác.
 ```
 
 ### 6.5. Sinh viên/nhóm đã cải tiến gì từ kết quả AI?
@@ -743,6 +879,7 @@ Sẽ yêu cầu thêm những giới hạn về mặt ngân sách và công ngh�
 | Prompt thiết kế giải pháp | 4 | Quy trình GitHub Flow & API Contract; Thiết kế lại giao diện UBND & Công an Phường, Thiết kế Cổng Du khách, Thiết kế chat thời gian thực |
 | Prompt thiết kế database |  |  |
 | Prompt sinh code mẫu | 1 | Cấu hình @Async Thread Pool & SMS OTP |
+| Prompt sửa lỗi (Debug/Fix) | 4 | Lọc dữ liệu GPS rác, Khắc phục Git Merge Loop do Vite, Sửa lỗi lặp Footer, Sửa lỗi build script Maven |
 
 ---
 

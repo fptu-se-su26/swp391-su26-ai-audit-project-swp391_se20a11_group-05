@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { ChatInputSchema, ChatIntent, IntentSchema } from "@/lib/validations/chat.schema";
+import { getToken } from "@/lib/api";
 
 export interface ChatMessage {
   id: string;
@@ -111,11 +112,17 @@ export function useChatbot() {
         const startTime = Date.now();
 
         // 2. Gọi API Backend (Spring Boot) SSE Stream
+        const token = getToken();
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+
         const response = await fetch("/api/chatbot/stream", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers,
           body: JSON.stringify(requestPayload),
         });
 

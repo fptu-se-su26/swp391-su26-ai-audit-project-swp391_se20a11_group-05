@@ -69,7 +69,6 @@ public class DeepSeekAdapter implements AiProviderAdapter {
                 .timeout(Duration.ofSeconds(20))
                 .doOnSuccess(r -> log.info("✅ [DeepSeek] OK ({} ký tự)", r.length()))
                 .doOnError(e -> log.error("❌ [DeepSeek] Lỗi: {}", e.getMessage()))
-                .onErrorReturn("Dạ, hệ thống DeepSeek đang quá tải. Xin vui lòng thử lại sau.")
                 .toFuture();
     }
 

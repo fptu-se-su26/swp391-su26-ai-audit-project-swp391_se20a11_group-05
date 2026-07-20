@@ -860,6 +860,22 @@ export const policeApi = {
     request<any[]>("/api/police/feedbacks/analyze-duplicates", {
       method: "GET",
     }),
+
+  getSchedule: (mondayKey: string) =>
+    request<any>(`/api/police/schedule?mondayKey=${mondayKey}`, {
+      method: "GET",
+    }),
+
+  saveSchedule: (mondayKey: string, scheduleData: string) =>
+    request<any>("/api/police/schedule", {
+      method: "POST",
+      body: JSON.stringify({ mondayKey, scheduleData }),
+    }),
+
+  getPublicSchedule: (wardId: number | string, mondayKey: string) =>
+    request<any>(`/api/police/schedule/public?wardId=${wardId}&mondayKey=${mondayKey}`, {
+      method: "GET",
+    }),
 };
 
 export const categoryApi = {

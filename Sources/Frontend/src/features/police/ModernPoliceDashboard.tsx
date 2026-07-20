@@ -33,7 +33,9 @@ import {
   Flag,
   Camera,
   Calendar,
-  ExternalLink
+  ExternalLink,
+  Layers,
+  Sparkles
 } from "lucide-react";
 import policeEmblemImg from "@/assets/police-emblem.png";
 import { PoliceCampaignPage } from "./PoliceCampaignPage";
@@ -621,25 +623,29 @@ export function ModernPoliceDashboard() {
     }
   };
 
-  // Filtered feedbacks: Separate priority (same title >= 2) and regular
+  // Filtered feedbacks: Separate priority (only 1 representative per group) and regular
   const { priorityFeedbacks, regularFeedbacks } = useMemo(() => {
     if (!feedbacksData) return { priorityFeedbacks: [], regularFeedbacks: [] };
     
     if (aiGroups && aiGroups.length > 0) {
       const pList: any[] = [];
-      const rList: any[] = [];
-      const duplicateIds = new Set<number>();
+      const allDuplicateIds = new Set<number>();
+
       aiGroups.forEach(g => {
-        g.feedbackIds.forEach((id: number) => duplicateIds.add(id));
-      });
-      feedbacksData.forEach(f => {
-        if (duplicateIds.has(f.id)) {
-           const group = aiGroups.find(g => g.feedbackIds.includes(f.id));
-           pList.push({ ...f, _aiScore: group?.matchScore || 90, _aiReason: group?.reason });
-        } else {
-           rList.push(f);
+        g.feedbackIds.forEach((id: number) => allDuplicateIds.add(id));
+        const groupItems = feedbacksData.filter(f => g.feedbackIds.includes(f.id));
+        if (groupItems.length > 0) {
+          const rep = { ...groupItems[0] };
+          rep._aiScore = g.matchScore || 90;
+          rep._aiReason = g.reason;
+          rep._groupCount = g.feedbackIds.length;
+          rep._groupedIds = g.feedbackIds;
+          pList.push(rep);
         }
       });
+
+      // Filter out ALL duplicate IDs so secondary duplicates don't clutter regular list
+      const rList = feedbacksData.filter(f => !allDuplicateIds.has(f.id));
       return { priorityFeedbacks: pList, regularFeedbacks: rList };
     }
 
@@ -656,26 +662,25 @@ export function ModernPoliceDashboard() {
       contentGroups[key].push(f);
     });
 
-    const pList: typeof feedbacksData = [];
-    const rList: typeof feedbacksData = [];
+    const pList: any[] = [];
+    const allGroupedIds = new Set<number>();
 
-    feedbacksData.forEach(f => {
-      const titleKey = (f.title || "").toLowerCase().trim();
-      const lat = f.latitude ? f.latitude.toFixed(4) : "";
-      const lng = f.longitude ? f.longitude.toFixed(4) : "";
-      const addressKey = (f.addressDetails || "").toLowerCase().trim();
-      const key = `${titleKey}_${lat}_${lng}_${addressKey}`;
-      
-      // Condition: 2 or more feedbacks with the SAME content and location
-      if (contentGroups[key].length >= 2) {
-        pList.push(f);
-      } else {
-        rList.push(f);
+    Object.values(contentGroups).forEach(items => {
+      if (items.length >= 2) {
+        items.forEach(item => allGroupedIds.add(item.id));
+        const rep = { ...items[0] };
+        rep._groupCount = items.length;
+        rep._aiScore = 90;
+        rep._aiReason = `Gom nhóm ${items.length} tin báo trùng vị trí & nội dung`;
+        pList.push(rep);
       }
     });
 
+    // Exclude all duplicate group members from regular list
+    const rList = feedbacksData.filter(f => !allGroupedIds.has(f.id));
+
     return { priorityFeedbacks: pList, regularFeedbacks: rList };
-  }, [feedbacksData]);
+  }, [feedbacksData, aiGroups]);
 
   // Regular feedbacks for normal processing boards
   const feedbacks = regularFeedbacks;
@@ -1100,6 +1105,7 @@ export function ModernPoliceDashboard() {
                           <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase">Phân loại</th>
                           <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase">Trạng thái</th>
                           <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase">Độ trùng khớp (AI)</th>
+                          <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase">Thao tác</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y" style={{ borderColor: colors.border }}>
@@ -1107,15 +1113,15 @@ export function ModernPoliceDashboard() {
                           Object.entries(groupedPriorityIncidents).map(([dateStr, items]) => (
                             <React.Fragment key={dateStr}>
                               <tr className="bg-slate-100/70 border-y" style={{ borderColor: colors.border }}>
-                                <td colSpan={4} className="px-4 py-2 text-[11px] font-bold text-slate-700 uppercase tracking-wide">
+                                <td colSpan={5} className="px-4 py-2 text-[11px] font-bold text-slate-700 uppercase tracking-wide">
                                   Ngày: {dateStr}
                                 </td>
                               </tr>
                               {items.map((row) => {
                                 const isUrgent = row.priority === "CRITICAL" || row.priority === "HIGH";
-                                // Mock AI Score (tạo số ngẫu nhiên nhưng cố định theo ID để demo)
                                 const aiScore = (row as any)._aiScore || (85 + (Number(row.id) % 15));
                                 const aiReason = (row as any)._aiReason || "Khớp: Tiêu đề, Nội dung, Định vị";
+                                const groupCount = (row as any)._groupCount || 2;
                                 
                                 return (
                                   <tr key={row.id} 
@@ -1134,12 +1140,29 @@ export function ModernPoliceDashboard() {
                                       </span>
                                     </td>
                                     <td className="px-4 py-3">
-                                      <div className="flex items-center gap-1.5" title={aiReason}>
-                                        <span className="text-[11px] font-bold text-green-700 bg-green-100 px-1.5 py-0.5 rounded-[4px] border border-green-200">
+                                      <div className="flex items-center gap-2 whitespace-nowrap" title={aiReason}>
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-gradient-to-r from-red-500 via-rose-500 to-red-600 text-white shadow-sm hover:shadow transition-all">
+                                          <Layers size={13} className="text-white/90 animate-pulse" />
+                                          <span>Gom {groupCount} tin</span>
+                                        </span>
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                          <Sparkles size={11} className="text-emerald-500" />
                                           {aiScore}%
                                         </span>
-                                        <span className="text-[10px] font-semibold text-slate-400">3/4</span>
                                       </div>
+                                    </td>
+                                    <td className="px-4 py-3">
+                                      <button 
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setRejectingItem(row);
+                                        }}
+                                        className="px-2.5 py-1 text-[11px] font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-[4px] transition-colors flex items-center gap-1 shadow-xs"
+                                        title="Từ chối phản ánh này"
+                                      >
+                                        <AlertTriangle size={12} />
+                                        Từ chối
+                                      </button>
                                     </td>
                                   </tr>
                                 );
@@ -1148,7 +1171,7 @@ export function ModernPoliceDashboard() {
                           ))
                         ) : (
                           <tr>
-                            <td colSpan={4} className="px-4 py-8 text-center text-slate-500 text-sm">
+                            <td colSpan={5} className="px-4 py-8 text-center text-slate-500 text-sm">
                               Không có vụ việc ưu tiên nào
                             </td>
                           </tr>

@@ -55,6 +55,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/chatbot/query", "/api/chatbot/stream", "/api/chat/stream").permitAll() // Public Chatbot endpoints
                         .requestMatchers("/actuator/health").permitAll() // Health check only
                         .requestMatchers("/api/feedbacks/public/**", "/api/feedbacks/statuses").permitAll() // Public Feedback Lookups & Statuses
+                        .requestMatchers("/api/police/schedule/public/**").permitAll() // Public Police Schedule Lookups
                         .requestMatchers(HttpMethod.GET, "/api/campaigns", "/api/campaigns/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/news", "/api/news/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/ward-ranking/**").permitAll() // Public Ward Ranking

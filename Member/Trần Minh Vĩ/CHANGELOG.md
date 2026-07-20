@@ -579,6 +579,51 @@ Phase này chứng minh sinh viên không chỉ biết code theo lối mòn, mà
 
 ---
 
+# [Phase 12] Global Reach & Data Privacy
+
+## Ngày thực hiện
+
+```text
+03/08/2026
+```
+
+## Đã hoàn thành
+
+- [x] Xây dựng cơ chế Tra cứu Phản ánh công khai (Public Feedback Search): Thiết kế API riêng biệt với DTO lọc bỏ thông tin nhạy cảm, bảo vệ danh tính người báo cáo (Data Privacy).
+- [x] Kiến trúc Đa ngôn ngữ (i18n) tối ưu: Triển khai Context API kết hợp từ điển JSON phân mảnh, giúp chuyển đổi Anh-Việt mượt mà cho Khách du lịch mà không làm phình to dung lượng tải trang (Bundle size).
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Viết API Public Search an toàn | Trần Minh Vĩ | PublicFeedbackDTO, feedback-search.tsx | Commit (Phase 12) |
+| 2 | Tích hợp i18n không dùng thư viện ngoài | Trần Minh Vĩ | i18n.tsx, locale-context | Commit (Phase 12) |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI đề xuất cách query dữ liệu và gợi ý dùng thư viện `react-i18next`. Tuy nhiên sinh viên đã tự cấu trúc lại DTO để bảo mật và tự viết Context API cho i18n để tối ưu tốc độ.
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+Commit liên quan đến Phase 12
+```
+
+## Ghi chú
+
+```text
+Một hệ thống phục vụ Smart City phải đảm bảo tuyệt đối tính Ẩn danh của người tố giác (Whistleblower Privacy) và tính Hội nhập quốc tế (Internationalization).
+```
+
+---
+
 # 4. Tổng kết thay đổi cuối project
 
 ## 4.1. Các chức năng đã hoàn thành

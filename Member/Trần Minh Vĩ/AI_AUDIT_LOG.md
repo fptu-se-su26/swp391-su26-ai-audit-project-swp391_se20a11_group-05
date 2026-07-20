@@ -1016,6 +1016,117 @@ Thiết kế lại toàn bộ UX dựa trên Ngữ cảnh thực tế (Contextua
 Đừng mang tư duy của dân kinh tế (thích biểu đồ) áp đặt vào UI của lực lượng an ninh (cần hành động nhanh).
 ```
 
+---
+
+### Lần sử dụng AI số 17
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Xây dựng API Tra cứu Phản ánh công khai (Public Search) an toàn |
+| Phần việc liên quan | Backend / Security & Data Privacy |
+| Mức độ sử dụng | Gợi ý cấu trúc Query Database |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Tôi muốn làm một trang Web cho phép người dân (không cần đăng nhập) nhập Mã theo dõi (Tracking ID) hoặc gõ từ khóa để tra cứu xem phản ánh rác thải của họ đã được giải quyết tới đâu. Làm sao để truy vấn nhanh chóng?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đề xuất tạo một API `GET /api/public/feedbacks`. AI viết một câu lệnh JPQL đơn giản để lấy danh sách Entity `Feedback` từ database và trả nguyên List<Feedback> này về cho Frontend hiển thị dưới dạng JSON.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Sử dụng câu lệnh JPQL hỗ trợ tìm kiếm động (Dynamic Search) theo nhiều trường.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Chống rò rỉ dữ liệu (Data Leakage Prevention):
+- Critical Thinking: Entity `Feedback` trong cơ sở dữ liệu chứa cả số điện thoại, email của người báo cáo (để cán bộ phường liên hệ) và các ghi chú nội bộ của Công an. Việc ném nguyên Entity này ra Public API như AI gợi ý là một lỗ hổng bảo mật nghiêm trọng (IDOR/Mass Assignment). Bất kỳ ai dùng Postman cũng có thể cào (scrape) được thông tin cá nhân của người khác.
+- Decision Ownership & Creative Synthesis: Tôi đã tự thiết kế một `PublicFeedbackDTO`. DTO này đóng vai trò như một màng lọc, CHỈ copy các trường an toàn (Tiêu đề, Tọa độ, Trạng thái, Hình ảnh công khai) từ Entity gốc, và tuyệt đối loại bỏ số điện thoại/email. Đảm bảo 100% tính ẩn danh (Whistleblower Privacy) theo đúng nghiệp vụ báo cáo vi phạm an ninh của ứng dụng Smart City.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Public Search API Phase 12 |
+| File liên quan | PublicFeedbackDTO.java, feedback-search.tsx |
+| Screenshot |  |
+| Kết quả chạy/test | Gọi API Public bằng Postman chỉ thấy các trường an toàn, không có bất kỳ thông tin cá nhân nào bị lộ. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Không bao giờ được tin tưởng code tự sinh của AI khi làm việc với API công khai. Luôn phải dùng DTO để che giấu Entity gốc.
+```
+
+---
+
+### Lần sử dụng AI số 18
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Tích hợp Đa ngôn ngữ (i18n) cho Cổng du khách |
+| Phần việc liên quan | Frontend / React Context API |
+| Mức độ sử dụng | Đề xuất kiến trúc i18n |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Thành phố Đà Nẵng có rất nhiều khách du lịch ngoại quốc. Trang Web của tôi cần hỗ trợ chuyển đổi mượt mà giữa tiếng Việt và tiếng Anh mà không phải tải lại trang. Hãy viết code i18n cho tôi.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI yêu cầu tôi cài đặt thư viện `react-i18next` và `i18next`. Sau đó tạo 2 file JSON khổng lồ `vi.json` và `en.json` chứa toàn bộ text của ứng dụng, và dùng hàm `t('key')` bọc ở mọi nơi trong các Component.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Áp dụng triết lý dùng hàm `t('key')` để map text.
+- Lấy một phần danh sách các từ khóa phổ biến được AI dịch sẵn sang tiếng Anh.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Thiết kế Context API gọn nhẹ thay vì thư viện cồng kềnh:
+- Critical Thinking: `react-i18next` là một thư viện nặng. Nếu tôi gói toàn bộ text của 10 trang Web vào một file JSON duy nhất, người dùng (đặc biệt là 3G yếu) sẽ phải tải một Bundle size khổng lồ ngay từ lần truy cập đầu tiên.
+- Decision Ownership & Creative Synthesis: Tôi từ chối cài thư viện ngoài. Tôi tự tay viết một React Context API mang tên `useI18n()`. Hàm này quản lý biến trạng thái `locale` (en/vi) và lưu vào `localStorage`. Các bản dịch không bị gộp chung mà được phân mảnh (Code Splitting) hoặc tổ chức theo dạng object map gọn nhẹ ngay trong bộ nhớ. Việc chuyển đổi ngôn ngữ diễn ra tức thời chỉ với một lần Re-render Context mà không làm nặng trang Web.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit i18n Phase 12 |
+| File liên quan | i18n.tsx, feedback-search.tsx |
+| Screenshot |  |
+| Kết quả chạy/test | Bấm nút chuyển Cờ Việt/Anh trên thanh Header, toàn bộ nội dung đổi ngôn ngữ tức thời, không load lại trang. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Tối ưu hóa dung lượng ứng dụng (Bundle Size) bằng cách tự viết các Context đơn giản thay vì lạm dụng thư viện của bên thứ ba.
+```
+
 ## 5. Bảng tổng hợp mức độ sử dụng AI
 
 Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.

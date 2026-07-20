@@ -1213,6 +1213,142 @@ AI không hiểu được tâm lý và môi trường làm việc đặc thù c�
 
 ---
 
+### Lần 17: Thiết kế API Tra cứu Công khai (Data Privacy)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 3/5 |
+| Mục đích | Bảo mật thông tin người báo cáo (Whistleblower Privacy) |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Chức năng Tra cứu Phản ánh (Public Search) cho phép bất kỳ ai có mã Tracking ID đều xem được tiến độ xử lý rác thải. Tôi cần viết API truy vấn database.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI đề xuất tạo 1 API `GET /feedbacks/public` và trả về danh sách các Entity `Feedback` dạng JSON.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Tôi TỪ CHỐI mã nguồn của AI vì nó chứa lỗ hổng bảo mật nghiêm trọng (Data Leakage / Mass Assignment).
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Áp dụng DTO Pattern để bảo mật Dữ liệu Nhạy cảm (Sensitive Data):
+- Critical Thinking: Entity `Feedback` chứa số điện thoại (phone), email của người gửi, và các ghi chú điều tra nội bộ của phường. Nếu trả nguyên Entity này ra ngoài như AI gợi ý, một kẻ xấu có thể dùng Postman hoặc F12 (Network tab) đọc được toàn bộ thông tin cá nhân của người tố giác.
+- Decision Ownership & Creative Synthesis: Tôi tự thiết kế `PublicFeedbackDTO`. Class này chỉ khai báo các trường an toàn như `title, status, location, images`. Khi lấy dữ liệu từ DB lên, tôi map Entity sang DTO này rồi mới trả về cho Client. Nhờ vậy, API Public kín kẽ 100%, bảo vệ tuyệt đối danh tính người dân.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Gây rò rỉ dữ liệu)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Public Search API Phase 12 |
+| File liên quan | PublicFeedbackDTO.java, feedback-search.tsx |
+| Screenshot | |
+| Kết quả chạy/test | Postman trả về cục JSON không có trường `phoneNumber` và `email`. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Bảo mật hệ thống bắt đầu từ việc không tin tưởng bất kỳ đoạn code truy xuất cơ sở dữ liệu nào của AI.
+```
+
+---
+
+### Lần 18: Tích hợp Đa ngôn ngữ (i18n) siêu nhẹ
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 4/5 |
+| Mục đích | Dịch Web sang tiếng Anh mượt mà |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Dự án cần hỗ trợ tiếng Anh cho người nước ngoài tại Đà Nẵng. Tôi cần một giải pháp thay đổi ngôn ngữ ngay lập tức mà không cần load lại trang.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI hướng dẫn cài đặt `react-i18next` và tạo các file JSON khổng lồ chứa hàng nghìn dòng key-value dịch thuật.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Tôi lấy các bản dịch (English translations) do AI cung cấp nhưng bác bỏ việc sử dụng thư viện `react-i18next`.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Triển khai Custom React Context cho i18n để tối ưu Performance:
+- Critical Thinking: `react-i18next` quá nặng đối với một dự án đã có sẵn hàng tá thư viện (Zustand, React Query, Leaflet). Tôi không muốn trang web tải thêm 500KB vô ích.
+- Decision Ownership & Creative Synthesis: Tôi tự viết Hook `useI18n()` dựa trên React Context. Hàm này lưu trữ state `locale` vào Local Storage. Các từ vựng được phân tách thành các Object siêu nhỏ ngay trong mã nguồn (vd: phần Map có từ vựng riêng, phần Login có từ vựng riêng). Khi người dùng đổi ngôn ngữ, Context kích hoạt Re-render lập tức với độ trễ 0ms và không tốn băng thông mạng tải JSON.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [x] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Lạm dụng thư viện)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit i18n Phase 12 |
+| File liên quan | i18n.tsx, feedback-search.tsx |
+| Screenshot | |
+| Kết quả chạy/test | Đổi ngôn ngữ mượt mà. Không phát sinh thêm file tải xuống trong tab Network. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Chỉ dùng thư viện lớn khi thực sự cần thiết. Những logic đơn giản như Map Key-Value thì React Context thừa sức làm tốt.
+```
+
+---
+
 ## 6. Prompt quan trọng nhất
 
 Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.

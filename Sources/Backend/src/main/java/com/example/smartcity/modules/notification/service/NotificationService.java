@@ -146,8 +146,13 @@ public class NotificationService extends BaseServiceImpl<Notification, Long> {
             log.warn("[Notification] Không tìm thấy feedback hoặc citizen khi gửi thông báo từ chối. feedbackId={}", feedbackId);
             return;
         }
+        User citizen = userRepository.findById(feedback.getCitizen().getId()).orElse(null);
+        if (citizen == null) {
+            log.warn("[Notification] Citizen user entity not found. feedbackId={}", feedbackId);
+            return;
+        }
         Notification notification = Notification.builder()
-                .user(feedback.getCitizen())
+                .user(citizen)
                 .referenceId(feedback.getId())
                 .feedbackId(feedback.getId())
                 .title("❌ Phản ánh chưa được tiếp nhận")
@@ -176,9 +181,11 @@ public class NotificationService extends BaseServiceImpl<Notification, Long> {
             log.warn("[Notification] Feedback or citizen not found when requesting more info. feedbackId={}", feedbackId);
             return;
         }
+        User citizen = userRepository.findById(feedback.getCitizen().getId()).orElse(null);
+        if (citizen == null) return;
 
         Notification notification = Notification.builder()
-                .user(feedback.getCitizen())
+                .user(citizen)
                 .referenceId(feedback.getId())
                 .feedbackId(feedback.getId())
                 .title("Can bo phuong yeu cau bo sung thong tin")
@@ -355,6 +362,11 @@ public class NotificationService extends BaseServiceImpl<Notification, Long> {
             log.warn("[Notification] Không tìm thấy feedback hoặc citizen. feedbackId={}", feedbackId);
             return;
         }
+        User citizen = userRepository.findById(feedback.getCitizen().getId()).orElse(null);
+        if (citizen == null) {
+            log.warn("[Notification] Citizen user entity not found. feedbackId={}", feedbackId);
+            return;
+        }
         String title;
         String content;
         String type;
@@ -377,7 +389,7 @@ public class NotificationService extends BaseServiceImpl<Notification, Long> {
         }
 
         Notification notification = Notification.builder()
-                .user(feedback.getCitizen())
+                .user(citizen)
                 .referenceId(feedbackId)
                 .feedbackId(feedbackId)
                 .title(title)

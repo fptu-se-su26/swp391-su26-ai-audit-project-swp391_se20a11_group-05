@@ -33,7 +33,9 @@ import {
   Flag,
   Camera,
   Calendar,
-  ExternalLink
+  ExternalLink,
+  Layers,
+  Sparkles
 } from "lucide-react";
 import policeEmblemImg from "@/assets/police-emblem.png";
 import { PoliceCampaignPage } from "./PoliceCampaignPage";
@@ -53,25 +55,89 @@ const initialSchedule = [
   { day: "Chủ nhật", date: "05/07", morning: "Trực ban", mOfficer: "Đ/c Đặng L", afternoon: "Trực ban", aOfficer: "Đ/c Đặng L", night: "Tuần tra đêm", nOfficer: "Đ/c Trần H" },
 ];
 
-const DutyRoster = () => {
+const DutyRoster = ({ onSave }: { onSave?: () => void }) => {
   const [view, setView] = useState<'week'|'month'|'year'>('week');
   const [isEditing, setIsEditing] = useState(false);
-  const [schedule, setSchedule] = useState(initialSchedule);
+  const [schedule, setSchedule] = useState<any[]>([]);
   const [weekOffset, setWeekOffset] = useState(0);
+
+  const getMondayKey = (offset: number) => {
+    const today = new Date();
+    const dayOfWeek = today.getDay() || 7;
+    const diff = today.getDate() - dayOfWeek + 1 + offset * 7;
+    const monday = new Date(today.getFullYear(), today.getMonth(), diff);
+    return `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+  };
 
   useEffect(() => {
     if (view === 'week') {
-      const today = new Date();
-      const dayOfWeek = today.getDay() || 7;
-      const diff = today.getDate() - dayOfWeek + 1 + weekOffset * 7;
-      const monday = new Date(today.getFullYear(), today.getMonth(), diff);
+      const key = getMondayKey(weekOffset);
       
-      setSchedule(prev => prev.map((row, idx) => {
-        const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + idx);
-        const dayStr = String(d.getDate()).padStart(2, '0');
-        const monthStr = String(d.getMonth() + 1).padStart(2, '0');
-        return { ...row, date: `${dayStr}/${monthStr}` };
-      }));
+      policeApi.getSchedule(key)
+        .then(res => {
+          if (res?.data?.scheduleData) {
+            try {
+              setSchedule(JSON.parse(res.data.scheduleData));
+              return;
+            } catch (e) {
+              console.error("Failed to parse backend schedule", e);
+            }
+          }
+          
+          // Fallback to local storage (if any) or fallback to initial template
+          const localSaved = localStorage.getItem(`police_schedule_week_${key}`);
+          if (localSaved) {
+            try {
+              setSchedule(JSON.parse(localSaved));
+              return;
+            } catch (e) {
+              // ignore
+            }
+          }
+          
+          // Generate from template
+          const parts = key.split("-");
+          const year = parseInt(parts[0]);
+          const month = parseInt(parts[1]) - 1;
+          const dateStr = parseInt(parts[2]);
+          const monday = new Date(year, month, dateStr);
+
+          const defaultSchedule = initialSchedule.map((row, idx) => {
+            const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + idx);
+            const dayStr = String(d.getDate()).padStart(2, '0');
+            const monthStr = String(d.getMonth() + 1).padStart(2, '0');
+            return { ...row, date: `${dayStr}/${monthStr}` };
+          });
+          setSchedule(defaultSchedule);
+        })
+        .catch(err => {
+          console.error("Failed to fetch schedule from backend", err);
+          
+          // Fallback to local storage or template
+          const localSaved = localStorage.getItem(`police_schedule_week_${key}`);
+          if (localSaved) {
+            try {
+              setSchedule(JSON.parse(localSaved));
+              return;
+            } catch (e) {
+              // ignore
+            }
+          }
+
+          const parts = key.split("-");
+          const year = parseInt(parts[0]);
+          const month = parseInt(parts[1]) - 1;
+          const dateStr = parseInt(parts[2]);
+          const monday = new Date(year, month, dateStr);
+
+          const defaultSchedule = initialSchedule.map((row, idx) => {
+            const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + idx);
+            const dayStr = String(d.getDate()).padStart(2, '0');
+            const monthStr = String(d.getMonth() + 1).padStart(2, '0');
+            return { ...row, date: `${dayStr}/${monthStr}` };
+          });
+          setSchedule(defaultSchedule);
+        });
     }
   }, [weekOffset, view]);
 
@@ -94,9 +160,22 @@ const DutyRoster = () => {
           )}
           {view === 'week' && (
             <button 
-              onClick={() => {
+              onClick={async () => {
                 if (isEditing) {
-                  toast.success("Đã lưu lịch phân công trực thành công!");
+                  const key = getMondayKey(weekOffset);
+                  const scheduleStr = JSON.stringify(schedule);
+                  
+                  localStorage.setItem(`police_schedule_week_${key}`, scheduleStr);
+                  
+                  try {
+                    await policeApi.saveSchedule(key, scheduleStr);
+                    toast.success("Đã lưu lịch phân công trực vào cơ sở dữ liệu thành công!");
+                    if (onSave) onSave();
+                  } catch (err) {
+                    console.error("Failed to save schedule to database", err);
+                    toast.error("Không thể lưu vào cơ sở dữ liệu. Đã lưu tạm ở trình duyệt.");
+                    if (onSave) onSave();
+                  }
                 }
                 setIsEditing(!isEditing);
               }} 
@@ -275,6 +354,91 @@ const iconMap = {
 export function ModernPoliceDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("overview");
+
+  // Load today's active duty officer name
+  const [currentDutyOfficerName, setCurrentDutyOfficerName] = useState<string>("");
+  const [currentWeekSchedule, setCurrentWeekSchedule] = useState<any[]>([]);
+
+  const fetchCurrentWeekSchedule = () => {
+    const today = new Date();
+    const dayOfWeek = today.getDay() || 7;
+    const diff = today.getDate() - dayOfWeek + 1;
+    const monday = new Date(today.getFullYear(), today.getMonth(), diff);
+    const key = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+
+    policeApi.getSchedule(key)
+      .then(res => {
+        let activeSchedule = null;
+        if (res?.data?.scheduleData) {
+          try {
+            activeSchedule = JSON.parse(res.data.scheduleData);
+          } catch (e) {
+            console.error("Failed to parse schedule", e);
+          }
+        }
+        
+        if (!activeSchedule) {
+          const localSaved = localStorage.getItem(`police_schedule_week_${key}`);
+          if (localSaved) {
+            try {
+              activeSchedule = JSON.parse(localSaved);
+            } catch (e) {}
+          }
+        }
+
+        if (activeSchedule && Array.isArray(activeSchedule)) {
+          setCurrentWeekSchedule(activeSchedule);
+          const now = new Date();
+          const days = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+          const todayDayName = days[now.getDay()];
+          const todayRow = activeSchedule.find((s: any) => s.day === todayDayName);
+          
+          if (todayRow) {
+            const hour = now.getHours();
+            let currentOfficer = "";
+            if (hour >= 7 && hour < 11.5) {
+              currentOfficer = todayRow.mOfficer;
+            } else if (hour >= 11.5 && hour < 17.5) {
+              currentOfficer = todayRow.aOfficer;
+            } else {
+              currentOfficer = todayRow.nOfficer;
+            }
+            
+            if (currentOfficer && currentOfficer !== "-") {
+              setCurrentDutyOfficerName(currentOfficer);
+            } else {
+              setCurrentDutyOfficerName("");
+            }
+          } else {
+            setCurrentDutyOfficerName("");
+          }
+        }
+      })
+      .catch(err => {
+        console.error("Failed to fetch schedule in header", err);
+      });
+  };
+
+  useEffect(() => {
+    fetchCurrentWeekSchedule();
+  }, [activeTab]);
+
+  const getDefaultSchedule = () => {
+    const today = new Date();
+    const dayOfWeek = today.getDay() || 7;
+    const diff = today.getDate() - dayOfWeek + 1;
+    const monday = new Date(today.getFullYear(), today.getMonth(), diff);
+    
+    return initialSchedule.map((row, idx) => {
+      const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + idx);
+      const dayStr = String(d.getDate()).padStart(2, '0');
+      const monthStr = String(d.getMonth() + 1).padStart(2, '0');
+      return { ...row, date: `${dayStr}/${monthStr}` };
+    });
+  };
+
+  const displaySchedule = currentWeekSchedule.length > 0 ? currentWeekSchedule : getDefaultSchedule();
 
   const policeUnitName = useMemo(() => {
     if (user?.org) return user.org.toUpperCase();
@@ -290,7 +454,6 @@ export function ModernPoliceDashboard() {
 
   const { data: hotspots } = useHotspots();
   const { data: feedbacksData } = usePoliceAssignedFeedbacks();
-  const [activeTab, setActiveTab] = useState("overview");
   const [filterStatus, setFilterStatus] = useState<"ALL" | "PENDING" | "ASSIGNED" | "IN_PROGRESS" | "RESOLVED" | "REJECTED">("ALL");
   const [filterDate, setFilterDate] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -324,6 +487,12 @@ export function ModernPoliceDashboard() {
   const [showPassword, setShowPassword] = useState(false);
   
   const [selectedFeedbackId, setSelectedFeedbackId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user?.name) {
+      setProfileForm((prev) => ({ ...prev, name: user.name }));
+    }
+  }, [user?.name]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -454,25 +623,29 @@ export function ModernPoliceDashboard() {
     }
   };
 
-  // Filtered feedbacks: Separate priority (same title >= 2) and regular
+  // Filtered feedbacks: Separate priority (only 1 representative per group) and regular
   const { priorityFeedbacks, regularFeedbacks } = useMemo(() => {
     if (!feedbacksData) return { priorityFeedbacks: [], regularFeedbacks: [] };
     
     if (aiGroups && aiGroups.length > 0) {
       const pList: any[] = [];
-      const rList: any[] = [];
-      const duplicateIds = new Set<number>();
+      const allDuplicateIds = new Set<number>();
+
       aiGroups.forEach(g => {
-        g.feedbackIds.forEach((id: number) => duplicateIds.add(id));
-      });
-      feedbacksData.forEach(f => {
-        if (duplicateIds.has(f.id)) {
-           const group = aiGroups.find(g => g.feedbackIds.includes(f.id));
-           pList.push({ ...f, _aiScore: group?.matchScore || 90, _aiReason: group?.reason });
-        } else {
-           rList.push(f);
+        g.feedbackIds.forEach((id: number) => allDuplicateIds.add(id));
+        const groupItems = feedbacksData.filter(f => g.feedbackIds.includes(f.id));
+        if (groupItems.length > 0) {
+          const rep = { ...groupItems[0] };
+          rep._aiScore = g.matchScore || 90;
+          rep._aiReason = g.reason;
+          rep._groupCount = g.feedbackIds.length;
+          rep._groupedIds = g.feedbackIds;
+          pList.push(rep);
         }
       });
+
+      // Filter out ALL duplicate IDs so secondary duplicates don't clutter regular list
+      const rList = feedbacksData.filter(f => !allDuplicateIds.has(f.id));
       return { priorityFeedbacks: pList, regularFeedbacks: rList };
     }
 
@@ -489,26 +662,25 @@ export function ModernPoliceDashboard() {
       contentGroups[key].push(f);
     });
 
-    const pList: typeof feedbacksData = [];
-    const rList: typeof feedbacksData = [];
+    const pList: any[] = [];
+    const allGroupedIds = new Set<number>();
 
-    feedbacksData.forEach(f => {
-      const titleKey = (f.title || "").toLowerCase().trim();
-      const lat = f.latitude ? f.latitude.toFixed(4) : "";
-      const lng = f.longitude ? f.longitude.toFixed(4) : "";
-      const addressKey = (f.addressDetails || "").toLowerCase().trim();
-      const key = `${titleKey}_${lat}_${lng}_${addressKey}`;
-      
-      // Condition: 2 or more feedbacks with the SAME content and location
-      if (contentGroups[key].length >= 2) {
-        pList.push(f);
-      } else {
-        rList.push(f);
+    Object.values(contentGroups).forEach(items => {
+      if (items.length >= 2) {
+        items.forEach(item => allGroupedIds.add(item.id));
+        const rep = { ...items[0] };
+        rep._groupCount = items.length;
+        rep._aiScore = 90;
+        rep._aiReason = `Gom nhóm ${items.length} tin báo trùng vị trí & nội dung`;
+        pList.push(rep);
       }
     });
 
+    // Exclude all duplicate group members from regular list
+    const rList = feedbacksData.filter(f => !allGroupedIds.has(f.id));
+
     return { priorityFeedbacks: pList, regularFeedbacks: rList };
-  }, [feedbacksData]);
+  }, [feedbacksData, aiGroups]);
 
   // Regular feedbacks for normal processing boards
   const feedbacks = regularFeedbacks;
@@ -772,6 +944,10 @@ export function ModernPoliceDashboard() {
               )}
             </div>
             <div className="flex items-center pl-5 border-l shrink-0 relative" style={{ borderColor: colors.border }} ref={dropdownRef}>
+              <div className="mr-3 text-right hidden sm:block">
+                <div className="text-[12px] font-bold text-slate-800 leading-tight">{user?.name || "Cán bộ trực ban"}</div>
+                <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">{user?.org || "Quản trị viên"}</div>
+              </div>
               <button 
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="relative w-[48px] h-[34px] rounded overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.1)] border border-black/5 cursor-pointer hover:shadow-md transition-all waving-flag-container" 
@@ -826,6 +1002,9 @@ export function ModernPoliceDashboard() {
                     <p className="text-[11px] font-semibold text-blue-600 mt-1 uppercase tracking-wide truncate">
                       {policeUnitName}
                     </p>
+                    {currentDutyOfficerName && (
+                      <p className="text-[10px] text-slate-500 mt-1">Trực ban: <span className="font-semibold">{currentDutyOfficerName}</span></p>
+                    )}
                   </div>
                   <button 
                     onClick={() => { setIsProfileDialogOpen(true); setIsDropdownOpen(false); }}
@@ -926,6 +1105,7 @@ export function ModernPoliceDashboard() {
                           <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase">Phân loại</th>
                           <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase">Trạng thái</th>
                           <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase">Độ trùng khớp (AI)</th>
+                          <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase">Thao tác</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y" style={{ borderColor: colors.border }}>
@@ -933,15 +1113,15 @@ export function ModernPoliceDashboard() {
                           Object.entries(groupedPriorityIncidents).map(([dateStr, items]) => (
                             <React.Fragment key={dateStr}>
                               <tr className="bg-slate-100/70 border-y" style={{ borderColor: colors.border }}>
-                                <td colSpan={4} className="px-4 py-2 text-[11px] font-bold text-slate-700 uppercase tracking-wide">
+                                <td colSpan={5} className="px-4 py-2 text-[11px] font-bold text-slate-700 uppercase tracking-wide">
                                   Ngày: {dateStr}
                                 </td>
                               </tr>
                               {items.map((row) => {
                                 const isUrgent = row.priority === "CRITICAL" || row.priority === "HIGH";
-                                // Mock AI Score (tạo số ngẫu nhiên nhưng cố định theo ID để demo)
                                 const aiScore = (row as any)._aiScore || (85 + (Number(row.id) % 15));
                                 const aiReason = (row as any)._aiReason || "Khớp: Tiêu đề, Nội dung, Định vị";
+                                const groupCount = (row as any)._groupCount || 2;
                                 
                                 return (
                                   <tr key={row.id} 
@@ -960,12 +1140,29 @@ export function ModernPoliceDashboard() {
                                       </span>
                                     </td>
                                     <td className="px-4 py-3">
-                                      <div className="flex items-center gap-1.5" title={aiReason}>
-                                        <span className="text-[11px] font-bold text-green-700 bg-green-100 px-1.5 py-0.5 rounded-[4px] border border-green-200">
+                                      <div className="flex items-center gap-2 whitespace-nowrap" title={aiReason}>
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-gradient-to-r from-red-500 via-rose-500 to-red-600 text-white shadow-sm hover:shadow transition-all">
+                                          <Layers size={13} className="text-white/90 animate-pulse" />
+                                          <span>Gom {groupCount} tin</span>
+                                        </span>
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                          <Sparkles size={11} className="text-emerald-500" />
                                           {aiScore}%
                                         </span>
-                                        <span className="text-[10px] font-semibold text-slate-400">3/4</span>
                                       </div>
+                                    </td>
+                                    <td className="px-4 py-3">
+                                      <button 
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setRejectingItem(row);
+                                        }}
+                                        className="px-2.5 py-1 text-[11px] font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-[4px] transition-colors flex items-center gap-1 shadow-xs"
+                                        title="Từ chối phản ánh này"
+                                      >
+                                        <AlertTriangle size={12} />
+                                        Từ chối
+                                      </button>
                                     </td>
                                   </tr>
                                 );
@@ -974,7 +1171,7 @@ export function ModernPoliceDashboard() {
                           ))
                         ) : (
                           <tr>
-                            <td colSpan={4} className="px-4 py-8 text-center text-slate-500 text-sm">
+                            <td colSpan={5} className="px-4 py-8 text-center text-slate-500 text-sm">
                               Không có vụ việc ưu tiên nào
                             </td>
                           </tr>
@@ -1188,7 +1385,7 @@ export function ModernPoliceDashboard() {
             <PoliceCampaignPage />
           )}
           {activeTab === "schedule" && (
-            <DutyRoster />
+            <DutyRoster onSave={fetchCurrentWeekSchedule} />
           )}
           {activeTab === "reports" && (
             <PoliceStatisticalReports feedbacks={feedbacksData || []} />
@@ -1423,28 +1620,35 @@ export function ModernPoliceDashboard() {
                     </tr>
                   </thead>
                   <tbody className="text-[13px]">
-                    {[
-                      { day: "Thứ 2", date: "29/06", morning: "Trực ban hành chính", afternoon: "Xử lý hồ sơ", night: "-" },
-                      { day: "Thứ 3", date: "30/06", morning: "Tuần tra địa bàn", afternoon: "Tuần tra địa bàn", night: "Trực chỉ huy" },
-                      { day: "Thứ 4", date: "01/07", morning: "Nghỉ bù", afternoon: "Nghỉ bù", night: "-" },
-                      { day: "Thứ 5", date: "02/07", morning: "Xử lý hồ sơ", afternoon: "Tiếp công dân", night: "-" },
-                      { day: "Thứ 6", date: "03/07", morning: "Họp giao ban", afternoon: "Trực ban hành chính", night: "Tuần tra đêm" },
-                      { day: "Thứ 7", date: "04/07", morning: "-", afternoon: "-", night: "-" },
-                      { day: "Chủ nhật", date: "05/07", morning: "Trực ban", afternoon: "Trực ban", night: "-" },
-                    ].map((row, idx) => (
+                    {displaySchedule.map((row, idx) => (
                       <tr key={idx} className="border-b last:border-b-0 hover:bg-slate-50/50">
                         <td className="px-4 py-3 border-r bg-slate-50/30">
                           <div className="font-semibold text-slate-700">{row.day}</div>
                           <div className="text-[11px] text-slate-400">{row.date}</div>
                         </td>
                         <td className="px-4 py-3 border-r text-center">
-                          {row.morning !== "-" ? <span className="inline-block px-2 py-1 bg-blue-50 text-blue-700 rounded text-[12px] font-medium">{row.morning}</span> : <span className="text-slate-300">-</span>}
+                          {row.morning !== "-" ? (
+                            <div className="flex flex-col items-center">
+                              <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-[12px] font-medium mb-0.5">{row.morning}</span>
+                              <span className="text-[10px] text-slate-500 font-medium truncate max-w-[120px]">{row.mOfficer}</span>
+                            </div>
+                          ) : <span className="text-slate-300">-</span>}
                         </td>
                         <td className="px-4 py-3 border-r text-center">
-                          {row.afternoon !== "-" ? <span className="inline-block px-2 py-1 bg-amber-50 text-amber-700 rounded text-[12px] font-medium">{row.afternoon}</span> : <span className="text-slate-300">-</span>}
+                          {row.afternoon !== "-" ? (
+                            <div className="flex flex-col items-center">
+                              <span className="inline-block px-2 py-0.5 bg-amber-50 text-amber-700 rounded text-[12px] font-medium mb-0.5">{row.afternoon}</span>
+                              <span className="text-[10px] text-slate-500 font-medium truncate max-w-[120px]">{row.aOfficer}</span>
+                            </div>
+                          ) : <span className="text-slate-300">-</span>}
                         </td>
                         <td className="px-4 py-3 text-center">
-                          {row.night !== "-" ? <span className="inline-block px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-[12px] font-medium">{row.night}</span> : <span className="text-slate-300">-</span>}
+                          {row.night !== "-" ? (
+                            <div className="flex flex-col items-center">
+                              <span className="inline-block px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded text-[12px] font-medium mb-0.5">{row.night}</span>
+                              <span className="text-[10px] text-slate-500 font-medium truncate max-w-[120px]">{row.nOfficer}</span>
+                            </div>
+                          ) : <span className="text-slate-300">-</span>}
                         </td>
                       </tr>
                     ))}

@@ -748,8 +748,8 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         User actionBy = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User: " + username));
 
-        if (actionBy.getRole() != Role.WARD_STAFF) {
-            throw new CustomException("Chỉ cán bộ phường mới có quyền cập nhật trạng thái phản ánh", HttpStatus.FORBIDDEN.value());
+        if (actionBy.getRole() == Role.CITIZEN) {
+            throw new CustomException("Công dân không có quyền cập nhật trạng thái phản ánh", HttpStatus.FORBIDDEN.value());
         }
 
         // Fix BOLA/IDOR: Validate permission before action

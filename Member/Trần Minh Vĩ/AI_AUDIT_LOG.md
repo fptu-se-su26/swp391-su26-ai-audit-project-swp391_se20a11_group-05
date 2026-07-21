@@ -1347,6 +1347,116 @@ Xử lý Bất đồng bộ (Asynchronous Background Jobs):
 Thiết kế hệ thống thông minh là phải biết phân tách rạch ròi đâu là tác vụ cần phản hồi ngay (Synchronous) và đâu là tác vụ chạy ngầm (Asynchronous).
 ```
 
+---
+
+### Lần sử dụng AI số 23
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Quản lý lỗi HTTP và Refresh Token tập trung |
+| Phần việc liên quan | Frontend / Network Layer |
+| Mức độ sử dụng | Hỗ trợ bắt lỗi cơ bản (Bị bác bỏ) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Khi API của Backend trả về lỗi (ví dụ như 401 Unauthorized do hết hạn token), tôi muốn hiển thị thông báo lỗi cho người dùng. Phải làm sao?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đề xuất tôi bọc `try...catch` xung quanh mọi lời gọi hàm `fetch()` hoặc `axios.get()` ở toàn bộ các Component. Nếu bắt được lỗi 401 thì gọi hàm `logout()` và đẩy người dùng ra trang đăng nhập.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Không sử dụng cách làm phân mảnh của AI.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Triển khai Global Axios Interceptor (Silent Refresh):
+- Critical Thinking: Trải nghiệm người dùng (UX) sẽ cực kỳ tồi tệ nếu họ đang gõ dở một cái form dài dòng mà bị văng ra ngoài trang Đăng nhập chỉ vì Token vừa hết hạn được 1 giây. Việc viết `try...catch` ở 50 file khác nhau cũng sinh ra lượng code rác (Boilerplate) khổng lồ và rất khó bảo trì.
+- Decision Ownership & Creative Synthesis: Thay vì nghe AI, tôi tự cấu hình một `Axios Interceptor` chặn (intercept) toàn bộ các Request và Response trước khi chúng đến được Component. Khi Backend ném ra lỗi 401, Interceptor sẽ tự động tạm dừng request hiện tại, ngầm gọi API `refresh-token` để lấy token mới, rồi gọi lại chính request ban đầu (Silent Refresh). Người dùng không hề hay biết sự gián đoạn này. Mọi lỗi 500 cũng được Interceptor hứng và hiển thị Toast Notification một lần duy nhất ở đây.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Global Interceptor Phase 15 |
+| File liên quan | api.ts, auth.ts |
+| Screenshot |  |
+| Kết quả chạy/test | Đợi token hết hạn (15 phút), bấm Lưu dữ liệu. Request đầu bị 401, tự động văng ra request Refresh, và tự động gọi lại lệnh Lưu thành công. Người dùng không bị đá ra ngoài. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Xử lý lỗi (Error Handling) không phải là "ném try...catch khắp nơi", mà là quy hoạch nó vào một tầng mạng (Network Layer) duy nhất.
+```
+
+---
+
+### Lần sử dụng AI số 24
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Quản lý trạng thái cho Form báo cáo Đa bước (Multi-step) |
+| Phần việc liên quan | Frontend / State Management |
+| Mức độ sử dụng | Hỗ trợ tư duy truyền dữ liệu |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Tôi có một Form báo cáo rác thải gồm 3 bước (Nhập thông tin, Đính kèm vị trí bản đồ, Tải ảnh lên). Làm sao để lưu trữ dữ liệu của bước 1 khi người dùng đang ở bước 3?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI khuyên tôi tạo một State bự ở Component cha (Parent Component), sau đó truyền hàm `setDữLiệu` xuống tận Component con ở tầng thứ 3 thông qua `props` (hiện tượng Prop Drilling).
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Không sử dụng giải pháp Prop Drilling vì nó phá vỡ cấu trúc Component.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Sử dụng Zustand cho Global State Management:
+- Critical Thinking: Việc truyền `props` lồng qua 3-4 tầng Component (Prop Drilling) sẽ khiến code biến thành "Mì Ý" (Spaghetti Code). Hơn nữa, mỗi khi Component cha cập nhật State, toàn bộ các Component con (kể cả những cái không liên quan) đều bị Re-render, gây giật lag (đặc biệt khi có bản đồ Leaflet). React Context thì lại quá cồng kềnh.
+- Decision Ownership & Creative Synthesis: Tôi đã cài đặt thư viện `Zustand` - một giải pháp State Management cực nhỏ gọn. Tôi định nghĩa một `useReportStore`, chứa toàn bộ dữ liệu của 3 bước. Ở bất kỳ bước nào (dù Component bị chôn sâu đến đâu), tôi chỉ cần gọi `useReportStore(state => state.updateStep1)` là xong. Cơ chế "Select State" của Zustand đảm bảo chỉ những Component thực sự cần dữ liệu mới bị Re-render, cứu vãn toàn bộ hiệu năng của trang Web.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Zustand State Phase 15 |
+| File liên quan | useReportStore.ts, ReportForm.tsx |
+| Screenshot |  |
+| Kết quả chạy/test | Nhập liệu ở bước 3 cực mượt, bản đồ ở bước 2 hoàn toàn không bị Re-render vô ích nhờ vào React Profiler xác nhận. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Tránh xa Prop Drilling bằng mọi giá trong các ứng dụng React phức tạp. Zustand là vũ khí bí mật để kiểm soát Component Re-render.
+```
+
 ## 5. Bảng tổng hợp mức độ sử dụng AI
 
 Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.

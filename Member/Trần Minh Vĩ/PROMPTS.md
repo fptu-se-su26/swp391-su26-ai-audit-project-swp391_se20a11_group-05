@@ -1621,6 +1621,142 @@ Các tác vụ giao tiếp với hệ thống bên ngoài (3rd-party) như Email
 
 ---
 
+### Lần 23: Triển khai Global Axios Interceptor (Silent Refresh Token)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 3/5 |
+| Mục đích | Bắt lỗi API tập trung và tự động làm mới Token |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Hệ thống sử dụng JWT Token (Access Token và Refresh Token). Khi Access Token hết hạn, API trả về lỗi 401 Unauthorized. Tôi cần xử lý lỗi này.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI đề xuất tôi bọc lệnh `try...catch` ở từng chỗ gọi `fetch()` hoặc `axios.get()`. Nếu bắt được mã 401 thì gọi hàm `logout()` và ép trình duyệt chuyển hướng (redirect) về trang Đăng nhập.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Tôi TỪ CHỐI hoàn toàn cách làm thủ công và phân mảnh của AI.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Sử dụng Interceptor và Silent Refresh (Làm mới ngầm):
+- Critical Thinking: Bọc `try...catch` ở hàng chục file sẽ tạo ra hàng nghìn dòng code rác (Boilerplate). Hơn nữa, việc ép người dùng văng ra trang Đăng nhập ngay giữa lúc họ đang điền dở một form dài (chỉ vì Token vừa hết hạn) là một trải nghiệm UX thảm họa.
+- Decision Ownership & Creative Synthesis: Tôi thiết lập một `Axios Interceptor` ở tầng Network (file `api.ts`). Nó hoạt động như một "trạm thu phí", chặn mọi Response có mã 401. Khi đó, Interceptor sẽ TẠM DỪNG request hiện tại, tự động gửi Refresh Token lên Server để đổi lấy Access Token mới, rồi lập tức "Phát lại" (Replay) request ban đầu. Toàn bộ quá trình "Silent Refresh" này diễn ra trong vài phần trăm giây. Người dùng vẫn bấm Lưu thành công mà không hề bị văng ra ngoài. Các lỗi 500 khác cũng được Interceptor gom lại và gọi Toast Notification một lần duy nhất.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Gây UX tồi tệ, Code lặp lại nhiều)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Global Interceptor Phase 15 |
+| File liên quan | api.ts, auth.ts |
+| Screenshot | |
+| Kết quả chạy/test | Access Token hết hạn. Bấm "Cập nhật". Tab Network hiện 3 request: 1 bị lỗi 401 -> 1 gọi Refresh Token -> 1 gọi lại Cập nhật thành công (200). Màn hình không hề bị giật cục. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Error Handling và Auth Flow là phần tinh túy nhất của Frontend. Phải xử lý tập trung (Centralized) thay vì phân tán (Decentralized).
+```
+
+---
+
+### Lần 24: Quản lý trạng thái đa bước (Zustand Global State)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 4/5 |
+| Mục đích | Quản lý dữ liệu cho Form đa bước mà không làm giảm hiệu năng |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Form báo cáo rác thải của người dân được chia làm 3 bước. Khi đang ở bước 3, người dùng có thể quay lại bước 1. Tôi cần giữ lại dữ liệu họ đã nhập.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI hướng dẫn tôi tạo một State bự bằng `useState` ở Component Cha. Sau đó truyền state và hàm `setState` xuống các Component Con, Cháu, Chắt thông qua `props` (hiện tượng Prop Drilling).
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Tôi hiểu bản chất lưu State ở cấp độ cao, nhưng bác bỏ việc truyền Props.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Tối ưu hiệu năng Re-render bằng Zustand:
+- Critical Thinking: Việc truyền Props liên tục qua 3-4 tầng Component (Prop Drilling) làm Code trở thành một mớ bòng bong (Spaghetti). Đặc biệt, mỗi khi người dùng gõ 1 chữ ở Bước 1, Component Cha thay đổi State, kéo theo Bước 2 (chứa bản đồ Leaflet) bị Re-render oan uổng, gây giật lag toàn bộ trang.
+- Decision Ownership & Creative Synthesis: Tôi đã tích hợp thư viện `Zustand`. Tôi tạo một file `useReportStore.ts` đóng vai trò là Global State nằm độc lập bên ngoài cây Component. Khi Component ở Bước 1 cần cập nhật dữ liệu, nó gọi thẳng hàm `updateStep1` của Zustand. Khi Bước 3 cần đọc dữ liệu, nó móc (hook) thẳng vào Store. Cấu trúc này xóa sổ hoàn toàn Prop Drilling, và cơ chế Selector của Zustand đảm bảo Bước 2 (Bản đồ) không bao giờ bị Re-render nếu dữ liệu của nó không thay đổi.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Gây Prop Drilling và Re-render vô tội vạ)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Zustand State Phase 15 |
+| File liên quan | useReportStore.ts, ReportForm.tsx |
+| Screenshot | |
+| Kết quả chạy/test | Dùng React Profiler đo đạc: Khi gõ text ở Bước 1, Component Bản đồ ở Bước 2 hiển thị màu xám (Tức là không bị Re-render). |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Ứng dụng React càng phức tạp thì càng phải hạn chế Prop Drilling và kiểm soát chặt chẽ vòng đời Re-render của Component.
+```
+
+---
+
 ## 6. Prompt quan trọng nhất
 
 Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.

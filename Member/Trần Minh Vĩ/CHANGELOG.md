@@ -714,6 +714,51 @@ Hệ thống lúc này không chỉ chạy được, mà còn chạy mượt mà
 
 ---
 
+# [Phase 15] API Resilience & Advanced State Management
+
+## Ngày thực hiện
+
+```text
+21/07/2026
+```
+
+## Đã hoàn thành
+
+- [x] Quản lý lỗi tập trung (Global API Interceptor): Triển khai cơ chế bắt lỗi tự động cho toàn bộ HTTP Request. Hỗ trợ "Silent Refresh Token" khi phiên đăng nhập hết hạn mà không làm gián đoạn trải nghiệm người dùng.
+- [x] Quản lý trạng thái đa bước (Multi-step State): Loại bỏ triệt để vấn đề Prop Drilling (truyền dữ liệu lồng nhau quá sâu) bằng cách tích hợp Zustand, giúp tối ưu hiệu năng Re-render.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Viết Axios Interceptor và Refresh Token | Trần Minh Vĩ | api.ts, auth.ts | Commit (Phase 15) |
+| 2 | Áp dụng Zustand cho Form đa bước | Trần Minh Vĩ | useReportStore.ts | Commit (Phase 15) |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI đề xuất dùng `try...catch` thủ công rải rác khắp nơi và dùng `props` để truyền dữ liệu. Sinh viên từ chối lối code "Spaghetti" này và tự quy hoạch lại theo chuẩn Enterprise.
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+Commit liên quan đến Phase 15
+```
+
+## Ghi chú
+
+```text
+Xử lý lỗi (Error Handling) mới là thước đo thực sự cho một Kỹ sư phần mềm giỏi, chứ không phải việc code ra tính năng.
+```
+
+---
+
 # 4. Tổng kết thay đổi cuối project
 
 ## 4.1. Các chức năng đã hoàn thành

@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { useI18n } from "@/lib/i18n";
-import { ApiError } from "@/lib/api";
+import { ApiError, authApi } from "@/lib/api";
 import { useRegisterMutation } from "@/lib/hooks";
 import {
   UserPlus,
@@ -118,7 +118,8 @@ function RegisterPage() {
   const { googleEmail, googleName } = Route.useSearch();
   const isFromGoogle = !!googleEmail;
 
-  // Firebase Phone Auth States
+  // OTP provider: 'vonage' = primary (qua BE), 'firebase' = fallback (client SDK)
+  const [otpProvider, setOtpProvider] = useState<"vonage" | "firebase" | null>(null);
   const [otpCode, setOtpCode] = useState("");
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
@@ -199,29 +200,79 @@ function RegisterPage() {
     return { authInstance, verifier };
   };
 
-  const sendRegistrationOtp = async (phone: string) => {
+  // ─── Gửi OTP qua Firebase (fallback) ───────────────────────────
+  const sendOtpViaFirebase = async (phone: string): Promise<ConfirmationResult> => {
     const { authInstance, verifier } = getRecaptchaVerifier();
     return signInWithPhoneNumber(authInstance, formatPhoneForFirebase(phone), verifier);
   };
+
+  // ─── Xử lý submit form: thử Vonage trước, fallback sang Firebase ─
   const handleRegister = async (values: RegisterFormValues) => {
     setRegisterValues(values);
     setIsSendingOtp(true);
     const toastId = toast.loading(locale === "vi" ? "Đang gửi mã OTP..." : "Sending OTP...");
 
+    // 1. Thử Vonage (primary): POST /api/auth/register tạo draft user + gửi OTP qua Vonage
     try {
-      const confirmation = await sendRegistrationOtp(values.phone);
-      setConfirmationResult(confirmation);
+      await authApi.register({
+        username: values.username,
+        password: values.password,
+        fullName: values.fullName,
+        email: values.email,
+        phoneNumber: values.phone,
+      }); // không có firebaseToken → Vonage path
+
+      setOtpProvider("vonage");
+      setConfirmationResult(null);
       setOtpCode("");
       setResendCountdown(60);
-      toast.success(locale === "vi" ? "Đã gửi mã OTP đến điện thoại!" : "OTP sent to your phone!", { id: toastId });
+      toast.success(
+        locale === "vi" ? "Đã gửi mã OTP qua Vonage SMS!" : "OTP sent via Vonage SMS!",
+        { id: toastId }
+      );
       setShowOtpModal(true);
-    } catch (err: any) {
-      toast.error(err?.message || (locale === "vi" ? "Không thể gửi OTP. Thử lại sau." : "Failed to send OTP. Try again."), { id: toastId });
+      return;
+    } catch (vonageErr: any) {
+      // Lỗi 400 thường là do dữ liệu đầu vào (VD: Email, Username đã tồn tại) -> Không fallback
+      // Lỗi 429 là do rate limit -> Cũng không fallback
+      if (vonageErr?.status === 400 || vonageErr?.status === 409 || vonageErr?.status === 429) {
+        toast.error(
+          vonageErr?.message || (locale === "vi" ? "Đăng ký thất bại. Vui lòng kiểm tra lại thông tin." : "Registration failed. Please check your information."),
+          { id: toastId }
+        );
+        setIsSendingOtp(false);
+        return;
+      }
+      // Vonage thất bại (hết tiền, lỗi hệ thống...) → thử Firebase
+      console.warn("[OTP] Vonage failed, falling back to Firebase:", vonageErr?.message);
+    }
+
+    // 2. Fallback: Firebase Phone Auth
+    try {
+      const confirmation = await sendOtpViaFirebase(values.phone);
+      setConfirmationResult(confirmation);
+      setOtpProvider("firebase");
+      setOtpCode("");
+      setResendCountdown(60);
+      toast.success(
+        locale === "vi" ? "Đã gửi mã OTP qua Firebase!" : "OTP sent via Firebase!",
+        { id: toastId }
+      );
+      setShowOtpModal(true);
+    } catch (firebaseErr: any) {
+      toast.error(
+        firebaseErr?.message ||
+          (locale === "vi" ? "Không thể gửi OTP. Vui lòng thử lại." : "Failed to send OTP. Please try again."),
+        { id: toastId }
+      );
     } finally {
       setIsSendingOtp(false);
     }
+
+    setIsSendingOtp(false);
   };
 
+  // ─── Gửi lại OTP ────────────────────────────────────────────────
   const handleResendOtp = async () => {
     if (!registerValues || resendCountdown > 0 || isSendingOtp || isVerifyingOtp) return;
 
@@ -229,61 +280,72 @@ function RegisterPage() {
     const toastId = toast.loading(locale === "vi" ? "Đang gửi lại mã OTP..." : "Resending OTP...");
 
     try {
-      const confirmation = await sendRegistrationOtp(registerValues.phone);
-      setConfirmationResult(confirmation);
-      setOtpCode("");
-      setResendCountdown(60);
-      toast.success(locale === "vi" ? "Đã gửi lại mã OTP!" : "OTP resent!", { id: toastId });
+      if (otpProvider === "vonage") {
+        // Vonage resend: chỉ gọi sms/send (không tạo lại user)
+        await authApi.sendSmsOtp(registerValues.phone);
+        setOtpCode("");
+        setResendCountdown(60);
+        toast.success(locale === "vi" ? "Đã gửi lại OTP qua Vonage!" : "OTP resent via Vonage!", { id: toastId });
+      } else {
+        // Firebase resend
+        const confirmation = await sendOtpViaFirebase(registerValues.phone);
+        setConfirmationResult(confirmation);
+        setOtpCode("");
+        setResendCountdown(60);
+        toast.success(locale === "vi" ? "Đã gửi lại mã OTP!" : "OTP resent!", { id: toastId });
+      }
     } catch (err: any) {
-      toast.error(err?.message || (locale === "vi" ? "Không thể gửi lại OTP. Thử lại sau." : "Failed to resend OTP. Try again."), { id: toastId });
+      toast.error(
+        err?.message || (locale === "vi" ? "Không thể gửi lại OTP. Thử lại sau." : "Failed to resend OTP. Try again."),
+        { id: toastId }
+      );
     } finally {
       setIsSendingOtp(false);
     }
   };
+
+  // ─── Xác thực OTP ───────────────────────────────────────────────
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!confirmationResult || otpCode.length !== 6 || !registerValues) return;
+    if (otpCode.length !== 6 || !registerValues) return;
 
     setIsVerifyingOtp(true);
     const toastId = toast.loading(locale === "vi" ? "Đang xác thực mã OTP..." : "Verifying OTP...");
 
     try {
-      // 1. Confirm OTP with Firebase
-      const result = await confirmationResult.confirm(otpCode);
-      const idToken = await result.user.getIdToken();
+      if (otpProvider === "vonage") {
+        // ── Vonage path ──────────────────────────────────────────────
+        // 1. Xác nhận OTP → kích hoạt tài khoản
+        await authApi.registerConfirm(registerValues.phone, otpCode);
 
-      // 2. Register user at Backend with Firebase Token
-      const response = await registerMutation.mutateAsync({
-        data: {
-          username: registerValues.username,
-          password: registerValues.password,
-          fullName: registerValues.fullName,
-          email: registerValues.email,
-          phoneNumber: registerValues.phone,
-        },
-        firebaseToken: idToken,
-      });
+        toast.success(locale === "vi" ? "Đăng ký thành công! Vui lòng đăng nhập." : "Registration successful! Please login.", { id: toastId });
+        setShowOtpModal(false);
+        setTimeout(() => navigate({ to: "/login" }), 800);
 
-      toast.success(locale === "vi" ? "Đăng ký thành công!" : "Registration successful!", { id: toastId });
+      } else {
+        // ── Firebase fallback path ───────────────────────────────────
+        if (!confirmationResult) return;
 
-      // 3. Set token in localStorage and log in
-      if (response && response.token) {
-        localStorage.setItem("dn_token_v2", response.token);
-        login({
-          name: response.username,
-          role: response.role,
-          org: response.org || "",
-          wardName: response.wardName,
-          wardType: response.wardType,
-          wardId: response.wardId,
-          token: response.token,
+        // 1. Xác nhận OTP với Firebase
+        const result = await confirmationResult.confirm(otpCode);
+        const idToken = await result.user.getIdToken();
+
+        // 2. Đăng ký tài khoản với Firebase token
+        await registerMutation.mutateAsync({
+          data: {
+            username: registerValues.username,
+            password: registerValues.password,
+            fullName: registerValues.fullName,
+            email: registerValues.email,
+            phoneNumber: registerValues.phone,
+          },
+          firebaseToken: idToken,
         });
-      }
 
-      setShowOtpModal(false);
-      setTimeout(() => {
-        navigate({ to: "/" });
-      }, 1000);
+        toast.success(locale === "vi" ? "Đăng ký thành công! Vui lòng đăng nhập." : "Registration successful! Please login.", { id: toastId });
+        setShowOtpModal(false);
+        setTimeout(() => navigate({ to: "/login" }), 800);
+      }
     } catch (err: any) {
       toast.error(
         err?.message || (locale === "vi" ? "Mã OTP không chính xác hoặc lỗi đăng ký." : "Invalid OTP or registration error."),

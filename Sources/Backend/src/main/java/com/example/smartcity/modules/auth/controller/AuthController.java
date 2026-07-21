@@ -101,13 +101,13 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Object>> registerUser(
             @Valid @RequestBody RegisterRequest registerRequest,
             HttpServletRequest httpRequest) {
-        // [SECURITY] Rate limit: 5 lần / 1 giờ theo IP (Tạm tắt để test)
-        // rateLimiter.checkRegisterLimit(getClientIp(httpRequest));
+        // [SECURITY] Rate limit: 5 lần / 1 giờ theo IP 
+        rateLimiter.checkRegisterLimit(getClientIp(httpRequest));
 
         String authHeader = httpRequest.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            // [SECURITY] Rate limit: 5 lần / 1 giờ theo IP và số điện thoại cho Firebase OTP (Tạm tắt)
-            // rateLimiter.checkFirebaseOtpLimit(getClientIp(httpRequest), registerRequest.getPhoneNumber());
+            // [SECURITY] Rate limit: 5 lần / 1 giờ theo IP và số điện thoại cho Firebase OTP 
+            rateLimiter.checkFirebaseOtpLimit(getClientIp(httpRequest), registerRequest.getPhoneNumber());
             String firebaseToken = authHeader.substring(7);
             AuthResponse response = authService.registerWithFirebaseToken(registerRequest, firebaseToken);
             return ResponseEntity.ok(ApiResponse.success("Đăng ký và đăng nhập thành công", response));
@@ -126,8 +126,8 @@ public class AuthController {
     @PostMapping("/sms/send")
     public ResponseEntity<ApiResponse<String>> sendSmsOtp(
             @Valid @RequestBody SmsSendRequest request) {
-        // [SECURITY] Rate limit: 3 lần / 10 phút theo số điện thoại (Tạm tắt)
-        // rateLimiter.checkSmsLimit(request.getPhoneNumber());
+        // [SECURITY] Rate limit: 3 lần / 10 phút theo số điện thoại 
+        rateLimiter.checkSmsLimit(request.getPhoneNumber());
         String message = smsService.generateAndSendOtp(request.getPhoneNumber());
         return ResponseEntity.ok(ApiResponse.success(message, null));
     }
@@ -162,6 +162,7 @@ public class AuthController {
      * Body: { "username": "...", "password": "...", "fullName": "...", "role": "SUPER_ADMIN|WARD_STAFF|POLICE|CITIZEN" }
      */
     @PostMapping("/dev/seed-user")
+    @org.springframework.context.annotation.Profile({"dev", "local"})
     @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<ApiResponse<Map<String, String>>> devSeedUser(@RequestBody Map<String, String> body) {
         String username = body.getOrDefault("username", "superadmin");

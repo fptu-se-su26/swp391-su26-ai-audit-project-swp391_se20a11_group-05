@@ -2,6 +2,7 @@ package com.example.smartcity.modules.auth.service;
 
 import com.example.smartcity.modules.auth.entity.SmsVerification;
 import com.example.smartcity.modules.auth.repository.SmsVerificationRepository;
+import com.example.smartcity.common.exception.CustomException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -29,6 +30,7 @@ public class SmsService {
 
     private final com.example.smartcity.security.secrets.SecurityManager securityManager;
     private final PasswordEncoder passwordEncoder;
+    private final org.springframework.core.env.Environment environment;
 
     private VonageClient vonageClient;
     private String vonageApiKey;
@@ -67,9 +69,13 @@ public class SmsService {
         }
 
         if (vonageClient == null) {
-            log.warn("Vonage client is not initialized. Using MOCK Verify.");
-            saveOtpRecord(phoneNumber, "MOCK_REQUEST_ID_12345");
-            return "Mã OTP đã được gửi đến số điện thoại của bạn (MOCK MODE).";
+            if (isDevOrLocal()) {
+                log.warn("Vonage client is not initialized. Using MOCK Verify.");
+                saveOtpRecord(phoneNumber, "MOCK_REQUEST_ID_12345");
+                return "Mã OTP đã được gửi đến số điện thoại của bạn (MOCK MODE).";
+            }
+            log.error("Vonage client is missing in production. Falling back to Firebase.");
+            throw new CustomException("Dịch vụ SMS tạm thời không khả dụng", 503);
         }
 
         try {
@@ -94,12 +100,12 @@ public class SmsService {
                 return "Mã xác thực đã được gửi đến điện thoại của bạn qua Vonage Verify.";
             } else {
                 log.error("Lỗi từ Vonage: {} - {}", response.getStatus(), response.getErrorText());
-                throw new RuntimeException("Không thể gửi mã xác thực: " + response.getErrorText());
+                throw new CustomException("Không thể gửi mã xác thực: " + response.getErrorText(), 400);
             }
         } catch (Exception e) {
-            if (e instanceof RuntimeException) throw e;
+            if (e instanceof CustomException) throw (CustomException) e;
             log.error("Lỗi khi gọi Vonage Verify API cho số {}: {}", phoneNumber, e.getMessage());
-            throw new RuntimeException("Lỗi hệ thống khi gửi tin nhắn SMS.");
+            throw new CustomException("Lỗi hệ thống khi gửi tin nhắn SMS.", 500);
         }
     }
 
@@ -121,7 +127,7 @@ public class SmsService {
                 .findTopByPhoneNumberAndIsUsedFalseOrderByCreatedAtDesc(phoneNumber);
 
         if (optionalVerification.isEmpty()) {
-            throw new RuntimeException("Không tìm thấy yêu cầu xác thực hoặc mã đã được sử dụng.");
+            throw new CustomException("Không tìm thấy yêu cầu xác thực hoặc mã đã được sử dụng.", 400);
         }
 
         SmsVerification verification = optionalVerification.get();
@@ -129,13 +135,13 @@ public class SmsService {
         if (verification.getExpiresAt().isBefore(LocalDateTime.now())) {
             verification.setIsUsed(true);
             smsVerificationRepository.save(verification);
-            throw new RuntimeException("Yêu cầu xác thực đã hết hạn. Vui lòng yêu cầu mã mới.");
+            throw new CustomException("Yêu cầu xác thực đã hết hạn. Vui lòng yêu cầu mã mới.", 400);
         }
 
         if (verification.getAttempts() >= MAX_ATTEMPTS) {
             verification.setIsUsed(true);
             smsVerificationRepository.save(verification);
-            throw new RuntimeException("Bạn đã nhập sai quá " + MAX_ATTEMPTS + " lần. Vui lòng yêu cầu mã mới.");
+            throw new CustomException("Bạn đã nhập sai quá " + MAX_ATTEMPTS + " lần. Vui lòng yêu cầu mã mới.", 400);
         }
 
         String requestId = verification.getOtpCode();
@@ -148,12 +154,12 @@ public class SmsService {
                 smsVerificationRepository.save(verification);
                 return true;
             } else {
-                throw new RuntimeException("Mã OTP không chính xác.");
+                throw new CustomException("Mã OTP không chính xác.", 400);
             }
         }
 
         if (vonageClient == null) {
-            throw new RuntimeException("Hệ thống SMS Vonage chưa được khởi tạo.");
+            throw new CustomException("Hệ thống SMS Vonage chưa được khởi tạo.", 503);
         }
 
         try {
@@ -175,12 +181,23 @@ public class SmsService {
                 smsVerificationRepository.save(verification);
                 
                 int remaining = Math.max(0, MAX_ATTEMPTS - verification.getAttempts());
-                throw new RuntimeException("Mã xác minh không chính xác (" + response.getErrorText() + "). Bạn còn " + remaining + " lần thử.");
+                throw new CustomException("Mã xác minh không chính xác (" + response.getErrorText() + "). Bạn còn " + remaining + " lần thử.", 400);
             }
         } catch (Exception e) {
-            if (e instanceof RuntimeException) throw e;
+            if (e instanceof CustomException) throw (CustomException) e;
             log.error("Lỗi khi verify Vonage OTP: {}", e.getMessage());
-            throw new RuntimeException("Lỗi hệ thống khi xác minh SMS.");
+            throw new CustomException("Lỗi hệ thống khi xác minh SMS.", 500);
         }
+    }
+
+    private boolean isDevOrLocal() {
+        String[] profiles = environment.getActiveProfiles();
+        if (profiles.length == 0) return true;
+        for (String profile : profiles) {
+            if ("dev".equals(profile) || "local".equals(profile) || "test".equals(profile)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

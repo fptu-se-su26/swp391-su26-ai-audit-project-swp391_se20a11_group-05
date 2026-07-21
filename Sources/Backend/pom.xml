@@ -211,11 +211,11 @@
             <artifactId>spring-boot-starter-websocket</artifactId>
         </dependency>
 
-        <!-- Twilio for real SMS -->
+        <!-- Vonage for real SMS -->
         <dependency>
-            <groupId>com.twilio.sdk</groupId>
-            <artifactId>twilio</artifactId>
-            <version>10.1.1</version>
+            <groupId>com.vonage</groupId>
+            <artifactId>client</artifactId>
+            <version>7.3.0</version>
         </dependency>
 
         <!-- Caffeine cache (in-memory, dùng cho weather forecast) -->

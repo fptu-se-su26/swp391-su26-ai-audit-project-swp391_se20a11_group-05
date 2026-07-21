@@ -635,7 +635,7 @@ export function ModernPoliceDashboard() {
         g.feedbackIds.forEach((id: number) => allDuplicateIds.add(id));
         const groupItems = feedbacksData.filter(f => g.feedbackIds.includes(f.id));
         if (groupItems.length > 0) {
-          const rep = { ...groupItems[0] };
+          const rep: any = { ...groupItems[0] };
           rep._aiScore = g.matchScore || 90;
           rep._aiReason = g.reason;
           rep._groupCount = g.feedbackIds.length;
@@ -668,7 +668,7 @@ export function ModernPoliceDashboard() {
     Object.values(contentGroups).forEach(items => {
       if (items.length >= 2) {
         items.forEach(item => allGroupedIds.add(item.id));
-        const rep = { ...items[0] };
+        const rep: any = { ...items[0] };
         rep._groupCount = items.length;
         rep._aiScore = 90;
         rep._aiReason = `Gom nhóm ${items.length} tin báo trùng vị trí & nội dung`;

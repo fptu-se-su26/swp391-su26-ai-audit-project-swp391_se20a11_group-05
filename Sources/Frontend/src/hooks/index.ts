@@ -423,7 +423,11 @@ export function useUpdateProfileMutation() {
 }
 
 export function useChangePasswordMutation() {
-  return useMutation<void, Error, { currentPassword: string; newPassword: string; confirmPassword: string; otpCode: string }>({
+  return useMutation<
+    void,
+    Error,
+    { currentPassword: string; newPassword: string; confirmPassword: string; otpCode: string }
+  >({
     mutationFn: (data) => userApi.changePassword(data),
   });
 }
@@ -491,7 +495,6 @@ export function useInfiniteNotifications(size = 5) {
     },
     staleTime: 30_000,
     refetchInterval: 10_000,
-    enabled: !!token,
   });
 }
 

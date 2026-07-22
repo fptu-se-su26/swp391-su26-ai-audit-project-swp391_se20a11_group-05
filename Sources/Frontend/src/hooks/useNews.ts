@@ -48,43 +48,15 @@ const MOCK_NEWS = [
 export function useNewsList(page = 0, size = 10, category?: string, keyword?: string) {
   return useQuery({
     queryKey: ["news", page, size, category, keyword],
-    queryFn: () => {
-      let filtered = [...MOCK_NEWS];
-      if (category && category !== "Tất cả") {
-        filtered = filtered.filter(n => n.category === category);
-      }
-      if (keyword) {
-        const lowerKeyword = keyword.toLowerCase();
-        filtered = filtered.filter(n => 
-          n.title.toLowerCase().includes(lowerKeyword) || 
-          n.summary.toLowerCase().includes(lowerKeyword)
-        );
-      }
-      const start = page * size;
-      const end = start + size;
-      const content = filtered.slice(start, end);
-      return {
-        content,
-        totalPages: Math.ceil(filtered.length / size),
-        totalElements: filtered.length,
-        size: size,
-        number: page
-      };
-    },
+    queryFn: () => newsApi.getAll(page, size, category, keyword),
     placeholderData: (previousData) => previousData,
-    retry: false,
   });
 }
 
 export function useNewsDetail(id: number | string) {
   return useQuery({
     queryKey: ["news", id],
-    queryFn: () => {
-      const numId = typeof id === "string" ? parseInt(id, 10) : id;
-      const news = MOCK_NEWS.find(n => n.id === numId);
-      if (!news) throw new Error("Không tìm thấy tin tức");
-      return news;
-    },
+    queryFn: () => newsApi.getById(id),
     enabled: !!id,
   });
 }
@@ -93,14 +65,14 @@ export function useCreateNews() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: NewsRequest) => {
-      // Mock create (không lưu vào mock array thật để tránh refresh mất)
-      return Promise.resolve(data);
-    },
+    mutationFn: (data: NewsRequest) => newsApi.create(data),
     onSuccess: () => {
-      toast.success("Tạo tin tức (MOCK) thành công");
+      toast.success("Tạo tin tức thành công");
       queryClient.invalidateQueries({ queryKey: ["news"] });
     },
+    onError: (error: any) => {
+      toast.error(error?.message || "Lỗi khi tạo tin tức");
+    }
   });
 }
 
@@ -108,13 +80,14 @@ export function useUpdateNews() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: number | string; data: NewsRequest }) => {
-      return Promise.resolve(data);
-    },
+    mutationFn: ({ id, data }: { id: number | string; data: NewsRequest }) => newsApi.update(id, data),
     onSuccess: () => {
-      toast.success("Cập nhật tin tức (MOCK) thành công");
+      toast.success("Cập nhật tin tức thành công");
       queryClient.invalidateQueries({ queryKey: ["news"] });
     },
+    onError: (error: any) => {
+      toast.error(error?.message || "Lỗi khi cập nhật tin tức");
+    }
   });
 }
 
@@ -122,12 +95,13 @@ export function useDeleteNews() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number | string) => {
-      return Promise.resolve(id);
-    },
+    mutationFn: (id: number | string) => newsApi.delete(id),
     onSuccess: () => {
-      toast.success("Xóa tin tức (MOCK) thành công");
+      toast.success("Xóa tin tức thành công");
       queryClient.invalidateQueries({ queryKey: ["news"] });
     },
+    onError: (error: any) => {
+      toast.error(error?.message || "Lỗi khi xóa tin tức");
+    }
   });
 }

@@ -37,6 +37,26 @@ public class PoliceFeedbackService {
     private final com.example.smartcity.modules.notification.service.NotificationService notificationService;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
 
+    private static final java.util.Map<FeedbackStatus, java.util.List<FeedbackStatus>> VALID_TRANSITIONS = java.util.Map.of(
+            FeedbackStatus.SUBMITTED, java.util.List.of(FeedbackStatus.PENDING, FeedbackStatus.REJECTED),
+            FeedbackStatus.PENDING, java.util.List.of(FeedbackStatus.ASSIGNED, FeedbackStatus.REJECTED),
+            FeedbackStatus.ASSIGNED, java.util.List.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.REJECTED),
+            FeedbackStatus.PENDING_RECEIVE, java.util.List.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.REJECTED),
+            FeedbackStatus.IN_PROGRESS, java.util.List.of(FeedbackStatus.WAITING_INFO, FeedbackStatus.RESOLVED, FeedbackStatus.REJECTED),
+            FeedbackStatus.WAITING_INFO, java.util.List.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.RESOLVED, FeedbackStatus.REJECTED),
+            FeedbackStatus.RESOLVED, java.util.Collections.emptyList(),
+            FeedbackStatus.REJECTED, java.util.List.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.PENDING_RECEIVE),
+            FeedbackStatus.PRE_EMPTIVE, java.util.Collections.emptyList()
+    );
+
+    private void validateTransition(FeedbackStatus current, FeedbackStatus next) {
+        if (current == next) return;
+        java.util.List<FeedbackStatus> allowed = VALID_TRANSITIONS.getOrDefault(current, java.util.Collections.emptyList());
+        if (!allowed.contains(next)) {
+            throw new com.example.smartcity.common.exception.CustomException("Không thể chuyển trạng thái từ " + current + " sang " + next, org.springframework.http.HttpStatus.BAD_REQUEST.value());
+        }
+    }
+
     /**
      * Lấy danh sách phản ánh được phân công cho cán bộ công an
      */
@@ -98,6 +118,7 @@ public class PoliceFeedbackService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy user công an: " + username));
                 
         validatePolicePermission(policeUser, feedback);
+        validateTransition(feedback.getStatus(), FeedbackStatus.ASSIGNED);
 
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setAssignee(policeUser);
@@ -130,6 +151,14 @@ public class PoliceFeedbackService {
         User policeUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy user: " + username));
         validatePolicePermission(policeUser, feedback);
+        validateTransition(feedback.getStatus(), request.getStatus());
+
+        if (request.getStatus() == FeedbackStatus.RESOLVED) {
+            boolean hasEvidence = attachmentRepository.existsByFeedbackIdAndAttachmentPurpose(feedbackId, "RESOLUTION_EVIDENCE");
+            if (!hasEvidence) {
+                throw new com.example.smartcity.common.exception.CustomException("Vui lòng đính kèm hình ảnh hoặc video bằng chứng xử lý trước khi hoàn tất.", org.springframework.http.HttpStatus.BAD_REQUEST.value());
+            }
+        }
 
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setStatus(request.getStatus());
@@ -151,11 +180,15 @@ public class PoliceFeedbackService {
         User policeUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy user: " + username));
         validatePolicePermission(policeUser, feedback);
+        validateTransition(feedback.getStatus(), FeedbackStatus.RESOLVED);
+
+        boolean hasEvidence = attachmentRepository.existsByFeedbackIdAndAttachmentPurpose(feedbackId, "RESOLUTION_EVIDENCE");
+        if (!hasEvidence) {
+            throw new com.example.smartcity.common.exception.CustomException("Vui lòng đính kèm hình ảnh hoặc video bằng chứng xử lý trước khi hoàn tất.", org.springframework.http.HttpStatus.BAD_REQUEST.value());
+        }
 
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setStatus(FeedbackStatus.RESOLVED);
-        // Tạm thời nối kết quả vào description, sau này kết nối bảng FeedbackMedia/FeedbackResult
-        feedback.setDescription(feedback.getDescription() + "\n\n[KẾT QUẢ XỬ LÝ]: " + request.getResultNote());
         feedback.setUpdatedAt(LocalDateTime.now());
         
         Feedback updated = feedbackRepository.save(feedback);
@@ -185,6 +218,7 @@ public class PoliceFeedbackService {
         User policeUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy user: " + username));
         validatePolicePermission(policeUser, feedback);
+        validateTransition(feedback.getStatus(), FeedbackStatus.REJECTED);
 
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setStatus(FeedbackStatus.REJECTED);
@@ -220,6 +254,7 @@ public class PoliceFeedbackService {
         User policeUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy user: " + username));
         validatePolicePermission(policeUser, feedback);
+        validateTransition(feedback.getStatus(), FeedbackStatus.WAITING_INFO);
 
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setStatus(FeedbackStatus.WAITING_INFO);

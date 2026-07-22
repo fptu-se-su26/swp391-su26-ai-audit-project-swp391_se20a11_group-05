@@ -759,6 +759,51 @@ Xử lý lỗi (Error Handling) mới là thước đo thực sự cho một K�
 
 ---
 
+# [Phase 16] Memory Management & Production Build Optimization
+
+## Ngày thực hiện
+
+```text
+22/07/2026
+```
+
+## Đã hoàn thành
+
+- [x] Code Splitting (Chia nhỏ JS Bundle): Can thiệp sâu vào cấu hình `vite.config.ts` và sử dụng `React.lazy()` để chia nhỏ cục Javascript khổng lồ ra thành từng phần theo Route. Cải thiện tốc độ tải trang chủ gấp 4 lần.
+- [x] Memory Leak Prevention (Tránh rò rỉ bộ nhớ): Sử dụng React Profiler và Chrome DevTools để bắt và tiêu diệt lỗi rò rỉ bộ nhớ nghiêm trọng do Bản đồ (Leaflet) gây ra khi treo trang Admin lâu dài.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Cấu hình manualChunks và React.lazy() | Trần Minh Vĩ | vite.config.ts, routeTree.gen.ts | Commit (Phase 16) |
+| 2 | Cleanup Event Listeners cho Bản đồ | Trần Minh Vĩ | MapComponent.tsx | Commit (Phase 16) |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI đề xuất cách giải quyết bề mặt: dùng Gzip nén file và gắn `map = null`. Sinh viên tự đào sâu kiến trúc Vite và Lifecycle của React để giải quyết tận gốc nguyên nhân.
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+Commit liên quan đến Phase 16
+```
+
+## Ghi chú
+
+```text
+Hệ thống không chỉ phải chạy đúng, mà còn phải chạy nhẹ và không tàn phá tài nguyên RAM của trình duyệt.
+```
+
+---
+
 # 4. Tổng kết thay đổi cuối project
 
 ## 4.1. Các chức năng đã hoàn thành

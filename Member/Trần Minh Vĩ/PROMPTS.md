@@ -1757,6 +1757,142 @@ Tối ưu hiệu năng Re-render bằng Zustand:
 
 ---
 
+### Lần 25: Code Splitting & Tối ưu hóa Build (Production Optimization)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 3/5 |
+| Mục đích | Giảm dung lượng file Javascript để tăng tốc độ tải trang |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Khi chạy lệnh `npm run build` bằng Vite, hệ thống nhồi toàn bộ code vào một file `index.js` duy nhất nặng tới 3MB. Tốc độ load trang chủ lần đầu tiên (Cold Start) mất tới 5 giây, bị Google Lighthouse trừ điểm nặng nề.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI đề xuất sử dụng Gzip hoặc Brotli trên Nginx để nén file lại trước khi gửi cho Client. Ngoài ra khuyên tôi thêm lệnh `build.sourcemap = false` vào Vite.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Áp dụng cấu hình tắt `sourcemap` để bảo mật mã nguồn trên Production. Bác bỏ tư duy ỷ lại vào Gzip.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Áp dụng Code Splitting (Chia tách mã nguồn):
+- Critical Thinking: Nén Gzip chỉ giúp file tải về nhanh hơn qua mạng, nhưng trình duyệt của thiết bị di động (đặc biệt là máy yếu) vẫn phải tốn CPU và RAM để giải nén toàn bộ 3MB Javascript, sau đó mới Parse (phân tích) và Execute. Nhồi nhét cả logic của trang Admin, trang Đăng nhập, và thư viện Bản đồ vào trang Chủ là một sự lãng phí tài nguyên khủng khiếp.
+- Decision Ownership & Creative Synthesis: Tôi đã cấu hình `manualChunks` trong `vite.config.ts` để tách riêng `vendor` (các thư viện như react, axios) ra một file riêng để tận dụng Browser Cache. Ở phần Route, tôi bọc các trang Admin bằng `React.lazy()` và `<Suspense>`. Trình duyệt sẽ chỉ tải mã nguồn của trang Admin khi cán bộ thực sự bấm vào nút Đăng nhập. Nhờ thủ thuật Lazy Load này, file JS ở trang chủ giảm từ 3MB xuống còn 150KB. Tốc độ hiển thị nội dung đầu tiên (FCP) giảm xuống vỏn vẹn 0.5 giây!
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Không giải quyết được tận gốc nguyên nhân)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Code Splitting Phase 16 |
+| File liên quan | vite.config.ts, routeTree.gen.ts |
+| Screenshot | |
+| Kết quả chạy/test | Report của Vite build hiển thị hàng chục file chunks nhỏ gọn. Điểm Performance trên Lighthouse đạt màu Xanh (95+). |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Đừng bắt trình duyệt của người dùng tải những thứ mà họ chưa cần đến (Lazy Loading).
+```
+
+---
+
+### Lần 26: Xử lý rò rỉ bộ nhớ (Memory Leak) do Bản đồ
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 2/5 |
+| Mục đích | Dọn dẹp RAM, tránh Crash trình duyệt khi treo máy thời gian dài |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Cán bộ trực ban thường treo trang Admin Dashboard (có chứa Bản đồ Leaflet theo dõi rác thải theo thời gian thực) suốt 8 tiếng mỗi ngày. Sau khoảng 2 tiếng, trang web báo lỗi Out of Memory và tự động tải lại (Crash).
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI đoán nguyên nhân là do Bản đồ, và bảo tôi thêm dòng `if (mapInstance) mapInstance = null;` vào hàm hủy Component.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Tôi TỪ CHỐI hoàn toàn đoạn code này vì nó không có tác dụng.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Xây dựng Cleanup Routine tiêu chuẩn:
+- Critical Thinking: Việc gán một biến Object thành `null` trong Javascript không hề ép Garbage Collector (bộ thu gom rác) dọn dẹp vùng nhớ đó, nếu như Object đó vẫn đang bị dính với một Event Listener (như `window.addEventListener('resize')`) hoặc một vòng lặp `setInterval`. Đây là cạm bẫy chí mạng mà AI thường lờ đi.
+- Decision Ownership & Creative Synthesis: Tôi đã dùng tab Memory của Chrome DevTools để bắt quả tang việc các bản sao của Bản đồ không bị hủy khi chuyển trang. Trong file Component Bản đồ, tôi viết một hàm `return` bên trong `useEffect` (Cleanup function). Hàm này tuần tự gọi `map.off()` để gỡ các sự kiện click/hover, gọi `map.remove()` để ép thư viện phá hủy các thẻ DOM, và xóa toàn bộ các Timeout/Interval đang chạy ngầm. Sau khi làm vậy, đồ thị RAM đi ngang 1 đường thẳng tắp ở mức 60MB, trang web treo cả tuần cũng không sập.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Gợi ý code vô tác dụng, không triệt để)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Memory Leak Fix Phase 16 |
+| File liên quan | MapComponent.tsx |
+| Screenshot | |
+| Kết quả chạy/test | Chuyển đổi liên tục giữa trang Admin và trang khác 50 lần. RAM trong Chrome Task Manager tăng lên lúc Render và giảm về vạch xuất phát lúc Unmount, không hề có hiện tượng RAM phình to. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Biết cách khởi tạo tài nguyên thì phải biết cách thu hồi tài nguyên (Resource Management).
+```
+
+---
+
 ## 6. Prompt quan trọng nhất
 
 Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.

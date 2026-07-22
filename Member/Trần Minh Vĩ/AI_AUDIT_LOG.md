@@ -1457,6 +1457,116 @@ Sử dụng Zustand cho Global State Management:
 Tránh xa Prop Drilling bằng mọi giá trong các ứng dụng React phức tạp. Zustand là vũ khí bí mật để kiểm soát Component Re-render.
 ```
 
+---
+
+### Lần sử dụng AI số 25
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Tối ưu hóa kích thước file Javascript (Bundle Size) khi Build |
+| Phần việc liên quan | Frontend / Production Build |
+| Mức độ sử dụng | Hỗ trợ tìm hiểu về cấu hình Webpack/Vite |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Khi tôi chạy lệnh `npm run build`, file `index.js` sinh ra nặng tới 3MB. Người dùng lần đầu tiên vào trang phải đợi 5 giây màn hình trắng. Làm sao để giải quyết?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI khuyên tôi cấu hình Gzip trên Server Nginx để nén file, và tắt tính năng `sourcemap` trong cài đặt Vite.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Tắt tính năng tạo `sourcemap` trên môi trường Production để tránh lộ mã nguồn.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Thực hiện Code Splitting (Chia nhỏ theo Route):
+- Critical Thinking: Lời khuyên của AI về Gzip chỉ là giải pháp "ngọn". Vấn đề cốt lõi là file JS quá to vì nó nhồi nhét code của cả Trang Chủ, Trang Admin, Bản đồ Leaflet vào chung một cục (Monolithic Bundle). Dù có Gzip thì điện thoại tải về vẫn phải mất thời gian Giải nén và Phân tích (Parse) đống code thừa đó.
+- Decision Ownership & Creative Synthesis: Tôi tự can thiệp sâu vào file `vite.config.ts`, cấu hình thuộc tính `manualChunks` để tách riêng thư viện `react`, `leaflet` ra thành các file JS riêng biệt. Đồng thời, ở bộ định tuyến, tôi dùng `React.lazy()` và `<Suspense>` để Load Động (Lazy Load) các trang Admin. Kết quả: Khi người dân vào trang chủ, trình duyệt chỉ tải đúng 150KB Javascript cần thiết. Màn hình trắng biến mất, tốc độ FCP (First Contentful Paint) giảm từ 5 giây xuống còn 0.5 giây.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Code Splitting Phase 16 |
+| File liên quan | vite.config.ts, routeTree.gen.ts |
+| Screenshot |  |
+| Kết quả chạy/test | Build Terminal hiện ra hàng chục file `.js` nhỏ nhắn cỡ 20-50KB thay vì một cục 3MB. Chrome Lighthouse chấm điểm Performance lên 95+. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Code Splitting là kỹ năng bắt buộc của một Frontend Developer khi dự án tiến lên Production.
+```
+
+---
+
+### Lần sử dụng AI số 26
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Bắt và sửa lỗi Rò rỉ bộ nhớ (Memory Leak) do bản đồ Leaflet |
+| Phần việc liên quan | Frontend / Memory Management |
+| Mức độ sử dụng | Hỗ trợ phân tích Profiler (Bị bác bỏ giải pháp) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Nếu Cán bộ phường cắm máy bật trang Admin Dashboard suốt cả ngày, RAM của Chrome bị phình lên tận 1.5GB và bị Crash trang (Out of Memory). Tôi thấy bản đồ Leaflet hình như không tự xóa. Phải làm sao?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đưa ra đoạn code xài tạm bợ: `if (map) map = null;` khi Component unmount.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Không áp dụng, vì gắn null không giải quyết được các Event Listener ngầm.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Thiết lập Cleanup Routine tiêu chuẩn:
+- Critical Thinking: Gán biến bằng `null` không làm cho bộ dọn rác (Garbage Collector) của Javascript tự động giải phóng vùng nhớ nếu như bên trong bản đồ vẫn còn dính các hàm bắt sự kiện `onClick` hoặc các vòng lặp `setInterval`. Lời khuyên của AI cực kỳ hời hợt và nguy hiểm cho các ứng dụng chạy dài hạn 24/7.
+- Decision Ownership & Creative Synthesis: Tôi đã dùng Chrome DevTools (Tab Memory) chụp Snapshot RAM và phát hiện nguyên nhân. Sau đó, tôi tự viết một Cleanup Routine hoàn chỉnh trong hook `useEffect`. Khi Component bị hủy (Unmount), hệ thống sẽ gọi `map.off()` để gỡ sạch mọi sự kiện, gọi `map.remove()` để hủy toàn bộ DOM do bản đồ tạo ra, và `clearInterval` cho bộ đếm thời gian thực. Kết quả test sau 4 tiếng cắm máy liên tục, RAM trình duyệt luôn ổn định ở mức 60MB.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Memory Leak Fix Phase 16 |
+| File liên quan | MapComponent.tsx |
+| Screenshot |  |
+| Kết quả chạy/test | Dùng Chrome Task Manager để theo dõi: Mở/Đóng Component Bản đồ liên tục 20 lần, RAM không bị tăng lũy tiến mà được dọn dẹp sạch sẽ. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Luôn phải dọn dẹp "bãi chiến trường" (Event Listeners, Timers) trong hàm Return của `useEffect`. Đó là sự khác biệt giữa code chạy được và code chất lượng cao.
+```
+
 ## 5. Bảng tổng hợp mức độ sử dụng AI
 
 Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.

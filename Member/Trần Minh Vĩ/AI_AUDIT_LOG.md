@@ -1677,6 +1677,120 @@ Triển khai Docker & Multi-stage Build:
 Ảo hóa (Containerization) là bước ngoặt biến một "Đồ án sinh viên" thành một "Sản phẩm thực tế".
 ```
 
+---
+
+### Lần sử dụng AI số 29
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Quản lý và theo dõi lỗi hệ thống chuyên nghiệp (Logging) |
+| Phần việc liên quan | Backend / System Monitoring |
+| Mức độ sử dụng | Hỗ trợ bắt lỗi Exception (Bị bác bỏ giải pháp in log) |
+
+#### 4.1. Prompt đã sử dụng
+
+| Nội dung | Thông tin |
+|---|---|
+| Cấu trúc dữ liệu | `ReportEntity.java` |
+
+```text
+- Khi có một lỗi xảy ra ở Backend (ví dụ NullPointerException), tôi muốn ghi lại lỗi đó để sau này bảo trì. Tôi nên dùng cách nào?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đề xuất tôi bắt `catch(Exception e)` rồi in ra màn hình bằng lệnh `System.out.println(e.getMessage());` hoặc `e.printStackTrace();`.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Hoàn toàn bác bỏ.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Triển khai SLF4J và Logback định dạng JSON:
+- Critical Thinking: Sử dụng `System.out.println` trong một dự án Spring Boot là một sự "nghiệp dư" nghiêm trọng. Nó làm chậm hệ thống (chặn luồng thực thi), không thể phân loại được mức độ nghiêm trọng (INFO, WARN, ERROR), và bị mất trắng dữ liệu khi Server khởi động lại.
+- Decision Ownership & Creative Synthesis: Tôi đã cấu hình một hệ thống ghi Log chuyên nghiệp bằng SLF4J kết hợp với file `logback-spring.xml`. Các log không in lộn xộn ra Console nữa mà được ghi vào các file text xoay vòng theo ngày (RollingFileAppender). Đặc biệt hơn, tôi tự mày mò cấu hình xuất Log dưới dạng JSON để hệ thống của tôi sẵn sàng tích hợp với các công cụ giám sát cao cấp như ELK Stack (Elasticsearch, Logstash, Kibana) trong tương lai. Giờ đây, chỉ cần tìm kiếm từ khóa trong file Log là tôi biết chính xác lỗi xảy ra ở dòng code nào lúc mấy giờ.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Enterprise Logging Phase 18 |
+| File liên quan | logback-spring.xml |
+| Screenshot |  |
+| Kết quả chạy/test | Mở thư mục `/logs` trên Backend sẽ thấy các file `application-2026-07-24.log` chứa các đoạn log được lưu trữ cẩn thận theo chuẩn JSON. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Log hệ thống là "hộp đen máy bay" của phần mềm. Phải được thiết kế nghiêm túc ngay từ ngày đầu tiên.
+```
+
+---
+
+### Lần sử dụng AI số 30
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Xử lý kịch bản hai người thao tác cùng lúc (Concurrency Control) |
+| Phần việc liên quan | Backend / Database Locking |
+| Mức độ sử dụng | Hỗ trợ viết lệnh Update (Bị bác bỏ logic) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Nếu 2 cán bộ phường cùng lúc bấm nút "Duyệt" và "Từ chối" cho cùng một phản ánh thì sao? Tôi muốn cập nhật trạng thái của phản ánh đó vào Database.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI hồn nhiên sinh ra một hàm `updateStatus()` gọi thẳng lệnh `UPDATE report SET status = ? WHERE id = ?`.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Sử dụng cú pháp cập nhật dữ liệu của Spring Data JPA.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Áp dụng Optimistic Locking (Khóa Lạc Quan):
+- Critical Thinking: Câu lệnh của AI sẽ dẫn đến thảm họa "Lost Update" (Mất mát bản cập nhật). Người bấm sau sẽ ghi đè lên dữ liệu của người bấm trước, và hệ thống sẽ không hề có một cảnh báo nào. Nếu đây là ứng dụng ngân hàng thì 2 người cùng chuyển tiền một lúc sẽ làm hỏng số dư.
+- Decision Ownership & Creative Synthesis: Để phòng ngừa Race Condition (Cạnh tranh tài nguyên), tôi đã can thiệp vào Entity `Report` của Hibernate, thêm một trường tên là `version` và gắn annotation `@Version`. Đây là kỹ thuật Optimistic Locking. Khi cán bộ A và cán bộ B cùng tải dữ liệu về (version = 1). Cán bộ A bấm "Duyệt", dữ liệu lưu vào DB thành công, version tăng lên 2. Lúc này cán bộ B mới bấm "Từ chối" (mang theo version = 1), Database sẽ phát hiện ra sự lỗi nhịp thời gian, lập tức ném ra lỗi `ObjectOptimisticLockingFailureException`. Từ đó Backend sẽ trả về báo lỗi cho cán bộ B: "Dữ liệu đã được người khác cập nhật, vui lòng tải lại trang!". Dữ liệu được bảo vệ an toàn tuyệt đối.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Optimistic Locking Phase 18 |
+| File liên quan | ReportEntity.java |
+| Screenshot |  |
+| Kết quả chạy/test | Mở 2 trình duyệt ẩn danh đóng vai 2 cán bộ. Người thứ 2 bấm duyệt sẽ nhận được Toast Notification báo lỗi dữ liệu cũ, thay vì bị ghi đè im lặng. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+AI thường chỉ giải quyết luồng chạy hoàn hảo (Happy Path). Kỹ sư giỏi phải giải quyết các luồng cạnh tranh dữ liệu (Edge Cases/Concurrency).
+```
+
 ## 5. Bảng tổng hợp mức độ sử dụng AI
 
 Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.

@@ -849,6 +849,51 @@ Một dự án thật sự hoàn chỉnh là dự án có thể triển khai (De
 
 ---
 
+# [Phase 18] Enterprise Logging & Concurrency Control
+
+## Ngày thực hiện
+
+```text
+24/07/2026
+```
+
+## Đã hoàn thành
+
+- [x] Quản lý Nhật ký hệ thống (ELK Stack Ready): Thiết lập hệ thống ghi log tập trung bằng SLF4J và Logback. Chuyển đổi định dạng Log sang JSON để sẵn sàng tích hợp với các công cụ giám sát cấp cao (Kibana, Datadog).
+- [x] Xử lý đồng thời (Optimistic Locking): Giải quyết bài toán Race Condition (Cạnh tranh tài nguyên) khi hai cán bộ cùng duyệt một phản ánh cùng lúc, ngăn chặn triệt để tình trạng ghi đè dữ liệu (Lost Update).
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Cấu hình Logback xuất JSON | Trần Minh Vĩ | logback-spring.xml | Commit (Phase 18) |
+| 2 | Áp dụng `@Version` cho Entity Phản ánh | Trần Minh Vĩ | ReportEntity.java | Commit (Phase 18) |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI đề xuất in log thủ công bằng `System.out.println` và bỏ qua hoàn toàn vấn đề Concurrency. Sinh viên đã chủ động phòng ngừa rủi ro dữ liệu bằng khóa lạc quan (Optimistic Lock).
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+Commit liên quan đến Phase 18
+```
+
+## Ghi chú
+
+```text
+Hệ thống không chỉ cần hoạt động đúng khi có 1 người dùng, mà phải đảm bảo tính Toàn vẹn dữ liệu (Data Integrity) khi có 1000 người dùng cùng thao tác.
+```
+
+---
+
 # 4. Tổng kết thay đổi cuối project
 
 ## 4.1. Các chức năng đã hoàn thành

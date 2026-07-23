@@ -2029,6 +2029,143 @@ Docker là tiêu chuẩn công nghiệp (Industry Standard). Đưa được Dock
 
 ---
 
+### Lần 29: Quản lý Nhật ký hệ thống chuyên nghiệp (Enterprise Logging)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 2/5 |
+| Mục đích | Lưu trữ log lỗi chuyên nghiệp để bảo trì thay vì in ra màn hình Console |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Khi hệ thống có lỗi (như NullPointerException), dòng lỗi bay vèo vèo qua màn hình Console và biến mất vĩnh viễn khi Server tắt. Tôi cần lưu lại để điều tra.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI cung cấp đoạn code dùng `try...catch` và dùng hàm nguyên thủy `System.out.println()` để in lỗi ra.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Từ chối hoàn toàn giải pháp in log Console của AI.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Tích hợp SLF4J và định dạng Log JSON:
+- Critical Thinking: Hàm `System.out.println()` trong Java là một hàm chạy Đồng bộ (Synchronous). Gọi hàm này quá nhiều sẽ làm chậm Server đáng kể. Hơn nữa, nó không phân biệt được mức độ (INFO, WARN, ERROR) và không lưu được xuống ổ cứng.
+- Decision Ownership & Creative Synthesis: Tôi thiết lập một cơ chế Logging chuyên nghiệp bằng SLF4J kết hợp Logback (thông qua file `logback-spring.xml`). Tôi tự động hóa việc xuất log ra thư mục `/logs`, chia cắt theo ngày (Rolling File) để không bị đầy ổ cứng. Đặc biệt hơn, tôi cấu hình Logback xuất dữ liệu dưới định dạng JSON thay vì Text thuần. Việc này giúp hệ thống của tôi sẵn sàng (Ready) kết nối với hệ sinh thái giám sát ELK Stack (Elasticsearch, Logstash, Kibana) trong thực tế doanh nghiệp.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Cách làm nghiệp dư, gây hại hiệu năng)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Enterprise Logging Phase 18 |
+| File liên quan | logback-spring.xml |
+| Screenshot | |
+| Kết quả chạy/test | Mở file `application.log` trong IDE, các dòng log được lưu chuẩn xác theo cấu trúc JSON gồm `{ "timestamp": "...", "level": "ERROR", "message": "..." }`. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Trong hệ thống lớn, bạn không debug bằng cách gắn Breakpoint, bạn debug bằng cách đọc Log.
+```
+
+---
+
+### Lần 30: Xử lý Cạnh tranh dữ liệu (Concurrency Control & Optimistic Locking)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 3/5 |
+| Mục đích | Giải quyết tình huống nhiều người dùng thao tác trên cùng một dòng dữ liệu cùng lúc |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Hai cán bộ phường (A và B) cùng mở một phản ánh ra xem. Cán bộ A bấm "Duyệt". Cán bộ B bấm "Từ chối". Chuyện gì sẽ xảy ra?
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI viết một câu query SQL `UPDATE report SET status = 'REJECTED' WHERE id = 1;` và bảo cứ thế chạy.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Sử dụng hàm Update của Spring Data JPA nhưng bổ sung thêm cơ chế Locking khóa bảo vệ.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Ngăn chặn Lost Update bằng Optimistic Locking:
+- Critical Thinking: Theo cách của AI, hệ thống sẽ ưu tiên người bấm cuối cùng (Last-write wins). Trạng thái của cán bộ A sẽ bị cán bộ B âm thầm ghi đè mà A không hề hay biết (Lỗi Lost Update). Nếu đây là chức năng Chuyển tiền ngân hàng, việc ghi đè này sẽ làm mất tiền của khách. AI hoàn toàn ngó lơ các kịch bản cạnh tranh (Edge Cases).
+- Decision Ownership & Creative Synthesis: Tôi đã can thiệp vào `ReportEntity.java`, thêm trường `@Version private Long version;`. Đây là kỹ thuật Khóa Lạc Quan (Optimistic Lock) của Hibernate. 
+Cán bộ A và B tải dữ liệu về máy (version = 1). A bấm Duyệt, DB cập nhật thành công, version tăng lên 2. Lúc này B bấm "Từ chối" (mang theo version 1), Database lập tức phát hiện sự sai lệch thời gian và từ chối cập nhật (ném ra `OptimisticLockException`). Backend sẽ hứng lỗi này và báo cho B biết: "Dữ liệu đã thay đổi, vui lòng F5 lại!". Toàn vẹn dữ liệu được đảm bảo 100%.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Bỏ qua bài toán Concurrency, gây sai lệch Data)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Optimistic Locking Phase 18 |
+| File liên quan | ReportEntity.java |
+| Screenshot | |
+| Kết quả chạy/test | Giả lập 2 tab duyệt cùng lúc, tab thứ 2 luôn bị từ chối và hiện thông báo lỗi, dữ liệu Database không bị ghi đè. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Kỹ sư giỏi không chỉ lập trình cho "đúng", mà còn lập trình cho các trường hợp "không hoàn hảo".
+```
+
+---
+
 ## 6. Prompt quan trọng nhất
 
 Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.

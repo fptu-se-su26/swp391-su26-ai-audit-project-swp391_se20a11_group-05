@@ -1567,6 +1567,116 @@ Thiết lập Cleanup Routine tiêu chuẩn:
 Luôn phải dọn dẹp "bãi chiến trường" (Event Listeners, Timers) trong hàm Return của `useEffect`. Đó là sự khác biệt giữa code chạy được và code chất lượng cao.
 ```
 
+---
+
+### Lần sử dụng AI số 27
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Bịt lỗ hổng XSS và Clickjacking trên ứng dụng |
+| Phần việc liên quan | Backend / Security Headers |
+| Mức độ sử dụng | Hỗ trợ cấu hình Spring Security cơ bản |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Tôi kiểm tra bằng công cụ Pen-test thì thấy trang web bị cảnh báo thiếu Security Headers. Kẻ gian có thể nhúng trang web của tôi vào một thẻ `<iframe>` để làm trò lừa đảo (Clickjacking). Làm sao để chặn?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đề xuất tôi mở file `index.html` của React lên và chèn vài dòng thẻ `<meta http-equiv="Content-Security-Policy">` vào phần `<head>`.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Tìm hiểu các khái niệm về CSP và X-Frame-Options.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Bảo mật từ Tầng mạng (Network Layer) của Backend:
+- Critical Thinking: Lời khuyên của AI về việc chèn thẻ `<meta>` HTML là rất yếu. Hacker có thể dễ dàng bypass (vượt qua) các thẻ HTML. Bảo mật thực sự phải được cấu hình từ HTTP Header trả về bởi Server.
+- Decision Ownership & Creative Synthesis: Tôi đã trực tiếp sửa file `SecurityConfig.java` trong Spring Boot. Tôi cấu hình `http.headers().frameOptions().deny()` để chặn hoàn toàn mọi nỗ lực nhúng trang web vào `<iframe>`. Đồng thời thiết lập `Content-Security-Policy` khắt khe, chỉ cho phép tải script và ảnh từ các nguồn đáng tin cậy. Tôi cũng siết chặt lại CORS, xóa bỏ `*` và chỉ định đích danh domain của Frontend được phép gọi API. Trang web trở nên bất khả xâm phạm trước các chiêu trò giả mạo.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Security Headers Phase 17 |
+| File liên quan | SecurityConfig.java |
+| Screenshot |  |
+| Kết quả chạy/test | Dùng Postman gọi API, xem phần Headers trả về sẽ thấy xuất hiện X-Frame-Options: DENY và Content-Security-Policy. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Bảo mật phải được rào ngay từ cổng Backend. Dựa dẫm vào Frontend HTML để bảo mật là tự sát.
+```
+
+---
+
+### Lần sử dụng AI số 28
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Đóng gói ứng dụng để triển khai dễ dàng (Containerization) |
+| Phần việc liên quan | DevOps / Docker |
+| Mức độ sử dụng | Hỗ trợ cú pháp viết Dockerfile |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Code của tôi chạy ngon lành trên máy tôi, nhưng khi copy sang máy giảng viên chấm bài thì bị lỗi không chạy được do khác phiên bản Java và Node.js. Phải làm sao?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI liệt kê một danh sách hướng dẫn dài ngoằng, bảo tôi yêu cầu giảng viên tải Java 17, cài đặt PostgreSQL, tạo Database bằng tay, rồi tải Node.js 20 về chạy `npm install`.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Không sử dụng. Lời khuyên này không thực tế với hội đồng chấm thi.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Triển khai Docker & Multi-stage Build:
+- Critical Thinking: Bắt giảng viên hoặc khách hàng phải tự cài đặt mớ bòng bong môi trường là một điểm trừ cực nặng về tính chuyên nghiệp. Hệ thống phải đảm bảo tiêu chí "Viết một lần, chạy mọi nơi" (Run Anywhere).
+- Decision Ownership & Creative Synthesis: Thay vì viết tài liệu hướng dẫn cài đặt, tôi đã tự tay viết `Dockerfile` cho cả Frontend và Backend. Đối với Backend, tôi áp dụng Multi-stage build: Stage 1 dùng Maven để build ra file `.jar`, Stage 2 chỉ dùng một image Alpine cực nhẹ để chạy file `.jar` đó, giúp dung lượng Image giảm từ 1GB xuống còn hơn 100MB. Cuối cùng, tôi gom tất cả (FE, BE, Database Postgres) vào một file `docker-compose.yml`. Bây giờ, giảng viên chỉ cần gõ đúng 1 lệnh `docker-compose up -d`, toàn bộ hệ thống sẽ tự động tải về, tự động kết nối và chạy trơn tru mà không cần cài đặt thêm bất cứ phần mềm nào.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Docker Compose Phase 17 |
+| File liên quan | Dockerfile, docker-compose.yml |
+| Screenshot |  |
+| Kết quả chạy/test | Chạy `docker-compose up` trên một máy tính hoàn toàn mới (chưa cài Java/Node), hệ thống vẫn tự động lên đầy đủ Frontend (Port 5173) và Backend (Port 8080). |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Ảo hóa (Containerization) là bước ngoặt biến một "Đồ án sinh viên" thành một "Sản phẩm thực tế".
+```
+
 ## 5. Bảng tổng hợp mức độ sử dụng AI
 
 Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.

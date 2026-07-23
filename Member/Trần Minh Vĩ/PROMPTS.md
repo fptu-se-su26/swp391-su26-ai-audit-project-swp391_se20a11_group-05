@@ -1893,6 +1893,142 @@ Biết cách khởi tạo tài nguyên thì phải biết cách thu hồi tài n
 
 ---
 
+### Lần 27: Cấu hình Security Headers chống XSS & Clickjacking
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 3/5 |
+| Mục đích | Bịt lỗ hổng bảo mật liên quan đến đánh cắp phiên và giả mạo giao diện |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Sau khi quét dự án bằng công cụ Pen-test (Kiểm thử xâm nhập), hệ thống cảnh báo dự án thiếu Security Headers, dẫn đến nguy cơ bị nhúng vào Iframe lạ (Clickjacking) và chạy Script lạ (XSS).
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI hướng dẫn mở file `index.html` của thư mục public React lên, thêm các thẻ `<meta http-equiv="...">` vào phần `<head>` để trình duyệt tự hiểu.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Bác bỏ cách làm ở Frontend của AI. Bảo mật phải làm ở Backend.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Cấu hình Spring Security Filter Chain:
+- Critical Thinking: Bất cứ thứ gì nằm ở Frontend (kể cả thẻ `<meta>`) đều có thể bị Hacker sửa đổi hoặc Bypass dễ dàng trước khi trình duyệt kịp đọc. Bảo mật thực sự phải được xuất phát từ HTTP Headers do chính Server trả về. Lời khuyên của AI quá sơ sài và nguy hiểm.
+- Decision Ownership & Creative Synthesis: Tôi đã can thiệp vào `SecurityConfig.java` ở Spring Boot Backend. Tôi sử dụng `.headers(headers -> headers.frameOptions().deny())` để cấm mọi trang web khác nhúng dự án của tôi qua Iframe (Chống Clickjacking). Tiếp theo, tôi viết một bộ lọc trả về Header `Content-Security-Policy` khắt khe, chỉ cho phép thực thi Javascript nội bộ và chặn đứng các đoạn script lạ chèn từ bên ngoài (Chống XSS). Cuối cùng, siết lại CORS, loại bỏ dấu `*` lỏng lẻo. Hệ thống trở nên vô hình trước các cuộc rà quét lỗ hổng tự động của Hacker.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Bảo mật bằng HTML là vô nghĩa)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Security Headers Phase 17 |
+| File liên quan | SecurityConfig.java |
+| Screenshot | |
+| Kết quả chạy/test | Dùng Postman gọi API, mở tab Headers sẽ thấy các Header bảo vệ: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Đừng tin tưởng bất cứ thứ gì từ Client gửi lên. Backend là lớp phòng ngự cuối cùng.
+```
+
+---
+
+### Lần 28: Ảo hóa hệ thống với Docker Containerization
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 4/5 |
+| Mục đích | Đóng gói toàn bộ ứng dụng, dễ dàng chấm bài hoặc đem đi triển khai (Deploy) |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Đến ngày bảo vệ đồ án, tôi nhận ra máy của Giảng viên không có Java 17, không có Node.js, cũng không có PostgreSQL. Việc xin phép tải và cài đặt đống này mất đến 30 phút, ảnh hưởng đến thời gian thuyết trình.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI viết một file Markdown hướng dẫn (README.md) dài 5 trang, liệt kê từng bước tải Java, cấu hình biến môi trường, tải Postgres, chạy file sql, chạy npm install...
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Tôi từ chối viết tài liệu cài đặt thủ công. Chuyển sang tư duy tự động hóa hoàn toàn.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Viết Dockerfile và Multi-stage Build:
+- Critical Thinking: Bắt khách hàng hoặc Hội đồng bảo vệ phải tự cấu hình môi trường là một lỗi UX chí mạng trong ngành phần mềm. Hệ thống phải đạt được tiêu chuẩn "Viết một lần, chạy mọi nơi" (Run Anywhere). Lời khuyên viết tài liệu của AI là tư duy của thập kỷ trước.
+- Decision Ownership & Creative Synthesis: Tôi đã mày mò viết `Dockerfile` cho riêng Frontend và Backend. Đặc biệt với Backend, tôi áp dụng Multi-stage Build: Tầng 1 dùng Maven bự (kèm JDK) để đóng gói mã nguồn ra file `.jar`, Tầng 2 chỉ dùng image Alpine siêu nhỏ để chạy file đó. Kết quả Image giảm dung lượng từ 1GB xuống còn 150MB. Sau đó, tôi gộp tất cả vào file `docker-compose.yml`. Giờ đây, chỉ cần máy giảng viên có Docker, gõ đúng một lệnh `docker-compose up -d`, toàn bộ DB, Frontend, Backend sẽ tự tải, tự nối mạng với nhau và khởi chạy trơn tru trong 1 phút.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Tư duy thủ công, thiếu tự động hóa)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Docker Compose Phase 17 |
+| File liên quan | Dockerfile, docker-compose.yml |
+| Screenshot | |
+| Kết quả chạy/test | Cầm USB chứa project cắm sang máy tính hoàn toàn trống, gõ lệnh `docker-compose up`, web chạy lên ầm ầm ở localhost. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Docker là tiêu chuẩn công nghiệp (Industry Standard). Đưa được Docker vào đồ án sinh viên là một điểm cộng tuyệt đối.
+```
+
+---
+
 ## 6. Prompt quan trọng nhất
 
 Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.

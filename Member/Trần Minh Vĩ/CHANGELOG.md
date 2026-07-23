@@ -804,6 +804,51 @@ Hệ thống không chỉ phải chạy đúng, mà còn phải chạy nhẹ và
 
 ---
 
+# [Phase 17] Application Security & Docker Containerization
+
+## Ngày thực hiện
+
+```text
+23/07/2026
+```
+
+## Đã hoàn thành
+
+- [x] Nâng cấp Bảo mật (Security Headers & CORS): Thiết lập CSP (Content Security Policy) và X-Frame-Options chống lại các cuộc tấn công XSS và Clickjacking. Siết chặt CORS chỉ cho phép các domain chỉ định.
+- [x] Đóng gói Ảo hóa (Docker & Multi-stage Build): Triển khai `Dockerfile` và `docker-compose.yml` để đóng gói toàn bộ Frontend, Backend, Database. Giải quyết triệt để vấn đề "Chạy được trên máy tôi nhưng lỗi trên máy bạn".
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Cấu hình SecurityFilterChain chặn XSS/Clickjacking | Trần Minh Vĩ | SecurityConfig.java | Commit (Phase 17) |
+| 2 | Viết Docker Compose cho toàn bộ hệ thống | Trần Minh Vĩ | Dockerfile, docker-compose.yml | Commit (Phase 17) |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI đề xuất sửa lỗi XSS bằng thẻ HTML `<meta>` và hướng dẫn cài đặt môi trường thủ công. Sinh viên đã từ chối và thiết lập Bảo mật tầng mạng cũng như Ảo hóa theo tiêu chuẩn DevOps.
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+Commit liên quan đến Phase 17
+```
+
+## Ghi chú
+
+```text
+Một dự án thật sự hoàn chỉnh là dự án có thể triển khai (Deploy) ở bất cứ đâu bằng một dòng lệnh.
+```
+
+---
+
 # 4. Tổng kết thay đổi cuối project
 
 ## 4.1. Các chức năng đã hoàn thành

@@ -9,9 +9,11 @@ interface WardDetailModalProps {
   wardId: number | null;
   isOpen: boolean;
   onClose: () => void;
+  year?: number;
+  month?: number;
 }
 
-export function WardDetailModal({ wardId, isOpen, onClose }: WardDetailModalProps) {
+export function WardDetailModal({ wardId, isOpen, onClose, year, month }: WardDetailModalProps) {
   const [detail, setDetail] = useState<WardRankingDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -20,7 +22,7 @@ export function WardDetailModal({ wardId, isOpen, onClose }: WardDetailModalProp
     if (isOpen && wardId) {
       setLoading(true);
       wardRankingApi
-        .getWardDetail(wardId)
+        .getWardDetail(wardId, year, month)
         .then((res) => {
           setDetail(res);
         })
@@ -28,7 +30,7 @@ export function WardDetailModal({ wardId, isOpen, onClose }: WardDetailModalProp
           setLoading(false);
         });
     }
-  }, [isOpen, wardId]);
+  }, [isOpen, wardId, year, month]);
 
   const handleShare = async () => {
     if (cardRef.current) {

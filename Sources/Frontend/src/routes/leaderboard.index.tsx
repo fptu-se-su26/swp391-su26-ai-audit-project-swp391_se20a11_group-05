@@ -243,7 +243,18 @@ function LeaderboardPage() {
         {activeTab === "map" && (
           <div className="bg-white p-6 rounded-[18px] border border-slate-200 shadow-sm mt-8">
             <h2 className="font-sans text-lg font-black text-[#1E3A8A] mb-4">Bản đồ nhiệt năng lực các phường (Đà Nẵng)</h2>
-            <p className="text-sm text-slate-500 mb-6 font-medium">Màu xanh thể hiện điểm số cao, màu đỏ/vàng thể hiện khu vực cần cải thiện.</p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <p className="text-sm text-slate-500 font-medium">Mức độ hoàn thành điểm đánh giá năng lực:</p>
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
+                <span>0</span>
+                <div className="w-40 h-3 rounded-full bg-gradient-to-r from-red-500 via-amber-500 to-emerald-500 shadow-inner"></div>
+                <span>100</span>
+                <div className="flex items-center gap-1.5 ml-4">
+                  <div className="w-3 h-3 rounded-full bg-slate-200 border border-slate-300"></div>
+                  <span className="text-slate-500 font-medium">Chưa đủ dữ liệu</span>
+                </div>
+              </div>
+            </div>
             {leaderboard && (
               <div className="rounded-xl overflow-hidden border border-slate-100">
                 <WardChoroplethMap 
@@ -616,6 +627,8 @@ function LeaderboardPage() {
         wardId={selectedWardId} 
         isOpen={!!selectedWardId} 
         onClose={() => setSelectedWardId(null)} 
+        year={year}
+        month={month}
       />
       
       {leaderboard && (
@@ -624,6 +637,8 @@ function LeaderboardPage() {
           onClose={() => setCompareModalOpen(false)} 
           allWards={leaderboard} 
           initialWardId1={selectedWardId ?? undefined}
+          year={year}
+          month={month}
         />
       )}
     </div>

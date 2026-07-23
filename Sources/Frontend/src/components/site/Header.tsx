@@ -137,7 +137,7 @@ export function Header() {
     queryKey: ["my-chat-rooms"],
     queryFn: () => campaignApi.getMyChatRooms(),
     enabled: !!user,
-    refetchInterval: 15000,
+    refetchInterval: 60000,
   });
 
   const unreadChatCount = chatRooms.filter((room) => {

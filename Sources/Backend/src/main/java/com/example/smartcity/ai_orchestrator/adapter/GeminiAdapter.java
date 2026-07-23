@@ -67,7 +67,7 @@ public class GeminiAdapter implements AiProviderAdapter {
             "contents", List.of(
                 Map.of("role", "user", "parts", List.of(Map.of("text", userMessage)))
             ),
-            "generationConfig", Map.of("temperature", 0.3, "maxOutputTokens", 1024)
+            "generationConfig", Map.of("temperature", 0.3, "maxOutputTokens", 8192)
         );
 
         String finalApiKey = apiKey;
@@ -109,7 +109,7 @@ public class GeminiAdapter implements AiProviderAdapter {
             ),
             "generationConfig", Map.of(
                 "temperature", 0.1, 
-                "maxOutputTokens", 2048,
+                "maxOutputTokens", 8192,
                 "responseMimeType", "application/json"
             )
         );
@@ -160,7 +160,7 @@ public class GeminiAdapter implements AiProviderAdapter {
             "contents", List.of(
                 Map.of("role", "user", "parts", userParts)
             ),
-            "generationConfig", Map.of("temperature", 0.3, "maxOutputTokens", 1024)
+            "generationConfig", Map.of("temperature", 0.3, "maxOutputTokens", 8192)
         );
 
         String finalApiKey = apiKey;
@@ -240,7 +240,7 @@ public class GeminiAdapter implements AiProviderAdapter {
             "contents", List.of(
                 Map.of("role", "user", "parts", List.of(Map.of("text", userMessage)))
             ),
-            "generationConfig", Map.of("temperature", 0.3, "maxOutputTokens", 1024)
+            "generationConfig", Map.of("temperature", 0.3, "maxOutputTokens", 8192)
         );
 
         return webClient.post()
@@ -362,7 +362,7 @@ public class GeminiAdapter implements AiProviderAdapter {
             "contents", List.of(
                 Map.of("role", "user", "parts", userParts)
             ),
-            "generationConfig", Map.of("temperature", 0.3, "maxOutputTokens", 1024)
+            "generationConfig", Map.of("temperature", 0.3, "maxOutputTokens", 8192)
         );
 
         String finalApiKey = apiKey;

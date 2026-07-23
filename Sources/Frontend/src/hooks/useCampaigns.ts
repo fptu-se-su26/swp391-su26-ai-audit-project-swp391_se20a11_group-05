@@ -147,7 +147,7 @@ export function useCampaignDetail(id: string): Campaign | undefined {
     queryFn: () => campaignApi.getById(id),
     enabled: isNumericId,
     staleTime: 5000,
-    refetchInterval: 5000,
+    refetchInterval: 60000,
     retry: false,
   });
 
@@ -156,7 +156,7 @@ export function useCampaignDetail(id: string): Campaign | undefined {
     queryFn: () => campaignApi.getPrivateDetail(id),
     enabled: isNumericId && hasToken && Boolean(publicCampaign?.privateDetailsVisible),
     staleTime: 5000,
-    refetchInterval: 5000,
+    refetchInterval: 60000,
     retry: false,
   });
 
@@ -395,7 +395,7 @@ export function useCampaignParticipants(campaignId: string, enabled = true) {
     queryFn: () => campaignApi.getParticipants(campaignId),
     enabled:
       enabled && /^\d+$/.test(campaignId) && Boolean(typeof window !== "undefined" && getToken()),
-    refetchInterval: 5000,
+    refetchInterval: 60000,
     retry: false,
   });
 }
@@ -520,7 +520,7 @@ export function useCampaignChat(campaignId: string, options?: { enabled?: boolea
     },
     enabled,
     retry: false,
-    refetchInterval: enabled ? (isWsConnected ? 60000 : 5000) : false,
+    refetchInterval: enabled ? (isWsConnected ? 120000 : 60000) : false,
   });
 
   useEffect(() => {

@@ -468,7 +468,7 @@ export function useNotifications(enabled = true) {
     queryFn: () => notificationApi.getAll(),
     staleTime: 30_000,
     enabled: enabled && !!token,
-    refetchInterval: 10_000,
+    refetchInterval: 60_000,
   });
 }
 
@@ -479,7 +479,7 @@ export function useNotificationUnreadCount(enabled = true) {
     queryFn: () => notificationApi.getUnreadCount(),
     staleTime: 30_000,
     enabled: enabled && !!token,
-    refetchInterval: 10_000,
+    refetchInterval: 60_000,
   });
 }
 
@@ -494,7 +494,7 @@ export function useInfiniteNotifications(size = 5) {
       return lastPage.hasNext ? currentPage + 1 : undefined;
     },
     staleTime: 30_000,
-    refetchInterval: 10_000,
+    refetchInterval: 60_000,
   });
 }
 

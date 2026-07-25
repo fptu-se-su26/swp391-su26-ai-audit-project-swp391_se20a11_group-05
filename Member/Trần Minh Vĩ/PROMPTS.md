@@ -2166,6 +2166,142 @@ Kỹ sư giỏi không chỉ lập trình cho "đúng", mà còn lập trình ch
 
 ---
 
+### Lần 31: Chống Spam và Tấn công từ chối dịch vụ (Rate Limiting)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 2/5 |
+| Mục đích | Bảo vệ hệ thống khỏi việc tạo phản ánh rác (Spam) hoặc tấn công DDoS |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Hệ thống cho phép người dân tạo phản ánh công khai. Nếu một hacker viết Script (dùng Postman/JMeter) bắn API 10.000 lần/giây, Database sẽ bị nhồi nhét toàn dữ liệu rác và có thể bị sập (Crash).
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI hướng dẫn tôi viết logic trong hàm `createFeedback()`: Lấy IP của Request, chạy lệnh `SELECT COUNT(*) FROM reports WHERE ip = ? AND created_at > (now - 1 minute)`. Nếu lớn hơn 5 thì báo lỗi.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+TỪ CHỐI hoàn toàn. Đây là một đoạn code thiển cận.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Cấu hình Rate Limiting bằng Token Bucket ở Tầng mạng:
+- Critical Thinking: Logic của AI sai cơ bản ở chỗ: Để chống ngập lụt Database, AI lại bắt Database phải hì hục chạy 10.000 lệnh `SELECT` đếm số lượng. Database vẫn sẽ bị vắt kiệt sức và sập như thường. Không được phép để các Request Spam lọt được vào Controller.
+- Decision Ownership & Creative Synthesis: Tôi đã tích hợp thư viện `Bucket4j` (sử dụng thuật toán Token Bucket chuẩn công nghiệp). Tôi tạo một Filter nằm ở vị trí tiền đồn của Server. Mỗi IP được cấp 1 cái giỏ (Bucket) chứa 5 Token, mỗi 1 phút hồi lại. Khi Hacker bắn 10.000 request, 5 request đầu lọt qua lấy mất 5 Token. Từ request thứ 6, giỏ rỗng, Filter lập tức trả về mã HTTP 429 (Too Many Requests) chặn đứng request ngay trong 0.001 giây, không hề đánh thức Controller hay Database. Database hoàn toàn bình yên vô sự.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Gây hại thêm cho Database thay vì bảo vệ nó)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Rate Limiting Phase 19 |
+| File liên quan | RateLimitFilter.java |
+| Screenshot | |
+| Kết quả chạy/test | Chạy Postman Runner bắn liên thanh 20 request/s. 5 request báo màu Xanh (200), 15 request còn lại báo màu Đỏ (429). |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Chống Hacker phải chống từ cổng ngoài (Gateway/Filter), không được rước giặc vào nhà.
+```
+
+---
+
+### Lần 32: Bắt lỗi sập dây chuyền (Circuit Breaker Pattern)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 3/5 |
+| Mục đích | Bảo vệ Server khỏi tình trạng sập (Crash) khi dịch vụ bên thứ ba bị gián đoạn |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Hệ thống có tính năng gửi Email (qua Google SMTP). Hôm nay cáp quang biển đứt, gọi API Google bị treo (không báo lỗi ngay mà loading mãi 30 giây mới lỗi).
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI đề xuất tôi cấu hình Timeout = 5 giây cho JavaMailSender và bọc lệnh gửi bằng `try...catch`.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Áp dụng bọc `try...catch` nhưng thay đổi hoàn toàn kiến trúc luồng.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Triển khai Circuit Breaker bằng Resilience4j:
+- Critical Thinking: Cấu hình Timeout 5 giây là quá ngây thơ. Nếu lúc đó có 500 cán bộ cùng bấm duyệt bài, Backend sẽ phải sinh ra 500 Thread (luồng), và cả 500 Thread đó đều bị treo lơ lửng chờ đợi 5 giây vô ích. Thread Pool sẽ cạn kiệt, CPU quá tải, và toàn bộ Server Backend sẽ sập chỉ vì một lỗi của... Google. Đây gọi là Hiệu ứng Domino (Cascading Failure).
+- Decision Ownership & Creative Synthesis: Tôi đã cài đặt Mẫu thiết kế Ngắt Mạch (Circuit Breaker) sử dụng thư viện `Resilience4j`. Tôi đặt luật: Nếu Google lỗi/timeout quá 50% số lần trong vòng 10 giây, "Cầu dao" của hệ thống tôi sẽ nhảy (Trạng thái OPEN). Kể từ giây phút đó, mọi request gửi Email đều bị chặn lại ngay lập tức tại ngưỡng cửa (Trả về một Fallback Method để lưu log "Email chờ gửi sau") mà không mất một mili-giây nào để chờ Google. Server của tôi được giải phóng Thread lập tức và vẫn sống sót phục vụ các tính năng khác. 1 phút sau, cầu dao tự hé mở (HALF-OPEN) để thử nghiệm xem Google đã sống lại chưa.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Bỏ qua bài toán Cạn kiệt tài nguyên Thread)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Circuit Breaker Phase 19 |
+| File liên quan | EmailService.java |
+| Screenshot | |
+| Kết quả chạy/test | Đổi sai cấu hình SMTP để giả lập lỗi. 5 request đầu tiên mất 5 giây để Timeout. Các request sau đó bị Circuit Breaker chặn lại nên phản hồi ngay lập tức (<0.1s). |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Circuit Breaker là tiêu chuẩn thiết kế bắt buộc (Must-have) của Kiến trúc Microservices. Đừng bao giờ giao phó sinh mạng Server cho một bên thứ ba.
+```
+
+---
+
 ## 6. Prompt quan trọng nhất
 
 Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.

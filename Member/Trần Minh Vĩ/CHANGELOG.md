@@ -894,6 +894,51 @@ Hệ thống không chỉ cần hoạt động đúng khi có 1 người dùng, 
 
 ---
 
+# [Phase 19] System Resiliency & Rate Limiting
+
+## Ngày thực hiện
+
+```text
+25/07/2026
+```
+
+## Đã hoàn thành
+
+- [x] Chống Spam bằng Rate Limiting (Token Bucket): Triển khai thuật toán Bucket4j để giới hạn số lượng truy cập API của một IP (Ví dụ: 5 request/phút) ngay từ Tầng Filter, bảo vệ Database khỏi các cuộc tấn công DDoS và Spam tạo rác thải giả.
+- [x] Bảo vệ Thread bằng Circuit Breaker (Ngắt mạch): Tích hợp Resilience4j cho các kết nối ra bên thứ 3 (Gửi Email/SMS). Khi dịch vụ bên ngoài bị sập, hệ thống sẽ tự động "Ngắt mạch", trả về phương án dự phòng (Fallback) thay vì treo toàn bộ Server chờ đợi.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Cấu hình Bucket4j chặn Spam tạo phản ánh | Trần Minh Vĩ | RateLimitFilter.java | Commit (Phase 19) |
+| 2 | Áp dụng Resilience4j Circuit Breaker | Trần Minh Vĩ | EmailService.java | Commit (Phase 19) |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI đề xuất chống Spam bằng cách đếm số lần trong Database, và chờ Timeout cho 3rd-party. Sinh viên phản biện và đưa ra kiến trúc Microservices thực thụ để bảo vệ sức khỏe hệ thống (System Health).
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+Commit liên quan đến Phase 19
+```
+
+## Ghi chú
+
+```text
+Một hệ thống trưởng thành phải biết tự vệ trước các tác nhân độc hại và tự cách ly khi đối tác bên ngoài gặp sự cố.
+```
+
+---
+
 # 4. Tổng kết thay đổi cuối project
 
 ## 4.1. Các chức năng đã hoàn thành

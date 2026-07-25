@@ -1791,6 +1791,116 @@ AI hồn nhiên sinh ra một hàm `updateStatus()` gọi thẳng lệnh `UPDATE
 AI thường chỉ giải quyết luồng chạy hoàn hảo (Happy Path). Kỹ sư giỏi phải giải quyết các luồng cạnh tranh dữ liệu (Edge Cases/Concurrency).
 ```
 
+---
+
+### Lần sử dụng AI số 31
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Chống Spam và DDoSing (Rate Limiting) |
+| Phần việc liên quan | Backend / Network Security |
+| Mức độ sử dụng | Hỗ trợ phân tích lỗ hổng (Bị bác bỏ giải pháp) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Nếu một người dùng ác ý dùng Tool (như Postman/JMeter) bắn API "Tạo phản ánh" liên tục 10.000 lần/giây, hệ thống của tôi sẽ sinh ra toàn rác thải giả và sập Database. Phải làm sao để chặn?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đề xuất tôi viết một đoạn code ở đầu hàm `createFeedback()`: Truy vấn Database xem IP này vừa tạo bài trong 1 phút qua không, nếu có thì báo lỗi.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Không sử dụng giải pháp truy vấn DB.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Cấu hình Rate Limiting bằng thuật toán Token Bucket (Bucket4j):
+- Critical Thinking: Lời khuyên của AI là một sai lầm logic kinh điển (Anti-pattern). Bản thân việc Query DB để kiểm tra Spam chính nó đã là một tác vụ làm nghẽn DB. Nếu Hacker bắn 10.000 request, Backend vẫn phải gọi 10.000 câu lệnh `SELECT` xuống Database, và Database vẫn sập như thường.
+- Decision Ownership & Creative Synthesis: Việc chống Spam phải được thực hiện ở Lớp Mạng (Network Layer), trước khi nó lọt vào Controller. Tôi đã tích hợp thư viện `Bucket4j` (dựa trên thuật toán Token Bucket) vào một Filter. Tôi cấp cho mỗi IP 5 Token/phút (lưu trên RAM/Redis). Nếu Hacker spam tới Request thứ 6, Filter lập tức trả về mã lỗi HTTP 429 (Too Many Requests) trong vòng 0.001 giây mà không hề đánh thức Controller hay Database. Hệ thống an toàn tuyệt đối.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Rate Limiting Phase 19 |
+| File liên quan | RateLimitFilter.java |
+| Screenshot |  |
+| Kết quả chạy/test | Dùng Postman Runner bắn 20 request trong 1 giây. 5 request đầu báo 200 OK. 15 request sau đỏ lòm với mã 429 Too Many Requests. Log Database vắng lặng. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Phòng thủ hệ thống là phải chặn giặc từ ngoài cổng (Filter), chứ không phải để giặc vào đến phòng ngủ (Database) mới bắt đầu kiểm tra.
+```
+
+---
+
+### Lần sử dụng AI số 32
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Bảo vệ hệ thống khi dịch vụ bên thứ ba bị sập (Circuit Breaker) |
+| Phần việc liên quan | Backend / System Resilience |
+| Mức độ sử dụng | Hỗ trợ bắt lỗi cơ bản (Bị bác bỏ) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Ứng dụng của tôi có tính năng gửi Email (qua Google SMTP) sau khi cán bộ Duyệt bài. Giả sử hôm nay Server Google bị sập hoặc cáp quang đứt, Email gửi đi bị treo (pending) rất lâu thì ứng dụng của tôi bị sao không?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đáp: Các luồng (Thread) gọi gửi Email sẽ bị treo chờ Google phản hồi. Lâu dần sẽ gây tràn Thread Pool và sập Server. AI khuyên cấu hình Timeout 5 giây và bọc `try...catch`.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Nhận thức được mức độ nghiêm trọng của hiệu ứng Domino sập dây chuyền (Cascading Failure).
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Triển khai Circuit Breaker (Ngắt mạch) với Resilience4j:
+- Critical Thinking: Cấu hình Timeout là chưa đủ. Nếu có 1000 cán bộ cùng duyệt bài, hệ thống vẫn phải sinh ra 1000 Thread, mỗi Thread vẫn phải chờ vô vọng 5 giây, gây lãng phí tài nguyên khổng lồ và làm Server tê liệt.
+- Decision Ownership & Creative Synthesis: Tôi đã cấu hình Mẫu Thiết kế Ngắt Mạch (Circuit Breaker Pattern) bằng thư viện `Resilience4j`. Tôi đặt luật: Nếu hàm gửi Email bị lỗi hoặc Timeout quá 50% số lần trong vòng 10 giây, "Cầu dao" sẽ bị ngắt (OPEN). Lúc này, bất kỳ cán bộ nào duyệt bài, lệnh gửi Email lập tức bị Bypass (bỏ qua luôn, không chờ đợi một giây nào), API sẽ tự chạy hàm dự phòng (Fallback) lưu trạng thái Email thành "Đang chờ gửi bù". Nhờ cầu dao này, các Thread của Backend được giải phóng ngay lập tức, Server vẫn sống sót khỏe mạnh bất chấp đối tác bên ngoài đã ngỏm củ tỏi. Sau 1 phút, cầu dao sẽ tự hé mở (HALF-OPEN) để thăm dò xem Google đã sống lại chưa.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Circuit Breaker Phase 19 |
+| File liên quan | EmailService.java |
+| Screenshot |  |
+| Kết quả chạy/test | Đổi mật khẩu sai để mô phỏng lỗi Google. Các request đầu mất 5 giây chờ, nhưng sau khi cầu dao nhảy, các request sau phản hồi thành công <0.1 giây (được chuyển vào trạng thái Fallback). |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Không bao giờ được đặt sinh mạng của ứng dụng mình vào tay một hệ thống bên thứ ba (3rd-party). Circuit Breaker là lá chắn thép.
+```
+
 ## 5. Bảng tổng hợp mức độ sử dụng AI
 
 Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.

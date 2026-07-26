@@ -35,6 +35,7 @@ import type { Campaign } from "@/lib/campaignStore";
 import { CampaignChatBubble } from "@/components/chat/CampaignChatBubble";
 import { EmojiPicker } from "@/components/chat/EmojiPicker";
 import { API_BASE, getToken } from "@/lib/api";
+import { compressImageIfNeeded } from "@/lib/imageCompression";
 import { CampaignChatMenu } from "@/components/chat/CampaignChatMenu";
 
 export const Route = createFileRoute("/campaigns/$id/group-chat")({
@@ -489,7 +490,8 @@ function CampaignGroupChatPage() {
     newAttachments.forEach(async (att) => {
       try {
         const formData = new FormData();
-        formData.append("file", att.file);
+        const compressedFile = await compressImageIfNeeded(att.file);
+        formData.append("file", compressedFile);
 
         const res = await fetch(`${API_BASE}/api/files/upload`, {
           method: "POST",

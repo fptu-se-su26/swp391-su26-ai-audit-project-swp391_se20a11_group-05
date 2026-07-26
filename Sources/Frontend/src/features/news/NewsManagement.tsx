@@ -18,6 +18,7 @@ import {
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { toast } from "sonner";
+import { compressImageIfNeeded } from "@/lib/imageCompression";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 
@@ -135,7 +136,8 @@ export function NewsManagement() {
 
     const token = localStorage.getItem("dn_jwt_token");
     const formDataObj = new FormData();
-    formDataObj.append("file", file);
+    const compressedFile = await compressImageIfNeeded(file);
+    formDataObj.append("file", compressedFile);
 
     setIsUploading(true);
     try {

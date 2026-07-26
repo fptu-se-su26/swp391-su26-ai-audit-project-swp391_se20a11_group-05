@@ -1901,6 +1901,116 @@ Triển khai Circuit Breaker (Ngắt mạch) với Resilience4j:
 Không bao giờ được đặt sinh mạng của ứng dụng mình vào tay một hệ thống bên thứ ba (3rd-party). Circuit Breaker là lá chắn thép.
 ```
 
+---
+
+### Lần sử dụng AI số 33
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Kiểm thử tự động (Automated Testing) để ngăn chặn lỗi hồi quy |
+| Phần việc liên quan | Backend / Unit Testing |
+| Mức độ sử dụng | Hỗ trợ bắt lỗi cơ bản (Bị bác bỏ) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Tôi vừa viết xong một logic rất phức tạp để tính toán điểm thưởng cho người dân báo cáo đúng. Hàm này liên kết chằng chịt với Database. Tôi sợ ngày mai có người khác vào sửa code sẽ làm hỏng logic của tôi (Regression Bug). Làm sao để kiểm tra tự động?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI xui tôi tạo một hàm `public static void main()` ở cuối file, tự tay truyền các giá trị giả vào hàm rồi dùng `System.out.println` để nhìn bằng mắt xem kết quả có đúng không.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Bác bỏ hoàn toàn cách Test "chạy bằng cơm" (Manual Test).
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Triển khai Unit Testing với JUnit 5 và Mockito:
+- Critical Thinking: Test bằng hàm `main()` là cách làm của những người mới học lập trình (Beginner). Nó không thể chạy tự động trong hệ thống, không thể đo được Code Coverage (Độ phủ mã nguồn), và việc gọi trực tiếp vào Database trong lúc Test sẽ làm rác Database thật (Dirty Data).
+- Decision Ownership & Creative Synthesis: Tôi đã xây dựng một bộ Unit Test chuyên nghiệp bằng thư viện JUnit 5. Để cách ly hoàn toàn với Database thật, tôi sử dụng Mockito để "Mock" (làm giả) các hành vi của Repository. Chẳng hạn, khi gọi `userRepository.findById()`, hệ thống sẽ trả về một Object ảo ngay trên RAM. Nhờ vậy, Unit Test chạy cực nhanh (vài mili-giây) và không chạm vào DB. Tôi đã viết 10 Test Cases bao phủ mọi luồng Đúng/Sai của hàm tính điểm, đẩy Code Coverage lên 85%. Từ nay, nếu có ai sửa code làm sai logic ban đầu, bộ Test sẽ lập tức báo đỏ chót, ngăn chặn Lỗi hồi quy (Regression Bug) xuất hiện trên Production.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Unit Testing Phase 20 |
+| File liên quan | ReportServiceTest.java, pom.xml |
+| Screenshot |  |
+| Kết quả chạy/test | Chạy lệnh `mvn test`, màn hình console in ra thông báo xanh rực rỡ: `Tests run: 10, Failures: 0, Errors: 0, Skipped: 0`. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Code không có Unit Test là Code chết (Legacy Code). Không một ai dám tự tin sửa (Refactor) một đoạn code khổng lồ nếu không có bộ Test bảo vệ.
+```
+
+---
+
+### Lần sử dụng AI số 34
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Tự động hóa quy trình Tích hợp và Triển khai (CI/CD Pipeline) |
+| Phần việc liên quan | DevOps / GitHub Actions |
+| Mức độ sử dụng | Hỗ trợ viết Script (Bị bác bỏ về mặt tư duy) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Trong nhóm có 4 người code, mỗi lần có ai Push code mới lên Github, tôi đều phải gõ lệnh `git pull` bằng tay trên Server, rồi tự gõ lệnh `mvn clean install` để Build, nếu lỗi thì lại bắt nhóm sửa. Việc này tốn quá nhiều thời gian. Làm sao để tự động hóa?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI nhiệt tình viết cho tôi một đoạn Bash Script `pull.sh`, bảo tôi cài Crontab trên Server để cứ 5 phút nó tự động chạy Script đó 1 lần.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Không sử dụng Bash script thủ công.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Thiết lập CI/CD Pipeline chuẩn công nghiệp bằng GitHub Actions:
+- Critical Thinking: Việc cài Crontab để pull code định kỳ là một thảm họa hệ thống. Nếu lúc đó code trên Github đang bị lỗi (Compile Error) mà Server cứ thế Pull về và Build đè lên bản cũ, trang web của người dùng sẽ sập ngay lập tức (Downtime).
+- Decision Ownership & Creative Synthesis: Tôi đã ứng dụng quy trình CI (Continuous Integration - Tích hợp liên tục). Tôi tạo file `.github/workflows/ci.yml`. Giờ đây, mỗi khi có sinh viên tạo Pull Request hoặc Push code lên nhánh chính, máy chủ của GitHub sẽ tự động cấp phát một máy ảo (Runner) riêng biệt, tự cài Java 17, tự kéo code về, và chạy toàn bộ lệnh `mvn test` (Bộ Unit Test ở Lần 33). Chỉ khi nào tất cả Test Cases đều màu xanh (Passed) thì Github mới sáng nút "Merge" màu xanh lên cho phép trộn code. Nếu Test thất bại, Pipeline sẽ báo Đỏ và chặn đứng việc tích hợp đoạn code lỗi đó vào dự án. Tự động hóa 100% công đoạn Kiểm định chất lượng.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit CI/CD Pipeline Phase 20 |
+| File liên quan | .github/workflows/ci.yml |
+| Screenshot |  |
+| Kết quả chạy/test | Vào tab "Actions" trên Github repo, thấy danh sách các Workflow chạy thành công với dấu Tick xanh lá cây tuyệt đẹp bên cạnh mỗi Commit. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+CI/CD là trái tim của triết lý DevOps. Máy móc phải làm thay con người những công việc lặp đi lặp lại một cách chính xác tuyệt đối.
+```
+
 ## 5. Bảng tổng hợp mức độ sử dụng AI
 
 Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.

@@ -2302,6 +2302,142 @@ Circuit Breaker là tiêu chuẩn thiết kế bắt buộc (Must-have) của Ki
 
 ---
 
+### Lần 33: Tự động hóa Kiểm thử (Unit Testing & Mocking)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 2/5 |
+| Mục đích | Viết Code Test tự động để bảo vệ logic hệ thống không bị phá hỏng khi sửa chữa (Refactoring) |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Hàm tính toán "Điểm thưởng" (Reward Points) cho người dân của tôi dài tận 150 dòng, có vô số lệnh IF-ELSE và truy vấn DB chằng chịt. Tôi muốn có cách nào đó để Test tự động, vì nếu test bằng tay (bấm trên UI) thì mất cả ngày.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI bảo tôi tạo một hàm `public static void main(String[] args)` ở dưới cùng, khởi tạo đối tượng Service, nạp data giả vào bằng tay, và gọi hàm để xem `System.out.println` có in ra đúng kết quả không.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Tôi TỪ CHỐI hoàn toàn. Đây là cách làm thủ công của người mới học Code.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Xây dựng Unit Test tiêu chuẩn với JUnit 5 và Mockito:
+- Critical Thinking: Hàm `main()` không thể chạy tích hợp tự động vào quá trình Build của hệ thống, không thể phát hiện lỗi nếu sau này code bị người khác sửa sai (Regression Bug). Quan trọng hơn, Test mà gọi trực tiếp vào Database thật thì sẽ làm hỏng dữ liệu hệ thống.
+- Decision Ownership & Creative Synthesis: Tôi đã thiết lập một bộ Unit Test chuyên nghiệp bằng framework JUnit 5. Để cách ly hoàn toàn hệ thống với Database, tôi áp dụng thư viện Mockito để tạo ra các "Mock Object" (đối tượng giả lập). Bất kỳ lệnh gọi nào xuống Database (ví dụ `reportRepository.save()`) đều bị Mockito chặn lại và giả lập kết quả trả về ngay trên RAM. Tốc độ chạy 10 Test Cases chỉ tốn 0.1 giây. Bây giờ, nếu có thành viên nào trong nhóm sửa sai logic tính điểm, lệnh `mvn test` sẽ lập tức báo đỏ, chặn họ lại trước khi họ kịp làm hỏng hệ thống.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Tư duy Test thủ công, không đo lường được Coverage)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Unit Testing Phase 20 |
+| File liên quan | ReportServiceTest.java, pom.xml |
+| Screenshot | |
+| Kết quả chạy/test | Report của JUnit hiện lên màn hình xanh lá cây, bao phủ (Coverage) 85% tổng số dòng code của Service Layer. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Viết Code mà không viết Test cũng giống như lái xe ô tô mà không thắt dây an toàn. Đâm một phát là chết.
+```
+
+---
+
+### Lần 34: Tích hợp Liên tục với CI/CD Pipeline (GitHub Actions)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 2/5 |
+| Mục đích | Tự động hóa hoàn toàn quy trình Kéo code - Build code - Chạy Test |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Tôi rất mệt mỏi với việc mỗi lần nhóm viên Push code lên Github, tôi lại phải SSH vào Server, gõ `git pull`, gõ `mvn clean install` để Build lại hệ thống. Rất tốn thời gian.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI hào hứng sinh ra cho tôi một đoạn Bash Script `.sh`, xui tôi cài crontab trên Server Linux để cứ 5 phút nó lại tự động chạy Script đó để Pull code về.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Tôi cười trừ và loại bỏ hoàn toàn ý tưởng này.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Triển khai quy trình CI/CD với GitHub Actions:
+- Critical Thinking: Việc dùng Crontab để Pull code tự động là cực kỳ nguy hiểm. Chẳng may lúc đó Code trên nhánh main đang bị lỗi Compile (không build được), Server Pull về và đè lên bản đang chạy, toàn bộ Website sẽ sập (Downtime). Code phải được Kiểm định (Tested) tự động trước khi cho phép gộp vào nhánh chính.
+- Decision Ownership & Creative Synthesis: Tôi đã cấu hình GitHub Actions (CI/CD Pipeline chuẩn công nghiệp) bằng cách viết file `.github/workflows/ci.yml`. Tôi định nghĩa một Workflow: Bất cứ khi nào có người Push Code hoặc tạo Pull Request, Github tự động bật một máy chủ Ảo (Runner) độc lập. Máy ảo này sẽ kéo code mới về, tự cài Java 17, và chạy Lệnh `mvn test` (đã làm ở Lần 33). Chỉ khi nào toàn bộ Test Cases đều báo Xanh (Passed), Github mới cho phép tôi nhấn nút Merge (Trộn code). Nếu Test thất bại, Pipeline sẽ báo Đỏ chót, chặn đứng việc mang mã nguồn bẩn vào dự án. Hệ thống trở nên tự động và chuyên nghiệp tuyệt đối.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Tư duy Script thủ công, thiếu quy trình Kiểm định an toàn)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit CI/CD Pipeline Phase 20 |
+| File liên quan | .github/workflows/ci.yml |
+| Screenshot | |
+| Kết quả chạy/test | Trên giao diện Pull Request của GitHub xuất hiện khu vực "Checks". Nút "Merge pull request" bị khóa chặt (Disabled) nếu GitHub Actions chạy Test thất bại, và tự động mở lại khi Fix xong lỗi. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Đừng làm bằng tay những việc mà Máy móc có thể làm thay bạn một cách nhanh chóng và không có sai sót (DevOps Mindset).
+```
+
+---
+
 ## 6. Prompt quan trọng nhất
 
 Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.

@@ -939,6 +939,51 @@ Một hệ thống trưởng thành phải biết tự vệ trước các tác n
 
 ---
 
+# [Phase 20] Testing Strategy & CI/CD Pipeline
+
+## Ngày thực hiện
+
+```text
+26/07/2026
+```
+
+## Đã hoàn thành
+
+- [x] Đảm bảo chất lượng bằng Unit Test (JUnit 5 & Mockito): Xây dựng bộ kiểm thử tự động cho các hàm nghiệp vụ phức tạp, cô lập các dependencies bằng Mock Object để ngăn chặn lỗi hồi quy (Regression Bug) khi Refactor code.
+- [x] Tự động hóa tích hợp liên tục (CI/CD với GitHub Actions): Thiết lập luồng Workflow tự động Build và chạy toàn bộ Unit Test mỗi khi có người Push code hoặc tạo Pull Request. Chặn Merge nếu Test thất bại.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Viết Unit Test cho Service Layer | Trần Minh Vĩ | ReportServiceTest.java | Commit (Phase 20) |
+| 2 | Cấu hình GitHub Actions CI Pipeline | Trần Minh Vĩ | .github/workflows/ci.yml | Commit (Phase 20) |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI đề xuất test tay (Manual Testing) bằng hàm main() và tự viết Bash script để kéo code. Sinh viên đã nâng tầm dự án lên quy trình DevOps chuẩn mực với Unit Testing và CI Pipeline.
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+Commit liên quan đến Phase 20
+```
+
+## Ghi chú
+
+```text
+Code không có Test là Code chết (Legacy Code). Không ai dám sửa một đoạn code không có Test bảo vệ.
+```
+
+---
+
 # 4. Tổng kết thay đổi cuối project
 
 ## 4.1. Các chức năng đã hoàn thành

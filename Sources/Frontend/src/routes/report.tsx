@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { useCategories, useCreateFeedbackWithMedia } from "@/lib/hooks";
 import { ApiError, wardApi, getToken } from "@/lib/api";
 import { getVideoDurationSeconds } from "@/lib/citizenFeedbackMediaApi";
+import { compressImageIfNeeded } from "@/lib/imageCompression";
 import {
   clearGpsLocation,
   getStoredGpsLocation,
@@ -430,7 +431,8 @@ function ReportPage() {
     try {
       for (const photo of selectedMedia) {
         const formData = new FormData();
-        formData.append("file", photo);
+        const compressedPhoto = await compressImageIfNeeded(photo);
+        formData.append("file", compressedPhoto);
         const res = await fetch(`${API_BASE}/api/files/upload/${feedbackId}`, {
           method: "POST",
           headers: token ? { Authorization: `Bearer ${token}` } : {},

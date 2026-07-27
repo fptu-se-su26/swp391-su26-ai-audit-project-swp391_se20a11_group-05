@@ -10,9 +10,11 @@ interface Props {
   onClose: () => void;
   allWards: WardRankingEntry[];
   initialWardId1?: number;
+  year?: number;
+  month?: number;
 }
 
-export function WardCompareView({ isOpen, onClose, allWards, initialWardId1 }: Props) {
+export function WardCompareView({ isOpen, onClose, allWards, initialWardId1, year, month }: Props) {
   const [wardId1, setWardId1] = useState<number | undefined>(initialWardId1);
   const [wardId2, setWardId2] = useState<number | undefined>();
   
@@ -37,8 +39,8 @@ export function WardCompareView({ isOpen, onClose, allWards, initialWardId1 }: P
       setLoading(true);
       try {
         const [res1, res2] = await Promise.all([
-          wardId1 ? wardRankingApi.getWardDetail(wardId1) : Promise.resolve(null),
-          wardId2 ? wardRankingApi.getWardDetail(wardId2) : Promise.resolve(null)
+          wardId1 ? wardRankingApi.getWardDetail(wardId1, year, month) : Promise.resolve(null),
+          wardId2 ? wardRankingApi.getWardDetail(wardId2, year, month) : Promise.resolve(null)
         ]);
         setDetail1(res1);
         setDetail2(res2);
@@ -49,7 +51,7 @@ export function WardCompareView({ isOpen, onClose, allWards, initialWardId1 }: P
       }
     };
     fetchDetails();
-  }, [wardId1, wardId2, isOpen]);
+  }, [wardId1, wardId2, isOpen, year, month]);
 
   const handleAnalyze = async () => {
     if (!detail1 || !detail2) return;
@@ -59,7 +61,11 @@ export function WardCompareView({ isOpen, onClose, allWards, initialWardId1 }: P
 - Phường 1: ${detail1.wardName} (Điểm tổng: ${detail1.currentScore}, Hạng: ${detail1.currentRank}, Tốc độ xử lý: ${detail1.speedScore}, Môi trường: ${detail1.lowIncidenceScore}, Hài lòng: ${detail1.satisfactionScore}, Tổng phản ánh: ${detail1.totalFeedbacks}, Đã xử lý: ${detail1.resolvedCount}, Tỷ lệ hoàn thành: ${detail1.resolutionRate}%, Thời gian xử lý trung bình: ${detail1.avgResolutionHours}h)
 - Phường 2: ${detail2.wardName} (Điểm tổng: ${detail2.currentScore}, Hạng: ${detail2.currentRank}, Tốc độ xử lý: ${detail2.speedScore}, Môi trường: ${detail2.lowIncidenceScore}, Hài lòng: ${detail2.satisfactionScore}, Tổng phản ánh: ${detail2.totalFeedbacks}, Đã xử lý: ${detail2.resolvedCount}, Tỷ lệ hoàn thành: ${detail2.resolutionRate}%, Thời gian xử lý trung bình: ${detail2.avgResolutionHours}h)
 
-Dựa vào các số liệu trên, hãy viết một đoạn nhận xét chuyên sâu ngắn gọn (khoảng 3-4 câu) chỉ ra phường nào đang làm tốt hơn ở khía cạnh nào, điểm yếu của từng phường là gì, và kết luận khách quan. Trình bày bằng Markdown (dùng in đậm cho từ khóa quan trọng).`;
+Dựa vào các số liệu trên, hãy phân tích chuyên sâu và trả về kết quả theo từng dòng rõ ràng (sử dụng bullet points). Yêu cầu:
+- **Đánh giá trực diện:** Phường nào đang làm tốt hơn ở khía cạnh nào (ví dụ: tốc độ xử lý nhanh hơn, giải quyết triệt để hơn).
+- **Phân tích điểm yếu:** Chỉ ra vấn đề thực tế (ví dụ: tỷ lệ xử lý chậm, môi trường phát sinh nhiều).
+- **Lời khuyên cạnh tranh:** Đề xuất cụ thể để từng phường có thể cải thiện và vượt lên trong tháng tới.
+Trình bày bằng Markdown, dùng in đậm cho các chỉ số và từ khóa quan trọng để người dân dễ đọc.`;
 
     try {
       // Create a persistent unique session ID for the user to avoid rate-limiting all users together

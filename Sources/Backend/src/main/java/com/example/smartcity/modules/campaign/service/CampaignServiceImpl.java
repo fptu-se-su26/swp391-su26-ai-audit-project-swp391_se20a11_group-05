@@ -45,7 +45,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -97,7 +99,16 @@ public class CampaignServiceImpl implements CampaignService {
             campaigns = campaignRepository.findVisibleCampaignsForUser(normalizedStatus, currentUser.getId(), now, pageable);
         }
 
-        return campaigns.map(campaign -> toResponse(campaign, currentUser));
+        List<Long> campaignIds = campaigns.stream().map(Campaign::getId).toList();
+        Map<Long, Long> participantCounts = campaignIds.isEmpty()
+                ? Map.of()
+                : participantRepository.countByCampaignIdsAndJoinStatus(campaignIds, JOIN_APPROVED).stream()
+                        .collect(Collectors.toMap(
+                                CampaignParticipantRepository.CampaignParticipantCount::getCampaignId,
+                                CampaignParticipantRepository.CampaignParticipantCount::getParticipantCount));
+
+        return campaigns.map(campaign ->
+                toResponse(campaign, currentUser, participantCounts.getOrDefault(campaign.getId(), 0L)));
     }
 
     @Override
@@ -712,7 +723,12 @@ public class CampaignServiceImpl implements CampaignService {
 
     private CampaignResponse toResponse(Campaign campaign, User currentUser) {
         long participantCount = participantRepository.countByCampaign_IdAndJoinStatus(campaign.getId(), JOIN_APPROVED);
-        Optional<CampaignParticipant> currentParticipant = currentUser == null
+        return toResponse(campaign, currentUser, participantCount);
+    }
+
+    private CampaignResponse toResponse(Campaign campaign, User currentUser, long participantCount) {
+        Optional<CampaignParticipant> currentParticipant =
+                currentUser == null || currentUser.getRole() != Role.CITIZEN
                 ? Optional.empty()
                 : participantRepository.findByCampaign_IdAndCitizen_Id(campaign.getId(), currentUser.getId());
 

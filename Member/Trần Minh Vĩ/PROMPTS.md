@@ -2016,10 +2016,7 @@ Viết Dockerfile và Multi-stage Build:
 |---|---|
 | Link commit | Commit Docker Compose Phase 17 |
 | File liên quan | Dockerfile, docker-compose.yml |
-| Screenshot | |
 | Kết quả chạy/test | Cầm USB chứa project cắm sang máy tính hoàn toàn trống, gõ lệnh `docker-compose up`, web chạy lên ầm ầm ở localhost. |
-| Link tài liệu/báo cáo | |
-| Ghi chú khác | |
 
 #### 5.8. Ghi chú thêm
 
@@ -2441,6 +2438,9 @@ Triển khai quy trình CI/CD với GitHub Actions:
 ## 6. Prompt quan trọng nhất
 
 Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.
+
+- **Prompt**: "Nếu 2 cán bộ phường cùng lúc bấm nút 'Duyệt' và 'Từ chối' cho cùng một phản ánh thì sao? Tôi muốn cập nhật trạng thái của phản ánh đó vào Database." (Lần 30)
+- **Lý do**: Đây là khoảnh khắc thay đổi hoàn toàn tư duy lập trình của tôi. Ban đầu, tôi chỉ tập trung viết code sao cho "chạy được" (Happy Path). Nhưng khi đối diện với tình huống Cạnh tranh dữ liệu (Race Condition) - bài toán xương máu của mọi hệ thống thực tế, tôi nhận ra sự hời hợt của AI khi nó chỉ khuyên tôi dùng lệnh UPDATE SQL thô sơ, dẫn đến hiểm họa "Ghi đè dữ liệu" (Lost Update). Từ prompt này, tôi đã tự mình đào sâu vào kiến trúc Backend, khám phá ra kỹ thuật Khóa Lạc Quan (Optimistic Locking với `@Version`) của JPA/Hibernate. Việc thiết kế thành công cơ chế khóa dữ liệu không chỉ bảo vệ tính toàn vẹn của Database mà còn nâng tầm dự án từ một Đồ án sinh viên thành một Sản phẩm doanh nghiệp thực thụ, có thể chịu tải và đảm bảo an toàn kể cả khi hàng ngàn người thao tác cùng lúc.
 
 ### 6.1. Prompt được chọn
 

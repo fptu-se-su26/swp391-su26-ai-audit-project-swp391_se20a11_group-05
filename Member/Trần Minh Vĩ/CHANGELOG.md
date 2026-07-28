@@ -984,6 +984,51 @@ Code không có Test là Code chết (Legacy Code). Không ai dám sửa một �
 
 ---
 
+# [Phase 21] Database Optimization & Content Delivery Network (CDN)
+
+## Ngày thực hiện
+
+```text
+28/07/2026
+```
+
+## Đã hoàn thành
+
+- [x] Tối ưu hóa Database (Connection Pooling): Cấu hình HikariCP nâng cao để chịu tải đồng thời lớn, tránh lỗi cạn kiệt Connection khi lượng người truy cập tăng vọt.
+- [x] Giải quyết nút thắt băng thông (CDN Integration): Đưa toàn bộ quy trình xử lý hình ảnh độ phân giải cao lên Cloud Storage kết hợp CDN. Backend được giải phóng khỏi gánh nặng xử lý I/O tốn CPU.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Cấu hình HikariCP Connection Pool | Trần Minh Vĩ | application.yml | Commit (Phase 21) |
+| 2 | Chuyển dịch lưu trữ ảnh sang Cloud CDN | Trần Minh Vĩ | FileUploadService.java | Commit (Phase 21) |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI đề xuất nâng cấp phần cứng (mua thêm RAM) để xử lý lỗi sập Database, và khuyên tự viết mã nén ảnh bằng Java. Sinh viên đã bác bỏ vì tốn kém tài nguyên, thay vào đó áp dụng tối ưu Connection Pool và Cloud Architecture.
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+Commit liên quan đến Phase 21
+```
+
+## Ghi chú
+
+```text
+Đừng giải quyết vấn đề hiệu năng bằng cách "ném tiền" vào mua thêm RAM, hãy giải quyết bằng Kiến trúc hệ thống.
+```
+
+---
+
 # 4. Tổng kết thay đổi cuối project
 
 ## 4.1. Các chức năng đã hoàn thành

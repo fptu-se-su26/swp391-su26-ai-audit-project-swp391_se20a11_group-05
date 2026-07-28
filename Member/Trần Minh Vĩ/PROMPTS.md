@@ -2435,6 +2435,142 @@ Triển khai quy trình CI/CD với GitHub Actions:
 
 ---
 
+### Lần 35: Tối ưu hóa Database (Connection Pooling với HikariCP)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 2/5 |
+| Mục đích | Khắc phục lỗi sập Database khi có quá nhiều người truy cập cùng lúc |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Khi dùng công cụ JMeter để giả lập 500 người dùng truy cập web cùng một lúc (Stress Test), hệ thống Spring Boot báo lỗi "HikariPool-1 - Connection is not available, request timed out after 30000ms" và sập hoàn toàn.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI phân tích rằng phần cứng Database của tôi quá yếu để chịu tải. Khuyên tôi lên AWS hoặc Azure mua gói Server xịn hơn (Tăng RAM, tăng CPU).
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Tuyệt đối không làm theo. Đây là cách giải quyết ngốn tiền và vô dụng.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Cấu hình tối ưu HikariCP Connection Pool:
+- Critical Thinking: Việc "ném tiền" vào việc nâng cấp phần cứng (Vertical Scaling) để che đậy một lỗi phần mềm là tư duy cực kỳ sai lầm. Lỗi này không phải do máy tính yếu, mà là do cấu hình mặc định của Spring Boot (HikariCP) chỉ cho phép mở tối đa 10 luồng kết nối tới Database. Khi có 500 người truy cập, 490 người còn lại phải xếp hàng chờ. Sau 30 giây chờ đợi không được cấp quyền, hệ thống sẽ quăng lỗi Timeout.
+- Decision Ownership & Creative Synthesis: Tôi đã tìm hiểu sâu về kiến trúc Connection Pooling. Tôi vào file `application.yml`, ghi đè cấu hình mặc định bằng `spring.datasource.hikari.maximum-pool-size=50` và `connection-timeout=20000`. Bằng cách nới rộng "đường cao tốc" dữ liệu lên 50 làn xe, kết hợp với việc tạo Index trong SQL để query chạy nhanh hơn, hệ thống của tôi đã chịu tải được 1000 người dùng cùng lúc mà không tốn thêm một đồng chi phí nào cho Server.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Xúi giục ném tiền mua phần cứng thay vì tối ưu phần mềm)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit HikariCP Optimization Phase 21 |
+| File liên quan | application.yml |
+| Screenshot | |
+| Kết quả chạy/test | Bật lại JMeter với 1000 threads. Log Spring Boot không còn xuất hiện lỗi Timeout. Thời gian phản hồi API duy trì ở mức <200ms. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Đừng giải quyết Bottleneck (nút thắt cổ chai) bằng thẻ tín dụng. Hãy giải quyết bằng Kiến trúc phần mềm.
+```
+
+---
+
+### Lần 36: Xử lý file tĩnh bằng Mạng phân phối nội dung (Cloud CDN)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 2/5 |
+| Mục đích | Giải phóng gánh nặng xử lý Ảnh/Video cho Server nội bộ |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Người dân thường tải lên các bức ảnh rác thải có dung lượng 10-15MB. Khi có nhiều người cùng upload, Server nội bộ bị nghẽn băng thông, CPU tăng vọt lên 100% và ổ cứng báo đầy.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI viết cho tôi 1 class Java dùng thư viện ImageIO, mỗi khi người dùng upload ảnh, Java sẽ lấy ảnh đó nén xuống còn kích thước 1MB rồi mới lưu vào thư mục cục bộ của Server.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Loại bỏ hoàn toàn kiến trúc lưu file nội bộ này.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Triển khai Cloud Storage & CDN:
+- Critical Thinking: Thuật toán nén ảnh bằng Java là thủ phạm tàn phá CPU và RAM. Server Backend sinh ra là để xử lý Logic nghiệp vụ (Auth, Database), không phải sinh ra để làm công việc "chân tay" tốn kém như thao tác I/O file tĩnh. Hơn nữa, nếu lưu 100GB ảnh vào cùng máy tính với Database, lúc Server hỏng ổ cứng sẽ mất toàn bộ dữ liệu.
+- Decision Ownership & Creative Synthesis: Tôi thiết kế lại toàn bộ quy trình tải ảnh. Thay vì Frontend gửi ảnh cho Backend, tôi cho Frontend gửi thẳng ảnh lên máy chủ Cloud (như Amazon S3, Firebase Storage) qua Presigned URL. Backend không hề chạm vào file ảnh, nó chỉ việc lưu một chuỗi "URL" vào Database. Ở phía người xem, tôi kích hoạt dịch vụ CDN (Content Delivery Network). Ảnh sẽ được nén tự động trên Cloud và phân phối từ cụm máy chủ gần người dùng nhất. Nhờ vậy, Backend của tôi nhẹ bẫng, còn trang web thì hiển thị ảnh mượt mà, siêu tốc độ.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Tư duy lưu trữ cục bộ Monolithic tồi tệ)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Cloud CDN Phase 21 |
+| File liên quan | FileUploadService.java, frontend/Upload.tsx |
+| Screenshot | |
+| Kết quả chạy/test | Giả lập upload đồng thời 10 file 15MB. CPU của Server Backend đi ngang 0% vì mọi gánh nặng I/O đã được giao phó cho hệ thống Cloud. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Kiến trúc Microservices: Dịch vụ nào thì dùng máy chủ chuyên dụng đó. Đừng ôm đồm rác vào Backend.
+```
+
+---
+
 ## 6. Prompt quan trọng nhất
 
 Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.

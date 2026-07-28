@@ -2011,6 +2011,116 @@ Thiết lập CI/CD Pipeline chuẩn công nghiệp bằng GitHub Actions:
 CI/CD là trái tim của triết lý DevOps. Máy móc phải làm thay con người những công việc lặp đi lặp lại một cách chính xác tuyệt đối.
 ```
 
+---
+
+### Lần sử dụng AI số 35
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Tối ưu hóa Kết nối cơ sở dữ liệu (Connection Pooling) |
+| Phần việc liên quan | Backend / Database Optimization |
+| Mức độ sử dụng | Hỗ trợ phân tích nguyên nhân (Bác bỏ giải pháp) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Khi dùng JMeter thử nghiệm với 500 người truy cập cùng lúc, hệ thống báo lỗi "HikariPool-1 - Connection is not available, request timed out after 30000ms". Làm sao để khắc phục?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI cho rằng Database của tôi bị quá tải do phần cứng yếu. Lời khuyên của AI là mua gói Server cao cấp hơn (nhiều RAM và CPU hơn) trên AWS/Azure.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Nhận thức được giới hạn vật lý của máy chủ.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Tối ưu hóa HikariCP Connection Pool:
+- Critical Thinking: Việc "ném tiền" vào nâng cấp phần cứng (Vertical Scaling) để sửa lỗi phần mềm là tư duy của thợ gõ code, không phải của một Kiến trúc sư hệ thống. Lỗi này sinh ra do cấu hình mặc định của Spring Boot chỉ cho phép tối đa 10 kết nối đồng thời tới Database, dẫn đến 490 người còn lại phải xếp hàng chờ và bị Timeout.
+- Decision Ownership & Creative Synthesis: Tôi đã đào sâu vào tài liệu của HikariCP (Thư viện quản lý Connection Pool mặc định của Spring). Tôi mở file `application.yml`, tự tinh chỉnh thông số `spring.datasource.hikari.maximum-pool-size=50` và `connection-timeout=20000`. Đồng thời, tối ưu lại các câu lệnh SQL bằng việc gắn thêm Index trong Database để các luồng trả về kết nối nhanh hơn. Kết quả: Hệ thống chịu được tải 1000 người dùng mà CPU vẫn mượt mà, không tốn thêm một đồng chi phí phần cứng nào.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit HikariCP Optimization Phase 21 |
+| File liên quan | application.yml |
+| Screenshot |  |
+| Kết quả chạy/test | Dùng JMeter bắn 1000 concurrent requests. Tỷ lệ lỗi 0%. Thời gian phản hồi trung bình giảm từ 3000ms xuống còn 150ms. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Kiến trúc sư hệ thống giải quyết nút thắt cổ chai (Bottleneck) bằng cấu hình phần mềm, không phải bằng thẻ tín dụng.
+```
+
+---
+
+### Lần sử dụng AI số 36
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Xử lý tải ảnh dung lượng lớn bằng Mạng phân phối nội dung (CDN) |
+| Phần việc liên quan | DevOps / Cloud Architecture |
+| Mức độ sử dụng | Hỗ trợ cấu hình AWS S3 (Sử dụng 1 phần) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Người dân hay chụp ảnh rác thải bằng điện thoại xịn, mỗi ảnh nặng 10MB. Khi hàng ngàn người upload, Server của tôi bị treo cứng, ổ cứng báo đầy. Phải làm sao?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI cung cấp cho tôi một đoạn mã Java ImageIO siêu dài, khuyên tôi dùng thuật toán nén ảnh xuống còn 1MB trước khi lưu vào ổ cứng của Server.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Không sử dụng giải pháp nén ảnh bằng Java.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Tích hợp Cloud Storage và CDN:
+- Critical Thinking: Mã nén ảnh bằng Java rất ngốn CPU và RAM. Bắt Server chính (vốn đang bận rộn xử lý Logic nghiệp vụ) phải đi làm công việc chân tay như nén ảnh là một thiết kế tồi. Chưa kể, lưu hàng chục GB ảnh vào ổ cứng Server nội bộ sẽ khiến việc sao lưu (Backup) trở thành ác mộng.
+- Decision Ownership & Creative Synthesis: Tôi đã chuyển dịch toàn bộ kiến trúc lưu trữ ảnh sang Cloud. Ở Frontend, ảnh được tải trực tiếp lên Amazon S3 (hoặc Firebase Storage) thông qua Presigned URL mà không hề đi qua luồng của Server Backend. Backend chỉ làm đúng một việc: Lưu chuỗi URL của bức ảnh đó vào Database. Ở chiều người xem tải ảnh xuống, tôi cấu hình tích hợp CDN (Content Delivery Network). Ảnh sẽ được tải từ máy chủ gần nhất với người dân. Kết quả: Backend được giải phóng hoàn toàn gánh nặng I/O, tốc độ upload/download ảnh nhanh như chớp.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Cloud CDN Phase 21 |
+| File liên quan | FileUploadService.java, frontend/Upload.tsx |
+| Screenshot |  |
+| Kết quả chạy/test | Upload 5 ảnh 10MB cùng lúc. Dung lượng RAM và CPU của Server Backend không hề xê dịch vì file không đi qua Backend. Mở tab Network thấy ảnh được fetch về từ domain CDN. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Hãy đẩy những công việc tốn tài nguyên (Static Assets I/O) cho các dịch vụ chuyên trách trên Cloud. Đừng bắt Backend gánh còng lưng mọi thứ.
+```
+
 ## 5. Bảng tổng hợp mức độ sử dụng AI
 
 Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.

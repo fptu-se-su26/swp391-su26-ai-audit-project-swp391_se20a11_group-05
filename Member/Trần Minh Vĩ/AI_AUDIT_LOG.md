@@ -2121,6 +2121,118 @@ Tích hợp Cloud Storage và CDN:
 Hãy đẩy những công việc tốn tài nguyên (Static Assets I/O) cho các dịch vụ chuyên trách trên Cloud. Đừng bắt Backend gánh còng lưng mọi thứ.
 ```
 
+---
+
+### Lần sử dụng AI số 37
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Bóc tách luồng xử lý chậm bằng Message Queue (RabbitMQ) |
+| Phần việc liên quan | Backend / Event-Driven Architecture |
+| Mức độ sử dụng | Hỗ trợ phân tích độ trễ (Bác bỏ giải pháp `@Async`) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Khi người dân bấm "Gửi phản ánh", Backend của tôi phải làm 3 việc: (1) Lưu vào Database, (2) Gửi Email cho phường, (3) Bắn Push Notification Firebase cho dân. Tổng thời gian tốn 3 giây, bắt người dùng phải xem vòng xoay Loading rất sốt ruột. Làm sao cho nhanh hơn?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI xui tôi thêm Annotation `@Async` vào hàm gửi Email và Firebase để Java tự động mở Thread mới chạy ngầm, còn Thread chính sẽ trả về kết quả luôn.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Nhận thức được khái niệm Bất đồng bộ (Asynchronous).
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Xây dựng hệ thống Hướng sự kiện (Event-Driven) với Message Queue:
+- Critical Thinking: Dùng `@Async` (Thread Pool nội bộ) chứa đựng rủi ro rất lớn. Nếu Server đang chạy ngầm việc gửi Email mà đột nhiên bị cúp điện hoặc Crash, các Thread đó sẽ chết theo, và Email đó sẽ mất vĩnh viễn (Data Loss). Đồng thời, nếu có 1000 người gửi phản ánh, Server sẽ phải gồng gánh thêm 2000 luồng phụ, gây cạn kiệt CPU.
+- Decision Ownership & Creative Synthesis: Tôi đã đập bỏ kiến trúc Monolithic cũ và áp dụng Kiến trúc Hướng Sự Kiện (Event-Driven Architecture). Tôi dựng một server RabbitMQ (Message Broker) độc lập. Khi người dân gửi phản ánh, API chỉ làm đúng 1 việc: Lưu vào Database và ném một mẩu tin nhắn "Có phản ánh mới" vào RabbitMQ. Quá trình này tốn đúng 0.1 giây, người dân nhận được thông báo thành công tức thì. 
+Sau đó, tôi viết một Worker (Consumer) hoàn toàn độc lập, chạy trên một máy chủ khác, chuyên làm nhiệm vụ hút tin nhắn từ RabbitMQ ra để gửi Email. Nếu Worker chết, tin nhắn vẫn nằm an toàn trong Queue, khi Worker sống lại nó sẽ gửi tiếp. Hệ thống của tôi giờ đây có thể chịu tải hàng chục ngàn Request mà không hề nghẽn.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit RabbitMQ Integration Phase 22 |
+| File liên quan | RabbitMQConfig.java, NotificationWorker.java |
+| Screenshot |  |
+| Kết quả chạy/test | Bấm "Gửi" trên giao diện, API phản hồi mã 200 OK ngay lập tức (<0.1s). Khoảng 2 giây sau, tiếng "Ting" báo Email mới xuất hiện trong điện thoại. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Kỹ sư giỏi không ép một Server làm mọi việc. Họ chia nhỏ công việc và ném nó vào Message Queue.
+```
+
+---
+
+### Lần sử dụng AI số 38
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Đảm bảo không mất thông báo bằng Outbox Pattern |
+| Phần việc liên quan | Backend / Data Consistency |
+| Mức độ sử dụng | Hỏi về giải pháp chống thất thoát dữ liệu (Bác bỏ Retry thủ công) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Trong kiến trúc RabbitMQ ở trên, lỡ API lưu Database thành công, nhưng lúc chuẩn bị ném tin nhắn vào Queue thì mạng cáp quang bị đứt. Thế là phản ánh đã được lưu, nhưng Phường không bao giờ nhận được Email thông báo. Tôi phải xử lý sao?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI bảo tôi dùng `try...catch`. Nếu lỗi thì Thread.sleep(1000) rồi ném lại (Retry) khoảng 3 lần. Nếu vẫn lỗi thì in ra Log.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Không áp dụng, vì Retry trên RAM vẫn sẽ mất dữ liệu nếu Server khởi động lại.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Thiết kế Transactional Outbox Pattern:
+- Critical Thinking: Logic Retry của AI là quá mong manh. Nếu Server sập nguồn ngay lúc đang Retry, dữ liệu sẽ bốc hơi. Việc duy trì tính Nhất quán dữ liệu (Data Consistency) giữa Database (Postgres) và Message Broker (RabbitMQ) là bài toán kinh điển của Hệ phân tán (Distributed Systems).
+- Decision Ownership & Creative Synthesis: Tôi đã triển khai Transactional Outbox Pattern. Khi người dân lưu phản ánh, tôi mở một Transaction của SQL. Trong Transaction đó, tôi lưu dữ liệu vào bảng `reports`, ĐỒNG THỜI lưu một bản nháp sự kiện vào bảng `outbox_events`. Nếu mạng đứt, Transaction sẽ tự động Rollback, không có dữ liệu nào bị lệch.
+Tiếp theo, tôi viết một hàm Polling chạy ngầm (Cron Job) cứ 2 giây quét bảng `outbox_events` một lần. Nếu thấy có sự kiện chưa gửi, nó sẽ hút lên và ném vào RabbitMQ. Nhờ việc biến Database thành điểm tựa vững chắc, tôi đảm bảo được nguyên tắc At-least-once Delivery (Gửi ít nhất một lần). Dù đứt cáp, cúp điện hay bão lụt, không một email nào của hệ thống bị bỏ sót.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Outbox Pattern Phase 22 |
+| File liên quan | OutboxEventEntity.java, OutboxPollingJob.java |
+| Screenshot |  |
+| Kết quả chạy/test | Giả lập tắt RabbitMQ, bấm tạo phản ánh. Giao diện báo thành công. Mở Database thấy bảng `outbox` lưu trạng thái PENDING. Bật RabbitMQ lên lại, Job tự động bắt tín hiệu, ném vào Queue và chuyển trạng thái thành DONE. Không mất một tin nhắn nào. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Đảm bảo Nhất quán dữ liệu là đường ranh giới phân biệt giữa Coder nghiệp dư và Software Architect.
+```
+
 ## 5. Bảng tổng hợp mức độ sử dụng AI
 
 Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.

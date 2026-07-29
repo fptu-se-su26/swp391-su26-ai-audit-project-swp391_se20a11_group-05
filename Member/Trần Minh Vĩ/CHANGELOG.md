@@ -1029,6 +1029,51 @@ Commit liên quan đến Phase 21
 
 ---
 
+# [Phase 22] Event-Driven Architecture & Message Queues
+
+## Ngày thực hiện
+
+```text
+29/07/2026
+```
+
+## Đã hoàn thành
+
+- [x] Áp dụng Message Queue (RabbitMQ/Kafka): Tách rời các tác vụ chậm (gửi Email, đẩy Push Notification) ra khỏi luồng xử lý chính. API trả về ngay lập tức (0.1s) và đẩy Job vào Queue để xử lý ngầm (Asynchronous Event-Driven).
+- [x] Đảm bảo nhất quán dữ liệu (Transactional Outbox Pattern): Giải quyết triệt để lỗi "Mất thông báo" khi mạng chập chờn. Lưu Event vào chung một Database Transaction trước khi đẩy vào Queue, đảm bảo nguyên tắc ACID và At-least-once Delivery (Gửi ít nhất một lần).
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Cấu hình Producer/Consumer với RabbitMQ | Trần Minh Vĩ | NotificationWorker.java | Commit (Phase 22) |
+| 2 | Thiết kế Outbox Pattern đảm bảo ACID | Trần Minh Vĩ | OutboxEventEntity.java | Commit (Phase 22) |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI đề xuất dùng `@Async` thông thường và vòng lặp `try-catch` để xử lý Retry. Sinh viên bác bỏ vì rủi ro mất dữ liệu khi cúp điện, thay vào đó xây dựng Kiến trúc hướng sự kiện (Event-Driven) cấp độ Doanh nghiệp.
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+Commit liên quan đến Phase 22
+```
+
+## Ghi chú
+
+```text
+Kiến trúc xịn là khi Server phụ có sập, Server chính vẫn nhởn nhơ hoạt động mà không bị đánh gục theo.
+```
+
+---
+
 # 4. Tổng kết thay đổi cuối project
 
 ## 4.1. Các chức năng đã hoàn thành

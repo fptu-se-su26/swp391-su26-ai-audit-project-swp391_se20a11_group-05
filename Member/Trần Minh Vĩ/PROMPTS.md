@@ -2571,6 +2571,142 @@ Kiến trúc Microservices: Dịch vụ nào thì dùng máy chủ chuyên dụn
 
 ---
 
+### Lần 37: Tách luồng bằng Kiến trúc Hướng sự kiện (Message Queue / RabbitMQ)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 2/5 |
+| Mục đích | Giải quyết tình trạng nghẽn API khi phải xử lý quá nhiều việc cùng lúc (Gửi Email, Push Notification) |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Khi người dân gửi 1 báo cáo, hệ thống mất tận 3 giây để phản hồi vì phải chờ lưu DB, chờ kết nối tới Google Server để gửi Email, và chờ gọi API Firebase để gửi Notification. Người dân phải nhìn icon Loading rất sốt ruột.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI đề xuất sử dụng `@Async` trong Spring Boot để mở Thread phụ chạy ngầm việc gửi Email, giúp luồng chính phản hồi nhanh hơn.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Chỉ ghi nhận khái niệm Bất đồng bộ, nhưng từ chối cách triển khai bằng Thread nội bộ của AI.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Đập đi xây lại bằng Kiến trúc Hướng Sự Kiện (Event-Driven):
+- Critical Thinking: Dùng `@Async` (Thread Pool) là con dao hai lưỡi. Nếu Server bị Crash (sập nguồn) khi đang gửi Email ngầm, dữ liệu trên RAM sẽ bốc hơi và người dùng vĩnh viễn không nhận được thông báo. Quan trọng hơn, nếu có đợt gửi phản ánh ồ ạt, Server sẽ kiệt quệ tài nguyên (CPU Exhaustion) vì phải cõng thêm hàng ngàn luồng phụ.
+- Decision Ownership & Creative Synthesis: Tôi đã mạnh dạn ứng dụng Message Queue (RabbitMQ). Giao dịch giờ đây được chia cắt: API chính chỉ làm đúng 1 việc là lưu Database và ném một dòng sự kiện (Event) vào RabbitMQ (tốn đúng 0.1s). Tôi dựng thêm một Microservice siêu nhỏ (Notification Worker) nằm ở một máy chủ khác, chuyên trực chờ hút sự kiện từ RabbitMQ ra để gửi Email. Kết quả: API siêu tốc, chịu tải khổng lồ, và nếu Worker có bị sập thì tin nhắn vẫn nằm an toàn trong Queue, không bao giờ bị mất!
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Giải pháp `@Async` nguy hiểm, dễ mất dữ liệu)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit RabbitMQ Integration Phase 22 |
+| File liên quan | RabbitMQConfig.java, NotificationWorker.java |
+| Screenshot | |
+| Kết quả chạy/test | Bấm "Gửi phản ánh", UI báo thành công chỉ sau vài chục mili-giây. Dù tắt Worker đi rồi gửi, tin nhắn vẫn được lưu ở Queue. Bật Worker lên lại, nó tự động gửi bù Email ngay lập tức. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Đừng bắt một con trâu cày mọi mảnh ruộng. Hãy chia nhỏ công việc ra thành nhiều Service.
+```
+
+---
+
+### Lần 38: Nhất quán dữ liệu với Transactional Outbox Pattern
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 2/5 |
+| Mục đích | Ngăn chặn việc dữ liệu trong Database và RabbitMQ không đồng bộ (Data Inconsistency) |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Trong hệ thống RabbitMQ vừa xây, tôi nhận ra một lỗ hổng: Nếu lưu Database thành công, nhưng lúc chuẩn bị đẩy vào Queue thì mạng chập chờn gây lỗi. Vậy là Database có bản ghi, nhưng hệ thống thông báo thì im lìm (Mất thông báo).
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI cung cấp cho tôi đoạn code bọc `try...catch`, và dùng vòng lặp `while` kết hợp `Thread.sleep` để Retry (thử lại) việc ném vào Queue vài lần. Nếu vẫn tịt thì báo lỗi.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Bác bỏ hoàn toàn giải pháp Retry bằng tay yếu ớt này.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Triển khai Transactional Outbox Pattern chuẩn mực:
+- Critical Thinking: Retry trên RAM (trong mã Java) là vô dụng nếu Server đột ngột khởi động lại. Sự bất đồng bộ dữ liệu (Dual Write Problem) là lỗi nguy hiểm chết người trong Kiến trúc Phân tán. Không thể phó mặc nó cho vòng lặp `while` được.
+- Decision Ownership & Creative Synthesis: Tôi đã thiết kế mẫu Outbox Pattern. Khi lưu phản ánh, tôi lợi dụng sức mạnh của ACID trong Database Transaction: Cùng một lúc, tôi lưu dữ liệu vào bảng chính (`reports`), và lưu một "Bản nháp Sự kiện" vào bảng phụ (`outbox_events`). Cả 2 cùng Thành công hoặc cùng Thất bại (Rollback). Sau đó, một Polling Job (chạy độc lập) sẽ âm thầm quét bảng `outbox` để bốc những bản nháp đó đẩy vào RabbitMQ một cách từ tốn. Với giải pháp này, tôi đã đạt được cảnh giới "At-least-once Delivery". Dù mất mạng, đứt cáp hay cháy máy chủ, không một sự kiện nào bị thất lạc.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Tư duy xử lý lỗi sơ sài)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Outbox Pattern Phase 22 |
+| File liên quan | OutboxEventEntity.java, OutboxPollingJob.java |
+| Screenshot | |
+| Kết quả chạy/test | Dùng code giả lập lỗi mạng khi bắn vào RabbitMQ. Giao diện báo thành công. Dữ liệu nằm ở bảng `outbox` chờ mạng phục hồi rồi tự động chạy tiếp. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Database Transaction là vị cứu tinh vĩ đại nhất để giữ gìn sự toàn vẹn của Dữ liệu phân tán.
+```
+
+---
+
 ## 6. Prompt quan trọng nhất
 
 Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.

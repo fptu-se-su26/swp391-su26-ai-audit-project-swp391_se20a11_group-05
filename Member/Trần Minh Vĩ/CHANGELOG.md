@@ -1074,6 +1074,51 @@ Kiến trúc xịn là khi Server phụ có sập, Server chính vẫn nhởn nh
 
 ---
 
+# [Phase 23] Observability & Centralized Logging (Giám sát hệ thống)
+
+## Ngày thực hiện
+
+```text
+30/07/2026
+```
+
+## Đã hoàn thành
+
+- [x] Thu thập Log tập trung (ELK Stack): Tích hợp Elasticsearch, Logstash, Kibana để gom toàn bộ File Log từ các Server phân tán về một chỗ. Hỗ trợ tìm kiếm lỗi nhanh chóng qua Dashboard thay vì phải SSH vào từng máy chủ để đọc log tay.
+- [x] Giám sát hiệu năng và Truy vết phân tán (Prometheus + Grafana + Zipkin): Áp dụng Distributed Tracing để sinh ra một `trace_id` duy nhất xuyên suốt vòng đời của 1 Request. Vẽ biểu đồ giám sát tình trạng CPU, RAM, thời gian phản hồi API (Metrics) thời gian thực trên Grafana.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Cấu hình Logback đẩy JSON Log lên ELK | Trần Minh Vĩ | logback-spring.xml | Commit (Phase 23) |
+| 2 | Tích hợp Micrometer/Zipkin & Dashboard Grafana | Trần Minh Vĩ | application.yml, docker-compose.yml | Commit (Phase 23) |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI đề xuất những phương pháp cổ điển như viết Script gom file zip để đọc log, và chèn hàm tính giờ `System.currentTimeMillis()` thủ công rải rác khắp code. Sinh viên đã bác bỏ và triển khai Hệ sinh thái Observability (Giám sát) hiện đại.
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+Commit liên quan đến Phase 23
+```
+
+## Ghi chú
+
+```text
+Hệ thống mà không có Monitoring/Logging thì giống như lái máy bay ban đêm mà không có Radar.
+```
+
+---
+
 # 4. Tổng kết thay đổi cuối project
 
 ## 4.1. Các chức năng đã hoàn thành

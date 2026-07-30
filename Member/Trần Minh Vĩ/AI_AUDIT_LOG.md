@@ -2233,6 +2233,117 @@ Tiếp theo, tôi viết một hàm Polling chạy ngầm (Cron Job) cứ 2 giâ
 Đảm bảo Nhất quán dữ liệu là đường ranh giới phân biệt giữa Coder nghiệp dư và Software Architect.
 ```
 
+---
+
+### Lần sử dụng AI số 39
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Quản lý Log tập trung (Centralized Logging) |
+| Phần việc liên quan | DevOps / ELK Stack |
+| Mức độ sử dụng | Hỏi cách gom log (Bác bỏ giải pháp Bash Script) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Hệ thống của tôi hiện tại có 3 máy chủ: 1 máy Frontend, 1 máy Backend chính, và 1 máy Worker chạy ngầm. Khi có khách hàng báo lỗi, tôi phải SSH vào từng máy, dùng lệnh `tail -f` đọc hàng ngàn dòng log rất hoa mắt và tốn thời gian. Làm sao để xem log nhanh hơn?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI cung cấp một đoạn mã Bash Script, bảo tôi cài trên cả 3 server để cuối mỗi ngày tự động nén các file `.log` thành đuôi `.zip`, sau đó tự gửi email đính kèm file zip cho tôi tải về máy mở ra đọc.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Không áp dụng, vì cách làm này đã lỗi thời từ hàng chục năm trước, không giải quyết được nhu cầu xem log thời gian thực (Real-time).
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Xây dựng Centralized Logging với ELK Stack:
+- Critical Thinking: Khi hệ thống mở rộng thành các Microservices, việc phân tích log thủ công bằng file text là không thể. Chưa kể việc log ở nhiều server khác nhau khiến việc đối chiếu lỗi (correlation) là bất khả thi.
+- Decision Ownership & Creative Synthesis: Tôi đã dựng hệ sinh thái ELK Stack (Elasticsearch, Logstash, Kibana). Tôi cấu hình `logback-spring.xml` để các hệ thống tự động sinh log dưới định dạng JSON (có cấu trúc), và stream trực tiếp về máy chủ Logstash thay vì ghi ra ổ cứng cục bộ. Từ Kibana, tôi có được một Dashboard giao diện Web cực kỳ mạnh mẽ. Giờ đây, chỉ cần nhập tên người dùng bị lỗi vào thanh Search, toàn bộ dấu vết (footprint) của họ trên toàn hệ thống được Elasticsearch truy xuất ra trong nháy mắt. Tôi không còn phải SSH vào bất kỳ máy chủ nào nữa.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit ELK Stack Phase 23 |
+| File liên quan | logback-spring.xml, docker-compose.yml |
+| Screenshot |  |
+| Kết quả chạy/test | Mở giao diện Kibana (Cổng 5601), gõ từ khóa `ERROR`, bảng điều khiển hiển thị biểu đồ tần suất lỗi và chi tiết dòng lệnh bị Crash với đầy đủ Stack Trace. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Log là vàng. Nhưng Log nằm phân tán thì chỉ là rác. ELK biến rác thành vàng.
+```
+
+---
+
+### Lần sử dụng AI số 40
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Theo dõi luồng dữ liệu phân tán (Distributed Tracing) và Giám sát hiệu năng (Metrics) |
+| Phần việc liên quan | DevOps / Observability |
+| Mức độ sử dụng | Tham khảo công cụ (Bác bỏ phương pháp chèn code thủ công) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Tôi muốn biết một Request từ khi người dùng bấm nút đến khi hoàn thành, nó đi qua những hàm nào, ở server nào, tốn bao nhiêu mili-giây. Ngoài ra tôi muốn xem tình trạng RAM và CPU của máy chủ.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI xúi tôi khai báo biến `long startTime = System.currentTimeMillis();` ở đầu API, sau đó lấy thời gian lúc kết thúc trừ đi thời gian bắt đầu rồi in ra Log. Còn RAM, CPU thì AI bảo dùng lệnh `top` trên Linux.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Không sử dụng. 
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Triển khai Distributed Tracing và Metrics Dashboard:
+- Critical Thinking: Việc chèn code tính thời gian thủ công vào hàng trăm API sẽ tạo ra một mớ code hổ lốn (Spaghetti code) phá nát Business Logic. Lệnh `top` thì không có lưu lịch sử để tôi xem lại khi server đã sập lúc nửa đêm.
+- Decision Ownership & Creative Synthesis: Tôi đã tích hợp thư viện Micrometer và Zipkin vào Spring Boot. Mọi Request giờ đây tự động được gán một `trace_id` vô hình xuyên suốt từ API Gateway xuống tận tầng Database, đi qua cả Message Queue. Tôi có thể nhìn thấy sơ đồ hình cây (Flame Graph) chỉ ra chính xác Hàm nào, câu lệnh SQL nào chạy chậm nhất. 
+Song song đó, tôi kích hoạt tính năng Actuator của Spring Boot để bộc lộ các Metrics sức khỏe máy chủ. Cài đặt Prometheus để liên tục kéo (pull) dữ liệu này về, và dùng Grafana để vẽ ra một bảng điều khiển (Dashboard) đen ngầu hiển thị RAM, CPU, Active Connections y như phòng điều khiển của NASA. Giám sát thời gian thực 24/7.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Prometheus & Zipkin Phase 23 |
+| File liên quan | application.yml, pom.xml, docker-compose.yml |
+| Screenshot |  |
+| Kết quả chạy/test | Mở giao diện Grafana (Cổng 3000), quan sát Dashboard hiển thị JVM Memory, HikariCP Pool Usage, Garbage Collection rate và biểu đồ đếm số lượng HTTP Request theo thời gian thực. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Hệ thống không có Monitoring giống như lái máy bay ban đêm mà không có Radar, bạn không biết mình sẽ đâm vào núi lúc nào.
+```
+
 ## 5. Bảng tổng hợp mức độ sử dụng AI
 
 Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.

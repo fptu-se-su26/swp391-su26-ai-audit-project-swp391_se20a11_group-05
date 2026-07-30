@@ -2707,6 +2707,143 @@ Database Transaction là vị cứu tinh vĩ đại nhất để giữ gìn sự
 
 ---
 
+### Lần 39: Quản lý Log tập trung với ELK Stack
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 2/5 |
+| Mục đích | Tìm kiếm và phân tích Log lỗi trên nhiều server khác nhau mà không cần SSH |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Hệ thống hiện tại chạy trên 3 máy chủ (Frontend, Backend, Worker). Khi có khách hàng báo lỗi, tôi phải hì hục SSH vào từng máy chủ, chạy lệnh `tail -f` để đọc hàng ngàn dòng log rất hoa mắt, chưa kể việc không thể đối chiếu log giữa máy Backend và máy Worker.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI đề xuất tôi cài đặt một Bash Script tự động trên cả 3 máy chủ, cứ 12h đêm thì nén các file `.log` thành đuôi `.zip`, sau đó gửi Email cho tôi tải về mở ra đọc bằng Notepad.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Phủ nhận hoàn toàn cách làm thủ công lạc hậu này.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Triển khai ELK Stack (Centralized Logging):
+- Critical Thinking: Khi hệ thống mở rộng, file log phân tán ở nhiều máy chủ chính là "ác mộng" của việc Debug. Script nén file zip của AI không giúp ích gì cho việc theo dõi lỗi thời gian thực (Real-time).
+- Decision Ownership & Creative Synthesis: Tôi đã mạnh dạn ứng dụng hệ sinh thái ELK Stack (Elasticsearch, Logstash, Kibana). Tôi đổi cấu hình `logback-spring.xml` để sinh log dưới định dạng JSON và stream thẳng về máy chủ Logstash qua giao thức TCP. Elasticsearch đóng vai trò như một cỗ máy tìm kiếm Google nội bộ, lập chỉ mục (index) toàn bộ log. Khi mở giao diện Kibana, tôi có một Dashboard cực kỳ xịn sò. Chỉ cần gõ từ khóa `ERROR`, toàn bộ vết tích lỗi của cả 3 máy chủ hiện ra trong 1 giây. Việc Debug giờ đây trở nên cực kỳ nhàn nhã và chuyên nghiệp.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Tư duy quản lý thủ công)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit ELK Stack Phase 23 |
+| File liên quan | logback-spring.xml, docker-compose.yml |
+| Screenshot | |
+| Kết quả chạy/test | Giả lập lỗi Exception trong code. Mở trang web Kibana (cổng 5601), tìm kiếm `level: ERROR`, lỗi hiện ra ngay lập tức kèm Stack Trace chi tiết. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Log là rác nếu nằm phân tán. Log là Vàng nếu được quản lý tập trung.
+```
+
+---
+
+### Lần 40: Distributed Tracing & Metrics Dashboard (Prometheus + Grafana + Zipkin)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 2/5 |
+| Mục đích | Giám sát hiệu năng hệ thống (CPU, RAM) và truy vết request phân tán |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Tôi muốn đo xem API "Tạo phản ánh mới" tốn bao nhiêu thời gian để chạy qua các hàm (Controller -> Service -> Repository -> RabbitMQ). Tôi cũng muốn biết CPU và RAM của máy chủ hiện đang ăn bao nhiêu %.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI xúi tôi khai báo biến `long start = System.currentTimeMillis();` ở đầu mỗi hàm, rồi lấy `System.currentTimeMillis() - start` ở cuối hàm và in ra Log. Còn CPU thì bảo lên Linux gõ lệnh `top`.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Tuyệt đối không sử dụng cách chèn code rác vào Business Logic.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Tích hợp Hệ sinh thái Observability hiện đại:
+- Critical Thinking: Việc chèn code tính giờ thủ công vào hàng trăm API sẽ tạo ra một mớ "Spaghetti code", vi phạm nghiêm trọng nguyên tắc SOLID. Lệnh `top` của Linux thì không có tính năng lưu trữ lịch sử để tôi xem lại khi server bị sập vào lúc 3h sáng.
+- Decision Ownership & Creative Synthesis: Tôi đã cài đặt thư viện `Micrometer` và `Zipkin` vào dự án Spring Boot. Thư viện này tự động gán một `trace_id` vô hình cho mỗi Request, cho phép tôi mở Zipkin lên để nhìn thấy Flame Graph (Biểu đồ ngọn lửa) chỉ ra chính xác Hàm nào hay câu Query SQL nào đang chạy chậm.
+Song song đó, tôi cấu hình Prometheus để liên tục thu thập (pull) các thông số sức khỏe (Metrics) từ Spring Boot Actuator. Tôi dùng Grafana để vẽ các thông số này thành biểu đồ trực quan. Giờ đây, tôi có một phòng điều khiển (Control Room) theo dõi JVM Memory, Active Connections 24/7 y như một kỹ sư DevOps thực thụ.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Tư duy chèn code thủ công phá vỡ kiến trúc)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Prometheus & Zipkin Phase 23 |
+| File liên quan | application.yml, pom.xml, docker-compose.yml |
+| Screenshot | |
+| Kết quả chạy/test | Mở giao diện Grafana (Cổng 3000), quan sát Dashboard hiển thị JVM Heap Usage, CPU Load, và biểu đồ đếm số lượng HTTP Request theo thời gian thực. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Không có Monitoring, hệ thống của bạn là một chiếc hộp đen. Có Monitoring, nó là một cỗ máy trong suốt.
+```
+
+---
+
 ## 6. Prompt quan trọng nhất
 
 Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.

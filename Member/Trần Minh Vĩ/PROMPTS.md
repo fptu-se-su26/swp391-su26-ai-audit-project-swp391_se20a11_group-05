@@ -2844,6 +2844,142 @@ Không có Monitoring, hệ thống của bạn là một chiếc hộp đen. C�
 
 ---
 
+### Lần 41: Bảo mật định danh tập trung (SSO & Keycloak)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 2/5 |
+| Mục đích | Giải quyết điểm yếu chết người của JWT tự chế: Không thể thu hồi (revoke) khi bị hack |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Hệ thống cũ dùng thuật toán HMAC tạo JWT. Lỗi chí mạng là một khi đã cấp JWT, Backend không có cách nào chặn JWT đó lại cho đến khi nó hết hạn. Nếu Hacker chôm được JWT của chủ tịch phường, chúng có thể quậy nát hệ thống trong vòng 24 giờ.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI đề xuất tôi tạo một bảng `token_blacklist` trong CSDL SQL. Khi muốn đuổi ai đó, hãy insert chuỗi JWT vào bảng này. Ở Backend, mỗi lần có API request tới, bắt Java query xuống SQL xem chuỗi JWT có nằm trong bảng cấm không.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Phủ nhận hoàn toàn cách làm ngớ ngẩn làm thắt cổ chai hệ thống.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Tích hợp Hệ thống quản lý định danh chuyên nghiệp (Keycloak):
+- Critical Thinking: Bản chất của JWT là "Stateless" (Xác thực không cần chọc vào DB). Ý tưởng tạo bảng Blacklist của AI đã phá nát bản chất này. Nếu có 10.000 request/giây, Database sẽ phải thực hiện 10.000 câu lệnh SELECT để quét cái chuỗi JWT khổng lồ đó, gây sập Database ngay lập tức (Bottleneck).
+- Decision Ownership & Creative Synthesis: Tôi nhận ra việc "tự chế bánh xe" bảo mật là điều cấm kỵ. Tôi đã xóa bỏ toàn bộ code sinh JWT tự chế, thay vào đó tích hợp Keycloak (Open-source Identity and Access Management) chạy trên Docker. Backend chuyển sang dùng tiêu chuẩn OAuth2 và OpenID Connect (OIDC). Keycloak đảm nhận toàn bộ việc mã hóa bằng cặp khóa bất đối xứng RSA, cấp phát và quản lý Session. Nếu có sự cố, tôi chỉ cần 1 click trên giao diện Admin Keycloak là Token đó bị hủy tức thì, Backend từ chối ngay lập tức mà không phải tốn 1 nhịp CPU nào để chọc vào Database. Quá trình này còn tặng kèm tính năng Đăng nhập bằng Google (SSO) cực kỳ xịn sò.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Tư duy xử lý bảo mật chắp vá, phá vỡ hiệu năng)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Keycloak & OAuth2 Phase 24 |
+| File liên quan | SecurityConfig.java, docker-compose.yml |
+| Screenshot | |
+| Kết quả chạy/test | Dùng Postman gửi JWT cũ đã bị Revoke trên Keycloak, Spring Boot lập tức trả về lỗi `401 Unauthorized`. Backend không phải chạy bất kỳ câu lệnh SQL nào. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Trong ngành phần mềm, Đừng bao giờ tự viết bộ Mã hóa và Xác thực trừ khi bạn là một chuyên gia mật mã học. Hãy dùng hàng chuẩn công nghiệp.
+```
+
+---
+
+### Lần 42: Che dấu dữ liệu cá nhân (Data Masking & PII)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 2/5 |
+| Mục đích | Ngăn chặn việc hiển thị tơ hơ thông tin nhạy cảm (Số điện thoại, CMND) của người dân trên mạng |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Khi cán bộ phường mở danh sách phản ánh, số điện thoại và số CMND của người dân nộp phạt hiện rõ nguyên bản. Nếu màn hình này bị chụp trộm hoặc Hacker nghe lén (Sniffing), dữ liệu Personally Identifiable Information (PII) sẽ bị lộ.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI viết một đoạn JavaScript ở Frontend React: `phone.substring(0, 3) + "***" + phone.substring(phone.length - 3)`. Khuyên tôi lấy API về rồi dùng hàm này che đi trước khi render ra màn hình HTML.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Bác bỏ hoàn toàn tư duy bảo mật bằng Frontend (Zero Trust).
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Triển khai Custom Jackson Serializer để Mask Data tại Backend:
+- Critical Thinking: Xử lý bảo mật ở Frontend là một trò hề (Security by Obscurity). Dù UI có hiển thị dấu `***`, thì chuỗi JSON được API trả về qua đường mạng vẫn chứa số điện thoại thật. Bất cứ ai biết xài phím F12 mở tab Network lên đều lấy được toàn bộ database thông tin cá nhân.
+- Decision Ownership & Creative Synthesis: Tôi chặn đứng rủi ro này từ trong trứng nước (Backend). Tôi viết một `Custom Jackson Serializer` và một Annotation `@PiiMasking`. Trong Class DTO của Java, tôi gắn `@PiiMasking` lên trường `phoneNumber`. Khi Spring Boot biến Object thành chuỗi JSON để ném qua mạng, Serializer này sẽ "bóp méo" số điện thoại ngay trong RAM máy chủ thành dạng `098***123`. Kết quả: JSON truyền đi trên Internet không hề chứa thông tin thật. Hacker có F12 hay bắt được gói tin cũng đành chịu thua. Chuẩn bảo mật cấp Ngân hàng được thiết lập.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Tư duy bảo mật Frontend sai lệch hoàn toàn)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Data Masking Phase 24 |
+| File liên quan | PiiMaskingSerializer.java, @PiiMasking, ReportDTO.java |
+| Screenshot | |
+| Kết quả chạy/test | Gọi API qua Postman, dữ liệu trả về `{"phoneNumber": "098***123"}`. Thông tin thật không bao giờ rời khỏi cánh cửa của máy chủ Backend. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Zero Trust (Không tin ai cả). Đặc biệt là không được tin tưởng bất cứ thứ gì nằm ở Frontend.
+```
+
+---
+
 ## 6. Prompt quan trọng nhất
 
 Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.

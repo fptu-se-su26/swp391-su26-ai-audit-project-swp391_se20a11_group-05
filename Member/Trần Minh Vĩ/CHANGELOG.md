@@ -1119,6 +1119,51 @@ Hệ thống mà không có Monitoring/Logging thì giống như lái máy bay b
 
 ---
 
+# [Phase 24] Security Hardening & Zero Trust (Bảo mật tầng sâu)
+
+## Ngày thực hiện
+
+```text
+31/07/2026
+```
+
+## Đã hoàn thành
+
+- [x] Quản lý định danh tập trung (Keycloak & OAuth2): Nâng cấp hệ thống xác thực từ JWT tự chế (khó thu hồi) sang tiêu chuẩn OAuth2 / OpenID Connect sử dụng IAM chuyên dụng (Keycloak), hỗ trợ SSO (Đăng nhập bằng Google).
+- [x] Bảo vệ dữ liệu cá nhân (Data Masking & PII Protection): Che dấu (Mask) tự động các thông tin nhạy cảm (Số điện thoại, CMND/CCCD) ngay tại tầng Backend (Jackson Serializer) trước khi dữ liệu rời khỏi máy chủ, ngăn chặn lộ lọt dữ liệu qua API Network.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Cấu hình Spring Security với Keycloak | Trần Minh Vĩ | SecurityConfig.java, docker-compose.yml | Commit (Phase 24) |
+| 2 | Triển khai Custom Jackson Serializer cho Data Masking | Trần Minh Vĩ | PiiMaskingSerializer.java | Commit (Phase 24) |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI đề xuất cách giải quyết nghiệp dư: dùng bảng Blacklist trong DB để lưu token đã hủy, và che dữ liệu bằng JavaScript ở Frontend. Sinh viên bác bỏ vì gây thắt cổ chai DB và không an toàn trước Hacker, thay vào đó áp dụng giải pháp của Kỹ sư bảo mật (Security Engineer).
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+Commit liên quan đến Phase 24
+```
+
+## Ghi chú
+
+```text
+Đừng che giấu dữ liệu ở Frontend, Hacker chỉ cần nhấn F12 là thấy tất cả. Hãy chặn nó từ trong trứng nước (Backend).
+```
+
+---
+
 # 4. Tổng kết thay đổi cuối project
 
 ## 4.1. Các chức năng đã hoàn thành

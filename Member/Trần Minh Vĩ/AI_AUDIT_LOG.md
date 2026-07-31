@@ -2344,6 +2344,112 @@ Song song đó, tôi kích hoạt tính năng Actuator của Spring Boot để b
 Hệ thống không có Monitoring giống như lái máy bay ban đêm mà không có Radar, bạn không biết mình sẽ đâm vào núi lúc nào.
 ```
 
+---
+
+### Lần sử dụng AI số 41
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Bảo mật tài khoản bằng Hệ thống quản lý định danh (Identity and Access Management - IAM) |
+| Phần việc liên quan | Security / OAuth2 & Keycloak |
+| Mức độ sử dụng | Hỏi về giải pháp vô hiệu hóa JWT (Bác bỏ ý tưởng của AI) |
+
+#### 4.1. Prompt đã sử dụng
+
+| Nội dung | Thông tin |
+|---|---|
+| Prompt | "Hệ thống của tôi đang dùng chuỗi JWT tự tạo để đăng nhập. Hôm qua có một tài khoản cán bộ phường bị hack mất JWT. Kẻ gian dùng JWT đó để phá dữ liệu. Tôi muốn vô hiệu hóa (revoke) cái JWT đó ngay lập tức thì làm thế nào?" |
+
+#### 4.2. Kết quả AI gợi ý
+
+| Nội dung | Thông tin |
+|---|---|
+| Gợi ý | AI xúi tôi tạo một bảng `token_blacklist` trong Database. Mỗi khi muốn vô hiệu hóa JWT nào, thì Insert chuỗi JWT đó vào bảng. Sau đó sửa lại Code ở hàm Filter: Mỗi khi có Request tới, hệ thống phải query vào bảng `token_blacklist` xem JWT có nằm trong đó không, nếu không thì mới cho qua. |
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+| Nội dung | Thông tin |
+|---|---|
+| Sử dụng | Nhận thức được nhược điểm của JWT tự chế (Khó thu hồi). Tuyệt đối không dùng cách Blacklist của AI. |
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+| Nội dung | Thông tin |
+|---|---|
+| Cải tiến | **Nâng cấp kiến trúc bảo mật với Keycloak (SSO & OAuth2)** <br> - **Critical Thinking:** Bản chất của JWT là "Stateless" (Không cần query DB để kiểm tra). Nếu nghe lời AI, mỗi lần gọi API lại bắt hệ thống chọc vào DB để tìm chuỗi Token (rất dài) trong bảng Blacklist, thì truy vấn sẽ cực kỳ chậm. Khi có 10,000 Request/s, Database sẽ bị bóp nghẹt (Bottleneck) chỉ vì thao tác check Token vớ vẩn này. <br> - **Decision Ownership & Creative Synthesis:** Tôi quyết định không tự chế "bánh xe" bảo mật nữa. Tôi tích hợp **Keycloak** (Một hệ thống Identity and Access Management mã nguồn mở chuẩn Doanh nghiệp) qua Docker. Hệ thống chuyển sang dùng chuẩn bảo mật OAuth2 và OpenID Connect (OIDC). Keycloak đảm nhận toàn bộ việc cấp phát, mã hóa RSA, thu hồi Token và quản lý phiên đăng nhập (Session). Ứng dụng Spring Boot Backend chỉ cần gọi API của Keycloak để verify. Giờ đây, chỉ với 1 cú click chuột trên giao diện Admin của Keycloak, tôi có thể "Đá" tên Hacker văng khỏi hệ thống ngay lập tức mà không làm chậm DB. Hơn nữa, kiến trúc này giúp tôi mở khóa tính năng Đăng nhập bằng Google/Facebook (SSO) chỉ trong vài nốt nhạc. |
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Keycloak & OAuth2 Phase 24 |
+| File liên quan | SecurityConfig.java, docker-compose.yml |
+| Screenshot |  |
+| Kết quả chạy/test | Dùng Postman gửi JWT cũ đã bị Revoke trên Keycloak, Spring Boot lập tức trả về lỗi `401 Unauthorized`. Backend không hề tốn một nhịp CPU nào để query Database. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Bảo mật là một ngành khoa học chuyên sâu. Đừng tự chế hệ thống Xác thực, hãy đứng trên vai người khổng lồ (Keycloak, Auth0, AWS Cognito).
+```
+
+---
+
+### Lần sử dụng AI số 42
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Ẩn danh Dữ liệu cá nhân (Data Masking & PII Protection) |
+| Phần việc liên quan | Security / Backend Jackson Serializer |
+| Mức độ sử dụng | Hỏi cách che dấu Số điện thoại và CMND (Bác bỏ cách làm ở Frontend) |
+
+#### 4.1. Prompt đã sử dụng
+
+| Nội dung | Thông tin |
+|---|---|
+| Prompt | "Người dân nộp phản ánh kèm số CMND/CCCD và Số điện thoại cá nhân. Khi nhân viên của Phường mở danh sách xem, dữ liệu này hiện rõ mồn một. Tôi sợ bị rò rỉ dữ liệu nhạy cảm (PII). Làm sao để hiển thị ẩn bớt, kiểu như '098***123'?" |
+
+#### 4.2. Kết quả AI gợi ý
+
+| Nội dung | Thông tin |
+|---|---|
+| Gợi ý | AI hào hứng viết cho tôi một hàm JavaScript ở React (Frontend): `let maskedPhone = phone.substring(0, 3) + "***" + phone.substring(phone.length - 3)`. AI bảo tôi lấy dữ liệu từ API về rồi chạy qua hàm này trước khi hiển thị lên màn hình. |
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+| Nội dung | Thông tin |
+|---|---|
+| Sử dụng | Chỉ dùng công thức String Manipulation để cắt chuỗi. |
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+| Nội dung | Thông tin |
+|---|---|
+| Cải tiến | **Che giấu dữ liệu (Data Masking) triệt để tại tầng Backend** <br> - **Critical Thinking:** Ý tưởng che dữ liệu bằng Frontend của AI là một **Thảm họa Bảo mật**. Nếu chỉ che bằng JavaScript trên giao diện (UI), thì luồng API trả về từ Server vẫn chứa chuỗi JSON gốc nguyên bản (chứa Số điện thoại thật). Một tên Hacker hoặc thậm chí một nhân viên tò mò chỉ cần nhấn phím **F12**, mở tab Network lên là có thể thu thập (Crawl) được toàn bộ dữ liệu cá nhân của người dân một cách dễ dàng. <br> - **Decision Ownership & Creative Synthesis:** Nguyên tắc Zero Trust: Không tin tưởng Frontend. Dữ liệu nhạy cảm phải bị "xóa sổ" trước khi rời khỏi máy chủ Backend. Tôi đã tạo một `Custom Jackson Serializer` trong Spring Boot. Khi Java biến đối tượng thành JSON để gửi qua mạng, nó tự động bắt các field có gắn Annotation `@PiiMasking`, và thực hiện che (Mask) ngay trong RAM của máy chủ. Kết quả là chuỗi JSON đi qua mạng internet chỉ chứa `098***123`. Lúc này, dù Hacker có F12, bắt gói tin (Packet Sniffing) hay Hack luôn cả Frontend, chúng cũng không bao giờ có được dữ liệu thật. Đây là chuẩn bảo mật cấp Ngân hàng. |
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Data Masking Phase 24 |
+| File liên quan | PiiMaskingSerializer.java, @PiiMasking, ReportDTO.java |
+| Screenshot |  |
+| Kết quả chạy/test | Dùng Postman gọi API `/api/reports`, chuỗi JSON trả về cho trường số điện thoại là `"phoneNumber": "098***123"`. Đảm bảo tuyệt đối an toàn trên môi trường Network. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Đừng bao giờ xử lý bảo mật ở Frontend. Frontend nằm trong tay người dùng, và mọi thứ trong tay người dùng đều có thể bị bẻ khóa.
+```
+
 ## 5. Bảng tổng hợp mức độ sử dụng AI
 
 Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.

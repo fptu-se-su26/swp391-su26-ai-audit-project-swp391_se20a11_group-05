@@ -247,14 +247,23 @@ public class WardRankingService {
      * Get detailed ward scorecard.
      */
     @Transactional(readOnly = true)
-    public WardDetailResponse getWardDetail(Long wardId) {
+    public WardDetailResponse getWardDetail(Long wardId, Integer year, Integer month) {
         List<WardRankingSnapshot> history =
                 snapshotRepository.findByWardIdOrderByPeriodYearDescPeriodMonthDesc(wardId);
 
         List<WardAchievement> achievements = achievementRepository.findByWardId(wardId);
 
-        // Current = most recent snapshot
-        WardRankingSnapshot current = history.isEmpty() ? null : history.get(0);
+        // Current = most recent snapshot OR specific month if year/month provided
+        WardRankingSnapshot current = null;
+        if (year != null && month != null) {
+            current = history.stream()
+                .filter(s -> s.getPeriodYear() == year && s.getPeriodMonth() == month)
+                .findFirst()
+                .orElse(null);
+        }
+        if (current == null) {
+            current = history.isEmpty() ? null : history.get(0);
+        }
 
         // Ward name from any snapshot or fallback
         Map<Long, String> wardNames = getWardNames(history);
@@ -385,7 +394,7 @@ public class WardRankingService {
      */
     @Transactional(readOnly = true)
     public byte[] generatePdfReport(Long wardId) {
-        WardDetailResponse detail = getWardDetail(wardId);
+        WardDetailResponse detail = getWardDetail(wardId, null, null);
         try (java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream()) {
             com.lowagie.text.Document document = new com.lowagie.text.Document();
             com.lowagie.text.pdf.PdfWriter.getInstance(document, baos);

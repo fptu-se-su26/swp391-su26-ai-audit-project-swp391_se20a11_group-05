@@ -58,6 +58,7 @@ import {
   Clock,
   HeartHandshake,
   Rocket,
+  Calendar,
 } from "lucide-react";
 import { lazy, Suspense, useState, useEffect } from "react";
 import { staticNews, staticFaqs } from "@/lib/static-content";
@@ -860,7 +861,7 @@ function HomePage() {
           </div>
 
           {/* Grouped Bar Chart - hidden by design, wrapped in conditional false to prevent mounting warnings */}
-          {false && (
+          {import.meta.env.VITE_SHOW_HOME_CHART === "true" && (
             <div className="hidden w-full bg-white border border-[#E4EAF2] rounded-xl p-5 hover:shadow-sm transition">
               <div className="h-[320px] md:h-[400px]">
                 <ResponsiveContainer width="100%" height="100%" minWidth={0}>

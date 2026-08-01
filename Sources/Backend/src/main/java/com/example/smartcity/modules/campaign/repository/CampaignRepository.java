@@ -3,6 +3,7 @@ package com.example.smartcity.modules.campaign.repository;
 import com.example.smartcity.modules.campaign.entity.Campaign;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -11,10 +12,13 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface CampaignRepository extends JpaRepository<Campaign, Long> {
 
+    @EntityGraph(attributePaths = {"createdByUser", "ward"})
     Page<Campaign> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
+    @EntityGraph(attributePaths = {"createdByUser", "ward"})
     Page<Campaign> findByStatusOrderByCreatedAtDesc(String status, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"createdByUser", "ward"})
     @Query("""
             SELECT c
             FROM Campaign c
@@ -31,6 +35,7 @@ public interface CampaignRepository extends JpaRepository<Campaign, Long> {
             @Param("now") java.time.LocalDateTime now,
             Pageable pageable);
 
+    @EntityGraph(attributePaths = {"createdByUser", "ward"})
     @Query("""
             SELECT c
             FROM Campaign c
@@ -47,6 +52,7 @@ public interface CampaignRepository extends JpaRepository<Campaign, Long> {
             @Param("now") java.time.LocalDateTime now,
             Pageable pageable);
 
+    @EntityGraph(attributePaths = {"createdByUser", "ward"})
     @Query("""
             SELECT c
             FROM Campaign c

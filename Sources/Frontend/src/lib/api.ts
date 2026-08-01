@@ -192,7 +192,7 @@ export interface TokenResponse {
   token: string;
   tokenType: string;
   username: string;
-  role: BackendRole;
+  role: RawBackendRole;
   wardName?: string | null;
   wardType?: string | null;
   wardId?: number | null;
@@ -209,7 +209,7 @@ export interface TokenPairResponse {
   tokenType: string;
   expiresIn: number;
   username: string;
-  role: BackendRole;
+  role: RawBackendRole;
   wardName?: string | null;
   wardType?: string | null;
   wardId?: number | null;
@@ -223,6 +223,7 @@ export interface MfaRequiredResponse {
 }
 
 export type BackendRole = "CITIZEN" | "WARD_STAFF" | "POLICE" | "SUPER_ADMIN";
+export type RawBackendRole = BackendRole | `ROLE_${BackendRole}`;
 
 export interface UserProfile {
   id: number;
@@ -1030,6 +1031,22 @@ export const policeApi = {
     request<any[]>("/api/police/feedbacks/analyze-duplicates", {
       method: "GET",
     }),
+
+  getSchedule: (mondayKey: string) =>
+    request<any>(`/api/police/schedule?mondayKey=${mondayKey}`, {
+      method: "GET",
+    }),
+
+  saveSchedule: (mondayKey: string, scheduleData: string) =>
+    request<any>("/api/police/schedule", {
+      method: "POST",
+      body: JSON.stringify({ mondayKey, scheduleData }),
+    }),
+
+  getPublicSchedule: (wardId: number | string, mondayKey: string) =>
+    request<any>(`/api/police/schedule/public?wardId=${wardId}&mondayKey=${mondayKey}`, {
+      method: "GET",
+    }),
 };
 
 export const categoryApi = {
@@ -1581,8 +1598,13 @@ export const wardRankingApi = {
   getTop: (limit = 3) =>
     request<WardRankingEntry[]>(`/api/ward-ranking/top?limit=${limit}`, { skipAuth: true }),
 
-  getWardDetail: (wardId: number | string) =>
-    request<WardRankingDetail>(`/api/ward-ranking/${wardId}`, { skipAuth: true }),
+  getWardDetail: (wardId: number | string, year?: number, month?: number) => {
+    const params = new URLSearchParams();
+    if (year) params.set("year", String(year));
+    if (month) params.set("month", String(month));
+    const qs = params.toString() ? `?${params.toString()}` : "";
+    return request<WardRankingDetail>(`/api/ward-ranking/${wardId}${qs}`, { skipAuth: true });
+  },
 
   recalculate: (year?: number, month?: number) => {
     const params = new URLSearchParams();

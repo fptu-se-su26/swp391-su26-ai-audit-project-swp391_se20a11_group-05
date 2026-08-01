@@ -62,10 +62,15 @@ public class AuthController {
         rateLimiter.checkLoginLimit(getClientIp(httpRequest));
 
         AuthResponse result = authService.authenticateUser(loginRequest);
-        if (result.isMfaRequired()) {
-            return ResponseEntity.ok(ApiResponse.success("Yêu cầu xác thực MFA", result));
+
+        // [SECURITY] Reset bucket sau khi xác thực thành công — user hợp lệ
+        // không bị phạt vì các lần nhập sai trước đó trong cùng session.
+        // MFA flow không reset ngay vì chưa hoàn thành xác thực đầy đủ.
+        if (!result.isMfaRequired()) {
+            rateLimiter.clearLoginLimit(getClientIp(httpRequest));
+            return ResponseEntity.ok(ApiResponse.success("Đăng nhập thành công", result));
         }
-        return ResponseEntity.ok(ApiResponse.success("Đăng nhập thành công", result));
+        return ResponseEntity.ok(ApiResponse.success("Yêu cầu xác thực MFA", result));
     }
 
     @PostMapping("/mfa/setup")
@@ -96,12 +101,12 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Object>> registerUser(
             @Valid @RequestBody RegisterRequest registerRequest,
             HttpServletRequest httpRequest) {
-        // [SECURITY] Rate limit: 5 lần / 1 giờ theo IP
+        // [SECURITY] Rate limit: 5 lần / 1 giờ theo IP 
         rateLimiter.checkRegisterLimit(getClientIp(httpRequest));
 
         String authHeader = httpRequest.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            // [SECURITY] Rate limit: 5 lần / 1 giờ theo IP và số điện thoại cho Firebase OTP
+            // [SECURITY] Rate limit: 5 lần / 1 giờ theo IP và số điện thoại cho Firebase OTP 
             rateLimiter.checkFirebaseOtpLimit(getClientIp(httpRequest), registerRequest.getPhoneNumber());
             String firebaseToken = authHeader.substring(7);
             AuthResponse response = authService.registerWithFirebaseToken(registerRequest, firebaseToken);
@@ -121,7 +126,7 @@ public class AuthController {
     @PostMapping("/sms/send")
     public ResponseEntity<ApiResponse<String>> sendSmsOtp(
             @Valid @RequestBody SmsSendRequest request) {
-        // [SECURITY] Rate limit: 3 lần / 10 phút theo số điện thoại
+        // [SECURITY] Rate limit: 3 lần / 10 phút theo số điện thoại 
         rateLimiter.checkSmsLimit(request.getPhoneNumber());
         String message = smsService.generateAndSendOtp(request.getPhoneNumber());
         return ResponseEntity.ok(ApiResponse.success(message, null));
@@ -157,6 +162,7 @@ public class AuthController {
      * Body: { "username": "...", "password": "...", "fullName": "...", "role": "SUPER_ADMIN|WARD_STAFF|POLICE|CITIZEN" }
      */
     @PostMapping("/dev/seed-user")
+    @org.springframework.context.annotation.Profile({"dev", "local"})
     @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<ApiResponse<Map<String, String>>> devSeedUser(@RequestBody Map<String, String> body) {
         String username = body.getOrDefault("username", "superadmin");

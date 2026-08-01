@@ -16,7 +16,7 @@ import { useEffect, useMemo, useRef, useState, type ComponentType } from "react"
 import { toast } from "sonner";
 import { getToken, type NotificationResponse } from "@/lib/api";
 import { useInfiniteNotifications, useMarkNotificationReadMutation } from "@/lib/hooks";
-import { highlightNotificationContent } from "@/lib/notificationHelper";
+import { highlightNotificationContent, translateNotificationTitle } from "@/lib/notificationHelper";
 import { useI18n } from "@/lib/i18n";
 import { useAuth, Role } from "@/lib/auth";
 
@@ -97,7 +97,10 @@ function NotificationsPage() {
             search: { tab: "blacklist", detailId: String(feedbackId) },
           });
         }
-      } else if (item.type === "CAMPAIGN_APPEAL_APPROVED" || item.type === "CAMPAIGN_APPEAL_REJECTED") {
+      } else if (
+        item.type === "CAMPAIGN_APPEAL_APPROVED" ||
+        item.type === "CAMPAIGN_APPEAL_REJECTED"
+      ) {
         await navigate({ to: "/profile" });
       } else if (item.type?.startsWith("CAMPAIGN")) {
         if (user?.role === Role.WARD_STAFF) {
@@ -246,7 +249,9 @@ function NotificationCard({
 
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
-            <h2 className="font-bold text-lg text-ink leading-snug">{item.title}</h2>
+            <h2 className="font-bold text-lg text-ink leading-snug">
+              {translateNotificationTitle(item.title, item.type, locale)}
+            </h2>
             {!item.isRead && (
               <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-gov-gold text-gov-blue-deep">
                 {locale === "vi" ? "Mới" : "New"}
@@ -254,7 +259,7 @@ function NotificationCard({
             )}
           </div>
           <p className="text-ink-soft mb-3 leading-relaxed">
-            {highlightNotificationContent(item.content)}
+            {highlightNotificationContent(item.content, item.type, locale)}
           </p>
 
           {(item.feedbackTrackingCode || item.feedbackTitle || statusLabel) && (

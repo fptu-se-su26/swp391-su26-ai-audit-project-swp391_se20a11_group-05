@@ -8,7 +8,7 @@ import { Search } from "lucide-react";
 interface MapProps {
   data: WardRankingEntry[];
   onWardClick: (wardId: number) => void;
-  metric?: "overallScore" | "speedScore" | "lowIncidenceScore" | "satisfactionScore";
+  metric?: "overallScore" | "speedScore" | "resolutionRate";
 }
 
 export function WardChoroplethMap({ data, onWardClick, metric = "overallScore" }: MapProps) {
@@ -55,7 +55,10 @@ export function WardChoroplethMap({ data, onWardClick, metric = "overallScore" }
   const layersMapRef = useRef(new Map<number, any>());
 
   // Force remount when data changes
-  const geoJsonKey = useMemo(() => JSON.stringify(data.map(d => d.wardId + d.currentScore)), [data]);
+  const geoJsonKey = useMemo(
+    () => JSON.stringify(data.map((d) => `${d.wardId}-${d.overallScore}`)),
+    [data],
+  );
 
   useEffect(() => {
     if (activeWardId && mapRef.current) {
@@ -63,14 +66,14 @@ export function WardChoroplethMap({ data, onWardClick, metric = "overallScore" }
       if (layer) {
         const bounds = layer.getBounds();
         mapRef.current.flyToBounds(bounds, { duration: 1, padding: [50, 50] });
-        
+
         // Highlight logic
         geoJsonRef.current?.resetStyle(); // Reset all styles first
         layer.setStyle({
           weight: 4,
           color: "#3b82f6", // Blue outline for searched ward
           dashArray: "",
-          fillOpacity: 0.9
+          fillOpacity: 0.9,
         });
         layer.bringToFront();
       }
@@ -82,7 +85,7 @@ export function WardChoroplethMap({ data, onWardClick, metric = "overallScore" }
   const searchResults = useMemo(() => {
     if (!searchTerm.trim()) return [];
     const term = searchTerm.toLowerCase();
-    
+
     // Get all valid wards from geoData
     const allGeoWards = (geoData as any).features
       .map((f: any) => f.properties?.ten_xa)
@@ -91,13 +94,13 @@ export function WardChoroplethMap({ data, onWardClick, metric = "overallScore" }
     // Remove duplicates just in case
     const uniqueWards = Array.from(new Set(allGeoWards));
 
-    return uniqueWards.filter(w => w.toLowerCase().includes(term)).slice(0, 8); // Giới hạn 8 kết quả
+    return uniqueWards.filter((w) => w.toLowerCase().includes(term)).slice(0, 8); // Giới hạn 8 kết quả
   }, [searchTerm]);
 
   const handleSelectWard = (wardName: string) => {
     setSearchTerm(wardName);
     setIsSearchFocused(false);
-    
+
     // Find wardId if it exists in data
     const ward = wardDataMap.get(wardName.trim().toLowerCase());
     if (ward) {
@@ -122,11 +125,11 @@ export function WardChoroplethMap({ data, onWardClick, metric = "overallScore" }
     if (!wardName) return;
 
     const ward = wardDataMap.get(wardName.trim().toLowerCase());
-    
+
     if (ward) {
       layersMapRef.current.set(ward.wardId, layer);
     }
-    
+
     // Tooltip formatting
     let scoreText = "Chưa có phản ánh";
     if (ward) {
@@ -143,7 +146,10 @@ export function WardChoroplethMap({ data, onWardClick, metric = "overallScore" }
         <div class="text-sm font-semibold">${scoreText}</div>
       </div>
     `;
-    layer.bindTooltip(popupContent, { sticky: true, className: 'bg-white border-0 shadow-lg rounded-lg p-2' });
+    layer.bindTooltip(popupContent, {
+      sticky: true,
+      className: "bg-white border-0 shadow-lg rounded-lg p-2",
+    });
 
     // Interactions
     layer.on({
@@ -158,25 +164,25 @@ export function WardChoroplethMap({ data, onWardClick, metric = "overallScore" }
           weight: 3,
           color: "#f59e0b",
           dashArray: "",
-          fillOpacity: 0.9
+          fillOpacity: 0.9,
         });
         target.bringToFront();
       },
       mouseout: (e: any) => {
         const target = e.target;
         geoJsonRef.current?.resetStyle(target);
-        
+
         // Re-apply active search highlight if this was the active ward
         if (activeWardId && ward && activeWardId === ward.wardId) {
           target.setStyle({
             weight: 4,
             color: "#3b82f6",
             dashArray: "",
-            fillOpacity: 0.9
+            fillOpacity: 0.9,
           });
           target.bringToFront();
         }
-      }
+      },
     });
   };
 
@@ -196,9 +202,9 @@ export function WardChoroplethMap({ data, onWardClick, metric = "overallScore" }
       fillColor: fillColor,
       weight: 1.5,
       opacity: 1,
-      color: 'white', // Border color
-      dashArray: '3',
-      fillOpacity: 0.75
+      color: "white", // Border color
+      dashArray: "3",
+      fillOpacity: 0.75,
     };
   };
 
@@ -223,7 +229,7 @@ export function WardChoroplethMap({ data, onWardClick, metric = "overallScore" }
             onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
           />
           {searchTerm && (
-            <button 
+            <button
               className="text-slate-400 hover:text-slate-600 ml-2"
               onClick={() => {
                 setSearchTerm("");
@@ -266,7 +272,7 @@ export function WardChoroplethMap({ data, onWardClick, metric = "overallScore" }
             url="https://mt1.google.com/vt/lyrs=s&hl=vi&gl=VN&x={x}&y={y}&z={z}"
             attribution="&copy; Google Maps"
           />
-          
+
           <GeoJSON
             key={geoJsonKey}
             ref={geoJsonRef}
@@ -275,9 +281,7 @@ export function WardChoroplethMap({ data, onWardClick, metric = "overallScore" }
             onEachFeature={onEachFeature}
           />
 
-          <TileLayer
-            url="https://mt1.google.com/vt/lyrs=h&hl=vi&gl=VN&x={x}&y={y}&z={z}"
-          />
+          <TileLayer url="https://mt1.google.com/vt/lyrs=h&hl=vi&gl=VN&x={x}&y={y}&z={z}" />
         </MapContainer>
       </div>
     </div>

@@ -36,8 +36,7 @@ function NewsDetailComponent() {
           <div
             className="absolute top-0 right-0 w-full h-full"
             style={{
-              backgroundImage:
-                "radial-gradient(circle at 100% 0%, #ffffff 0%, transparent 50%)",
+              backgroundImage: "radial-gradient(circle at 100% 0%, #ffffff 0%, transparent 50%)",
             }}
           ></div>
         </div>
@@ -68,7 +67,9 @@ function NewsDetailComponent() {
             </span>
             <span className="flex items-center gap-2">
               <Calendar size={16} />
-              {news.createdAt ? format(new Date(news.createdAt), "dd/MM/yyyy HH:mm", { locale: vi }) : ""}
+              {news.createdAt
+                ? format(new Date(news.createdAt), "dd/MM/yyyy HH:mm", { locale: vi })
+                : ""}
             </span>
             <span className="flex items-center gap-2">
               <Eye size={16} />
@@ -80,13 +81,9 @@ function NewsDetailComponent() {
 
       <div className="container mx-auto px-4 md:px-6 -mt-[60px] relative z-20 max-w-[900px]">
         <div className="bg-white rounded-2xl shadow-xl shadow-[#0B2545]/5 overflow-hidden border border-[#E4EAF2]">
-          {news.imageUrl && (
+          {news.imageUrl && news.imageUrl !== "111" && news.imageUrl.trim() !== "" && (
             <div className="w-full aspect-video md:aspect-[21/9] relative bg-slate-50 group">
-              <img
-                src={news.imageUrl}
-                alt={news.title}
-                className="w-full h-full object-cover"
-              />
+              <img src={news.imageUrl} alt={news.title} className="w-full h-full object-cover" />
             </div>
           )}
 
@@ -102,9 +99,11 @@ function NewsDetailComponent() {
 
             {/* Content */}
             <div className="prose prose-slate max-w-none prose-lg prose-headings:text-[#0B2545] prose-headings:font-extrabold prose-a:text-[#0F5BD8] hover:prose-a:text-[#0B4FC4] prose-img:rounded-xl prose-p:leading-loose prose-p:text-slate-700">
-              <div dangerouslySetInnerHTML={{ __html: sanitizeNewsHtml(news.content || news.summary) }} />
+              <div
+                dangerouslySetInnerHTML={{ __html: sanitizeNewsHtml(news.content || news.summary) }}
+              />
             </div>
-            
+
             {/* End of article marker */}
             <div className="mt-12 flex justify-center">
               <div className="w-16 h-1 bg-slate-200 rounded-full"></div>

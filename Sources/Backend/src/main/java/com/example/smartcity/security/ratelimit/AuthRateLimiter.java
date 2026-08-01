@@ -84,12 +84,23 @@ public class AuthRateLimiter {
 
     /**
      * Kiểm tra rate limit cho endpoint /login theo IP.
+     * Chỉ ghi nhận request vào bucket (tăng bộ đếm);
+     * gọi {@link #clearLoginLimit(String)} sau khi xác thực thành công để reset.
      * Ném RateLimitExceededException nếu vượt 5 lần / 15 phút.
      */
     public void checkLoginLimit(String ipAddress) {
         checkLimit(loginBuckets, "LOGIN:" + ipAddress,
                 loginMaxAttempts, Duration.ofMinutes(loginWindowMinutes),
                 "Đăng nhập");
+    }
+
+    /**
+     * Reset bộ đếm login cho IP sau khi đăng nhập thành công.
+     * Đảm bảo user hợp lệ không bị phạt vì các lần nhập sai trước đó.
+     */
+    public void clearLoginLimit(String ipAddress) {
+        loginBuckets.invalidate("LOGIN:" + ipAddress);
+        log.debug("[RateLimit] Reset login bucket cho IP '{}' sau khi đăng nhập thành công", ipAddress);
     }
 
     /**

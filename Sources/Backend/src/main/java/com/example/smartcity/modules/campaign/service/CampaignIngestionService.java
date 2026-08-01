@@ -71,7 +71,7 @@ public class CampaignIngestionService {
             log.info("✅ [CampaignIngestion] Đã đồng bộ thành công chiến dịch '{}' vào Vector DB.", campaign.getTitle());
 
         } catch (Exception e) {
-            log.error("❌ [CampaignIngestion] Lỗi khi đồng bộ chiến dịch: {}", e.getMessage(), e);
+            log.error(" [CampaignIngestion] Lỗi khi đồng bộ chiến dịch: {}", e.getMessage(), e);
         }
     }
 }

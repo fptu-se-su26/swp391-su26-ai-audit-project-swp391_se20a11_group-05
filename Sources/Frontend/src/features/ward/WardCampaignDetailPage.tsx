@@ -90,7 +90,10 @@ export function WardCampaignDetailPage({
   const updateCampaign = useUpdateCampaign();
   const endCampaign = useEndCampaign();
   const finalizeCampaign = useFinalizeCampaign();
-  const participantsQuery = useCampaignParticipants(campaignId);
+  const participantsQuery = useCampaignParticipants(
+    campaignId,
+    Boolean(campaign?.canManage || campaign?.privateDetailsVisible),
+  );
 
   const [isEditing, setIsEditing] = useState(initialEditMode);
   const [isAttending, setIsAttending] = useState(false);
@@ -791,35 +794,50 @@ export function WardCampaignDetailPage({
                   <Lock size={18} className="text-amber-600" />
                   Thông tin nội bộ phường
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-white p-4 rounded-xl border border-amber-100">
-                    <h5 className="text-xs font-black text-amber-800 uppercase tracking-wide flex items-center gap-1.5">
-                      <MapPin size={13} />
-                      Điểm tập kết
-                    </h5>
-                    <p className="text-sm font-bold text-slate-800 mt-1.5">
-                      {campaign.privateLocationText || "Chưa thiết lập"}
+                {campaign.privateDetailsVisible ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-white p-4 rounded-xl border border-amber-100">
+                      <h5 className="text-xs font-black text-amber-800 uppercase tracking-wide flex items-center gap-1.5">
+                        <MapPin size={13} />
+                        Điểm tập kết
+                      </h5>
+                      <p className="text-sm font-bold text-slate-800 mt-1.5">
+                        {campaign.privateLocationText || "Chưa thiết lập"}
+                      </p>
+                    </div>
+                    <div className="bg-white p-4 rounded-xl border border-amber-100">
+                      <h5 className="text-xs font-black text-amber-800 uppercase tracking-wide flex items-center gap-1.5">
+                        <Package size={13} />
+                        Dụng cụ yêu cầu
+                      </h5>
+                      <p className="text-sm font-bold text-slate-800 mt-1.5">
+                        {campaign.requiredTools || "Chưa thiết lập"}
+                      </p>
+                    </div>
+                    <div className="bg-white p-4 rounded-xl border border-amber-100">
+                      <h5 className="text-xs font-black text-amber-800 uppercase tracking-wide flex items-center gap-1.5">
+                        <MessageCircle size={13} />
+                        Cán bộ liên hệ
+                      </h5>
+                      <p className="text-sm font-bold text-slate-800 mt-1.5">
+                        {campaign.organizerContact || "Chưa thiết lập"}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-6 text-center bg-white rounded-xl border border-amber-100 space-y-2">
+                    <div className="p-3 bg-amber-50 rounded-full text-amber-600">
+                      <Lock size={24} />
+                    </div>
+                    <h4 className="text-sm font-bold text-slate-900 font-sans">
+                      Truy cập bị hạn chế
+                    </h4>
+                    <p className="text-xs font-semibold text-slate-500 max-w-md font-sans">
+                      Thông tin nội bộ (điểm tập kết, dụng cụ, liên hệ) chỉ hiển thị với cán bộ phụ
+                      trách hoặc tình nguyện viên đã được duyệt tham gia chiến dịch này.
                     </p>
                   </div>
-                  <div className="bg-white p-4 rounded-xl border border-amber-100">
-                    <h5 className="text-xs font-black text-amber-800 uppercase tracking-wide flex items-center gap-1.5">
-                      <Package size={13} />
-                      Dụng cụ yêu cầu
-                    </h5>
-                    <p className="text-sm font-bold text-slate-800 mt-1.5">
-                      {campaign.requiredTools || "Chưa thiết lập"}
-                    </p>
-                  </div>
-                  <div className="bg-white p-4 rounded-xl border border-amber-100">
-                    <h5 className="text-xs font-black text-amber-800 uppercase tracking-wide flex items-center gap-1.5">
-                      <MessageCircle size={13} />
-                      Cán bộ liên hệ
-                    </h5>
-                    <p className="text-sm font-bold text-slate-800 mt-1.5">
-                      {campaign.organizerContact || "Chưa thiết lập"}
-                    </p>
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* Card 6: Interactive Map */}
@@ -943,11 +961,13 @@ export function WardCampaignDetailPage({
                 </div>
               </div>
 
-              <GroupChatNavigationCard
-                campaign={campaign}
-                approvedStatus={campaign.currentUserJoinStatus === "APPROVED"}
-                theme={theme}
-              />
+              {campaign.canManage && (
+                <GroupChatNavigationCard
+                  campaign={campaign}
+                  approvedStatus={campaign.currentUserJoinStatus === "APPROVED"}
+                  theme={theme}
+                />
+              )}
 
               {/* Card 9: Volunteer Approvals Panel */}
               {campaign.canManage && (
@@ -1551,8 +1571,9 @@ function GroupChatNavigationCard({
   approvedStatus: boolean;
   theme: any;
 }) {
-  const chat = useCampaignChat(campaign.id);
-  const participantsQuery = useCampaignParticipants(campaign.id);
+  const canAccess = Boolean(campaign?.canManage || campaign?.privateDetailsVisible);
+  const chat = useCampaignChat(campaign.id, { enabled: canAccess });
+  const participantsQuery = useCampaignParticipants(campaign.id, canAccess);
   const participants = participantsQuery.data ?? [];
   const approvedParticipants = participants.filter((p) => p.joinStatus === "APPROVED");
   const memberCount = approvedParticipants.length + 1; // Organizer/Host + Approved participants

@@ -3,11 +3,15 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, useRef, Suspense } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
-import { 
-  usePublicFeedbacks, 
-  usePublicFeedbackStats, 
-  useFeedbackStatuses, 
-  useFeedbacks
+import {
+  usePublicFeedbacks,
+  usePublicFeedbackStats,
+  useFeedbackStatuses,
+  useFeedbacks,
+  useNotifications,
+  useNotificationUnreadCount,
+  useMarkNotificationReadMutation,
+  useMarkAllNotificationsReadMutation,
 } from "@/hooks";
 import { useQuery } from "@tanstack/react-query";
 import { EmptyState, ErrorState } from "@/components/site/EmptyState";
@@ -47,8 +51,8 @@ import { WardFeedbackManagementPage } from "@/features/ward/WardFeedbackManageme
 import toanhatraibap from "@/assets/toanhatraibap.png";
 import trongdong from "@/assets/trongdong.png";
 
-const CivicMap = clientOnly(() =>
-  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
+const CivicMap = clientOnly(
+  () => import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
 ) as any;
 
 export const Route = createFileRoute("/feedback-search")({
@@ -127,8 +131,22 @@ function FeedbackSearch() {
 function PublicFeedbackLookup() {
   const { locale, t, setLocale } = useI18n();
   const navigate = useNavigate({ from: "/feedback-search" });
+<<<<<<< HEAD
   const { category = "", q = "", status = "", range = "", wardId, categories, tab } = Route.useSearch();
   const { isAuthenticated, user: currentUser } = useAuth();
+=======
+  const {
+    category = "",
+    q = "",
+    status = "",
+    range = "",
+    wardId,
+    categories,
+    tab,
+  } = Route.useSearch();
+  const { isAuthenticated, user: currentUser, logout } = useAuth();
+  const queryClient = useQueryClient();
+>>>>>>> 2b71a97d00bca784f33f8484c1dc1f0b58f669e4
 
   const [activeTab, setActiveTab] = useState<"public" | "my">(() => {
     return tab === "my" ? "my" : "public";
@@ -180,7 +198,7 @@ function PublicFeedbackLookup() {
   });
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
-  
+
   const [statusInput, setStatusInput] = useState<FeedbackStatus | "">("");
   const [fromDateInput, setFromDateInput] = useState("");
   const [toDateInput, setToDateInput] = useState("");
@@ -189,6 +207,21 @@ function PublicFeedbackLookup() {
   const [sortBy, setSortBy] = useState("newest");
 
 
+<<<<<<< HEAD
+=======
+  // Dropdown refs
+  const langRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
+  const userRef = useRef<HTMLDivElement>(null);
+
+  // Fetch notifications for the logged-in citizen
+  const { data: notifications = [], isLoading: notifLoading } = useNotifications(!!currentUser);
+  const { data: unreadCountData } = useNotificationUnreadCount(!!currentUser);
+  const unreadCount = unreadCountData ?? notifications.filter((n) => !n.isRead).length;
+
+  const markRead = useMarkNotificationReadMutation();
+  const markAllRead = useMarkAllNotificationsReadMutation();
+>>>>>>> 2b71a97d00bca784f33f8484c1dc1f0b58f669e4
 
   // Committed search filters
   const [filters, setFilters] = useState(() => {
@@ -444,6 +477,21 @@ function PublicFeedbackLookup() {
     return { total: 0, resolved: 0, pending: 0, rejected: 0 };
   }, [activeTab, publicStats, myStats]);
 
+  const processingRate = useMemo(() => {
+    if (!stats.total) return "0.0";
+    return ((stats.pending / stats.total) * 100).toFixed(1);
+  }, [stats.pending, stats.total]);
+
+  const resolvedRate = useMemo(() => {
+    if (!stats.total) return "0.0";
+    return ((stats.resolved / stats.total) * 100).toFixed(1);
+  }, [stats.resolved, stats.total]);
+
+  const rejectedRate = useMemo(() => {
+    if (!stats.total) return "0.0";
+    return ((stats.rejected / stats.total) * 100).toFixed(1);
+  }, [stats.rejected, stats.total]);
+
   // Popular categories calculations based on real data list
   const categoryStats = useMemo(() => {
     const list = feedbacks;
@@ -469,7 +517,7 @@ function PublicFeedbackLookup() {
     let env = 0;
     let traffic = 0;
     let security = 0;
-    
+
     feedbacks.forEach((f) => {
       const cat = f.categoryCode || "";
       if (cat.includes("INFRASTRUCTURE") || cat.includes("CONSTRUCTION")) {
@@ -628,7 +676,7 @@ function PublicFeedbackLookup() {
     switch (status) {
       case "RESOLVED":
         return {
-          label: locale === "vi" ? "Đã xử lý" : "Resolved",
+          label: locale === "vi" ? "Đã hoàn thành" : "Resolved",
           badgeClass: "bg-[#EAF8EF] text-[#16A34A] border border-[#BBF7D0]",
         };
       case "IN_PROGRESS":
@@ -639,7 +687,7 @@ function PublicFeedbackLookup() {
         };
       case "PENDING_RECEIVE":
         return {
-          label: locale === "vi" ? "Đã chuyển đơn vị" : "Transferred",
+          label: locale === "vi" ? "Chờ tiếp nhận" : "Awaiting review",
           badgeClass: "bg-[#F3E8FF] text-[#9333EA] border border-[#E9D5FF]",
         };
       case "REJECTED":
@@ -649,14 +697,24 @@ function PublicFeedbackLookup() {
         };
       case "NEED_LOCATION_REVIEW":
         return {
-          label: locale === "vi" ? "Chờ xác minh" : "Location review",
+          label: locale === "vi" ? "Chờ xác minh vị trí" : "Location review",
+          badgeClass: "bg-[#FFF7D6] text-[#A16207] border border-[#FEF3C7]",
+        };
+      case "SUBMITTED":
+        return {
+          label: locale === "vi" ? "Đã gửi" : "Submitted",
+          badgeClass: "bg-[#EAF2FF] text-[#0B4FC4] border border-[#BFDBFE]",
+        };
+      case "WAITING_INFO":
+        return {
+          label: locale === "vi" ? "Chờ bổ sung thông tin" : "Waiting for info",
           badgeClass: "bg-[#FFF7D6] text-[#A16207] border border-[#FEF3C7]",
         };
       case "PENDING":
-      case "SUBMITTED":
+      case "PRE_EMPTIVE":
       default:
         return {
-          label: locale === "vi" ? "Đã tiếp nhận" : "Received",
+          label: locale === "vi" ? "Đang chờ duyệt" : "Pending",
           badgeClass: "bg-[#EAF2FF] text-[#0B4FC4] border border-[#BFDBFE]",
         };
     }
@@ -665,7 +723,7 @@ function PublicFeedbackLookup() {
   return (
     <div className="relative min-h-screen font-sans bg-[#F5F8FC] selection:bg-[#0B4DBB] selection:text-white pb-16 overflow-hidden">
       {/* Subtle Vietnamese Dong Son bronze drum pattern background */}
-      <div 
+      <div
         className="absolute inset-0 pointer-events-none opacity-[0.025]"
         style={{
           backgroundImage: `url(${trongdong})`,
@@ -679,8 +737,11 @@ function PublicFeedbackLookup() {
       <div className="absolute top-[-10%] left-[-15%] w-[60%] aspect-square rounded-full bg-gradient-to-tr from-[#1E88E5]/5 to-transparent blur-[140px] pointer-events-none" />
       <div className="absolute bottom-[20%] right-[-15%] w-[50%] aspect-square rounded-full bg-gradient-to-br from-[#0B4DBB]/5 to-transparent blur-[140px] pointer-events-none" />
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> 2b71a97d00bca784f33f8484c1dc1f0b58f669e4
       {/* HERO SECTION */}
       <section
         className="relative w-full h-[380px] flex items-center overflow-hidden border-b border-slate-200/40"
@@ -694,13 +755,15 @@ function PublicFeedbackLookup() {
           <div className="max-w-[650px] flex flex-col justify-center animate-in fade-in slide-in-from-left-4 duration-500">
             <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-200/60 rounded-full px-3 py-1 text-[10px] font-extrabold text-[#0B4DBB] uppercase tracking-wider mb-4 w-fit">
               <Building size={12} />
-              <span>{locale === "vi" ? "Thông tin dịch vụ công" : "Public Government Service"}</span>
+              <span>
+                {locale === "vi" ? "Thông tin dịch vụ công" : "Public Government Service"}
+              </span>
             </div>
             <h1 className="font-sans text-[#063A94] text-4xl md:text-5xl font-black leading-tight mb-4 tracking-tight">
               {locale === "vi" ? "Tra cứu phản ánh" : "Search Reports"}
             </h1>
             <p className="text-slate-600 text-sm md:text-base leading-relaxed max-w-[560px] font-semibold">
-              {locale === "vi" 
+              {locale === "vi"
                 ? "Tra cứu thông tin, theo dõi tiến độ xử lý và xem kết quả phản ánh hiện trường của người dân gửi đến chính quyền Thành phố Đà Nẵng."
                 : "Search information, track resolution progress and view results of field reports submitted by citizens to the Da Nang City Government."}
             </p>
@@ -722,7 +785,9 @@ function PublicFeedbackLookup() {
                   1022
                 </span>
                 <span className="text-[10px] text-slate-500 font-semibold mt-1">
-                  {locale === "vi" ? "Miễn phí · Mọi lúc, mọi nơi" : "Free of charge · Support anytime"}
+                  {locale === "vi"
+                    ? "Miễn phí · Mọi lúc, mọi nơi"
+                    : "Free of charge · Support anytime"}
                 </span>
               </div>
             </a>
@@ -769,7 +834,10 @@ function PublicFeedbackLookup() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
               {/* Filter 1: Từ khóa */}
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="filter-keyword" className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <label
+                  htmlFor="filter-keyword"
+                  className="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                >
                   {locale === "vi" ? "Từ khóa" : "Keyword"}
                 </label>
                 <div className="relative">
@@ -778,10 +846,15 @@ function PublicFeedbackLookup() {
                     type="text"
                     value={keywordInput}
                     onChange={(e) => setKeywordInput(e.target.value)}
-                    placeholder={locale === "vi" ? "Nhập mã, tiêu đề, nội dung..." : "Code, title, content..."}
+                    placeholder={
+                      locale === "vi" ? "Nhập mã, tiêu đề, nội dung..." : "Code, title, content..."
+                    }
                     className="w-full min-h-[48px] pl-4 pr-10 rounded-xl border-2 border-slate-200/80 bg-white text-sm focus:border-[#0B4DBB] focus:ring-2 focus:ring-[#0B4DBB]/10 outline-none transition-all"
                   />
-                  <Search size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Search
+                    size={16}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
                 </div>
               </div>
 
@@ -822,7 +895,9 @@ function PublicFeedbackLookup() {
                           : "text-slate-600 hover:bg-slate-50 font-semibold"
                       }`}
                     >
-                      <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${selectedCategories.length === 0 ? "border-[#0B4DBB] bg-[#0B4DBB] text-white" : "border-slate-300"}`}>
+                      <span
+                        className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${selectedCategories.length === 0 ? "border-[#0B4DBB] bg-[#0B4DBB] text-white" : "border-slate-300"}`}
+                      >
                         {selectedCategories.length === 0 && <Check size={10} strokeWidth={3} />}
                       </span>
                       {locale === "vi" ? "Tất cả lĩnh vực" : "All categories"}
@@ -840,7 +915,9 @@ function PublicFeedbackLookup() {
                               : "text-slate-600 hover:bg-slate-50 font-semibold"
                           }`}
                         >
-                          <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${checked ? "border-[#0B4DBB] bg-[#0B4DBB] text-white" : "border-slate-300"}`}>
+                          <span
+                            className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${checked ? "border-[#0B4DBB] bg-[#0B4DBB] text-white" : "border-slate-300"}`}
+                          >
                             {checked && <Check size={10} strokeWidth={3} />}
                           </span>
                           {t(c.nameKey as any)}
@@ -853,7 +930,10 @@ function PublicFeedbackLookup() {
 
               {/* Filter 3: Địa phương */}
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="filter-district" className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <label
+                  htmlFor="filter-district"
+                  className="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                >
                   {locale === "vi" ? "Địa phương" : "Location"}
                 </label>
                 <div className="relative">
@@ -863,20 +943,28 @@ function PublicFeedbackLookup() {
                     onChange={(e) => setDistrictInput(e.target.value)}
                     className="w-full min-h-[48px] pl-3.5 pr-10 rounded-xl border-2 border-slate-200/80 bg-white text-sm font-semibold text-[#475467] focus:border-[#0B4DBB] outline-none transition-colors appearance-none cursor-pointer"
                   >
-                    <option value="">{locale === "vi" ? "Tất cả địa phương" : "All locations"}</option>
+                    <option value="">
+                      {locale === "vi" ? "Tất cả địa phương" : "All locations"}
+                    </option>
                     {DANANG_DISTRICTS.map((dist) => (
                       <option key={dist.code} value={dist.nameVi}>
                         {locale === "vi" ? dist.nameVi : dist.nameEn}
                       </option>
                     ))}
                   </select>
-                  <MapPin size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <MapPin
+                    size={16}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                  />
                 </div>
               </div>
 
               {/* Filter 4: Trạng thái */}
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="filter-status" className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <label
+                  htmlFor="filter-status"
+                  className="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                >
                   {locale === "vi" ? "Trạng thái" : "Status"}
                 </label>
                 <div className="relative">
@@ -891,7 +979,9 @@ function PublicFeedbackLookup() {
                       backgroundRepeat: "no-repeat",
                     }}
                   >
-                    <option value="">{locale === "vi" ? "Tất cả trạng thái" : "All statuses"}</option>
+                    <option value="">
+                      {locale === "vi" ? "Tất cả trạng thái" : "All statuses"}
+                    </option>
                     {statuses.map((opt) => (
                       <option key={opt.value} value={opt.value}>
                         {opt.label}
@@ -995,7 +1085,6 @@ function PublicFeedbackLookup() {
       <div className="max-w-[1440px] mx-auto px-6 md:px-12 mb-8 animate-in fade-in slide-in-from-bottom-5 duration-600">
         <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_8px_30px_rgba(11,77,187,0.04)] py-4">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 divide-y md:divide-y-0 md:divide-x divide-slate-100">
-            
             {/* Card 1: Total Reports */}
             <div className="flex items-center gap-4 px-6 py-2">
               <div className="w-11 h-11 rounded-full border-2 border-blue-100 text-[#0B4DBB] flex items-center justify-center shrink-0">
@@ -1003,7 +1092,7 @@ function PublicFeedbackLookup() {
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="text-xl font-black text-[#0B4DBB] leading-none mb-1">
-                  {stats.total.toLocaleString("vi-VN") || "64"}
+                  {stats.total.toLocaleString("vi-VN")}
                 </span>
                 <span className="text-[11px] font-bold text-slate-700 leading-tight">
                   {locale === "vi" ? "Tổng phản ánh" : "Total Reports"}
@@ -1021,13 +1110,13 @@ function PublicFeedbackLookup() {
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="text-xl font-black text-[#F97316] leading-none mb-1">
-                  {stats.pending ? stats.pending : "27"}
+                  {stats.pending}
                 </span>
                 <span className="text-[11px] font-bold text-slate-700 leading-tight">
                   {locale === "vi" ? "Đang xử lý" : "Processing"}
                 </span>
                 <span className="text-[10px] text-slate-400 mt-0.5 font-semibold truncate">
-                  {locale === "vi" ? "Chiếm 42,2%" : "Rate: 42.2%"}
+                  {locale === "vi" ? `Chiếm ${processingRate}%` : `Rate: ${processingRate}%`}
                 </span>
               </div>
             </div>
@@ -1039,13 +1128,13 @@ function PublicFeedbackLookup() {
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="text-xl font-black text-[#10B981] leading-none mb-1">
-                  {stats.resolved ? stats.resolved : "18"}
+                  {stats.resolved}
                 </span>
                 <span className="text-[11px] font-bold text-slate-700 leading-tight">
                   {locale === "vi" ? "Đã xử lý" : "Resolved"}
                 </span>
                 <span className="text-[10px] text-slate-400 mt-0.5 font-semibold truncate">
-                  {locale === "vi" ? "Chiếm 28,1%" : "Rate: 28.1%"}
+                  {locale === "vi" ? `Chiếm ${resolvedRate}%` : `Rate: ${resolvedRate}%`}
                 </span>
               </div>
             </div>
@@ -1057,13 +1146,13 @@ function PublicFeedbackLookup() {
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="text-xl font-black text-[#EF4444] leading-none mb-1">
-                  {stats.rejected ? stats.rejected : "4"}
+                  {stats.rejected}
                 </span>
                 <span className="text-[11px] font-bold text-slate-700 leading-tight">
                   {locale === "vi" ? "Quá hạn" : "Overdue"}
                 </span>
                 <span className="text-[10px] text-slate-400 mt-0.5 font-semibold truncate">
-                  {locale === "vi" ? "Chiếm 6,3%" : "Rate: 6.3%"}
+                  {locale === "vi" ? `Chiếm ${rejectedRate}%` : `Rate: ${rejectedRate}%`}
                 </span>
               </div>
             </div>
@@ -1092,9 +1181,7 @@ function PublicFeedbackLookup() {
                 <User size={20} strokeWidth={1.5} />
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-xl font-black text-[#4F46E5] leading-none mb-1">
-                  2.136
-                </span>
+                <span className="text-xl font-black text-[#4F46E5] leading-none mb-1">2.136</span>
                 <span className="text-[11px] font-bold text-slate-700 leading-tight">
                   {locale === "vi" ? "Lượt theo dõi" : "Followers"}
                 </span>
@@ -1103,7 +1190,6 @@ function PublicFeedbackLookup() {
                 </span>
               </div>
             </div>
-
           </div>
         </div>
       </div>
@@ -1111,11 +1197,9 @@ function PublicFeedbackLookup() {
       {/* TWO-COLUMN MAIN CONTENT CONTAINER */}
       <div className="max-w-[1440px] mx-auto px-6 md:px-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
           {/* LEFT COLUMN: feedback list */}
           <div className="lg:col-span-8 space-y-6">
             <div className="bg-white border border-slate-200/70 rounded-2xl p-6 md:p-8 shadow-[0_4px_24px_rgba(11,77,187,0.02)] space-y-6">
-              
               {activeTab === "my" && !isAuthenticated ? (
                 <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
                   <div className="w-20 h-20 bg-blue-50 text-[#0B4DBB] rounded-full flex items-center justify-center mb-6 shadow-inner">
@@ -1146,7 +1230,9 @@ function PublicFeedbackLookup() {
                     </h2>
 
                     <div className="flex items-center gap-1.5 text-xs">
-                      <span className="text-slate-500 font-bold">{locale === "vi" ? "Sắp xếp theo:" : "Sort by:"}</span>
+                      <span className="text-slate-500 font-bold">
+                        {locale === "vi" ? "Sắp xếp theo:" : "Sort by:"}
+                      </span>
                       <select
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value)}
@@ -1177,7 +1263,10 @@ function PublicFeedbackLookup() {
                   {isLoading && (
                     <div className="space-y-5">
                       {[1, 2, 3].map((s) => (
-                        <div key={s} className="border border-slate-100 bg-white rounded-xl p-5 flex flex-col md:flex-row gap-5 animate-pulse">
+                        <div
+                          key={s}
+                          className="border border-slate-100 bg-white rounded-xl p-5 flex flex-col md:flex-row gap-5 animate-pulse"
+                        >
                           <div className="w-full md:w-40 aspect-[16/10] bg-slate-100 rounded-xl" />
                           <div className="flex-1 space-y-4 py-1">
                             <div className="h-3.5 bg-slate-100 rounded w-1/4" />
@@ -1241,10 +1330,13 @@ function PublicFeedbackLookup() {
                             <div className="flex-1 min-w-0 flex flex-col justify-start">
                               <div className="flex items-center justify-between mb-2">
                                 <span className="px-2 py-0.5 bg-blue-50 text-[#0B4DBB] text-[10px] font-black rounded font-mono tracking-wider">
-                                  {locale === "vi" ? "Mã" : "ID"}: {report.trackingCode || `FB-008712`}
+                                  {locale === "vi" ? "Mã" : "ID"}:{" "}
+                                  {report.trackingCode || `FB-008712`}
                                 </span>
                                 <div className="md:hidden">
-                                  <span className={`px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-wider ${statusObj.badgeClass}`}>
+                                  <span
+                                    className={`px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-wider ${statusObj.badgeClass}`}
+                                  >
                                     {statusObj.label}
                                   </span>
                                 </div>
@@ -1255,11 +1347,22 @@ function PublicFeedbackLookup() {
                               <div className="flex flex-wrap items-center gap-y-2 gap-x-5 text-xs font-semibold text-slate-500">
                                 <span className="flex items-center gap-1.5">
                                   <MapPin size={14} className="text-slate-400" />
-                                  {report.addressDetails || report.wardName || (locale === "vi" ? "Phường Hải Châu I, Quận Hải Châu" : "Hai Chau I, Hai Chau")}
+                                  {report.addressDetails ||
+                                    report.wardName ||
+                                    (locale === "vi"
+                                      ? "Phường Hải Châu I, Quận Hải Châu"
+                                      : "Hai Chau I, Hai Chau")}
                                 </span>
                                 <span className="flex items-center gap-1.5">
                                   <Calendar size={14} className="text-slate-400" />
-                                  {new Date(report.createdAt).toLocaleDateString(locale === "vi" ? "vi-VN" : "en-US")} - {new Date(report.createdAt).toLocaleTimeString(locale === "vi" ? "vi-VN" : "en-US", { hour: "2-digit", minute: "2-digit" })}
+                                  {new Date(report.createdAt).toLocaleDateString(
+                                    locale === "vi" ? "vi-VN" : "en-US",
+                                  )}{" "}
+                                  -{" "}
+                                  {new Date(report.createdAt).toLocaleTimeString(
+                                    locale === "vi" ? "vi-VN" : "en-US",
+                                    { hour: "2-digit", minute: "2-digit" },
+                                  )}
                                 </span>
                                 <span className="flex items-center gap-1.5">
                                   <Eye size={14} className="text-slate-400" />
@@ -1274,13 +1377,23 @@ function PublicFeedbackLookup() {
 
                             {/* Right Status Badge & Arrow */}
                             <div className="hidden md:flex flex-col items-end justify-between shrink-0 pl-4 w-[160px]">
-                              <span className={`px-3 py-1 rounded text-[10px] font-black uppercase tracking-wider ${statusObj.badgeClass}`}>
+                              <span
+                                className={`px-3 py-1 rounded text-[10px] font-black uppercase tracking-wider ${statusObj.badgeClass}`}
+                              >
                                 {statusObj.label}
                               </span>
                               <div className="flex items-center gap-1 text-slate-400 font-semibold text-[10px]">
                                 <span>{locale === "vi" ? "Cập nhật:" : "Updated:"}</span>
                                 <span>
-                                  {new Date(report.updatedAt || report.createdAt).toLocaleDateString(locale === "vi" ? "vi-VN" : "en-US")} {new Date(report.updatedAt || report.createdAt).toLocaleTimeString(locale === "vi" ? "vi-VN" : "en-US", { hour: "2-digit", minute: "2-digit" })}
+                                  {new Date(
+                                    report.updatedAt || report.createdAt,
+                                  ).toLocaleDateString(locale === "vi" ? "vi-VN" : "en-US")}{" "}
+                                  {new Date(
+                                    report.updatedAt || report.createdAt,
+                                  ).toLocaleTimeString(locale === "vi" ? "vi-VN" : "en-US", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
                                 </span>
                                 <ChevronRight size={14} className="ml-1 text-slate-400" />
                               </div>
@@ -1365,14 +1478,19 @@ function PublicFeedbackLookup() {
 
           {/* RIGHT COLUMN: Sidebar widgets */}
           <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-[96px]">
-            
             {/* Sidebar 1: Map */}
             <div className="bg-white border border-slate-200/70 rounded-xl p-5 shadow-[0_4px_24px_rgba(11,77,187,0.02)] space-y-4">
               <h3 className="text-slate-800 font-bold text-sm border-b border-slate-100 pb-3">
                 {locale === "vi" ? "Bản đồ phản ánh" : "Feedback Map"}
               </h3>
               <div className="aspect-[4/3] rounded-lg overflow-hidden border border-slate-200 relative z-0 shadow-sm">
-                <Suspense fallback={<div className="w-full h-full bg-slate-50 animate-pulse flex items-center justify-center text-xs text-slate-400">Loading Map...</div>}>
+                <Suspense
+                  fallback={
+                    <div className="w-full h-full bg-slate-50 animate-pulse flex items-center justify-center text-xs text-slate-400">
+                      Loading Map...
+                    </div>
+                  }
+                >
                   <CivicMap
                     markers={sortedFeedbacks
                       .filter((f) => f.latitude && f.longitude)
@@ -1415,59 +1533,13 @@ function PublicFeedbackLookup() {
                   {locale === "vi" ? "Xem chi tiết" : "View detail"} <ChevronRight size={12} />
                 </button>
               </div>
-              <div className="flex items-center justify-between gap-4 pt-2">
-                {/* Simplified Donut Chart placeholder using CSS Conic Gradient to match mockup */}
-                <div 
-                  className="w-[100px] h-[100px] rounded-full shrink-0 relative"
-                  style={{
-                    background: "conic-gradient(#0B4DBB 0% 70%, #10B981 70% 89%, #F97316 89% 98%, #8B5CF6 98% 100%)"
-                  }}
-                >
-                  <div className="absolute inset-4 bg-white rounded-full"></div>
-                </div>
-
-                <div className="flex-1 flex flex-col gap-2">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <div className="flex items-center gap-1.5 font-bold text-slate-700">
-                      <span className="w-2 h-2 rounded-full bg-[#0B4DBB]" />
-                      Hạ tầng đô thị
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-700 font-bold">45</span>
-                      <span className="text-slate-400 font-semibold">(70%)</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px]">
-                    <div className="flex items-center gap-1.5 font-bold text-slate-700">
-                      <span className="w-2 h-2 rounded-full bg-[#10B981]" />
-                      Môi trường
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-700 font-bold">12</span>
-                      <span className="text-slate-400 font-semibold">(19%)</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px]">
-                    <div className="flex items-center gap-1.5 font-bold text-slate-700">
-                      <span className="w-2 h-2 rounded-full bg-[#F97316]" />
-                      An toàn giao thông
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-700 font-bold">6</span>
-                      <span className="text-slate-400 font-semibold">(9%)</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px]">
-                    <div className="flex items-center gap-1.5 font-bold text-slate-700">
-                      <span className="w-2 h-2 rounded-full bg-[#8B5CF6]" />
-                      Trật tự đô thị
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-700 font-bold">1</span>
-                      <span className="text-slate-400 font-semibold">(2%)</span>
-                    </div>
-                  </div>
-                </div>
+              <div className="pt-2 w-full">
+                <DonutChart
+                  infra={categoryCounts.infra}
+                  env={categoryCounts.env}
+                  traffic={categoryCounts.traffic}
+                  security={categoryCounts.security}
+                />
               </div>
             </div>
 
@@ -1477,7 +1549,10 @@ function PublicFeedbackLookup() {
                 {locale === "vi" ? "Liên kết nhanh" : "Quick Links"}
               </h3>
               <div className="grid grid-cols-2 gap-3">
-                <a href="#huong-dan" className="p-3 border border-slate-100 rounded-lg flex flex-col items-center text-center hover:bg-slate-50 transition cursor-pointer">
+                <a
+                  href="#huong-dan"
+                  className="p-3 border border-slate-100 rounded-lg flex flex-col items-center text-center hover:bg-slate-50 transition cursor-pointer"
+                >
                   <div className="w-8 h-8 rounded-full border border-blue-100 bg-white text-[#0B4DBB] flex items-center justify-center mb-2">
                     <BookOpen size={14} />
                   </div>
@@ -1485,8 +1560,11 @@ function PublicFeedbackLookup() {
                     {locale === "vi" ? "Hướng dẫn gửi phản ánh" : "User Guide"}
                   </span>
                 </a>
-                
-                <a href="#quy-trinh" className="p-3 border border-slate-100 rounded-lg flex flex-col items-center text-center hover:bg-slate-50 transition cursor-pointer">
+
+                <a
+                  href="#quy-trinh"
+                  className="p-3 border border-slate-100 rounded-lg flex flex-col items-center text-center hover:bg-slate-50 transition cursor-pointer"
+                >
                   <div className="w-8 h-8 rounded-full border border-blue-100 bg-white text-[#0B4DBB] flex items-center justify-center mb-2">
                     <FileCheck size={14} />
                   </div>
@@ -1495,7 +1573,10 @@ function PublicFeedbackLookup() {
                   </span>
                 </a>
 
-                <a href="#cau-hoi" className="p-3 border border-slate-100 rounded-lg flex flex-col items-center text-center hover:bg-slate-50 transition cursor-pointer">
+                <a
+                  href="#cau-hoi"
+                  className="p-3 border border-slate-100 rounded-lg flex flex-col items-center text-center hover:bg-slate-50 transition cursor-pointer"
+                >
                   <div className="w-8 h-8 rounded-full border border-blue-100 bg-white text-[#0B4DBB] flex items-center justify-center mb-2">
                     <HelpCircle size={14} />
                   </div>
@@ -1504,7 +1585,10 @@ function PublicFeedbackLookup() {
                   </span>
                 </a>
 
-                <a href="#mobile-app" className="p-3 border border-slate-100 rounded-lg flex flex-col items-center text-center hover:bg-slate-50 transition cursor-pointer">
+                <a
+                  href="#mobile-app"
+                  className="p-3 border border-slate-100 rounded-lg flex flex-col items-center text-center hover:bg-slate-50 transition cursor-pointer"
+                >
                   <div className="w-8 h-8 rounded-full border border-blue-100 bg-white text-[#0B4DBB] flex items-center justify-center mb-2">
                     <Smartphone size={14} />
                   </div>
@@ -1527,22 +1611,206 @@ function PublicFeedbackLookup() {
               </div>
               <div className="flex items-center gap-4">
                 <p className="text-[11px] text-slate-600 font-semibold leading-relaxed flex-1">
-                  {locale === "vi" 
+                  {locale === "vi"
                     ? "Hướng dẫn chi tiết cách tìm kiếm và theo dõi phản ánh hiện trường trên hệ thống Đà Nẵng Kết Nối."
                     : "Detailed guide on how to search and track field reports on Da Nang Connect system."}
                 </p>
                 <div className="w-16 h-16 shrink-0 relative bg-[#EEF2F6] rounded-xl flex items-center justify-center">
                   <FileText size={28} className="text-[#0B4DBB] opacity-40" />
-                  <Search size={20} className="text-[#0B4DBB] absolute -bottom-1 -right-1" strokeWidth={3} />
+                  <Search
+                    size={20}
+                    className="text-[#0B4DBB] absolute -bottom-1 -right-1"
+                    strokeWidth={3}
+                  />
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </div>
 
+<<<<<<< HEAD
 
+=======
+      {/* FOOTER SECTION */}
+      <footer className="relative z-30 bg-[#051D45] text-slate-300 mt-20 border-t-4 border-[#0B4DBB]">
+        <div className="max-w-[1440px] mx-auto px-6 md:px-12 py-12 md:py-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+            {/* Col 1: Logo Portal info */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center p-1.5 shadow-md">
+                  <img
+                    src={logoImg}
+                    alt="Da Nang Emblem"
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-black text-white uppercase tracking-tight leading-none">
+                    ĐÀ NẴNG KẾT NỐI
+                  </span>
+                  <span className="text-[8px] text-slate-400 font-extrabold uppercase tracking-wider mt-1.5 leading-none">
+                    {locale === "vi"
+                      ? "Hệ thống phản ánh ý kiến công dân"
+                      : "Da Nang Civic Feedback System"}
+                  </span>
+                </div>
+              </div>
+              <p className="text-xs text-slate-400 leading-relaxed pt-2 font-semibold">
+                {locale === "vi"
+                  ? "Cổng thông tin tương tác trực tuyến giữa chính quyền và người dân Thành phố Đà Nẵng. Tiếp nhận, lắng nghe và giải quyết kịp thời các kiến nghị của cử tri."
+                  : "Online interactive portal between municipal government and citizens of Da Nang. Receive, listen and timely resolve voter proposals."}
+              </p>
+            </div>
+
+            {/* Col 2: Sitemap links */}
+            <div className="space-y-4">
+              <h4 className="text-white text-xs font-black uppercase tracking-widest border-l-2 border-[#0B4DBB] pl-2.5">
+                {locale === "vi" ? "Liên kết dịch vụ công" : "Citizen Services"}
+              </h4>
+              <ul className="space-y-2 text-xs font-semibold">
+                <li>
+                  <Link
+                    to="/"
+                    className="hover:text-white transition flex items-center gap-1 text-slate-400"
+                  >
+                    <ArrowRight size={10} />
+                    <span>{locale === "vi" ? "Trang chủ cổng thông tin" : "Home Portal"}</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/tin-tuc"
+                    className="hover:text-white transition flex items-center gap-1 text-slate-400"
+                  >
+                    <ArrowRight size={10} />
+                    <span>{locale === "vi" ? "Tin tức & Thông báo" : "News & Announcements"}</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/feedback-search"
+                    className="hover:text-white transition flex items-center gap-1 text-slate-400"
+                  >
+                    <ArrowRight size={10} />
+                    <span>
+                      {locale === "vi" ? "Tra cứu phản ánh trực tuyến" : "Online Feedback Lookup"}
+                    </span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/campaigns"
+                    className="hover:text-white transition flex items-center gap-1 text-slate-400"
+                  >
+                    <ArrowRight size={10} />
+                    <span>
+                      {locale === "vi" ? "Chiến dịch dọn vệ sinh" : "Civic Clean campaigns"}
+                    </span>
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Col 3: Legal & Help info */}
+            <div className="space-y-4">
+              <h4 className="text-white text-xs font-black uppercase tracking-widest border-l-2 border-[#0B4DBB] pl-2.5">
+                {locale === "vi" ? "Văn bản pháp lý" : "Resources"}
+              </h4>
+              <ul className="space-y-2 text-xs font-semibold">
+                <li>
+                  <a
+                    href="#quy-trinh"
+                    className="hover:text-white transition flex items-center gap-1 text-slate-400"
+                  >
+                    <ArrowRight size={10} />
+                    <span>
+                      {locale === "vi" ? "Quy trình giải quyết 1022" : "Workflow Resolution 1022"}
+                    </span>
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#bao-mat"
+                    className="hover:text-white transition flex items-center gap-1 text-slate-400"
+                  >
+                    <ArrowRight size={10} />
+                    <span>{locale === "vi" ? "Chính sách quyền riêng tư" : "Privacy Policy"}</span>
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#dieu-khoan"
+                    className="hover:text-white transition flex items-center gap-1 text-slate-400"
+                  >
+                    <ArrowRight size={10} />
+                    <span>{locale === "vi" ? "Điều khoản dịch vụ" : "Terms of Service"}</span>
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#gop-y"
+                    className="hover:text-white transition flex items-center gap-1 text-slate-400"
+                  >
+                    <ArrowRight size={10} />
+                    <span>{locale === "vi" ? "Câu hỏi & Giải đáp FAQ" : "FAQ Help Center"}</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Col 4: Contact details */}
+            <div className="space-y-4">
+              <h4 className="text-white text-xs font-black uppercase tracking-widest border-l-2 border-[#0B4DBB] pl-2.5">
+                {locale === "vi" ? "Thông tin liên hệ" : "Contact Information"}
+              </h4>
+              <div className="space-y-3.5 text-xs text-slate-400 font-semibold pt-1">
+                <p className="leading-relaxed flex items-start gap-2">
+                  <MapPin size={16} className="text-[#0B4DBB] shrink-0 mt-0.5" />
+                  <span>
+                    {locale === "vi"
+                      ? "Tòa nhà Trung tâm Hành chính, số 24 Trần Phú, Hải Châu, Đà Nẵng, Việt Nam"
+                      : "Administrative Center Building, 24 Tran Phu St, Hai Chau Dist, Da Nang, Vietnam"}
+                  </span>
+                </p>
+                <p className="flex items-center gap-2">
+                  <Mail size={14} className="text-[#0B4DBB] shrink-0" />
+                  <span>gopy@danang.gov.vn</span>
+                </p>
+                <p className="flex items-center gap-2">
+                  <Phone size={14} className="text-[#0B4DBB] shrink-0" />
+                  <span>
+                    {locale === "vi" ? "Đường dây nóng: 1022 (Trong nước)" : "Hotline: 1022"}
+                  </span>
+                </p>
+                <p className="text-[10px] text-slate-500 font-extrabold italic pl-6 leading-none">
+                  {locale === "vi"
+                    ? "Giờ làm việc: 24/7 các ngày trong tuần"
+                    : "Working Hours: 24/7"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-slate-800/80 mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 font-bold">
+            <p>
+              © {new Date().getFullYear()}{" "}
+              {locale === "vi"
+                ? "UBND Thành phố Đà Nẵng. Bản quyền đã được bảo lưu."
+                : "Da Nang City People's Committee. All rights reserved."}
+            </p>
+            <button
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+              className="text-[#0B4DBB] hover:text-[#174EA6] hover:underline cursor-pointer flex items-center gap-1.5"
+            >
+              <span>{locale === "vi" ? "Lên đầu trang" : "Back to top"}</span>
+              <ChevronDown size={14} className="rotate-180" />
+            </button>
+          </div>
+        </div>
+      </footer>
+>>>>>>> 2b71a97d00bca784f33f8484c1dc1f0b58f669e4
     </div>
   );
 }
@@ -1556,7 +1824,7 @@ interface DonutChartProps {
   security: number;
 }
 
-const DonutChart = ({ infra, env, traffic, security }: DonutChartProps) => {
+function DonutChart({ infra, env, traffic, security }: DonutChartProps) {
   const total = infra + env + traffic + security;
   const pInfra = total > 0 ? (infra / total) * 100 : 0;
   const pEnv = total > 0 ? (env / total) * 100 : 0;
@@ -1582,7 +1850,7 @@ const DonutChart = ({ infra, env, traffic, security }: DonutChartProps) => {
       <div className="relative w-28 h-28 shrink-0">
         <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
           <circle cx="50" cy="50" r={r} fill="transparent" stroke="#f1f5f9" strokeWidth="11" />
-          
+
           {pInfra > 0 && (
             <circle
               cx="50"
@@ -1637,44 +1905,54 @@ const DonutChart = ({ infra, env, traffic, security }: DonutChartProps) => {
           )}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Tỉ lệ</span>
+          <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+            Tỉ lệ
+          </span>
           <span className="text-sm font-black text-[#063A94] mt-0.5">{total} PA</span>
         </div>
       </div>
-      
+
       <div className="flex-1 space-y-2.5 text-xs font-bold w-full">
         <div className="flex items-center justify-between border-b border-slate-50 pb-1">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-[#0B4DBB] inline-block shadow-sm" />
             <span className="text-slate-500">Hạ tầng đô thị</span>
           </div>
-          <span className="text-[#063A94]">{infra} ({Math.round(pInfra)}%)</span>
+          <span className="text-[#063A94]">
+            {infra} ({Math.round(pInfra)}%)
+          </span>
         </div>
         <div className="flex items-center justify-between border-b border-slate-50 pb-1">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] inline-block shadow-sm" />
             <span className="text-slate-500">Môi trường</span>
           </div>
-          <span className="text-[#063A94]">{env} ({Math.round(pEnv)}%)</span>
+          <span className="text-[#063A94]">
+            {env} ({Math.round(pEnv)}%)
+          </span>
         </div>
         <div className="flex items-center justify-between border-b border-slate-50 pb-1">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B] inline-block shadow-sm" />
             <span className="text-slate-500">Giao thông</span>
           </div>
-          <span className="text-[#063A94]">{traffic} ({Math.round(pTraffic)}%)</span>
+          <span className="text-[#063A94]">
+            {traffic} ({Math.round(pTraffic)}%)
+          </span>
         </div>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-[#8B5CF6] inline-block shadow-sm" />
             <span className="text-slate-500">Trật tự đô thị</span>
           </div>
-          <span className="text-[#063A94]">{security} ({Math.round(pSecurity)}%)</span>
+          <span className="text-[#063A94]">
+            {security} ({Math.round(pSecurity)}%)
+          </span>
         </div>
       </div>
     </div>
   );
-};
+}
 
 // Da Nang districts data
 const DANANG_DISTRICTS = [

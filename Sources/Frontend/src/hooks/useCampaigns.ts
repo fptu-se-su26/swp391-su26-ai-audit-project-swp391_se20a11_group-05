@@ -112,13 +112,19 @@ function mapResponseToCampaign(response: CampaignResponse): Campaign {
   } as Campaign;
 }
 
-export function useCampaignList(): Campaign[] {
-  const { data: backendPage } = useQuery<PageResponse<CampaignResponse>>({
-    queryKey: ["campaigns", "list"],
+export function useCampaignListQuery() {
+  const { user } = useAuth();
+  const token = typeof window !== "undefined" ? getToken() : null;
+  return useQuery<PageResponse<CampaignResponse>>({
+    queryKey: ["campaigns", "list", token, user?.wardId],
     queryFn: () => campaignApi.getAll(0, 50),
     staleTime: 30_000,
     retry: false,
   });
+}
+
+export function useCampaignList(): Campaign[] {
+  const { data: backendPage } = useCampaignListQuery();
 
   // Only return backend campaigns — no mock/seed data merge
   if (backendPage?.content) {
@@ -145,23 +151,12 @@ export function useCampaignDetail(id: string): Campaign | undefined {
     queryFn: () => campaignApi.getById(id),
     enabled: isNumericId,
     staleTime: 5000,
-    refetchInterval: 5000,
+    refetchInterval: 60000,
     retry: false,
   });
 
-  const { data: privateCampaign, isError: privateError } = useQuery<CampaignResponse>({
-    queryKey: ["campaigns", id, "private", hasToken],
-    queryFn: () => campaignApi.getPrivateDetail(id),
-    enabled: isNumericId && hasToken && Boolean(publicCampaign?.privateDetailsVisible),
-    staleTime: 5000,
-    refetchInterval: 5000,
-    retry: false,
-  });
-
-  if (isNumericId && ((privateCampaign && !privateError) || publicCampaign)) {
-    return mapResponseToCampaign(
-      privateCampaign && !privateError ? privateCampaign : publicCampaign!,
-    );
+  if (isNumericId && publicCampaign) {
+    return mapResponseToCampaign(publicCampaign);
   }
 
   return localCampaign;
@@ -393,7 +388,7 @@ export function useCampaignParticipants(campaignId: string, enabled = true) {
     queryFn: () => campaignApi.getParticipants(campaignId),
     enabled:
       enabled && /^\d+$/.test(campaignId) && Boolean(typeof window !== "undefined" && getToken()),
-    refetchInterval: 5000,
+    refetchInterval: 60000,
     retry: false,
   });
 }
@@ -518,7 +513,7 @@ export function useCampaignChat(campaignId: string, options?: { enabled?: boolea
     },
     enabled,
     retry: false,
-    refetchInterval: enabled ? (isWsConnected ? 60000 : 5000) : false,
+    refetchInterval: enabled ? (isWsConnected ? 120000 : 60000) : false,
   });
 
   useEffect(() => {
@@ -610,7 +605,8 @@ export function useCampaignChat(campaignId: string, options?: { enabled?: boolea
                       m.message === message.message &&
                       JSON.stringify(m.imageUrls || []) ===
                         JSON.stringify(message.imageUrls || []) &&
-                      (m.senderName === message.senderName ||
+                      (Number(message.senderId) === Number(user?.id) ||
+                        m.senderName === message.senderName ||
                         m.senderName === "Tôi" ||
                         message.senderName === user?.name),
                   );
@@ -680,7 +676,7 @@ export function useCampaignChat(campaignId: string, options?: { enabled?: boolea
       }
       setIsWsConnected(false);
     };
-  }, [campaignId, enabled, queryClient, token, user?.name]);
+  }, [campaignId, enabled, queryClient, token, user?.name, user?.id]);
 
   const sendMessage = useMutation({
     mutationFn: ({
@@ -709,7 +705,7 @@ export function useCampaignChat(campaignId: string, options?: { enabled?: boolea
 
       const optimisticMessage: CampaignChatMessageResponse = {
         id: -Date.now(),
-        senderId: 0,
+        senderId: user?.id || 0,
         senderName: user?.name || "Tôi",
         senderRole: user?.role || "CITIZEN",
         message: content.trim(),
@@ -778,7 +774,8 @@ export function useCampaignChat(campaignId: string, options?: { enabled?: boolea
                 m.message === savedMessage.message &&
                 JSON.stringify(m.imageUrls || []) ===
                   JSON.stringify(savedMessage.imageUrls || []) &&
-                (m.senderName === savedMessage.senderName ||
+                (Number(savedMessage.senderId) === Number(user?.id) ||
+                  m.senderName === savedMessage.senderName ||
                   m.senderName === "Tôi" ||
                   savedMessage.senderName === user?.name),
             );

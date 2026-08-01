@@ -253,8 +253,7 @@ public class AiRouterService {
         }
 
         log.info("🔄 [Router] Fallback Stream: {} → {}", failed.getProviderName(), backup.getProviderName());
-        return reactor.core.publisher.Flux.just("\n[Đang chuyển sang " + backup.getProviderName() + "...]\n")
-                .concatWith(backup.generateStream(systemPrompt, userMessage));
+        return backup.generateStream(systemPrompt, userMessage);
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -300,8 +299,7 @@ public class AiRouterService {
         }
 
         log.info("🔄 [Router] Fallback: {} → {}", failed.getProviderName(), backup.getProviderName());
-        return backup.generateResponseAsync(systemPrompt, userMessage)
-                .thenApply(r -> r + " [via " + backup.getProviderName() + " fallback]");
+        return backup.generateResponseAsync(systemPrompt, userMessage);
     }
 
     private int evaluateComplexity(String message) {

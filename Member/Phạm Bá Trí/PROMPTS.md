@@ -4,16 +4,16 @@
 
 | Thông tin              | Nội dung |
 | ---------------------- | -------- |
-| Môn học                |          |
-| Mã môn học             |          |
-| Lớp                    |          |
-| Học kỳ                 |          |
-| Tên bài tập / Project  |          |
-| Tên sinh viên / Nhóm   |          |
-| MSSV / Danh sách MSSV  |          |
-| Giảng viên hướng dẫn   |          |
-| Ngày bắt đầu           |          |
-| Ngày cập nhật gần nhất |          |
+| Môn học                | Xây dựng ứng dụng hướng đối tượng |
+| Mã môn học             | SWP391 |
+| Lớp                    | SE20A11 |
+| Học kỳ                 | SU26 |
+| Tên bài tập / Project  | The Listening City Systems |
+| Tên sinh viên / Nhóm   | Phạm Bá Trí / Nhóm 05 |
+| MSSV / Danh sách MSSV  | DE191029 |
+| Giảng viên hướng dẫn   | Lê Thiện Nhật Quang |
+| Ngày bắt đầu           | 2026-05-18 |
+| Ngày cập nhật gần nhất | 2026-07-01 |
 
 ---
 

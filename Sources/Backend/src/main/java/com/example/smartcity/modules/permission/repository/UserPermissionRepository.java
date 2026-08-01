@@ -26,11 +26,13 @@ public interface UserPermissionRepository extends JpaRepository<UserPermission, 
     /**
      * Lấy tất cả permissions của một user
      */
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"permission"})
     List<UserPermission> findByUserAndIsActiveTrue(User user);
 
     /**
      * Lấy tất cả permissions của user (bao gồm inactive)
      */
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"permission"})
     List<UserPermission> findByUser(User user);
 
     /**

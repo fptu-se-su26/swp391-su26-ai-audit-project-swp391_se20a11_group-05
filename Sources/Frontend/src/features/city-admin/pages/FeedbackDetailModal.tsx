@@ -6,40 +6,20 @@ import {
   X,
   FileText,
   MapPin,
-  User,
   Calendar,
-  Tag,
   Clock,
-  CheckCircle,
-  AlertCircle,
-  RefreshCw,
-  Image as ImageIcon,
-  ExternalLink,
-  Phone,
-  Mail,
-  Building,
-  Hash,
-  MessageSquare,
+  Eye,
   Flag,
-  ChevronRight,
+  Copy,
   Download,
   Share2,
-  Edit3,
-  Workflow,
-  UserCheck,
+  MessageSquare,
+  Expand,
+  User,
+  CheckCircle,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-
-const STATUS_COLORS: Record<string, string> = {
-  SUBMITTED: "bg-slate-100 text-slate-600 border-slate-200",
-  PENDING_RECEIVE: "bg-yellow-50 text-yellow-700 border-yellow-200",
-  PENDING: "bg-yellow-50 text-yellow-700 border-yellow-200",
-  NEED_LOCATION_REVIEW: "bg-orange-50 text-orange-700 border-orange-200",
-  IN_PROGRESS: "bg-blue-50 text-blue-700 border-blue-200",
-  WAITING_INFO: "bg-purple-50 text-purple-700 border-purple-200",
-  RESOLVED: "bg-green-50 text-green-700 border-green-200",
-  REJECTED: "bg-red-50 text-red-700 border-red-200",
-};
+import { toast } from "sonner";
 
 interface Props {
   feedbackId: number | null;
@@ -54,7 +34,7 @@ export function FeedbackDetailModal({ feedbackId, onClose }: Props) {
     queryFn: () => feedbackApi.getById(feedbackId!),
     enabled: feedbackId !== null,
     staleTime: 30_000,
-    retry: false, // Don't retry API calls to avoid delays
+    retry: false,
   });
 
   const fb = useMemo(() => {
@@ -67,410 +47,399 @@ export function FeedbackDetailModal({ feedbackId, onClose }: Props) {
   if (feedbackId === null) return null;
 
   const attachments = fb?.attachments ?? [];
-  const statusColor = fb
-    ? (STATUS_COLORS[fb.status] ?? "bg-slate-100 text-slate-600 border-slate-200")
-    : "";
 
-  const Field = ({
-    icon: Icon,
-    label,
-    value,
-    isClickable = false,
-    onClick,
-  }: {
-    icon: any;
-    label: string;
-    value?: string | null;
-    isClickable?: boolean;
-    onClick?: () => void;
-  }) => (
-    <div
-      className={`flex items-start gap-3 ${isClickable ? "cursor-pointer hover:bg-slate-50 -m-2 p-2 rounded-xl transition-colors" : ""}`}
-      onClick={onClick}
-    >
-      <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 mt-0.5">
-        <Icon size={14} className="text-slate-500" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{label}</p>
-        <p
-          className={`text-sm font-semibold text-slate-800 mt-0.5 break-words ${isClickable ? "text-[#0B4FC4] hover:underline" : ""}`}
-        >
-          {value || "—"}
-        </p>
-      </div>
-      {isClickable && <ChevronRight size={14} className="text-slate-400 mt-2" />}
-    </div>
-  );
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Đã sao chép ID phản ánh");
+  };
 
-  // Priority display helper
-  const getPriorityDisplay = (priority: string) => {
+  // Priority display helper for pills
+  const getPriorityDisplay = (priority: string | undefined | null) => {
     switch (priority) {
       case "HIGH":
-        return {
-          text: "Khẩn cấp",
-          color: "text-red-600",
-          bg: "bg-red-50",
-          border: "border-red-200",
-        };
+        return { text: "QUAN TRỌNG", color: "text-[#DC2626]", border: "border-[#DC2626]" };
       case "MEDIUM":
-        return {
-          text: "Quan trọng",
-          color: "text-orange-600",
-          bg: "bg-orange-50",
-          border: "border-orange-200",
-        };
+        return { text: "TRUNG BÌNH", color: "text-[#F59E0B]", border: "border-[#F59E0B]" };
       case "LOW":
-        return {
-          text: "Thông thường",
-          color: "text-blue-600",
-          bg: "bg-blue-50",
-          border: "border-blue-200",
-        };
+        return { text: "THÔNG THƯỜNG", color: "text-[#16A34A]", border: "border-[#16A34A]" };
       default:
-        return {
-          text: "Chưa xác định",
-          color: "text-slate-600",
-          bg: "bg-slate-50",
-          border: "border-slate-200",
-        };
+        return { text: "QUAN TRỌNG", color: "text-[#DC2626]", border: "border-[#DC2626]" }; // Default per mockup
     }
   };
+
+  const statusDisplay = mapStatus(fb?.status || "PENDING").toUpperCase();
 
   return (
     // Backdrop
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 font-sans"
+      style={{ backgroundColor: "rgba(18,24,38,0.45)" }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
-              <FileText size={16} className="text-[#0B4FC4]" />
+      <div className="bg-[#FFFFFF] rounded-[16px] shadow-2xl w-full max-w-[1100px] max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        
+        {/* ======================================================
+            HEADER & SECOND ROW (Fixed Top)
+            ====================================================== */}
+        <div className="shrink-0 px-8 pt-8 pb-6 border-b border-[#E5E7EB]">
+          {/* Top Row */}
+          <div className="flex items-start justify-between">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-full bg-[#FAFAFA] border border-[#E5E7EB] flex items-center justify-center mt-1">
+                <FileText size={20} className="text-[#1D4ED8]" />
+              </div>
+              <div>
+                <h2 className="text-3xl font-bold text-[#111827]">
+                  {isLoading ? <Skeleton className="h-8 w-48" /> : fb?.trackingCode || `#${feedbackId}`}
+                </h2>
+                <p className="text-sm font-medium text-[#6B7280] mt-1">Chi tiết phản ánh</p>
+                
+                {/* Second Row inside Header */}
+                <div className="flex items-center gap-6 mt-6">
+                  <div className="flex items-center gap-2 text-sm font-medium text-[#6B7280]">
+                    <Calendar size={16} />
+                    <span>Gửi lúc {fb?.createdAt ? new Date(fb?.createdAt).toLocaleString("vi-VN", { hour: '2-digit', minute:'2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : "—"}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm font-medium text-[#6B7280]">
+                    <Eye size={16} />
+                    <span>159 lượt xem</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-extrabold text-[#1D2939]">
-                {isLoading ? (
-                  <Skeleton className="h-4 w-32" />
-                ) : (
-                  fb?.trackingCode || `#${feedbackId}`
-                )}
-              </h3>
-              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Chi tiết phản ánh</p>
+
+            <div className="flex flex-col items-end gap-6">
+              <button
+                onClick={onClose}
+                className="w-10 h-10 flex items-center justify-center hover:bg-[#FAFAFA] rounded-md transition-colors"
+              >
+                <X size={24} className="text-[#6B7280]" />
+              </button>
+              
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-semibold text-[#6B7280] mr-2">Trạng thái</span>
+                <span className="px-3 py-1.5 rounded-full text-xs font-bold uppercase border border-[#F59E0B] text-[#F59E0B] flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]"></span>
+                  {statusDisplay}
+                </span>
+                <span className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase border flex items-center gap-1.5 ${getPriorityDisplay(fb?.priority).border} ${getPriorityDisplay(fb?.priority).color}`}>
+                  <Flag size={12} />
+                  {getPriorityDisplay(fb?.priority).text}
+                </span>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onClose}
-              className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center transition cursor-pointer"
-            >
-              <X size={16} className="text-slate-500" />
-            </button>
           </div>
         </div>
 
-        {/* Body */}
-        <div className="overflow-y-auto flex-1">
+        {/* ======================================================
+            BODY LAYOUT
+            ====================================================== */}
+        <div className="flex-1 overflow-y-auto bg-[#FAFAFA] p-8">
           {isLoading ? (
-            <div className="p-6 space-y-4">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="flex gap-3">
-                  <Skeleton className="h-8 w-8 rounded-lg" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-3 w-20" />
-                    <Skeleton className="h-4 w-full max-w-xs" />
-                  </div>
-                </div>
-              ))}
+            <div className="grid grid-cols-12 gap-6">
+              <div className="col-span-12 lg:col-span-8 space-y-6">
+                <Skeleton className="h-[400px] w-full rounded-[12px]" />
+                <Skeleton className="h-32 w-full rounded-md" />
+              </div>
+              <div className="col-span-12 lg:col-span-4 space-y-6">
+                <Skeleton className="h-48 w-full rounded-md" />
+                <Skeleton className="h-48 w-full rounded-md" />
+                <Skeleton className="h-48 w-full rounded-md" />
+              </div>
             </div>
           ) : !fb ? (
-            <div className="p-12 text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center">
-                <AlertCircle size={24} className="text-slate-400" />
-              </div>
-              <h3 className="font-bold text-slate-600 mb-2">Không tìm thấy phản ánh</h3>
-              <p className="text-sm text-slate-400">ID phản ánh không tồn tại hoặc đã bị xóa</p>
+            <div className="p-12 text-center text-[#6B7280]">
+              Không tìm thấy phản ánh
             </div>
           ) : (
-            <div className="p-6 space-y-6">
-              {/* Title Section with Status and Priority */}
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-extrabold uppercase border ${statusColor}`}
-                  >
-                    {mapStatus(fb.status)}
-                  </span>
-                  {fb.priority && (
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-bold uppercase border ${getPriorityDisplay(fb.priority).bg} ${getPriorityDisplay(fb.priority).color} ${getPriorityDisplay(fb.priority).border}`}
-                    >
-                      <Flag size={10} className="inline mr-1" />
-                      {getPriorityDisplay(fb.priority).text}
-                    </span>
+            <div className="grid grid-cols-12 gap-6 max-w-[1336px] mx-auto">
+              
+              {/* ======================================================
+                  LEFT COLUMN (65% = 8 cols)
+                  ====================================================== */}
+              <div className="col-span-12 lg:col-span-8 space-y-6">
+                
+                {/* Section 1: Hình ảnh đính kèm */}
+                <div className="bg-[#FFFFFF] p-6 rounded-lg border border-[#E5E7EB]">
+                  <h3 className="text-sm font-bold text-[#111827] uppercase mb-4">
+                    HÌNH ẢNH ĐÍNH KÈM ({attachments.length})
+                  </h3>
+                  
+                  {attachments.length > 0 ? (
+                    <div className="space-y-4">
+                      {/* Large Preview */}
+                      <div className="relative aspect-video rounded-[12px] overflow-hidden bg-[#FAFAFA] border border-[#E5E7EB]">
+                        <img
+                          src={attachments[activeImg]?.fileUrl}
+                          alt="Attachment preview"
+                          className="w-full h-full object-contain"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).onerror = null;
+                            (e.target as HTMLImageElement).src = "data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22100%25%22%20height%3D%22100%25%22%20viewBox%3D%220%200%20100%20100%22%20preserveAspectRatio%3D%22none%22%3E%3Crect%20width%3D%22100%22%20height%3D%22100%22%20fill%3D%22%23F3F4F6%22%2F%3E%3Ctext%20x%3D%2250%22%20y%3D%2250%22%20font-family%3D%22sans-serif%22%20font-size%3D%2214%22%20font-weight%3D%22bold%22%20fill%3D%22%239CA3AF%22%20text-anchor%3D%22middle%22%20dominant-baseline%3D%22middle%22%3EL%E1%BB%97i%20t%E1%BA%A3i%20%E1%BA%A3nh%3C%2Ftext%3E%3C%2Fsvg%3E";
+                          }}
+                        />
+                        <button
+                          onClick={() => window.open(attachments[activeImg].fileUrl, "_blank")}
+                          className="absolute top-4 right-4 w-10 h-10 bg-[#FFFFFF] rounded-md flex items-center justify-center border border-[#E5E7EB] hover:bg-[#FAFAFA] transition-colors shadow-sm"
+                        >
+                          <Expand size={20} className="text-[#111827]" />
+                        </button>
+                        <div className="absolute bottom-4 left-4 px-3 py-1.5 bg-[#FFFFFF] text-[#111827] text-sm font-bold rounded-md border border-[#E5E7EB] shadow-sm">
+                          {activeImg + 1} / {attachments.length}
+                        </div>
+                      </div>
+
+                      {/* Thumbnails */}
+                      {attachments.length > 1 && (
+                        <div className="flex gap-3 overflow-x-auto">
+                          {attachments.map((att, idx) => {
+                            if (idx > 4) return null; // limit thumbnails
+                            if (idx === 4 && attachments.length > 5) {
+                              return (
+                                <div key="more" className="w-[100px] h-[72px] rounded-md bg-[#FAFAFA] border border-[#E5E7EB] flex items-center justify-center text-[#111827] font-bold shrink-0">
+                                  +{attachments.length - 4}
+                                </div>
+                              );
+                            }
+                            return (
+                              <button
+                                key={idx}
+                                onClick={() => setActiveImg(idx)}
+                                className={`w-[100px] h-[72px] rounded-md overflow-hidden shrink-0 border-2 transition-colors ${
+                                  idx === activeImg ? "border-[#1D4ED8]" : "border-[#E5E7EB]"
+                                }`}
+                              >
+                                <img 
+                                  src={att.fileUrl} 
+                                  alt="Thumbnail" 
+                                  className="w-full h-full object-cover" 
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).onerror = null;
+                                    (e.target as HTMLImageElement).src = "data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22100%25%22%20height%3D%22100%25%22%20viewBox%3D%220%200%20100%20100%22%20preserveAspectRatio%3D%22none%22%3E%3Crect%20width%3D%22100%22%20height%3D%22100%22%20fill%3D%22%23F3F4F6%22%2F%3E%3Ctext%20x%3D%2250%22%20y%3D%2250%22%20font-family%3D%22sans-serif%22%20font-size%3D%2214%22%20font-weight%3D%22bold%22%20fill%3D%22%239CA3AF%22%20text-anchor%3D%22middle%22%20dominant-baseline%3D%22middle%22%3EL%E1%BB%97i%3C%2Ftext%3E%3C%2Fsvg%3E";
+                                  }}
+                                />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="aspect-video bg-[#FAFAFA] rounded-[12px] border border-[#E5E7EB] flex items-center justify-center text-[#6B7280]">
+                      Không có hình ảnh đính kèm
+                    </div>
                   )}
-                  <span className="px-2 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-600 border border-blue-200">
-                    <Hash size={10} className="inline mr-1" />
-                    {fb.trackingCode || `#${fb.id}`}
-                  </span>
                 </div>
-                <h2 className="text-lg font-bold text-[#1D2939] leading-tight">{fb.title}</h2>
-              </div>
 
-              {/* Description */}
-              <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                <div className="flex items-center gap-2 mb-3">
-                  <MessageSquare size={14} className="text-slate-500" />
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                    Nội dung phản ánh
-                  </p>
-                </div>
-                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                  {fb.description || fb.content || <span className="italic text-slate-400">Không có nội dung phản ánh.</span>}
-                </p>
-              </div>
-
-              {/* Result Content */}
-              {fb.resultContent && (
-                <div className="bg-green-50 rounded-xl p-4 border border-green-100">
-                  <div className="flex items-center gap-2 mb-3">
-                    <CheckCircle size={14} className="text-green-600" />
-                    <p className="text-xs font-bold text-green-600 uppercase tracking-wider">
-                      Kết quả xử lý
+                {/* Section 2: Nội dung phản ánh */}
+                <div className="bg-[#FFFFFF] p-6 rounded-lg border border-[#E5E7EB]">
+                  <h3 className="text-sm font-bold text-[#111827] uppercase mb-4">
+                    NỘI DUNG PHẢN ÁNH
+                  </h3>
+                  <div className="p-4 border border-[#E5E7EB] rounded-md bg-[#FAFAFA]">
+                    <p className="text-[15px] leading-relaxed text-[#111827] whitespace-pre-wrap">
+                      {fb.description || fb.content || "Không có nội dung."}
                     </p>
                   </div>
-                  <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                    {fb.resultContent}
-                  </p>
                 </div>
-              )}
-
-              {/* Citizen Information */}
-              <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
-                <div className="flex items-center gap-2 mb-4">
-                  <User size={14} className="text-blue-600" />
-                  <p className="text-xs font-bold text-blue-600 uppercase tracking-wider">
-                    Thông tin người gửi
-                  </p>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Field icon={User} label="Họ tên" value={fb.citizenName} />
-                  <Field
-                    icon={Phone}
-                    label="Số điện thoại"
-                    value={fb.citizenPhone}
-                    isClickable={!!fb.citizenPhone}
-                    onClick={() => fb.citizenPhone && window.open(`tel:${fb.citizenPhone}`)}
-                  />
-                  <Field
-                    icon={Mail}
-                    label="Email"
-                    value={fb.citizenEmail}
-                    isClickable={!!fb.citizenEmail}
-                    onClick={() => fb.citizenEmail && window.open(`mailto:${fb.citizenEmail}`)}
-                  />
-                </div>
+                
               </div>
 
-              {/* Location & Category Information */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="bg-green-50 rounded-xl p-4 border border-green-100">
-                  <div className="flex items-center gap-2 mb-4">
-                    <MapPin size={14} className="text-green-600" />
-                    <p className="text-xs font-bold text-green-600 uppercase tracking-wider">
-                      Địa điểm
-                    </p>
+              {/* ======================================================
+                  RIGHT COLUMN (35% = 4 cols)
+                  ====================================================== */}
+              <div className="col-span-12 lg:col-span-4 space-y-6">
+                
+                {/* Card 1: Thông thông người gửi */}
+                <div className="bg-[#FFFFFF] p-6 rounded-lg border border-[#E5E7EB]">
+                  <h3 className="text-sm font-bold text-[#111827] flex items-center gap-2 mb-6">
+                    <User size={18} className="text-[#1D4ED8]" />
+                    THÔNG TIN NGƯỜI GỬI
+                  </h3>
+                  <div className="space-y-4 text-[14px]">
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="text-[#6B7280] col-span-1">Họ tên</div>
+                      <div className="text-[#111827] font-medium col-span-2">{fb.citizenName || "—"}</div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="text-[#6B7280] col-span-1">Số điện thoại</div>
+                      <div className="text-[#111827] font-medium col-span-2">{fb.citizenPhone || "—"}</div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="text-[#6B7280] col-span-1">Email</div>
+                      <div className="text-[#111827] font-medium col-span-2 break-all">{fb.citizenEmail || "—"}</div>
+                    </div>
                   </div>
-                  <div className="space-y-3">
-                    <Field icon={Building} label="Quận/Phường" value={fb.wardName} />
-                    <Field icon={MapPin} label="Địa chỉ cụ thể" value={fb.addressDetails} />
+                </div>
+
+                {/* Card 2: Địa điểm */}
+                <div className="bg-[#FFFFFF] p-6 rounded-lg border border-[#E5E7EB]">
+                  <h3 className="text-sm font-bold text-[#111827] flex items-center gap-2 mb-6">
+                    <MapPin size={18} className="text-[#1D4ED8]" />
+                    ĐỊA ĐIỂM
+                  </h3>
+                  <div className="space-y-4 text-[14px]">
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="text-[#6B7280] col-span-1">Quận/Phường</div>
+                      <div className="text-[#111827] font-medium col-span-2">{fb.wardName || "—"}</div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="text-[#6B7280] col-span-1">Địa chỉ cụ thể</div>
+                      <div className="text-[#111827] font-medium col-span-2">{fb.addressDetails || fb.address || "—"}</div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="text-[#6B7280] col-span-1">Tọa độ GPS</div>
+                      <div className="text-[#111827] font-medium col-span-2">
+                        {fb.latitude && fb.longitude ? `${fb.latitude.toFixed(6)}, ${fb.longitude.toFixed(6)}` : "—"}
+                      </div>
+                    </div>
                     {fb.latitude && fb.longitude && (
-                      <Field
-                        icon={MapPin}
-                        label="Tọa độ GPS"
-                        value={`${fb.latitude?.toFixed(6)}, ${fb.longitude?.toFixed(6)}`}
-                        isClickable={true}
-                        onClick={() =>
-                          window.open(`https://maps.google.com/?q=${fb.latitude},${fb.longitude}`)
-                        }
-                      />
+                      <div className="pt-2">
+                        <button
+                          onClick={() => window.open(`https://maps.google.com/?q=${fb.latitude},${fb.longitude}`)}
+                          className="flex items-center gap-2 text-sm font-bold text-[#1D4ED8] hover:underline"
+                        >
+                          <MapPin size={16} />
+                          Xem trên bản đồ
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
 
-                <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Tag size={14} className="text-purple-600" />
-                    <p className="text-xs font-bold text-purple-600 uppercase tracking-wider">
-                      Phân loại
-                    </p>
-                  </div>
-                  <div className="space-y-3">
-                    <Field icon={Tag} label="Lĩnh vực" value={fb.categoryName} />
-                    <Field
-                      icon={Calendar}
-                      label="Ngày gửi"
-                      value={
-                        fb.createdAt ? new Date(fb.createdAt).toLocaleString("vi-VN") : undefined
-                      }
-                    />
-                    <Field
-                      icon={Clock}
-                      label="Cập nhật lần cuối"
-                      value={
-                        fb.updatedAt ? new Date(fb.updatedAt).toLocaleString("vi-VN") : undefined
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Assignee Information */}
-              {(fb.assigneeName || fb.assigneeId) && (
-                <div className="bg-orange-50 rounded-xl p-4 border border-orange-100">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Workflow size={14} className="text-orange-600" />
-                    <p className="text-xs font-bold text-orange-600 uppercase tracking-wider">
-                      Cán bộ xử lý
-                    </p>
-                  </div>
-                  <Field icon={UserCheck} label="Được phân công cho" value={fb.assigneeName} />
-                </div>
-              )}
-
-              {/* Attachments */}
-              {attachments.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                      <ImageIcon size={14} className="text-slate-500" />
-                      Hình ảnh đính kèm ({attachments.length})
-                    </p>
-                    <button
-                      onClick={() => window.open(attachments[activeImg].fileUrl, "_blank")}
-                      className="text-xs font-bold text-[#0B4FC4] hover:underline flex items-center gap-1"
-                    >
-                      <Download size={12} />
-                      Tải xuống
-                    </button>
-                  </div>
-                  <div className="space-y-4">
-                    {/* Main image with better styling */}
-                    <div className="relative aspect-video rounded-2xl overflow-hidden bg-slate-900 border border-slate-200 group">
-                      <img
-                        src={attachments[activeImg].fileUrl}
-                        alt={attachments[activeImg].fileName || "Attachment"}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
-                      <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-                        <span className="px-3 py-1.5 bg-black/70 backdrop-blur text-white text-xs font-bold rounded-full">
-                          {activeImg + 1} / {attachments.length}
+                {/* Card 3: Phân loại */}
+                <div className="bg-[#FFFFFF] p-6 rounded-lg border border-[#E5E7EB]">
+                  <h3 className="text-sm font-bold text-[#111827] flex items-center gap-2 mb-6">
+                    <CheckCircle size={18} className="text-[#1D4ED8]" />
+                    PHÂN LOẠI
+                  </h3>
+                  <div className="space-y-4 text-[14px]">
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="text-[#6B7280] col-span-1">Lĩnh vực</div>
+                      <div className="text-[#111827] font-medium col-span-2">{fb.categoryName || "—"}</div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="text-[#6B7280] col-span-1">Danh mục</div>
+                      <div className="text-[#111827] font-medium col-span-2">{fb.category || fb.categoryName || "—"}</div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 items-center">
+                      <div className="text-[#6B7280] col-span-1">Mức độ ưu tiên</div>
+                      <div className="col-span-2">
+                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${getPriorityDisplay(fb?.priority).color} bg-slate-50 border ${getPriorityDisplay(fb?.priority).border}`}>
+                          {getPriorityDisplay(fb?.priority).text}
                         </span>
-                        <div className="flex items-center gap-2">
-                          <span className="px-2 py-1 bg-black/70 backdrop-blur text-white text-xs font-medium rounded">
-                            {attachments[activeImg].fileName}
-                          </span>
-                          <button
-                            onClick={() => window.open(attachments[activeImg].fileUrl, "_blank")}
-                            className="p-1.5 bg-black/70 backdrop-blur hover:bg-black/80 text-white rounded transition"
-                          >
-                            <ExternalLink size={12} />
-                          </button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="text-[#6B7280] col-span-1">Ngày gửi</div>
+                      <div className="text-[#111827] font-medium col-span-2">
+                        {fb.createdAt ? new Date(fb.createdAt).toLocaleString("vi-VN") : "—"}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="text-[#6B7280] col-span-1">Cập nhật lần cuối</div>
+                      <div className="text-[#111827] font-medium col-span-2">
+                        {fb.updatedAt ? new Date(fb.updatedAt).toLocaleString("vi-VN") : "—"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card 4: Trạng thái xử lý (Progress) */}
+                <div className="bg-[#FFFFFF] p-6 rounded-lg border border-[#E5E7EB]">
+                  <h3 className="text-sm font-bold text-[#111827] flex items-center gap-2 mb-6">
+                    <CheckCircle size={18} className="text-[#1D4ED8]" />
+                    TIẾN ĐỘ XỬ LÝ
+                  </h3>
+                  
+                  <div className="space-y-6">
+                    <div className="flex flex-col gap-6">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${['SUBMITTED', 'PENDING_RECEIVE', 'PENDING', 'IN_PROGRESS', 'RESOLVED'].includes(fb.status) ? 'bg-[#1D4ED8] text-white' : 'bg-[#E5E7EB] text-[#6B7280]'}`}>
+                          <span className="text-sm font-bold">1</span>
+                        </div>
+                        <div className="flex-1">
+                          <p className={`font-bold ${['SUBMITTED', 'PENDING_RECEIVE', 'PENDING', 'IN_PROGRESS', 'RESOLVED'].includes(fb.status) ? 'text-[#111827]' : 'text-[#6B7280]'}`}>Tiếp nhận</p>
+                        </div>
+                      </div>
+                      
+                      <div className="w-0.5 h-6 bg-[#E5E7EB] ml-4 -my-4 relative z-0"></div>
+
+                      <div className="flex items-center gap-4">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${['IN_PROGRESS', 'RESOLVED'].includes(fb.status) ? 'bg-[#1D4ED8] text-white' : 'bg-[#E5E7EB] text-[#6B7280]'}`}>
+                          <span className="text-sm font-bold">2</span>
+                        </div>
+                        <div className="flex-1">
+                          <p className={`font-bold ${['IN_PROGRESS', 'RESOLVED'].includes(fb.status) ? 'text-[#111827]' : 'text-[#6B7280]'}`}>Đang xử lý</p>
+                        </div>
+                      </div>
+
+                      <div className="w-0.5 h-6 bg-[#E5E7EB] ml-4 -my-4 relative z-0"></div>
+
+                      <div className="flex items-center gap-4">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${['RESOLVED'].includes(fb.status) ? 'bg-[#1D4ED8] text-white' : 'bg-[#E5E7EB] text-[#6B7280]'}`}>
+                          <span className="text-sm font-bold">3</span>
+                        </div>
+                        <div className="flex-1">
+                          <p className={`font-bold ${['RESOLVED'].includes(fb.status) ? 'text-[#111827]' : 'text-[#6B7280]'}`}>Hoàn thành</p>
                         </div>
                       </div>
                     </div>
-
-                    {/* Thumbnails */}
-                    {attachments.length > 1 && (
-                      <div className="flex gap-3 overflow-x-auto pb-2">
-                        {attachments.map((attachment, i) => (
-                          <button
-                            key={i}
-                            onClick={() => setActiveImg(i)}
-                            className={`shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 transition-all hover:scale-105 ${
-                              i === activeImg
-                                ? "border-[#0B4FC4] shadow-lg"
-                                : "border-transparent hover:border-slate-300"
-                            }`}
-                          >
-                            <img
-                              src={attachment.fileUrl}
-                              alt={`Thumbnail ${i + 1}`}
-                              className="w-full h-full object-cover"
-                            />
-                          </button>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </div>
-              )}
 
-              {/* Processing History */}
-              {fb.logs && fb.logs.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <Clock size={14} className="text-slate-500" />
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                      Lịch sử xử lý ({fb.logs.length})
-                    </p>
-                  </div>
-                  <div className="space-y-3 relative">
-                    {/* Timeline line */}
-                    <div className="absolute left-4 top-2 bottom-2 w-px bg-slate-200" />
-
-                    {fb.logs.slice(0, 10).map((log: any, i: number) => (
-                      <div key={log.id || i} className="flex gap-4 items-start relative">
-                        <div className="w-8 h-8 rounded-full bg-[#0B4FC4] flex items-center justify-center shrink-0 relative z-10 border-2 border-white shadow-sm">
-                          <div className="w-2 h-2 bg-white rounded-full" />
-                        </div>
-                        <div className="flex-1 bg-slate-50 rounded-xl p-3 border border-slate-100">
-                          <div className="flex items-start justify-between gap-3 mb-1">
-                            <span className="font-bold text-sm text-slate-800">
-                              {log.actorName || "Hệ thống"}
-                            </span>
-                            <span className="text-xs text-slate-400 font-medium shrink-0">
-                              {log.createdAt ? new Date(log.createdAt).toLocaleString("vi-VN") : ""}
-                            </span>
-                          </div>
-                          <p className="text-sm text-slate-600 leading-relaxed">
-                            {log.note || log.action}
-                          </p>
-                          {log.action && (
-                            <span className="inline-block mt-2 px-2 py-0.5 bg-slate-200 text-slate-600 text-xs font-bold rounded">
-                              {log.action}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap gap-3 pt-4 border-t border-slate-100">
-                <button className="flex items-center gap-2 px-4 py-2 bg-[#0B4FC4] text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition">
-                  <Edit3 size={14} />
-                  Cập nhật trạng thái
-                </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 text-sm font-bold rounded-xl hover:bg-slate-200 transition">
-                  <MessageSquare size={14} />
-                  Thêm ghi chú
-                </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 text-sm font-bold rounded-xl hover:bg-slate-200 transition">
-                  <Share2 size={14} />
-                  Chia sẻ
-                </button>
               </div>
             </div>
           )}
         </div>
+
+        {/* ======================================================
+            BOTTOM ACTION BAR (Sticky Footer)
+            ====================================================== */}
+        <div className="shrink-0 bg-[#FFFFFF] border-t border-[#E5E7EB] px-8 py-4 flex items-center justify-between h-[80px]">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-[#6B7280]">ID phản ánh:</span>
+            <span className="text-sm font-bold text-[#111827]">{fb?.trackingCode || `#${feedbackId}`}</span>
+            <button
+              onClick={() => copyToClipboard(fb?.trackingCode || `#${feedbackId}`)}
+              className="ml-1 p-1.5 text-[#6B7280] hover:text-[#111827] transition-colors"
+            >
+              <Copy size={16} />
+            </button>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => toast.info("Tính năng Thêm ghi chú đang được phát triển")}
+              className="flex items-center gap-2 px-4 py-2 border border-[#E5E7EB] text-[#111827] text-sm font-semibold rounded-[8px] hover:bg-[#FAFAFA] transition"
+            >
+              <MessageSquare size={18} />
+              Thêm ghi chú
+            </button>
+            <button 
+              onClick={() => {
+                navigator.clipboard.writeText(window.location.href);
+                toast.success("Đã sao chép liên kết chia sẻ");
+              }}
+              className="flex items-center gap-2 px-4 py-2 border border-[#E5E7EB] text-[#111827] text-sm font-semibold rounded-[8px] hover:bg-[#FAFAFA] transition"
+            >
+              <Share2 size={18} />
+              Chia sẻ
+            </button>
+            
+            <div className="w-px h-6 bg-[#E5E7EB] mx-2"></div>
+            
+            <button 
+              onClick={() => toast.info("Tính năng Cập nhật trạng thái đang được xây dựng (Sắp ra mắt)")}
+              className="flex items-center justify-center px-6 h-[48px] bg-[#1D4ED8] text-white text-sm font-bold rounded-[10px] hover:bg-[#1e40af] transition"
+            >
+              Cập nhật trạng thái
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
   );

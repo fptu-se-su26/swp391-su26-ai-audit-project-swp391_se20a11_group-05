@@ -36,6 +36,7 @@ import {
   useDeleteOwnProfileMutation,
   useChangePasswordMutation,
   useSendChangePasswordOtp,
+  useSendDeleteProfileOtpMutation,
 } from "@/hooks";
 import { useI18n } from "@/lib/i18n";
 import { CampaignAppealPanel } from "@/components/site/CampaignAppealPanel";
@@ -186,7 +187,17 @@ function ProfilePage() {
 
   // Deactivate account state
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
-  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleteStep, setDeleteStep] = useState<1 | 2>(1);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteOtp, setDeleteOtp] = useState("");
+  const [deleteCountdown, setDeleteCountdown] = useState(0);
+  const sendDeleteOtpMutation = useSendDeleteProfileOtpMutation();
+
+  useEffect(() => {
+    if (deleteCountdown <= 0) return;
+    const timer = setInterval(() => setDeleteCountdown((prev) => prev - 1), 1000);
+    return () => clearInterval(timer);
+  }, [deleteCountdown]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -316,9 +327,30 @@ function ProfilePage() {
     }
   };
 
+  const handleSendDeleteOtp = async () => {
+    if (!deletePassword) {
+      toast.error(locale === "vi" ? "Vui lòng nhập mật khẩu!" : "Please enter your password!");
+      return;
+    }
+    try {
+      await sendDeleteOtpMutation.mutateAsync({ password: deletePassword });
+      toast.success(
+        locale === "vi"
+          ? "Đã gửi mã OTP. Vui lòng kiểm tra email!"
+          : "OTP sent. Please check your email!"
+      );
+      setDeleteCountdown(60);
+      setDeleteStep(2);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : (locale === "vi" ? "Gửi mã OTP thất bại!" : "Failed to send OTP!")
+      );
+    }
+  };
+
   const handleDeleteAccount = async () => {
-    if (deleteConfirmText !== profile?.username) {
-      toast.error(locale === "vi" ? "Tên tài khoản không khớp!" : "Username does not match!");
+    if (!deleteOtp) {
+      toast.error(locale === "vi" ? "Vui lòng nhập mã OTP!" : "Please enter the OTP!");
       return;
     }
 
@@ -326,7 +358,7 @@ function ProfilePage() {
       locale === "vi" ? "Đang xóa tài khoản..." : "Deleting account...",
     );
     try {
-      await deleteOwnProfile.mutateAsync();
+      await deleteOwnProfile.mutateAsync({ password: deletePassword, otpCode: deleteOtp });
       toast.success(
         locale === "vi" ? "Xóa tài khoản thành công!" : "Account deleted successfully!",
         {
@@ -337,9 +369,7 @@ function ProfilePage() {
       navigate({ to: "/" });
     } catch (err) {
       toast.error(
-        locale === "vi"
-          ? "Lỗi xóa tài khoản. Vui lòng thử lại!"
-          : "Error deleting account. Try again!",
+        err instanceof Error ? err.message : (locale === "vi" ? "Lỗi xóa tài khoản. Vui lòng thử lại!" : "Error deleting account. Try again!"),
         { id: toastId },
       );
     }
@@ -994,47 +1024,81 @@ function ProfilePage() {
               <AlertTriangle className="h-6 w-6" />
               <h3 className="text-lg font-extrabold">
                 {locale === "vi"
-                  ? "Bạn chắc chắn muốn xóa tài khoản?"
-                  : "Confirm Account Deletion?"}
+                  ? "Xác thực xóa tài khoản"
+                  : "Verify Account Deletion"}
               </h3>
             </div>
 
             <p className="text-xs font-semibold text-slate-550 dark:text-slate-400 leading-relaxed mb-5">
               {locale === "vi"
-                ? `Hành động này sẽ vô hiệu hóa hoàn toàn tài khoản của bạn. Vui lòng nhập tên tài khoản của bạn `
-                : `This action is irreversible and will deactivate your records. Please enter your username `}
+                ? "Hành động này sẽ vô hiệu hóa hoàn toàn tài khoản của bạn. Vì lý do bảo mật, vui lòng "
+                : "This action is irreversible. For security reasons, please "}
               <strong className="text-slate-800 dark:text-slate-100 font-black">
-                {profile?.username}
-              </strong>{" "}
-              {locale === "vi" ? "để xác nhận." : "to confirm."}
+                {deleteStep === 1 
+                  ? (locale === "vi" ? "nhập mật khẩu của bạn để nhận mã OTP." : "enter your password to receive an OTP.") 
+                  : (locale === "vi" ? "nhập mã OTP đã được gửi đến email của bạn." : "enter the OTP sent to your email.")}
+              </strong>
             </p>
 
-            <input
-              type="text"
-              value={deleteConfirmText}
-              onChange={(e) => setDeleteConfirmText(e.target.value)}
-              placeholder={profile?.username}
-              className="w-full min-h-[44px] px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-sm font-bold focus:border-rose-500 focus:ring-1 focus:ring-rose-500 focus:outline-none mb-6 text-center"
-            />
+            {deleteStep === 1 ? (
+              <div className="relative mb-6">
+                <Lock className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400" />
+                <input
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  placeholder={locale === "vi" ? "Mật khẩu hiện tại" : "Current password"}
+                  className="w-full min-h-[44px] pl-11 pr-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-sm font-bold focus:border-rose-500 focus:ring-1 focus:ring-rose-500 focus:outline-none"
+                />
+              </div>
+            ) : (
+              <div className="mb-6 flex justify-center">
+                <InputOTP maxLength={6} value={deleteOtp} onChange={setDeleteOtp}>
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800" />
+                    <InputOTPSlot index={1} className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800" />
+                    <InputOTPSlot index={2} className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800" />
+                    <InputOTPSlot index={3} className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800" />
+                    <InputOTPSlot index={4} className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800" />
+                    <InputOTPSlot index={5} className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800" />
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
+            )}
 
             <div className="flex gap-2 justify-end pt-2 border-t border-slate-100 dark:border-slate-850">
               <button
                 onClick={() => {
                   setIsConfirmDeleteOpen(false);
-                  setDeleteConfirmText("");
+                  setDeletePassword("");
+                  setDeleteOtp("");
+                  setDeleteStep(1);
                 }}
                 className="px-4 py-2 rounded-xl text-sm font-extrabold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-850 transition-colors cursor-pointer"
               >
                 {locale === "vi" ? "Hủy bỏ" : "Cancel"}
               </button>
-              <button
-                onClick={handleDeleteAccount}
-                disabled={deleteConfirmText !== profile?.username || deleteOwnProfile.isPending}
-                className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-black text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 cursor-pointer"
-              >
-                {deleteOwnProfile.isPending && <Loader2 className="animate-spin h-4 w-4" />}
-                {locale === "vi" ? "Tôi hiểu, hãy xóa tài khoản" : "Yes, Delete Account"}
-              </button>
+              {deleteStep === 1 ? (
+                <button
+                  onClick={handleSendDeleteOtp}
+                  disabled={!deletePassword || sendDeleteOtpMutation.isPending || deleteCountdown > 0}
+                  className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-black text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 cursor-pointer"
+                >
+                  {sendDeleteOtpMutation.isPending && <Loader2 className="animate-spin h-4 w-4" />}
+                  {deleteCountdown > 0 
+                    ? `${deleteCountdown}s` 
+                    : (locale === "vi" ? "Gửi mã OTP" : "Send OTP")}
+                </button>
+              ) : (
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={!deleteOtp || deleteOwnProfile.isPending}
+                  className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-black text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 cursor-pointer"
+                >
+                  {deleteOwnProfile.isPending && <Loader2 className="animate-spin h-4 w-4" />}
+                  {locale === "vi" ? "Xác nhận xóa tài khoản" : "Confirm Deletion"}
+                </button>
+              )}
             </div>
           </div>
         </div>

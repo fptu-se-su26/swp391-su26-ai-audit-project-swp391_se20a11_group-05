@@ -88,21 +88,21 @@ export function CampaignDetailPageComponent({
   initialEditMode = false,
 }: CampaignDetailPageComponentProps) {
   const theme = {
-    primaryText: "text-[#7C3AED]",
-    primaryBg: "bg-[#7C3AED]",
-    primaryBorder: "border-[#7C3AED]",
-    primaryHover: "hover:brightness-110",
-    lightBg: "bg-[#F3F0FF]",
-    lightBorder: "border-violet-100",
-    lightBgHover: "hover:bg-[#F3F0FF]",
-    avatarBg: "bg-[#F3F0FF]",
-    avatarText: "text-[#7C3AED]",
-    focusRing: "focus:border-[#7C3AED] focus:ring-[#7C3AED]/15",
-    tabActive: "border-[#7C3AED] text-[#7C3AED]",
-    mainBg: "bg-[#F8F7FF]",
-    textHover: "hover:text-[#7C3AED]",
-    textHoverPrimary: "hover:text-[#7C3AED]",
-    borderDashed: "border-violet-100 bg-[#F8F7FF]",
+    primaryText: "text-gov-blue",
+    primaryBg: "bg-gov-blue",
+    primaryBorder: "border-gov-blue",
+    primaryHover: "hover:bg-gov-blue-deep",
+    lightBg: "bg-gov-bg",
+    lightBorder: "border-slate-200",
+    lightBgHover: "hover:bg-slate-100",
+    avatarBg: "bg-blue-50",
+    avatarText: "text-gov-blue",
+    focusRing: "focus:border-gov-gold focus:ring-gov-gold/20",
+    tabActive: "border-gov-blue text-gov-blue",
+    mainBg: "bg-gov-bg",
+    textHover: "hover:text-gov-blue",
+    textHoverPrimary: "hover:text-gov-blue-deep",
+    borderDashed: "border-slate-200 bg-white",
   };
 
   const isGroupChatRoute = useRouterState({
@@ -379,7 +379,7 @@ export function CampaignDetailPageComponent({
                 onBack();
               }
             }}
-            className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#7C3AED]"
+            className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-gov-blue"
           >
             <ArrowLeft size={16} />
             Quay lại danh sách
@@ -622,7 +622,7 @@ export function CampaignDetailPageComponent({
                       <Link
                         to="/ward"
                         search={{ tab: "chat", detailId: campaign.id }}
-                        className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#7C3AED] text-sm font-black text-white shadow-sm transition hover:brightness-110"
+                        className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-gov-blue text-sm font-black text-white shadow-sm transition hover:bg-gov-blue-deep"
                       >
                         Vào nhóm chat
                       </Link>
@@ -630,7 +630,7 @@ export function CampaignDetailPageComponent({
                       <Link
                         to="/campaigns/$id/group-chat"
                         params={{ id: campaign.id }}
-                        className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#7C3AED] text-sm font-black text-white shadow-sm transition hover:brightness-110"
+                        className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-gov-blue text-sm font-black text-white shadow-sm transition hover:bg-gov-blue-deep"
                       >
                         Vào nhóm chat
                       </Link>
@@ -664,7 +664,7 @@ export function CampaignDetailPageComponent({
                             setShowJoinModal(true);
                           }}
                           disabled={campaign.status !== "recruiting" || joinCampaign.isPending}
-                          className="h-12 w-full rounded-xl bg-[#7C3AED] text-sm font-black text-white shadow-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="h-12 w-full rounded-xl bg-gov-blue text-sm font-black text-white shadow-sm transition hover:bg-gov-blue-deep disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           Đăng ký & Vào Chat
                         </button>
@@ -716,28 +716,21 @@ export function CampaignDetailPageComponent({
               )}
             </section>
 
-            <section className={`rounded-2xl border ${theme.lightBorder} bg-white p-6 shadow-lg`}>
+            <section className={`rounded-2xl border ${theme.lightBorder} bg-white p-6 shadow-sm`}>
               <h2 className="mb-4 text-sm font-black uppercase tracking-wider text-slate-500">
                 Người phụ trách
               </h2>
               <div className="flex items-center gap-3">
                 <div
-                  className={`grid h-14 w-14 place-items-center rounded-full ${theme.avatarBg} text-lg font-black ${theme.avatarText}`}
+                  className={`grid h-12 w-12 place-items-center rounded-full ${theme.avatarBg} text-base font-black ${theme.avatarText}`}
                 >
                   CB
                 </div>
                 <div>
-                  <p className="font-black text-slate-900">{campaign.createdBy}</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-500">{campaign.ward}</p>
+                  <p className="font-bold text-slate-900">{campaign.createdBy}</p>
+                  <p className="text-xs font-semibold text-slate-500">{campaign.ward}</p>
                 </div>
               </div>
-              <button
-                type="button"
-                className={`mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border ${theme.lightBorder} text-sm font-black ${theme.primaryText} transition ${theme.lightBgHover} active:scale-[0.97]`}
-              >
-                <MessageCircle size={16} />
-                Nhắn tin
-              </button>
             </section>
 
             <GroupChatNavigationCard
@@ -774,7 +767,7 @@ export function CampaignDetailPageComponent({
                     value={volunteerExperience}
                     onChange={(e) => setVolunteerExperience(e.target.value)}
                     placeholder="Mô tả ngắn kinh nghiệm hoặc thông tin hữu ích..."
-                    className={`w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-[#7C3AED] focus:ring focus:ring-[#7C3AED]/15 min-h-[60px]`}
+                    className={`w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-gov-gold focus:ring focus:ring-gov-gold/20 min-h-[60px]`}
                   />
                 </div>
 
@@ -800,7 +793,7 @@ export function CampaignDetailPageComponent({
                                 onClick={() => handleToggleSlot(day, shift)}
                                 className={`rounded px-2 py-1 text-[10px] font-black transition ${
                                   isSelected
-                                    ? "bg-[#7C3AED] text-white"
+                                    ? "bg-gov-blue text-white"
                                     : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
                                 }`}
                               >
@@ -821,7 +814,7 @@ export function CampaignDetailPageComponent({
                       type="button"
                       onClick={handleSendOtp}
                       disabled={sendEmailOtp.isPending}
-                      className="text-xs font-black text-[#7C3AED] hover:underline disabled:opacity-50"
+                      className="text-xs font-black text-gov-blue hover:underline disabled:opacity-50"
                     >
                       {otpSent ? "Gửi lại mã OTP" : "Nhận mã qua Gmail"}
                     </button>
@@ -1003,27 +996,7 @@ function DiscussionPanel({
 }) {
   const comments = useCampaignComments(campaign.id);
   const [commentText, setCommentText] = useState("");
-  const fallbackComments = [
-    {
-      id: "mock-1",
-      authorName: "Nguyễn Văn A",
-      createdAt: "10:30",
-      content: "Mình đã đăng ký rồi, rất mong được tham gia!",
-    },
-    {
-      id: "mock-2",
-      authorName: "Trần Thị B",
-      createdAt: "11:15",
-      content: "Chiến dịch ý nghĩa quá, ủng hộ 100%!",
-    },
-    {
-      id: "mock-3",
-      authorName: "Lê Văn C",
-      createdAt: "14:00",
-      content: "Cho mình hỏi có cần mang theo đồ ăn không ạ?",
-    },
-  ];
-  const visibleComments = comments.data?.length ? comments.data : fallbackComments;
+  const visibleComments = comments.data || [];
 
   const submitComment = async () => {
     if (!commentText.trim()) return;
@@ -1034,32 +1007,38 @@ function DiscussionPanel({
   return (
     <Panel title="Bình luận chiến dịch" icon={MessageCircle} theme={theme}>
       <div className="mb-4 space-y-3">
-        {visibleComments.map((comment) => (
-          <div
-            key={comment.id}
-            className="flex gap-3 rounded-xl border border-slate-100 bg-white p-4"
-          >
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#F3F0FF] text-xs font-black text-[#7C3AED]">
-              {comment.authorName.slice(0, 2).toUpperCase()}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="font-black text-slate-900">{comment.authorName}</p>
-                <span className="text-xs font-semibold text-slate-400">
-                  {comment.createdAt ? formatDisplayTime(comment.createdAt) : ""}
-                </span>
-              </div>
-              <p className="mt-1 text-sm leading-6 text-slate-600">{comment.content}</p>
-              <button
-                type="button"
-                className="mt-2 inline-flex items-center gap-1.5 text-xs font-black text-slate-500 transition hover:text-[#7C3AED]"
-              >
-                <Heart size={14} />
-                Like
-              </button>
-            </div>
+        {visibleComments.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-8 text-center text-sm font-medium text-slate-500">
+            Chưa có bình luận nào. Hãy là người đầu tiên tham gia thảo luận!
           </div>
-        ))}
+        ) : (
+          visibleComments.map((comment) => (
+            <div
+              key={comment.id}
+              className="flex gap-3 rounded-xl border border-slate-100 bg-white p-4 shadow-sm"
+            >
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-blue-50 text-xs font-black text-gov-blue">
+                {comment.authorName.slice(0, 2).toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-bold text-slate-900">{comment.authorName}</p>
+                  <span className="text-xs font-semibold text-slate-400">
+                    {comment.createdAt ? formatDisplayTime(comment.createdAt) : ""}
+                  </span>
+                </div>
+                <p className="mt-1 text-sm leading-6 text-slate-600">{comment.content}</p>
+                <button
+                  type="button"
+                  className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 transition hover:text-gov-blue"
+                >
+                  <Heart size={14} />
+                  Thích
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
       {campaign.canComment && (
         <Composer
@@ -1165,7 +1144,7 @@ function GroupChatNavigationCard({
               id="btn-confirm-attendance"
               onClick={() => handleSignal("CONFIRMED")}
               disabled={signalAttendance.isPending}
-              className="flex-1 h-10 rounded-lg bg-[#7C3AED] text-xs font-black text-white shadow-sm transition hover:bg-[#6D28D9] active:scale-[0.97] disabled:opacity-50 cursor-pointer"
+              className="flex-1 h-10 rounded-lg bg-gov-blue text-xs font-black text-white shadow-sm transition hover:bg-gov-blue-deep active:scale-[0.97] disabled:opacity-50 cursor-pointer"
             >
               Xác nhận tham gia
             </button>
@@ -1379,7 +1358,7 @@ function StatusBadge({
       },
       completed: {
         label: "Hoàn thành",
-        className: "border-violet-200 bg-violet-50 text-[#7C3AED]",
+        className: "border-blue-200 bg-blue-50 text-gov-blue",
       },
       active: {
         label: "Đang hoạt động",

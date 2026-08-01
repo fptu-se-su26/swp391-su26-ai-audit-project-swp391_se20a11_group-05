@@ -23,7 +23,7 @@ Nguyên tắc ghi changelog:
 | Mã môn học | SWP391 |
 | Lớp | SE20A11 |
 | Học kỳ | SU26 |
-| Tên bài tập / Project | The Listening City Systems |
+| Tên bài tập / Project | The City Connect |
 | Tên sinh viên / Nhóm | Phan Thanh Bình / Group05 |
 | MSSV / Danh sách MSSV | DE190210 |
 | Giảng viên hướng dẫn | Lê Thiện Nhật Quang |

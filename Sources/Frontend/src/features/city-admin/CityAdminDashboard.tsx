@@ -592,185 +592,164 @@ export function CityAdminDashboard() {
           animation: pulse-subtle 2s ease-in-out infinite;
         }
       `}</style>
-      {/* 1. LEFT MODERN SIDEBAR */}
+      {/* 1. LEFT MODERN SIDEBAR — FIXED HEIGHT & HIGH AESTHETICS */}
       <aside
-        className={`fixed inset-y-0 left-0 bg-gradient-to-b from-[#0647A5] to-[#043A8F] text-white flex flex-col z-40 transform transition-all duration-300 ease-in-out shadow-2xl ${
+        className={`fixed inset-y-0 left-0 bg-gradient-to-b from-[#08357a] via-[#094196] to-[#052960] text-white flex flex-col justify-between z-40 transition-all duration-300 ease-in-out shadow-2xl h-screen max-h-screen overflow-hidden select-none ${
           sidebarCollapsed ? "w-16" : "w-64"
         } ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
       >
-        {/* Branding */}
-        <div
-          className={`p-5 flex items-center border-b border-[#053d8e] shrink-0 transition-all duration-300 ${
-            sidebarCollapsed ? "justify-center" : "gap-3"
-          }`}
-        >
-          <img
-            src={logoImg}
-            alt="Đà Nẵng Connect Logo"
-            className="w-10 h-10 object-contain shrink-0"
-          />
-          {!sidebarCollapsed && (
-            <>
-              <div className="flex flex-col leading-none flex-1">
-                <span className="font-extrabold text-base tracking-tight uppercase font-sans">
-                  ĐÀ NẴNG
-                </span>
-                <span className="font-extrabold text-base tracking-tight uppercase font-sans">
-                  KẾT NỐI
-                </span>
-                <span className="text-[7.5px] text-[#A6C5F7] font-bold uppercase tracking-wider mt-0.5 leading-tight font-sans">
-                  NỀN TẢNG PHẢN ÁNH HIỆN TRƯỜNG
-                </span>
-              </div>
-              {/* Collapse Toggle Button - moved here next to logo */}
+        {/* Top Header & Navigation */}
+        <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          {/* Branding */}
+          <div
+            className={`px-4 py-3.5 flex items-center border-b border-white/10 shrink-0 transition-all duration-300 ${
+              sidebarCollapsed ? "justify-center" : "gap-3"
+            }`}
+          >
+            <img
+              src={logoImg}
+              alt="Đà Nẵng Connect Logo"
+              className="w-9 h-9 object-contain shrink-0 drop-shadow-md"
+            />
+            {!sidebarCollapsed && (
+              <>
+                <div className="flex flex-col leading-none flex-1">
+                  <span className="font-black text-sm tracking-tight uppercase font-sans text-white">
+                    ĐÀ NẴNG
+                  </span>
+                  <span className="font-black text-sm tracking-tight uppercase font-sans text-blue-200">
+                    KẾT NỐI
+                  </span>
+                  <span className="text-[7px] text-[#A6C5F7] font-bold uppercase tracking-wider mt-0.5 leading-tight font-sans">
+                    NỀN TẢNG PHẢN ÁNH HIỆN TRƯỜNG
+                  </span>
+                </div>
+                {/* Collapse Toggle Button */}
+                <button
+                  onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                  className="w-7 h-7 flex items-center justify-center text-[#B8D4FF] hover:text-white hover:bg-white/15 rounded-lg transition-all shrink-0 cursor-pointer"
+                  title="Thu gọn"
+                >
+                  <ChevronRight
+                    size={13}
+                    className="transform transition-transform duration-300 rotate-180"
+                  />
+                </button>
+              </>
+            )}
+            {sidebarCollapsed && (
               <button
                 onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                className="w-8 h-8 flex items-center justify-center text-[#B8D4FF] hover:text-white hover:bg-[#0753BF] rounded-lg transition-all shrink-0"
-                title="Thu gọn"
+                className="absolute top-3.5 right-2 w-6 h-6 flex items-center justify-center text-[#B8D4FF] hover:text-white hover:bg-white/15 rounded-lg transition-all cursor-pointer"
+                title="Mở rộng"
               >
                 <ChevronRight
-                  size={14}
-                  className="transform transition-transform duration-300 rotate-180"
+                  size={12}
+                  className="transform transition-transform duration-300 rotate-0"
                 />
               </button>
-            </>
-          )}
-          {sidebarCollapsed && (
-            <button
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="absolute top-3 right-3 w-6 h-6 flex items-center justify-center text-[#B8D4FF] hover:text-white hover:bg-[#0753BF] rounded-lg transition-all"
-              title="Mở rộng"
-            >
-              <ChevronRight
-                size={12}
-                className="transform transition-transform duration-300 rotate-0"
-              />
-            </button>
-          )}
-        </div>
+            )}
+          </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto">
-          {navItems.map((item, index) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.tab;
-            return (
-              <div key={index} className="relative group">
-                <button
-                  onClick={() => {
-                    setActiveTab(item.tab);
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between rounded-xl transition-all relative overflow-hidden ${
-                    sidebarCollapsed ? "px-3 py-3.5" : "px-4 py-3.5"
-                  } ${
-                    isActive
-                      ? "bg-white/95 text-[#0647A5] shadow-lg font-bold transform scale-[1.02] backdrop-blur-sm"
-                      : "text-[#B8D4FF] hover:bg-white/10 hover:text-white hover:transform hover:scale-[1.01] hover:shadow-md"
-                  }`}
-                  title={sidebarCollapsed ? `${item.name} - ${item.description}` : undefined}
-                >
-                  {/* Gradient overlay for active state */}
-                  {isActive && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-purple-50 opacity-80 rounded-xl"></div>
-                  )}
-
-                  <div
-                    className={`flex items-center relative z-10 ${sidebarCollapsed ? "justify-center" : "gap-3"}`}
+          {/* Navigation */}
+          <nav className="flex-1 px-2.5 py-3 space-y-1.5 overflow-hidden flex flex-col justify-start">
+            {navItems.map((item, index) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.tab;
+              return (
+                <div key={index} className="relative group">
+                  <button
+                    onClick={() => {
+                      setActiveTab(item.tab);
+                      setSidebarOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between rounded-xl transition-all relative overflow-hidden cursor-pointer ${
+                      sidebarCollapsed ? "px-2.5 py-2.5" : "px-3 py-2.5"
+                    } ${
+                      isActive
+                        ? "bg-white text-[#0B4FC4] shadow-lg font-bold backdrop-blur-md border-l-4 border-[#0B4FC4]"
+                        : "text-[#C0D7FF] hover:bg-white/10 hover:text-white"
+                    }`}
+                    title={sidebarCollapsed ? `${item.name} - ${item.description}` : undefined}
                   >
-                    <Icon size={18} className={`shrink-0 ${isActive ? "text-[#0647A5]" : ""}`} />
-                    {!sidebarCollapsed && (
-                      <div className="flex flex-col items-start">
-                        <span className="text-sm font-semibold">{item.name}</span>
-                        <span
-                          className={`text-[10px] font-medium opacity-75 ${
-                            isActive ? "text-slate-600" : "text-[#A6C5F7]"
-                          }`}
-                        >
-                          {item.description}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {item.badge && !sidebarCollapsed && (
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-black relative z-10 ${
-                        String(item.badge) === "NEW"
-                          ? "bg-gradient-to-r from-emerald-400 to-emerald-600 text-white shadow-sm"
-                          : isActive
-                            ? "bg-red-100 text-red-600"
-                            : "bg-red-500 text-white shadow-sm"
-                      }`}
-                    >
-                      {item.badge}
-                    </span>
-                  )}
-
-                  {item.badge && sidebarCollapsed && (
                     <div
-                      className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${
-                        String(item.badge) === "NEW" ? "bg-emerald-500" : "bg-red-500"
-                      } shadow-sm`}
-                    ></div>
+                      className={`flex items-center relative z-10 ${sidebarCollapsed ? "justify-center" : "gap-2.5"}`}
+                    >
+                      <Icon size={17} className={`shrink-0 ${isActive ? "text-[#0B4FC4]" : "text-[#A6C5F7]"}`} />
+                      {!sidebarCollapsed && (
+                        <div className="flex flex-col items-start leading-tight">
+                          <span className="text-xs font-bold">{item.name}</span>
+                          <span
+                            className={`text-[9.5px] font-medium transition-colors ${
+                              isActive ? "text-slate-500" : "text-[#98BDFC]"
+                            }`}
+                          >
+                            {item.description}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {item.badge && !sidebarCollapsed && (
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[9.5px] font-black relative z-10 ${
+                          String(item.badge) === "NEW"
+                            ? "bg-emerald-500 text-white shadow-sm"
+                            : "bg-red-500 text-white shadow-sm"
+                        }`}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
+
+                    {item.badge && sidebarCollapsed && (
+                      <div
+                        className={`absolute top-1 right-1 w-2.5 h-2.5 rounded-full ${
+                          String(item.badge) === "NEW" ? "bg-emerald-400" : "bg-red-500"
+                        } shadow-sm border border-[#08357a]`}
+                      ></div>
+                    )}
+                  </button>
+
+                  {/* Tooltip for collapsed sidebar */}
+                  {sidebarCollapsed && (
+                    <div className="absolute left-full ml-2 px-3 py-1.5 bg-slate-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap shadow-xl border border-slate-700">
+                      <div className="font-bold">{item.name}</div>
+                      <div className="text-slate-400 text-[10px]">{item.description}</div>
+                    </div>
                   )}
-                </button>
+                </div>
+              );
+            })}
+          </nav>
 
-                {/* Tooltip for collapsed sidebar */}
-                {sidebarCollapsed && (
-                  <div className="absolute left-full ml-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap shadow-lg">
-                    <div className="font-semibold">{item.name}</div>
-                    <div className="text-slate-300 text-[10px]">{item.description}</div>
-                    <div className="absolute left-0 top-1/2 -translate-x-1 -translate-y-1/2 w-2 h-2 bg-slate-800 rotate-45"></div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
+          {/* System Stats Widget (Compact & Fixed) */}
           {!sidebarCollapsed && (
-            <>
-              {/* Elegant Separator */}
-              <div className="relative my-6 px-2">
-                <div className="h-px bg-gradient-to-r from-transparent via-[#053d8e] to-transparent"></div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-2 h-2 bg-[#053d8e] rounded-full"></div>
+            <div className="px-2.5 pb-2.5 shrink-0">
+              <div className="p-3 bg-gradient-to-br from-[#06306e]/80 to-[#03204c]/90 rounded-xl border border-white/10 shadow-inner backdrop-blur-sm">
+                <div className="text-[11px] font-bold text-white mb-2 flex items-center gap-1.5">
+                  <Activity size={13} className="text-emerald-400 shrink-0" />
+                  <span>Tình trạng hệ thống</span>
                 </div>
-              </div>
-
-              {/* Enhanced System Stats */}
-              <div className="px-4 py-4 bg-gradient-to-br from-[#053c8c] to-[#042f6b] rounded-xl border border-[#0753BF]/30 shadow-inner">
-                <div className="text-xs font-bold text-white mb-3 flex items-center gap-2">
-                  <Activity size={14} className="text-emerald-400" />
-                  Tình trạng hệ thống
-                </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] text-[#A6C5F7] font-medium">
-                      Phản ánh chưa xử lý
+                <div className="space-y-1.5 text-[10px]">
+                  <div className="flex justify-between items-center text-[#A6C5F7]">
+                    <span>Phản ánh chưa xử lý</span>
+                    <span className="font-extrabold text-white flex items-center gap-1">
+                      {unresolvedCount}
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
                     </span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-white">{unresolvedCount}</span>
-                      <div
-                        className={`w-2 h-2 rounded-full ${unresolvedCount > 0 ? "bg-orange-400 animate-pulse" : "bg-green-400"}`}
-                      ></div>
-                    </div>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] text-[#A6C5F7] font-medium">Báo cáo quá hạn</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-red-300">{overdueCount}</span>
-                      <div
-                        className={`w-2 h-2 rounded-full ${overdueCount > 0 ? "bg-red-400 animate-pulse" : "bg-green-400"}`}
-                      ></div>
-                    </div>
-                  </div>
-                  <div className="h-px bg-white/10 my-2"></div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] text-emerald-300 font-semibold">
-                      Hiệu suất xử lý
+                  <div className="flex justify-between items-center text-[#A6C5F7]">
+                    <span>Báo cáo quá hạn</span>
+                    <span className="font-extrabold text-red-300 flex items-center gap-1">
+                      {overdueCount}
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
                     </span>
-                    <span className="text-xs font-bold text-emerald-300">
+                  </div>
+                  <div className="h-px bg-white/10 my-1"></div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-emerald-300 font-semibold">Hiệu suất xử lý</span>
+                    <span className="font-bold text-emerald-300">
                       {feedbacks.length > 0
                         ? Math.round(
                             ((feedbacks.length - unresolvedCount) / feedbacks.length) * 100,
@@ -781,21 +760,23 @@ export function CityAdminDashboard() {
                   </div>
                 </div>
               </div>
-            </>
+            </div>
           )}
-        </nav>
+        </div>
 
         {/* Bottom account summary */}
-        <div className="p-4 border-t border-[#053d8e] bg-[#053c8c] flex items-center gap-3 shrink-0">
-          <div className="w-9 h-9 rounded-full bg-[#002B73] border border-blue-400/20 flex items-center justify-center shrink-0">
-            <Shield className="w-5 h-5 text-amber-400" />
+        <div className="p-3 border-t border-white/10 bg-[#04214f] flex items-center gap-2.5 shrink-0">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-indigo-800 border border-blue-300/30 flex items-center justify-center shrink-0 shadow-sm">
+            <Shield className="w-4 h-4 text-amber-300" />
           </div>
-          <div className="flex flex-col min-w-0">
-            <span className="font-bold text-sm truncate text-white">Super Admin</span>
-            <span className="text-[10px] text-[#A6C5F7] font-medium leading-none mt-0.5">
-              Quyền cao nhất
-            </span>
-          </div>
+          {!sidebarCollapsed && (
+            <div className="flex flex-col min-w-0 flex-1">
+              <span className="font-bold text-xs truncate text-white">Super Admin</span>
+              <span className="text-[9.5px] text-[#A6C5F7] font-medium leading-tight">
+                Quyền cao nhất
+              </span>
+            </div>
+          )}
         </div>
       </aside>
 
@@ -814,7 +795,7 @@ export function CityAdminDashboard() {
         }`}
       >
         {/* 2. TOP MODERN HEADER */}
-        <header className="h-16 bg-white/95 backdrop-blur-sm border-b border-[#E4EAF2] flex items-center justify-between px-6 sticky top-0 z-30 shadow-sm shrink-0">
+        <header className="h-[72px] bg-white/95 backdrop-blur-md border-b border-[#E2E8F0] flex items-center justify-between px-6 lg:px-8 sticky top-0 z-30 shadow-sm shrink-0">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -1035,33 +1016,27 @@ export function CityAdminDashboard() {
 
         {/* 3. MAIN DASHBOARD CONTENT */}
         <main
-          className={`flex-1 overflow-y-auto transition-all duration-300 ${fullscreen ? "p-2" : "p-6 md:p-8"}`}
+          className={`flex-1 overflow-y-auto no-scrollbar transition-all duration-300 ${fullscreen ? "p-2" : "p-6 md:p-8 lg:p-10"}`}
         >
           <div className={`${fullscreen ? "max-w-none" : "max-w-7xl mx-auto"}`}>
-            {/* Loading State */}
-            {(feedbacksLoading || kpiLoading) && activeTab === "overview" && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <Skeleton key={i} className="h-24 rounded-2xl" />
-                  ))}
-                </div>
-                <Skeleton className="h-96 rounded-2xl" />
-              </div>
-            )}
-
             {/* Content */}
-            {!(feedbacksLoading || kpiLoading) && (
-              <>
-                {activeTab === "overview" && <OverviewPage />}
-                {activeTab === "feedbacks" && <FeedbacksPage />}
-                {activeTab === "reports" && <ReportsPage />}
-                {activeTab === "users" && <UsersPage />}
-                {activeTab === "news" && <NewsManagement />}
-                {/* Tạm ẩn PermissionsPage */}
-                {/* {activeTab === "permissions" && <PermissionsPage />} */}
-              </>
-            )}
+            {activeTab === "overview" &&
+              (feedbacksLoading || kpiLoading ? (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <Skeleton key={i} className="h-24 rounded-2xl" />
+                    ))}
+                  </div>
+                  <Skeleton className="h-96 rounded-2xl" />
+                </div>
+              ) : (
+                <OverviewPage />
+              ))}
+            {activeTab === "feedbacks" && <FeedbacksPage />}
+            {activeTab === "reports" && <ReportsPage />}
+            {activeTab === "users" && <UsersPage />}
+            {activeTab === "news" && <NewsManagement />}
           </div>
         </main>
       </div>

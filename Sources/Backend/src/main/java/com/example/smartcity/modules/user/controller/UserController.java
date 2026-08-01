@@ -158,12 +158,49 @@ public class UserController extends BaseGenericController<User, UserDTO, Long> {
         return ResponseEntity.ok(ApiResponse.success("Cập nhật thông tin cá nhân thành công", userMapper.toDto(updated)));
     }
 
-    @DeleteMapping("/profile")
+    @PostMapping("/profile/delete/otp")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Void>> deleteOwnProfile() {
+    public ResponseEntity<ApiResponse<String>> sendDeleteAccountOtp(@RequestBody java.util.Map<String, String> request) {
+        String password = request.get("password");
+        if (password == null || password.isBlank()) {
+            throw new CustomException("Vui lòng nhập mật khẩu", 400);
+        }
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userService.findByUsername(currentUsername);
-        userService.deleteById(user.getId());
+
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new CustomException("Mật khẩu không chính xác", 400);
+        }
+        if (user.getEmail() == null || user.getEmail().isBlank()) {
+            throw new CustomException("Tài khoản chưa cấu hình email để nhận mã OTP.", 400);
+        }
+        String msg = emailOtpService.generateAndSendOtp(user, user.getEmail(), "DELETE_ACCOUNT");
+        return ResponseEntity.ok(ApiResponse.success("Gửi mã OTP thành công", msg));
+    }
+
+    @DeleteMapping("/profile")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Void>> deleteOwnProfile(@RequestBody java.util.Map<String, String> request) {
+        String password = request.get("password");
+        String otpCode = request.get("otpCode");
+
+        if (password == null || password.isBlank()) {
+            throw new CustomException("Vui lòng nhập mật khẩu", 400);
+        }
+        if (otpCode == null || otpCode.isBlank()) {
+            throw new CustomException("Mã xác thực OTP không được để trống", 400);
+        }
+
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userService.findByUsername(currentUsername);
+
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new CustomException("Mật khẩu không chính xác", 400);
+        }
+
+        emailOtpService.verifyOtp(user.getEmail(), otpCode);
+
+        userService.softDeleteUser(user.getId(), currentUsername);
         return ResponseEntity.ok(ApiResponse.success("Xóa tài khoản thành công", null));
     }
 

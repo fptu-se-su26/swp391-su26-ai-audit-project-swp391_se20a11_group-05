@@ -19,6 +19,8 @@ public interface CampaignParticipantRepository extends JpaRepository<CampaignPar
 
     Optional<CampaignParticipant> findByCampaign_IdAndCitizen_Id(Long campaignId, Long citizenId);
 
+    List<CampaignParticipant> findByCampaign_IdInAndCitizen_Id(List<Long> campaignIds, Long citizenId);
+
     boolean existsByCampaign_IdAndCitizen_IdAndJoinStatus(Long campaignId, Long citizenId, String joinStatus);
 
     long countByCampaign_IdAndJoinStatus(Long campaignId, String joinStatus);

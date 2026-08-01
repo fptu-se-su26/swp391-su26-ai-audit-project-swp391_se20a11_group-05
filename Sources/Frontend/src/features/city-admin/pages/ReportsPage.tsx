@@ -150,12 +150,7 @@ export function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-[#1D2939]">Báo cáo & Thống kê</h2>
-        <p className="text-sm text-slate-500 mt-0.5">
-          Phân tích hiệu suất xử lý phản ánh toàn thành phố
-        </p>
-      </div>
+
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

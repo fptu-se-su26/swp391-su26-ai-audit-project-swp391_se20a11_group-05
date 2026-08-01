@@ -684,6 +684,11 @@ export const feedbackApi = {
 
   getById: (id: string | number) => request<FeedbackResponse>(`/api/feedbacks/${id}`),
 
+  delete: (id: string | number) =>
+    request<void>(`/api/feedbacks/${id}`, {
+      method: "DELETE",
+    }),
+
   create: (data: FeedbackRequest) =>
     request<FeedbackResponse>("/api/feedbacks/submit", {
       method: "POST",

@@ -31,19 +31,6 @@ import dinhImg from "@/assets/dinh.png";
 import vongquayImg from "@/assets/vongquay.png";
 
 export const Route = createFileRoute("/leaderboard/")({
-  beforeLoad: ({ location }) => {
-    if (typeof window !== "undefined") {
-      const token = getToken();
-      if (!token) {
-        throw redirect({
-          to: "/login",
-          search: {
-            redirect: location.href,
-          },
-        });
-      }
-    }
-  },
   component: LeaderboardPage,
 });
 

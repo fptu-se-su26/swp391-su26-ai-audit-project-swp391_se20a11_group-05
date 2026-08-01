@@ -1,4 +1,5 @@
 import { clientOnly } from "@/components/ClientOnly";
+import { useMemo, useState, useEffect } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
 import {
@@ -60,7 +61,7 @@ import {
   Rocket,
   Calendar,
 } from "lucide-react";
-import { lazy, Suspense, useState, useEffect } from "react";
+import { lazy, Suspense } from "react";
 import { staticNews, staticFaqs } from "@/lib/static-content";
 
 const CivicMap = clientOnly(() =>
@@ -190,6 +191,39 @@ function HomePage() {
   const isLoading = listLoading || statsLoading || recentLoading;
 
   const apiFeedbacks = feedbacksPage?.content ?? [];
+
+  const mapMarkers = useMemo(() => {
+    if (hasApiData) {
+      return apiFeedbacks
+        .filter((f) => f.latitude && f.longitude)
+        .map((f) => ({
+          position: [f.latitude!, f.longitude!] as [number, number],
+          title: f.title,
+          description: f.description,
+          status: mapStatus(f.status),
+        }));
+    }
+    return [
+      {
+        position: [16.062, 108.222] as [number, number],
+        title: mockReports[0].title.vi,
+        description: mockReports[0].description.vi,
+        status: mockReports[0].status,
+      },
+      {
+        position: [16.08, 108.155] as [number, number],
+        title: mockReports[1].title.vi,
+        description: mockReports[1].description.vi,
+        status: mockReports[1].status,
+      },
+      {
+        position: [16.078, 108.158] as [number, number],
+        title: mockReports[2].title.vi,
+        description: mockReports[2].description.vi,
+        status: mockReports[2].status,
+      },
+    ];
+  }, [hasApiData, apiFeedbacks]);
 
   // ── Slideshow state (kept to preserve existing hooks/state)
   const [activeSlide, setActiveSlide] = useState(0);
@@ -1200,43 +1234,7 @@ function HomePage() {
               <div className="aspect-[4/3] rounded-xl overflow-hidden border border-[#E4EAF2] mb-1">
                 <Suspense fallback={<div className="w-full h-full bg-slate-100 animate-pulse" />}>
                   <CivicMap
-                    markers={
-                      hasApiData
-                        ? apiFeedbacks
-                            .filter((f) => f.latitude && f.longitude)
-                            .map((f) => ({
-                              position: [f.latitude!, f.longitude!] as [number, number],
-                              title: f.title,
-                              description: f.description,
-                              status: mapStatus(f.status),
-                            }))
-                        : [
-                            {
-                              position: [16.062, 108.222],
-                              title: mockReports[0].title.vi,
-                              description: mockReports[0].description.vi,
-                              status: mockReports[0].status,
-                            },
-                            {
-                              position: [16.08, 108.155],
-                              title: mockReports[1].title.vi,
-                              description: mockReports[1].description.vi,
-                              status: mockReports[1].status,
-                            },
-                            {
-                              position: [16.078, 108.158],
-                              title: mockReports[2].title.vi,
-                              description: mockReports[2].description.vi,
-                              status: mockReports[2].status,
-                            },
-                            {
-                              position: [16.06, 108.228],
-                              title: mockReports[3].title.vi,
-                              description: mockReports[3].description.vi,
-                              status: mockReports[3].status,
-                            },
-                          ]
-                    }
+                    markers={mapMarkers}
                     height="100%"
                     interactive={true}
                   />

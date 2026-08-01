@@ -13,6 +13,7 @@ import {
   Filter,
   FileText,
   MapPin,
+  Trash2,
   User,
   Calendar,
   Tag,
@@ -304,6 +305,19 @@ export function FeedbacksPage() {
     }
   };
 
+  const handleDeleteFeedback = async (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.confirm("Bạn có chắc chắn muốn xóa phản ánh này? Hành động này không thể hoàn tác.")) {
+      try {
+        await feedbackApi.delete(id);
+        await queryClient.invalidateQueries({ queryKey: ["admin", "feedbacks", "all"] });
+        toast.success("Đã xóa phản ánh thành công");
+      } catch (error) {
+        toast.error("Không thể xóa phản ánh");
+      }
+    }
+  };
+
   const exportFeedbacks = () => {
     // Mock export functionality
     const csv =
@@ -342,19 +356,7 @@ export function FeedbacksPage() {
     <div className="space-y-6">
       {/* Modern Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2 tracking-tight">
-            <FileText className="text-slate-700" size={24} />
-            Quản lý phản ánh
-            <div className="flex items-center gap-1.5 ml-2 px-2 py-0.5 bg-green-50 border border-green-200 rounded-full">
-              <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-[10px] text-green-700 font-bold uppercase tracking-wider">Realtime</span>
-            </div>
-          </h2>
-          <p className="text-sm text-slate-500 mt-1 font-medium">
-            Theo dõi, phân tích và xử lý phản ánh từ người dân
-          </p>
-        </div>
+        <div className="hidden lg:block"></div>
 
         <div className="flex items-center gap-3">
           <button
@@ -677,7 +679,7 @@ export function FeedbacksPage() {
                       {fb.createdAt ? new Date(fb.createdAt).toLocaleDateString("vi-VN") : "—"}
                     </td>
                     <td className="px-4 py-4">
-                      <div className="flex items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-center gap-1.5">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -698,6 +700,13 @@ export function FeedbacksPage() {
                         >
                           <ExternalLink size={16} />
                         </a>
+                        <button
+                          onClick={(e) => handleDeleteFeedback(fb.id, e)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer bg-white border border-slate-200 shadow-sm"
+                          title="Xóa phản ánh"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       </div>
                     </td>
                   </tr>

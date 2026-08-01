@@ -297,15 +297,7 @@ export function UsersPage() {
     <div className="space-y-6">
       {/* Modern Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-[#1D2939] flex items-center gap-2">
-            <Users className="text-[#0B4FC4]" size={24} />
-            Quản lý tài khoản
-          </h2>
-          <p className="text-slate-500 mt-1">
-            Quản lý thông tin tài khoản và vai trò cơ bản của người dùng
-          </p>
-        </div>
+        <div className="hidden lg:block"></div>
 
         <div className="flex items-center gap-3">
           <button

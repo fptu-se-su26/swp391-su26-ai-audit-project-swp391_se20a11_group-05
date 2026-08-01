@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Layers } from "lucide-react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import { Search } from "lucide-react";
+import geoData from "@/assets/danang-wards.json";
 import "leaflet/dist/leaflet.css";
 
 export interface WardHotspot {
@@ -19,36 +20,35 @@ interface Props {
   selectedWard?: string;
 }
 
+const NEUTRAL_COLOR = "#94A3B8"; // Zero / no data
 const getHotspotColor = (unresolved: number) => {
   if (unresolved >= 15) return "#EF4444"; // Critical / High (Red)
   if (unresolved >= 5) return "#F97316"; // Medium (Orange)
   if (unresolved > 0) return "#FCD34D"; // Low (Yellow)
-  return "#94A3B8"; // Zero / Neutral (Gray)
+  return NEUTRAL_COLOR; // Zero / Neutral (Gray)
 };
+
+// The hotspot list is bucketed at the (old) district level ("Hải Châu",
+// "Thanh Khê"...) while the ward-boundary GeoJSON is at the finer
+// commune/"xã" level after the 2025 administrative merger — so a commune
+// is matched to a hotspot district by substring, same fuzzy approach
+// OverviewPage already uses when bucketing feedbacks into DEFAULT_WARDS.
+function findHotspotForWard(wardName: string, hotspots: WardHotspot[]): WardHotspot | undefined {
+  const n = wardName.trim().toLowerCase();
+  return hotspots.find(
+    (h) => n.includes(h.name.toLowerCase()) || h.name.toLowerCase().includes(n),
+  );
+}
 
 export function SuperAdminMap({ hotspots, onSelectWard, selectedWard }: Props) {
   const center: [number, number] = [16.0544, 108.2022];
-  const [mapLayerType, setMapLayerType] = useState<"osm" | "satellite">("osm");
-  const [isLayersOpen, setIsLayersOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleOutsideClick = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setIsLayersOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleOutsideClick);
-    return () => {
-      document.removeEventListener("mousedown", handleOutsideClick);
-    };
-  }, []);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const [leafletComponents, setLeafletComponents] = useState<{
     MapContainer: any;
     TileLayer: any;
-    CircleMarker: any;
-    Popup: any;
+    GeoJSON: any;
   } | null>(null);
 
   useEffect(() => {
@@ -58,8 +58,7 @@ export function SuperAdminMap({ hotspots, onSelectWard, selectedWard }: Props) {
         setLeafletComponents({
           MapContainer: mod.MapContainer,
           TileLayer: mod.TileLayer,
-          CircleMarker: mod.CircleMarker,
-          Popup: mod.Popup,
+          GeoJSON: mod.GeoJSON,
         });
       }
     });
@@ -67,6 +66,47 @@ export function SuperAdminMap({ hotspots, onSelectWard, selectedWard }: Props) {
       cancelled = true;
     };
   }, []);
+
+  const mapRef = useRef<any>(null);
+  const geoJsonRef = useRef<any>(null);
+  const layersMapRef = useRef(new Map<string, any>());
+
+  const geoJsonKey = useMemo(
+    () => JSON.stringify(hotspots.map((h) => h.name + h.unresolved)),
+    [hotspots],
+  );
+
+  useEffect(() => {
+    if (selectedWard && mapRef.current) {
+      const layer = layersMapRef.current.get(selectedWard);
+      if (layer) {
+        const bounds = layer.getBounds();
+        mapRef.current.flyToBounds(bounds, { duration: 1, padding: [50, 50] });
+        geoJsonRef.current?.resetStyle();
+        layer.setStyle({ weight: 4, color: "#0B4FC4", dashArray: "", fillOpacity: 0.85 });
+        layer.bringToFront();
+      }
+    } else if (!selectedWard && geoJsonRef.current) {
+      geoJsonRef.current.resetStyle();
+    }
+  }, [selectedWard]);
+
+  const searchResults = useMemo(() => {
+    if (!searchTerm.trim()) return [];
+    const term = searchTerm.toLowerCase();
+    const allGeoWards = (geoData as any).features
+      .map((f: any) => f.properties?.ten_xa)
+      .filter(Boolean) as string[];
+    const uniqueWards = Array.from(new Set(allGeoWards));
+    return uniqueWards.filter((w) => w.toLowerCase().includes(term)).slice(0, 8);
+  }, [searchTerm]);
+
+  const handleSelectSearchResult = (wardName: string) => {
+    setSearchTerm(wardName);
+    setIsSearchFocused(false);
+    const hotspot = findHotspotForWard(wardName, hotspots);
+    onSelectWard(hotspot ? hotspot.name : wardName);
+  };
 
   if (!leafletComponents) {
     return (
@@ -76,136 +116,138 @@ export function SuperAdminMap({ hotspots, onSelectWard, selectedWard }: Props) {
     );
   }
 
-  const { MapContainer, TileLayer, CircleMarker, Popup } = leafletComponents;
+  const { MapContainer, TileLayer, GeoJSON } = leafletComponents;
+
+  const styleFeature = (feature: any) => {
+    const wardName = feature.properties?.ten_xa;
+    let fillColor = NEUTRAL_COLOR;
+    if (wardName) {
+      const hotspot = findHotspotForWard(wardName, hotspots);
+      if (hotspot) fillColor = getHotspotColor(hotspot.unresolved);
+    }
+    return {
+      fillColor,
+      weight: 1.5,
+      opacity: 1,
+      color: "white",
+      dashArray: "3",
+      fillOpacity: 0.75,
+    };
+  };
+
+  const onEachFeature = (feature: any, layer: any) => {
+    const wardName = feature.properties?.ten_xa;
+    if (!wardName) return;
+
+    const hotspot = findHotspotForWard(wardName, hotspots);
+    if (hotspot) {
+      layersMapRef.current.set(hotspot.name, layer);
+    }
+
+    const popupContent = hotspot
+      ? `<div class="font-sans text-xs min-w-[180px]">
+           <div class="font-bold text-sm text-[#0B4FC4] border-b border-slate-100 pb-1.5 mb-2">Khu vực: ${hotspot.name}</div>
+           <div class="space-y-1 font-medium">
+             <div class="flex justify-between"><span class="text-slate-500">Tổng phản ánh:</span><span class="font-bold">${hotspot.total}</span></div>
+             <div class="flex justify-between"><span class="text-slate-500">Chưa xử lý:</span><span class="font-bold text-orange-600">${hotspot.unresolved}</span></div>
+             <div class="flex justify-between"><span class="text-slate-500">Quá hạn:</span><span class="font-bold text-red-600">${hotspot.overdue}</span></div>
+             <div class="flex justify-between"><span class="text-slate-500">Tỷ lệ chưa xử lý:</span><span class="font-bold">${hotspot.unresolvedPct.toFixed(1)}%</span></div>
+             ${hotspot.topCategory ? `<div class="border-t border-slate-100 pt-1 mt-1"><span class="text-slate-500 block">Lĩnh vực chính:</span><span class="font-bold">${hotspot.topCategory}</span></div>` : ""}
+           </div>
+         </div>`
+      : `<div class="font-sans"><div class="font-bold text-[#0B4FC4]">${wardName}</div><div class="text-xs text-slate-500 mt-1">Chưa có dữ liệu phản ánh</div></div>`;
+    layer.bindPopup(popupContent);
+
+    layer.on({
+      click: () => {
+        onSelectWard(hotspot ? hotspot.name : wardName);
+      },
+      mouseover: (e: any) => {
+        e.target.setStyle({ weight: 3, color: "#f59e0b", dashArray: "", fillOpacity: 0.9 });
+        e.target.bringToFront();
+      },
+      mouseout: (e: any) => {
+        geoJsonRef.current?.resetStyle(e.target);
+        if (hotspot && selectedWard === hotspot.name) {
+          e.target.setStyle({ weight: 4, color: "#0B4FC4", dashArray: "", fillOpacity: 0.85 });
+          e.target.bringToFront();
+        }
+      },
+    });
+  };
 
   return (
-    <div className="w-full h-full min-h-[360px] relative z-0">
-      {/* Nút bật/tắt Layer */}
-      <div className="absolute top-4 right-4 z-[1000]">
-        <div className="relative" ref={dropdownRef}>
-          <button
-            onClick={() => setIsLayersOpen(!isLayersOpen)}
-            className="flex items-center justify-center w-10 h-10 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl shadow-md transition-all text-slate-700"
-            title="Lớp bản đồ"
-          >
-            <Layers size={18} />
-          </button>
-          {isLayersOpen && (
-            <div className="absolute right-0 mt-2 w-40 bg-white border border-slate-200 rounded-xl shadow-xl py-1 z-[1100] text-left">
-              <button
-                type="button"
-                onClick={() => {
-                  setMapLayerType("osm");
-                  setIsLayersOpen(false);
-                }}
-                className={`w-full text-left px-3 py-2 text-xs transition ${
-                  mapLayerType === "osm"
-                    ? "bg-blue-50 text-[#0B4FC4] font-extrabold"
-                    : "text-slate-700 hover:bg-slate-50 font-semibold"
-                }`}
-              >
-                🗺️ Bản đồ (Google)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMapLayerType("satellite");
-                  setIsLayersOpen(false);
-                }}
-                className={`w-full text-left px-3 py-2 text-xs transition ${
-                  mapLayerType === "satellite"
-                    ? "bg-blue-50 text-[#0B4FC4] font-extrabold"
-                    : "text-slate-700 hover:bg-slate-50 font-semibold"
-                }`}
-              >
-                🛰️ Vệ tinh
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <MapContainer
-        center={center}
-        zoom={12}
-        className="w-full h-full"
-        zoomControl={false}
-        attributionControl={false}
-        scrollWheelZoom={true}
-      >
-        <TileLayer
-          attribution="&copy; Google Maps"
-          url={
-            mapLayerType === "osm"
-              ? "https://mt1.google.com/vt/lyrs=m&hl=vi&gl=VN&x={x}&y={y}&z={z}"
-              : "https://mt1.google.com/vt/lyrs=y&hl=vi&gl=VN&x={x}&y={y}&z={z}"
-          }
-        />
-        {hotspots.map((h) => {
-          const color = getHotspotColor(h.unresolved);
-          const isSelected = selectedWard === h.name;
-          const radius = 14 + Math.min(20, h.unresolved * 1.5);
-
-          return (
-            <CircleMarker
-              key={h.name}
-              center={[h.lat, h.lng]}
-              pathOptions={{
-                color: isSelected ? "#0B4FC4" : color,
-                fillColor: color,
-                fillOpacity: 0.65,
-                weight: isSelected ? 3 : 1.5,
-              }}
-              radius={radius}
-              eventHandlers={{
-                click: () => {
-                  onSelectWard(h.name);
-                },
+    <div className="relative w-full h-full min-h-[360px] rounded-xl overflow-hidden">
+      {/* Thanh tìm kiếm */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] w-full max-w-sm px-4">
+        <div className="relative bg-white rounded-full shadow-lg flex items-center px-4 py-2 border border-slate-200">
+          <Search className="w-5 h-5 text-slate-400 mr-2" />
+          <input
+            type="text"
+            placeholder="Tìm kiếm phường/xã..."
+            className="flex-1 bg-transparent border-none outline-none text-sm text-slate-700"
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setIsSearchFocused(true);
+            }}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+          />
+          {searchTerm && (
+            <button
+              className="text-slate-400 hover:text-slate-600 ml-2"
+              onClick={() => {
+                setSearchTerm("");
+                if (selectedWard) onSelectWard(selectedWard);
               }}
             >
-              <Popup>
-                <div className="text-slate-800 p-1 font-sans text-xs min-w-[180px]">
-                  <h4 className="font-bold text-sm text-[#0B4FC4] border-b border-slate-100 pb-1.5 mb-2">
-                    Khu vực: {h.name}
-                  </h4>
-                  <div className="space-y-1.5 font-medium">
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Tổng phản ánh:</span>
-                      <span className="font-bold text-slate-800">{h.total}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Chưa xử lý:</span>
-                      <span className="font-bold text-orange-600">{h.unresolved}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Quá hạn:</span>
-                      <span className="font-bold text-red-600">{h.overdue}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Tỷ lệ chưa xử lý:</span>
-                      <span className="font-bold text-slate-800">
-                        {h.unresolvedPct.toFixed(1)}%
-                      </span>
-                    </div>
-                    {h.topCategory && (
-                      <div className="border-t border-slate-100 pt-1.5 mt-1">
-                        <span className="text-slate-500 block mb-0.5">Lĩnh vực chính:</span>
-                        <span className="font-bold text-slate-800">{h.topCategory}</span>
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => onSelectWard(h.name)}
-                    className="w-full mt-2.5 py-1 bg-blue-50 text-[#0B4FC4] hover:bg-[#0B4FC4] hover:text-white rounded font-bold transition text-center cursor-pointer border border-blue-200"
-                  >
-                    Lọc theo khu vực
-                  </button>
-                </div>
-              </Popup>
-            </CircleMarker>
-          );
-        })}
-      </MapContainer>
+              ✕
+            </button>
+          )}
+        </div>
+
+        {isSearchFocused && searchResults.length > 0 && (
+          <div className="absolute top-full left-4 right-4 mt-2 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden z-[1001]">
+            {searchResults.map((w, idx) => (
+              <button
+                key={idx}
+                className="w-full text-left px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0"
+                onMouseDown={() => handleSelectSearchResult(w)}
+              >
+                {w}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="w-full h-full relative z-0">
+        <MapContainer
+          center={center}
+          zoom={11}
+          className="w-full h-full"
+          zoomControl={true}
+          attributionControl={false}
+          scrollWheelZoom={true}
+          ref={mapRef}
+        >
+          <TileLayer
+            url="https://mt1.google.com/vt/lyrs=s&hl=vi&gl=VN&x={x}&y={y}&z={z}"
+            attribution="&copy; Google Maps"
+          />
+
+          <GeoJSON
+            key={geoJsonKey}
+            ref={geoJsonRef}
+            data={geoData as any}
+            style={styleFeature}
+            onEachFeature={onEachFeature}
+          />
+
+          <TileLayer url="https://mt1.google.com/vt/lyrs=h&hl=vi&gl=VN&x={x}&y={y}&z={z}" />
+        </MapContainer>
+      </div>
     </div>
   );
 }

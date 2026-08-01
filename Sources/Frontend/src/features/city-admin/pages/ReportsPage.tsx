@@ -290,21 +290,21 @@ export function ReportsPage() {
           <div className="py-12 text-center text-sm text-slate-400">Chưa có dữ liệu phường.</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-slate-50">
-                <tr className="text-[10px] uppercase font-bold text-slate-500">
-                  <th className="px-4 py-3">#</th>
-                  <th className="px-4 py-3">Phường / Xã</th>
-                  <th className="px-4 py-3 text-center">Đã giải quyết</th>
-                  <th className="px-4 py-3 text-center">Tỷ lệ hài lòng</th>
-                  <th className="px-4 py-3">Hiệu suất</th>
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-slate-50/80 border-b border-slate-200">
+                <tr className="text-[11px] uppercase font-bold text-slate-500 tracking-wider">
+                  <th className="px-4 py-4">#</th>
+                  <th className="px-4 py-4">Phường / Xã</th>
+                  <th className="px-4 py-4 text-center">Đã giải quyết</th>
+                  <th className="px-4 py-4 text-center">Tỷ lệ hài lòng</th>
+                  <th className="px-4 py-4">Hiệu suất</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {[...wardPerf]
                   .sort((a, b) => b.satisfactionPct - a.satisfactionPct)
                   .map((ward, idx) => (
-                    <tr key={ward.name} className="hover:bg-slate-50/60 transition-colors">
+                    <tr key={ward.name} className="hover:bg-slate-50 transition-colors">
                       <td className="px-4 py-3.5">
                         <span
                           className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx === 0 ? "bg-yellow-100 text-yellow-700" : idx === 1 ? "bg-slate-200 text-slate-700" : idx === 2 ? "bg-orange-100 text-orange-700" : "bg-slate-100 text-slate-500"}`}
@@ -350,19 +350,19 @@ export function ReportsPage() {
         {fbLoading ? (
           <Skeleton className="h-32 w-full rounded-xl" />
         ) : (
-          <table className="w-full text-left">
-            <thead className="bg-slate-50">
-              <tr className="text-[10px] uppercase font-bold text-slate-500">
-                <th className="px-4 py-3">Lĩnh vực</th>
-                <th className="px-4 py-3 text-center">Tổng</th>
-                <th className="px-4 py-3 text-center">Đã xử lý</th>
-                <th className="px-4 py-3 text-center">Tỷ lệ</th>
-                <th className="px-4 py-3">Tiến độ</th>
+          <table className="w-full text-left border-collapse">
+            <thead className="bg-slate-50/80 border-b border-slate-200">
+              <tr className="text-[11px] uppercase font-bold text-slate-500 tracking-wider">
+                <th className="px-4 py-4">Lĩnh vực</th>
+                <th className="px-4 py-4 text-center">Tổng</th>
+                <th className="px-4 py-4 text-center">Đã xử lý</th>
+                <th className="px-4 py-4 text-center">Tỷ lệ</th>
+                <th className="px-4 py-4">Tiến độ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {categorySummary.map((cat) => (
-                <tr key={cat.name} className="hover:bg-slate-50/60">
+                <tr key={cat.name} className="hover:bg-slate-50 transition-colors">
                   <td className="px-4 py-3 text-sm font-semibold text-slate-800">{cat.name}</td>
                   <td className="px-4 py-3 text-center text-sm font-bold text-slate-700">
                     {cat.total}

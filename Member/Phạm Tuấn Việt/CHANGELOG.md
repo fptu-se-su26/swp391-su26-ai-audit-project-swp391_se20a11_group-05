@@ -23,7 +23,7 @@ Nguyên tắc ghi changelog:
 | Mã môn học |  |
 | Lớp |  |
 | Học kỳ |  |
-| Tên bài tập / Project |  |
+| Tên bài tập / Project | The City Connect |
 | Tên sinh viên / Nhóm |  |
 | MSSV / Danh sách MSSV |  |
 | Giảng viên hướng dẫn |  |

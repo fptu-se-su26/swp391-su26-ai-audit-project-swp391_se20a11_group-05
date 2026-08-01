@@ -18,6 +18,8 @@ import {
   Flame,
   Shield,
   Car,
+  Layers,
+  MapPin,
 } from "lucide-react";
 // @ts-ignore
 import { Construction } from "lucide-react";
@@ -25,6 +27,9 @@ import { FeedbackDetailModal } from "./FeedbackDetailModal";
 
 const SuperAdminMap = lazy(() =>
   import("../SuperAdminMap").then((m) => ({ default: m.SuperAdminMap })),
+);
+const CivicMap = lazy(() =>
+  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })),
 );
 
 const mapCategoryName = (name: string | null | undefined): string => {
@@ -89,6 +94,7 @@ export function OverviewPage() {
   const [selectedWard, setSelectedWard] = useState<string | undefined>();
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>();
   const [selectedFeedbackId, setSelectedFeedbackId] = useState<number | null>(null);
+  const [mapMode, setMapMode] = useState<"overview" | "detail">("overview");
 
   const { data: feedbacksPage, isLoading: feedbacksLoading } = useQuery({
     queryKey: ["admin", "feedbacks", "all"],
@@ -178,6 +184,37 @@ export function OverviewPage() {
     () => [...areaHotspots].sort((a, b) => b.unresolved - a.unresolved).slice(0, 5),
     [areaHotspots],
   );
+
+  const mapMarkers = useMemo(() => {
+    return feedbacks.map((fb, index) => {
+      let lat = fb.latitude;
+      let lng = fb.longitude;
+
+      if (!lat || !lng) {
+        const wardMatch = DEFAULT_WARDS.find(
+          (w) =>
+            fb.wardName?.toLowerCase().includes(w.toLowerCase()) ||
+            fb.addressDetails?.toLowerCase().includes(w.toLowerCase()),
+        );
+        const baseCoords = wardMatch ? WARD_COORDS[wardMatch] : [16.0544, 108.2022];
+        const offsetLat = ((index % 7) - 3) * 0.003;
+        const offsetLng = (((index * 3) % 7) - 3) * 0.003;
+        lat = baseCoords[0] + offsetLat;
+        lng = baseCoords[1] + offsetLng;
+      }
+
+      return {
+        id: fb.id,
+        position: [lat, lng] as [number, number],
+        title: fb.title || "Phản ánh không tiêu đề",
+        description: fb.description,
+        status: fb.status,
+        address: fb.addressDetails || fb.wardName || "Đà Nẵng",
+        category: mapCategoryName(fb.categoryName),
+        date: fb.createdAt ? new Date(fb.createdAt).toLocaleDateString("vi-VN") : undefined,
+      };
+    });
+  }, [feedbacks]);
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {
@@ -280,7 +317,7 @@ export function OverviewPage() {
           return (
             <div
               key={i}
-              className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md hover:-translate-y-0.5 transition-all"
+              className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md hover:-translate-y-1 transition-all"
             >
               <div className="flex items-center justify-between mb-4">
                 <span className="text-sm font-sans font-medium text-slate-600 uppercase tracking-wide">
@@ -316,19 +353,56 @@ export function OverviewPage() {
       {/* Map + Ranking */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-7 bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col min-h-[440px]">
-          <div className="p-4 border-b border-slate-100 bg-slate-50/50">
-            <h3 className="text-lg font-bold font-heading text-[#0B4FC4]">Bản đồ điểm nóng theo khu vực</h3>
+          <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-bold font-heading text-[#0B4FC4]">
+                {mapMode === "overview"
+                  ? "Bản đồ điểm nóng theo khu vực"
+                  : "Bản đồ vị trí phản ánh chi tiết"}
+              </h3>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                {mapMode === "overview"
+                  ? "Xem tổng quan mức độ điểm nóng theo phường/xã"
+                  : "Xem vị trí và thông tin chi tiết từng sự cố trên bản đồ"}
+              </p>
+            </div>
+            <div className="flex bg-slate-200/80 p-1 rounded-xl gap-1 text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setMapMode("overview")}
+                className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                  mapMode === "overview"
+                    ? "bg-white text-[#0B4FC4] shadow-sm font-bold"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>Tổng thể</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMapMode("detail")}
+                className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                  mapMode === "detail"
+                    ? "bg-white text-[#0B4FC4] shadow-sm font-bold"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                <span>Chi tiết sự cố</span>
+              </button>
+            </div>
           </div>
-          <div className="flex-1 relative min-h-[300px]">
+          <div className="flex-1 relative min-h-[340px]">
             <Suspense
               fallback={
-                <div className="w-full h-full bg-slate-100 flex items-center justify-center text-slate-400 text-sm">
+                <div className="w-full h-full bg-slate-100 flex items-center justify-center text-slate-400 text-sm min-h-[340px]">
                   Đang tải bản đồ...
                 </div>
               }
             >
               {feedbacksLoading ? (
-                <div className="w-full h-full bg-slate-100 flex flex-col items-center justify-center gap-3 min-h-[300px]">
+                <div className="w-full h-full bg-slate-100 flex flex-col items-center justify-center gap-3 min-h-[340px]">
                   <div className="flex gap-2">
                     <Skeleton className="h-4 w-4 rounded-full" />
                     <Skeleton className="h-4 w-4 rounded-full" />
@@ -344,24 +418,59 @@ export function OverviewPage() {
                     </div>
                   </div>
                 </div>
-              ) : (
+              ) : mapMode === "overview" ? (
                 <SuperAdminMap
                   hotspots={areaHotspots}
                   onSelectWard={(w) => setSelectedWard(w === selectedWard ? undefined : w)}
                   selectedWard={selectedWard}
                 />
+              ) : (
+                <CivicMap
+                  markers={mapMarkers}
+                  height="360px"
+                  interactive={true}
+                  onMarkerClick={(id) => setSelectedFeedbackId(Number(id))}
+                />
               )}
             </Suspense>
           </div>
           <div className="p-4 bg-slate-50 border-t border-slate-100">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
-              Mức độ điểm nóng (chưa xử lý)
-            </span>
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-semibold text-slate-600">Thấp</span>
-              <div className="flex-1 h-3 rounded-full bg-gradient-to-r from-[#FCD34D] via-[#F97316] to-[#EF4444]" />
-              <span className="text-xs font-semibold text-slate-600">Cao</span>
-            </div>
+            {mapMode === "overview" ? (
+              <>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+                  Mức độ điểm nóng (chưa xử lý)
+                </span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-semibold text-slate-600">Thấp</span>
+                  <div className="flex-1 h-3 rounded-full bg-gradient-to-r from-[#FCD34D] via-[#F97316] to-[#EF4444]" />
+                  <span className="text-xs font-semibold text-slate-600">Cao</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+                  Trạng thái phản ánh trên bản đồ ({mapMarkers.length} sự cố)
+                </span>
+                <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-slate-600">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded-full bg-[#3b82f6] border border-white shadow-sm inline-block" />
+                    <span>Chờ xử lý</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded-full bg-[#facc15] border border-white shadow-sm inline-block" />
+                    <span>Đang xử lý</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded-full bg-[#22c55e] border border-white shadow-sm inline-block" />
+                    <span>Đã xử lý</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded-full bg-[#ef4444] border border-white shadow-sm inline-block" />
+                    <span>Đã từ chối</span>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -380,14 +489,14 @@ export function OverviewPage() {
               Chưa có khu vực cần ưu tiên.
             </div>
           ) : (
-            <table className="w-full text-left">
-              <thead>
-                <tr className="text-[10px] uppercase font-bold text-slate-400 border-b border-slate-100">
-                  <th className="pb-3 w-8">#</th>
-                  <th className="pb-3">Khu vực</th>
-                  <th className="pb-3 text-center">Tổng</th>
-                  <th className="pb-3 text-center">Chưa xử lý</th>
-                  <th className="pb-3 text-right">%</th>
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-slate-50/80 border-b border-slate-200">
+                <tr className="text-[11px] uppercase font-bold text-slate-500 tracking-wider">
+                  <th className="px-4 py-4 w-10">#</th>
+                  <th className="px-4 py-4">Khu vực</th>
+                  <th className="px-4 py-4 text-center">Tổng</th>
+                  <th className="px-4 py-4 text-center">Chưa xử lý</th>
+                  <th className="px-4 py-4 text-right">%</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -406,23 +515,23 @@ export function OverviewPage() {
                       onClick={() =>
                         setSelectedWard(area.name === selectedWard ? undefined : area.name)
                       }
-                      className={`cursor-pointer hover:bg-slate-50 transition-colors ${selectedWard === area.name ? "bg-blue-50" : ""}`}
+                      className={`cursor-pointer hover:bg-slate-50 transition-colors ${selectedWard === area.name ? "bg-blue-50/50" : ""}`}
                     >
-                      <td className="py-3">
+                      <td className="px-4 py-3">
                         <span
                           className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${rankColor}`}
                         >
                           {idx + 1}
                         </span>
                       </td>
-                      <td className="py-3 text-xs font-bold text-slate-800">{area.name}</td>
-                      <td className="py-3 text-center text-xs text-slate-600">{area.total}</td>
-                      <td className="py-3 text-center">
-                        <span className="px-2 py-0.5 bg-red-100 text-red-600 rounded-full text-xs font-bold">
+                      <td className="px-4 py-3 text-sm font-bold text-slate-800">{area.name}</td>
+                      <td className="px-4 py-3 text-center text-sm text-slate-600">{area.total}</td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="px-2 py-0.5 bg-red-50 text-red-600 rounded-full text-xs font-bold">
                           {area.unresolved}
                         </span>
                       </td>
-                      <td className="py-3 text-right text-xs font-bold text-slate-700">
+                      <td className="px-4 py-3 text-right text-sm font-bold text-slate-700">
                         {area.unresolvedPct.toFixed(1)}%
                       </td>
                     </tr>
@@ -489,14 +598,14 @@ export function OverviewPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="text-[10px] uppercase font-bold text-slate-400 border-b border-slate-100">
-                    <th className="pb-3">Mã PA</th>
-                    <th className="pb-3">Khu vực</th>
-                    <th className="pb-3">Lĩnh vực</th>
-                    <th className="pb-3 text-center">Trạng thái</th>
-                    <th className="pb-3 text-right">Thời gian</th>
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-slate-50/80 border-b border-slate-200">
+                  <tr className="text-[11px] uppercase font-bold text-slate-500 tracking-wider">
+                    <th className="px-4 py-4">Mã PA</th>
+                    <th className="px-4 py-4">Khu vực</th>
+                    <th className="px-4 py-4">Lĩnh vực</th>
+                    <th className="px-4 py-4 text-center">Trạng thái</th>
+                    <th className="px-4 py-4 text-right">Thời gian</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -506,19 +615,19 @@ export function OverviewPage() {
                       onClick={() => setSelectedFeedbackId(r.id)}
                       className="cursor-pointer hover:bg-slate-50 transition-colors group"
                     >
-                      <td className="py-3 font-mono text-[11px] font-bold text-slate-700 group-hover:text-[#0B4FC4]">
+                      <td className="px-4 py-3 font-mono text-xs font-bold text-slate-700 group-hover:text-[#0B4FC4]">
                         {r.trackingCode}
                       </td>
-                      <td className="py-3 text-xs font-semibold text-slate-800">{r.ward}</td>
-                      <td className="py-3 text-xs text-slate-600">{r.category}</td>
-                      <td className="py-3 text-center">
+                      <td className="px-4 py-3 text-sm font-semibold text-slate-800">{r.ward}</td>
+                      <td className="px-4 py-3 text-sm text-slate-600">{r.category}</td>
+                      <td className="px-4 py-3 text-center">
                         <span
                           className={`px-2 py-0.5 rounded border text-[10px] font-extrabold uppercase ${r.color}`}
                         >
                           {r.status}
                         </span>
                       </td>
-                      <td className="py-3 text-right text-xs font-semibold text-red-600">
+                      <td className="px-4 py-3 text-right text-sm font-semibold text-red-600">
                         {r.overdueTime}
                       </td>
                     </tr>

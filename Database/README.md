@@ -1,6 +1,6 @@
 # Cấu trúc Hệ thống Cơ sở dữ liệu (Smart City)
 
-Thư mục này chứa toàn bộ cấu trúc cơ sở dữ liệu độc lập của hệ thống Đà Nẵng Lắng Nghe. Việc tách rời Database ra khỏi Backend giúp hệ thống dễ dàng mở rộng và triển khai đa dịch vụ (Microservices).
+Thư mục này chứa toàn bộ cấu trúc cơ sở dữ liệu độc lập của hệ thống The City Connect (Đà Nẵng Kết Nối). Việc tách rời Database ra khỏi Backend giúp hệ thống dễ dàng mở rộng và triển khai đa dịch vụ (Microservices).
 
 ## Cấu trúc thư mục
 - `init-scripts/`: Chứa file `init.sql` khởi tạo dữ liệu ban đầu cho toàn bộ 5 module.

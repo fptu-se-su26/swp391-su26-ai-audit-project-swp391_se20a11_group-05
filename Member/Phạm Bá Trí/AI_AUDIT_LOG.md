@@ -8,7 +8,7 @@
 | Mã môn học | SWP391 |
 | Lớp | SE20A11 |
 | Học kỳ | SU26 |
-| Tên bài tập / Project | Hệ thống "Đà Nẵng Lắng Nghe" (The Listening City System) |
+| Tên bài tập / Project | The City Connect |
 | Tên sinh viên / Nhóm | Phạm Bá Trí / Nhóm 05 |
 | MSSV / Danh sách MSSV | DE191029 |
 | Giảng viên hướng dẫn | Trần Lệ Bích |

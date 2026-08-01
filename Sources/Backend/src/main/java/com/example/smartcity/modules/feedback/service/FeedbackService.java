@@ -72,6 +72,7 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
     private final EmbeddingClientFacade embeddingFacade;
     private final AiTaskRepository aiTaskRepository;
     private final GeminiAdapter geminiAdapter;
+    private final com.example.smartcity.ai_orchestrator.adapter.GroqAdapter groqAdapter;
 
     @org.springframework.beans.factory.annotation.Autowired
     @org.springframework.context.annotation.Lazy
@@ -110,6 +111,14 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         // 1. GPS là bắt buộc để tránh phản ánh không có vị trí xử lý & tránh lỗi NPE unboxing khi gọi geocoding
         if (request.getLatitude() == null || request.getLongitude() == null) {
             throw new CustomException("Vui long cho phep GPS truoc khi gui phan anh", HttpStatus.BAD_REQUEST.value());
+        }
+
+        // [RATE LIMIT] Kiểm tra số lượng phản ánh trong 24h (chống spam)
+        User citizen = userRepository.findByUsername(username)
+                .orElseThrow(() -> new com.example.smartcity.common.exception.ResourceNotFoundException("User: " + username));
+        long recentCount = feedbackRepository.countByCitizenIdAndCreatedAtAfter(citizen.getId(), LocalDateTime.now().minusHours(24));
+        if (recentCount >= 5) {
+            throw new CustomException("Bạn đã đạt giới hạn gửi phản ánh trong ngày (tối đa 5 lần/24h). Vui lòng thử lại sau.", HttpStatus.TOO_MANY_REQUESTS.value());
         }
 
         // 2. Kiểm tra danh mục hợp lệ trước
@@ -748,8 +757,8 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         User actionBy = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User: " + username));
 
-        if (actionBy.getRole() != Role.WARD_STAFF) {
-            throw new CustomException("Chỉ cán bộ phường mới có quyền cập nhật trạng thái phản ánh", HttpStatus.FORBIDDEN.value());
+        if (actionBy.getRole() == Role.CITIZEN) {
+            throw new CustomException("Công dân không có quyền cập nhật trạng thái phản ánh", HttpStatus.FORBIDDEN.value());
         }
 
         // Fix BOLA/IDOR: Validate permission before action

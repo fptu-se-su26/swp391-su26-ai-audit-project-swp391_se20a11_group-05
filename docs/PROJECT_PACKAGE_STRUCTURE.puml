@@ -1,0 +1,89 @@
+@startuml
+
+skinparam linetype ortho
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam nodesep 60
+skinparam ranksep 70
+skinparam packageBorderColor #333333
+skinparam packageBackgroundColor #FFFFFF
+skinparam ArrowColor #333333
+skinparam ArrowFontSize 10
+
+' ═══════════════════════════════════════════════════
+' ALL PACKAGES (flat — standard UML style)
+' ═══════════════════════════════════════════════════
+
+package "auth" as auth
+package "user" as user
+package "notification" as notification
+package "police" as police
+
+package "feedback" as feedback
+package "campaign" as campaign
+package "chatbot" as chatbot
+
+package "rag" as rag
+package "ai_orchestrator" as ai
+
+package "core" as core
+package "security" as sec
+package "common" as common
+package "config" as config
+
+package "permission" as perm
+
+' ═══════════════════════════════════════════════════
+' DEPENDENCIES — verified from actual code imports
+' ═══════════════════════════════════════════════════
+
+' Auth
+auth ..> sec : <<use>>
+auth ..> common : <<use>>
+
+' User
+user ..> sec : <<use>>
+user ..> common : <<use>>
+
+' Feedback
+feedback ..> ai : <<use>>
+feedback ..> rag : <<use>>
+feedback ..> notification : <<use>>
+feedback ..> core : <<use>>
+feedback ..> common : <<use>>
+
+' Campaign
+campaign ..> rag : <<use>>
+campaign ..> notification : <<use>>
+campaign ..> auth : <<use>>
+campaign ..> core : <<use>>
+campaign ..> common : <<use>>
+
+' Chatbot
+chatbot ..> rag : <<use>>
+chatbot ..> ai : <<use>>
+chatbot ..> feedback : <<use>>
+chatbot ..> common : <<use>>
+
+' Police
+police ..> sec : <<use>>
+police ..> core : <<use>>
+
+' Notification
+notification ..> common : <<use>>
+
+' Permission / Core
+perm ..> common : <<use>>
+core ..> common : <<use>>
+
+' RAG → AI Orchestrator (LLM calls & Embedding)
+rag ..> ai : <<use>>
+
+' AI Orchestrator → Config (API keys, provider props)
+ai ..> config : <<use>>
+
+' Security → Common
+sec ..> common : <<use>>
+
+@enduml

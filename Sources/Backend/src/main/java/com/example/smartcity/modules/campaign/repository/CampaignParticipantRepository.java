@@ -2,6 +2,8 @@ package com.example.smartcity.modules.campaign.repository;
 
 import com.example.smartcity.modules.campaign.entity.CampaignParticipant;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -10,11 +12,27 @@ import java.util.Optional;
 @Repository
 public interface CampaignParticipantRepository extends JpaRepository<CampaignParticipant, Long> {
 
+    interface CampaignParticipantCount {
+        Long getCampaignId();
+        Long getParticipantCount();
+    }
+
     Optional<CampaignParticipant> findByCampaign_IdAndCitizen_Id(Long campaignId, Long citizenId);
 
     boolean existsByCampaign_IdAndCitizen_IdAndJoinStatus(Long campaignId, Long citizenId, String joinStatus);
 
     long countByCampaign_IdAndJoinStatus(Long campaignId, String joinStatus);
+
+    @Query("""
+            SELECT p.campaign.id AS campaignId, COUNT(p) AS participantCount
+            FROM CampaignParticipant p
+            WHERE p.campaign.id IN :campaignIds
+              AND p.joinStatus = :joinStatus
+            GROUP BY p.campaign.id
+            """)
+    List<CampaignParticipantCount> countByCampaignIdsAndJoinStatus(
+            @Param("campaignIds") List<Long> campaignIds,
+            @Param("joinStatus") String joinStatus);
 
     long countByCitizen_IdAndJoinStatus(Long citizenId, String joinStatus);
 

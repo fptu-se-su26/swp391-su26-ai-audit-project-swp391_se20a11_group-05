@@ -423,7 +423,11 @@ export function useUpdateProfileMutation() {
 }
 
 export function useChangePasswordMutation() {
-  return useMutation<void, Error, { currentPassword: string; newPassword: string; confirmPassword: string; otpCode: string }>({
+  return useMutation<
+    void,
+    Error,
+    { currentPassword: string; newPassword: string; confirmPassword: string; otpCode: string }
+  >({
     mutationFn: (data) => userApi.changePassword(data),
   });
 }
@@ -457,17 +461,14 @@ export function useDeleteOwnProfileMutation() {
   });
 }
 
-import { getToken } from "@/lib/api";
-
 export function useNotifications(enabled = true) {
   const token = getToken();
   return useQuery<NotificationResponse[]>({
     queryKey: queryKeys.notifications.all,
     queryFn: () => notificationApi.getAll(),
-    enabled: !!token,
     staleTime: 30_000,
     enabled: enabled && !!token,
-    refetchInterval: 10_000,
+    refetchInterval: 60_000,
   });
 }
 
@@ -478,7 +479,7 @@ export function useNotificationUnreadCount(enabled = true) {
     queryFn: () => notificationApi.getUnreadCount(),
     staleTime: 30_000,
     enabled: enabled && !!token,
-    refetchInterval: 10_000,
+    refetchInterval: 60_000,
   });
 }
 
@@ -487,15 +488,13 @@ export function useInfiniteNotifications(size = 5) {
   return useInfiniteQuery<PageResponse<NotificationResponse>>({
     queryKey: queryKeys.notifications.page(size),
     queryFn: ({ pageParam }) => notificationApi.getPage(Number(pageParam ?? 0), size),
-    enabled: !!token,
     initialPageParam: 0,
     getNextPageParam: (lastPage) => {
       const currentPage = lastPage.page ?? lastPage.number ?? 0;
       return lastPage.hasNext ? currentPage + 1 : undefined;
     },
     staleTime: 30_000,
-    refetchInterval: 10_000,
-    enabled: !!token,
+    refetchInterval: 60_000,
   });
 }
 

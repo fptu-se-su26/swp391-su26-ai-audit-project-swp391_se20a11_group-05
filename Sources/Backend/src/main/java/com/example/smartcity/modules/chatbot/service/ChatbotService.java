@@ -171,6 +171,10 @@ public class ChatbotService {
         };
     }
 
+    public java.util.Optional<User> getUserByUsername(String username) {
+        return userRepo.findByUsername(username);
+    }
+
     public Map<String, Object> ask(Long userId, String sessionId, String question, List<Map<String, String>> historyContext) {
         long start = System.currentTimeMillis();
         log.info("📨 [Chatbot] userId={} | sessionId={} | question='{}'", userId, sessionId, question);
@@ -190,32 +194,41 @@ public class ChatbotService {
 
         Map<String, Object> responseData;
 
-        switch (intent) {
-            case LOOKUP_FEEDBACK:
-                responseData = handleLookupFeedback(question);
-                break;
-            case CREATE_FEEDBACK:
-                responseData = handleCreateFeedback(bestProvider, question, user, historyContext);
-                break;
-            case QA_LEGAL:
-                responseData = handleQALegal(question);
-                break;
-            case STATISTICS:
-                responseData = handleStatistics(bestProvider, question, historyContext);
-                break;
-            case REPORT_COPILOT:
-                responseData = handleReportCopilot(bestProvider, question, user, historyContext);
-                break;
-            case DISCOVER_CAMPAIGN:
-                responseData = handleDiscoverCampaign(question);
-                break;
-            case NAVIGATION_GUIDE:
-                responseData = handleNavigationGuide(question);
-                break;
-            case GENERAL:
-            default:
-                responseData = handleGeneral(question);
-                break;
+        if (userId == null && intent == ChatIntent.REPORT_COPILOT) {
+            responseData = new java.util.HashMap<>();
+            responseData.put("intent", intent.name());
+            responseData.put("emotion", "NEUTRAL");
+            responseData.put("reply", "Dạ, cô chú cần đăng nhập tài khoản để tra cứu các phản ánh cá nhân ạ. Cô chú có muốn đăng nhập ngay bây giờ không? 😊");
+            responseData.put("action", "NAVIGATE");
+            responseData.put("navigateTo", "/login");
+        } else {
+            switch (intent) {
+                case LOOKUP_FEEDBACK:
+                    responseData = handleLookupFeedback(question);
+                    break;
+                case CREATE_FEEDBACK:
+                    responseData = handleCreateFeedback(bestProvider, question, user, historyContext);
+                    break;
+                case QA_LEGAL:
+                    responseData = handleQALegal(question);
+                    break;
+                case STATISTICS:
+                    responseData = handleStatistics(bestProvider, question, historyContext);
+                    break;
+                case REPORT_COPILOT:
+                    responseData = handleReportCopilot(bestProvider, question, user, historyContext);
+                    break;
+                case DISCOVER_CAMPAIGN:
+                    responseData = handleDiscoverCampaign(question);
+                    break;
+                case NAVIGATION_GUIDE:
+                    responseData = handleNavigationGuide(question);
+                    break;
+                case GENERAL:
+                default:
+                    responseData = handleGeneral(question);
+                    break;
+            }
         }
 
         // Thêm suggested follow-up questions vào mọi response
@@ -457,11 +470,7 @@ public class ChatbotService {
 
         String reply = "Dạ hiện tại em không thể lấy số liệu thống kê. Bạn vui lòng thử lại sau nhé!";
         try {
-            if (activeProvider != null) {
-                reply = activeProvider.generateResponseAsync(systemPrompt, context.toString()).join();
-            } else {
-                reply = groqAdapter.generateResponseAsync(systemPrompt, context.toString()).join();
-            }
+            reply = aiRouterService.executeWithFallback(activeProvider, systemPrompt, context.toString()).join();
         } catch (Exception e) {
             log.error("Lỗi khi dùng LLM để sinh câu trả lời thống kê", e);
         }
@@ -562,11 +571,7 @@ public class ChatbotService {
 
         String reply = "Dạ, em đang gặp chút sự cố kết nối dữ liệu. Xin vui lòng thử lại sau ít phút ạ!";
         try {
-            if (activeProvider != null) {
-                reply = activeProvider.generateResponseAsync(systemPrompt, conversationContext.toString()).join();
-            } else {
-                reply = groqAdapter.generateResponseAsync(systemPrompt, conversationContext.toString()).join();
-            }
+            reply = aiRouterService.executeWithFallback(activeProvider, systemPrompt, conversationContext.toString()).join();
         } catch (Exception e) {
             log.error("Lỗi khi dùng LLM sinh câu trả lời AI Copilot", e);
         }
@@ -589,11 +594,7 @@ public class ChatbotService {
         String reply = "Dạ Bé Rồng em nghe đây ạ! 🐉 Em có thể hỗ trợ cô chú tra cứu phản ánh sự cố đô thị, hướng dẫn thủ tục hành chính hoặc tiếp nhận báo cáo nhanh tại Đà Nẵng ạ.";
         try {
             AiProviderAdapter activeProvider = aiRouterService.routeToBestProvider("1", question);
-            if (activeProvider != null) {
-                reply = activeProvider.generateResponseAsync(systemPrompt, question).join();
-            } else {
-                reply = groqAdapter.generateResponseAsync(systemPrompt, question).join();
-            }
+            reply = aiRouterService.executeWithFallback(activeProvider, systemPrompt, question).join();
         } catch (Exception e) {
             log.error("Lỗi khi dùng LLM để sinh câu trả lời chat thông thường", e);
         }

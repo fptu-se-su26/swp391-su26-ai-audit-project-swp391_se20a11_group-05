@@ -42,8 +42,11 @@ public class WardRankingController {
      * Get detailed ward scorecard.
      */
     @GetMapping("/{wardId}")
-    public ResponseEntity<WardDetailResponse> getWardDetail(@PathVariable Long wardId) {
-        return ResponseEntity.ok(wardRankingService.getWardDetail(wardId));
+    public ResponseEntity<WardDetailResponse> getWardDetail(
+            @PathVariable Long wardId,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month) {
+        return ResponseEntity.ok(wardRankingService.getWardDetail(wardId, year, month));
     }
 
     /**

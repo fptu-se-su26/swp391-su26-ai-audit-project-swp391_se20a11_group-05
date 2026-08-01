@@ -746,9 +746,16 @@ export const userApi = {
       method: "POST",
     }),
 
-  deleteOwnProfile: () =>
+  sendDeleteProfileOtp: (data: { password?: string }) =>
+    request<string>("/api/users/profile/delete/otp", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  deleteOwnProfile: (data: { password?: string; otpCode?: string }) =>
     request<void>("/api/users/profile", {
       method: "DELETE",
+      body: JSON.stringify(data),
     }),
 
   // SUPER_ADMIN: lấy tất cả users có phân trang

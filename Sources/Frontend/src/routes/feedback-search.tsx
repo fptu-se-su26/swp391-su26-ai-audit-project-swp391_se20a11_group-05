@@ -13,7 +13,7 @@ import {
   useMarkNotificationReadMutation,
   useMarkAllNotificationsReadMutation,
 } from "@/hooks";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { EmptyState, ErrorState } from "@/components/site/EmptyState";
 import {
   Search,
@@ -50,6 +50,7 @@ import { OFFICIAL_CATEGORIES } from "@/lib/categoryConfig";
 import { WardFeedbackManagementPage } from "@/features/ward/WardFeedbackManagementPage";
 import toanhatraibap from "@/assets/toanhatraibap.png";
 import trongdong from "@/assets/trongdong.png";
+import logoImg from "@/assets/logo.png";
 
 const CivicMap = clientOnly(
   () => import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
@@ -131,10 +132,6 @@ function FeedbackSearch() {
 function PublicFeedbackLookup() {
   const { locale, t, setLocale } = useI18n();
   const navigate = useNavigate({ from: "/feedback-search" });
-<<<<<<< HEAD
-  const { category = "", q = "", status = "", range = "", wardId, categories, tab } = Route.useSearch();
-  const { isAuthenticated, user: currentUser } = useAuth();
-=======
   const {
     category = "",
     q = "",
@@ -146,7 +143,6 @@ function PublicFeedbackLookup() {
   } = Route.useSearch();
   const { isAuthenticated, user: currentUser, logout } = useAuth();
   const queryClient = useQueryClient();
->>>>>>> 2b71a97d00bca784f33f8484c1dc1f0b58f669e4
 
   const [activeTab, setActiveTab] = useState<"public" | "my">(() => {
     return tab === "my" ? "my" : "public";
@@ -207,8 +203,6 @@ function PublicFeedbackLookup() {
   const [sortBy, setSortBy] = useState("newest");
 
 
-<<<<<<< HEAD
-=======
   // Dropdown refs
   const langRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -221,7 +215,6 @@ function PublicFeedbackLookup() {
 
   const markRead = useMarkNotificationReadMutation();
   const markAllRead = useMarkAllNotificationsReadMutation();
->>>>>>> 2b71a97d00bca784f33f8484c1dc1f0b58f669e4
 
   // Committed search filters
   const [filters, setFilters] = useState(() => {
@@ -737,11 +730,7 @@ function PublicFeedbackLookup() {
       <div className="absolute top-[-10%] left-[-15%] w-[60%] aspect-square rounded-full bg-gradient-to-tr from-[#1E88E5]/5 to-transparent blur-[140px] pointer-events-none" />
       <div className="absolute bottom-[20%] right-[-15%] w-[50%] aspect-square rounded-full bg-gradient-to-br from-[#0B4DBB]/5 to-transparent blur-[140px] pointer-events-none" />
 
-<<<<<<< HEAD
 
-
-=======
->>>>>>> 2b71a97d00bca784f33f8484c1dc1f0b58f669e4
       {/* HERO SECTION */}
       <section
         className="relative w-full h-[380px] flex items-center overflow-hidden border-b border-slate-200/40"
@@ -1629,9 +1618,7 @@ function PublicFeedbackLookup() {
         </div>
       </div>
 
-<<<<<<< HEAD
 
-=======
       {/* FOOTER SECTION */}
       <footer className="relative z-30 bg-[#051D45] text-slate-300 mt-20 border-t-4 border-[#0B4DBB]">
         <div className="max-w-[1440px] mx-auto px-6 md:px-12 py-12 md:py-16">
@@ -1810,7 +1797,7 @@ function PublicFeedbackLookup() {
           </div>
         </div>
       </footer>
->>>>>>> 2b71a97d00bca784f33f8484c1dc1f0b58f669e4
+
     </div>
   );
 }

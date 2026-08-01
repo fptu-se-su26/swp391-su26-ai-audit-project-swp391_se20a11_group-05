@@ -112,15 +112,19 @@ function mapResponseToCampaign(response: CampaignResponse): Campaign {
   } as Campaign;
 }
 
-export function useCampaignList(): Campaign[] {
+export function useCampaignListQuery() {
   const { user } = useAuth();
   const token = typeof window !== "undefined" ? getToken() : null;
-  const { data: backendPage } = useQuery<PageResponse<CampaignResponse>>({
+  return useQuery<PageResponse<CampaignResponse>>({
     queryKey: ["campaigns", "list", token, user?.wardId],
     queryFn: () => campaignApi.getAll(0, 50),
     staleTime: 30_000,
     retry: false,
   });
+}
+
+export function useCampaignList(): Campaign[] {
+  const { data: backendPage } = useCampaignListQuery();
 
   // Only return backend campaigns — no mock/seed data merge
   if (backendPage?.content) {
@@ -151,19 +155,8 @@ export function useCampaignDetail(id: string): Campaign | undefined {
     retry: false,
   });
 
-  const { data: privateCampaign, isError: privateError } = useQuery<CampaignResponse>({
-    queryKey: ["campaigns", id, "private", hasToken],
-    queryFn: () => campaignApi.getPrivateDetail(id),
-    enabled: isNumericId && hasToken && Boolean(publicCampaign?.privateDetailsVisible),
-    staleTime: 5000,
-    refetchInterval: 60000,
-    retry: false,
-  });
-
-  if (isNumericId && ((privateCampaign && !privateError) || publicCampaign)) {
-    return mapResponseToCampaign(
-      privateCampaign && !privateError ? privateCampaign : publicCampaign!,
-    );
+  if (isNumericId && publicCampaign) {
+    return mapResponseToCampaign(publicCampaign);
   }
 
   return localCampaign;

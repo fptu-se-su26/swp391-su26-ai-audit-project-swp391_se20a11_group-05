@@ -28,6 +28,7 @@ import { FeedbacksPage } from "./pages/FeedbacksPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { UsersPage } from "./pages/UsersPage";
 import { PermissionsPage } from "./pages/PermissionsPage";
+import { AiDashboardPage } from "./pages/AiDashboardPage";
 import { NewsManagement } from "../news/NewsManagement";
 import { toast } from "sonner";
 import {
@@ -149,7 +150,7 @@ export function CityAdminDashboard() {
   const [userOpen, setUserOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<
-    "overview" | "feedbacks" | "reports" | "users" | "news" | "permissions"
+    "overview" | "feedbacks" | "reports" | "users" | "news" | "permissions" | "ai_stats"
   >("overview");
   const [fullscreen, setFullscreen] = useState(false);
 
@@ -280,6 +281,13 @@ export function CityAdminDashboard() {
       icon: Users,
       badge: null,
       description: "Quản lý người dùng",
+    },
+    {
+      name: "Thống kê AI",
+      tab: "ai_stats" as const,
+      icon: Zap,
+      badge: null,
+      description: "Hiệu suất AI Auto-Dispatch",
     },
     {
       name: "Tin tức",
@@ -1062,8 +1070,7 @@ export function CityAdminDashboard() {
                 {activeTab === "reports" && <ReportsPage />}
                 {activeTab === "users" && <UsersPage />}
                 {activeTab === "news" && <NewsManagement />}
-                {/* Tạm ẩn PermissionsPage */}
-                {/* {activeTab === "permissions" && <PermissionsPage />} */}
+                {activeTab === "ai_stats" && <AiDashboardPage />}
               </>
             )}
           </div>

@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth, Role } from "@/lib/auth";
 import { getToken, API_BASE, wardApi } from "@/lib/api";
+import { compressImageIfNeeded } from "@/lib/imageCompression";
 import {
   useProfile,
   useUpdateProfileMutation,
@@ -231,7 +232,8 @@ function ProfilePage() {
     }
 
     const formData = new FormData();
-    formData.append("file", file);
+    const compressedFile = await compressImageIfNeeded(file);
+    formData.append("file", compressedFile);
 
     const toastId = toast.loading(
       locale === "vi" ? "Đang tải lên ảnh đại diện..." : "Uploading profile image...",

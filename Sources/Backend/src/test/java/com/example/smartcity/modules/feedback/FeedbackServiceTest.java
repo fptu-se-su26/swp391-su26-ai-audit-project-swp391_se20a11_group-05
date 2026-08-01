@@ -58,6 +58,7 @@ class FeedbackServiceTest {
     @Mock private com.example.smartcity.rag.ingestion.EmbeddingClientFacade embeddingFacade;
     @Mock private AiTaskRepository aiTaskRepository;
     @Mock private com.example.smartcity.ai_orchestrator.adapter.GeminiAdapter geminiAdapter;
+    @Mock private com.example.smartcity.ai_orchestrator.adapter.GroqAdapter groqAdapter;
     private CategoryRoutingService categoryRoutingService;
 
     private FeedbackService feedbackService;

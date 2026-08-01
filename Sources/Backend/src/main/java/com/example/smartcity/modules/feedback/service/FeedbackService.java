@@ -72,7 +72,6 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
     private final EmbeddingClientFacade embeddingFacade;
     private final AiTaskRepository aiTaskRepository;
     private final GeminiAdapter geminiAdapter;
-    private final com.example.smartcity.ai_orchestrator.adapter.GroqAdapter groqAdapter;
 
     @org.springframework.beans.factory.annotation.Autowired
     @org.springframework.context.annotation.Lazy
@@ -326,7 +325,8 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
                 if (isDuplicate && dupTrackingCode != null && !dupTrackingCode.equals("null") && !dupTrackingCode.isEmpty()) {
                     log.warn("[DUPLICATE-DETECTION] AI xác nhận trùng lặp với {}. Lý do: {}", dupTrackingCode, reason);
                     throw new CustomException(
-                        "Phản ánh tương tự đã được gửi bởi người dân khác. Vui lòng theo dõi mã phản ánh " + dupTrackingCode + " để cập nhật tiến độ.",
+                        "Sự cố tương tự đã được chính quyền địa phương tiếp nhận hoặc xử lý (Mã đơn: " + dupTrackingCode +
+                        "). Nếu sự cố chưa dứt điểm, bạn vui lòng bấm nút 'Yêu cầu mở lại đơn " + dupTrackingCode + "' thay vì tạo đơn mới.",
                         HttpStatus.CONFLICT.value()
                     );
                 } else {

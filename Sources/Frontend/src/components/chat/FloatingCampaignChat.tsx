@@ -30,6 +30,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { Role } from "@/lib/roles";
 import { API_BASE, getToken } from "@/lib/api";
+import { compressImageIfNeeded } from "@/lib/imageCompression";
 import { toast } from "sonner";
 import { CampaignChatBubble } from "./CampaignChatBubble";
 import { EmojiPicker } from "./EmojiPicker";
@@ -130,8 +131,22 @@ export function FloatingCampaignChat({ campaignId, onClose }: FloatingCampaignCh
           (msg.message && msg.message.trim() !== "") || (msg.imageUrls && msg.imageUrls.length > 0),
       )
       .map((msg) => {
-        const isMe = user && user.name === msg.senderName;
+        const isMe =
+          !!user &&
+          (user.id != null && msg.senderId != null && msg.senderId !== 0
+            ? Number(user.id) === Number(msg.senderId)
+            : user.name === msg.senderName || msg.senderName === "Tôi");
         const isHost = msg.senderRole === "WARD_STAFF" || msg.senderRole === "SUPER_ADMIN";
+
+        // Diagnostic log to investigate identity matching issues
+        console.log("[FloatingChat] isMe check:", {
+          messageId: msg.id,
+          isMe,
+          userId: user?.id,
+          msgSenderId: msg.senderId,
+          userName: user?.name,
+          msgSenderName: msg.senderName,
+        });
 
         let timeStr = "";
         try {
@@ -240,7 +255,8 @@ export function FloatingCampaignChat({ campaignId, onClose }: FloatingCampaignCh
     newAttachments.forEach(async (att) => {
       try {
         const formData = new FormData();
-        formData.append("file", att.file);
+        const compressedFile = await compressImageIfNeeded(att.file);
+        formData.append("file", compressedFile);
 
         const res = await fetch(`${API_BASE}/api/files/upload`, {
           method: "POST",

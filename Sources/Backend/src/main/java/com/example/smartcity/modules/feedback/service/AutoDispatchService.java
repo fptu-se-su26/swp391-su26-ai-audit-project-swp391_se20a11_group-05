@@ -170,12 +170,21 @@ public class AutoDispatchService {
 
         log.info("🤖 [Auto-Dispatch Worker] Raw AI Output: {}", aiRawResult);
 
+        // Guard: Nếu response không chứa '{' thì là mock fallback (Gemini bị rate limit)
+        // → không parse JSON, retry luôn để tránh lỗi confusing "Unexpected character"
+        if (!aiRawResult.contains("{")) {
+            log.warn("⚠️ [Auto-Dispatch Worker] AI trả về mock fallback (có thể do rate limit), kích hoạt retry. Response: {}",
+                    aiRawResult.substring(0, Math.min(100, aiRawResult.length())));
+            self.handleAiFallbackAndRetry(task.getId(), feedbackId, "AI mock fallback: " + aiRawResult.substring(0, Math.min(80, aiRawResult.length())));
+            return;
+        }
+
         // Clean markdown if present and extract only the JSON object
         String jsonStr = aiRawResult;
         jsonStr = jsonStr.replace("```json", "");
         jsonStr = jsonStr.replace("```", "");
         jsonStr = jsonStr.trim();
-        
+
         int startIndex = jsonStr.indexOf("{");
         int endIndex = jsonStr.lastIndexOf("}");
         if (startIndex >= 0 && endIndex >= 0 && startIndex <= endIndex) {
@@ -282,10 +291,14 @@ public class AutoDispatchService {
                     }
                 }
                 
-                feedback.setStatus(FeedbackStatus.ASSIGNED);
+                if (aiResult.getTrust_score() <= 70) {
+                    feedback.setStatus(FeedbackStatus.PENDING);
+                } else {
+                    feedback.setStatus(FeedbackStatus.ASSIGNED);
+                }
                 feedbackRepository.save(feedback);
 
-                if ("WARD_STAFF".equals(receiverType)) {
+                if ("WARD_STAFF".equals(receiverType) && aiResult.getTrust_score() > 70) {
                     TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                         @Override
                         public void afterCommit() {
@@ -295,11 +308,20 @@ public class AutoDispatchService {
                 }
 
                 if (aiResult.getTrust_score() <= 70) {
-                    FeedbackLog logEntry = new FeedbackLog(feedback, feedback.getCitizen(), oldStatus, oldStatus, 
+                    FeedbackLog logEntry = new FeedbackLog(feedback, feedback.getCitizen(), oldStatus, FeedbackStatus.PENDING, 
                         "🟡 [AI WARNING] Trust Score trung bình (" + aiResult.getTrust_score() + "%). Yêu cầu duyệt kỹ. AI phân loại: " + safePriority + " - " + safeDomain + ". Lý do: " + aiResult.getReason());
                     feedbackLogRepository.save(logEntry);
+                    
+                    final String trackingCode = feedback.getTrackingCode();
+                    TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            notificationService.notifyFeedbackStatusChange(feedbackId, "PENDING", 
+                                "Phản ánh " + trackingCode + " đang được xem xét thêm chi tiết.");
+                        }
+                    });
                 } else {
-                    FeedbackLog logEntry = new FeedbackLog(feedback, feedback.getCitizen(), oldStatus, oldStatus, 
+                    FeedbackLog logEntry = new FeedbackLog(feedback, feedback.getCitizen(), oldStatus, FeedbackStatus.ASSIGNED, 
                         "🟢 [AI CLASSIFIED] Mức độ: " + safePriority + ", Lĩnh vực: " + safeDomain + ", Uy tín: " + aiResult.getTrust_score() + "%.");
                     feedbackLogRepository.save(logEntry);
                 }
@@ -342,17 +364,39 @@ public class AutoDispatchService {
         if (retry >= 3) {
             aiTask.setStatus("FAILED");
             log.error("❌ [Outbox Worker] Tác vụ AI cho Feedback #{} thất bại hoàn toàn sau 3 lần thử.", feedback != null ? feedback.getTrackingCode() : feedbackId);
-            
+
             if (feedback != null) {
-                FeedbackLog logEntry = new FeedbackLog(feedback, feedback.getCitizen(), feedback.getStatus(), feedback.getStatus(), 
-                    "⚠️ [HỆ THỐNG] Phân tích AI thất bại hoàn toàn sau 3 lần thử (" + errorMessage + "). Báo cáo chuyển sang luồng Duyệt Thủ Công.");
+                // [BUG FIX] Fallback: AI chưa kịp set managedByRole (vì fail trước khi phân loại xong)
+                // → mặc định chuyển về WARD_STAFF để feedback không bị "mồ côi"
+                if (feedback.getManagedByRole() == null || feedback.getManagedByRole().isBlank()) {
+                    feedback.setManagedByRole("WARD_STAFF");
+                    feedback.setReceiverType("WARD_STAFF");
+                    feedback.setAssignedToRole("WARD_STAFF");
+                    if (feedback.getWard() != null) {
+                        feedback.setAssignedUnitName(feedback.getWard().getName() + " Ward People's Committee");
+                    }
+                    log.warn("⚠️ [Fallback] managedByRole chưa được set bởi AI → mặc định WARD_STAFF để tránh feedback mồ côi.");
+                }
+
+                // Luôn chuyển status về PENDING_RECEIVE để phường/cán bộ nhìn thấy và xét duyệt thủ công
+                FeedbackStatus oldStatus = feedback.getStatus();
+                feedback.setStatus(FeedbackStatus.PENDING_RECEIVE);
+                feedbackRepository.save(feedback);
+
+                String wardName = feedback.getWard() != null ? feedback.getWard().getName() : "địa phương";
+                FeedbackLog logEntry = new FeedbackLog(feedback, feedback.getCitizen(), oldStatus, FeedbackStatus.PENDING_RECEIVE,
+                    "⚠️ [Hệ thống] Hệ thống phân tích tự động hiện đang quá tải. Phản ánh đã được chuyển giao cho cán bộ Phường " + wardName + " để tiếp nhận và xử lý thủ công.");
                 feedbackLogRepository.save(logEntry);
 
-                if ("WARD_STAFF".equals(feedback.getManagedByRole()) && feedback.getWard() != null) {
+                // Notify phường (bất kể role là gì) nếu có ward → đảm bảo có người tiếp nhận
+                if (feedback.getWard() != null) {
                     TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                         @Override
                         public void afterCommit() {
                             citizenNotificationService.createFeedbackAssignedToWardNotification(feedbackId);
+                            // Message hướng đến citizen — không lộ thông tin nội bộ AI
+                            notificationService.notifyFeedbackStatusChange(feedbackId, FeedbackStatus.PENDING_RECEIVE.name(),
+                                "📋 Phản ánh " + feedback.getTrackingCode() + " của bạn đã được tiếp nhận và đang chờ xử lý.");
                         }
                     });
                 }
@@ -426,7 +470,10 @@ public class AutoDispatchService {
     private String sanitizePriority(String rawPriority) {
         if (rawPriority == null) return "MEDIUM";
         String p = rawPriority.toUpperCase().trim();
-        return (p.contains("CRITICAL") || p.contains("HIGH") || p.contains("LOW")) ? p : "MEDIUM";
+        if (p.contains("CRITICAL")) return "CRITICAL";
+        if (p.contains("HIGH")) return "HIGH";
+        if (p.contains("LOW")) return "LOW";
+        return "MEDIUM";
     }
 
     private String sanitizeDomain(String rawDomain) {

@@ -35,6 +35,7 @@ import type { Campaign } from "@/lib/campaignStore";
 import { CampaignChatBubble } from "@/components/chat/CampaignChatBubble";
 import { EmojiPicker } from "@/components/chat/EmojiPicker";
 import { API_BASE, getToken } from "@/lib/api";
+import { compressImageIfNeeded } from "@/lib/imageCompression";
 import { CampaignChatMenu } from "@/components/chat/CampaignChatMenu";
 
 export const Route = createFileRoute("/campaigns/$id/group-chat")({
@@ -210,6 +211,7 @@ function CampaignGroupChatPage() {
     initials: string;
     online: boolean;
     role: string;
+    joinStatus?: string;
   }
 
   const members = useMemo((): GroupMember[] => {
@@ -219,38 +221,64 @@ function CampaignGroupChatPage() {
       online: true,
       role: "host",
     };
+
+    // Find current user's join status in realParticipants
+    const myParticipant = realParticipants.find((p) => user && p.citizenName === user.name);
+    const myJoinStatus =
+      myParticipant?.joinStatus || (campaign?.currentUserJoinStatus as string) || "APPROVED";
+
     const meMember = user
       ? {
           name: user.name,
           initials: user.name.split(" ").at(-1)?.[0] || "C",
           online: true,
           role: "me",
+          joinStatus: myJoinStatus,
         }
       : null;
 
-    const approvedParticipants = realParticipants
-      .filter((p) => p.joinStatus === "APPROVED" && (!user || p.citizenName !== user.name))
+    const chatParticipants = realParticipants
+      .filter(
+        (p) =>
+          ["APPROVED", "CONFIRMED", "MAYBE"].includes(p.joinStatus) &&
+          (!user || p.citizenName !== user.name),
+      )
       .map((p, i) => ({
         name: p.citizenName,
         initials: p.citizenName.split(" ").at(-1)?.[0] || "U",
         online: i % 3 === 0, // Mock online status
         role: "member",
+        joinStatus: p.joinStatus,
       }));
 
     const result = [hostMember];
     if (meMember && meMember.name !== hostName) {
       result.push(meMember);
     }
-    result.push(...approvedParticipants);
+    result.push(...chatParticipants);
     return result;
-  }, [hostName, user, realParticipants]);
+  }, [hostName, user, realParticipants, campaign?.currentUserJoinStatus]);
   const onlineCount = members.filter((member) => member.online).length;
   const progressPercent = Math.min(100, Math.round((memberCount / target) * 100));
 
   const formattedMessages = useMemo(() => {
     return chatMessages.map((msg) => {
-      const isMe = user && user.name === msg.senderName;
+      const isMe =
+        !!user &&
+        (user.id != null && msg.senderId != null && msg.senderId !== 0
+          ? Number(user.id) === Number(msg.senderId)
+          : user.name === msg.senderName || msg.senderName === "Tôi");
       const isHost = msg.senderRole === "WARD_STAFF" || msg.senderRole === "SUPER_ADMIN";
+
+      // Diagnostic log to investigate identity matching issues
+      console.log("[GroupChat] isMe check:", {
+        messageId: msg.id,
+        isMe,
+        userId: user?.id,
+        msgSenderId: msg.senderId,
+        userName: user?.name,
+        msgSenderName: msg.senderName,
+      });
 
       let timeStr = "";
       try {
@@ -277,7 +305,6 @@ function CampaignGroupChatPage() {
       } as ChatMessage;
     });
   }, [chatMessages, user]);
-
 
   const pinnedMsg = useMemo(() => {
     return chatMessages.find((m) => m.pinned);
@@ -476,7 +503,8 @@ function CampaignGroupChatPage() {
     newAttachments.forEach(async (att) => {
       try {
         const formData = new FormData();
-        formData.append("file", att.file);
+        const compressedFile = await compressImageIfNeeded(att.file);
+        formData.append("file", compressedFile);
 
         const res = await fetch(`${API_BASE}/api/files/upload`, {
           method: "POST",
@@ -1007,7 +1035,7 @@ function GroupSidebar({
   memberCount: number;
   progressPercent: number;
   hostWard: string;
-  members: { name: string; initials: string; online: boolean; role: string }[];
+  members: { name: string; initials: string; online: boolean; role: string; joinStatus?: string }[];
 }) {
   const { user } = useAuth();
   const getStatusInfo = (status?: string) => {
@@ -1157,6 +1185,71 @@ function GroupSidebar({
             <div className="mt-2 flex items-center justify-between gap-3 text-xs font-bold text-slate-600">
               <span>Sức chứa tối đa</span>
               <span className="text-slate-900">{target || "Chưa giới hạn"}</span>
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+              Danh sách thành viên
+            </p>
+            <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+              {members.map((m, idx) => {
+                const isHost = m.role === "host";
+                const isMe = m.role === "me";
+
+                let statusLabel = "";
+                let badgeClass = "";
+
+                if (isHost) {
+                  statusLabel = "Chủ trì";
+                  badgeClass = "bg-amber-50 text-amber-700 border-amber-200";
+                } else {
+                  switch (m.joinStatus) {
+                    case "CONFIRMED":
+                      statusLabel = "Đã xác nhận";
+                      badgeClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
+                      break;
+                    case "MAYBE":
+                      statusLabel = "Có thể tham gia";
+                      badgeClass = "bg-blue-50 text-blue-700 border-blue-200";
+                      break;
+                    case "APPROVED":
+                    default:
+                      statusLabel = "Chưa xác nhận";
+                      badgeClass = "bg-slate-50 text-slate-500 border-slate-200";
+                      break;
+                  }
+                }
+
+                return (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-2.5 rounded-xl bg-slate-50 border border-slate-100/70 p-2"
+                  >
+                    <span
+                      className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-black select-none ${
+                        isHost ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
+                      }`}
+                    >
+                      {m.initials}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-bold text-slate-700 flex items-center gap-1">
+                        {m.name}
+                        {isMe && (
+                          <span className="text-[9px] font-normal text-slate-400">(Tôi)</span>
+                        )}
+                      </p>
+                      <span
+                        className={`inline-flex items-center gap-0.5 mt-0.5 rounded px-1.5 py-0.5 text-[9px] font-bold border ${badgeClass}`}
+                      >
+                        {isHost && <Crown size={9} className="fill-current text-amber-600" />}
+                        {statusLabel}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>

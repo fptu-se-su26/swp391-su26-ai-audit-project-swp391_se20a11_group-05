@@ -45,7 +45,7 @@ import {
 import logoImg from "@/assets/logo.png";
 import { toast } from "sonner";
 import { authApi, type NotificationResponse, type FeedbackResponse } from "@/lib/api";
-import { highlightNotificationContent } from "@/lib/notificationHelper";
+import { highlightNotificationContent, translateNotificationTitle } from "@/lib/notificationHelper";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAdministrativeUnitLabel, getAdministrativeUnitName } from "@/lib/administrativeUnit";
@@ -550,7 +550,10 @@ export function WardDashboard() {
           if (user?.role === Role.WARD_STAFF) {
             navigate({ to: "/ward", search: { tab: "blacklist", detailId: String(feedbackId) } });
           }
-        } else if (item.type === "CAMPAIGN_APPEAL_APPROVED" || item.type === "CAMPAIGN_APPEAL_REJECTED") {
+        } else if (
+          item.type === "CAMPAIGN_APPEAL_APPROVED" ||
+          item.type === "CAMPAIGN_APPEAL_REJECTED"
+        ) {
           navigate({ to: "/profile" });
         } else if (item.type?.startsWith("CAMPAIGN")) {
           if (user?.role === Role.WARD_STAFF) {
@@ -887,10 +890,10 @@ export function WardDashboard() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <span className="text-xs font-bold text-slate-800 block truncate">
-                              {item.title}
+                              {translateNotificationTitle(item.title, item.type, locale)}
                             </span>
                             <span className="text-[11px] text-slate-500 mt-0.5 block line-clamp-2 leading-relaxed font-semibold">
-                              {highlightNotificationContent(item.content)}
+                              {highlightNotificationContent(item.content, item.type, locale)}
                             </span>
                           </div>
                         </button>

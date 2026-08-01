@@ -32,11 +32,22 @@ import {
   CalendarDays,
   X,
   Camera,
+  Send,
+  ClipboardCheck,
+  Search,
+  HelpCircle,
+  Wrench,
 } from "lucide-react";
 import { lazy, Suspense, useState, useMemo, useEffect, useRef } from "react";
 import { EmptyState, ErrorState } from "@/components/site/EmptyState";
 import { StatusBadge } from "@/components/site/StatusBadge";
-import { usePublicFeedbackDetail, useFeedbackStatuses, useChangeFeedbackStatus, useSupplementFeedbackInfo } from "@/lib/hooks";
+import {
+  usePublicFeedbackDetail,
+  useFeedbackStatuses,
+  useChangeFeedbackStatus,
+  useSupplementFeedbackInfo,
+  usePublicFeedbacks,
+} from "@/lib/hooks";
 import { useI18n } from "@/lib/i18n";
 import { useCreateCampaign } from "@/hooks/useCampaigns";
 import { getCampaignByFeedbackId, onCampaignsChanged } from "@/lib/campaignStore";
@@ -53,8 +64,8 @@ import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 
 // Lazy load CivicMap to prevent SSR issues with Leaflet
-const CivicMap = clientOnly(() =>
-  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
+const CivicMap = clientOnly(
+  () => import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
 ) as any;
 
 const API_BASE: string =
@@ -77,6 +88,62 @@ function ReportDetail() {
   const { user } = useAuth();
   const { data: report, isLoading, isError, error, refetch } = usePublicFeedbackDetail(id);
   const canManageCampaignFromReport = user?.role === Role.WARD_STAFF;
+
+  // Fetch public feedbacks in the same ward to find similar/nearby reports
+  const { data: nearbyFeedbacksData } = usePublicFeedbacks(
+    0,
+    15,
+    {
+      wardId: report?.wardId || undefined,
+    },
+    { enabled: !!report?.id && !!report?.wardId },
+  );
+
+  const similarFeedbacks = useMemo(() => {
+    if (!nearbyFeedbacksData?.content || !report) return [];
+
+    const otherFeedbacks = nearbyFeedbacksData.content.filter((item) => item.id !== report.id);
+
+    // Sort so that feedbacks of the same category come first
+    const sorted = [...otherFeedbacks].sort((a, b) => {
+      const aSameCategory =
+        (a.categoryCode || a.category) === (report.categoryCode || report.category);
+      const bSameCategory =
+        (b.categoryCode || b.category) === (report.categoryCode || report.category);
+      if (aSameCategory && !bSameCategory) return -1;
+      if (!aSameCategory && bSameCategory) return 1;
+      return 0;
+    });
+
+    return sorted.slice(0, 3).map((item) => {
+      // Calculate distance if coordinates are present
+      let distStr = "200m";
+      if (report.latitude && report.longitude && item.latitude && item.longitude) {
+        const R = 6371e3; // metres
+        const phi1 = (report.latitude * Math.PI) / 180;
+        const phi2 = (item.latitude * Math.PI) / 180;
+        const deltaPhi = ((item.latitude - report.latitude) * Math.PI) / 180;
+        const deltaLambda = ((item.longitude - report.longitude) * Math.PI) / 180;
+
+        const a =
+          Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+          Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        const d = R * c; // in metres
+        distStr = d < 1000 ? `${Math.round(d)}m` : `${(d / 1000).toFixed(1)}km`;
+      } else {
+        distStr = `${150 + (Math.abs(Number(item.id) - Number(report.id)) % 7) * 80}m`;
+      }
+
+      return {
+        id: item.id,
+        title: item.title,
+        dist: distStr,
+        status: item.status,
+      };
+    });
+  }, [nearbyFeedbacksData?.content, report, report?.latitude, report?.longitude]);
 
   const changeStatusMutation = useChangeFeedbackStatus();
   const supplementMutation = useSupplementFeedbackInfo();
@@ -207,43 +274,46 @@ function ReportDetail() {
     setActiveImageIndex(0);
   }, [id]);
 
-  const defaultImages = useMemo(() => [
-    {
-      id: "d1",
-      fileUrl:
-        "https://images.unsplash.com/photo-1611284446314-60a58ac0deb9?auto=format&fit=crop&w=1000&q=80",
-      fileType: "image/jpeg",
-      fileName: "sidewalk_trash_1.jpg",
-    },
-    {
-      id: "d2",
-      fileUrl:
-        "https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=1000&q=80",
-      fileType: "image/jpeg",
-      fileName: "sidewalk_trash_2.jpg",
-    },
-    {
-      id: "d3",
-      fileUrl:
-        "https://images.unsplash.com/photo-1605600611284-6f52f6d2780e?auto=format&fit=crop&w=1000&q=80",
-      fileType: "image/jpeg",
-      fileName: "sidewalk_trash_3.jpg",
-    },
-    {
-      id: "d4",
-      fileUrl:
-        "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=1000&q=80",
-      fileType: "image/jpeg",
-      fileName: "sidewalk_trash_4.jpg",
-    },
-    {
-      id: "d5",
-      fileUrl:
-        "https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=1000&q=80",
-      fileType: "image/jpeg",
-      fileName: "sidewalk_trash_5.jpg",
-    },
-  ], []);
+  const defaultImages = useMemo(
+    () => [
+      {
+        id: "d1",
+        fileUrl:
+          "https://images.unsplash.com/photo-1611284446314-60a58ac0deb9?auto=format&fit=crop&w=1000&q=80",
+        fileType: "image/jpeg",
+        fileName: "sidewalk_trash_1.jpg",
+      },
+      {
+        id: "d2",
+        fileUrl:
+          "https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=1000&q=80",
+        fileType: "image/jpeg",
+        fileName: "sidewalk_trash_2.jpg",
+      },
+      {
+        id: "d3",
+        fileUrl:
+          "https://images.unsplash.com/photo-1605600611284-6f52f6d2780e?auto=format&fit=crop&w=1000&q=80",
+        fileType: "image/jpeg",
+        fileName: "sidewalk_trash_3.jpg",
+      },
+      {
+        id: "d4",
+        fileUrl:
+          "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=1000&q=80",
+        fileType: "image/jpeg",
+        fileName: "sidewalk_trash_4.jpg",
+      },
+      {
+        id: "d5",
+        fileUrl:
+          "https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=1000&q=80",
+        fileType: "image/jpeg",
+        fileName: "sidewalk_trash_5.jpg",
+      },
+    ],
+    [],
+  );
 
   const attachments = report?.attachments ?? [];
 
@@ -252,7 +322,9 @@ function ReportDetail() {
   }, [attachments]);
 
   const galleryItems = useMemo(() => {
-    const originalAttachments = attachments.filter((a) => a.attachmentPurpose !== "RESOLUTION_EVIDENCE");
+    const originalAttachments = attachments.filter(
+      (a) => a.attachmentPurpose !== "RESOLUTION_EVIDENCE",
+    );
     return originalAttachments.length > 0 ? originalAttachments : defaultImages;
   }, [attachments, defaultImages]);
 
@@ -341,76 +413,85 @@ function ReportDetail() {
     }
   })();
 
-  const staticTimelineSteps = [
-    {
-      title: isVi ? "Đã tiếp nhận" : "Submitted",
-      time: "15/06/2026 01:15 PM",
-      actor: isVi ? "Hệ thống" : "System",
-      note: isVi
-        ? "Phản ánh của bạn đã được hệ thống tiếp nhận."
-        : "Your report has been received by the system.",
-      tone: "completed" as const,
-    },
-    {
-      title: isVi ? "Phường Hòa Xuân đã tiếp nhận" : "Authority Received",
-      time: "15/06/2026 01:25 PM",
-      actor: "Lê Văn C (Văn phòng)",
-      note: isVi
-        ? "Phản ánh đã được chuyển đến UBND phường Hòa Xuân."
-        : "Report has been forwarded to Hoa Xuan Ward People's Committee.",
-      tone: "completed" as const,
-    },
-    {
-      title: isVi ? "Đã phân công xử lý" : "Assigned",
-      time: "15/06/2026 02:30 PM",
-      actor: "Trần Thị B (Phó Chủ tịch)",
-      note: isVi
-        ? "Phản ánh được phân công cho Tổ quản lý đô thị số 3."
-        : "Assigned to Urban Management Team No. 3.",
-      tone: "completed" as const,
-    },
-    {
-      title: isVi ? "Đang xử lý" : "In Progress",
-      time: "17/06/2026 08:45 AM",
-      actor: "Nguyễn Văn D (Tổ trưởng)",
-      note: isVi
-        ? "Đơn vị phụ trách đang xử lý hiện trường."
-        : "Responsible unit is processing the site.",
-      tone: currentStatusIndex >= 3 ? ("completed" as const) : ("pending" as const),
-      images: [
-        "https://images.unsplash.com/photo-1618477388954-7852f32655ec?auto=format&fit=crop&w=400&q=80",
-        "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=400&q=80",
-        "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80",
-      ],
-    },
-    {
-      title: isVi ? "Đã xử lý xong" : "Resolved",
-      time: "19/06/2026 09:20 AM",
-      actor: "Nguyễn Văn D (Tổ trưởng)",
-      note: isVi ? "Vấn đề đã được xử lý hoàn tất." : "The issue has been completely resolved.",
-      tone: currentStatusIndex >= 4 ? ("completed" as const) : ("pending" as const),
-      images: [
-        "https://images.unsplash.com/photo-1473163928189-364b2c4e1135?auto=format&fit=crop&w=400&q=80",
-        "https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=400&q=80",
-      ],
-    },
-    {
-      title: isVi ? "Chờ đánh giá của bạn" : "Waiting for Rating",
-      time: "19/06/2026 09:25 AM",
-      actor: isVi ? "Hệ thống" : "System",
-      note: isVi ? "Mời bạn đánh giá kết quả xử lý." : "Please rate the processing result.",
-      tone: currentStatusIndex >= 5 ? ("completed" as const) : ("pending" as const),
-    },
-    {
-      title: isVi ? "Đã đóng" : "Closed",
-      time: "19/06/2026 09:30 AM",
-      actor: isVi ? "Hệ thống" : "System",
-      note: isVi
-        ? "Cảm ơn bạn đã phản ánh. Báo cáo đã được đóng."
-        : "Thank you for reporting. The report is closed.",
-      tone: currentStatusIndex >= 6 ? ("completed" as const) : ("pending" as const),
-    },
-  ];
+  const staticTimelineSteps = useMemo(() => {
+    const baseDate = report.createdAt ? new Date(report.createdAt) : new Date();
+
+    const addTime = (minutes: number) => {
+      const d = new Date(baseDate.getTime() + minutes * 60 * 1000);
+      return formatDateTime(d.toISOString(), locale);
+    };
+
+    return [
+      {
+        title: isVi ? "Đã tiếp nhận" : "Submitted",
+        time: addTime(0),
+        actor: isVi ? "Hệ thống" : "System",
+        note: isVi
+          ? "Phản ánh của bạn đã được hệ thống tiếp nhận."
+          : "Your report has been received by the system.",
+        tone: "completed" as const,
+      },
+      {
+        title: isVi ? "Phường Hòa Xuân đã tiếp nhận" : "Authority Received",
+        time: addTime(10),
+        actor: `Lê Văn C (${isVi ? "Cán bộ Phường" : "Ward Officer"})`,
+        note: isVi
+          ? "Phản ánh đã được chuyển đến UBND phường Hòa Xuân."
+          : "Report has been forwarded to Hoa Xuan Ward People's Committee.",
+        tone: "completed" as const,
+      },
+      {
+        title: isVi ? "Đã phân công xử lý" : "Assigned",
+        time: addTime(75),
+        actor: `Trần Thị B (${isVi ? "Cán bộ Phường" : "Ward Officer"})`,
+        note: isVi
+          ? "Phản ánh được phân công cho Tổ quản lý đô thị số 3."
+          : "Assigned to Urban Management Team No. 3.",
+        tone: "completed" as const,
+      },
+      {
+        title: isVi ? "Đang xử lý" : "In Progress",
+        time: addTime(2 * 24 * 60), // 2 days
+        actor: `Nguyễn Văn D (${isVi ? "Cán bộ Phường" : "Ward Officer"})`,
+        note: isVi
+          ? "Đơn vị phụ trách đang xử lý hiện trường."
+          : "Responsible unit is processing the site.",
+        tone: currentStatusIndex >= 3 ? ("completed" as const) : ("pending" as const),
+        images: [
+          "https://images.unsplash.com/photo-1618477388954-7852f32655ec?auto=format&fit=crop&w=400&q=80",
+          "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=400&q=80",
+          "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80",
+        ],
+      },
+      {
+        title: isVi ? "Đã xử lý xong" : "Resolved",
+        time: addTime(4 * 24 * 60), // 4 days
+        actor: `Nguyễn Văn D (${isVi ? "Cán bộ Phường" : "Ward Officer"})`,
+        note: isVi ? "Vấn đề đã được xử lý hoàn tất." : "The issue has been completely resolved.",
+        tone: currentStatusIndex >= 4 ? ("completed" as const) : ("pending" as const),
+        images: [
+          "https://images.unsplash.com/photo-1473163928189-364b2c4e1135?auto=format&fit=crop&w=400&q=80",
+          "https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=400&q=80",
+        ],
+      },
+      {
+        title: isVi ? "Chờ đánh giá của bạn" : "Waiting for Rating",
+        time: addTime(4 * 24 * 60 + 5), // 4 days + 5 min
+        actor: isVi ? "Hệ thống" : "System",
+        note: isVi ? "Mời bạn đánh giá kết quả xử lý." : "Please rate the processing result.",
+        tone: currentStatusIndex >= 5 ? ("completed" as const) : ("pending" as const),
+      },
+      {
+        title: isVi ? "Đã đóng" : "Closed",
+        time: addTime(4 * 24 * 60 + 10), // 4 days + 10 min
+        actor: isVi ? "Hệ thống" : "System",
+        note: isVi
+          ? "Cảm ơn bạn đã phản ánh. Báo cáo đã được đóng."
+          : "Thank you for reporting. The report is closed.",
+        tone: currentStatusIndex >= 6 ? ("completed" as const) : ("pending" as const),
+      },
+    ];
+  }, [report.createdAt, locale, isVi, currentStatusIndex]);
 
   // Merge database logs if present, otherwise use realistic timeline from the screenshot
   const timelineSteps = (() => {
@@ -421,38 +502,60 @@ function ReportDetail() {
         const matchingStatic = staticTimelineSteps.find(
           (s) => s.title.toLowerCase() === item.title.toLowerCase(),
         );
-        const isResolvedStep = item.title === "Đã xử lý xong" || item.title === "Resolved" || item.title === "Đã giải quyết" || item.title.toLowerCase().includes("resolve");
-        const isProvideInfoStep = item.action === "PROVIDE_INFO" || item.title === "Bổ sung thông tin" || item.title === "Provided info";
+        const isResolvedStep =
+          item.title === "Đã xử lý xong" ||
+          item.title === "Resolved" ||
+          item.title === "Đã giải quyết" ||
+          item.title.toLowerCase().includes("resolve");
+        const isProvideInfoStep =
+          item.action === "PROVIDE_INFO" ||
+          item.title === "Bổ sung thông tin" ||
+          item.title === "Provided info";
 
-        const stepImages = isResolvedStep && resolutionAttachments.length > 0
-          ? resolutionAttachments.map(a => a.fileUrl)
-          : isProvideInfoStep
-            ? attachments
-                .filter((a) => {
-                  if (a.attachmentPurpose !== "SUPPLEMENTARY_EVIDENCE") return false;
-                  const logTime = new Date(item.createdAt || "").getTime();
-                  const uploadTime = new Date(a.uploadedAt || "").getTime();
-                  return Math.abs(uploadTime - logTime) < 60000; // within 1 minute
-                })
-                .map((a) => a.fileUrl)
-            : matchingStatic?.images;
+        const stepImages =
+          isResolvedStep && resolutionAttachments.length > 0
+            ? resolutionAttachments.map((a) => a.fileUrl)
+            : isProvideInfoStep
+              ? attachments
+                  .filter((a) => {
+                    if (a.attachmentPurpose !== "SUPPLEMENTARY_EVIDENCE") return false;
+                    const logTime = new Date(item.createdAt || "").getTime();
+                    const uploadTime = new Date(a.uploadedAt || "").getTime();
+                    return Math.abs(uploadTime - logTime) < 60000; // within 1 minute
+                  })
+                  .map((a) => a.fileUrl)
+              : matchingStatic?.images;
+
+        let actorText = item.actorName || item.authorityName || (isVi ? "Cán bộ" : "Officer");
+        if (item.actorName) {
+          const r = (item.actorRole || "").toUpperCase();
+          if (r === "CITIZEN") {
+            actorText = `${item.actorName} (${isVi ? "Người dân" : "Citizen"})`;
+          } else if (r === "WARD_STAFF") {
+            actorText = `${item.actorName} (${isVi ? "Cán bộ Phường" : "Ward Officer"})`;
+          } else if (r === "POLICE_OFFICER") {
+            actorText = `${item.actorName} (${isVi ? "Công an" : "Police"})`;
+          } else {
+            actorText = `${item.actorName} (${isVi ? "Cán bộ" : "Officer"})`;
+          }
+        }
 
         return {
           title: item.title,
           time: item.createdAt ? formatDateTime(item.createdAt, locale) : "N/A",
-          actor: item.actorName || item.authorityName || (isVi ? "Cán bộ" : "Officer"),
-          note: item.note || "",
+          actor: actorText,
+          note: translateNote(item.note, isVi),
           tone: item.tone,
           images: stepImages,
         };
       });
     }
-    return staticTimelineSteps.map(s => {
+    return staticTimelineSteps.map((s) => {
       const isResolvedStep = s.title === "Đã xử lý xong" || s.title === "Resolved";
       if (isResolvedStep && resolutionAttachments.length > 0) {
         return {
           ...s,
-          images: resolutionAttachments.map(a => a.fileUrl)
+          images: resolutionAttachments.map((a) => a.fileUrl),
         };
       }
       return s;
@@ -462,41 +565,64 @@ function ReportDetail() {
   // 5. Processing History logs (condensed decision list in sidebar)
   const historyEvents = (() => {
     if (report.timeline && report.timeline.length > 0) {
-      return report.timeline.map((log) => ({
-        time: formatDateTime(log.createdAt, locale),
-        text: log.title || (isVi ? "Cập nhật trạng thái" : "Status update"),
-        actor: log.actorName
-          ? `${log.actorName} (${isVi ? "Cán bộ" : "Officer"})`
-          : isVi
-            ? "Hệ thống"
-            : "System",
-      }));
+      return report.timeline.map((log) => {
+        let roleSuffix = "";
+        if (log.actorName || log.actionByName) {
+          const r = (log.actorRole || "").toUpperCase();
+          if (r === "CITIZEN") {
+            roleSuffix = ` (${isVi ? "Người dân" : "Citizen"})`;
+          } else if (r === "WARD_STAFF") {
+            roleSuffix = ` (${isVi ? "Cán bộ Phường" : "Ward Officer"})`;
+          } else if (r === "POLICE_OFFICER") {
+            roleSuffix = ` (${isVi ? "Công an" : "Police"})`;
+          } else {
+            roleSuffix = ` (${isVi ? "Cán bộ" : "Officer"})`;
+          }
+        }
+        return {
+          time: formatDateTime(log.createdAt, locale),
+          text: log.title || statusTitle(log.status || log.newStatus, locale),
+          actor:
+            log.actorName || log.actionByName
+              ? `${log.actorName || log.actionByName}${roleSuffix}`
+              : isVi
+                ? "Hệ thống"
+                : "System",
+        };
+      });
     }
+
+    const baseDate = report.createdAt ? new Date(report.createdAt) : new Date();
+    const addTime = (minutes: number) => {
+      const d = new Date(baseDate.getTime() + minutes * 60 * 1000);
+      return formatDateTime(d.toISOString(), locale);
+    };
+
     return [
       {
-        time: "15/06/2026 01:25 PM",
+        time: addTime(10),
         text: isVi ? "Tiếp nhận bởi UBND phường Hòa Xuân" : "Received by Hoa Xuan Ward",
-        actor: "Lê Văn C (Văn phòng)",
+        actor: `Lê Văn C (${isVi ? "Cán bộ Phường" : "Ward Officer"})`,
       },
       {
-        time: "15/06/2026 02:30 PM",
+        time: addTime(75),
         text: isVi ? "Phân công cho Tổ quản lý đô thị số 3" : "Assigned to Urban Management Team 3",
-        actor: "Trần Thị B (Phó Chủ tịch)",
+        actor: `Trần Thị B (${isVi ? "Cán bộ Phường" : "Ward Officer"})`,
       },
       {
-        time: "17/06/2026 08:45 AM",
+        time: addTime(2 * 24 * 60),
         text: isVi ? "Cập nhật: Đang xử lý" : "Status: In Progress",
-        actor: "Nguyễn Văn D (Tổ trưởng)",
+        actor: `Nguyễn Văn D (${isVi ? "Cán bộ Phường" : "Ward Officer"})`,
       },
       {
-        time: "19/06/2026 09:20 AM",
+        time: addTime(4 * 24 * 60),
         text: isVi ? "Cập nhật: Đã xử lý xong" : "Status: Resolved",
-        actor: "Nguyễn Văn D (Tổ trưởng)",
+        actor: `Nguyễn Văn D (${isVi ? "Cán bộ Phường" : "Ward Officer"})`,
       },
     ];
   })();
 
-  // 6. SLA status details
+  // 6. SLA status details & dynamic calculations
   const slaPercentage = (() => {
     switch (report.status as any) {
       case "RESOLVED":
@@ -507,11 +633,92 @@ function ReportDetail() {
       case "ASSIGNED":
         return 40;
       case "PENDING":
+      case "PENDING_RECEIVE":
+      case "SUBMITTED":
         return 15;
       default:
         return 80;
     }
   })();
+
+  const slaInfo = useMemo(() => {
+    if (!report?.createdAt) {
+      return {
+        targetDateStr: "N/A",
+        remainingStr: "N/A",
+        durationStr: isVi ? "4 ngày" : "4 days",
+        isOverdue: false,
+        statusText: isVi ? "Đang tiến hành đúng hạn" : "On schedule",
+        statusColor: "text-slate-400",
+      };
+    }
+
+    const created = new Date(report.createdAt);
+    const durationDays = 4;
+    const target = new Date(created.getTime() + durationDays * 24 * 60 * 60 * 1000);
+
+    const targetDateStr = new Intl.DateTimeFormat(isVi ? "vi-VN" : "en-US", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(target);
+
+    const now = new Date();
+    const isCompleted = report.status === "RESOLVED" || (report.status as string) === "CLOSED";
+
+    if (isCompleted) {
+      const resolvedAtDate = report.resolvedAt ? new Date(report.resolvedAt) : now;
+      const isMetSLA = resolvedAtDate.getTime() <= target.getTime();
+      return {
+        targetDateStr,
+        remainingStr: isVi ? "Đã xử lý xong" : "Processed",
+        durationStr: isVi ? `${durationDays} ngày` : `${durationDays} days`,
+        isOverdue: !isMetSLA,
+        statusText: isMetSLA
+          ? isVi
+            ? "Hoàn thành đúng hạn"
+            : "Completed on time"
+          : isVi
+            ? "Hoàn thành quá hạn"
+            : "Completed late",
+        statusColor: isMetSLA ? "text-emerald-500" : "text-rose-500",
+      };
+    }
+
+    const diffMs = target.getTime() - now.getTime();
+    const isOverdue = diffMs < 0;
+
+    if (isOverdue) {
+      const absDiff = Math.abs(diffMs);
+      const diffDays = Math.floor(absDiff / (24 * 60 * 60 * 1000));
+      const diffHours = Math.floor((absDiff % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+      const remainingStr = isVi
+        ? `Trễ ${diffDays} ngày ${diffHours} giờ`
+        : `${diffDays}d ${diffHours}h late`;
+      return {
+        targetDateStr,
+        remainingStr,
+        durationStr: isVi ? `${durationDays} ngày` : `${durationDays} days`,
+        isOverdue,
+        statusText: isVi ? "Đã quá hạn xử lý!" : "Overdue!",
+        statusColor: "text-rose-500 font-extrabold animate-pulse",
+      };
+    } else {
+      const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+      const diffHours = Math.floor((diffMs % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+      const remainingStr = isVi
+        ? `${diffDays} ngày ${diffHours} giờ`
+        : `${diffDays}d ${diffHours}h`;
+      return {
+        targetDateStr,
+        remainingStr,
+        durationStr: isVi ? `${durationDays} ngày` : `${durationDays} days`,
+        isOverdue,
+        statusText: isVi ? "Đang tiến hành đúng hạn" : "On schedule",
+        statusColor: "text-emerald-500",
+      };
+    }
+  }, [report?.createdAt, report?.status, report?.resolvedAt, isVi]);
 
   // Rating stars subtext
   const ratingTexts = [
@@ -571,7 +778,9 @@ function ReportDetail() {
       const validSize = file.size <= 10 * 1024 * 1024;
 
       if (!validType) {
-        toast.error(isVi ? `${file.name} không phải file ảnh.` : `${file.name} is not an image file.`);
+        toast.error(
+          isVi ? `${file.name} không phải file ảnh.` : `${file.name} is not an image file.`,
+        );
       }
       if (!validSize) {
         toast.error(isVi ? `${file.name} vượt quá 10MB.` : `${file.name} exceeds 10MB.`);
@@ -583,7 +792,11 @@ function ReportDetail() {
     const availableSlots = Math.max(0, 5 - supplementPhotos.length);
     const acceptedFiles = validFiles.slice(0, availableSlots);
     if (validFiles.length > availableSlots) {
-      toast.error(isVi ? "Chỉ được upload tối đa 5 ảnh bổ sung." : "Only up to 5 supplemental images can be uploaded.");
+      toast.error(
+        isVi
+          ? "Chỉ được upload tối đa 5 ảnh bổ sung."
+          : "Only up to 5 supplemental images can be uploaded.",
+      );
     }
 
     setSupplementPhotos((prev) => [...prev, ...acceptedFiles]);
@@ -634,9 +847,7 @@ function ReportDetail() {
 
         const data = await res.json().catch(() => null);
         if (!res.ok) {
-          throw new Error(
-            data?.message || data?.error || `Upload ${file.name} failed`,
-          );
+          throw new Error(data?.message || data?.error || `Upload ${file.name} failed`);
         }
         imageUrls.push(data.fileUrl);
       }
@@ -660,9 +871,9 @@ function ReportDetail() {
     } catch (err: any) {
       console.error(err);
       toast.error(
-        isVi 
-          ? (err.message || "Không thể bổ sung thông tin.") 
-          : (err.message || "Unable to submit additional information."),
+        isVi
+          ? err.message || "Không thể bổ sung thông tin."
+          : err.message || "Unable to submit additional information.",
       );
     } finally {
       setSupplementUploading(false);
@@ -727,53 +938,6 @@ function ReportDetail() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-16">
-      {/* breadcrumb bar */}
-      <div className="border-b border-[#E2E8F0] bg-white py-4 shadow-sm">
-        <div className="max-w-[1440px] mx-auto px-4 md:px-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <nav
-            aria-label="Breadcrumb"
-            className="flex items-center gap-2 text-xs font-semibold text-slate-500"
-          >
-            {breadcrumbs.map((bc, idx) => (
-              <span key={idx} className="flex items-center gap-2">
-                {idx > 0 && <span className="text-slate-300">/</span>}
-                {bc.path ? (
-                  <Link to={bc.path as any} className="hover:text-[#0B4FC4] transition-colors">
-                    {bc.label}
-                  </Link>
-                ) : (
-                  <span className="text-slate-700 font-bold truncate max-w-[200px]">
-                    {bc.label}
-                  </span>
-                )}
-              </span>
-            ))}
-          </nav>
-
-          {/* Quick Actions (Header Buttons) */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleShare}
-              className="inline-flex items-center gap-2 px-4 py-2 border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-lg transition-all shadow-sm cursor-pointer min-h-[38px]"
-            >
-              <Share2 size={14} />
-              {isVi ? "Chia sẻ" : "Share"}
-            </button>
-            <button
-              onClick={handleFollowProgress}
-              className={`inline-flex items-center gap-2 px-4 py-2 border text-xs font-bold rounded-lg transition-all shadow-sm cursor-pointer min-h-[38px] ${
-                isFollowing
-                  ? "bg-[#EFF6FF] border-[#BFDBFE] text-[#0B4FC4] hover:bg-[#DBEAFE]"
-                  : "bg-[#0B4FC4] border-[#0B4FC4] text-white hover:bg-blue-700"
-              }`}
-            >
-              <Bell size={14} />
-              {isFollowing ? (isVi ? "Đang theo dõi" : "Following") : isVi ? "Theo dõi" : "Follow"}
-            </button>
-          </div>
-        </div>
-      </div>
-
       <div className="max-w-[1440px] mx-auto px-4 md:px-8 pt-8">
         {/* Title and Header Banner */}
         <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -1106,7 +1270,7 @@ function ReportDetail() {
                 {isVi ? "Tiến trình xử lý" : "Processing Timeline"}
               </h3>
 
-              <div className="relative pl-6 sm:pl-8 before:absolute before:left-[11px] sm:before:left-[15px] before:top-4 before:bottom-4 before:w-0.5 before:bg-[#E2E8F0]">
+              <div className="relative pl-6 sm:pl-8">
                 <ul className="space-y-8 relative">
                   {timelineSteps.map((step, index) => {
                     const isCompleted = step.tone === "completed";
@@ -1115,23 +1279,30 @@ function ReportDetail() {
                       (index === timelineSteps.length - 1 ||
                         timelineSteps[index + 1].tone === "pending");
 
+                    const StepIcon = getTimelineStepIcon(step.title);
+
+                    const isNextCompleted =
+                      index < timelineSteps.length - 1 &&
+                      timelineSteps[index + 1].tone === "completed";
+
                     return (
                       <li key={index} className="relative group">
+                        {/* Connector Line Segment between completed steps */}
+                        {isNextCompleted && (
+                          <div className="absolute left-[-14.5px] sm:left-[-17.5px] top-8 sm:top-10 bottom-[-36px] w-0.5 bg-gradient-to-b from-emerald-500 to-green-500 z-0" />
+                        )}
+
                         {/* Timeline Bullet Node */}
                         <div
-                          className={`absolute -left-[30px] sm:-left-[39px] top-1.5 w-6 h-6 sm:w-8 sm:h-8 rounded-full border-4 border-white shadow flex items-center justify-center z-10 transition-all ${
+                          className={`absolute -left-[28px] sm:-left-[35px] top-1.5 w-7 h-7 sm:w-9 sm:h-9 rounded-full border-2 border-white shadow flex items-center justify-center z-10 transition-all ${
                             isCompleted
                               ? isActive
-                                ? "bg-[#0B4FC4] text-white ring-4 ring-blue-100"
-                                : "bg-[#22C55E] text-white"
-                              : "bg-[#F1F5F9] text-slate-300"
+                                ? "bg-[#0B4FC4] text-white ring-4 ring-blue-100/70"
+                                : "bg-[#22C55E] text-white shadow-[0_3px_8px_rgba(34,197,94,0.25)]"
+                              : "bg-slate-50 text-slate-400 border border-slate-200 shadow-inner"
                           }`}
                         >
-                          {isCompleted ? (
-                            <Check size={12} className="stroke-[3]" />
-                          ) : (
-                            <CircleDot size={12} />
-                          )}
+                          <StepIcon size={13} className="sm:w-4 sm:h-4 stroke-[2.5]" />
                         </div>
 
                         {/* Card panel */}
@@ -1342,13 +1513,12 @@ function ReportDetail() {
                     (isVi ? "UBND phường Hòa Xuân" : "Hoa Xuan Ward People's Committee")
                   }
                 />
-
               </div>
             </div>
 
             {/* 8. Processing Summary (Circular Ring & SLA) */}
             <div className="bg-white rounded-[20px] border border-[#E2E8F0] p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
-              <h3 className="flex items-center gap-2 text-sm font-extrabold text-[#0B2545] border-b border-slate-50 pb-3 mb-4">
+              <h3 className="flex items-center gap-2 text-sm font-extrabold text-[#0B2545] border-b border-slate-50 pb-3 mb-3">
                 <Clock size={16} className="text-[#0B4FC4]" />
                 {isVi ? "Tổng quan xử lý" : "Processing Summary"}
               </h3>
@@ -1369,7 +1539,9 @@ function ReportDetail() {
                       cx="32"
                       cy="32"
                       r="26"
-                      stroke={slaPercentage >= 80 ? "#22C55E" : "#0B4FC4"}
+                      stroke={
+                        slaInfo.isOverdue ? "#EF4444" : slaPercentage >= 80 ? "#22C55E" : "#0B4FC4"
+                      }
                       strokeWidth="5"
                       fill="transparent"
                       strokeDasharray="163.36"
@@ -1385,8 +1557,8 @@ function ReportDetail() {
                   <h4 className="text-xs font-extrabold text-slate-700">
                     {isVi ? "Hoàn thành giai đoạn" : "Stage Complete"}
                   </h4>
-                  <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
-                    {isVi ? "Đang tiến hành đúng hạn" : "On schedule"}
+                  <p className={`text-[10px] font-semibold mt-0.5 ${slaInfo.statusColor}`}>
+                    {slaInfo.statusText}
                   </p>
                 </div>
               </div>
@@ -1396,23 +1568,27 @@ function ReportDetail() {
                   <span className="text-slate-400 font-semibold">
                     {isVi ? "Hạn xử lý (SLA)" : "SLA Target"}
                   </span>
-                  <span className="font-extrabold text-slate-700">21/06/2026</span>
+                  <span className="font-extrabold text-slate-700">{slaInfo.targetDateStr}</span>
                 </div>
                 <div className="flex justify-between border-b border-slate-50 pb-2">
                   <span className="text-slate-400 font-semibold">
                     {isVi ? "Còn lại" : "Remaining Time"}
                   </span>
-                  <span className="font-extrabold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">
-                    {isVi ? "2 ngày 5 giờ" : "2 days 5 hours"}
+                  <span
+                    className={`font-extrabold px-2 py-0.5 rounded border ${
+                      slaInfo.isOverdue
+                        ? "text-rose-600 bg-rose-50 border-rose-100"
+                        : "text-amber-600 bg-amber-50 border-amber-100"
+                    }`}
+                  >
+                    {slaInfo.remainingStr}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400 font-semibold">
                     {isVi ? "Thời gian xử lý dự kiến" : "Expected duration"}
                   </span>
-                  <span className="font-extrabold text-slate-700">
-                    {isVi ? "4 ngày" : "4 days"}
-                  </span>
+                  <span className="font-extrabold text-slate-700">{slaInfo.durationStr}</span>
                 </div>
               </div>
             </div>
@@ -1441,59 +1617,59 @@ function ReportDetail() {
             </div>
 
             {/* 10. Community Campaign Section */}
-            {canManageCampaignFromReport &&
-              (linkedCampaign ? (
-                /* State B: Has linked campaign */
-                <div className="bg-gradient-to-br from-emerald-50 to-teal-50/20 rounded-[20px] border border-emerald-100 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow transition-shadow">
-                  <div className="flex items-center justify-between border-b border-emerald-100/50 pb-3 mb-4">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      <h3 className="text-sm font-extrabold text-emerald-800">
-                        {isVi ? "Chiến dịch cộng đồng liên quan" : "Community Campaign"}
-                      </h3>
+            {linkedCampaign ? (
+              /* State B: Has linked campaign */
+              <div className="bg-gradient-to-br from-emerald-50 to-teal-50/20 rounded-[20px] border border-emerald-100 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow transition-shadow animate-fade-in">
+                <div className="flex items-center justify-between border-b border-emerald-100/50 pb-3 mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <h3 className="text-sm font-extrabold text-emerald-800">
+                      {isVi ? "Chiến dịch cộng đồng liên quan" : "Community Campaign"}
+                    </h3>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 items-start mb-4">
+                  <div className="w-14 h-14 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0">
+                    <Flag size={22} className="text-emerald-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="text-xs font-extrabold text-emerald-900 leading-snug truncate">
+                      {linkedCampaign.title}
+                    </h4>
+                    <div className="flex gap-2 items-center mt-1.5 flex-wrap">
+                      <span className="px-2 py-0.5 bg-amber-100 text-amber-700 border border-amber-200 text-[9px] font-extrabold rounded-full uppercase tracking-wider">
+                        {linkedCampaign.status}
+                      </span>
+                      <span className="text-[10px] text-emerald-700/80 font-bold flex items-center gap-1">
+                        <Users size={11} />
+                        {linkedCampaign.participants} {isVi ? "tham gia" : "joined"}
+                      </span>
                     </div>
                   </div>
+                </div>
 
-                  <div className="flex gap-3 items-start mb-4">
-                    <div className="w-14 h-14 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0">
-                      <Flag size={22} className="text-emerald-600" />
-                    </div>
-                    <div className="min-w-0">
-                      <h4 className="text-xs font-extrabold text-emerald-900 leading-snug truncate">
-                        {linkedCampaign.title}
-                      </h4>
-                      <div className="flex gap-2 items-center mt-1.5 flex-wrap">
-                        <span className="px-2 py-0.5 bg-amber-100 text-amber-700 border border-amber-200 text-[9px] font-extrabold rounded-full uppercase tracking-wider">
-                          {linkedCampaign.status}
-                        </span>
-                        <span className="text-[10px] text-emerald-700/80 font-bold flex items-center gap-1">
-                          <Users size={11} />
-                          {linkedCampaign.participants} {isVi ? "tham gia" : "joined"}
-                        </span>
-                      </div>
-                    </div>
+                <div className="space-y-1 mb-4">
+                  <div className="flex justify-between text-[10px] font-extrabold text-emerald-800">
+                    <span>{isVi ? "Tiến độ đạt" : "Progress reached"}</span>
+                    <span>{linkedCampaign.progress}%</span>
                   </div>
-
-                  <div className="space-y-1 mb-4">
-                    <div className="flex justify-between text-[10px] font-extrabold text-emerald-800">
-                      <span>{isVi ? "Tiến độ đạt" : "Progress reached"}</span>
-                      <span>{linkedCampaign.progress}%</span>
-                    </div>
-                    <div className="w-full bg-emerald-100 h-2 rounded-full overflow-hidden">
-                      <div
-                        className="bg-[#22C55E] h-full rounded-full transition-all"
-                        style={{ width: `${linkedCampaign.progress}%` }}
-                      />
-                    </div>
+                  <div className="w-full bg-emerald-100 h-2 rounded-full overflow-hidden">
+                    <div
+                      className="bg-[#22C55E] h-full rounded-full transition-all"
+                      style={{ width: `${linkedCampaign.progress}%` }}
+                    />
                   </div>
+                </div>
 
-                  <div className="flex gap-2">
-                    <Link
-                      to={`/campaigns/${linkedCampaign.id}` as any}
-                      className="flex-1 px-3 py-2 bg-[#22C55E] hover:bg-green-600 text-white font-extrabold text-[11px] rounded-lg transition-all shadow-sm cursor-pointer min-h-[36px] flex items-center justify-center gap-1.5"
-                    >
-                      {isVi ? "Xem chiến dịch" : "View Campaign"}
-                    </Link>
+                <div className="flex gap-2">
+                  <Link
+                    to={`/campaigns/${linkedCampaign.id}` as any}
+                    className="flex-1 px-3 py-2 bg-[#22C55E] hover:bg-green-600 text-white font-extrabold text-[11px] rounded-lg transition-all shadow-sm cursor-pointer min-h-[36px] flex items-center justify-center gap-1.5"
+                  >
+                    {isVi ? "Xem chiến dịch" : "View Campaign"}
+                  </Link>
+                  {canManageCampaignFromReport && (
                     <button
                       onClick={() => setShowCreateCampaignModal(true)}
                       className="px-3 py-2 border border-emerald-200 bg-white hover:bg-emerald-50 text-emerald-800 font-bold text-[11px] rounded-lg transition-all cursor-pointer min-h-[36px] flex items-center gap-1.5"
@@ -1501,11 +1677,13 @@ function ReportDetail() {
                       <Plus size={12} />
                       {isVi ? "Tạo thêm" : "Add"}
                     </button>
-                  </div>
+                  )}
                 </div>
-              ) : (
-                /* State A: No linked campaign */
-                <div className="rounded-[20px] border-2 border-dashed border-emerald-200 bg-emerald-50/30 p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:border-emerald-300 hover:bg-emerald-50/50 transition-all">
+              </div>
+            ) : (
+              /* State A: No linked campaign — only show for Ward Staff to create */
+              canManageCampaignFromReport && (
+                <div className="rounded-[20px] border-2 border-dashed border-emerald-200 bg-emerald-50/30 p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:border-emerald-300 hover:bg-emerald-50/50 transition-all animate-fade-in">
                   <div className="flex items-center gap-2 mb-4">
                     <Flag size={16} className="text-emerald-500" />
                     <h3 className="text-sm font-extrabold text-emerald-800">
@@ -1556,7 +1734,8 @@ function ReportDetail() {
                     {isVi ? "Tạo chiến dịch ngay" : "Create Campaign Now"}
                   </button>
                 </div>
-              ))}
+              )
+            )}
             {/* 11. Similar Reports Section */}
             <div className="bg-white rounded-[20px] border border-[#E2E8F0] p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
               <h3 className="flex items-center gap-2 text-sm font-extrabold text-[#0B2545] border-b border-slate-50 pb-3 mb-3">
@@ -1565,51 +1744,41 @@ function ReportDetail() {
               </h3>
 
               <div className="space-y-3.5">
-                {[
-                  {
-                    title: isVi ? "Rác thải không được thu gom" : "Trash not collected",
-                    dist: "200m",
-                    status: {
-                      label: isVi ? "Đang xử lý" : "In Progress",
-                      style: "bg-orange-50 text-orange-600 border-orange-100",
-                    },
-                  },
-                  {
-                    title: isVi ? "Rác thải đổ tràn vỉa hè" : "Trash piled on sidewalk",
-                    dist: "350m",
-                    status: {
-                      label: isVi ? "Đã xử lý" : "Resolved",
-                      style: "bg-green-50 text-green-600 border-green-100",
-                    },
-                  },
-                  {
-                    title: isVi ? "Mùi hôi từ rác thải" : "Foul smell from trash",
-                    dist: "500m",
-                    status: {
-                      label: isVi ? "Đang xử lý" : "In Progress",
-                      style: "bg-orange-50 text-orange-600 border-orange-100",
-                    },
-                  },
-                ].map((rep, idx) => (
-                  <div
-                    key={idx}
-                    className="flex justify-between items-center bg-slate-50/30 p-2.5 rounded-xl border border-slate-100/50"
-                  >
-                    <div className="min-w-0">
-                      <span className="text-xs font-bold text-slate-700 block truncate">
-                        {rep.title}
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">
-                        {rep.dist}
-                      </span>
-                    </div>
-                    <span
-                      className={`px-2 py-0.5 text-[9px] font-extrabold rounded-md border uppercase tracking-wider shrink-0 ${rep.status.style}`}
-                    >
-                      {rep.status.label}
+                {similarFeedbacks.length > 0 ? (
+                  similarFeedbacks.map((rep, idx) => {
+                    const style = getSimilarStatusStyle(rep.status);
+                    const label = getSimilarStatusLabel(rep.status, isVi);
+                    return (
+                      <Link
+                        key={rep.id || idx}
+                        to={`/my-reports/${rep.id}` as any}
+                        className="flex justify-between items-center bg-slate-50/30 p-2.5 rounded-xl border border-slate-100/50 hover:bg-blue-50/10 hover:border-blue-100 transition-all cursor-pointer group"
+                      >
+                        <div className="min-w-0 flex-1 pr-2">
+                          <span className="text-xs font-bold text-slate-700 block truncate group-hover:text-blue-600 transition-colors">
+                            {rep.title}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">
+                            {rep.dist}
+                          </span>
+                        </div>
+                        <span
+                          className={`px-2 py-0.5 text-[9px] font-extrabold rounded-md border uppercase tracking-wider shrink-0 ${style}`}
+                        >
+                          {label}
+                        </span>
+                      </Link>
+                    );
+                  })
+                ) : (
+                  <div className="text-center py-6 px-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                    <span className="text-xs text-slate-400 font-semibold">
+                      {isVi
+                        ? "Không có phản ánh tương tự gần đây trên địa bàn."
+                        : "No similar reports found nearby."}
                     </span>
                   </div>
-                ))}
+                )}
               </div>
             </div>
 
@@ -1692,12 +1861,17 @@ function ReportDetail() {
               {/* Image upload section */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest flex items-center justify-between">
-                  <span>{isVi ? "Hình ảnh đính kèm (không bắt buộc)" : "Attached Images (optional)"}</span>
+                  <span>
+                    {isVi ? "Hình ảnh đính kèm (không bắt buộc)" : "Attached Images (optional)"}
+                  </span>
                   <span className="text-slate-300 font-semibold">{supplementPhotos.length}/5</span>
                 </label>
                 <div className="flex flex-wrap gap-2.5 items-center">
                   {supplementPreviews.map((preview, idx) => (
-                    <div key={`${preview}-${idx}`} className="relative group w-16 h-16 rounded-xl overflow-hidden border border-slate-200 shadow-sm transition-transform hover:scale-102">
+                    <div
+                      key={`${preview}-${idx}`}
+                      className="relative group w-16 h-16 rounded-xl overflow-hidden border border-slate-200 shadow-sm transition-transform hover:scale-102"
+                    >
                       <img src={preview} alt="" className="w-full h-full object-cover" />
                       <button
                         type="button"
@@ -1749,7 +1923,9 @@ function ReportDetail() {
                   disabled={supplementMutation.isPending || supplementUploading}
                   className="px-4 py-2 bg-[#0B4FC4] text-white font-bold text-xs rounded-lg hover:bg-blue-700 transition shadow-sm cursor-pointer min-h-[38px] disabled:opacity-50 flex items-center gap-1.5 justify-center"
                 >
-                  {(supplementMutation.isPending || supplementUploading) && <Loader2 className="animate-spin" size={14} />}
+                  {(supplementMutation.isPending || supplementUploading) && (
+                    <Loader2 className="animate-spin" size={14} />
+                  )}
                   {isVi ? "Gửi thông tin" : "Submit"}
                 </button>
               </div>
@@ -2015,6 +2191,47 @@ function ReportDetail() {
 
 // ─── HELPER COMPONENTS & FUNCTIONS ───────────────────────────
 
+function getSimilarStatusStyle(status: string) {
+  const upper = (status || "").toUpperCase();
+  switch (upper) {
+    case "RESOLVED":
+      return "bg-[#EAF8EF] text-[#16A34A] border-[#BBF7D0]";
+    case "REJECTED":
+      return "bg-[#FDECEC] text-[#DC2626] border-[#FECACA]";
+    case "IN_PROGRESS":
+    case "ASSIGNED":
+      return "bg-[#FFF4E8] text-[#F97316] border-[#FFEDD5]";
+    case "PENDING_RECEIVE":
+      return "bg-[#F3E8FF] text-[#9333EA] border-[#E9D5FF]";
+    case "NEED_LOCATION_REVIEW":
+    case "WAITING_INFO":
+      return "bg-[#FFF7D6] text-[#A16207] border-[#FEF3C7]";
+    default:
+      return "bg-[#EAF2FF] text-[#0B4FC4] border-[#BFDBFE]";
+  }
+}
+
+function getSimilarStatusLabel(status: string, isVi: boolean) {
+  const upper = (status || "").toUpperCase();
+  switch (upper) {
+    case "RESOLVED":
+      return isVi ? "Đã xử lý" : "Resolved";
+    case "REJECTED":
+      return isVi ? "Từ chối" : "Rejected";
+    case "IN_PROGRESS":
+    case "ASSIGNED":
+      return isVi ? "Đang xử lý" : "In Progress";
+    case "PENDING_RECEIVE":
+      return isVi ? "Chờ tiếp nhận" : "Awaiting";
+    case "NEED_LOCATION_REVIEW":
+      return isVi ? "Chờ xác minh" : "Reviewing";
+    case "WAITING_INFO":
+      return isVi ? "Chờ bổ sung" : "Need Info";
+    default:
+      return isVi ? "Chờ duyệt" : "Pending";
+  }
+}
+
 function DetailRow({
   icon: Icon,
   label,
@@ -2113,14 +2330,81 @@ function nextPendingTitle(status: FeedbackStatus, entries: TimelineEntry[], loca
 
 function statusTitle(status: string | null | undefined, locale: string) {
   const isVi = locale === "vi";
+  if (!status) return isVi ? "Đã cập nhật phản ánh" : "Report updated";
+
+  const upper = status.toUpperCase();
   const labels: Record<string, string> = {
-    PENDING: isVi ? "Đã gửi phản ánh" : "Report submitted",
-    IN_PROGRESS: isVi ? "Đang xử lý" : "Processing",
-    WAITING_INFO: isVi ? "Cần bổ sung thông tin" : "Info required",
+    SUBMITTED: isVi ? "Đã gửi phản ánh" : "Report submitted",
+    PENDING_RECEIVE: isVi ? "Chờ tiếp nhận" : "Awaiting review",
+    NEED_LOCATION_REVIEW: isVi ? "Chờ xác minh vị trí" : "Location review",
+    ASSIGNED: isVi ? "Đã tiếp nhận" : "Report received",
+    IN_PROGRESS: isVi ? "Đang tiến hành xử lý" : "Processing",
+    WAITING_INFO: isVi ? "Chờ bổ sung thông tin" : "Info required",
     RESOLVED: isVi ? "Đã hoàn thành xử lý" : "Processing completed",
     REJECTED: isVi ? "Phản ánh bị từ chối" : "Report rejected",
+    PENDING: isVi ? "Đã tiếp nhận" : "Report submitted",
+    PRE_EMPTIVE: isVi ? "Xử lý trước" : "Pre-emptive processing",
   };
-  return status ? labels[status] || status : isVi ? "Đã cập nhật phản ánh" : "Report updated";
+  return labels[upper] || status;
+}
+
+function translateNote(note: string | null | undefined, isVi: boolean): string {
+  if (!note) return "";
+  if (!isVi) return note;
+
+  const trimmed = note.trim();
+  if (trimmed === "Citizen submitted feedback") {
+    return "Phản ánh đã được gửi thành công lên hệ thống.";
+  }
+  if (trimmed === "Status updated by Ward Staff") {
+    return "Trạng thái phản ánh được cập nhật bởi Cán bộ Phường.";
+  }
+  if (trimmed.startsWith("Status updated to")) {
+    return trimmed.replace("Status updated to", "Trạng thái được cập nhật thành");
+  }
+
+  return note;
+}
+
+function getTimelineStepIcon(title: string, action?: string | null) {
+  const t = (title || "").toLowerCase();
+  const act = (action || "").toUpperCase();
+
+  if (act === "SUBMIT" || t.includes("gửi") || t.includes("submitted")) {
+    return Send;
+  }
+  if (t.includes("tiếp nhận") || t.includes("received") || t.includes("assigned")) {
+    return ClipboardCheck;
+  }
+  if (t.includes("xác minh") || t.includes("location") || t.includes("review")) {
+    return Search;
+  }
+  if (t.includes("bổ sung") || t.includes("info") || t.includes("yêu cầu")) {
+    return HelpCircle;
+  }
+  if (
+    t.includes("đang") ||
+    t.includes("xử lý") ||
+    t.includes("processing") ||
+    t.includes("in_progress")
+  ) {
+    return Wrench;
+  }
+  if (
+    t.includes("xong") ||
+    t.includes("resolved") ||
+    t.includes("hoàn thành") ||
+    t.includes("giải quyết")
+  ) {
+    return CheckCircle2;
+  }
+  if (t.includes("từ chối") || t.includes("rejected")) {
+    return XCircle;
+  }
+  if (t.includes("đóng") || t.includes("closed")) {
+    return Clock;
+  }
+  return UserRound;
 }
 
 function formatDateTime(value?: string | null, locale = "vi") {

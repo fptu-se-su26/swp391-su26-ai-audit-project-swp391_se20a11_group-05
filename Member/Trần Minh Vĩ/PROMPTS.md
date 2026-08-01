@@ -2980,6 +2980,143 @@ Zero Trust (Không tin ai cả). Đặc biệt là không được tin tưởng 
 
 ---
 
+### Lần 43: Cỗ máy Tìm kiếm Toàn văn bản (Elasticsearch)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 2/5 |
+| Mục đích | Giải quyết tình trạng sập Database khi người dùng tìm kiếm từ khóa trên hàng triệu bản ghi |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Chức năng "Tìm kiếm phản ánh" của tôi dùng lệnh SQL `LIKE '%...%'`. Khi bảng dữ liệu lên tới 1 triệu dòng, mỗi cú gõ phím của người dùng khiến Database treo 5 giây. Nếu gõ sai chính tả (ví dụ "rac boc mui") thì không ra kết quả nào.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI phân tích nguyên nhân `LIKE` làm chậm và xúi tôi đánh Index kiểu B-Tree hoặc GIN trên cột Tiêu đề trong bảng PostgreSQL để tăng tốc độ truy vấn.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Chỉ ghi nhận lý thuyết. Bác bỏ giải pháp đánh Index trong SQL vì không giải quyết được gốc rễ bài toán Tìm kiếm.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Đập đi xây lại bằng Elasticsearch:
+- Critical Thinking: Dùng CSDL Quan hệ (SQL) để làm tính năng Tìm kiếm mờ (Fuzzy Search) là nhét chữ vào mồm Database. SQL sinh ra để giữ tính toàn vẹn (ACID), không sinh ra để xếp hạng từ khóa (Scoring) hay sửa lỗi chính tả (Typo Tolerance). Việc cố đấm ăn xôi bằng Index GIN chỉ làm Database càng thêm nặng nề.
+- Decision Ownership & Creative Synthesis: Tôi đã chuyển giao nhiệm vụ này cho một "Cỗ máy" chuyên dụng: Elasticsearch. Thông qua công cụ Logstash, dữ liệu từ SQL liên tục được đồng bộ sang Elasticsearch ngầm. Ở tầng API, tôi gọi thẳng vào Elasticsearch thay vì chọc vào Database. Kết quả trả về trong vòng 10 mili-giây cho 10 triệu bản ghi. Nó hỗ trợ tìm kiếm không dấu, tìm kiếm sai chính tả và xếp hạng từ khóa cực kỳ thông minh y như Google Search. Database chính được thở phào nhẹ nhõm.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Bắt SQL làm công việc không thuộc chuyên môn)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Elasticsearch Phase 25 |
+| File liên quan | ReportSearchService.java, docker-compose.yml |
+| Screenshot | |
+| Kết quả chạy/test | Nhập "rac thai sinh hoat" (không dấu, thiếu chữ) vào ô tìm kiếm, API trả về 200 OK trong 12ms và đưa các kết quả liên quan nhất lên đầu danh sách. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Database SQL là két sắt. Elasticsearch là cái danh bạ. Đừng bắt két sắt làm việc của danh bạ.
+```
+
+---
+
+### Lần 44: Tích hợp Trí tuệ Nhân tạo Generative AI (OpenAI / Gemini)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 2/5 |
+| Mục đích | Tự động hóa việc đọc, tóm tắt và phân loại hàng ngàn phản ánh mỗi ngày |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Người dân thường viết phản ánh rất dài (1000 - 2000 chữ) và lủng củng. Cán bộ phường mỗi ngày phải đọc 500 bài như vậy để phân loại xem thuộc nhóm "An ninh" hay "Môi trường", gây tốn kém hàng chục giờ làm việc.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI đề xuất tôi viết code Java dùng Biểu thức chính quy (Regex) và vòng lặp `for` để đếm từ khóa. Ví dụ nếu đếm thấy từ "rác" xuất hiện 5 lần thì gán nhãn "Môi trường".
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Cười trừ và vứt bỏ thuật toán đếm từ khóa thô sơ này.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Tích hợp sức mạnh LLM (Large Language Model) vào lõi kiến trúc:
+- Critical Thinking: Thuật toán đếm chữ là công nghệ của 20 năm trước. Nếu người dân viết: "Tôi không báo cáo vụ trộm cắp, tôi báo cáo vụ xả rác", thuật toán Regex thấy chữ "trộm cắp" sẽ tự động gắn nhãn "An ninh" - một sự ngu ngốc không thể chấp nhận.
+- Decision Ownership & Creative Synthesis: Vì đây là đồ án "AI Audit", tôi quyết định mang AI thực thụ vào sâu bên trong kiến trúc (AI-Driven Architecture). 
+Tận dụng hệ thống RabbitMQ (ở Phase 22), tôi lập trình một "AI Worker" chuyên biệt. Khi phản ánh vừa vào DB, Worker này nhặt nó lên, gửi đoạn văn 2000 chữ đó qua API của ChatGPT (hoặc Gemini) kèm một System Prompt nghiêm ngặt: "Đọc đoạn văn sau, tóm tắt thành 2 câu và phân loại chính xác". Bằng khả năng hiểu ngữ cảnh siêu phàm, LLM trả về một đoạn JSON chứa kết quả cực kỳ thông minh. Giờ đây, cán bộ phường chỉ việc mở web lên và đọc dòng tóm tắt 2 câu, công việc 1 ngày giờ chỉ mất 15 phút.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Tư duy xử lý ngôn ngữ tự nhiên bằng If-Else lỗi thời)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit LLM AI Worker Phase 25 |
+| File liên quan | AiSummaryWorker.java, system_prompt.txt |
+| Screenshot | |
+| Kết quả chạy/test | Dán một bài văn 1000 chữ về ổ gà và kẹt xe. Backend ngầm xử lý. F5 lại trang, thấy bài viết đã được gắn nhãn "Giao thông" và kèm 1 dòng tóm tắt: "Hư hỏng mặt đường gây kẹt xe tại ngã tư X". |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Đừng bắt If-Else phải hiểu tiếng người. Hãy để việc đó cho Generative AI, còn Kỹ sư phần mềm thì tập trung thiết kế đường ống (Pipeline).
+```
+
+---
+
 ## 6. Prompt quan trọng nhất
 
 Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.

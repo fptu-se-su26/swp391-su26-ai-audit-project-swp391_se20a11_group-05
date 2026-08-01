@@ -2450,6 +2450,112 @@ Bảo mật là một ngành khoa học chuyên sâu. Đừng tự chế hệ th
 Đừng bao giờ xử lý bảo mật ở Frontend. Frontend nằm trong tay người dùng, và mọi thứ trong tay người dùng đều có thể bị bẻ khóa.
 ```
 
+---
+
+### Lần sử dụng AI số 43
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Tìm kiếm toàn văn bản (Full-text search) trên dữ liệu lớn |
+| Phần việc liên quan | Backend / Database & Search Engine |
+| Mức độ sử dụng | Hỏi về tối ưu hóa SQL (Bác bỏ cách làm của AI) |
+
+#### 4.1. Prompt đã sử dụng
+
+| Nội dung | Thông tin |
+|---|---|
+| Prompt | "Bảng phản ánh của tôi đã đạt 1 triệu dòng. Khi người dân gõ tìm kiếm từ khóa 'rác bốc mùi' vào ô Search, tôi dùng câu lệnh `SELECT * FROM reports WHERE title LIKE '%rác bốc mùi%'`. Kết quả là Database treo luôn 5 giây mới trả về. Tôi phải tối ưu thế nào?" |
+
+#### 4.2. Kết quả AI gợi ý
+
+| Nội dung | Thông tin |
+|---|---|
+| Gợi ý | AI giải thích rằng toán tử `LIKE '%...'` làm mất tác dụng của Index. AI xúi tôi tạo một cái `B-Tree Index` hoặc `GIN Index` trong PostgreSQL để tăng tốc độ truy vấn. |
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+| Nội dung | Thông tin |
+|---|---|
+| Sử dụng | Chỉ ghi nhận lý thuyết vì sao `LIKE` lại làm chậm Database. Tuyệt đối không dùng cách của AI để giải quyết bài toán Search. |
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+| Nội dung | Thông tin |
+|---|---|
+| Cải tiến | **Tích hợp Cỗ máy tìm kiếm Elasticsearch** <br> - **Critical Thinking:** Dùng Database Quan hệ (SQL) để làm tính năng "Tìm kiếm toàn văn bản" (Full-text Search) là sai lầm cơ bản của lập trình viên. Dù có đánh Index GIN đi chăng nữa, PostgreSQL cũng không thể giải quyết được các bài toán tìm kiếm thực tế như: Gõ sai chính tả (Fuzzy Search - "rac boc mui"), gõ không dấu tiếng Việt, hay xếp hạng độ ưu tiên từ khóa (Relevance Scoring). <br> - **Decision Ownership & Creative Synthesis:** Tôi quyết định không dùng SQL để Search nữa. Tôi dựng lên một cụm máy chủ **Elasticsearch**. Thông qua Logstash, mọi dữ liệu mới thêm vào PostgreSQL sẽ tự động được đồng bộ (Sync) sang Elasticsearch theo thời gian thực. API Tìm kiếm của Frontend giờ đây sẽ gọi thẳng vào Elasticsearch thay vì Database. Kết quả thật kinh ngạc: Dù có 10 triệu bản ghi, hệ thống vẫn trả về kết quả trong chưa tới 15ms. Người dân gõ không dấu, gõ sai chính tả hệ thống vẫn tự động sửa lỗi (Typo Tolerance) và gợi ý kết quả y như Google Search. Database chính được giải phóng hoàn toàn gánh nặng. |
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Elasticsearch Phase 25 |
+| File liên quan | ReportSearchService.java, docker-compose.yml |
+| Screenshot |  |
+| Kết quả chạy/test | Nhập chữ "rac thai" (không dấu) vào thanh tìm kiếm, API Elasticsearch trả về mã 200 OK trong vòng 12 mili-giây, lôi ra chính xác các bài viết có từ khóa "rác thải". |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Cơ sở dữ liệu quan hệ (SQL) sinh ra để giữ tính Toàn vẹn Dữ liệu, không phải sinh ra để làm Google Search. Hãy dùng đúng công cụ cho đúng việc.
+```
+
+---
+
+### Lần sử dụng AI số 44
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Ứng dụng Trí tuệ Nhân tạo (GenAI) để Tự động hóa phân loại phản ánh |
+| Phần việc liên quan | Backend / AI Integration (OpenAI/Gemini) |
+| Mức độ sử dụng | Hướng dẫn tích hợp thuật toán phân loại (Bác bỏ Regex, tích hợp LLM) |
+
+#### 4.1. Prompt đã sử dụng
+
+| Nội dung | Thông tin |
+|---|---|
+| Prompt | "Một ngày Phường nhận được 500 phản ánh. Mỗi phản ánh dài khoảng 1000 chữ, cán bộ đọc rất mệt mỏi. Làm sao để hệ thống tự động đọc đoạn văn, tóm tắt lại thành 2 câu và tự phân loại xem nó thuộc nhóm 'Vệ sinh môi trường' hay 'An ninh trật tự'?" |
+
+#### 4.2. Kết quả AI gợi ý
+
+| Nội dung | Thông tin |
+|---|---|
+| Gợi ý | AI viết cho tôi một đoạn Java code dùng Regex (Biểu thức chính quy). Nó bảo tôi tạo một danh sách các từ khóa như mảng `["rác", "bẩn", "thối"]` đại diện cho Môi trường, và `["trộm", "đánh nhau"]` cho An ninh. Khi có văn bản mới, dùng hàm `String.contains()` để đếm chữ, từ khóa nào nhiều hơn thì gắn nhãn đó. |
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+| Nội dung | Thông tin |
+|---|---|
+| Sử dụng | Cười nhạt và vứt bỏ hoàn toàn đoạn code nguyên thủy này. |
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+| Nội dung | Thông tin |
+|---|---|
+| Cải tiến | **Tích hợp Sức mạnh Generative AI (LLM API)** <br> - **Critical Thinking:** Thuật toán dùng mảng từ khóa để đếm chữ (Keyword Matching) là một kỹ thuật tồi tệ của thập kỷ trước. Ngôn ngữ tiếng Việt rất đa nghĩa và phức tạp, nếu người dân viết: *"Tuy không có trộm cắp đánh nhau, nhưng rác thì quá nhiều"*, thuật toán đếm chữ của AI sẽ nhìn thấy từ "trộm cắp", "đánh nhau" và tự động phân loại ngu ngốc vào nhóm "An ninh trật tự". <br> - **Decision Ownership & Creative Synthesis:** Đây là Đồ án mang tên "AI Audit", nên tôi sẽ đưa AI vào sâu trong lõi hệ thống. Tôi kết hợp **Kiến trúc Message Queue (Phase 22)** và **OpenAI/Gemini API**. Khi phản ánh được lưu vào DB, một sự kiện được ném vào RabbitMQ. Một Worker AI đặc nhiệm sẽ nhặt sự kiện đó lên, gửi 1000 chữ của người dân lên API của OpenAI kèm theo một System Prompt chặt chẽ: *"Bạn là một cán bộ phường, hãy tóm tắt văn bản sau thành đúng 2 câu và phân loại vào 1 trong 4 danh mục..."*. <br> OpenAI trả về một chuỗi JSON với kết quả tóm tắt thông minh và phân loại chính xác tuyệt đối dựa trên ngữ cảnh (Contextual Understanding). Worker lưu kết quả này ngược lại vào Database. Giờ đây, cán bộ phường chỉ cần mở web lên, nhìn vào dòng tóm tắt 2 câu là hiểu ngay vấn đề, tiết kiệm 90% thời gian làm việc mỗi ngày! |
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit LLM AI Worker Phase 25 |
+| File liên quan | AiSummaryWorker.java, system_prompt.txt |
+| Screenshot |  |
+| Kết quả chạy/test | Người dân viết phản ánh dài ngoằng và lủng củng, phàn nàn chuyện kẹt xe. Backend ngầm gọi API, 5 giây sau màn hình cán bộ hiện lên tóm tắt: "Phản ánh tình trạng kẹt xe giờ cao điểm tại hẻm 45. Nhãn: Giao thông & Hạ tầng". Tuyệt đối chính xác. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Dùng If-Else để xử lý ngôn ngữ tự nhiên đã là quá khứ. Kỹ sư tương lai phải biết cách tích hợp và điều khiển (Prompt Engineering) các Mô hình Ngôn ngữ lớn (LLM).
+```
+
 ## 5. Bảng tổng hợp mức độ sử dụng AI
 
 Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.

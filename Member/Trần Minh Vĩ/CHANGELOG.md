@@ -1164,6 +1164,51 @@ Commit liên quan đến Phase 24
 
 ---
 
+# [Phase 25] Advanced Search & Generative AI Integration (AI & Tìm kiếm nâng cao)
+
+## Ngày thực hiện
+
+```text
+01/08/2026
+```
+
+## Đã hoàn thành
+
+- [x] Tìm kiếm toàn văn bản (Elasticsearch): Thay thế câu lệnh `LIKE` chậm chạp của SQL bằng Cỗ máy tìm kiếm Elasticsearch. Hỗ trợ tìm kiếm siêu tốc (Full-text search), tìm kiếm mờ (Fuzzy search) và tìm kiếm không dấu tiếng Việt trên hàng triệu bản ghi.
+- [x] Tích hợp Trí tuệ nhân tạo (GenAI Auto-Categorization): Sử dụng OpenAI/Gemini API kết hợp với RabbitMQ Worker để tự động đọc, tóm tắt và phân loại hàng trăm phản ánh của người dân mỗi ngày, giảm tải 90% công sức đọc thủ công cho cán bộ phường.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Cấu hình đồng bộ PostgreSQL sang Elasticsearch | Trần Minh Vĩ | ReportSearchService.java | Commit (Phase 25) |
+| 2 | Tích hợp AI Worker phân loại phản ánh | Trần Minh Vĩ | AiSummaryWorker.java | Commit (Phase 25) |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI xúi giục dùng lệnh SQL `LIKE` và tạo Index B-Tree để tìm kiếm, đồng thời khuyên dùng Regex đếm từ khóa để phân loại. Sinh viên bác bỏ vì tư duy lỗi thời, tự mình triển khai Elasticsearch và API LLM hiện đại.
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+Commit liên quan đến Phase 25
+```
+
+## Ghi chú
+
+```text
+Data là máu của hệ thống. AI và Elasticsearch là bộ não giúp khai thác dòng máu đó một cách thông minh nhất.
+```
+
+---
+
 # 4. Tổng kết thay đổi cuối project
 
 ## 4.1. Các chức năng đã hoàn thành

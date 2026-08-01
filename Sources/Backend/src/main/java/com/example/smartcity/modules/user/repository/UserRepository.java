@@ -44,4 +44,8 @@ public interface UserRepository extends BaseRepository<User, Long> {
     @Modifying
     @Query(value = "DELETE FROM users WHERE email = :email", nativeQuery = true)
     void hardDeleteByEmail(@Param("email") String email);
+
+    @Modifying
+    @Query("UPDATE User u SET u.deletedAt = CURRENT_TIMESTAMP, u.deletedBy = :deletedBy WHERE u.id = :id")
+    void softDeleteById(@Param("id") Long id, @Param("deletedBy") String deletedBy);
 }

@@ -69,26 +69,24 @@ public class AiRouterService {
             log.warn("⚠️  [Router] Sticky provider {} bị CB block → chọn lại", prevProvider);
         }
 
-        int score = evaluateComplexity(userMessage);
         AiProviderAdapter selected;
 
-        // Ưu tiên hàng đầu cho DEEPSEEK nếu đang khỏe mạnh và sẵn sàng hoạt động
-        AiProviderAdapter deepseek = getHealthyProvider("DEEPSEEK");
-        if (deepseek != null) {
-            selected = deepseek;
-            log.info("→ [Router] Định tuyến chính đến DEEPSEEK | Score={}", score);
-        } else if (score < 4) {
-            selected = getHealthyProvider("GEMINI");
-            log.info("→ [Router] Score={} | DEEPSEEK OFF → GEMINI (nhanh, đơn giản)", score);
-        } else if (score > 6) {
-            selected = getHealthyProvider("GROQ");
-            log.info("→ [Router] Score={} | DEEPSEEK OFF → GROQ (phức tạp, reasoning)", score);
+        AiProviderAdapter gemini = getHealthyProvider("GEMINI");
+        if (gemini != null) {
+            selected = gemini;
+            log.info("→ [Router] Định tuyến chính đến GEMINI");
         } else {
-            selected = providers.stream()
-                    .filter(p -> p.isHealthy() && circuitAllows(p.getProviderName()))
-                    .findFirst()
-                    .orElse(null);
-            log.info("→ [Router] Score={} | DEEPSEEK OFF → Dynamic (healthy đầu tiên)", score);
+            AiProviderAdapter groq = getHealthyProvider("GROQ");
+            if (groq != null) {
+                selected = groq;
+                log.info("→ [Router] GEMINI lỗi/quá tải → Fallback sang GROQ");
+            } else {
+                selected = providers.stream()
+                        .filter(p -> p.isHealthy() && circuitAllows(p.getProviderName()))
+                        .findFirst()
+                        .orElse(null);
+                log.info("→ [Router] Dùng Dynamic (healthy đầu tiên)");
+            }
         }
 
         if (selected == null) {
@@ -136,9 +134,9 @@ public class AiRouterService {
                         cb.onError(latency, java.util.concurrent.TimeUnit.MILLISECONDS, error);
                     }
                 })
-                .exceptionally(ex -> {
+                .exceptionallyCompose(ex -> {
                     log.warn("⚠️  [Router] {} lỗi → Auto-Fallback | {}", providerName, ex.getMessage());
-                    return fallback(primary, systemPrompt, userMessage).join();
+                    return fallback(primary, systemPrompt, userMessage);
                 });
     }
 
@@ -302,35 +300,6 @@ public class AiRouterService {
         return backup.generateResponseAsync(systemPrompt, userMessage);
     }
 
-    private int evaluateComplexity(String message) {
-        if (message == null || message.isBlank()) return 1;
-
-        int score = 0;
-        String lower = message.toLowerCase();
-
-        if (message.length() > 100) score += 2;
-        else if (message.length() > 50) score += 1;
-
-        long questionMarks = message.chars().filter(c -> c == '?').count();
-        if (questionMarks > 1) score += 1;
-
-        List<String> complexWords = List.of(
-            "tại sao", "phân tích", "so sánh", "explain", "why", "analyze",
-            "compare", "giải thích", "chứng minh", "evaluate", "design", "architect"
-        );
-        if (complexWords.stream().anyMatch(lower::contains)) score += 3;
-
-        if (lower.contains("`") || lower.contains("{") || lower.contains("}") || lower.contains("=>")) score += 2;
-
-        if (message.matches(".*\\d+.*")) score += 1;
-
-        long latinCount = message.chars().filter(c -> c >= 'a' && c <= 'z').count();
-        if (latinCount > message.length() * 0.6) score += 1;
-
-        log.debug("📊 [Router] Complexity score={} for: '{}'...",
-                score, message.substring(0, Math.min(40, message.length())));
-        return Math.min(score, 10);
-    }
 
     public List<Map<String, Object>> getCircuitBreakerStats() {
         return circuitBreakerRegistry.getAllCircuitBreakers().stream().map(cb -> {

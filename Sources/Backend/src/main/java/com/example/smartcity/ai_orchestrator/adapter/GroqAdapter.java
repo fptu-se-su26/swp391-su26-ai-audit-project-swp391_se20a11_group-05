@@ -63,11 +63,9 @@ public class GroqAdapter implements AiProviderAdapter {
      * Pipeline: nextKey() → POST /chat/completions → parse → retry nếu 429
      */
     @Override
-    @io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker(name = "groqLLM", fallbackMethod = "fallbackToGemini")
     public CompletableFuture<String> generateResponseAsync(String systemPrompt, String userMessage) {
         if (!keyPool.isConfigured()) {
-            log.warn("⚠️  [Groq] Pool chưa cấu hình → MOCK.");
-            return CompletableFuture.completedFuture(userMessage);
+            return CompletableFuture.failedFuture(new RuntimeException("Groq Pool chưa cấu hình."));
         }
 
         // AtomicRef để track key đang dùng qua các lần retry
@@ -97,15 +95,13 @@ public class GroqAdapter implements AiProviderAdapter {
                                 ? new GroqKeyPool.PoolExhaustedException("Rate limit sau " + MAX_RETRIES + " lần retry")
                                 : e
                 )
-                .onErrorResume(GroqKeyPool.PoolExhaustedException.class, Mono::error)
-                .onErrorReturn("❌ Groq lỗi không xác định. Vui lòng thử lại.")
+                .doOnError(e -> log.error("❌ [Groq] Lỗi generateResponseAsync: ", e))
                 .toFuture();
     }
 
-    @io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker(name = "groqLLM", fallbackMethod = "fallbackToGeminiStructured")
     public CompletableFuture<String> generateStructuredResponseAsync(String systemPrompt, String userMessage) {
         if (!keyPool.isConfigured()) {
-            return CompletableFuture.completedFuture("{\"intent\":\"SMALLTALK\", \"emotion\":\"NEUTRAL\", \"reply\":\"Groq chưa cấu hình\"}");
+            return CompletableFuture.failedFuture(new RuntimeException("Groq chưa cấu hình."));
         }
 
         AtomicReference<String> currentKey = new AtomicReference<>(safeNextKey());
@@ -127,19 +123,8 @@ public class GroqAdapter implements AiProviderAdapter {
                                 ? new GroqKeyPool.PoolExhaustedException("Rate limit sau " + MAX_RETRIES + " lần retry")
                                 : e
                 )
-                .onErrorResume(GroqKeyPool.PoolExhaustedException.class, Mono::error)
-                .onErrorReturn("{\"intent\":\"SMALLTALK\", \"emotion\":\"NEUTRAL\", \"reply\":\"Groq lỗi không xác định\"}")
+                .doOnError(e -> log.error("❌ [Groq Structured] Lỗi: ", e))
                 .toFuture();
-    }
-
-    public CompletableFuture<String> fallbackToGeminiStructured(String systemPrompt, String userMessage, Throwable t) {
-        log.warn("🚨 [CircuitBreaker] Groq API sập. Trả về Mock Structured. Lỗi: {}", t.getMessage());
-        return CompletableFuture.completedFuture("{\"intent\":\"SMALLTALK\", \"emotion\":\"NEUTRAL\", \"reply\":\"Groq sập, hệ thống đang bận.\"}");
-    }
-
-    public CompletableFuture<String> fallbackToGemini(String systemPrompt, String userMessage, Throwable t) {
-        log.warn("🚨 [CircuitBreaker] Groq API sập. Trả về Mock. Lỗi: {}", t.getMessage());
-        return CompletableFuture.completedFuture("⏳ Groq đang quá tải. Vui lòng thử lại sau.");
     }
 
     /** Xây Mono cho 1 lần gọi API với key hiện tại */
@@ -171,7 +156,7 @@ public class GroqAdapter implements AiProviderAdapter {
                     .retrieve()
                     .bodyToMono(Map.class)
                     .map(this::parseResponse)
-                    .timeout(Duration.ofSeconds(10))
+                    .timeout(Duration.ofSeconds(45))
                     .doOnSuccess(r -> log.info("✅ [Groq] OK ({} ký tự)", r.length()));
         });
     }
@@ -199,7 +184,7 @@ public class GroqAdapter implements AiProviderAdapter {
                     .retrieve()
                     .bodyToMono(Map.class)
                     .map(this::parseResponse)
-                    .timeout(Duration.ofSeconds(15));
+                    .timeout(Duration.ofSeconds(45));
         });
     }
 
@@ -227,7 +212,7 @@ public class GroqAdapter implements AiProviderAdapter {
     @Override
     public reactor.core.publisher.Flux<String> generateStream(String systemPrompt, String userMessage) {
         if (!keyPool.isConfigured()) {
-            return reactor.core.publisher.Flux.just(userMessage);
+            return reactor.core.publisher.Flux.error(new RuntimeException("Groq Pool chưa cấu hình."));
         }
 
         String apiKey = safeNextKey();
@@ -254,7 +239,7 @@ public class GroqAdapter implements AiProviderAdapter {
                 .bodyToFlux(String.class)
                 .map(this::parseStreamChunk)
                 .filter(chunk -> !chunk.isEmpty())
-                .onErrorResume(e -> reactor.core.publisher.Flux.just("\n[Lỗi kết nối Stream: " + e.getMessage() + "]"));
+                .doOnError(e -> log.error("❌ [Groq Stream] Lỗi kết nối Stream: ", e));
     }
 
     /**

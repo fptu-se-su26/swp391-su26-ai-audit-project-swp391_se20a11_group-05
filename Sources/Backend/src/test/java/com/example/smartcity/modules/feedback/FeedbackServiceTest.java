@@ -242,6 +242,7 @@ class FeedbackServiceTest {
     @DisplayName("Should not throw exception when checkDuplicateFeedback finds no duplicate")
     void checkDuplicateFeedback_noDuplicate() {
         float[] vector = new float[]{0.1f, 0.2f};
+        when(embeddingFacade.isConfigured()).thenReturn(true); // mock: có key thật
         when(embeddingFacade.embed("Description")).thenReturn(vector);
         when(jdbcTemplate.queryForList(any(String.class), any(Object[].class)))
                 .thenReturn(List.of());
@@ -253,6 +254,7 @@ class FeedbackServiceTest {
     @DisplayName("Should throw CustomException when checkDuplicateFeedback finds duplicate")
     void checkDuplicateFeedback_duplicateFound() throws Exception {
         float[] vector = new float[]{0.1f, 0.2f};
+        when(embeddingFacade.isConfigured()).thenReturn(true); // mock: có key thật
         when(embeddingFacade.embed("Description")).thenReturn(vector);
         
         java.util.Map<String, Object> candidate = new java.util.HashMap<>();

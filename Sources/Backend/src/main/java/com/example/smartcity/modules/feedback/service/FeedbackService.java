@@ -257,6 +257,19 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
 
         try {
             float[] descriptionVector = embeddingFacade.embed(description);
+
+            // [BUG FIX] Nếu không có Gemini API key → embeddingFacade trả về mock vector ngẫu nhiên.
+            // Mock vector không có ngữ nghĩa thực → cosine distance luôn > 0.70 → không bao giờ tìm thấy ứng viên.
+            // Giải pháp: kiểm tra xem vector có phải mock không bằng cách dùng norm check.
+            // Vector mock dùng Random(text.hashCode()) có norm = 1 (sau khi normalize) → không thể phân biệt.
+            // Thay vào đó, kiểm tra trực tiếp pool có key thật không. Nếu không → bỏ qua TIER 1 vector search,
+            // để nó ném exception giả và rơi vào TIER 2 fallback text matching bên dưới.
+            boolean hasRealEmbedding = embeddingFacade.isConfigured();
+            if (!hasRealEmbedding) {
+                log.warn("[Duplicate Detection] Gemini key chưa cấu hình → bỏ qua TIER 1 Vector Search, dùng TIER 2 Text Matching.");
+                throw new IllegalStateException("Embedding không khả dụng — chuyển sang Tier 2 fallback");
+            }
+
             String vectorString = java.util.Arrays.toString(descriptionVector);
 
             String sql;

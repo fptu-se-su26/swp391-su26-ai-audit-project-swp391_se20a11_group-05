@@ -326,14 +326,17 @@ public class GeminiAdapter implements AiProviderAdapter {
     @io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker(name = "geminiLLM", fallbackMethod = "fallbackToGroqStructuredWithUsage")
     public CompletableFuture<GeminiResponse> generateStructuredResponseWithUsageAsync(String systemPrompt, String userMessage) {
         if (!keyPool.isConfigured()) {
-            log.warn("⚠️  [Gemini] Pool chưa cấu hình → Mock Structured.");
-            return CompletableFuture.completedFuture(new GeminiResponse(buildMockStructuredFallback(userMessage), 0, 0));
+            log.warn("⚠️  [Gemini] Pool chưa cấu hình → Mock AI Analysis.");
+            // [BUG FIX] Phải dùng buildMockAiAnalysisFallback (is_toxic/trust_score/priority/domain)
+            // KHÔNG dùng buildMockStructuredFallback (chatbot intent/emotion) — sẽ gây parse lỗi và trust_score=0
+            return CompletableFuture.completedFuture(new GeminiResponse(buildMockAiAnalysisFallback(userMessage), 0, 0));
         }
 
         String apiKey = keyPool.nextKey();
         if (apiKey == null) {
-            log.warn("⚠️  [Gemini] Không có key ACTIVE → Mock Structured.");
-            return CompletableFuture.completedFuture(new GeminiResponse(buildMockStructuredFallback(userMessage), 0, 0));
+            log.warn("⚠️  [Gemini] Không có key ACTIVE → Mock AI Analysis.");
+            // [BUG FIX] Tương tự — phải dùng AI analysis fallback, không phải chatbot fallback
+            return CompletableFuture.completedFuture(new GeminiResponse(buildMockAiAnalysisFallback(userMessage), 0, 0));
         }
 
         log.info("🔵 [Gemini Text-Only] Gọi API | model={} | key={}...", model, apiKey.substring(0, Math.min(8, apiKey.length())));

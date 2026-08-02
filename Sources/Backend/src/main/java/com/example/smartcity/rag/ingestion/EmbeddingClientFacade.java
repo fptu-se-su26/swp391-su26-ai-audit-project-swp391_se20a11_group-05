@@ -47,6 +47,15 @@ public class EmbeddingClientFacade {
     }
 
     /**
+     * Kiểm tra xem có Gemini API key thật hay không.
+     * Nếu không có key → embed() sẽ trả về mock vector ngẫu nhiên (không có ngữ nghĩa).
+     * Caller nên dùng method này để quyết định có nên dùng vector search không.
+     */
+    public boolean isConfigured() {
+        return keyPool.isConfigured() && keyPool.nextKey() != null;
+    }
+
+    /**
      * Embed một đoạn văn bản đơn lẻ.
      *
      * @param text Văn bản cần embed

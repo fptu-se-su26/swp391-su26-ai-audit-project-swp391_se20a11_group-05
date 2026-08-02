@@ -1,5 +1,4 @@
 import { clientOnly } from "@/components/ClientOnly";
-import { useMemo, useState, useEffect } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
 import {
@@ -61,16 +60,8 @@ import {
   Rocket,
   Calendar,
 } from "lucide-react";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import { staticNews, staticFaqs } from "@/lib/static-content";
-import { CityBanner } from "@/components/site/portal/CityBanner";
-import { QuickPortals } from "@/components/site/portal/QuickPortals";
-import { DirectivesAndSchedule } from "@/components/site/portal/DirectivesAndSchedule";
-import { ActionBanner } from "@/components/site/portal/ActionBanner";
-import { FourColumnInfo } from "@/components/site/portal/FourColumnInfo";
-import { DisasterContactDirectory } from "@/components/site/portal/DisasterContactDirectory";
-import { ScheduleList } from "@/components/site/portal/ScheduleList";
-import { EmergencyHotlines } from "@/components/site/portal/EmergencyHotlines";
 
 const CivicMap = clientOnly(
   () => import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
@@ -199,39 +190,6 @@ function HomePage() {
   const isLoading = listLoading || statsLoading || recentLoading;
 
   const apiFeedbacks = feedbacksPage?.content ?? [];
-
-  const mapMarkers = useMemo(() => {
-    if (hasApiData) {
-      return apiFeedbacks
-        .filter((f) => f.latitude && f.longitude)
-        .map((f) => ({
-          position: [f.latitude!, f.longitude!] as [number, number],
-          title: f.title,
-          description: f.description,
-          status: mapStatus(f.status),
-        }));
-    }
-    return [
-      {
-        position: [16.062, 108.222] as [number, number],
-        title: mockReports[0].title.vi,
-        description: mockReports[0].description.vi,
-        status: mockReports[0].status,
-      },
-      {
-        position: [16.08, 108.155] as [number, number],
-        title: mockReports[1].title.vi,
-        description: mockReports[1].description.vi,
-        status: mockReports[1].status,
-      },
-      {
-        position: [16.078, 108.158] as [number, number],
-        title: mockReports[2].title.vi,
-        description: mockReports[2].description.vi,
-        status: mockReports[2].status,
-      },
-    ];
-  }, [hasApiData, apiFeedbacks]);
 
   // ── Slideshow state (kept to preserve existing hooks/state)
   const [activeSlide, setActiveSlide] = useState(0);
@@ -796,29 +754,6 @@ function HomePage() {
 
       {/* Main page content below hero */}
       <div className="max-w-[1360px] mx-auto w-full px-4 md:px-8 py-10 md:py-14 space-y-10">
-        
-        {/* Original Government Portal Section */}
-        <section className="animate-fade-in-up stagger-1 mb-12">
-          <CityBanner />
-          <QuickPortals />
-          <DirectivesAndSchedule />
-        </section>
-
-        {/* New Government Portal Features */}
-        <section className="animate-fade-in-up stagger-1 mb-12">
-          <ActionBanner />
-          <FourColumnInfo />
-          
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
-            <div className="lg:col-span-8">
-               <DisasterContactDirectory />
-            </div>
-            <div className="lg:col-span-4">
-               <ScheduleList />
-            </div>
-          </div>
-        </section>
-
         {/* Section 1 — PHẢN ÁNH THEO LĨNH VỰC */}
         <section className="animate-fade-in-up stagger-1">
           <div className="flex items-center gap-2 mb-5">
@@ -1074,7 +1009,7 @@ function HomePage() {
                                 : "Cộng đồng"}
                         </span>
                       </div>
-                      
+
                       {campaign.daysLeft !== undefined && (
                         <div className="absolute bottom-2 right-2">
                           <span className="px-2 py-0.5 bg-black/60 backdrop-blur-sm text-white rounded text-[10px] font-bold font-sans">
@@ -1114,7 +1049,9 @@ function HomePage() {
                           <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                             <div
                               className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-500"
-                              style={{ width: `${Math.min(100, Math.round((campaign.participants / campaign.target) * 100))}%` }}
+                              style={{
+                                width: `${Math.min(100, Math.round((campaign.participants / campaign.target) * 100))}%`,
+                              }}
                             />
                           </div>
                         )}
@@ -1365,7 +1302,6 @@ function HomePage() {
                 ))}
             </div>
           </section>
-          </div>
         </div>
 
         {/* Section 7 — QUY TRÌNH GỬI PHẢN ÁNH */}
@@ -1598,9 +1534,6 @@ function HomePage() {
             </div>
           </section>
         </div>
-
-        {/* Emergency Hotlines */}
-        <EmergencyHotlines />
 
         {/* Section 3: Public-service Trust-Benefit Strip */}
         <section className="bg-white rounded-2xl border border-[#E4EAF2] py-6 px-6 animate-fade-in-up stagger-4">

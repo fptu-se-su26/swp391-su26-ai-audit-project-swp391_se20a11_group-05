@@ -42,6 +42,37 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"category", "ward", "citizen"})
     Page<Feedback> findByManagedByRoleAndWardId(String managedByRole, Long wardId, Pageable pageable);
 
+    @org.springframework.data.jpa.repository.Query("""
+            SELECT f FROM Feedback f 
+            LEFT JOIN FETCH f.category 
+            WHERE f.managedByRole = :role 
+              AND f.ward.id = :wardId 
+              AND f.latitude IS NOT NULL 
+              AND f.longitude IS NOT NULL 
+              AND f.createdAt >= :startDate 
+              AND f.createdAt <= :endDate
+            """)
+    List<Feedback> findHotspots(
+            @Param("role") String role, 
+            @Param("wardId") Long wardId, 
+            @Param("startDate") java.time.LocalDateTime startDate, 
+            @Param("endDate") java.time.LocalDateTime endDate);
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"category", "ward", "citizen"})
+    @org.springframework.data.jpa.repository.Query("""
+            SELECT f FROM Feedback f 
+            WHERE f.managedByRole = :role 
+              AND f.ward.id = :wardId 
+              AND f.createdAt >= :startDate 
+              AND f.createdAt <= :endDate
+              AND f.status IN ('PENDING', 'SUBMITTED', 'PENDING_RECEIVE', 'IN_PROGRESS', 'WAITING_INFO')
+            """)
+    List<Feedback> findPendingForAiAnalysis(
+            @Param("role") String role, 
+            @Param("wardId") Long wardId, 
+            @Param("startDate") java.time.LocalDateTime startDate, 
+            @Param("endDate") java.time.LocalDateTime endDate);
+
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"category", "ward", "citizen"})
     Page<Feedback> findByAssigneeId(Long assigneeId, Pageable pageable);
     Page<Feedback> findByStatusIn(List<FeedbackStatus> statuses, Pageable pageable);

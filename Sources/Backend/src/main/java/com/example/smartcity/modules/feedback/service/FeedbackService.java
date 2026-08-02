@@ -86,7 +86,7 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         Map.entry(FeedbackStatus.IN_PROGRESS,    Set.of(FeedbackStatus.RESOLVED, FeedbackStatus.WAITING_INFO, FeedbackStatus.REJECTED)),
         Map.entry(FeedbackStatus.WAITING_INFO,   Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.RESOLVED, FeedbackStatus.REJECTED)),
         Map.entry(FeedbackStatus.RESOLVED,       Set.of()),
-        Map.entry(FeedbackStatus.REJECTED,       Set.of()),
+        Map.entry(FeedbackStatus.REJECTED,       Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.PENDING_RECEIVE)),
         Map.entry(FeedbackStatus.ASSIGNED,       Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.RESOLVED, FeedbackStatus.REJECTED)),
         Map.entry(FeedbackStatus.PRE_EMPTIVE,    Set.of())
     );
@@ -892,7 +892,11 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         }
 
         if ((newStatus == FeedbackStatus.IN_PROGRESS || newStatus == FeedbackStatus.RESOLVED || newStatus == FeedbackStatus.REJECTED) && sendNotification) {
-            notificationService.createFeedbackStatusChangedNotification(feedback.getId(), newStatus.name(), effectiveNote);
+            if (current == FeedbackStatus.REJECTED && newStatus == FeedbackStatus.IN_PROGRESS) {
+                notificationService.createFeedbackRestoredNotification(feedback.getId(), newStatus.name());
+            } else {
+                notificationService.createFeedbackStatusChangedNotification(feedback.getId(), newStatus.name(), effectiveNote);
+            }
         }
 
         // Gửi WebSocket notification

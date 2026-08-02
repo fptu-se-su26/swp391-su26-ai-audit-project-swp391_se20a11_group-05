@@ -312,10 +312,10 @@ export function useSupplementFeedbackInfo() {
   });
 }
 
-export function useHotspots() {
+export function useHotspots(params?: { month?: number; year?: number }) {
   return useQuery<unknown[]>({
-    queryKey: ["feedbacks", "hotspots"],
-    queryFn: () => policeApi.getHotspots(),
+    queryKey: ["feedbacks", "hotspots", params?.month, params?.year],
+    queryFn: () => policeApi.getHotspots(params),
     staleTime: 60_000, // 1 min cache
   });
 }

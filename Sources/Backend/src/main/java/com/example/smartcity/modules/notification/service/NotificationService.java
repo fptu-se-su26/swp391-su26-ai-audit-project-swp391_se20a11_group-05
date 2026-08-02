@@ -409,6 +409,43 @@ public class NotificationService extends BaseServiceImpl<Notification, Long> {
     }
 
     @Transactional
+    public void createFeedbackRestoredNotification(Long feedbackId, String statusName) {
+        Feedback feedback = feedbackRepository.findById(feedbackId).orElse(null);
+        if (feedback == null || feedback.getCitizen() == null) {
+            log.warn("[Notification] Không tìm thấy feedback hoặc citizen để khôi phục. feedbackId={}", feedbackId);
+            return;
+        }
+        User citizen = userRepository.findById(feedback.getCitizen().getId()).orElse(null);
+        if (citizen == null) {
+            log.warn("[Notification] Citizen user entity not found. feedbackId={}", feedbackId);
+            return;
+        }
+
+        String title = "Phản ánh được khôi phục";
+        String content = String.format("Phản ánh %s của bạn đã được cán bộ khôi phục và tiếp nhận xử lý lại.", feedback.getTrackingCode());
+        String type = "FEEDBACK_IN_PROGRESS"; // Use existing type so frontend renders a valid icon
+
+        Notification notification = Notification.builder()
+                .user(citizen)
+                .referenceId(feedbackId)
+                .feedbackId(feedbackId)
+                .title(title)
+                .content(content)
+                .type(type)
+                .isRead(false)
+                .build();
+        LocalDateTime now = LocalDateTime.now();
+        notification.setCreatedAt(now);
+        notification.setUpdatedAt(now);
+        notificationRepository.save(notification);
+
+        // Gửi WebSocket cho người dân nhận được real-time
+        webSocketNotificationService.notifyFeedbackStatusChange(
+                feedbackId, statusName,
+                "Feedback #" + feedback.getTrackingCode() + " -> RESTORED");
+    }
+
+    @Transactional
     public void notifyCampaignCancelled(Long campaignId, String campaignTitle, String reason, User creator) {
         List<CampaignParticipant> participants = participantRepository.findByCampaign_IdAndJoinStatusIn(
                 campaignId, List.of("PENDING", "APPROVED", "CONFIRMED", "MAYBE", "PENDING_CONFIRM")

@@ -328,7 +328,7 @@ function ReportDetail() {
     return originalAttachments.length > 0 ? originalAttachments : defaultImages;
   }, [attachments, defaultImages]);
 
-  // 0. Calculate states using Hooks safely before early returns
+  // Highlight steps according to status
   const currentStatusIndex = (() => {
     switch (report?.status as any) {
       case "PENDING":
@@ -570,7 +570,6 @@ function ReportDetail() {
 
   // 4. Processing Timeline (preserves dynamic logs and enriches them with photos/details)
   const dynamicTimeline = buildTimeline(report.timeline ?? [], report.status, locale);
-
 
   // Merge database logs if present, otherwise use realistic timeline from the screenshot
   const timelineSteps = (() => {
@@ -978,6 +977,16 @@ function ReportDetail() {
                     initialTitle: report.title,
                     initialDescription: (report as any).content || report.description,
                     initialCategoryCode: report.categoryCode || report.category,
+                    initialLatitude: report.latitude,
+                    initialLongitude: report.longitude,
+                    initialAddressDetails: report.addressDetails,
+                    initialAttachments: (report.attachments ?? [])
+                      .filter((a: any) => a.attachmentPurpose !== "RESOLUTION_EVIDENCE")
+                      .map((a: any) => ({
+                        fileUrl: a.fileUrl,
+                        fileName: a.fileName,
+                        fileType: a.fileType,
+                      })),
                   } as any
                 }
                 className="inline-flex items-center gap-2 mt-3 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-4 py-2 transition-colors"

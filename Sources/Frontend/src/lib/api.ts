@@ -842,10 +842,19 @@ export const policeApi = {
       body: JSON.stringify({ reason }),
     }),
 
-  getHotspots: () =>
-    request<unknown[]>("/api/police/feedbacks/hotspots", {
+  getHotspots: (params?: { month?: number; year?: number }) => {
+    let url = "/api/police/feedbacks/hotspots";
+    if (params) {
+      const queryParams = new URLSearchParams();
+      if (params.month) queryParams.append("month", params.month.toString());
+      if (params.year) queryParams.append("year", params.year.toString());
+      const queryString = queryParams.toString();
+      if (queryString) url += `?${queryString}`;
+    }
+    return request<unknown[]>(url, {
       method: "GET",
-    }),
+    });
+  },
 
   acceptFeedback: (id: number | string) =>
     request<PoliceFeedbackResponse>(`/api/police/feedbacks/${id}/accept`, {
@@ -864,10 +873,15 @@ export const policeApi = {
       body: JSON.stringify({ resultNote }),
     }),
 
-  analyzeDuplicates: () =>
-    request<any[]>("/api/police/feedbacks/analyze-duplicates", {
+  analyzeDuplicates: (month?: number, year?: number) => {
+    let url = "/api/police/feedbacks/analyze-duplicates";
+    if (month && year) {
+      url += `?month=${month}&year=${year}`;
+    }
+    return request<any[]>(url, {
       method: "GET",
-    }),
+    });
+  },
 
   getSchedule: (mondayKey: string) =>
     request<any>(`/api/police/schedule?mondayKey=${mondayKey}`, {

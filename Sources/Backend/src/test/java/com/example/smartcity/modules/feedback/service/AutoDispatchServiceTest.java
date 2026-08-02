@@ -43,6 +43,7 @@ class AutoDispatchServiceTest {
     @Mock private NotificationService citizenNotificationService;
     @Mock private AiTaskRepository aiTaskRepository;
     @Mock private AiAnalysisLogRepository aiAnalysisLogRepository;
+    @Mock private com.example.smartcity.modules.feedback.repository.CategoryRepository categoryRepository;
 
     private AutoDispatchService autoDispatchService;
 
@@ -55,7 +56,8 @@ class AutoDispatchServiceTest {
                 notificationService,
                 citizenNotificationService,
                 aiTaskRepository,
-                aiAnalysisLogRepository
+                aiAnalysisLogRepository,
+                categoryRepository
         );
         autoDispatchService.setSelf(autoDispatchService);
     }

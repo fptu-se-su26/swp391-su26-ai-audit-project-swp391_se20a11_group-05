@@ -39,6 +39,7 @@ public class AutoDispatchService {
     private final com.example.smartcity.modules.notification.service.NotificationService citizenNotificationService;
     private final AiTaskRepository aiTaskRepository;
     private final AiAnalysisLogRepository aiAnalysisLogRepository;
+    private final com.example.smartcity.modules.feedback.repository.CategoryRepository categoryRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @org.springframework.beans.factory.annotation.Autowired
@@ -255,6 +256,28 @@ public class AutoDispatchService {
             }
 
             log.info("📊 [Auto-Dispatch] Result parsed: Trust={}, Priority={}, Domain={}", aiResult.getTrust_score(), safePriority, safeDomain);
+
+            // [AUTO-FIX CATEGORY] AI phát hiện chọn sai danh mục thì tự động sửa lại
+            String suggestedCategoryCode = null;
+            switch(safeDomain) {
+                case "AN_NINH": suggestedCategoryCode = "PUBLIC_SECURITY"; break;
+                case "GIAO_THONG": suggestedCategoryCode = "TRAFFIC"; break;
+                case "MOI_TRUONG": suggestedCategoryCode = "ENVIRONMENT"; break;
+                case "HA_TANG": suggestedCategoryCode = "URBAN_INFRASTRUCTURE"; break;
+            }
+            if (suggestedCategoryCode != null && !suggestedCategoryCode.equals(feedback.getCategoryCode())) {
+                String oldCategoryName = feedback.getCategoryName();
+                com.example.smartcity.modules.feedback.entity.Category newCat = categoryRepository.findByCodeAndActiveTrue(suggestedCategoryCode).orElse(null);
+                if (newCat != null) {
+                    feedback.setCategoryCode(newCat.getCode());
+                    feedback.setCategoryName(newCat.getNameVi() != null ? newCat.getNameVi() : newCat.getName());
+                    
+                    FeedbackLog catLog = new FeedbackLog(feedback, feedback.getCitizen(), oldStatus, oldStatus, 
+                        "🔄 [AI AUTO-FIX] Đã tự động điều chỉnh danh mục từ '" + oldCategoryName + "' sang '" + feedback.getCategoryName() + "' dựa trên ngữ cảnh sự cố.");
+                    feedbackLogRepository.save(catLog);
+                    log.info("🔄 [Auto-Dispatch] Auto-Fixed Category from {} to {}", oldCategoryName, feedback.getCategoryName());
+                }
+            }
 
             // 3. TRUST SCORE < 40 -> SPAM/REJECT
             if (aiResult.getTrust_score() < 40) {

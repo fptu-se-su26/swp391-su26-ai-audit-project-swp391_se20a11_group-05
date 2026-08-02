@@ -246,7 +246,7 @@ class FeedbackServiceTest {
         when(jdbcTemplate.queryForList(any(String.class), any(Object[].class)))
                 .thenReturn(List.of());
 
-        assertDoesNotThrow(() -> feedbackService.checkDuplicateFeedback("Description", 1L, 108.2022, 16.0544));
+        assertDoesNotThrow(() -> feedbackService.checkDuplicateFeedback("citizen1", "Description", 1L, 108.2022, 16.0544));
     }
 
     @Test
@@ -269,7 +269,7 @@ class FeedbackServiceTest {
 
         com.example.smartcity.common.exception.CustomException exception = assertThrows(
                 com.example.smartcity.common.exception.CustomException.class,
-                () -> feedbackService.checkDuplicateFeedback("Description", 1L, 108.2022, 16.0544)
+                () -> feedbackService.checkDuplicateFeedback("citizen1", "Description", 1L, 108.2022, 16.0544)
         );
 
         assertEquals(409, exception.getStatus());

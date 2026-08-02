@@ -99,7 +99,7 @@ public class CitizenFeedbackMediaService {
         // [FIX] chạy dù ward == null — khi phường không xác định được vẫn check theo
         //       toạ độ bằng wardId = 0 (fallback bỏ qua điều kiện ward) — tránh bỏ sót
         Long wardId = (ward != null && ward.getId() != null) ? ward.getId() : null;
-        feedbackService.checkDuplicateFeedback(request.getDescription(), wardId, request.getLongitude(), request.getLatitude());
+        feedbackService.checkDuplicateFeedback(username, request.getDescription(), wardId, request.getLongitude(), request.getLatitude());
 
         LocalDateTime now = LocalDateTime.now();
         Feedback feedback = new Feedback();

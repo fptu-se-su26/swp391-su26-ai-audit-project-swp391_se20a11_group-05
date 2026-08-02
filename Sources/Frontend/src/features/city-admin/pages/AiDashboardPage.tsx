@@ -57,7 +57,7 @@ export function AiDashboardPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem("token") || "";
+        const token = localStorage.getItem("dn_jwt_token") || sessionStorage.getItem("dn_jwt_token") || "";
         const headers = {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json"

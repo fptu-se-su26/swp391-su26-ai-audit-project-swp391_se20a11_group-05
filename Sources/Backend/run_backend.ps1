@@ -8,5 +8,5 @@ if (Test-Path $envFile) {
     Write-Warning "Khong tim thay file $envFile. Vui long tao file nay theo mau .env.local.ps1.example"
 }
 
-mvn spring-boot:run "-Dspring-boot.run.profiles=supabase"
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=supabase"
 

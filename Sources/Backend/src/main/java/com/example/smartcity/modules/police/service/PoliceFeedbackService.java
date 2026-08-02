@@ -37,6 +37,26 @@ public class PoliceFeedbackService {
     private final com.example.smartcity.modules.notification.service.NotificationService notificationService;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
 
+    private static final java.util.Map<FeedbackStatus, java.util.List<FeedbackStatus>> VALID_TRANSITIONS = java.util.Map.of(
+            FeedbackStatus.SUBMITTED, java.util.List.of(FeedbackStatus.PENDING, FeedbackStatus.ASSIGNED, FeedbackStatus.REJECTED),
+            FeedbackStatus.PENDING, java.util.List.of(FeedbackStatus.ASSIGNED, FeedbackStatus.REJECTED),
+            FeedbackStatus.ASSIGNED, java.util.List.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.REJECTED),
+            FeedbackStatus.PENDING_RECEIVE, java.util.List.of(FeedbackStatus.ASSIGNED, FeedbackStatus.IN_PROGRESS, FeedbackStatus.REJECTED),
+            FeedbackStatus.IN_PROGRESS, java.util.List.of(FeedbackStatus.WAITING_INFO, FeedbackStatus.RESOLVED, FeedbackStatus.REJECTED),
+            FeedbackStatus.WAITING_INFO, java.util.List.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.RESOLVED, FeedbackStatus.REJECTED),
+            FeedbackStatus.RESOLVED, java.util.Collections.emptyList(),
+            FeedbackStatus.REJECTED, java.util.List.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.PENDING_RECEIVE),
+            FeedbackStatus.PRE_EMPTIVE, java.util.Collections.emptyList()
+    );
+
+    private void validateTransition(FeedbackStatus current, FeedbackStatus next) {
+        if (current == next) return;
+        java.util.List<FeedbackStatus> allowed = VALID_TRANSITIONS.getOrDefault(current, java.util.Collections.emptyList());
+        if (!allowed.contains(next)) {
+            throw new com.example.smartcity.common.exception.CustomException("Không thể chuyển trạng thái từ " + current + " sang " + next, org.springframework.http.HttpStatus.BAD_REQUEST.value());
+        }
+    }
+
     /**
      * Lấy danh sách phản ánh được phân công cho cán bộ công an
      */
@@ -58,7 +78,7 @@ public class PoliceFeedbackService {
     /**
      * Lấy danh sách điểm nóng (Hotspots) cho Bản đồ Nhiệt (Heatmap)
      */
-    public List<HotspotResponse> getHotspots(String username) {
+    public List<HotspotResponse> getHotspots(String username, Integer month, Integer year) {
         User policeUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy user công an: " + username));
 
@@ -66,10 +86,18 @@ public class PoliceFeedbackService {
             return java.util.Collections.emptyList();
         }
 
-        // Lấy tất cả feedback thuộc quyền quản lý của POLICE và thuộc phường của cán bộ
-        return feedbackRepository.findByManagedByRoleAndWardId("POLICE", policeUser.getWard().getId(), org.springframework.data.domain.PageRequest.of(0, 1000))
-                .getContent().stream()
-                .filter(f -> f.getLatitude() != null && f.getLongitude() != null)
+        // Calculate date range
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        int targetYear = (year != null) ? year : now.getYear();
+        int targetMonth = (month != null) ? month : now.getMonthValue();
+        
+        java.time.YearMonth yearMonth = java.time.YearMonth.of(targetYear, targetMonth);
+        java.time.LocalDateTime startDate = yearMonth.atDay(1).atStartOfDay();
+        java.time.LocalDateTime endDate = yearMonth.atEndOfMonth().atTime(23, 59, 59, 999999999);
+
+        // Lấy tất cả feedback thuộc quyền quản lý của POLICE, thuộc phường, có toạ độ, trong tháng
+        return feedbackRepository.findHotspots("POLICE", policeUser.getWard().getId(), startDate, endDate)
+                .stream()
                 .map(f -> {
                     // Đánh trọng số: Việc khẩn cấp/chưa xử lý = 3, Đang xử lý = 2, Đã xong/Từ chối = 1
                     int weight = 1;
@@ -98,6 +126,7 @@ public class PoliceFeedbackService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy user công an: " + username));
                 
         validatePolicePermission(policeUser, feedback);
+        validateTransition(feedback.getStatus(), FeedbackStatus.ASSIGNED);
 
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setAssignee(policeUser);
@@ -130,6 +159,14 @@ public class PoliceFeedbackService {
         User policeUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy user: " + username));
         validatePolicePermission(policeUser, feedback);
+        validateTransition(feedback.getStatus(), request.getStatus());
+
+        if (request.getStatus() == FeedbackStatus.RESOLVED) {
+            boolean hasEvidence = attachmentRepository.existsByFeedbackIdAndAttachmentPurpose(feedbackId, "RESOLUTION_EVIDENCE");
+            if (!hasEvidence) {
+                throw new com.example.smartcity.common.exception.CustomException("Vui lòng đính kèm hình ảnh hoặc video bằng chứng xử lý trước khi hoàn tất.", org.springframework.http.HttpStatus.BAD_REQUEST.value());
+            }
+        }
 
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setStatus(request.getStatus());
@@ -151,11 +188,15 @@ public class PoliceFeedbackService {
         User policeUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy user: " + username));
         validatePolicePermission(policeUser, feedback);
+        validateTransition(feedback.getStatus(), FeedbackStatus.RESOLVED);
+
+        boolean hasEvidence = attachmentRepository.existsByFeedbackIdAndAttachmentPurpose(feedbackId, "RESOLUTION_EVIDENCE");
+        if (!hasEvidence) {
+            throw new com.example.smartcity.common.exception.CustomException("Vui lòng đính kèm hình ảnh hoặc video bằng chứng xử lý trước khi hoàn tất.", org.springframework.http.HttpStatus.BAD_REQUEST.value());
+        }
 
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setStatus(FeedbackStatus.RESOLVED);
-        // Tạm thời nối kết quả vào description, sau này kết nối bảng FeedbackMedia/FeedbackResult
-        feedback.setDescription(feedback.getDescription() + "\n\n[KẾT QUẢ XỬ LÝ]: " + request.getResultNote());
         feedback.setUpdatedAt(LocalDateTime.now());
         
         Feedback updated = feedbackRepository.save(feedback);
@@ -185,6 +226,7 @@ public class PoliceFeedbackService {
         User policeUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy user: " + username));
         validatePolicePermission(policeUser, feedback);
+        validateTransition(feedback.getStatus(), FeedbackStatus.REJECTED);
 
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setStatus(FeedbackStatus.REJECTED);
@@ -220,6 +262,7 @@ public class PoliceFeedbackService {
         User policeUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy user: " + username));
         validatePolicePermission(policeUser, feedback);
+        validateTransition(feedback.getStatus(), FeedbackStatus.WAITING_INFO);
 
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.setStatus(FeedbackStatus.WAITING_INFO);
@@ -255,7 +298,7 @@ public class PoliceFeedbackService {
     /**
      * Phân tích và gom nhóm các phản ánh trùng lặp bằng AI
      */
-    public List<com.example.smartcity.modules.police.dto.AiDeduplicationResponse> analyzeDuplicates(String username) {
+    public List<com.example.smartcity.modules.police.dto.AiDeduplicationResponse> analyzeDuplicates(String username, int month, int year) {
         User policeUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy user công an: " + username));
 
@@ -263,13 +306,16 @@ public class PoliceFeedbackService {
             return java.util.Collections.emptyList();
         }
 
-        // Lấy danh sách phản ánh đang chờ xử lý của phường
-        List<Feedback> feedbacks = feedbackRepository.findByManagedByRoleAndWardId(
-                "POLICE", policeUser.getWard().getId(), org.springframework.data.domain.PageRequest.of(0, 50))
-                .getContent();
+        java.time.YearMonth yearMonth = java.time.YearMonth.of(year, month);
+        java.time.LocalDateTime startDate = yearMonth.atDay(1).atStartOfDay();
+        java.time.LocalDateTime endDate = yearMonth.atEndOfMonth().atTime(23, 59, 59);
 
-        if (feedbacks.size() < 2) {
-            return java.util.Collections.emptyList(); // Không đủ để gom nhóm
+        // Lấy danh sách phản ánh đang chờ xử lý của phường trong tháng được chọn
+        List<Feedback> feedbacks = feedbackRepository.findPendingForAiAnalysis(
+                "POLICE", policeUser.getWard().getId(), startDate, endDate);
+
+        if (feedbacks.size() < 3) {
+            return java.util.Collections.emptyList(); // Không đủ để gom nhóm (cần >= 3)
         }
 
         // Chuẩn bị dữ liệu gửi cho AI
@@ -280,8 +326,9 @@ public class PoliceFeedbackService {
         }
 
         String systemPrompt = "Bạn là AI phân tích dữ liệu đô thị. Nhiệm vụ của bạn là tìm các phản ánh trùng lặp (miêu tả cùng một sự cố tại cùng một vị trí). " +
+                "CHÚ Ý QUAN TRỌNG: Chỉ tạo nhóm nếu có TỪ 3 PHẢN ÁNH TRỞ LÊN giống hệt nhau. Nếu chỉ có 2 phản ánh giống nhau, hãy BỎ QUA và không đưa vào kết quả. " +
                 "Chỉ trả về DUY NHẤT một mảng JSON (không có markdown, không giải thích). " +
-                "Định dạng JSON yêu cầu: [{\"groupId\": \"Tên nhóm sự cố\", \"feedbackIds\": [danh sách các ID trùng lặp], \"matchScore\": điểm_tương_đồng_từ_0_đến_100, \"reason\": \"Lý do ngắn gọn\"}]";
+                "Định dạng JSON yêu cầu: [{\"groupId\": \"Tên nhóm sự cố\", \"feedbackIds\": [danh sách các ID trùng lặp (phải có ít nhất 3 ID)], \"matchScore\": điểm_tương_đồng_từ_0_đến_100, \"reason\": \"Lý do ngắn gọn\"}]";
 
         try {
             // Lấy provider tốt nhất (VD: userId = 1 để mock)

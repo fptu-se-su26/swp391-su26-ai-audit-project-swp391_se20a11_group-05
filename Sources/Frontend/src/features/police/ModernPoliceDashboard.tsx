@@ -731,7 +731,10 @@ export function ModernPoliceDashboard() {
     return "CÔNG AN PHƯỜNG NGŨ HÀNH SƠN";
   }, [user]);
 
-  const { data: hotspots } = useHotspots();
+  const [hotspotMonth, setHotspotMonth] = useState<number>(new Date().getMonth() + 1);
+  const [hotspotYear, setHotspotYear] = useState<number>(new Date().getFullYear());
+
+  const { data: hotspots } = useHotspots({ month: hotspotMonth, year: hotspotYear });
   const { data: feedbacksData } = usePoliceAssignedFeedbacks();
   const [filterStatus, setFilterStatus] = useState<
     "ALL" | "PENDING" | "ASSIGNED" | "IN_PROGRESS" | "RESOLVED" | "REJECTED"
@@ -954,7 +957,7 @@ export function ModernPoliceDashboard() {
     const allGroupedIds = new Set<number>();
 
     Object.values(contentGroups).forEach((items) => {
-      if (items.length >= 2) {
+      if (items.length >= 3) {
         items.forEach((item) => allGroupedIds.add(item.id));
         const rep: any = { ...items[0] };
         rep._groupCount = items.length;
@@ -1768,6 +1771,35 @@ export function ModernPoliceDashboard() {
                         ) : (
                           <ChevronDown size={14} style={{ color: colors.primaryNavy }} />
                         )}
+                      </div>
+                      
+                      {/* Month and Year Selectors */}
+                      <div className="flex items-center gap-1 mb-3">
+                        <select
+                          className="text-[11px] font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded px-1.5 py-1 outline-none w-full"
+                          value={hotspotMonth}
+                          onChange={(e) => setHotspotMonth(Number(e.target.value))}
+                        >
+                          {Array.from({ length: 12 }, (_, i) => (
+                            <option key={i + 1} value={i + 1}>
+                              Tháng {i + 1}
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          className="text-[11px] font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded px-1.5 py-1 outline-none w-full"
+                          value={hotspotYear}
+                          onChange={(e) => setHotspotYear(Number(e.target.value))}
+                        >
+                          {Array.from({ length: 5 }, (_, i) => {
+                            const y = new Date().getFullYear() - i;
+                            return (
+                              <option key={y} value={y}>
+                                Năm {y}
+                              </option>
+                            );
+                          })}
+                        </select>
                       </div>
                       {isMapFilterOpen && (
                         <div className="space-y-2.5 text-[11px] font-medium text-slate-700 animate-in fade-in slide-in-from-top-2">

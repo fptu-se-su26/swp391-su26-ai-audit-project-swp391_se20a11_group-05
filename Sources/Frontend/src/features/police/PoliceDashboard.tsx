@@ -279,7 +279,10 @@ export function PoliceDashboard() {
     isLoading: feedbacksLoading,
     refetch,
   } = usePoliceAssignedFeedbacks();
-  const { data: hotspots } = useHotspots();
+  const [hotspotMonth, setHotspotMonth] = useState<number>(new Date().getMonth() + 1);
+  const [hotspotYear, setHotspotYear] = useState<number>(new Date().getFullYear());
+
+  const { data: hotspots } = useHotspots({ month: hotspotMonth, year: hotspotYear });
   const { data: notifications = [], isLoading: notifLoading } = useNotifications();
   const { data: unreadCountData } = useNotificationUnreadCount(!!user);
   const markRead = useMarkNotificationReadMutation();
@@ -735,6 +738,8 @@ export function PoliceDashboard() {
           sidebarCollapsed ? "md:pl-[76px]" : "md:pl-[240px]"
         }`}
       >
+      >
+
         {/* ─── 2. TOP WHITE HEADER ─── */}
         <header className="h-[76px] bg-white border-b border-[#E4EAF2] flex items-center justify-between px-6 sticky top-0 z-35 shadow-sm shrink-0">
           {/* Title & Hamburger */}
@@ -999,6 +1004,33 @@ export function PoliceDashboard() {
                         <span className="w-2.5 h-2.5 rounded-full bg-[#dc3545]" />
                         Bản đồ Điểm nóng vi phạm (Heatmap)
                       </h3>
+                      <div className="flex items-center gap-2">
+                        <select
+                          className="text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded px-2 py-1 outline-none"
+                          value={hotspotMonth}
+                          onChange={(e) => setHotspotMonth(Number(e.target.value))}
+                        >
+                          {Array.from({ length: 12 }, (_, i) => (
+                            <option key={i + 1} value={i + 1}>
+                              Tháng {i + 1}
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          className="text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded px-2 py-1 outline-none"
+                          value={hotspotYear}
+                          onChange={(e) => setHotspotYear(Number(e.target.value))}
+                        >
+                          {Array.from({ length: 5 }, (_, i) => {
+                            const y = new Date().getFullYear() - i;
+                            return (
+                              <option key={y} value={y}>
+                                {y}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </div>
                     </div>
                     <div className="flex-1 bg-slate-50 relative p-4">
                       <Suspense

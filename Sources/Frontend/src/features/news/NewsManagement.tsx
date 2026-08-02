@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import { useNewsList, useCreateNews, useUpdateNews, useDeleteNews } from "@/hooks/useNews";
 import type { NewsResponse } from "@/lib/api";
@@ -17,10 +17,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
-import { toast } from "sonner";
-import { compressImageIfNeeded } from "@/lib/imageCompression";
-import ReactQuill from "react-quill-new";
-import "react-quill-new/dist/quill.snow.css";
+import { CreateNewsModal } from "./CreateNewsModal";
 
 const API_BASE: string =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) || "";
@@ -33,9 +30,7 @@ export function NewsManagement() {
   const [selectedCategory, setSelectedCategory] = useState("");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingId, setEditingId] = useState<number | string | null>(null);
-  const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
-  const [isUploading, setIsUploading] = useState(false);
+  const [editingNews, setEditingNews] = useState<NewsResponse | null>(null);
   const [viewingNews, setViewingNews] = useState<NewsResponse | null>(null);
 
   // Debounce từ khóa tìm kiếm để tránh gọi API theo từng phím gõ
@@ -46,14 +41,6 @@ export function NewsManagement() {
     }, 400);
     return () => clearTimeout(timer);
   }, [searchInput]);
-
-  const [formData, setFormData] = useState({
-    title: "",
-    summary: "",
-    content: "",
-    category: "",
-    imageUrl: "",
-  });
 
   const { data: newsData, isLoading } = useNewsList(
     page,
@@ -74,7 +61,7 @@ export function NewsManagement() {
   }, [newsData, page]);
 
   const isPolice = user?.role === "POLICE";
-  const categories = isPolice
+  const categories = useMemo(() => isPolice
     ? ["An ninh - Trật tự", "Thông báo"]
     : [
         "Thông báo",
@@ -83,137 +70,20 @@ export function NewsManagement() {
         "Hạ tầng - Đô thị",
         "Kinh tế - Xã hội",
         "An ninh - Trật tự",
-        "Khác",
         "Hướng dẫn",
         "Tin tức",
-      ];
-
-  const handleOpenModal = (news?: NewsResponse, tab: "edit" | "preview" = "edit") => {
-    setActiveTab(tab);
-    if (news) {
-      setEditingId(news.id);
-      setFormData({
-        title: news.title,
-        summary: news.summary || "",
-        content: news.content,
-        category: news.category,
-        imageUrl: news.imageUrl || "",
-      });
-    } else {
-      setEditingId(null);
-      setFormData({
-        title: "",
-        summary: "",
-        content: "",
-        category: categories[0],
-        imageUrl: "",
-      });
-    }
+      ], [isPolice]);
+  const handleOpenModal = (news?: NewsResponse) => {
+    setEditingNews(news || null);
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    setEditingId(null);
+    setEditingNews(null);
   };
 
-  const MAX_IMAGE_SIZE_MB = 5;
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    // Reset để chọn lại cùng một file vẫn kích hoạt onChange
-    e.target.value = "";
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      toast.error("Vui lòng chọn tệp hình ảnh");
-      return;
-    }
-    if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
-      toast.error(`Ảnh vượt quá dung lượng cho phép (${MAX_IMAGE_SIZE_MB}MB)`);
-      return;
-    }
-
-    const token = localStorage.getItem("dn_jwt_token");
-    const formDataObj = new FormData();
-    const compressedFile = await compressImageIfNeeded(file);
-    formDataObj.append("file", compressedFile);
-
-    setIsUploading(true);
-    try {
-      const response = await fetch(`${API_BASE}/api/files/upload`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formDataObj,
-      });
-
-      if (!response.ok) throw new Error("Upload failed");
-      const data = await response.json();
-      const fileUrl = data.data?.fileUrl || data.fileUrl;
-
-      if (fileUrl) {
-        setFormData((prev) => ({ ...prev, imageUrl: fileUrl }));
-        toast.success("Upload ảnh thành công");
-      } else {
-        toast.error("Máy chủ không trả về đường dẫn ảnh");
-      }
-    } catch (error) {
-      toast.error("Lỗi khi upload ảnh");
-      console.error(error);
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  // Nội dung Quill coi là rỗng khi bỏ hết thẻ HTML không còn chữ nào
-  // và cũng không nhúng ảnh/video
-  const isContentEmpty = (html: string) =>
-    !html || (html.replace(/<[^>]*>/g, "").trim() === "" && !/<(img|iframe|video)\b/i.test(html));
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isUploading) {
-      toast.error("Vui lòng chờ upload ảnh hoàn tất");
-      return;
-    }
-    const payload = {
-      ...formData,
-      title: formData.title.trim(),
-      summary: formData.summary.trim(),
-    };
-    if (!payload.title) {
-      toast.error("Vui lòng nhập tiêu đề tin tức");
-      return;
-    }
-    if (isContentEmpty(payload.content)) {
-      toast.error("Vui lòng nhập nội dung chi tiết");
-      return;
-    }
-
-    if (editingId) {
-      updateMutation.mutate({ id: editingId, data: payload }, { onSuccess: handleCloseModal });
-    } else {
-      createMutation.mutate(payload, { onSuccess: handleCloseModal });
-    }
-  };
-
-  const handleDelete = (id: number | string) => {
-    if (confirm("Bạn có chắc chắn muốn xóa tin tức này?")) {
-      deleteMutation.mutate(id);
-    }
-  };
-
-  const quillModules = {
-    toolbar: [
-      [{ header: [1, 2, 3, false] }],
-      ["bold", "italic", "underline", "strike"],
-      [{ list: "ordered" }, { list: "bullet" }],
-      ["link", "image"],
-      ["clean"],
-    ],
-  };
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-[#E4EAF2] flex flex-col h-full min-h-[500px]">
@@ -369,7 +239,7 @@ export function NewsManagement() {
                             <Eye size={18} />
                           </button>
                           <button
-                            onClick={() => handleOpenModal(item, "edit")}
+                            onClick={() => handleOpenModal(item)}
                             className="p-1.5 text-slate-400 hover:text-[#0F5BD8] hover:bg-blue-50 rounded-lg transition-colors"
                             title="Chỉnh sửa tin tức"
                           >
@@ -431,254 +301,12 @@ export function NewsManagement() {
         )}
       </div>
 
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
-            <div className="px-6 py-5 border-b border-[#E4EAF2] flex items-center justify-between shrink-0 bg-slate-50 rounded-t-2xl">
-              <div>
-                <h3 className="text-lg font-extrabold text-[#0B2545]">
-                  {editingId ? "Chỉnh sửa tin tức" : "Đăng tải tin tức mới"}
-                </h3>
-                <p className="text-xs text-slate-500 mt-1 font-medium">
-                  Vui lòng điền đầy đủ các thông tin bắt buộc (*)
-                </p>
-              </div>
-              <button
-                onClick={handleCloseModal}
-                className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="px-6 pt-4 border-b border-[#E4EAF2] flex gap-4 shrink-0">
-              <button
-                onClick={() => setActiveTab("edit")}
-                className={`flex items-center gap-2 pb-3 font-bold text-sm border-b-2 transition-colors ${
-                  activeTab === "edit"
-                    ? "border-[#0F5BD8] text-[#0F5BD8]"
-                    : "border-transparent text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                <Code size={16} />
-                Soạn thảo
-              </button>
-              <button
-                onClick={() => setActiveTab("preview")}
-                className={`flex items-center gap-2 pb-3 font-bold text-sm border-b-2 transition-colors ${
-                  activeTab === "preview"
-                    ? "border-[#0F5BD8] text-[#0F5BD8]"
-                    : "border-transparent text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                <Eye size={16} />
-                Xem trước
-              </button>
-            </div>
-
-            <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
-              {activeTab === "edit" ? (
-                <form id="news-form" onSubmit={handleSubmit} className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-bold text-[#0B2545] mb-1.5">
-                      Tiêu đề tin tức <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.title}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
-                      className="w-full border border-[#E4EAF2] rounded-xl px-4 py-2.5 text-sm focus:border-[#0F5BD8] focus:ring-1 focus:ring-[#0F5BD8] outline-none transition-all placeholder:text-slate-400"
-                      placeholder="Nhập tiêu đề rõ ràng, súc tích..."
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-5 bg-slate-50 rounded-xl border border-slate-100">
-                    <div>
-                      <label className="block text-sm font-bold text-[#0B2545] mb-1.5">
-                        Chuyên mục <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <select
-                          required
-                          value={formData.category}
-                          onChange={(e) =>
-                            setFormData((prev) => ({ ...prev, category: e.target.value }))
-                          }
-                          className="w-full border border-[#E4EAF2] rounded-xl px-4 py-2.5 text-sm appearance-none focus:border-[#0F5BD8] focus:ring-1 focus:ring-[#0F5BD8] outline-none bg-white transition-all font-medium text-slate-700"
-                        >
-                          {!formData.category && (
-                            <option value="" disabled>
-                              -- Chọn chuyên mục --
-                            </option>
-                          )}
-                          {/* Giữ chuyên mục hiện tại của bài viết nếu nằm ngoài danh sách được phép (vd: Công an sửa tin cũ) */}
-                          {formData.category && !categories.includes(formData.category) && (
-                            <option value={formData.category}>{formData.category}</option>
-                          )}
-                          {categories.map((c) => (
-                            <option key={c} value={c}>
-                              {c}
-                            </option>
-                          ))}
-                        </select>
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                          <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="m6 9 6 6 6-6" />
-                          </svg>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-bold text-[#0B2545] mb-1.5">
-                        Ảnh đại diện
-                      </label>
-                      <div className="flex items-center gap-3">
-                        <label
-                          className={`bg-white border border-[#E4EAF2] text-[#0F5BD8] rounded-xl px-4 py-2.5 flex items-center justify-center gap-2 text-sm font-bold transition-all w-full md:w-auto shadow-sm ${
-                            isUploading
-                              ? "cursor-wait opacity-60"
-                              : "cursor-pointer hover:bg-blue-50 hover:border-blue-200"
-                          }`}
-                        >
-                          {isUploading ? (
-                            <div className="w-4 h-4 border-2 border-[#0F5BD8]/30 border-t-[#0F5BD8] rounded-full animate-spin" />
-                          ) : (
-                            <ImageIcon size={18} />
-                          )}
-                          <span>{isUploading ? "Đang tải ảnh..." : "Tải ảnh lên"}</span>
-                          <input
-                            type="file"
-                            className="hidden"
-                            accept="image/*"
-                            disabled={isUploading}
-                            onChange={handleFileChange}
-                          />
-                        </label>
-                        {formData.imageUrl && (
-                          <div className="relative w-11 h-11 rounded-lg overflow-hidden border border-slate-200 shadow-sm shrink-0 group">
-                            <img
-                              src={formData.imageUrl}
-                              alt="preview"
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-[#0B2545] mb-1.5">
-                      Tóm tắt ngắn <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                      required
-                      rows={2}
-                      value={formData.summary}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, summary: e.target.value }))
-                      }
-                      className="w-full border border-[#E4EAF2] rounded-xl px-4 py-3 text-sm focus:border-[#0F5BD8] focus:ring-1 focus:ring-[#0F5BD8] outline-none transition-all placeholder:text-slate-400 resize-none"
-                      placeholder="Nhập 1-2 câu tóm tắt nội dung chính để hiển thị trên danh sách..."
-                    />
-                  </div>
-
-                  <div className="flex flex-col">
-                    <label className="block text-sm font-bold text-[#0B2545] mb-1.5 flex justify-between items-end">
-                      <span>
-                        Nội dung chi tiết <span className="text-red-500">*</span>
-                      </span>
-                      <span className="text-xs font-normal text-slate-400">
-                        Hỗ trợ định dạng Rich Text
-                      </span>
-                    </label>
-                    <div className="border border-[#E4EAF2] rounded-xl overflow-hidden focus-within:border-[#0F5BD8] focus-within:ring-1 focus-within:ring-[#0F5BD8] transition-all bg-white min-h-[300px]">
-                      <ReactQuill
-                        theme="snow"
-                        value={formData.content}
-                        onChange={(content: string) =>
-                          setFormData((prev) => ({ ...prev, content }))
-                        }
-                        modules={quillModules}
-                        className="h-full border-none"
-                        placeholder="Nhập nội dung bài viết phong phú tại đây..."
-                      />
-                    </div>
-                  </div>
-                </form>
-              ) : (
-                <div className="bg-white border border-[#E4EAF2] rounded-2xl p-6 md:p-10 shadow-sm max-w-3xl mx-auto">
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#EFF6FF] text-[#0F5BD8] mb-4">
-                    {formData.category || "Chuyên mục"}
-                  </span>
-                  <h1 className="text-2xl md:text-3xl font-extrabold text-[#0B2545] mb-4 leading-tight">
-                    {formData.title || "Tiêu đề bài viết sẽ hiển thị ở đây"}
-                  </h1>
-                  <p className="text-slate-500 font-medium mb-6 text-lg border-l-4 border-[#E4EAF2] pl-4">
-                    {formData.summary || "Tóm tắt bài viết sẽ hiển thị ở đây."}
-                  </p>
-
-                  {formData.imageUrl && (
-                    <div className="w-full aspect-video rounded-xl overflow-hidden mb-8">
-                      <img
-                        src={formData.imageUrl}
-                        alt="cover"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  )}
-
-                  <div
-                    className="prose prose-slate prose-blue max-w-none prose-img:rounded-xl prose-headings:text-[#0B2545] prose-a:text-[#0F5BD8]"
-                    dangerouslySetInnerHTML={{
-                      __html: formData.content
-                        ? sanitizeNewsHtml(formData.content)
-                        : "<p class='text-slate-400 italic'>Nội dung bài viết sẽ hiển thị ở đây...</p>",
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="px-6 py-4 border-t border-[#E4EAF2] flex justify-end gap-3 shrink-0 bg-slate-50 rounded-b-2xl">
-              <button
-                type="button"
-                onClick={handleCloseModal}
-                className="px-5 py-2.5 border border-[#E4EAF2] bg-white rounded-xl text-slate-600 hover:bg-slate-50 hover:text-slate-800 font-bold transition-colors"
-              >
-                Hủy bỏ
-              </button>
-              {activeTab === "edit" && (
-                <button
-                  type="submit"
-                  form="news-form"
-                  disabled={createMutation.isPending || updateMutation.isPending || isUploading}
-                  className="px-6 py-2.5 bg-[#0F5BD8] hover:bg-[#0B4FC4] text-white rounded-xl font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center justify-center min-w-[120px]"
-                >
-                  {createMutation.isPending || updateMutation.isPending ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  ) : editingId ? (
-                    "Cập nhật"
-                  ) : (
-                    "Đăng tin tức"
-                  )}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <CreateNewsModal 
+        isOpen={isModalOpen} 
+        onClose={handleCloseModal} 
+        editingNews={editingNews} 
+        categories={categories} 
+      />
 
       {viewingNews && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-in fade-in duration-200">
@@ -759,28 +387,6 @@ export function NewsManagement() {
         </div>
       )}
 
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-        .ql-toolbar.ql-snow {
-          border: none !important;
-          border-bottom: 1px solid #E4EAF2 !important;
-          background-color: #F8FAFD;
-          border-radius: 0.75rem 0.75rem 0 0;
-          padding: 12px !important;
-        }
-        .ql-container.ql-snow {
-          border: none !important;
-          font-family: inherit !important;
-          font-size: 0.875rem !important;
-        }
-        .ql-editor {
-          min-height: 250px;
-          padding: 1rem !important;
-        }
-      `,
-        }}
-      />
     </div>
   );
 }

@@ -63,6 +63,14 @@ import {
 } from "lucide-react";
 import { lazy, Suspense } from "react";
 import { staticNews, staticFaqs } from "@/lib/static-content";
+import { CityBanner } from "@/components/site/portal/CityBanner";
+import { QuickPortals } from "@/components/site/portal/QuickPortals";
+import { DirectivesAndSchedule } from "@/components/site/portal/DirectivesAndSchedule";
+import { ActionBanner } from "@/components/site/portal/ActionBanner";
+import { FourColumnInfo } from "@/components/site/portal/FourColumnInfo";
+import { DisasterContactDirectory } from "@/components/site/portal/DisasterContactDirectory";
+import { ScheduleList } from "@/components/site/portal/ScheduleList";
+import { EmergencyHotlines } from "@/components/site/portal/EmergencyHotlines";
 
 const CivicMap = clientOnly(
   () => import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
@@ -787,6 +795,29 @@ function HomePage() {
 
       {/* Main page content below hero */}
       <div className="max-w-[1360px] mx-auto w-full px-4 md:px-8 py-10 md:py-14 space-y-10">
+        
+        {/* Original Government Portal Section */}
+        <section className="animate-fade-in-up stagger-1 mb-12">
+          <CityBanner />
+          <QuickPortals />
+          <DirectivesAndSchedule />
+        </section>
+
+        {/* New Government Portal Features */}
+        <section className="animate-fade-in-up stagger-1 mb-12">
+          <ActionBanner />
+          <FourColumnInfo />
+          
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
+            <div className="lg:col-span-8">
+               <DisasterContactDirectory />
+            </div>
+            <div className="lg:col-span-4">
+               <ScheduleList />
+            </div>
+          </div>
+        </section>
+
         {/* Section 1 — PHẢN ÁNH THEO LĨNH VỰC */}
         <section className="animate-fade-in-up stagger-1">
           <div className="flex items-center gap-2 mb-5">
@@ -1518,6 +1549,9 @@ function HomePage() {
             </div>
           </section>
         </div>
+
+        {/* Emergency Hotlines */}
+        <EmergencyHotlines />
 
         {/* Section 3: Public-service Trust-Benefit Strip */}
         <section className="bg-white rounded-2xl border border-[#E4EAF2] py-6 px-6 animate-fade-in-up stagger-4">

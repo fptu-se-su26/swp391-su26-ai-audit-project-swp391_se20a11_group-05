@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
-
+@import "react-quill-new/dist/quill.snow.css";
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -163,6 +163,10 @@
 
   .text-ink-soft {
     color: var(--color-ink-soft);
+  }
+
+  .civic-gradient {
+    background: linear-gradient(135deg, var(--color-gov-blue), var(--color-gov-blue-deep));
   }
 
   .bg-gov-blue {
@@ -464,3 +468,67 @@
   height: 0 !important;
 }
 
+/* 
+ * React Quill + Tailwind SVG Fixes
+ * Tailwind resets SVG display and fill properties, causing React Quill toolbar SVGs to break.
+ */
+.ql-toolbar svg {
+  width: 18px !important;
+  height: 18px !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+}
+
+.ql-toolbar .ql-stroke {
+  fill: none !important;
+  stroke: #4B5563 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  stroke-width: 2 !important;
+}
+
+.ql-toolbar .ql-fill {
+  fill: #4B5563 !important;
+  stroke: none !important;
+}
+
+.ql-toolbar .ql-picker-label {
+  display: flex !important;
+  align-items: center !important;
+}
+
+.ql-toolbar .ql-picker-label svg {
+  position: absolute !important;
+  right: 0 !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  margin-top: 0 !important;
+}
+
+.ql-toolbar button:hover .ql-stroke,
+.ql-toolbar button:focus .ql-stroke,
+.ql-toolbar button.ql-active .ql-stroke,
+.ql-toolbar .ql-picker-label:hover .ql-stroke,
+.ql-toolbar .ql-picker-label.ql-active .ql-stroke,
+.ql-toolbar .ql-picker-item:hover .ql-stroke,
+.ql-toolbar .ql-picker-item.ql-selected .ql-stroke {
+  stroke: #1E4ED8 !important;
+}
+
+.ql-toolbar button:hover .ql-fill,
+.ql-toolbar button:focus .ql-fill,
+.ql-toolbar button.ql-active .ql-fill,
+.ql-toolbar .ql-picker-label:hover .ql-fill,
+.ql-toolbar .ql-picker-label.ql-active .ql-fill,
+.ql-toolbar .ql-picker-item:hover .ql-fill,
+.ql-toolbar .ql-picker-item.ql-selected .ql-fill {
+  fill: #1E4ED8 !important;
+}
+
+/* React Quill Template Fixes */
+.ql-editor {
+  min-height: 500px;
+}
+.ql-editor td[style*="border: none"] {
+  border: none !important;
+}

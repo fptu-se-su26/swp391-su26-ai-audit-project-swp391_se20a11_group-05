@@ -357,16 +357,10 @@ export function Header() {
 
   return (
     <>
-<<<<<<< HEAD
       {/* MAIN REDESIGNED HEADER */}
       <header className="sticky top-0 z-50 bg-white border-b border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.03)] h-[72px]">
         <div className="w-full px-[32px] h-full flex items-center justify-between">
           {/* LEFT */}
-=======
-      <header className="sticky top-0 z-50 bg-white border-b border-[#E4EAF2] shadow-sm">
-        <div className="max-w-[1440px] mx-auto px-4 md:px-8 h-[76px] flex items-center justify-between">
-          {/* Left: Brand logo & text */}
->>>>>>> origin/Product
           <Link
             to={user ? getDashboardPathForRole(user.role) : "/"}
             className="flex items-center gap-3 shrink-0"

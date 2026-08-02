@@ -142,6 +142,12 @@ ALTER TABLE campaigns ALTER COLUMN announcement_mode SET NOT NULL;
 -- 19. Add avatar_url to users table
 ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(255);
 
+-- 20. Add view_count to feedbacks table
+ALTER TABLE feedbacks ADD COLUMN IF NOT EXISTS view_count INT;
+UPDATE feedbacks SET view_count = 0 WHERE view_count IS NULL;
+ALTER TABLE feedbacks ALTER COLUMN view_count SET DEFAULT 0;
+ALTER TABLE feedbacks ALTER COLUMN view_count SET NOT NULL;
+
 
 
 

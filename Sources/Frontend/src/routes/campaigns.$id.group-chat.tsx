@@ -506,7 +506,7 @@ function CampaignGroupChatPage() {
         const compressedFile = await compressImageIfNeeded(att.file);
         formData.append("file", compressedFile);
 
-        const res = await fetch(`${API_BASE}/api/files/upload`, {
+        const res = await fetch(`${API_BASE}/api/files/upload?folder=chat/${id}`, {
           method: "POST",
           headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: formData,

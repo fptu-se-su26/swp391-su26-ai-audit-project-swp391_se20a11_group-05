@@ -91,6 +91,11 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         Map.entry(FeedbackStatus.PRE_EMPTIVE,    Set.of())
     );
 
+    @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    public void incrementViewCount(Long id) {
+        feedbackRepository.incrementViewCount(id);
+    }
+
     @Override
     protected BaseRepository<Feedback, Long> getRepository() {
         return (BaseRepository<Feedback, Long>) feedbackRepository;
@@ -924,6 +929,47 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
     }
 
     @Transactional
+    public Feedback cancelFeedback(Long feedbackId, String username) {
+        Feedback feedback = findById(feedbackId);
+        User citizen = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User: " + username));
+
+        // 1. Kiểm tra quyền sở hữu: Chỉ người tạo phản ánh mới được hủy
+        if (feedback.getCitizen() == null || !feedback.getCitizen().getId().equals(citizen.getId())) {
+            throw new CustomException("Bạn không phải người tạo phản ánh này để thực hiện yêu cầu hủy.", HttpStatus.FORBIDDEN.value());
+        }
+
+        // 2. Kiểm tra trạng thái: Chỉ cho phép hủy khi chưa tiếp nhận
+        FeedbackStatus currentStatus = feedback.getStatus();
+        if (currentStatus == FeedbackStatus.ASSIGNED ||
+            currentStatus == FeedbackStatus.IN_PROGRESS ||
+            currentStatus == FeedbackStatus.WAITING_INFO ||
+            currentStatus == FeedbackStatus.RESOLVED ||
+            currentStatus == FeedbackStatus.REJECTED) {
+            throw new CustomException("Phản ánh đã được tiếp nhận hoặc đang được xử lý, không thể hủy.", HttpStatus.BAD_REQUEST.value());
+        }
+
+        // 3. Thực hiện hủy: Chuyển sang REJECTED và đặt publicVisible = false
+        LocalDateTime now = LocalDateTime.now();
+        feedback.setStatus(FeedbackStatus.REJECTED);
+        feedback.setPublicVisible(false);
+        feedback.setUpdatedAt(now);
+        Feedback saved = feedbackRepository.save(feedback);
+
+        // 4. Lưu lịch sử Log
+        FeedbackLog log = new FeedbackLog(feedback, citizen, currentStatus, FeedbackStatus.REJECTED, "Người dân chủ động hủy phản ánh");
+        log.setAction("CANCEL");
+        feedbackLogRepository.save(log);
+
+        // 5. Gửi WebSocket notification
+        webSocketNotificationService.notifyFeedbackStatusChange(
+                feedbackId, "REJECTED",
+                "Feedback #" + feedback.getTrackingCode() + " đã bị hủy bởi người dân");
+
+        return saved;
+    }
+
+    @Transactional
     public Feedback supplementInfo(Long feedbackId, String content, List<String> imageUrls, String username) {
         Feedback feedback = feedbackRepository.findById(feedbackId)
                 .orElseThrow(() -> new ResourceNotFoundException("Feedback", feedbackId));
@@ -1097,6 +1143,9 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
     private String resolveTimelineTitle(FeedbackLog log) {
         if ("SUBMIT".equals(log.getAction())) {
             return "Đã gửi phản ánh";
+        }
+        if ("CANCEL".equals(log.getAction())) {
+            return "Đã hủy phản ánh";
         }
         if ("PROVIDE_INFO".equals(log.getAction())) {
             return "Bổ sung thông tin";

@@ -40,13 +40,14 @@ import {
 } from "lucide-react";
 import { lazy, Suspense, useState, useMemo, useEffect, useRef } from "react";
 import { EmptyState, ErrorState } from "@/components/site/EmptyState";
-import { StatusBadge } from "@/components/site/StatusBadge";
+import { StatusBadge, getStatusLabel } from "@/components/site/StatusBadge";
 import {
   usePublicFeedbackDetail,
   useFeedbackStatuses,
   useChangeFeedbackStatus,
   useSupplementFeedbackInfo,
   usePublicFeedbacks,
+  useCancelFeedback,
 } from "@/lib/hooks";
 import { useI18n } from "@/lib/i18n";
 import { useCreateCampaign } from "@/hooks/useCampaigns";
@@ -88,6 +89,11 @@ function ReportDetail() {
   const { user } = useAuth();
   const { data: report, isLoading, isError, error, refetch } = usePublicFeedbackDetail(id);
   const canManageCampaignFromReport = user?.role === Role.WARD_STAFF;
+  const isCancelledByCitizen = useMemo(() => {
+    return (
+      report?.timeline?.some((log: { action?: string | null }) => log.action === "CANCEL") || false
+    );
+  }, [report?.timeline]);
 
   // Fetch public feedbacks in the same ward to find similar/nearby reports
   const { data: nearbyFeedbacksData } = usePublicFeedbacks(
@@ -147,6 +153,7 @@ function ReportDetail() {
 
   const changeStatusMutation = useChangeFeedbackStatus();
   const supplementMutation = useSupplementFeedbackInfo();
+  const cancelMutation = useCancelFeedback();
   const { data: statuses = [] } = useFeedbackStatuses();
   const [selectedStatus, setSelectedStatus] = useState<FeedbackStatus | "">("");
 
@@ -394,11 +401,6 @@ function ReportDetail() {
           ? "Đơn vị phụ trách đang xử lý hiện trường."
           : "Responsible unit is processing the site.",
         tone: currentStatusIndex >= 3 ? ("completed" as const) : ("pending" as const),
-        images: [
-          "https://images.unsplash.com/photo-1618477388954-7852f32655ec?auto=format&fit=crop&w=400&q=80",
-          "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=400&q=80",
-          "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80",
-        ],
       },
       {
         title: isVi ? "Đã xử lý xong" : "Resolved",
@@ -406,10 +408,6 @@ function ReportDetail() {
         actor: `Nguyễn Văn D (${isVi ? "Cán bộ Phường" : "Ward Officer"})`,
         note: isVi ? "Vấn đề đã được xử lý hoàn tất." : "The issue has been completely resolved.",
         tone: currentStatusIndex >= 4 ? ("completed" as const) : ("pending" as const),
-        images: [
-          "https://images.unsplash.com/photo-1473163928189-364b2c4e1135?auto=format&fit=crop&w=400&q=80",
-          "https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=400&q=80",
-        ],
       },
       {
         title: isVi ? "Chờ đánh giá của bạn" : "Waiting for Rating",
@@ -572,8 +570,6 @@ function ReportDetail() {
   // 4. Processing Timeline (preserves dynamic logs and enriches them with photos/details)
   const dynamicTimeline = buildTimeline(report.timeline ?? [], report.status, locale);
 
-
-
   // Merge database logs if present, otherwise use realistic timeline from the screenshot
   const timelineSteps = (() => {
     if (report.timeline && report.timeline.length > 0) {
@@ -605,7 +601,7 @@ function ReportDetail() {
                     return Math.abs(uploadTime - logTime) < 60000; // within 1 minute
                   })
                   .map((a) => a.fileUrl)
-              : matchingStatic?.images;
+              : undefined;
 
         let actorText = item.actorName || item.authorityName || (isVi ? "Cán bộ" : "Officer");
         if (item.actorName) {
@@ -633,13 +629,13 @@ function ReportDetail() {
     }
     return staticTimelineSteps.map((s) => {
       const isResolvedStep = s.title === "Đã xử lý xong" || s.title === "Resolved";
-      if (isResolvedStep && resolutionAttachments.length > 0) {
-        return {
-          ...s,
-          images: resolutionAttachments.map((a) => a.fileUrl),
-        };
-      }
-      return s;
+      return {
+        ...s,
+        images:
+          isResolvedStep && resolutionAttachments.length > 0
+            ? resolutionAttachments.map((a) => a.fileUrl)
+            : undefined,
+      };
     });
   })();
 
@@ -722,8 +718,6 @@ function ReportDetail() {
     }
   })();
 
-
-
   // Rating stars subtext
   const ratingTexts = [
     isVi ? "Rất không hài lòng" : "Very dissatisfied",
@@ -765,13 +759,23 @@ function ReportDetail() {
     }, 1500);
   };
 
-  const handleCancelRequest = () => {
+  const handleCancelRequest = async () => {
+    if (!report?.id) return;
     setShowCancelModal(false);
-    toast.success(
-      isVi
-        ? "Đã gửi yêu cầu hủy phản ánh. Yêu cầu đang được xem xét."
-        : "Cancel request submitted. Awaiting review.",
+
+    const loadingToast = toast.loading(
+      isVi ? "Đang gửi yêu cầu hủy..." : "Sending cancel request...",
     );
+    try {
+      await cancelMutation.mutateAsync(report.id);
+      toast.dismiss(loadingToast);
+      toast.success(isVi ? "Đã hủy phản ánh thành công!" : "Report cancelled successfully!");
+    } catch (err: any) {
+      toast.dismiss(loadingToast);
+      toast.error(
+        isVi ? err.message || "Lỗi khi hủy phản ánh." : err.message || "Error cancelling report.",
+      );
+    }
   };
 
   const handleSupplementPhotoSelected = (files: FileList | null) => {
@@ -843,7 +847,7 @@ function ReportDetail() {
       for (const file of supplementPhotos) {
         const formData = new FormData();
         formData.append("file", file);
-        const res = await fetch(`${API_BASE}/api/files/upload`, {
+        const res = await fetch(`${API_BASE}/api/files/upload?folder=feedback/${id}`, {
           method: "POST",
           headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: formData,
@@ -958,7 +962,7 @@ function ReportDetail() {
         </div>
 
         {/* ── REJECTED Banner ── */}
-        {report.status === "REJECTED" && (
+        {report.status === "REJECTED" && user && user.id === report.citizenId && (
           <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 p-5 flex flex-col sm:flex-row sm:items-start gap-4 animate-fade-in">
             <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 grid place-items-center">
               <XCircle size={26} className="text-red-500" />
@@ -1060,11 +1064,13 @@ function ReportDetail() {
                     className="min-h-[36px] px-2.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700 outline-none focus:border-[#0B4FC4] cursor-pointer"
                   >
                     {statuses.length === 0 ? (
-                      <option value={report.status}>{report.status}</option>
+                      <option value={report.status}>
+                        {getStatusLabel(report.status as any, locale)}
+                      </option>
                     ) : (
                       statuses.map((opt) => (
                         <option key={opt.value} value={opt.value}>
-                          {opt.label}
+                          {getStatusLabel(opt.value as any, locale)}
                         </option>
                       ))
                     )}
@@ -1082,7 +1088,14 @@ function ReportDetail() {
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <StatusBadge status={statusInfo} />
+                  {isCancelledByCitizen ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full tracking-wide bg-slate-100 text-slate-600 border border-slate-200">
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                      {isVi ? "Đã hủy" : "Cancelled"}
+                    </span>
+                  ) : (
+                    <StatusBadge status={statusInfo} />
+                  )}
                 </div>
               )}
             </div>
@@ -1288,6 +1301,7 @@ function ReportDetail() {
                 <ul className="space-y-8 relative">
                   {timelineSteps.map((step, index) => {
                     const isCompleted = step.tone === "completed";
+                    const isRejected = step.tone === "rejected";
                     const isActive =
                       isCompleted &&
                       (index === timelineSteps.length - 1 ||
@@ -1295,15 +1309,17 @@ function ReportDetail() {
 
                     const StepIcon = getTimelineStepIcon(step.title);
 
-                    const isNextCompleted =
-                      index < timelineSteps.length - 1 &&
-                      timelineSteps[index + 1].tone === "completed";
-
                     return (
                       <li key={index} className="relative group">
-                        {/* Connector Line Segment between completed steps */}
-                        {isNextCompleted && (
-                          <div className="absolute left-[-14.5px] sm:left-[-17.5px] top-8 sm:top-10 bottom-[-36px] w-0.5 bg-gradient-to-b from-emerald-500 to-green-500 z-0" />
+                        {/* Connector Line Segment between steps */}
+                        {index < timelineSteps.length - 1 && (
+                          <div
+                            className={`absolute left-[-14.5px] sm:left-[-17.5px] top-8 sm:top-10 bottom-[-36px] w-0.5 z-0 ${
+                              isCompleted && timelineSteps[index + 1].tone === "completed"
+                                ? "bg-gradient-to-b from-emerald-500 to-green-500"
+                                : "bg-slate-200"
+                            }`}
+                          />
                         )}
 
                         {/* Timeline Bullet Node */}
@@ -1313,7 +1329,9 @@ function ReportDetail() {
                               ? isActive
                                 ? "bg-[#0B4FC4] text-white ring-4 ring-blue-100/70"
                                 : "bg-[#22C55E] text-white shadow-[0_3px_8px_rgba(34,197,94,0.25)]"
-                              : "bg-slate-50 text-slate-400 border border-slate-200 shadow-inner"
+                              : isRejected
+                                ? "bg-[#EF4444] text-white shadow-[0_3px_8px_rgba(239,68,68,0.25)]"
+                                : "bg-slate-50 text-slate-400 border border-slate-200 shadow-inner"
                           }`}
                         >
                           <StepIcon size={13} className="sm:w-4 sm:h-4 stroke-[2.5]" />
@@ -1326,7 +1344,9 @@ function ReportDetail() {
                               ? "bg-blue-50/20 border-[#BFDBFE] shadow-sm"
                               : isCompleted
                                 ? "bg-white border-slate-100"
-                                : "bg-slate-50/50 border-slate-100 opacity-60"
+                                : isRejected
+                                  ? "bg-red-50/10 border-red-200 shadow-sm"
+                                  : "bg-slate-50/50 border-slate-100 opacity-60"
                           }`}
                         >
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-50 pb-2 mb-3">
@@ -1336,7 +1356,9 @@ function ReportDetail() {
                                   ? "text-[#0B4FC4]"
                                   : isCompleted
                                     ? "text-slate-800"
-                                    : "text-slate-400"
+                                    : isRejected
+                                      ? "text-red-600"
+                                      : "text-slate-400"
                               }`}
                             >
                               {step.title}
@@ -1356,7 +1378,7 @@ function ReportDetail() {
                           {/* Large inline images if present */}
                           {step.images && step.images.length > 0 && (
                             <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                              {step.images.map((imgUrl, imgIdx) => (
+                              {step.images.map((imgUrl: string, imgIdx: number) => (
                                 <a
                                   key={imgIdx}
                                   href={imgUrl}
@@ -1385,97 +1407,6 @@ function ReportDetail() {
                 </ul>
               </div>
             </div>
-
-            {/* 13. Citizen Rating Section */}
-            {(report.status === "RESOLVED" ||
-              (report.status as string) === "CLOSED" ||
-              id === "12345" ||
-              String(id).includes("12345")) && (
-              <div className="bg-white rounded-[20px] border border-[#E2E8F0] p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
-                <h3 className="text-base font-extrabold text-[#0B2545] border-b border-slate-50 pb-3 mb-4">
-                  {isVi ? "Đánh giá kết quả xử lý" : "Citizen Evaluation"}
-                </h3>
-
-                {!ratingSubmitted ? (
-                  <form onSubmit={handleRatingSubmit} className="space-y-4">
-                    <p className="text-xs sm:text-sm font-bold text-slate-500">
-                      {isVi
-                        ? "Bạn hài lòng với kết quả xử lý chứ?"
-                        : "Are you satisfied with the result?"}
-                    </p>
-
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                      {/* Interactive Stars */}
-                      <div className="flex items-center gap-1.5">
-                        {[1, 2, 3, 4, 5].map((star) => {
-                          const active =
-                            hoverRating !== null ? star <= hoverRating : star <= rating;
-                          return (
-                            <button
-                              key={star}
-                              type="button"
-                              onClick={() => setRating(star)}
-                              onMouseEnter={() => setHoverRating(star)}
-                              onMouseLeave={() => setHoverRating(null)}
-                              className="focus:outline-none transition-transform hover:scale-110 cursor-pointer"
-                            >
-                              <Star
-                                size={28}
-                                className={
-                                  active ? "fill-amber-400 text-amber-400" : "text-slate-300"
-                                }
-                              />
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <span className="text-xs font-extrabold text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full uppercase tracking-wider">
-                        {ratingTexts[rating - 1]}
-                      </span>
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
-                        {isVi ? "Nhận xét của bạn (không bắt buộc)" : "Your comments (optional)"}
-                      </label>
-                      <textarea
-                        value={feedbackText}
-                        onChange={(e) => setFeedbackText(e.target.value)}
-                        placeholder={
-                          isVi
-                            ? "Chia sẻ thêm ý kiến của bạn về quá trình xử lý..."
-                            : "Share your feedback about the process..."
-                        }
-                        className="w-full min-h-[100px] border border-slate-200 rounded-xl p-3.5 text-sm outline-none focus:border-[#0B4FC4] bg-slate-50/50 resize-none font-medium"
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      className="btn-civic btn-civic-primary min-h-[42px] px-6 text-xs cursor-pointer"
-                    >
-                      {isVi ? "Gửi đánh giá" : "Submit Rating"}
-                    </button>
-                  </form>
-                ) : (
-                  <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex gap-3 animate-fade-in">
-                    <CheckCircle2 className="text-[#22C55E] shrink-0" size={20} />
-                    <div className="flex-1">
-                      <h4 className="text-sm font-extrabold text-[#1B5E20]">
-                        {isVi
-                          ? "Cảm ơn bạn! Đánh giá của bạn đã được ghi nhận."
-                          : "Thank you! Your feedback has been recorded."}
-                      </h4>
-                      <p className="text-xs text-[#22C55E] font-medium mt-1 leading-relaxed">
-                        {isVi
-                          ? "Chúng tôi luôn lắng nghe ý kiến đóng góp từ người dân để hoàn thiện quy trình xử lý dịch vụ công tốt hơn."
-                          : "We always listen to citizens' feedback to improve our public services."}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
 
           {/* right column (sidebar) */}
@@ -1527,83 +1458,6 @@ function ReportDetail() {
                     (isVi ? "UBND phường Hòa Xuân" : "Hoa Xuan Ward People's Committee")
                   }
                 />
-              </div>
-            </div>
-
-            {/* 8. Processing Summary (Circular Ring & SLA) */}
-            <div className="bg-white rounded-[20px] border border-[#E2E8F0] p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
-              <h3 className="flex items-center gap-2 text-sm font-extrabold text-[#0B2545] border-b border-slate-50 pb-3 mb-3">
-                <Clock size={16} className="text-[#0B4FC4]" />
-                {isVi ? "Tổng quan xử lý" : "Processing Summary"}
-              </h3>
-
-              <div className="flex items-center gap-4 bg-slate-50/50 p-3 rounded-xl border border-slate-100 mb-4">
-                {/* SVG Progress Ring */}
-                <div className="relative flex items-center justify-center w-16 h-16 shrink-0">
-                  <svg className="w-16 h-16 transform -rotate-90">
-                    <circle
-                      cx="32"
-                      cy="32"
-                      r="26"
-                      stroke="#E2E8F0"
-                      strokeWidth="5"
-                      fill="transparent"
-                    />
-                    <circle
-                      cx="32"
-                      cy="32"
-                      r="26"
-                      stroke={
-                        slaInfo.isOverdue ? "#EF4444" : slaPercentage >= 80 ? "#22C55E" : "#0B4FC4"
-                      }
-                      strokeWidth="5"
-                      fill="transparent"
-                      strokeDasharray="163.36"
-                      strokeDashoffset={163.36 - (163.36 * slaPercentage) / 100}
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <span className="absolute text-[11px] font-extrabold text-slate-800">
-                    {slaPercentage}%
-                  </span>
-                </div>
-                <div>
-                  <h4 className="text-xs font-extrabold text-slate-700">
-                    {isVi ? "Hoàn thành giai đoạn" : "Stage Complete"}
-                  </h4>
-                  <p className={`text-[10px] font-semibold mt-0.5 ${slaInfo.statusColor}`}>
-                    {slaInfo.statusText}
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-2.5 text-xs">
-                <div className="flex justify-between border-b border-slate-50 pb-2">
-                  <span className="text-slate-400 font-semibold">
-                    {isVi ? "Hạn xử lý (SLA)" : "SLA Target"}
-                  </span>
-                  <span className="font-extrabold text-slate-700">{slaInfo.targetDateStr}</span>
-                </div>
-                <div className="flex justify-between border-b border-slate-50 pb-2">
-                  <span className="text-slate-400 font-semibold">
-                    {isVi ? "Còn lại" : "Remaining Time"}
-                  </span>
-                  <span
-                    className={`font-extrabold px-2 py-0.5 rounded border ${
-                      slaInfo.isOverdue
-                        ? "text-rose-600 bg-rose-50 border-rose-100"
-                        : "text-amber-600 bg-amber-50 border-amber-100"
-                    }`}
-                  >
-                    {slaInfo.remainingStr}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400 font-semibold">
-                    {isVi ? "Thời gian xử lý dự kiến" : "Expected duration"}
-                  </span>
-                  <span className="font-extrabold text-slate-700">{slaInfo.durationStr}</span>
-                </div>
               </div>
             </div>
 
@@ -1750,51 +1604,6 @@ function ReportDetail() {
                 </div>
               )
             )}
-            {/* 11. Similar Reports Section */}
-            <div className="bg-white rounded-[20px] border border-[#E2E8F0] p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
-              <h3 className="flex items-center gap-2 text-sm font-extrabold text-[#0B2545] border-b border-slate-50 pb-3 mb-3">
-                <AlertTriangle size={16} className="text-[#0B4FC4]" />
-                {isVi ? "Phản ánh tương tự gần đây" : "Similar Reports"}
-              </h3>
-
-              <div className="space-y-3.5">
-                {similarFeedbacks.length > 0 ? (
-                  similarFeedbacks.map((rep, idx) => {
-                    const style = getSimilarStatusStyle(rep.status);
-                    const label = getSimilarStatusLabel(rep.status, isVi);
-                    return (
-                      <Link
-                        key={rep.id || idx}
-                        to={`/my-reports/${rep.id}` as any}
-                        className="flex justify-between items-center bg-slate-50/30 p-2.5 rounded-xl border border-slate-100/50 hover:bg-blue-50/10 hover:border-blue-100 transition-all cursor-pointer group"
-                      >
-                        <div className="min-w-0 flex-1 pr-2">
-                          <span className="text-xs font-bold text-slate-700 block truncate group-hover:text-blue-600 transition-colors">
-                            {rep.title}
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">
-                            {rep.dist}
-                          </span>
-                        </div>
-                        <span
-                          className={`px-2 py-0.5 text-[9px] font-extrabold rounded-md border uppercase tracking-wider shrink-0 ${style}`}
-                        >
-                          {label}
-                        </span>
-                      </Link>
-                    );
-                  })
-                ) : (
-                  <div className="text-center py-6 px-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
-                    <span className="text-xs text-slate-400 font-semibold">
-                      {isVi
-                        ? "Không có phản ánh tương tự gần đây trên địa bàn."
-                        : "No similar reports found nearby."}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
 
             {/* 12. Quick Actions */}
             <div className="bg-white rounded-[20px] border border-[#E2E8F0] p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
@@ -1834,13 +1643,18 @@ function ReportDetail() {
                 </button>
               </div>
 
-              <button
-                onClick={() => setShowCancelModal(true)}
-                className="w-full mt-3 px-3.5 py-3 border border-red-200 bg-red-50/20 hover:bg-red-50 text-red-600 font-bold text-[11px] rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer min-h-[44px]"
-              >
-                <Trash2 size={15} />
-                {isVi ? "Yêu cầu hủy phản ánh" : "Cancel Request"}
-              </button>
+              {report &&
+                ["SUBMITTED", "PENDING", "PENDING_RECEIVE", "NEED_LOCATION_REVIEW"].includes(
+                  report.status,
+                ) && (
+                  <button
+                    onClick={() => setShowCancelModal(true)}
+                    className="w-full mt-3 px-3.5 py-3 border border-red-200 bg-red-50/20 hover:bg-red-50 text-red-600 font-bold text-[11px] rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer min-h-[44px]"
+                  >
+                    <Trash2 size={15} />
+                    {isVi ? "Yêu cầu hủy phản ánh" : "Cancel Request"}
+                  </button>
+                )}
             </div>
           </div>
         </div>
@@ -1954,12 +1768,12 @@ function ReportDetail() {
           <div className="bg-white rounded-[20px] max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-scale-in">
             <h3 className="text-lg font-extrabold text-red-600 border-b border-slate-100 pb-3 mb-4 flex items-center gap-2">
               <Trash2 size={20} />
-              {isVi ? "Hủy yêu cầu phản ánh?" : "Cancel reporting request?"}
+              {isVi ? "Hủy phản ánh?" : "Cancel reporting request?"}
             </h3>
             <p className="text-sm text-slate-600 font-semibold leading-relaxed mb-6">
               {isVi
-                ? "Bạn có chắc chắn muốn gửi yêu cầu hủy phản ánh này? Cơ quan chức năng sẽ dừng quá trình xử lý sau khi được duyệt."
-                : "Are you sure you want to submit a cancellation request? The authority will stop processing once approved."}
+                ? "Bạn có chắc chắn muốn hủy phản ánh này? Phản ánh sẽ lập tức dừng và không còn hiển thị công khai nữa."
+                : "Are you sure you want to cancel this report? It will stop immediately and will no longer be visible publicly."}
             </p>
             <div className="flex justify-end gap-2.5">
               <button

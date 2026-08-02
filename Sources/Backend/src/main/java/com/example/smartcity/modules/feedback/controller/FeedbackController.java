@@ -102,6 +102,8 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
         if (auth != null && !feedbackService.canAccessFeedback(feedback, auth.getName())) {
             throw new CustomException("Bạn không có quyền xem phản ánh này", 403);
         }
+        feedbackService.incrementViewCount(id);
+        feedback.setViewCount(feedback.getViewCount() + 1);
         return ResponseEntity.ok(toDetailResponse(feedback));
     }
 
@@ -119,6 +121,8 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
             @PathVariable Long feedbackId,
             Authentication authentication) {
         Feedback feedback = feedbackService.getMyFeedbackById(feedbackId, authentication.getName());
+        feedbackService.incrementViewCount(feedbackId);
+        feedback.setViewCount(feedback.getViewCount() + 1);
         return ResponseEntity.ok(toDetailResponse(feedback));
     }
 
@@ -262,6 +266,8 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
                 throw new com.example.smartcity.common.exception.ResourceNotFoundException("Feedback", id);
             }
         }
+        feedbackService.incrementViewCount(id);
+        feedback.setViewCount(feedback.getViewCount() + 1);
         return ResponseEntity.ok(toDetailResponse(feedback));
     }
 
@@ -304,6 +310,15 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
                 request.getImageUrls(),
                 authentication.getName()
         );
+        return ResponseEntity.ok(toDetailResponse(updated));
+    }
+
+    @PostMapping("/{id}/cancel")
+    @PreAuthorize("hasRole('CITIZEN')")
+    public ResponseEntity<FeedbackResponse> cancelFeedback(
+            @PathVariable Long id,
+            Authentication authentication) {
+        Feedback updated = feedbackService.cancelFeedback(id, authentication.getName());
         return ResponseEntity.ok(toDetailResponse(updated));
     }
 

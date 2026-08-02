@@ -41,14 +41,15 @@ public class FileController {
     @PostMapping("/upload")
     public ResponseEntity<UploadResponse> uploadFile(
             @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "folder", defaultValue = "chat") String folder,
             Authentication authentication) {
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().body(UploadResponse.error("File không được để trống"));
         }
 
         validateImageOrVideo(file);
-        String fileUrl = cloudinaryStorageService.upload(file, 0L);
-        log.info("[FileUpload] {} upload {}", authentication.getName(), file.getOriginalFilename());
+        String fileUrl = cloudinaryStorageService.upload(file, folder);
+        log.info("[FileUpload] {} upload {} to folder {}", authentication.getName(), file.getOriginalFilename(), folder);
         return ResponseEntity.ok(UploadResponse.success(fileUrl, file));
     }
 
@@ -71,7 +72,7 @@ public class FileController {
                 .orElseThrow(() -> new ResourceNotFoundException("User: " + authentication.getName()));
 
         validateImageOrVideo(file);
-        String fileUrl = cloudinaryStorageService.upload(file, feedbackId);
+        String fileUrl = cloudinaryStorageService.upload(file, "feedback/" + feedbackId);
 
         Attachment attachment = new Attachment();
         attachment.setFeedback(feedback);
@@ -114,7 +115,7 @@ public class FileController {
         }
 
         validateImageOrVideo(file);
-        String fileUrl = cloudinaryStorageService.upload(file, feedbackId);
+        String fileUrl = cloudinaryStorageService.upload(file, "feedback/" + feedbackId);
 
         Attachment attachment = new Attachment();
         attachment.setFeedback(feedback);

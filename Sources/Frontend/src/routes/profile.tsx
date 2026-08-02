@@ -252,7 +252,7 @@ function ProfilePage() {
     setIsUploading(true);
 
     try {
-      const response = await fetch(`${API_BASE}/api/files/upload`, {
+      const response = await fetch(`${API_BASE}/api/files/upload?folder=profile`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${getToken()}`,

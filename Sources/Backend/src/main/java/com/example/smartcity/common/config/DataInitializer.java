@@ -52,6 +52,14 @@ public class DataInitializer implements CommandLineRunner {
             log.warn("Could not cleanup duplicate users: {}", e.getMessage());
         }
 
+        try {
+            // [FIX] Bổ sung cột view_count vào bảng feedbacks nếu chưa tồn tại
+            jdbcTemplate.execute("ALTER TABLE feedbacks ADD COLUMN IF NOT EXISTS view_count INTEGER DEFAULT 0");
+            log.info("Successfully ensured column feedbacks.view_count exists");
+        } catch (Exception e) {
+            log.warn("Could not alter feedbacks table to add view_count: {}", e.getMessage());
+        }
+
         ensureLoginLockoutSchema();
         ensureOfficialFeedbackSchema();
         try {

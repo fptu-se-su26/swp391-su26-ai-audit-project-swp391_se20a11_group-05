@@ -17,13 +17,10 @@ public class CloudinaryStorageService {
 
     private final Cloudinary cloudinary;
 
-    public String upload(MultipartFile file, Long feedbackId) {
+    public String upload(MultipartFile file, String folder) {
         try {
             String contentType = file.getContentType();
             String resourceType = (contentType != null && contentType.startsWith("video/")) ? "video" : "image";
-            
-            // Tổ chức file theo thư mục feedback/<id> để dễ quản lý trên dashboard Cloudinary
-            String folder = "feedback/" + feedbackId;
 
             Map<?, ?> params = ObjectUtils.asMap(
                     "folder", folder,

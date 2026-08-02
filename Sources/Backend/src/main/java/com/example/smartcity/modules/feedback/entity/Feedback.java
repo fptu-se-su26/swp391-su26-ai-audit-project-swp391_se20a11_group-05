@@ -98,6 +98,9 @@ public class Feedback extends BaseEntity {
     @Column(name = "public_visible", nullable = false)
     private Boolean publicVisible = true;
 
+    @Column(name = "view_count", nullable = false)
+    private Integer viewCount = 0;
+
     @Transient
     private User assignee;
 
@@ -159,6 +162,8 @@ public class Feedback extends BaseEntity {
     public void setAssignee(User assignee) { this.assignee = assignee; }
     public Boolean getPublicVisible() { return publicVisible; }
     public void setPublicVisible(Boolean publicVisible) { this.publicVisible = publicVisible; }
+    public Integer getViewCount() { return viewCount; }
+    public void setViewCount(Integer viewCount) { this.viewCount = viewCount; }
 }
 
 

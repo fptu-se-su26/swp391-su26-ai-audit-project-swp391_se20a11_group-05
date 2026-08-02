@@ -216,7 +216,7 @@ public class CitizenFeedbackMediaService {
     private List<Attachment> saveAttachments(Feedback feedback, User citizen, List<MultipartFile> files) {
         List<Attachment> savedAttachments = new ArrayList<>();
         for (MultipartFile file : files) {
-            String fileUrl = cloudinaryStorageService.upload(file, feedback.getId());
+            String fileUrl = cloudinaryStorageService.upload(file, "feedback/" + feedback.getId());
 
             Attachment attachment = new Attachment();
             attachment.setFeedback(feedback);

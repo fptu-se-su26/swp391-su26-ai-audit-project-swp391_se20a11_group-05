@@ -137,7 +137,12 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
       }
 
       // Hack: Treat 500 "User not found" as Unauthorized (happens after DB reset)
-      if (!skipAuth && error.status === 500 && error.message?.includes("User not found") && onUnauthorized) {
+      if (
+        !skipAuth &&
+        error.status === 500 &&
+        error.message?.includes("User not found") &&
+        onUnauthorized
+      ) {
         onUnauthorized();
       }
 
@@ -154,8 +159,13 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
           const error = new ApiError(body.status, body.message, body.data);
           if (!skipAuth && error.isUnauthorized && onUnauthorized && getToken() !== "demo-token")
             onUnauthorized();
-          
-          if (!skipAuth && body.status === 500 && error.message?.includes("User not found") && onUnauthorized)
+
+          if (
+            !skipAuth &&
+            body.status === 500 &&
+            error.message?.includes("User not found") &&
+            onUnauthorized
+          )
             onUnauthorized();
           throw error;
         }
@@ -253,7 +263,8 @@ export function mapUserProfile(profile: any): UserProfile {
   if (!profile) return profile;
   const active = profile.isActive !== undefined ? profile.isActive : profile.active;
   const mfaEnabled = profile.isMfaEnabled !== undefined ? profile.isMfaEnabled : profile.mfaEnabled;
-  const campaignBanned = profile.isCampaignBanned !== undefined ? profile.isCampaignBanned : profile.campaignBanned;
+  const campaignBanned =
+    profile.isCampaignBanned !== undefined ? profile.isCampaignBanned : profile.campaignBanned;
   return {
     status: profile.status,
     ...profile,
@@ -332,6 +343,7 @@ export interface FeedbackResponse {
   receivedAt?: string | null;
   resolvedAt?: string | null;
   createdAt: string;
+  viewCount?: number;
   updatedAt?: string;
 }
 export interface PoliceFeedbackResponse {
@@ -724,6 +736,11 @@ export const feedbackApi = {
       method: "POST",
       body: JSON.stringify({ content, imageUrls }),
     }),
+
+  cancelFeedback: (id: number | string) =>
+    request<FeedbackResponse>(`/api/feedbacks/${id}/cancel`, {
+      method: "POST",
+    }),
 };
 
 export const userApi = {
@@ -735,16 +752,24 @@ export const userApi = {
       body: JSON.stringify(data),
     }).then(mapUserProfile),
 
-  changePassword: (data: { currentPassword: string; newPassword: string; confirmPassword: string; otpCode: string }) =>
+  changePassword: (data: {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+    otpCode: string;
+  }) =>
     request<void>("/api/users/profile/change-password", {
       method: "PUT",
       body: JSON.stringify(data),
     }),
 
   sendChangePasswordOtp: () =>
-    request<{ status: number; message: string; data: string }>("/api/users/profile/change-password/otp", {
-      method: "POST",
-    }),
+    request<{ status: number; message: string; data: string }>(
+      "/api/users/profile/change-password/otp",
+      {
+        method: "POST",
+      },
+    ),
 
   sendDeleteProfileOtp: (data: { password?: string }) =>
     request<string>("/api/users/profile/delete/otp", {
@@ -792,7 +817,8 @@ export const userApi = {
       method: "POST",
     }).then(mapUserProfile),
 
-  getBlacklist: () => request<UserProfile[]>("/api/users/blacklist").then((res) => (res || []).map(mapUserProfile)),
+  getBlacklist: () =>
+    request<UserProfile[]>("/api/users/blacklist").then((res) => (res || []).map(mapUserProfile)),
 
   unban: (id: number) =>
     request<UserProfile>(`/api/users/${id}/unban`, {
@@ -1337,7 +1363,6 @@ export interface CampaignChatMessageResponse {
   pastCampaignCount?: number;
 }
 
-
 // ─── News API ────────────────────────────────────────────────
 
 export interface NewsResponse {
@@ -1365,28 +1390,28 @@ export interface NewsRequest {
 export const newsApi = {
   getAll: (page = 0, size = 10, category?: string, keyword?: string) => {
     const params = new URLSearchParams({ page: String(page), size: String(size) });
-    if (category && category !== 'Tất cả') params.set('category', category);
-    if (keyword) params.set('keyword', keyword);
+    if (category && category !== "Tất cả") params.set("category", category);
+    if (keyword) params.set("keyword", keyword);
     return request<PageResponse<NewsResponse>>(`/api/news?${params.toString()}`);
   },
 
   getById: (id: number | string) => request<NewsResponse>(`/api/news/${id}`),
 
   create: (data: NewsRequest) =>
-    request<NewsResponse>('/api/news', {
-      method: 'POST',
+    request<NewsResponse>("/api/news", {
+      method: "POST",
       body: JSON.stringify(data),
     }),
 
   update: (id: number | string, data: NewsRequest) =>
     request<NewsResponse>(`/api/news/${id}`, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(data),
     }),
 
   delete: (id: number | string) =>
     request<void>(`/api/news/${id}`, {
-      method: 'DELETE',
+      method: "DELETE",
     }),
 };
 
@@ -1443,7 +1468,9 @@ export const wardRankingApi = {
     if (year) params.set("year", String(year));
     if (month) params.set("month", String(month));
     const qs = params.toString();
-    return request<WardRankingEntry[]>(`/api/ward-ranking/leaderboard${qs ? `?${qs}` : ""}`, { skipAuth: true });
+    return request<WardRankingEntry[]>(`/api/ward-ranking/leaderboard${qs ? `?${qs}` : ""}`, {
+      skipAuth: true,
+    });
   },
 
   getTop: (limit = 3) =>
@@ -1462,12 +1489,14 @@ export const wardRankingApi = {
     if (year) params.set("year", String(year));
     if (month) params.set("month", String(month));
     const qs = params.toString();
-    return request<string>(`/api/ward-ranking/recalculate${qs ? `?${qs}` : ""}`, { method: "POST" });
+    return request<string>(`/api/ward-ranking/recalculate${qs ? `?${qs}` : ""}`, {
+      method: "POST",
+    });
   },
 
   getPdfReportUrl: (wardId: number | string) => {
     return `/api/ward-ranking/${wardId}/report-pdf`;
-  }
+  },
 };
 
 export interface CampaignAppealResponse {
@@ -1488,10 +1517,8 @@ export const campaignAppealApi = {
       method: "POST",
       body: JSON.stringify({ reason }),
     }),
-  getMyLastAppeal: () =>
-    request<CampaignAppealResponse>("/api/campaigns/appeals/my-appeal"),
-  getPending: () =>
-    request<CampaignAppealResponse[]>("/api/campaigns/appeals/pending"),
+  getMyLastAppeal: () => request<CampaignAppealResponse>("/api/campaigns/appeals/my-appeal"),
+  getPending: () => request<CampaignAppealResponse[]>("/api/campaigns/appeals/pending"),
   approve: (id: number, reviewNotes?: string) =>
     request<CampaignAppealResponse>(`/api/campaigns/appeals/${id}/approve`, {
       method: "POST",
@@ -1501,6 +1528,5 @@ export const campaignAppealApi = {
     request<CampaignAppealResponse>(`/api/campaigns/appeals/${id}/reject`, {
       method: "POST",
       body: JSON.stringify({ notes: reviewNotes, reviewNotes }),
-
     }),
 };

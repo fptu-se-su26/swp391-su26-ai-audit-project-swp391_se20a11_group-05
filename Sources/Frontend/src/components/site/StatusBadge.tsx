@@ -39,7 +39,7 @@ const dots: Record<ReportStatus, string> = {
   PRE_EMPTIVE: "bg-[#0B4FC4]",
 };
 
-const getLabel = (status: ReportStatus, locale: string) => {
+export const getStatusLabel = (status: ReportStatus, locale: string) => {
   const isVi = locale === "vi";
   switch (status) {
     case "pending":
@@ -83,7 +83,7 @@ export function StatusBadge({ status }: { status: ReportStatus }) {
       className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full tracking-wide ${badgeStyle}`}
     >
       <span className={`w-1.5 h-1.5 rounded-full ${dotStyle}`} />
-      {getLabel(status, locale)}
+      {getStatusLabel(status, locale)}
     </span>
   );
 }

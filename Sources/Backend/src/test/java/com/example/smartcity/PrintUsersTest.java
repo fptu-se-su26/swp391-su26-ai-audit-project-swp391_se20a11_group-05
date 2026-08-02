@@ -21,6 +21,9 @@ public class PrintUsersTest {
     @Autowired
     private CampaignParticipantRepository campaignParticipantRepository;
 
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
     @Test
     public void printAllUsers() {
         System.out.println("========== ALL USERS IN DB ==========");
@@ -39,5 +42,12 @@ public class PrintUsersTest {
             }
         }
         System.out.println("=====================================");
+    }
+
+    @Test
+    public void addViewCountColumn() {
+        System.out.println("Running SQL to add view_count column...");
+        jdbcTemplate.execute("ALTER TABLE feedbacks ADD COLUMN IF NOT EXISTS view_count INT NOT NULL DEFAULT 0");
+        System.out.println("SQL executed successfully!");
     }
 }

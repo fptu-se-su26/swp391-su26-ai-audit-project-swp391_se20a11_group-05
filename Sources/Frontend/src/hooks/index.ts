@@ -312,6 +312,18 @@ export function useSupplementFeedbackInfo() {
   });
 }
 
+export function useCancelFeedback() {
+  const queryClient = useQueryClient();
+  return useMutation<FeedbackResponse, Error, number | string>({
+    mutationFn: (id) => feedbackApi.cancelFeedback(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ["feedbacks"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.feedbacks.detail(id) });
+    },
+  });
+}
+
 export function useHotspots(params?: { month?: number; year?: number }) {
   return useQuery<unknown[]>({
     queryKey: ["feedbacks", "hotspots", params?.month, params?.year],
@@ -375,8 +387,6 @@ export function useSendDeleteProfileOtpMutation() {
     mutationFn: (data: { password?: string }) => userApi.sendDeleteProfileOtp(data),
   });
 }
-
-
 
 export function useRegisterMutation() {
   return useMutation({

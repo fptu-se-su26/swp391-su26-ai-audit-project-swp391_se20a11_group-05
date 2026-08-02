@@ -89,6 +89,7 @@ export interface FeedbackResponse {
   updatedAt: string;
   attachments?: FeedbackAttachmentResponse[];
   publicVisible?: boolean;
+  viewCount?: number;
 }
 
 export interface FeedbackAttachmentResponse {

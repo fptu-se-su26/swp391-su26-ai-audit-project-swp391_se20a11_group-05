@@ -24,6 +24,10 @@ public interface FeedbackRepository extends BaseRepository<Feedback, Long> {
     @org.springframework.data.jpa.repository.Query("SELECT f FROM Feedback f WHERE f.id = :id")
     Optional<Feedback> findByIdForUpdate(@Param("id") Long id);
 
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query("UPDATE Feedback f SET f.viewCount = f.viewCount + 1 WHERE f.id = :id")
+    void incrementViewCount(@Param("id") Long id);
+
     List<Feedback> findByStatus(FeedbackStatus status);
     List<Feedback> findByAssignee_Id(Long assigneeId);
 

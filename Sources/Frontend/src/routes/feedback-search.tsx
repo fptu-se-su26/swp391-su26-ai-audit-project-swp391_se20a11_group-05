@@ -47,6 +47,7 @@ import {
   Phone,
 } from "lucide-react";
 import { mapStatus } from "@/lib/status";
+import { getStatusLabel } from "@/components/site/StatusBadge";
 import { toast } from "sonner";
 import { Role } from "@/lib/roles";
 import { feedbackApi, type FeedbackStatus } from "@/lib/api";
@@ -666,8 +667,6 @@ function PublicFeedbackLookup() {
     });
   };
 
-
-
   const getStatusInfo = (status: string) => {
     switch (status) {
       case "RESOLVED":
@@ -975,7 +974,7 @@ function PublicFeedbackLookup() {
                     </option>
                     {statuses.map((opt) => (
                       <option key={opt.value} value={opt.value}>
-                        {opt.label}
+                        {getStatusLabel(opt.value as any, locale)}
                       </option>
                     ))}
                   </select>
@@ -1075,7 +1074,7 @@ function PublicFeedbackLookup() {
       {/* STATISTICS BAR */}
       <div className="max-w-[1440px] mx-auto px-6 md:px-12 mb-8 animate-in fade-in slide-in-from-bottom-5 duration-600">
         <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_8px_30px_rgba(11,77,187,0.04)] py-4">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+          <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-100">
             {/* Card 1: Total Reports */}
             <div className="flex items-center gap-4 px-6 py-2">
               <div className="w-11 h-11 rounded-full border-2 border-blue-100 text-[#0B4DBB] flex items-center justify-center shrink-0">
@@ -1130,7 +1129,7 @@ function PublicFeedbackLookup() {
               </div>
             </div>
 
-            {/* Card 4: Overdue */}
+            {/* Card 4: Rejected */}
             <div className="flex items-center gap-4 px-6 py-2">
               <div className="w-11 h-11 rounded-full border-2 border-red-100 text-[#EF4444] flex items-center justify-center shrink-0">
                 <AlertTriangle size={20} strokeWidth={1.5} />
@@ -1140,44 +1139,10 @@ function PublicFeedbackLookup() {
                   {stats.rejected}
                 </span>
                 <span className="text-[11px] font-bold text-slate-700 leading-tight">
-                  {locale === "vi" ? "Quá hạn" : "Overdue"}
+                  {locale === "vi" ? "Từ chối" : "Rejected"}
                 </span>
                 <span className="text-[10px] text-slate-400 mt-0.5 font-semibold truncate">
                   {locale === "vi" ? `Chiếm ${rejectedRate}%` : `Rate: ${rejectedRate}%`}
-                </span>
-              </div>
-            </div>
-
-            {/* Card 5: Average Resolution Time */}
-            <div className="flex items-center gap-4 px-6 py-2">
-              <div className="w-11 h-11 rounded-full border-2 border-purple-100 text-[#8B5CF6] flex items-center justify-center shrink-0">
-                <Clock size={20} strokeWidth={1.5} />
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-xl font-black text-[#8B5CF6] leading-none mb-1">
-                  {locale === "vi" ? "15 phút" : "15m"}
-                </span>
-                <span className="text-[11px] font-bold text-slate-700 leading-tight">
-                  {locale === "vi" ? "Thời gian xử lý TB" : "Avg. Duration"}
-                </span>
-                <span className="text-[10px] text-slate-400 mt-0.5 font-semibold truncate">
-                  {locale === "vi" ? "Trong ngày" : "Within today"}
-                </span>
-              </div>
-            </div>
-
-            {/* Card 6: Followers */}
-            <div className="flex items-center gap-4 px-6 py-2">
-              <div className="w-11 h-11 rounded-full border-2 border-indigo-100 text-[#4F46E5] flex items-center justify-center shrink-0">
-                <User size={20} strokeWidth={1.5} />
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-xl font-black text-[#4F46E5] leading-none mb-1">2.136</span>
-                <span className="text-[11px] font-bold text-slate-700 leading-tight">
-                  {locale === "vi" ? "Lượt theo dõi" : "Followers"}
-                </span>
-                <span className="text-[10px] text-slate-400 mt-0.5 font-semibold truncate">
-                  {locale === "vi" ? "Trong tháng" : "This month"}
                 </span>
               </div>
             </div>
@@ -1294,8 +1259,6 @@ function PublicFeedbackLookup() {
                     <div className="space-y-4">
                       {sortedFeedbacks.map((report) => {
                         const statusObj = getStatusInfo(report.status);
-                        const reportViews = Math.max(12, (report.id * 7) % 184);
-                        const reportFollowers = Math.max(2, (report.id * 3) % 43);
                         return (
                           <article
                             key={report.id}
@@ -1357,11 +1320,7 @@ function PublicFeedbackLookup() {
                                 </span>
                                 <span className="flex items-center gap-1.5">
                                   <Eye size={14} className="text-slate-400" />
-                                  {reportViews}
-                                </span>
-                                <span className="flex items-center gap-1.5">
-                                  <User size={14} className="text-slate-400" />
-                                  {locale === "vi" ? "Theo dõi" : "Followers"}
+                                  {report.viewCount ?? 0}
                                 </span>
                               </div>
                             </div>

@@ -90,8 +90,7 @@ class FeedbackServiceTest {
                 jdbcTemplate,
                 embeddingFacade,
                 aiTaskRepository,
-                geminiAdapter,
-                groqAdapter
+                geminiAdapter
         );
 
         citizen = new User("citizen1", "encoded", "Người Dân", "0905123456",

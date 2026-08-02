@@ -107,10 +107,21 @@ public class ChatbotService {
             }
         }
         
+        // ── TOXIC: Nhận diện chửi bậy, văng tục ──
+        if (lower.contains("đm") || lower.contains("địt") || lower.contains("vcl") || lower.contains("ngu") || lower.contains("óc chó") || lower.contains("cặc") || lower.contains("lồn") || lower.matches(".*\\bfuck\\b.*") || lower.matches(".*\\bshit\\b.*")) {
+            return ChatIntent.TOXIC;
+        }
+
         // ── QA_LEGAL: pháp lý, quy định ──
         if (lower.contains("luật") || lower.contains("quy định")
             || lower.contains("thủ tục") || lower.contains("pháp lý")) {
             return ChatIntent.QA_LEGAL;
+        }
+
+        // ── SEARCH_PUBLIC_FEEDBACKS: tra cứu cộng đồng ──
+        if ((lower.contains("phản ánh") || lower.contains("phản án") || lower.contains("vấn đề") || lower.contains("sự cố") || lower.contains("tình trạng") || lower.contains("có ai") || lower.contains("có vụ"))
+            && (lower.contains("ở") || lower.contains("tại") || lower.contains("khu vực") || lower.contains("quận") || lower.contains("phường") || lower.contains("bên") || lower.contains("địa bàn"))) {
+            return ChatIntent.SEARCH_PUBLIC_FEEDBACKS;
         }
 
         // ── DISCOVER_CAMPAIGN: chiến dịch tình nguyện ──
@@ -224,6 +235,15 @@ public class ChatbotService {
                 case NAVIGATION_GUIDE:
                     responseData = handleNavigationGuide(question);
                     break;
+                case SEARCH_PUBLIC_FEEDBACKS:
+                    responseData = handleSearchPublicFeedbacks(bestProvider, question, historyContext);
+                    break;
+                case TOXIC:
+                    responseData = new java.util.HashMap<>();
+                    responseData.put("intent", "TOXIC");
+                    responseData.put("emotion", "NEGATIVE");
+                    responseData.put("reply", "Dạ, Đà Nẵng là thành phố văn minh đáng sống, sếp vui lòng giữ bình tĩnh và dùng từ ngữ chuẩn mực giúp em nhé! 🥺 Em chỉ là Bot thôi ạ.");
+                    break;
                 case GENERAL:
                 default:
                     responseData = handleGeneral(question);
@@ -314,39 +334,100 @@ public class ChatbotService {
         Matcher matcher = FB_PATTERN.matcher(question);
         String trackingCode = matcher.find() ? matcher.group().toUpperCase() : null;
 
-        if (trackingCode == null) {
-            return new java.util.HashMap<>(Map.of(
-                "intent", "LOOKUP",
-                "emotion", "NEUTRAL",
-                "reply", "Bạn muốn tra cứu phản ánh nào ạ? Vui lòng cung cấp mã bắt đầu bằng FB-..."
-            ));
-        }
-
-        Optional<Feedback> feedbackOpt = feedbackRepository.findByTrackingCode(trackingCode);
-        if (feedbackOpt.isEmpty()) {
-            return new java.util.HashMap<>(Map.of(
-                "intent", "LOOKUP",
-                "emotion", "NEGATIVE",
-                "reply", "Dạ em không tìm thấy phản ánh nào có mã " + trackingCode + " trong hệ thống. Bạn kiểm tra lại mã giúp em nhé!"
-            ));
-        }
-
-        Feedback fb = feedbackOpt.get();
-        String reply = String.format("Phản ánh **%s** của bạn hiện đang ở trạng thái **%s**. Lĩnh vực: %s. Địa điểm: %s. Cảm ơn bạn đã đóng góp ý kiến!", 
-                                    fb.getTrackingCode(), fb.getStatus().name(), fb.getCategory().getName(), fb.getAddressDetails());
+        String systemPrompt = "Bạn là Trợ lý AI Đà Nẵng Lắng Nghe. Người dùng muốn tra cứu mã phản ánh. Dưới đây là thông tin tra cứu từ hệ thống:\n";
         
+        Optional<Feedback> feedbackOpt = trackingCode != null ? feedbackRepository.findByTrackingCode(trackingCode) : Optional.empty();
+
+        if (trackingCode == null) {
+            systemPrompt += "Lỗi: Không tìm thấy mã hợp lệ trong câu hỏi của người dùng.\n";
+        } else if (feedbackOpt.isEmpty()) {
+            systemPrompt += "Lỗi: Mã " + trackingCode + " không tồn tại trong hệ thống.\n";
+        } else {
+            Feedback fb = feedbackOpt.get();
+            systemPrompt += String.format("- Mã: %s\n- Trạng thái: %s\n- Lĩnh vực: %s\n- Địa điểm: %s\n- Ngày gửi: %s\n- Mô tả: %s\n",
+                fb.getTrackingCode(), fb.getStatus().name(), fb.getCategory() != null ? fb.getCategory().getName() : "Khác",
+                fb.getAddressDetails(), fb.getCreatedAt(), fb.getDescription());
+        }
+        
+        systemPrompt += "\nHãy trả lời tự nhiên, thân thiện và ngắn gọn báo cho người dùng biết kết quả tra cứu. Nếu có mã thì in đậm mã. Giữ nguyên tông giọng lễ phép 'Dạ', 'cô chú'.";
+        
+        String reply = "Dạ, hệ thống đang bận, bạn vui lòng thử lại sau nhé!";
+        try {
+            AiProviderAdapter activeProvider = aiRouterService.routeToBestProvider("1", question);
+            reply = aiRouterService.executeWithFallback(activeProvider, systemPrompt, question).join();
+        } catch (Exception e) {
+            log.error("Lỗi khi sinh câu trả lời LOOKUP", e);
+        }
+
         java.util.Map<String, Object> res = new java.util.HashMap<>();
         res.put("intent", "LOOKUP");
-        res.put("emotion", "POSITIVE");
+        res.put("emotion", trackingCode != null && feedbackOpt.isPresent() ? "POSITIVE" : "NEGATIVE");
         res.put("reply", reply);
-        res.put("trackingCode", fb.getTrackingCode());
-        res.put("feedbackStatus", fb.getStatus().name());
-        res.put("feedbackCategory", fb.getCategory() != null ? fb.getCategory().getName() : "Khác");
-        res.put("feedbackAddress", fb.getAddressDetails() != null ? fb.getAddressDetails() : "Không xác định");
-        res.put("feedbackDescription", fb.getDescription() != null ? fb.getDescription() : "");
-        res.put("feedbackCreatedAt", fb.getCreatedAt() != null ? fb.getCreatedAt().toString() : "");
-        res.put("feedbackUpdatedAt", fb.getUpdatedAt() != null ? fb.getUpdatedAt().toString() : "");
+        if (trackingCode != null && feedbackOpt.isPresent()) {
+            Feedback fb = feedbackOpt.get();
+            res.put("trackingCode", fb.getTrackingCode());
+            res.put("feedbackStatus", fb.getStatus().name());
+            res.put("feedbackCategory", fb.getCategory() != null ? fb.getCategory().getName() : "Khác");
+            res.put("feedbackAddress", fb.getAddressDetails() != null ? fb.getAddressDetails() : "Không xác định");
+            res.put("feedbackDescription", fb.getDescription() != null ? fb.getDescription() : "");
+            res.put("feedbackCreatedAt", fb.getCreatedAt() != null ? fb.getCreatedAt().toString() : "");
+            res.put("feedbackUpdatedAt", fb.getUpdatedAt() != null ? fb.getUpdatedAt().toString() : "");
+        }
         return res;
+    }
+
+    private Map<String, Object> handleSearchPublicFeedbacks(AiProviderAdapter activeProvider, String question, List<Map<String, String>> historyContext) {
+        log.info("🤖 [Search Public] Bóc tách location/category từ câu hỏi: {}", question);
+        String systemPrompt = "Bạn là trợ lý AI. Hãy trích xuất địa điểm và lĩnh vực từ câu hỏi. " +
+            "Trả về JSON với các field: intent='SEARCH_PUBLIC_FEEDBACKS', location (VD: 'Ngũ Hành Sơn', 'Hải Châu'), category (VD: 'rác thải', 'môi trường'). " +
+            "Nếu không có, để rỗng chuỗi.";
+
+        try {
+            com.example.smartcity.modules.chatbot.dto.SearchPublicFeedbackAiDto parsed = aiRouterService.executeWithValidation(
+                activeProvider, systemPrompt, question, 
+                com.example.smartcity.modules.chatbot.dto.SearchPublicFeedbackAiDto.class, 2).join();
+
+            String keyword = (parsed.getLocation() != null) ? parsed.getLocation() : "";
+            String category = (parsed.getCategory() != null) ? parsed.getCategory() : "";
+
+            // Gọi repository để tìm kiếm public feedbacks
+            org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 5, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+            org.springframework.data.domain.Page<Feedback> results = feedbackRepository.searchPublicFeedbacks(
+                keyword, category, null, false, null, 
+                java.time.LocalDateTime.now().minusMonths(6), java.time.LocalDateTime.now(), 
+                null, null, false, pageable);
+
+            StringBuilder resultText = new StringBuilder();
+            if (results.isEmpty()) {
+                resultText.append("Hiện tại không có phản ánh nào");
+                if (!keyword.isEmpty()) resultText.append(" ở ").append(keyword);
+                if (!category.isEmpty()) resultText.append(" liên quan đến '").append(category).append("'");
+                resultText.append(" trên hệ thống cộng đồng.");
+            } else {
+                resultText.append("Tìm thấy ").append(results.getTotalElements()).append(" phản ánh. Đây là một số phản ánh mới nhất:\n");
+                for (Feedback fb : results.getContent()) {
+                    resultText.append(String.format("- **%s** (%s): %s. Vị trí: %s. Trạng thái: %s.\n",
+                        fb.getTrackingCode(), fb.getCategoryName(), fb.getTitle(), fb.getAddressDetails(), fb.getStatus().name()));
+                }
+            }
+
+            // Dùng AI để sinh câu trả lời mượt mà hơn
+            String conversationalPrompt = "Bạn là AI Đà Nẵng. Hãy trả lời câu hỏi: '" + question + "' dựa trên thông tin sau:\n" + resultText.toString();
+            String aiReply = aiRouterService.executeWithFallback(activeProvider, conversationalPrompt, question).join();
+
+            return new java.util.HashMap<>(Map.of(
+                "intent", "SEARCH_PUBLIC_FEEDBACKS",
+                "emotion", "NEUTRAL",
+                "reply", aiReply
+            ));
+        } catch (Exception e) {
+            log.error("Lỗi khi xử lý Search Public Feedbacks", e);
+            return new java.util.HashMap<>(Map.of(
+                "intent", "SEARCH_PUBLIC_FEEDBACKS",
+                "emotion", "NEUTRAL",
+                "reply", "Dạ em đang gặp sự cố mạng, không thể tra cứu phản ánh công cộng lúc này. Cố chú thử lại sau nhé!"
+            ));
+        }
     }
 
     private Map<String, Object> handleCreateFeedback(AiProviderAdapter activeProvider, String question, User user, List<Map<String, String>> historyContext) {
@@ -361,27 +442,34 @@ public class ChatbotService {
         }
         context.append("user: ").append(question);
 
-        String json;
-        if (activeProvider instanceof GroqAdapter) {
-            json = ((GroqAdapter) activeProvider).generateStructuredResponseAsync(systemPrompt, context.toString()).join();
-        } else if (activeProvider instanceof GeminiAdapter) {
-            json = ((GeminiAdapter) activeProvider).generateStructuredResponseAsync(systemPrompt, context.toString()).join();
-        } else if (activeProvider != null) {
-            json = activeProvider.generateResponseAsync(systemPrompt, context.toString()).join();
-        } else {
-            json = "{\"intent\":\"SMALLTALK\",\"reply\":\"Hệ thống bận\"}";
+        String json = "";
+        try {
+            // SỬ DỤNG ZOD VALIDATION ĐỂ AUTO-RETRY NẾU JSON SAI CÚ PHÁP HOẶC THIẾU TRƯỜNG
+            com.example.smartcity.modules.chatbot.dto.CreateFeedbackAiDto parsedObj = 
+                aiRouterService.executeWithValidation(activeProvider, systemPrompt, context.toString(), 
+                com.example.smartcity.modules.chatbot.dto.CreateFeedbackAiDto.class, 2).join();
+            
+            json = objectMapper.writeValueAsString(parsedObj);
+        } catch (Exception ex) {
+            log.warn("⚠️ [ChatbotService] Provider chính ({}) bị lỗi JSON/Zod: {}. Đang gọi fallback (Groq)...", 
+                     activeProvider != null ? activeProvider.getProviderName() : "NULL", ex.getMessage());
+            try {
+                com.example.smartcity.modules.chatbot.dto.CreateFeedbackAiDto parsedObj = 
+                    aiRouterService.executeWithValidation(groqAdapter, systemPrompt, context.toString(), 
+                    com.example.smartcity.modules.chatbot.dto.CreateFeedbackAiDto.class, 1).join();
+                json = objectMapper.writeValueAsString(parsedObj);
+            } catch (Exception fallbackEx) {
+                log.error("❌ [ChatbotService] Cả Fallback cũng bị lỗi JSON/Zod: {}", fallbackEx.getMessage());
+                json = "{\"intent\":\"CREATE_FEEDBACK\",\"reply\":\"Dạ em đang gặp sự cố mạng, cô chú có thể cung cấp thêm thông tin địa chỉ cụ thể không ạ?\"}";
+            }
         }
 
-        json = json.replaceAll("(?s)^```json\\s*", "").replaceAll("(?s)\\s*```$", "").trim();
-        
         try {
             Map<String, Object> parsed = objectMapper.readValue(json, Map.class);
             List<String> needsMoreInfo = (List<String>) parsed.getOrDefault("needsMoreInfo", new ArrayList<>());
             
-            if (needsMoreInfo.isEmpty()) {
+            if (needsMoreInfo == null || needsMoreInfo.isEmpty()) {
                 // Đã thu thập đủ thông tin text (category, location, description)
-                // KHÔNG TẠO TRỰC TIẾP VÀO DB ĐỂ TRÁNH LỖI NGHIỆP VỤ (THIẾU GPS THẬT, THIẾU ẢNH CHỨNG MINH).
-                // Trả về intent và data để Frontend tự động mở Form điền sẵn.
                 parsed.put("reply", "✅ Em đã ghi nhận thông tin sơ bộ của cô chú.\n\n⚠️ Tuy nhiên, hệ thống Đô thị Thông minh yêu cầu **vị trí bản đồ chính xác** và **hình ảnh hiện trường** để xử lý sự cố hiệu quả nhất.\n\n👉 Cô chú vui lòng bấm vào nút **Tạo Phản Ánh** (hoặc để ứng dụng tự động mở) để đính kèm thêm ảnh và hoàn tất gửi đơn nhé!");
                 parsed.put("action", "OPEN_FEEDBACK_FORM"); // Signal cho Frontend để trigger màn hình Tạo Phản Ánh
             } else {
@@ -555,9 +643,11 @@ public class ChatbotService {
             
             Quy tắc trả lời:
             1. Trả lời trực tiếp, rõ ràng, chiết xuất đúng thông tin. Không giả định những điều không có trong dữ liệu.
-            2. Sử dụng định dạng Markdown (đặc biệt là in đậm mã phản ánh như **FB-XXXX** để người dùng dễ quan sát).
-            3. Nếu người dùng hỏi về thời hạn xử lý của một phản ánh, hãy đối chiếu trạng thái thực tế của phản ánh đó với tài liệu quy định pháp lý (nếu có).
-            4. Tông giọng thân thiện, lễ phép ("Dạ", "Cô chú", "Sếp").
+            2. Nếu người dùng hỏi "tôi có phản ánh gì", hãy TRỰC TIẾP LIỆT KÊ TÓM TẮT các phản ánh của họ (gồm mã số, trạng thái, tiêu đề).
+            3. TUYỆT ĐỐI KHÔNG trả lời kiểu "Để kiểm tra, em cần biết mã phản ánh" nếu danh sách phản ánh của họ đã được cung cấp ở trên! Bạn đã có đủ toàn bộ danh sách, cứ liệt kê ra luôn!
+            4. Sử dụng định dạng Markdown (đặc biệt là in đậm mã phản ánh như **FB-XXXX** để người dùng dễ quan sát).
+            5. Nếu danh sách phản ánh trống, hãy báo cho họ biết là "Cô chú chưa có phản ánh nào được ghi nhận trên hệ thống".
+            6. Tông giọng thân thiện, lễ phép ("Dạ", "Cô chú", "Sếp").
             """, user.getUsername(), feedbackContext.toString(), ragKnowledge);
 
         // 6. Xây dựng Context hội thoại

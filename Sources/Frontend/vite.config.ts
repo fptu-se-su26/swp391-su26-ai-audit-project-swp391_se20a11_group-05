@@ -13,6 +13,10 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 // Cloudflare Workers plugin (its output isn't something Vercel can route to)
 // and instead register src/server.ts as a catch-all Vercel Edge Function via
 // vite-plugin-vercel, which understands the Vercel Build Output API.
+// Node (not Edge): TanStack Start's SSR streaming code imports Node builtins
+// (node:stream, node:stream/web) that only the Cloudflare Workers build gets
+// polyfilled via wrangler.jsonc's nodejs_compat flag — Vercel's Edge Runtime
+// has no equivalent, so an edge function fails with unresolved-module errors.
 const isVercel = !!process.env.VERCEL;
 const vercelPlugin = isVercel
   ? (await import("vite-plugin-vercel/vite")).default({
@@ -20,7 +24,7 @@ const vercelPlugin = isVercel
         {
           id: "/src/server.ts",
           route: "/**",
-          vercel: { edge: true, streaming: true },
+          vercel: { edge: false, streaming: true },
         },
       ],
     })

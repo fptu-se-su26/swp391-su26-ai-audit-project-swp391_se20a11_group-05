@@ -28,7 +28,7 @@ public class EmbeddingClientFacade {
     // Gemini text-embedding-004 trả về vector 768 chiều
     private static final int VECTOR_DIM = 768;
     private static final String GEMINI_BASE_URL = "https://generativelanguage.googleapis.com";
-    private static final String EMBEDDING_MODEL = "gemini-embedding-2";
+    private static final String EMBEDDING_MODEL = "text-embedding-004";
 
     private final GeminiKeyPool keyPool;
     private final WebClient webClient;
@@ -101,7 +101,8 @@ public class EmbeddingClientFacade {
             );
 
             Map response = webClient.post()
-                    .uri("/v1beta/models/" + EMBEDDING_MODEL + ":embedContent?key=" + apiKey)
+                    .uri("/v1beta/models/" + EMBEDDING_MODEL + ":embedContent")
+                    .header("X-goog-api-key", apiKey)
                     .bodyValue(body)
                     .retrieve()
                     .bodyToMono(Map.class)
@@ -139,25 +140,87 @@ public class EmbeddingClientFacade {
     }
 
     // ──────────────────────────────────────────────────────────────
-    //  MOCK IMPLEMENTATION (Dùng cho phát triển / test offline)
+    //  SMART SEMANTIC EMBEDDING (Hoạt động offline hoặc khi Gemini 404)
     // ──────────────────────────────────────────────────────────────
 
     private float[] mockEmbed(String text) {
         float[] vector = new float[VECTOR_DIM];
-        Random seeded = new Random(text.hashCode());
+        if (text == null || text.isBlank()) {
+            return vector;
+        }
 
+        String normalized = removeAccents(text.toLowerCase());
+
+        // Domain 1: Môi trường / Rác thải / Ô nhiễm (Dimensions: 0 - 150)
+        String[] envKeywords = {"rac", "phe thai", "xa ban", "do", "ban", "o nhiem", "mui", "hoi", "thoi", "ruoi", "muoi", "con trung", "nuoc thai", "kenh", "bun", "ve sinh"};
+        for (String kw : envKeywords) {
+            if (normalized.contains(kw)) {
+                for (int i = 0; i < 150; i++) {
+                    vector[i] += 1.5f + (float) Math.sin(kw.hashCode() + i) * 0.5f;
+                }
+            }
+        }
+
+        // Domain 2: Giao thông / Đèn đường / Tắc đường (Dimensions: 150 - 300)
+        String[] trafficKeywords = {"den", "giao thong", "den do", "tin hieu", "nga tu", "tat", "ket xe", "un tac", "hong", "o ga", "ho tu than", "sut lun", "duong", "bien bao"};
+        for (String kw : trafficKeywords) {
+            if (normalized.contains(kw)) {
+                for (int i = 150; i < 300; i++) {
+                    vector[i] += 1.5f + (float) Math.sin(kw.hashCode() + i) * 0.5f;
+                }
+            }
+        }
+
+        // Domain 3: Hạ tầng / Cống rãnh / Cây xanh (Dimensions: 300 - 450)
+        String[] infraKeywords = {"cong", "nap cong", "dien", "day dien", "cot dien", "ong nuoc", "via he", "cay", "gay do", "ho ga"};
+        for (String kw : infraKeywords) {
+            if (normalized.contains(kw)) {
+                for (int i = 300; i < 450; i++) {
+                    vector[i] += 1.5f + (float) Math.sin(kw.hashCode() + i) * 0.5f;
+                }
+            }
+        }
+
+        // Domain 4: An ninh trật tự / Tiếng ồn (Dimensions: 450 - 600)
+        String[] secKeywords = {"trom", "cuop", "danh nhau", "gay roi", "mat trat tu", "karaoke", "on ao", "loa keo keo"};
+        for (String kw : secKeywords) {
+            if (normalized.contains(kw)) {
+                for (int i = 450; i < 600; i++) {
+                    vector[i] += 1.5f + (float) Math.sin(kw.hashCode() + i) * 0.5f;
+                }
+            }
+        }
+
+        // N-Gram Substring Hash (Dimensions: 600 - 768) để giữ đặc trưng từng chữ
+        String[] words = normalized.split("\\s+");
+        for (String word : words) {
+            if (word.length() >= 2) {
+                int bucket = 600 + (Math.abs(word.hashCode()) % 168);
+                vector[bucket] += 1.0f;
+            }
+        }
+
+        // Chuẩn hóa L2 Norm (Unit vector)
         float norm = 0;
         for (int i = 0; i < VECTOR_DIM; i++) {
-            vector[i] = seeded.nextFloat() * 2 - 1; // [-1, 1]
             norm += vector[i] * vector[i];
         }
 
-        norm = (float) Math.sqrt(norm);
-        for (int i = 0; i < VECTOR_DIM; i++) {
-            vector[i] /= norm;
+        if (norm > 0) {
+            norm = (float) Math.sqrt(norm);
+            for (int i = 0; i < VECTOR_DIM; i++) {
+                vector[i] /= norm;
+            }
         }
 
         return vector;
+    }
+
+    private String removeAccents(String input) {
+        if (input == null) return "";
+        String nfdNormalizedString = java.text.Normalizer.normalize(input, java.text.Normalizer.Form.NFD);
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
+        return pattern.matcher(nfdNormalizedString).replaceAll("").replace('đ', 'd').replace('Đ', 'D');
     }
 }
 

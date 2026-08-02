@@ -312,6 +312,18 @@
 - **Creative Synthesis:** Mình đã tự nghĩ ra cách lưu mã cuộc trò chuyện (`dn_active_session_id`) vào bộ nhớ `sessionStorage` của trình duyệt. Nhờ vậy, khi người dùng đang chat ở nút bong bóng góc phải màn hình mà bấm nút phóng to để sang trang chat lớn, cuộc trò chuyện cũ sẽ được tải lên tiếp tục mà không bị mất.
 - **Decision Ownership:** Quyết định dọn dẹp lại toàn bộ code theo hướng chia module này. Sau đó mình đã chạy lệnh biên dịch Java và kiểm tra TypeScript để chắc chắn dự án không bị lỗi đỏ sau khi gộp code từ nhánh chính của các bạn khác về.
 
+### Entry #: 021
+**Prompt Type:** ARCHITECTURE-DESIGN & DATA MODELING
+**Stage/Component:** Database Design (Smart City Backend Data Model)
+**Problem/Context:** Dự án có số lượng bảng cơ sở dữ liệu lớn (users, feedbacks, campaigns, document_chunks...). Cần rà soát lại toàn bộ cấu trúc Entity-Relationship và chuẩn hóa tài liệu mô tả bằng tiếng Anh để phục vụ cho báo cáo Database Architecture.
+**Prompt to AI:** Cung cấp schema DBML (Database Markup Language) cho AI. Yêu cầu AI đọc hiểu cấu trúc, phân tích mối quan hệ, viết mô tả bằng tiếng Anh cho từng table và format thành bảng (Markdown Table).
+**AI Response (Summary):** AI đã phân tích chính xác mối quan hệ giữa các bảng (ví dụ: luồng `feedbacks` liên kết với `users`, `categories`, `wards`), tự động gom nhóm các bảng theo cụm tính năng (User Management, Access Control, Geography, Issue Tracking, AI & Knowledge) và xuất ra bảng mô tả tiếng Anh rất chuyên nghiệp.
+**Human Delta & Reflection:**
+- **Critical Thinking:** Thay vì tự dịch và gõ bảng thủ công, việc đưa script DBML cho AI giúp kiểm chứng (verify) lại xem thiết kế khóa ngoại (Foreign Key) của nhóm đã logic chưa. Nếu AI gom nhóm sai, chứng tỏ thiết kế DB có vấn đề.
+- **Contextualization:** Việc AI tự nhận diện và chia cụm các bảng thành các hệ sinh thái (User, Geography, Issue) phản ánh đúng tư duy Modular Monolith của dự án, giúp tài liệu báo cáo chuyên nghiệp hơn.
+- **Creative Synthesis:** Đã phối hợp cùng AI, sau khi AI viết text thường, tôi yêu cầu "bằng bảng" để tối ưu hóa UI/UX của tài liệu.
+- **Decision Ownership:** Chốt nghiệm thu bảng thiết kế này, xác nhận mô hình RAG (`document_chunks`) đã liên kết tốt với hệ thống chính, đưa thẳng vào tài liệu kỹ thuật cuối cùng.
+
 ---
 
 ## V. Cam kết học thuật
@@ -324,6 +336,6 @@ Sinh viên/nhóm cam kết rằng:
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-| Phạm Bá Trí | 2026-07-01 |
+| Phạm Bá Trí | 2026-07-23 |
 
 

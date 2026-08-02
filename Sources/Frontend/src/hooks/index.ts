@@ -370,6 +370,14 @@ export function useLoginMutation() {
   });
 }
 
+export function useSendDeleteProfileOtpMutation() {
+  return useMutation({
+    mutationFn: (data: { password?: string }) => userApi.sendDeleteProfileOtp(data),
+  });
+}
+
+
+
 export function useRegisterMutation() {
   return useMutation({
     mutationFn: ({
@@ -452,8 +460,8 @@ export function useCitizenParticipationHistory(
 
 export function useDeleteOwnProfileMutation() {
   const queryClient = useQueryClient();
-  return useMutation<void, Error, void>({
-    mutationFn: () => userApi.deleteOwnProfile(),
+  return useMutation<void, Error, { password?: string; otpCode?: string }>({
+    mutationFn: (data) => userApi.deleteOwnProfile(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.auth.profile });
       queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });

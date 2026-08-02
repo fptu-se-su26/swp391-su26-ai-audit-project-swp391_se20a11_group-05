@@ -114,4 +114,9 @@ public class UserService extends BaseServiceImpl<User, Long> {
         }
         return false;
     }
+
+    @org.springframework.transaction.annotation.Transactional
+    public void softDeleteUser(Long id, String deletedBy) {
+        userRepository.softDeleteById(id, deletedBy);
+    }
 }

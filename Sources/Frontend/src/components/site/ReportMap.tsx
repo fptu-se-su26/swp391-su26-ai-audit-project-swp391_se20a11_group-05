@@ -1,9 +1,9 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { MapPin, Layers } from "lucide-react";
 
-const CURRENT_LOCATION_ZOOM = 17;
+const CURRENT_LOCATION_ZOOM = 18;
 
-interface ReportMapProps {
+export interface ReportMapProps {
   mapCenter: [number, number];
   hasLocation: boolean;
   markerDisplayed: boolean;
@@ -30,7 +30,9 @@ function MapViewUpdaterInner({
     window.setTimeout(() => map.invalidateSize(), 0);
 
     if (hasLocation) {
-      map.flyTo(center, CURRENT_LOCATION_ZOOM, { animate: true, duration: 0.8 });
+      const currentZoom = map.getZoom();
+      const targetZoom = currentZoom && currentZoom > 13 ? currentZoom : CURRENT_LOCATION_ZOOM;
+      map.flyTo(center, targetZoom, { animate: true, duration: 0.8 });
       return;
     }
 
@@ -229,16 +231,19 @@ export function ReportMap({
       <MapContainer
         center={mapCenter}
         zoom={hasLocation ? CURRENT_LOCATION_ZOOM : 13}
+        maxZoom={21}
         className="w-full h-full"
         scrollWheelZoom={true}
         dragging={true}
-        zoomControl={false}
+        zoomControl={true}
         attributionControl={false}
       >
         <MapViewUpdaterInner center={mapCenter} hasLocation={hasLocation} useMap={useMap} />
         <MapEventsHandler useMapEvents={useMapEvents} onChangeLocation={onChangeLocation} />
         <TileLayer
           attribution="&copy; Google Maps"
+          maxZoom={21}
+          maxNativeZoom={20}
           url={
             mapLayerType === "osm"
               ? "https://mt1.google.com/vt/lyrs=m&hl=vi&gl=VN&x={x}&y={y}&z={z}"

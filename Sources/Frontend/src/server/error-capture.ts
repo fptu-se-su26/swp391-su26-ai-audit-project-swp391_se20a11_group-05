@@ -8,11 +8,19 @@ function record(error: unknown) {
   lastCapturedError = { error, at: Date.now() };
 }
 
+// Browser / Cloudflare Workers runtime
 if (typeof globalThis.addEventListener === "function") {
   globalThis.addEventListener("error", (event) => record((event as ErrorEvent).error ?? event));
   globalThis.addEventListener("unhandledrejection", (event) =>
     record((event as PromiseRejectionEvent).reason),
   );
+}
+
+// Node.js runtime (Vercel serverless function) — globalThis has no
+// addEventListener here, so uncaught errors need the process-level API instead.
+if (typeof process !== "undefined" && typeof process.on === "function") {
+  process.on("uncaughtException", (error) => record(error));
+  process.on("unhandledRejection", (reason) => record(reason));
 }
 
 export function consumeLastCapturedError(): unknown {

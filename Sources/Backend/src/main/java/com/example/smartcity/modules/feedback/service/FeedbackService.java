@@ -236,6 +236,10 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             .maximumSize(10000)
             .build();
 
+    public static void clearRateLimitCache() {
+        userLastSubmitTime.invalidateAll();
+    }
+
     public void checkDuplicateFeedback(String username, String description, Long wardId, Double longitude, Double latitude) {
         if (description == null || description.isBlank() || longitude == null || latitude == null) {
             return;

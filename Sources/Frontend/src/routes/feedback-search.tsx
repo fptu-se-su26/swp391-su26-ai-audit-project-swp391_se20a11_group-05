@@ -491,6 +491,21 @@ function PublicFeedbackLookup() {
     return { total: 0, resolved: 0, pending: 0, rejected: 0 };
   }, [activeTab, publicStats, myStats]);
 
+  const processingRate = useMemo(() => {
+    if (!stats.total) return "0.0";
+    return ((stats.pending / stats.total) * 100).toFixed(1);
+  }, [stats.pending, stats.total]);
+
+  const resolvedRate = useMemo(() => {
+    if (!stats.total) return "0.0";
+    return ((stats.resolved / stats.total) * 100).toFixed(1);
+  }, [stats.resolved, stats.total]);
+
+  const rejectedRate = useMemo(() => {
+    if (!stats.total) return "0.0";
+    return ((stats.rejected / stats.total) * 100).toFixed(1);
+  }, [stats.rejected, stats.total]);
+
   // Popular categories calculations based on real data list
   const categoryStats = useMemo(() => {
     const list = feedbacks;
@@ -719,7 +734,7 @@ function PublicFeedbackLookup() {
     switch (status) {
       case "RESOLVED":
         return {
-          label: locale === "vi" ? "Đã xử lý" : "Resolved",
+          label: locale === "vi" ? "Đã hoàn thành" : "Resolved",
           badgeClass: "bg-[#EAF8EF] text-[#16A34A] border border-[#BBF7D0]",
         };
       case "IN_PROGRESS":
@@ -730,7 +745,7 @@ function PublicFeedbackLookup() {
         };
       case "PENDING_RECEIVE":
         return {
-          label: locale === "vi" ? "Đã chuyển đơn vị" : "Transferred",
+          label: locale === "vi" ? "Chờ tiếp nhận" : "Awaiting review",
           badgeClass: "bg-[#F3E8FF] text-[#9333EA] border border-[#E9D5FF]",
         };
       case "REJECTED":
@@ -740,14 +755,24 @@ function PublicFeedbackLookup() {
         };
       case "NEED_LOCATION_REVIEW":
         return {
-          label: locale === "vi" ? "Chờ xác minh" : "Location review",
+          label: locale === "vi" ? "Chờ xác minh vị trí" : "Location review",
+          badgeClass: "bg-[#FFF7D6] text-[#A16207] border border-[#FEF3C7]",
+        };
+      case "SUBMITTED":
+        return {
+          label: locale === "vi" ? "Đã gửi" : "Submitted",
+          badgeClass: "bg-[#EAF2FF] text-[#0B4FC4] border border-[#BFDBFE]",
+        };
+      case "WAITING_INFO":
+        return {
+          label: locale === "vi" ? "Chờ bổ sung thông tin" : "Waiting for info",
           badgeClass: "bg-[#FFF7D6] text-[#A16207] border border-[#FEF3C7]",
         };
       case "PENDING":
-      case "SUBMITTED":
+      case "PRE_EMPTIVE":
       default:
         return {
-          label: locale === "vi" ? "Đã tiếp nhận" : "Received",
+          label: locale === "vi" ? "Đang chờ duyệt" : "Pending",
           badgeClass: "bg-[#EAF2FF] text-[#0B4FC4] border border-[#BFDBFE]",
         };
     }
@@ -769,6 +794,7 @@ function PublicFeedbackLookup() {
       {/* Modern gradient blobs */}
       <div className="absolute top-[-10%] left-[-15%] w-[60%] aspect-square rounded-full bg-gradient-to-tr from-[#1E88E5]/5 to-transparent blur-[140px] pointer-events-none" />
       <div className="absolute bottom-[20%] right-[-15%] w-[50%] aspect-square rounded-full bg-gradient-to-br from-[#0B4DBB]/5 to-transparent blur-[140px] pointer-events-none" />
+
 
       {/* HERO SECTION */}
       <section
@@ -1120,7 +1146,7 @@ function PublicFeedbackLookup() {
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="text-xl font-black text-[#0B4DBB] leading-none mb-1">
-                  {stats.total.toLocaleString("vi-VN") || "64"}
+                  {stats.total.toLocaleString("vi-VN")}
                 </span>
                 <span className="text-[11px] font-bold text-slate-700 leading-tight">
                   {locale === "vi" ? "Tổng phản ánh" : "Total Reports"}
@@ -1138,13 +1164,13 @@ function PublicFeedbackLookup() {
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="text-xl font-black text-[#F97316] leading-none mb-1">
-                  {stats.pending ? stats.pending : "27"}
+                  {stats.pending}
                 </span>
                 <span className="text-[11px] font-bold text-slate-700 leading-tight">
                   {locale === "vi" ? "Đang xử lý" : "Processing"}
                 </span>
                 <span className="text-[10px] text-slate-400 mt-0.5 font-semibold truncate">
-                  {locale === "vi" ? "Chiếm 42,2%" : "Rate: 42.2%"}
+                  {locale === "vi" ? `Chiếm ${processingRate}%` : `Rate: ${processingRate}%`}
                 </span>
               </div>
             </div>
@@ -1156,13 +1182,13 @@ function PublicFeedbackLookup() {
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="text-xl font-black text-[#10B981] leading-none mb-1">
-                  {stats.resolved ? stats.resolved : "18"}
+                  {stats.resolved}
                 </span>
                 <span className="text-[11px] font-bold text-slate-700 leading-tight">
                   {locale === "vi" ? "Đã xử lý" : "Resolved"}
                 </span>
                 <span className="text-[10px] text-slate-400 mt-0.5 font-semibold truncate">
-                  {locale === "vi" ? "Chiếm 28,1%" : "Rate: 28.1%"}
+                  {locale === "vi" ? `Chiếm ${resolvedRate}%` : `Rate: ${resolvedRate}%`}
                 </span>
               </div>
             </div>
@@ -1174,13 +1200,13 @@ function PublicFeedbackLookup() {
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="text-xl font-black text-[#EF4444] leading-none mb-1">
-                  {stats.rejected ? stats.rejected : "4"}
+                  {stats.rejected}
                 </span>
                 <span className="text-[11px] font-bold text-slate-700 leading-tight">
                   {locale === "vi" ? "Quá hạn" : "Overdue"}
                 </span>
                 <span className="text-[10px] text-slate-400 mt-0.5 font-semibold truncate">
-                  {locale === "vi" ? "Chiếm 6,3%" : "Rate: 6.3%"}
+                  {locale === "vi" ? `Chiếm ${rejectedRate}%` : `Rate: ${rejectedRate}%`}
                 </span>
               </div>
             </div>
@@ -1561,60 +1587,13 @@ function PublicFeedbackLookup() {
                   {locale === "vi" ? "Xem chi tiết" : "View detail"} <ChevronRight size={12} />
                 </button>
               </div>
-              <div className="flex items-center justify-between gap-4 pt-2">
-                {/* Simplified Donut Chart placeholder using CSS Conic Gradient to match mockup */}
-                <div
-                  className="w-[100px] h-[100px] rounded-full shrink-0 relative"
-                  style={{
-                    background:
-                      "conic-gradient(#0B4DBB 0% 70%, #10B981 70% 89%, #F97316 89% 98%, #8B5CF6 98% 100%)",
-                  }}
-                >
-                  <div className="absolute inset-4 bg-white rounded-full"></div>
-                </div>
-
-                <div className="flex-1 flex flex-col gap-2">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <div className="flex items-center gap-1.5 font-bold text-slate-700">
-                      <span className="w-2 h-2 rounded-full bg-[#0B4DBB]" />
-                      Hạ tầng đô thị
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-700 font-bold">45</span>
-                      <span className="text-slate-400 font-semibold">(70%)</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px]">
-                    <div className="flex items-center gap-1.5 font-bold text-slate-700">
-                      <span className="w-2 h-2 rounded-full bg-[#10B981]" />
-                      Môi trường
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-700 font-bold">12</span>
-                      <span className="text-slate-400 font-semibold">(19%)</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px]">
-                    <div className="flex items-center gap-1.5 font-bold text-slate-700">
-                      <span className="w-2 h-2 rounded-full bg-[#F97316]" />
-                      An toàn giao thông
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-700 font-bold">6</span>
-                      <span className="text-slate-400 font-semibold">(9%)</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px]">
-                    <div className="flex items-center gap-1.5 font-bold text-slate-700">
-                      <span className="w-2 h-2 rounded-full bg-[#8B5CF6]" />
-                      Trật tự đô thị
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-700 font-bold">1</span>
-                      <span className="text-slate-400 font-semibold">(2%)</span>
-                    </div>
-                  </div>
-                </div>
+              <div className="pt-2 w-full">
+                <DonutChart
+                  infra={categoryCounts.infra}
+                  env={categoryCounts.env}
+                  traffic={categoryCounts.traffic}
+                  security={categoryCounts.security}
+                />
               </div>
             </div>
 
@@ -1703,6 +1682,7 @@ function PublicFeedbackLookup() {
           </div>
         </div>
       </div>
+
 
       {/* FOOTER SECTION */}
       <footer className="relative z-30 bg-[#051D45] text-slate-300 mt-20 border-t-4 border-[#0B4DBB]">
@@ -1882,6 +1862,7 @@ function PublicFeedbackLookup() {
           </div>
         </div>
       </footer>
+
     </div>
   );
 }
@@ -1895,7 +1876,7 @@ interface DonutChartProps {
   security: number;
 }
 
-const DonutChart = ({ infra, env, traffic, security }: DonutChartProps) => {
+function DonutChart({ infra, env, traffic, security }: DonutChartProps) {
   const total = infra + env + traffic + security;
   const pInfra = total > 0 ? (infra / total) * 100 : 0;
   const pEnv = total > 0 ? (env / total) * 100 : 0;
@@ -2023,7 +2004,7 @@ const DonutChart = ({ infra, env, traffic, security }: DonutChartProps) => {
       </div>
     </div>
   );
-};
+}
 
 // Da Nang districts data
 const DANANG_DISTRICTS = [

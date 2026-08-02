@@ -29,11 +29,15 @@ public class GeminiAdapter implements AiProviderAdapter {
 
     private static final String GEMINI_BASE_URL = "https://generativelanguage.googleapis.com";
 
-    @Value("${gemini.model:gemini-2.0-flash}")
+    @Value("${gemini.model:gemini-1.5-flash}")
     private String model;
 
     private final GeminiKeyPool keyPool;
     private final WebClient     webClient;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    @org.springframework.context.annotation.Lazy
+    private GroqAdapter groqAdapter;
 
     public GeminiAdapter(GeminiKeyPool keyPool, WebClient.Builder webClientBuilder) {
         this.keyPool   = keyPool;
@@ -47,7 +51,7 @@ public class GeminiAdapter implements AiProviderAdapter {
     public String getProviderName() { return "GEMINI"; }
 
     @Override
-    @io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker(name = "geminiLLM", fallbackMethod = "fallbackToMock")
+    @io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker(name = "geminiLLM", fallbackMethod = "fallbackToGroq")
     public CompletableFuture<String> generateResponseAsync(String systemPrompt, String userMessage) {
         if (!keyPool.isConfigured()) {
             log.warn("⚠️  [Gemini] Pool chưa cấu hình → Mock.");
@@ -72,7 +76,7 @@ public class GeminiAdapter implements AiProviderAdapter {
 
         String finalApiKey = apiKey;
         return webClient.post()
-                .uri("/v1beta/models/" + model + ":generateContent?key=" + apiKey)
+                .uri(java.net.URI.create(GEMINI_BASE_URL + "/v1beta/models/" + model + ":generateContent?key=" + apiKey))
                 .bodyValue(body)
                 .retrieve()
                 .bodyToMono(Map.class)
@@ -89,7 +93,7 @@ public class GeminiAdapter implements AiProviderAdapter {
                 .toFuture();
     }
 
-    @io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker(name = "geminiLLM", fallbackMethod = "fallbackToMockStructured")
+    @io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker(name = "geminiLLM", fallbackMethod = "fallbackToGroqStructured")
     public CompletableFuture<String> generateStructuredResponseAsync(String systemPrompt, String userMessage) {
         if (!keyPool.isConfigured()) {
             return CompletableFuture.completedFuture(buildMockStructuredFallback(userMessage));
@@ -116,7 +120,7 @@ public class GeminiAdapter implements AiProviderAdapter {
 
         String finalApiKey = apiKey;
         return webClient.post()
-                .uri("/v1beta/models/" + model + ":generateContent?key=" + apiKey)
+                .uri(java.net.URI.create(GEMINI_BASE_URL + "/v1beta/models/" + model + ":generateContent?key=" + apiKey))
                 .bodyValue(body)
                 .retrieve()
                 .bodyToMono(Map.class)
@@ -131,60 +135,6 @@ public class GeminiAdapter implements AiProviderAdapter {
                 })
                 .onErrorReturn(buildMockStructuredFallback(userMessage))
                 .toFuture();
-    }
-
-    @io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker(name = "geminiLLM", fallbackMethod = "fallbackToMockMultimodal")
-    public CompletableFuture<String> generateMultimodalResponseAsync(String systemPrompt, String userMessage, List<String> base64Images) {
-        if (!keyPool.isConfigured()) {
-            return CompletableFuture.completedFuture(buildMockFallback(userMessage));
-        }
-
-        String apiKey = keyPool.nextKey();
-        if (apiKey == null) {
-            return CompletableFuture.completedFuture(buildMockFallback(userMessage));
-        }
-
-        log.info("🔵 [Gemini] Gọi API Multimodal | model={} | key={}...", model, apiKey.substring(0, Math.min(8, apiKey.length())));
-
-        java.util.List<Object> userParts = new java.util.ArrayList<>();
-        userParts.add(Map.of("text", userMessage));
-
-        if (base64Images != null) {
-            for (String b64 : base64Images) {
-                userParts.add(Map.of("inlineData", Map.of("mimeType", "image/jpeg", "data", b64)));
-            }
-        }
-
-        Map<String, Object> body = Map.of(
-            "systemInstruction", Map.of("parts", List.of(Map.of("text", systemPrompt))),
-            "contents", List.of(
-                Map.of("role", "user", "parts", userParts)
-            ),
-            "generationConfig", Map.of("temperature", 0.3, "maxOutputTokens", 8192)
-        );
-
-        String finalApiKey = apiKey;
-        return webClient.post()
-                .uri("/v1beta/models/" + model + ":generateContent?key=" + apiKey)
-                .bodyValue(body)
-                .retrieve()
-                .bodyToMono(Map.class)
-                .map(this::parseGeminiResponse)
-                .timeout(Duration.ofSeconds(30))
-                .doOnSuccess(r -> log.info("✅ [Gemini] OK ({} ký tự)", r.length()))
-                .doOnError(e -> {
-                    log.error("❌ [Gemini Multimodal] Lỗi: {}", e.getMessage());
-                    if (e.getMessage() != null && e.getMessage().contains("429")) {
-                        keyPool.markRateLimited(finalApiKey);
-                    }
-                })
-                .onErrorReturn(buildMockFallback(userMessage))
-                .toFuture();
-    }
-
-    public CompletableFuture<String> fallbackToMockMultimodal(String systemPrompt, String userMessage, List<String> base64Images, Throwable t) {
-        log.warn("🚨 [CircuitBreaker] Gemini Multimodal API sập. Kích hoạt Mock Fallback. Lỗi: {}", t.getMessage());
-        return CompletableFuture.completedFuture(buildMockFallback(userMessage));
     }
 
     public CompletableFuture<String> fallbackToMock(String systemPrompt, String userMessage, Throwable t) {
@@ -244,7 +194,7 @@ public class GeminiAdapter implements AiProviderAdapter {
         );
 
         return webClient.post()
-                .uri("/v1beta/models/" + model + ":streamGenerateContent?alt=sse&key=" + apiKey)
+                .uri(java.net.URI.create(GEMINI_BASE_URL + "/v1beta/models/" + model + ":streamGenerateContent?alt=sse&key=" + apiKey))
                 .bodyValue(body)
                 .retrieve()
                 .bodyToFlux(String.class)
@@ -320,6 +270,38 @@ public class GeminiAdapter implements AiProviderAdapter {
         );
     }
 
+    private String buildMockAiAnalysisFallback(String userMessage) {
+        String safeDesc = userMessage.replace("\"", "\\\"").replace("\n", " ");
+        String priority = "MEDIUM";
+        String domain = "KHAC";
+        String reason = "Phân tích tự động (Mock Mode)";
+        
+        String lowerMsg = userMessage.toLowerCase();
+        if (lowerMsg.contains("chửi") || lowerMsg.contains("đm") || lowerMsg.contains("ngu")) {
+            return String.format(
+                "{\"is_toxic\": true, \"masked_description\": \"%s\", \"trust_score\": 90, \"reason\": \"Phát hiện ngôn từ độc hại\", \"priority\": \"MEDIUM\", \"domain\": \"KHAC\"}",
+                safeDesc
+            );
+        }
+        if (lowerMsg.contains("giao thông") || lowerMsg.contains("tai nạn") || lowerMsg.contains("kẹt xe") || lowerMsg.contains("ổ gà") || lowerMsg.contains("đường")) {
+            domain = "GIAO_THONG";
+            if (lowerMsg.contains("tai nạn")) priority = "HIGH";
+        } else if (lowerMsg.contains("cây") || lowerMsg.contains("cống") || lowerMsg.contains("hạ tầng") || lowerMsg.contains("ngập")) {
+            domain = "HA_TANG";
+            if (lowerMsg.contains("ngập")) priority = "HIGH";
+        } else if (lowerMsg.contains("rác") || lowerMsg.contains("môi trường") || lowerMsg.contains("mùi") || lowerMsg.contains("ồn")) {
+            domain = "MOI_TRUONG";
+        } else if (lowerMsg.contains("an ninh") || lowerMsg.contains("trộm") || lowerMsg.contains("đánh nhau")) {
+            domain = "AN_NINH";
+            priority = "HIGH";
+        }
+        
+        return String.format(
+            "{\"is_toxic\": false, \"masked_description\": \"%s\", \"trust_score\": 90, \"reason\": \"%s\", \"priority\": \"%s\", \"domain\": \"%s\"}",
+            safeDesc, reason, priority, domain
+        );
+    }
+
     public static class GeminiResponse {
         private final String text;
         private final int inputTokens;
@@ -336,78 +318,103 @@ public class GeminiAdapter implements AiProviderAdapter {
         public int getOutputTokens() { return outputTokens; }
     }
 
-    public CompletableFuture<GeminiResponse> generateMultimodalResponseWithUsageAsync(String systemPrompt, String userMessage, List<String> base64Images) {
+    /**
+     * [TEXT-ONLY] Gọi Gemini với chỉ văn bản và trả về GeminiResponse có thống kê token.
+     * Dùng cho AutoDispatchService sau khi bỏ chế độ Multimodal.
+     * Timeout khuyến nghị: 15 giây (nhẹ hơn nhiều so với 30s của Multimodal).
+     */
+    @io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker(name = "geminiLLM", fallbackMethod = "fallbackToGroqStructuredWithUsage")
+    public CompletableFuture<GeminiResponse> generateStructuredResponseWithUsageAsync(String systemPrompt, String userMessage) {
         if (!keyPool.isConfigured()) {
-            return CompletableFuture.completedFuture(new GeminiResponse(buildMockFallback(userMessage), 0, 0));
+            log.warn("⚠️  [Gemini] Pool chưa cấu hình → Mock AI Analysis.");
+            // [BUG FIX] Phải dùng buildMockAiAnalysisFallback (is_toxic/trust_score/priority/domain)
+            // KHÔNG dùng buildMockStructuredFallback (chatbot intent/emotion) — sẽ gây parse lỗi và trust_score=0
+            return CompletableFuture.completedFuture(new GeminiResponse(buildMockAiAnalysisFallback(userMessage), 0, 0));
         }
 
         String apiKey = keyPool.nextKey();
         if (apiKey == null) {
-            return CompletableFuture.completedFuture(new GeminiResponse(buildMockFallback(userMessage), 0, 0));
+            log.warn("⚠️  [Gemini] Không có key ACTIVE → Mock AI Analysis.");
+            // [BUG FIX] Tương tự — phải dùng AI analysis fallback, không phải chatbot fallback
+            return CompletableFuture.completedFuture(new GeminiResponse(buildMockAiAnalysisFallback(userMessage), 0, 0));
         }
 
-        log.info("🔵 [Gemini] Gọi API Multimodal With Usage | model={} | key={}...", model, apiKey.substring(0, Math.min(8, apiKey.length())));
-
-        java.util.List<Object> userParts = new java.util.ArrayList<>();
-        userParts.add(Map.of("text", userMessage));
-
-        if (base64Images != null) {
-            for (String b64 : base64Images) {
-                userParts.add(Map.of("inlineData", Map.of("mimeType", "image/jpeg", "data", b64)));
-            }
-        }
+        log.info("🔵 [Gemini Text-Only] Gọi API | model={} | key={}...", model, apiKey.substring(0, Math.min(8, apiKey.length())));
 
         Map<String, Object> body = Map.of(
             "systemInstruction", Map.of("parts", List.of(Map.of("text", systemPrompt))),
             "contents", List.of(
-                Map.of("role", "user", "parts", userParts)
+                Map.of("role", "user", "parts", List.of(Map.of("text", userMessage)))
             ),
-            "generationConfig", Map.of("temperature", 0.3, "maxOutputTokens", 8192)
+            "generationConfig", Map.of(
+                "temperature", 0.1,
+                "maxOutputTokens", 512,
+                "responseMimeType", "application/json"
+            )
         );
 
         String finalApiKey = apiKey;
         return webClient.post()
-                .uri("/v1beta/models/" + model + ":generateContent?key=" + apiKey)
+                .uri(java.net.URI.create(GEMINI_BASE_URL + "/v1beta/models/" + model + ":generateContent?key=" + apiKey))
                 .bodyValue(body)
                 .retrieve()
                 .bodyToMono(Map.class)
-                .map(this::parseGeminiResponseWithUsage)
-                .timeout(Duration.ofSeconds(30))
-                .doOnSuccess(r -> log.info("✅ [Gemini Multimodal With Usage] OK ({} chars, in_tokens={}, out_tokens={})", 
+                .map(response -> {
+                    String text = parseGeminiResponse(response);
+                    int inputTokens = 0;
+                    int outputTokens = 0;
+                    try {
+                        Map<?, ?> usageMetadata = (Map<?, ?>) response.get("usageMetadata");
+                        if (usageMetadata != null) {
+                            Number promptCount = (Number) usageMetadata.get("promptTokenCount");
+                            Number candidateCount = (Number) usageMetadata.get("candidatesTokenCount");
+                            if (promptCount != null) inputTokens = promptCount.intValue();
+                            if (candidateCount != null) outputTokens = candidateCount.intValue();
+                        }
+                    } catch (Exception ignored) {}
+                    return new GeminiResponse(text, inputTokens, outputTokens);
+                })
+                .timeout(Duration.ofSeconds(15))
+                .doOnSuccess(r -> log.info("✅ [Gemini Text-Only] OK ({} chars, {}+{} tokens)",
                     r.getText().length(), r.getInputTokens(), r.getOutputTokens()))
                 .doOnError(e -> {
-                    log.error("❌ [Gemini Multimodal With Usage] Lỗi: {}", e.getMessage());
-                    if (e instanceof org.springframework.web.reactive.function.client.WebClientResponseException) {
-                        log.error("Chi tiết lỗi từ Google: {}", ((org.springframework.web.reactive.function.client.WebClientResponseException) e).getResponseBodyAsString());
-                    }
+                    log.error("❌ [Gemini Text-Only] Lỗi: {}", e.getMessage());
                     if (e.getMessage() != null && e.getMessage().contains("429")) {
                         keyPool.markRateLimited(finalApiKey);
                     }
                 })
-                .onErrorReturn(new GeminiResponse(buildMockFallback(userMessage), 0, 0))
+                .onErrorReturn(new GeminiResponse(buildMockAiAnalysisFallback(userMessage), 0, 0))
                 .toFuture();
     }
 
-    private GeminiResponse parseGeminiResponseWithUsage(Map<?, ?> response) {
+    public CompletableFuture<String> fallbackToGroq(String systemPrompt, String userMessage, Throwable t) {
+        log.warn("🚨 [CircuitBreaker] Gemini sập. Fallback sang Groq. Lỗi: {}", t.getMessage());
         try {
-            List<?> candidates = (List<?>) response.get("candidates");
-            Map<?, ?> content  = (Map<?, ?>) ((Map<?, ?>) candidates.get(0)).get("content");
-            List<?> parts      = (List<?>) content.get("parts");
-            String text = (String) ((Map<?, ?>) parts.get(0)).get("text");
-
-            int inputTokens = 0;
-            int outputTokens = 0;
-            Map<?, ?> usageMetadata = (Map<?, ?>) response.get("usageMetadata");
-            if (usageMetadata != null) {
-                Number promptCount = (Number) usageMetadata.get("promptTokenCount");
-                Number candidateCount = (Number) usageMetadata.get("candidatesTokenCount");
-                if (promptCount != null) inputTokens = promptCount.intValue();
-                if (candidateCount != null) outputTokens = candidateCount.intValue();
-            }
-            return new GeminiResponse(text, inputTokens, outputTokens);
+            return groqAdapter.generateResponseAsync(systemPrompt, userMessage)
+                .exceptionally(ex -> buildMockFallback(userMessage));
         } catch (Exception e) {
-            log.warn("⚠️  [Gemini With Usage] Parse lỗi: {}", e.getMessage());
-            return new GeminiResponse("Gemini trả về response không hợp lệ.", 0, 0);
+            return CompletableFuture.completedFuture(buildMockFallback(userMessage));
+        }
+    }
+
+    public CompletableFuture<String> fallbackToGroqStructured(String systemPrompt, String userMessage, Throwable t) {
+        log.warn("🚨 [CircuitBreaker] Gemini (Structured) sập. Fallback sang Groq. Lỗi: {}", t.getMessage());
+        try {
+            return groqAdapter.generateStructuredResponseAsync(systemPrompt, userMessage)
+                .exceptionally(ex -> buildMockStructuredFallback(userMessage));
+        } catch (Exception e) {
+            return CompletableFuture.completedFuture(buildMockStructuredFallback(userMessage));
+        }
+    }
+
+    public CompletableFuture<GeminiResponse> fallbackToGroqStructuredWithUsage(String systemPrompt, String userMessage, Throwable t) {
+        log.warn("🚨 [CircuitBreaker] Gemini Text-Only sập. Fallback sang Groq. Lỗi: {}", t.getMessage());
+        try {
+            return groqAdapter.generateStructuredResponseAsync(systemPrompt, userMessage)
+                    .thenApply(text -> new GeminiResponse(text, 0, 0))
+                    .exceptionally(ex -> new GeminiResponse(buildMockAiAnalysisFallback(userMessage), 0, 0));
+        } catch (Exception e) {
+            return CompletableFuture.completedFuture(new GeminiResponse(buildMockAiAnalysisFallback(userMessage), 0, 0));
         }
     }
 }

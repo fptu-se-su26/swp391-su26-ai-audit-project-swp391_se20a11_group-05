@@ -64,8 +64,8 @@ import {
 import { lazy, Suspense } from "react";
 import { staticNews, staticFaqs } from "@/lib/static-content";
 
-const CivicMap = clientOnly(() =>
-  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
+const CivicMap = clientOnly(
+  () => import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
 ) as any;
 
 // ── Da Nang city slideshow images (Unsplash)
@@ -723,7 +723,10 @@ function HomePage() {
 
               <button
                 type="button"
-                onClick={() => { setGuideStep(0); setShowGuide(true); }}
+                onClick={() => {
+                  setGuideStep(0);
+                  setShowGuide(true);
+                }}
                 className="px-5 py-3 bg-white text-[#0B4FC4] border border-[#0B4FC4] rounded-lg text-sm font-semibold hover:bg-blue-50 transition flex items-center gap-2 shadow-sm font-sans cursor-pointer"
               >
                 <PlayCircle size={18} />
@@ -1189,7 +1192,13 @@ function HomePage() {
                   >
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[10px] font-bold uppercase tracking-wider font-sans">
-                        {campaign.category === "infrastructure" ? "Hạ tầng" : campaign.category === "fire_safety" ? "PCCC" : campaign.category === "public_safety" ? "An ninh" : "Cộng đồng"}
+                        {campaign.category === "infrastructure"
+                          ? "Hạ tầng"
+                          : campaign.category === "fire_safety"
+                            ? "PCCC"
+                            : campaign.category === "public_safety"
+                              ? "An ninh"
+                              : "Cộng đồng"}
                       </span>
                       <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 flex items-center gap-1">
                         <Users size={12} />
@@ -1201,7 +1210,9 @@ function HomePage() {
                     </h3>
                     <div className="flex items-center text-xs font-medium text-slate-500 gap-1.5 mb-4 truncate font-sans">
                       <MapPin size={14} className="shrink-0 text-slate-400" />
-                      <span className="truncate">{campaign.locationText || campaign.ward || "Đà Nẵng"}</span>
+                      <span className="truncate">
+                        {campaign.locationText || campaign.ward || "Đà Nẵng"}
+                      </span>
                     </div>
                     <div className="w-full bg-emerald-600 text-white text-sm font-bold py-2.5 rounded-lg text-center group-hover:bg-emerald-700 transition-colors font-sans shadow-sm">
                       Tham gia ngay
@@ -1410,7 +1421,11 @@ function HomePage() {
                     >
                       <div className="aspect-[16/10] overflow-hidden bg-slate-100 relative">
                         <img
-                          src={n.imageUrl || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&q=80"}
+                          src={
+                            n.imageUrl && n.imageUrl !== "111" && n.imageUrl.trim() !== ""
+                              ? n.imageUrl
+                              : "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&q=80"
+                          }
                           alt={n.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition duration-200"
                         />
@@ -1607,9 +1622,9 @@ const GUIDE_STEPS: GuideStep[] = [
   },
   {
     icon: Camera,
-    title: { vi: "Bước 2: Nhấn \"Gửi phản ánh ngay\"", en: 'Step 2: Click "Submit Report"' },
+    title: { vi: 'Bước 2: Nhấn "Gửi phản ánh ngay"', en: 'Step 2: Click "Submit Report"' },
     desc: {
-      vi: "Trên trang chủ, nhấn nút \"Gửi phản ánh ngay\" hoặc vào menu \"Gửi phản ánh\" để bắt đầu tạo phản ánh mới.",
+      vi: 'Trên trang chủ, nhấn nút "Gửi phản ánh ngay" hoặc vào menu "Gửi phản ánh" để bắt đầu tạo phản ánh mới.',
       en: 'On the homepage, click the "Submit Report" button or go to the "Submit Report" menu to start creating a new report.',
     },
     color: "#7C3AED",
@@ -1649,7 +1664,7 @@ const GUIDE_STEPS: GuideStep[] = [
     icon: SendHorizontal,
     title: { vi: "Bước 6: Gửi phản ánh", en: "Step 6: Submit the report" },
     desc: {
-      vi: "Kiểm tra lại thông tin và nhấn \"Gửi phản ánh\". Hệ thống sẽ cấp mã theo dõi để bạn tra cứu tình trạng xử lý.",
+      vi: 'Kiểm tra lại thông tin và nhấn "Gửi phản ánh". Hệ thống sẽ cấp mã theo dõi để bạn tra cứu tình trạng xử lý.',
       en: 'Review your information and click "Submit Report". The system will issue a tracking code so you can check the processing status.',
     },
     color: "#0B4FC4",
@@ -1659,7 +1674,7 @@ const GUIDE_STEPS: GuideStep[] = [
     icon: ClipboardCheck,
     title: { vi: "Bước 7: Theo dõi kết quả", en: "Step 7: Track the result" },
     desc: {
-      vi: "Vào \"Tra cứu phản ánh\" để theo dõi tình trạng xử lý. Bạn sẽ nhận thông báo khi phản ánh được tiếp nhận, đang xử lý hoặc đã hoàn thành.",
+      vi: 'Vào "Tra cứu phản ánh" để theo dõi tình trạng xử lý. Bạn sẽ nhận thông báo khi phản ánh được tiếp nhận, đang xử lý hoặc đã hoàn thành.',
       en: 'Go to "Track Reports" to monitor the processing status. You will receive notifications when your report is received, being processed, or completed.',
     },
     color: "#16A34A",
@@ -1689,10 +1704,7 @@ function GuideModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
       <div className="relative w-full max-w-[640px] bg-white rounded-2xl shadow-2xl border border-[#E4EAF2] overflow-hidden animate-fade-in">
@@ -1722,11 +1734,7 @@ function GuideModal({
                 type="button"
                 onClick={() => setStep(i)}
                 className={`h-1.5 flex-1 rounded-full transition-all duration-300 cursor-pointer ${
-                  i === step
-                    ? "bg-[#0B4FC4]"
-                    : i < step
-                      ? "bg-[#0B4FC4]/30"
-                      : "bg-slate-200"
+                  i === step ? "bg-[#0B4FC4]" : i < step ? "bg-[#0B4FC4]/30" : "bg-slate-200"
                 }`}
               />
             ))}

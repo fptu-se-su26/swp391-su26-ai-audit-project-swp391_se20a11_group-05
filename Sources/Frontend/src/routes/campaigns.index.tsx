@@ -28,7 +28,7 @@ import {
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useCampaignList } from "@/hooks/useCampaigns";
+import { useCampaignList, useCampaignListQuery } from "@/hooks/useCampaigns";
 import { Role, useAuth } from "@/lib/auth";
 import { feedbackApi, newsApi } from "@/lib/api";
 import type { Campaign, CampaignCategory } from "@/lib/campaignStore";
@@ -37,11 +37,7 @@ import { CampaignAppealModal } from "@/components/site/CampaignAppealModal";
 import causonghanImg from "@/assets/causonghan.png";
 import { CampaignCard, campaignCategoryLabel } from "@/features/campaigns/CampaignCard";
 import { StatisticCard } from "@/features/campaigns/StatisticCard";
-import {
-  DEFAULT_FILTERS,
-  FilterBar,
-  type CampaignFilters,
-} from "@/features/campaigns/FilterBar";
+import { DEFAULT_FILTERS, FilterBar, type CampaignFilters } from "@/features/campaigns/FilterBar";
 
 export const Route = createFileRoute("/campaigns/")({
   head: () => ({
@@ -122,6 +118,7 @@ function matchesTime(campaign: Campaign, time: string) {
 }
 
 function CampaignList() {
+  const { isLoading } = useCampaignListQuery();
   const campaigns = useCampaignList();
   const { user, isAuthenticated } = useAuth();
   const { locale } = useI18n();
@@ -169,8 +166,7 @@ function CampaignList() {
         campaign.ward.toLowerCase().includes(keyword) ||
         campaign.desc.toLowerCase().includes(keyword) ||
         (campaign.locationText ?? "").toLowerCase().includes(keyword);
-      const matchesCategory =
-        filters.category === "all" || campaign.category === filters.category;
+      const matchesCategory = filters.category === "all" || campaign.category === filters.category;
       const matchesWard = filters.ward === "all" || campaign.ward === filters.ward;
       return matchesSearch && matchesCategory && matchesWard && matchesTime(campaign, filters.time);
     });
@@ -199,7 +195,9 @@ function CampaignList() {
 
   const goToPage = (next: number) => {
     setPage(next);
-    document.getElementById("campaigns-list")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    document
+      .getElementById("campaigns-list")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const tabs = [
@@ -288,7 +286,10 @@ function CampaignList() {
                 <Landmark size={13} aria-hidden />
                 Cổng thông tin phản ánh hiện trường · TP. Đà Nẵng
               </span>
-              <h1 id="page-title" className="font-sans text-[32px] font-bold tracking-tight text-[#182230]">
+              <h1
+                id="page-title"
+                className="font-sans text-[32px] font-bold tracking-tight text-[#182230]"
+              >
                 Chiến dịch cộng đồng
               </h1>
               <p className="mt-2 max-w-md text-[15px] leading-relaxed text-[#64748B]">
@@ -377,7 +378,11 @@ function CampaignList() {
               id="campaigns-list"
               className="flex scroll-mt-24 flex-wrap items-center justify-between gap-3 border-b border-[#E6ECF5]"
             >
-              <div role="tablist" aria-label="Lọc theo trạng thái chiến dịch" className="flex gap-1">
+              <div
+                role="tablist"
+                aria-label="Lọc theo trạng thái chiến dịch"
+                className="flex gap-1"
+              >
                 {tabs.map((tab) => {
                   const selected = filters.status === tab.value;
                   return (
@@ -420,7 +425,16 @@ function CampaignList() {
               </label>
             </div>
 
-            {filtered.length > 0 ? (
+            {isLoading ? (
+              <div className="mt-6 grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 animate-pulse">
+                {[1, 2, 3, 4].map((s) => (
+                  <div
+                    key={s}
+                    className="h-96 rounded-[16px] bg-slate-200 border border-slate-100"
+                  />
+                ))}
+              </div>
+            ) : filtered.length > 0 ? (
               <>
                 <div
                   role="tabpanel"
@@ -499,9 +513,15 @@ function CampaignList() {
             )}
 
             {latestNews.length > 0 && (
-              <section aria-labelledby="news-heading" className="mt-8 rounded-[16px] border border-[#E6ECF5] bg-white p-6 shadow-[0_1px_3px_rgba(16,42,83,0.06)]">
+              <section
+                aria-labelledby="news-heading"
+                className="mt-8 rounded-[16px] border border-[#E6ECF5] bg-white p-6 shadow-[0_1px_3px_rgba(16,42,83,0.06)]"
+              >
                 <div className="mb-5 flex items-center justify-between">
-                  <h2 id="news-heading" className="font-sans flex items-center gap-2 text-[15px] font-bold uppercase tracking-wide text-[#182230]">
+                  <h2
+                    id="news-heading"
+                    className="font-sans flex items-center gap-2 text-[15px] font-bold uppercase tracking-wide text-[#182230]"
+                  >
                     <Newspaper size={18} className="text-[#0A4DA2]" aria-hidden />
                     Tin tức &amp; thông báo
                   </h2>
@@ -522,7 +542,11 @@ function CampaignList() {
                       className="group flex gap-3.5"
                     >
                       <img
-                        src={news.imageUrl}
+                        src={
+                          news.imageUrl && news.imageUrl !== "111" && news.imageUrl.trim() !== ""
+                            ? news.imageUrl
+                            : fallbackImages[0]
+                        }
                         alt=""
                         loading="lazy"
                         className="h-[72px] w-[96px] shrink-0 rounded-lg border border-[#E6ECF5] object-cover"
@@ -552,7 +576,9 @@ function CampaignList() {
           <aside aria-label="Thông tin bổ sung" className="flex flex-col gap-6">
             {categoryStats.length > 0 && (
               <section className="rounded-[16px] border border-[#E6ECF5] bg-white p-5 shadow-[0_1px_3px_rgba(16,42,83,0.06)]">
-                <h2 className="font-sans mb-4 text-[15px] font-bold text-[#182230]">Lĩnh vực nổi bật</h2>
+                <h2 className="font-sans mb-4 text-[15px] font-bold text-[#182230]">
+                  Lĩnh vực nổi bật
+                </h2>
                 <ul className="divide-y divide-[#F0F4FA]">
                   {categoryStats.map(({ category, count }) => {
                     const Icon = categoryIcon[category];
@@ -617,7 +643,9 @@ function CampaignList() {
             </section>
 
             <section className="rounded-[16px] border border-[#E6ECF5] bg-white p-5 shadow-[0_1px_3px_rgba(16,42,83,0.06)]">
-              <h2 className="font-sans mb-4 text-[15px] font-bold text-[#182230]">Thống kê nhanh</h2>
+              <h2 className="font-sans mb-4 text-[15px] font-bold text-[#182230]">
+                Thống kê nhanh
+              </h2>
               <dl className="space-y-3 text-sm">
                 <div className="flex items-center justify-between">
                   <dt className="font-medium text-[#64748B]">Chiến dịch trong tháng</dt>
@@ -625,9 +653,7 @@ function CampaignList() {
                 </div>
                 <div className="flex items-center justify-between">
                   <dt className="font-medium text-[#64748B]">Đang diễn ra</dt>
-                  <dd className="font-bold text-[#182230]">
-                    {campaigns.filter(isOngoing).length}
-                  </dd>
+                  <dd className="font-bold text-[#182230]">{campaigns.filter(isOngoing).length}</dd>
                 </div>
                 <div className="flex items-center justify-between">
                   <dt className="font-medium text-[#64748B]">Tổng người tham gia</dt>
@@ -639,7 +665,9 @@ function CampaignList() {
             </section>
 
             <section className="rounded-[16px] border border-[#E6ECF5] bg-white p-5 shadow-[0_1px_3px_rgba(16,42,83,0.06)]">
-              <h2 className="font-sans mb-4 text-[15px] font-bold text-[#182230]">Liên kết hữu ích</h2>
+              <h2 className="font-sans mb-4 text-[15px] font-bold text-[#182230]">
+                Liên kết hữu ích
+              </h2>
               <ul className="space-y-1 text-sm font-medium">
                 {[
                   { to: "/report", label: "Gửi phản ánh hiện trường", icon: MessageSquareText },
@@ -661,13 +689,18 @@ function CampaignList() {
             </section>
 
             <section className="rounded-[16px] border border-[#E6ECF5] bg-white p-5 shadow-[0_1px_3px_rgba(16,42,83,0.06)]">
-              <h2 className="font-sans mb-4 text-[15px] font-bold text-[#182230]">Thông tin liên hệ</h2>
+              <h2 className="font-sans mb-4 text-[15px] font-bold text-[#182230]">
+                Thông tin liên hệ
+              </h2>
               <ul className="space-y-3 text-[13px] font-medium text-[#64748B]">
                 <li className="flex items-center gap-2.5">
                   <Phone size={15} className="shrink-0 text-[#0A4DA2]" aria-hidden />
                   <span>
                     Hotline:{" "}
-                    <a href="tel:1022" className="font-semibold text-[#182230] hover:text-[#0A4DA2]">
+                    <a
+                      href="tel:1022"
+                      className="font-semibold text-[#182230] hover:text-[#0A4DA2]"
+                    >
                       1022
                     </a>
                   </span>

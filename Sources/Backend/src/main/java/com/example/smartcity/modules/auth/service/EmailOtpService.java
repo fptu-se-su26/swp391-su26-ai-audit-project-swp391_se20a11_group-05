@@ -58,14 +58,36 @@ public class EmailOtpService {
         saveOtpRecord(user, email, passwordEncoder.encode(otpCode), purpose);
 
         // Send via background external notification service (mocked)
-        String subject = "PASSWORD_CHANGE".equalsIgnoreCase(purpose)
-                ? "Mã xác thực đổi mật khẩu - Đà Nẵng Kết Nối"
-                : "Mã xác thực đăng ký chiến dịch - Đà Nẵng Kết Nối";
-        String body = "Xin chào " + user.getFullName() + ",\n\n" +
-                "Mã xác thực OTP của bạn là: " + otpCode + "\n" +
-                "Mã này có hiệu lực trong " + OTP_VALID_DURATION_MINUTES + " phút.\n" +
-                "Vui lòng không chia sẻ mã này với bất kỳ ai.\n\n" +
-                "Trân trọng,\nBan Tổ Chức";
+        String subject;
+        if ("PASSWORD_CHANGE".equalsIgnoreCase(purpose)) {
+            subject = "Mã xác thực đổi mật khẩu - Đà Nẵng Kết Nối";
+        } else if ("DELETE_ACCOUNT".equalsIgnoreCase(purpose)) {
+            subject = "Mã xác thực xóa tài khoản - Đà Nẵng Kết Nối";
+        } else {
+            subject = "Mã xác thực đăng ký chiến dịch - Đà Nẵng Kết Nối";
+        }
+        String actionText = "PASSWORD_CHANGE".equalsIgnoreCase(purpose) ? "đổi mật khẩu" : 
+                            ("DELETE_ACCOUNT".equalsIgnoreCase(purpose) ? "xóa tài khoản" : "đăng ký tham gia chiến dịch");
+
+        String body = "<div style=\"font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);\">"
+                + "<div style=\"text-align: center; padding-bottom: 20px; border-bottom: 2px solid #3b82f6;\">"
+                + "<h1 style=\"color: #1e3a8a; margin: 0; font-size: 26px; font-weight: 700;\">Đà Nẵng Kết Nối</h1>"
+                + "<p style=\"color: #6b7280; margin: 5px 0 0 0; font-size: 14px;\">Hệ Sinh Thái Tiện Ích Thông Minh</p>"
+                + "</div>"
+                + "<div style=\"padding: 30px 0; color: #374151; line-height: 1.6; font-size: 16px;\">"
+                + "<p>Xin chào <strong>" + user.getFullName() + "</strong>,</p>"
+                + "<p>Hệ thống vừa nhận được yêu cầu <strong>" + actionText + "</strong> từ tài khoản của bạn. Để tiếp tục, vui lòng sử dụng mã xác thực (OTP) dưới đây:</p>"
+                + "<div style=\"text-align: center; margin: 35px 0;\">"
+                + "<span style=\"display: inline-block; padding: 16px 32px; font-size: 34px; font-weight: 800; color: #1d4ed8; background-color: #eff6ff; border-radius: 8px; letter-spacing: 6px; border: 1px solid #bfdbfe;\">" + otpCode + "</span>"
+                + "</div>"
+                + "<p>Mã bảo mật này có hiệu lực trong vòng <strong>" + OTP_VALID_DURATION_MINUTES + " phút</strong>. Khuyến cáo KHÔNG chia sẻ mã này cho bất kỳ ai (kể cả nhân viên hỗ trợ) để tránh rủi ro mất tài khoản.</p>"
+                + "<p style=\"font-size: 14px; color: #6b7280; margin-top: 30px;\">Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email hoặc liên hệ ngay với Ban Quản Trị để được hỗ trợ.</p>"
+                + "</div>"
+                + "<div style=\"padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 13px;\">"
+                + "<p style=\"margin: 0 0 5px 0;\">Trân trọng,<br><strong style=\"color: #4b5563;\">Ban Quản Trị Đà Nẵng Kết Nối</strong></p>"
+                + "<p style=\"margin: 0;\">&copy; " + java.time.Year.now().getValue() + " SmartCity Da Nang. All rights reserved.</p>"
+                + "</div>"
+                + "</div>";
 
         externalNotificationService.sendEmailNotification(email, subject, body);
 

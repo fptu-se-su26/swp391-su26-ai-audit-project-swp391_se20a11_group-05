@@ -224,3 +224,90 @@ export const wardPerformance: WardPerformance[] = [
   { name: "Thanh Khê Tây", resolved: 173, satisfactionPct: 90, avgHrs: 44 },
   { name: "An Hải Bắc", resolved: 152, satisfactionPct: 92, avgHrs: 39 },
 ];
+
+export const touristNews = [
+  {
+    id: 1,
+    title: { vi: "Ngày hội văn hóa, thể thao và du lịch đồng bào Cơ Tu năm 2026", en: "Co Tu Ethnic Culture, Sports and Tourism Festival 2026" },
+    date: "25/08/2026",
+    image: "https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&q=80&w=600",
+  },
+  {
+    id: 2,
+    title: { vi: "Lễ hội pháo hoa quốc tế Đà Nẵng (DIFF) 2026", en: "Da Nang International Fireworks Festival (DIFF) 2026" },
+    date: "10/06/2026",
+    image: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&q=80&w=600",
+  },
+  {
+    id: 3,
+    title: { vi: "Đà Nẵng vinh dự nhận giải thưởng Điểm đến sự kiện lễ hội hàng đầu Châu Á", en: "Da Nang awarded Asia's Leading Festival & Event Destination" },
+    date: "05/09/2026",
+    image: "https://images.unsplash.com/photo-1596402184320-417e7178b2cd?auto=format&fit=crop&q=80&w=600",
+  },
+];
+
+export const touristDestinations = [
+  {
+    id: 1,
+    title: { vi: "Bà Nà Hills", en: "Ba Na Hills" },
+    desc: { vi: "Khu du lịch sinh thái nghỉ dưỡng kết hợp vui chơi giải trí.", en: "Eco-resort and amusement park." },
+    image: "https://images.unsplash.com/photo-1563640847-d7f0040c9cc2?auto=format&fit=crop&q=80&w=600",
+  },
+  {
+    id: 2,
+    title: { vi: "Bán đảo Sơn Trà", en: "Son Tra Peninsula" },
+    desc: { vi: "Lá phổi xanh của thành phố với hệ sinh thái đa dạng.", en: "The green lung of the city with diverse ecosystems." },
+    image: "https://images.unsplash.com/photo-1596402184320-417e7178b2cd?auto=format&fit=crop&q=80&w=600",
+  },
+  {
+    id: 3,
+    title: { vi: "Ngũ Hành Sơn", en: "Marble Mountains" },
+    desc: { vi: "Cụm 5 ngọn núi đá vôi nhô lên trên bãi cát ven biển.", en: "Cluster of 5 limestone mountains rising from the coastal sand." },
+    image: "https://images.unsplash.com/photo-1549487212-fcb03b6d2673?auto=format&fit=crop&q=80&w=600",
+  },
+];
+
+export const touristFestivals = [
+  {
+    id: 1,
+    title: { vi: "Lễ hội Quán Thế Âm", en: "Quan The Am Festival" },
+    desc: { vi: "Lễ hội tâm linh truyền thống tại Ngũ Hành Sơn.", en: "Traditional spiritual festival at Marble Mountains." },
+    image: "https://images.unsplash.com/photo-1533613220915-609f661a6fe1?auto=format&fit=crop&q=80&w=600",
+  },
+  {
+    id: 2,
+    title: { vi: "Lễ hội Đua thuyền truyền thống", en: "Traditional Boat Racing Festival" },
+    desc: { vi: "Lễ hội diễn ra trên sông Hàn vào dịp Quốc khánh.", en: "Festival held on the Han River on National Day." },
+    image: "https://images.unsplash.com/photo-1522878438259-3850787e9f3b?auto=format&fit=crop&q=80&w=600",
+  },
+];
+
+export const touristAccommodations = [
+  {
+    id: 1,
+    title: { vi: "InterContinental Danang", en: "InterContinental Danang" },
+    desc: { vi: "Khu nghỉ dưỡng 5 sao ven biển tuyệt đẹp.", en: "Beautiful 5-star coastal resort." },
+    image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80&w=600",
+  },
+  {
+    id: 2,
+    title: { vi: "Novotel Danang Premier", en: "Novotel Danang Premier" },
+    desc: { vi: "Khách sạn hiện đại ngay trung tâm bên bờ sông Hàn.", en: "Modern hotel in the center by the Han River." },
+    image: "https://images.unsplash.com/photo-1551882547-ff40eb0d1b73?auto=format&fit=crop&q=80&w=600",
+  },
+];
+
+export const touristCraftVillages = [
+  {
+    id: 1,
+    title: { vi: "Làng đá mỹ nghệ Non Nước", en: "Non Nuoc Stone Carving Village" },
+    desc: { vi: "Làng nghề chạm khắc đá truyền thống nổi tiếng.", en: "Famous traditional stone carving village." },
+    image: "https://images.unsplash.com/photo-1582215328906-e7e0e7a17dd7?auto=format&fit=crop&q=80&w=600",
+  },
+  {
+    id: 2,
+    title: { vi: "Làng chiếu Cẩm Nê", en: "Cam Ne Mat Village" },
+    desc: { vi: "Làng nghề làm chiếu cói truyền thống.", en: "Traditional sedge mat making village." },
+    image: "https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?auto=format&fit=crop&q=80&w=600",
+  },
+];

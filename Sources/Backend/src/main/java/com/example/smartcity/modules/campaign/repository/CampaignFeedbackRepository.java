@@ -8,6 +8,8 @@ import org.springframework.stereotype.Repository;
 public interface CampaignFeedbackRepository extends JpaRepository<CampaignFeedback, Long> {
     boolean existsByCampaign_IdAndParticipant_Id(Long campaignId, Long participantId);
 
+    java.util.List<CampaignFeedback> findByCampaign_IdInAndParticipant_Citizen_Id(java.util.List<Long> campaignIds, Long citizenId);
+
     void deleteByCampaign_Id(Long campaignId);
 
     @org.springframework.data.jpa.repository.Query("SELECT AVG(f.rating) FROM CampaignFeedback f WHERE f.participant.citizen.id = :citizenId")

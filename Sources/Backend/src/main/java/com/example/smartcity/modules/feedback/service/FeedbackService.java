@@ -72,7 +72,6 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
     private final EmbeddingClientFacade embeddingFacade;
     private final AiTaskRepository aiTaskRepository;
     private final GeminiAdapter geminiAdapter;
-    private final com.example.smartcity.ai_orchestrator.adapter.GroqAdapter groqAdapter;
 
     @org.springframework.beans.factory.annotation.Autowired
     @org.springframework.context.annotation.Lazy
@@ -144,7 +143,7 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
 
         // AI Duplicate Detection: Kiểm tra phản ánh trùng lặp (có phường hoặc không) ngoài transaction
         Long wardId = (ward != null) ? ward.getId() : null;
-        checkDuplicateFeedback(request.getDescription(), wardId, request.getLongitude(), request.getLatitude());
+        checkDuplicateFeedback(username, request.getDescription(), wardId, request.getLongitude(), request.getLatitude());
 
         // Gọi method transactional qua self-proxy để đảm bảo AOP hoạt động chính xác (fallback this khi self == null trong unit tests)
         FeedbackService service = (self != null) ? self : this;
@@ -230,13 +229,47 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
         }
     }
 
-    public void checkDuplicateFeedback(String description, Long wardId, Double longitude, Double latitude) {
+    // Sử dụng Caffeine Cache để tự động xóa key sau 1 phút (chống tràn RAM/Memory Leak)
+    private static final com.github.benmanes.caffeine.cache.Cache<String, Long> userLastSubmitTime = 
+        com.github.benmanes.caffeine.cache.Caffeine.newBuilder()
+            .expireAfterWrite(1, java.util.concurrent.TimeUnit.MINUTES)
+            .maximumSize(10000)
+            .build();
+
+    public static void clearRateLimitCache() {
+        userLastSubmitTime.invalidateAll();
+    }
+
+    public void checkDuplicateFeedback(String username, String description, Long wardId, Double longitude, Double latitude) {
         if (description == null || description.isBlank() || longitude == null || latitude == null) {
             return;
         }
 
+        // TIER 1: Rate Limit 60 giây chống Spam (ngăn Race Condition)
+        if (username != null) {
+            long now = System.currentTimeMillis();
+            Long lastSubmit = userLastSubmitTime.getIfPresent(username);
+            if (lastSubmit != null && (now - lastSubmit < 60000)) {
+                throw new CustomException("Bạn thao tác quá nhanh. Vui lòng đợi 1 phút trước khi gửi phản ánh mới để hệ thống kiểm tra trùng lặp.", HttpStatus.TOO_MANY_REQUESTS.value());
+            }
+            userLastSubmitTime.put(username, now);
+        }
+
         try {
             float[] descriptionVector = embeddingFacade.embed(description);
+
+            // [BUG FIX] Nếu không có Gemini API key → embeddingFacade trả về mock vector ngẫu nhiên.
+            // Mock vector không có ngữ nghĩa thực → cosine distance luôn > 0.70 → không bao giờ tìm thấy ứng viên.
+            // Giải pháp: kiểm tra xem vector có phải mock không bằng cách dùng norm check.
+            // Vector mock dùng Random(text.hashCode()) có norm = 1 (sau khi normalize) → không thể phân biệt.
+            // Thay vào đó, kiểm tra trực tiếp pool có key thật không. Nếu không → bỏ qua TIER 1 vector search,
+            // để nó ném exception giả và rơi vào TIER 2 fallback text matching bên dưới.
+            boolean hasRealEmbedding = embeddingFacade.isConfigured();
+            if (!hasRealEmbedding) {
+                log.warn("[Duplicate Detection] Gemini key chưa cấu hình → bỏ qua TIER 1 Vector Search, dùng TIER 2 Text Matching.");
+                throw new IllegalStateException("Embedding không khả dụng — chuyển sang Tier 2 fallback");
+            }
+
             String vectorString = java.util.Arrays.toString(descriptionVector);
 
             String sql;
@@ -326,7 +359,8 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
                 if (isDuplicate && dupTrackingCode != null && !dupTrackingCode.equals("null") && !dupTrackingCode.isEmpty()) {
                     log.warn("[DUPLICATE-DETECTION] AI xác nhận trùng lặp với {}. Lý do: {}", dupTrackingCode, reason);
                     throw new CustomException(
-                        "Phản ánh tương tự đã được gửi bởi người dân khác. Vui lòng theo dõi mã phản ánh " + dupTrackingCode + " để cập nhật tiến độ.",
+                        "Sự cố tương tự đã được chính quyền địa phương tiếp nhận hoặc xử lý (Mã đơn: " + dupTrackingCode +
+                        "). Nếu sự cố chưa dứt điểm, bạn vui lòng bấm nút 'Yêu cầu mở lại đơn " + dupTrackingCode + "' thay vì tạo đơn mới.",
                         HttpStatus.CONFLICT.value()
                     );
                 } else {
@@ -334,9 +368,67 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
                 }
             }
         } catch (CustomException ex) {
-            throw ex;
+            throw ex; // Pass through CustomExceptions (Rate Limit, Duplicates)
         } catch (Exception e) {
-            log.error("❌ [Duplicate Detection] Lỗi khi kiểm tra trùng lặp: {}", e.getMessage());
+            log.error("❌ [Duplicate Detection] AI/Vector Lỗi: {}. Chuyển sang TIER 2: Fallback Text Matching...", e.getMessage());
+            
+            // TIER 2: Fallback Text Keyword Matching (khi Gemini sập hoặc lỗi DB)
+            try {
+                String fallbackSql;
+                Object[] fallbackParams;
+                if (wardId != null) {
+                    fallbackSql = """
+                        SELECT tracking_code, description
+                        FROM feedbacks
+                        WHERE ward_id = ?
+                          AND ST_DWithin(location, ST_SetSRID(ST_Point(?, ?), 4326), 0.005)
+                          AND status IN ('PENDING', 'IN_PROGRESS', 'SUBMITTED', 'NEED_LOCATION_REVIEW', 'PENDING_RECEIVE', 'WAITING_INFO')
+                        LIMIT 20
+                    """;
+                    fallbackParams = new Object[]{ wardId, longitude, latitude };
+                } else {
+                    fallbackSql = """
+                        SELECT tracking_code, description
+                        FROM feedbacks
+                        WHERE ST_DWithin(location, ST_SetSRID(ST_Point(?, ?), 4326), 0.005)
+                          AND status IN ('PENDING', 'IN_PROGRESS', 'SUBMITTED', 'NEED_LOCATION_REVIEW', 'PENDING_RECEIVE', 'WAITING_INFO')
+                        LIMIT 20
+                    """;
+                    fallbackParams = new Object[]{ longitude, latitude };
+                }
+                
+                List<Map<String, Object>> fallbackCandidates = jdbcTemplate.queryForList(fallbackSql, fallbackParams);
+                Set<String> inputWords = new java.util.HashSet<>(java.util.Arrays.asList(description.toLowerCase().split("\\s+")));
+                inputWords.removeIf(w -> w.length() < 3); // Lọc từ quá ngắn
+                
+                for (Map<String, Object> row : fallbackCandidates) {
+                    String oldDesc = (String) row.get("description");
+                    String tc = (String) row.get("tracking_code");
+                    if (oldDesc != null) {
+                        Set<String> oldWords = new java.util.HashSet<>(java.util.Arrays.asList(oldDesc.toLowerCase().split("\\s+")));
+                        oldWords.removeIf(w -> w.length() < 3);
+                        
+                        Set<String> intersection = new java.util.HashSet<>(inputWords);
+                        intersection.retainAll(oldWords);
+                        
+                        Set<String> union = new java.util.HashSet<>(inputWords);
+                        union.addAll(oldWords);
+                        
+                        double jaccard = union.isEmpty() ? 0 : (double) intersection.size() / union.size();
+                        if (jaccard > 0.4) { // Ngưỡng chung 40% từ khóa giống nhau
+                            log.warn("[DUPLICATE-DETECTION-FALLBACK] Bắt được trùng lặp qua keyword với {} (jaccard: {})", tc, jaccard);
+                            throw new CustomException(
+                                "Hệ thống ghi nhận sự cố của bạn khá giống với một phản ánh đã được gửi gần đây (Mã đơn: " + tc + "). Vui lòng tránh báo cáo trùng lặp.",
+                                HttpStatus.CONFLICT.value()
+                            );
+                        }
+                    }
+                }
+            } catch (CustomException ex) {
+                throw ex; // Pass duplicate found in fallback
+            } catch (Exception fallbackEx) {
+                log.error("❌ [Duplicate Detection Fallback] Lỗi Tier 2: {}", fallbackEx.getMessage());
+            }
         }
     }
 

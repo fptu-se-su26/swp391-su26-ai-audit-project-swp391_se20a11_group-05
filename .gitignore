@@ -20,6 +20,8 @@ SKILL.md
 # Java
 target/
 target_new/
+.m2/
+*.class
 *.log
 
 # React

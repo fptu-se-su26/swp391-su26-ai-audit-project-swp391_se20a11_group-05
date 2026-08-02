@@ -133,13 +133,13 @@ public class GroqAdapter implements AiProviderAdapter {
     }
 
     public CompletableFuture<String> fallbackToGeminiStructured(String systemPrompt, String userMessage, Throwable t) {
-        log.warn("🚨 [CircuitBreaker] Groq API sập. Fallback sang Gemini. Lỗi: {}", t.getMessage());
-        return geminiAdapter.generateStructuredResponseAsync(systemPrompt, userMessage);
+        log.warn("🚨 [CircuitBreaker] Groq API sập. Trả về Mock Structured. Lỗi: {}", t.getMessage());
+        return CompletableFuture.completedFuture("{\"intent\":\"SMALLTALK\", \"emotion\":\"NEUTRAL\", \"reply\":\"Groq sập, hệ thống đang bận.\"}");
     }
 
     public CompletableFuture<String> fallbackToGemini(String systemPrompt, String userMessage, Throwable t) {
-        log.warn("🚨 [CircuitBreaker] Groq API sập hoặc Rate Limit quá nhiều. Tự động Fallback sang Gemini. Lỗi: {}", t.getMessage());
-        return geminiAdapter.generateResponseAsync(systemPrompt, userMessage);
+        log.warn("🚨 [CircuitBreaker] Groq API sập. Trả về Mock. Lỗi: {}", t.getMessage());
+        return CompletableFuture.completedFuture("⏳ Groq đang quá tải. Vui lòng thử lại sau.");
     }
 
     /** Xây Mono cho 1 lần gọi API với key hiện tại */

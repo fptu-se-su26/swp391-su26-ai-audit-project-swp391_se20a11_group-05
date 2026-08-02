@@ -2,19 +2,8 @@ import { type ReportStatus } from "@/types/status";
 
 /** Map backend DB status string → frontend badge status */
 export function mapStatus(backendStatus: string): ReportStatus {
-  const m: Record<string, ReportStatus> = {
-    SUBMITTED: "pending",
-    PENDING_RECEIVE: "pending",
-    PENDING: "pending",
-    NEED_LOCATION_REVIEW: "pending",
-    ASSIGNED: "inProgress",
-    IN_PROGRESS: "inProgress",
-    WAITING_INFO: "pending",
-    RESOLVED: "resolved",
-    REJECTED: "urgent",
-    PRE_EMPTIVE: "pending",
-  };
-  return m[backendStatus] || "pending";
+  if (!backendStatus) return "PENDING";
+  return backendStatus.toUpperCase() as ReportStatus;
 }
 
 /** Group status string into one of the four main dashboard status categories */

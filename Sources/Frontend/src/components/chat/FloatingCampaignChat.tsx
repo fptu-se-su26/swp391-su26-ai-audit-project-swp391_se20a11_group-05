@@ -30,6 +30,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { Role } from "@/lib/roles";
 import { API_BASE, getToken } from "@/lib/api";
+import { compressImageIfNeeded } from "@/lib/imageCompression";
 import { toast } from "sonner";
 import { CampaignChatBubble } from "./CampaignChatBubble";
 import { EmojiPicker } from "./EmojiPicker";
@@ -254,7 +255,8 @@ export function FloatingCampaignChat({ campaignId, onClose }: FloatingCampaignCh
     newAttachments.forEach(async (att) => {
       try {
         const formData = new FormData();
-        formData.append("file", att.file);
+        const compressedFile = await compressImageIfNeeded(att.file);
+        formData.append("file", compressedFile);
 
         const res = await fetch(`${API_BASE}/api/files/upload`, {
           method: "POST",

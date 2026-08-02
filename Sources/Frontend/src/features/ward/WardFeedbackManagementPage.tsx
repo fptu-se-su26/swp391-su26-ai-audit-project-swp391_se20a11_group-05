@@ -630,13 +630,16 @@ function PriorityBadge({ value }: { value?: string | null }) {
 function getOfficerStatusInfo(status: string) {
   const upper = (status || "").toUpperCase();
   if (upper === "RESOLVED") {
-    return { label: "Đã xử lý", className: "bg-emerald-50/50 text-emerald-700 border-emerald-100" };
+    return {
+      label: "Đã giải quyết",
+      className: "bg-emerald-50/50 text-emerald-700 border-emerald-100",
+    };
   }
   if (upper === "REJECTED") {
     return { label: "Từ chối xử lý", className: "bg-rose-50/50 text-rose-700 border-rose-100" };
   }
   if (upper === "SUBMITTED") {
-    return { label: "Đã gửi", className: "bg-indigo-50/50 text-indigo-700 border-indigo-100" };
+    return { label: "Mới gửi", className: "bg-indigo-50/50 text-indigo-700 border-indigo-100" };
   }
   if (upper === "PENDING_RECEIVE") {
     return {
@@ -646,7 +649,7 @@ function getOfficerStatusInfo(status: string) {
   }
   if (upper === "WAITING_INFO" || upper === "NEED_MORE_INFO") {
     return {
-      label: "Yêu cầu bổ sung thông tin",
+      label: "Chờ dân bổ sung",
       className: "bg-slate-50/50 text-slate-700 border-slate-100",
     };
   }
@@ -663,11 +666,14 @@ function getOfficerStatusInfo(status: string) {
     };
   }
   if (upper === "ASSIGNED") {
-    return { label: "Đã phân công", className: "bg-amber-50/50 text-amber-700 border-amber-100" };
+    return {
+      label: "Đã tiếp nhận",
+      className: "bg-purple-50/50 text-purple-700 border-purple-100",
+    };
   }
   if (upper === "NEED_LOCATION_REVIEW") {
     return {
-      label: "Cần xác minh vị trí",
+      label: "Cần xác minh",
       className: "bg-slate-50/50 text-slate-700 border-slate-100",
     };
   }

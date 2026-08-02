@@ -28,6 +28,7 @@ import { FeedbacksPage } from "./pages/FeedbacksPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { UsersPage } from "./pages/UsersPage";
 import { PermissionsPage } from "./pages/PermissionsPage";
+import { AiDashboardPage } from "./pages/AiDashboardPage";
 import { NewsManagement } from "../news/NewsManagement";
 import { toast } from "sonner";
 import {
@@ -148,7 +149,7 @@ export function CityAdminDashboard() {
   const [userOpen, setUserOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<
-    "overview" | "feedbacks" | "reports" | "users" | "news" | "permissions"
+    "overview" | "feedbacks" | "reports" | "users" | "news" | "permissions" | "ai_stats"
   >("overview");
 
   // Filter states
@@ -296,6 +297,13 @@ export function CityAdminDashboard() {
       icon: Users,
       badge: null,
       description: "Quản lý người dùng",
+    },
+    {
+      name: "Thống kê AI",
+      tab: "ai_stats" as const,
+      icon: Zap,
+      badge: null,
+      description: "Hiệu suất AI Auto-Dispatch",
     },
     {
       name: "Tin tức",
@@ -846,28 +854,34 @@ export function CityAdminDashboard() {
           </div>
         </header>
 
-        {/* PAGE CONTENT */}
-        <main className="flex-1 overflow-y-auto bg-[#F5F7FA] relative">
-          <div className="p-6">
-            <div className="max-w-[1600px] mx-auto">
-              {activeTab === "overview" &&
-                (feedbacksLoading || kpiLoading ? (
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                      {Array.from({ length: 4 }).map((_, i) => (
-                        <Skeleton key={i} className="h-24 rounded-2xl" />
-                      ))}
-                    </div>
-                    <Skeleton className="h-96 rounded-2xl" />
-                  </div>
-                ) : (
-                  <OverviewPage />
-                ))}
-              {activeTab === "feedbacks" && <FeedbacksPage />}
-              {activeTab === "reports" && <ReportsPage />}
-              {activeTab === "users" && <UsersPage />}
-              {activeTab === "news" && <NewsManagement />}
-            </div>
+        {/* 3. MAIN DASHBOARD CONTENT */}
+        <main
+          className={`flex-1 overflow-y-auto bg-[#F5F7FA] relative transition-all duration-300 ${fullscreen ? "p-2" : "p-6 md:p-8"}`}
+        >
+          <div className={`${fullscreen ? "max-w-none" : "max-w-[1600px] mx-auto"}`}>
+            {/* Loading State */}
+            {(feedbacksLoading || kpiLoading) && activeTab === "overview" && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <Skeleton key={i} className="h-24 rounded-2xl" />
+                  ))}
+                </div>
+                <Skeleton className="h-96 rounded-2xl" />
+              </div>
+            )}
+
+            {/* Content */}
+            {!(feedbacksLoading || kpiLoading) && (
+              <>
+                {activeTab === "overview" && <OverviewPage />}
+                {activeTab === "feedbacks" && <FeedbacksPage />}
+                {activeTab === "reports" && <ReportsPage />}
+                {activeTab === "users" && <UsersPage />}
+                {activeTab === "news" && <NewsManagement />}
+                {activeTab === "ai_stats" && <AiDashboardPage />}
+              </>
+            )}
           </div>
         </main>
       </div>

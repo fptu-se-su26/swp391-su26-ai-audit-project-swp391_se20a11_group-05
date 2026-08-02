@@ -31,6 +31,7 @@ interface Props {
   onLayerTypeChange?: (layer: "osm" | "satellite") => void;
   onShowBoundaryChange?: (show: boolean) => void;
   detailUrlTemplate?: string;
+  disablePopup?: boolean;
 }
 
 // Custom Leaflet circular marker generator passed L dynamically
@@ -152,6 +153,7 @@ export function CivicMap({
   onLayerTypeChange,
   onShowBoundaryChange,
   detailUrlTemplate,
+  disablePopup = false,
 }: Props) {
   // Dynamic import: Leaflet requires `window` at module-load time,
   // so we lazy-load react-leaflet and leaflet only on the client.
@@ -224,7 +226,7 @@ export function CivicMap({
       setLocalShowBoundary(show);
     }
   };
-
+  
   if (!leafletComponents) {
     return (
       <div
@@ -384,8 +386,9 @@ export function CivicMap({
                 },
               }}
             >
-              <Popup>
-                <div className="p-1 max-w-[240px] text-xs">
+              {!disablePopup && (
+                <Popup>
+                  <div className="p-1 max-w-[240px] text-xs">
                   <div className="flex justify-between items-start gap-2 border-b pb-1 mb-1 border-slate-100">
                     <strong className="text-slate-800 text-sm font-bold truncate block">
                       {m.title}
@@ -454,6 +457,7 @@ export function CivicMap({
                   </div>
                 </div>
               </Popup>
+              )}
             </Marker>
           );
         })}

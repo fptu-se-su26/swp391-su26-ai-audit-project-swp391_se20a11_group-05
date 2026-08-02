@@ -430,6 +430,7 @@ export function OverviewPage() {
                   height="360px"
                   interactive={true}
                   onMarkerClick={(id) => setSelectedFeedbackId(Number(id))}
+                  disablePopup={true}
                 />
               )}
             </Suspense>

@@ -47,12 +47,17 @@ public class EmbeddingClientFacade {
     }
 
     /**
-     * Kiểm tra xem có Gemini API key thật hay không.
-     * Nếu không có key → embed() sẽ trả về mock vector ngẫu nhiên (không có ngữ nghĩa).
-     * Caller nên dùng method này để quyết định có nên dùng vector search không.
+     * Kiểm tra xem có Gemini API key ACTIVE hay không (không có side effect).
+     * - `isConfigured()` → pool có ít nhất 1 key được nạp vào
+     * - `isHealthy()`    → có ít nhất 1 key ở trạng thái ACTIVE (không đang COOLING)
+     *
+     * Nếu tất cả key đang COOLING → embed() sẽ rơi vào mockEmbed() → vector vô nghĩa.
+     * Caller dùng method này để quyết định có nên dùng vector search hay không.
+     *
+     * Lưu ý: KHÔNG dùng nextKey() ở đây vì nextKey() có side effect (tăng useCount).
      */
     public boolean isConfigured() {
-        return keyPool.isConfigured() && keyPool.nextKey() != null;
+        return keyPool.isConfigured() && keyPool.isHealthy();
     }
 
     /**

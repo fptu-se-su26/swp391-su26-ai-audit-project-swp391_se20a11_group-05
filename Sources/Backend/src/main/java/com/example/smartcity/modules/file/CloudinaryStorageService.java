@@ -4,6 +4,7 @@ import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -17,7 +18,16 @@ public class CloudinaryStorageService {
 
     private final Cloudinary cloudinary;
 
+    @Value("${cloudinary.cloud-name:}")
+    private String cloudName;
+
     public String upload(MultipartFile file, Long feedbackId) {
+        // Fallback for local development when Cloudinary is not configured
+        if (cloudName == null || cloudName.trim().isEmpty()) {
+            log.warn("[Cloudinary] Credentials not configured. Using dummy image URL for local development.");
+            return "https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg";
+        }
+
         try {
             String contentType = file.getContentType();
             String resourceType = (contentType != null && contentType.startsWith("video/")) ? "video" : "image";

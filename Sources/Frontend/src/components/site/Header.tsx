@@ -314,6 +314,7 @@ export function Header() {
     { to: "/feedback-search", label: locale === "vi" ? "Tra cứu" : "Search" },
     { to: "/campaigns", label: locale === "vi" ? "Chiến dịch" : "Campaigns" },
     { to: "/leaderboard", label: locale === "vi" ? "Xếp hạng" : "Leaderboard" },
+    { to: "/tourist", label: locale === "vi" ? "Du khách" : "Tourist" },
   ];
   const isAuthority =
     user && ([Role.WARD_STAFF, Role.POLICE, Role.SUPER_ADMIN] as Role[]).includes(user.role);
@@ -356,84 +357,33 @@ export function Header() {
 
   return (
     <>
-      {/* Top Government Bar */}
-      <div className="relative z-50 w-full bg-[#063A94] text-white border-b border-blue-900/40">
-        <div className="max-w-[1440px] mx-auto px-4 md:px-8 h-10 flex items-center justify-between text-xs font-semibold">
-          <div className="flex items-center gap-3">
-            <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center p-0.5 shadow-sm">
-              <img src={logoUrl} alt="Crest" className="h-full w-full object-contain" />
-            </div>
-            <span className="tracking-wider uppercase font-bold text-slate-100 sm:block hidden">
-              {locale === "vi"
-                ? "Ủy ban Nhân dân Thành phố Đà Nẵng"
-                : "Da Nang City People's Committee"}
-            </span>
-            <span className="tracking-wider uppercase font-bold text-slate-100 sm:hidden">
-              {locale === "vi" ? "UBND TP Đà Nẵng" : "Da Nang City"}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-6 text-slate-200">
-            <a
-              href="tel:1022"
-              className="hover:text-white transition flex items-center gap-1.5 font-bold"
-            >
-              <Phone size={12} className="text-blue-300" />
-              <span>1022</span>
-            </a>
-            <a
-              href="mailto:gopy@danang.gov.vn"
-              className="hover:text-white transition md:flex hidden items-center gap-1.5 font-bold"
-            >
-              <Mail size={12} className="text-blue-300" />
-              <span>gopy@danang.gov.vn</span>
-            </a>
-            <span className="h-3 w-px bg-blue-800 md:block hidden" />
-            <div className="flex items-center gap-2">
-              <Globe size={12} className="text-blue-300" />
-              <button
-                onClick={() => setLocale("vi")}
-                className={`hover:text-white transition uppercase text-[10px] ${locale === "vi" ? "text-white font-extrabold" : "text-slate-400"}`}
-              >
-                VI
-              </button>
-              <span className="text-blue-800 text-[10px]">|</span>
-              <button
-                onClick={() => setLocale("en")}
-                className={`hover:text-white transition uppercase text-[10px] ${locale === "en" ? "text-white font-extrabold" : "text-slate-400"}`}
-              >
-                EN
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <header className="sticky top-0 z-50 bg-white border-b border-[#E4EAF2] shadow-sm">
-        <div className="max-w-[1440px] mx-auto px-4 md:px-8 h-[76px] flex items-center justify-between">
-          {/* Left: Brand logo & text */}
+      {/* MAIN REDESIGNED HEADER */}
+      <header className="sticky top-0 z-50 bg-white border-b border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.03)] h-[72px]">
+        <div className="w-full px-[32px] h-full flex items-center justify-between">
+          {/* LEFT */}
           <Link
             to={user ? getDashboardPathForRole(user.role) : "/"}
-            className="flex items-center gap-2 group shrink-0"
+            className="flex items-center gap-3 shrink-0"
+            style={{ width: "260px" }}
           >
             <img
               src={logoUrl}
               alt="Đà Nẵng Kết Nối"
-              className="h-9 w-auto object-contain md:h-10"
+              className="h-[40px] w-auto object-contain"
             />
-            <div className="flex flex-col leading-none">
-              <span className="text-sm md:text-base font-extrabold tracking-tight text-[#0B4FC4] uppercase font-sans">
-                {t("header.brand")}
+            <div className="flex flex-col">
+              <span className="text-[14px] font-bold text-[#111827] uppercase leading-[1.1] tracking-tight font-sans">
+                ĐÀ NẴNG KẾT NỐI
               </span>
-              <span className="text-[8px] md:text-[9px] text-[#667085] font-bold uppercase tracking-wider mt-0.5 font-sans hidden sm:block">
-                {t("header.brandSub")}
+              <span className="text-[10px] text-[#6B7280] font-medium tracking-wide mt-1 font-sans leading-none whitespace-nowrap">
+                Cổng thông tin phản ánh hiện trường
               </span>
             </div>
           </Link>
 
-          {/* Center: Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-1 xl:gap-2 h-full" aria-label="Main">
-            <ul className="flex items-center gap-4 xl:gap-6 h-full">
+          {/* CENTER */}
+          <nav className="hidden lg:flex items-center h-full" aria-label="Main">
+            <ul className="flex items-center gap-[36px] h-full">
               <>
                 {menuItems.map((item, index) => {
                   const active = isItemActive(item);
@@ -442,37 +392,43 @@ export function Header() {
                       <Link
                         to={item.to}
                         hash={item.hash}
-                        className={`relative py-2 text-sm font-semibold transition-all font-sans whitespace-nowrap ${
+                        className={`relative h-full flex items-center text-[17px] font-semibold transition-colors font-sans whitespace-nowrap ${
                           active
-                            ? "text-[#0B4FC4] border-b-2 border-[#0B4FC4] pt-2"
-                            : "text-[#123E8A] hover:text-[#0B4FC4]"
+                            ? "text-[#1D4ED8]"
+                            : "text-[#111827] hover:text-[#3B82F6]"
                         }`}
                       >
                         {item.label}
+                        {active && (
+                          <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#1D4ED8] rounded-t-[1px]" />
+                        )}
                       </Link>
                     </li>
                   );
                 })}
                 {isAuthority && user && (
-                  <li className="h-full flex items-center pl-1 xl:pl-2 shrink-0">
+                  <li className="h-full flex items-center shrink-0">
                     {isDashboard ? (
                       <Link
                         to="/"
-                        className="px-4 py-2 rounded-full border border-slate-200 text-slate-700 bg-slate-50 hover:bg-white hover:text-[#0B4FC4] hover:border-[#0B4FC4] transition-all duration-300 font-semibold text-sm flex items-center gap-2 shadow-sm whitespace-nowrap"
+                        className="relative h-full flex items-center text-[17px] font-semibold transition-colors font-sans whitespace-nowrap text-[#111827] hover:text-[#3B82F6]"
                       >
-                        Quay về Trang chủ
+                        Trang chủ
                       </Link>
                     ) : (
                       <Link
                         to={getDashboardPathForRole(user.role)}
-                        className="px-4 py-1.5 rounded-full border border-[#0B4FC4] text-[#0B4FC4] bg-[#F5F9FF] hover:bg-[#0B4FC4] hover:text-white transition-all duration-300 font-bold text-sm flex items-center gap-2 shadow-sm whitespace-nowrap"
+                        className={`relative h-full flex items-center text-[17px] font-semibold transition-colors font-sans whitespace-nowrap ${
+                          isDashboard
+                            ? "text-[#1D4ED8]"
+                            : "text-[#111827] hover:text-[#3B82F6]"
+                        }`}
                       >
-                        <Sliders size={16} />
-                        {user.role === Role.SUPER_ADMIN
-                          ? "Bảng điều hành IOC"
-                          : locale === "vi"
-                            ? "Trang làm việc"
-                            : "Workspace"}
+                        <Sliders size={18} className="mr-[6px]" />
+                        {user.role === Role.SUPER_ADMIN ? "IOC" : (locale === "vi" ? "Trang làm việc" : "Workspace")}
+                        {isDashboard && (
+                          <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#1D4ED8] rounded-t-[1px]" />
+                        )}
                       </Link>
                     )}
                   </li>
@@ -481,40 +437,26 @@ export function Header() {
             </ul>
           </nav>
 
-          {/* Right: Controls & Account + Mobile Menu Trigger */}
-          <div className="flex items-center gap-2 sm:gap-3 md:gap-4 lg:gap-6">
+          {/* RIGHT */}
+          <div className="flex items-center gap-[24px]">
             {/* Language Selector */}
             {!isWardStaff && (
               <div className="relative hidden md:block" ref={langRef}>
                 <button
                   onClick={toggleLang}
-                  className={
-                    user?.role === Role.CITIZEN
-                      ? "group w-10 h-10 bg-slate-100 text-[#123E8A] hover:bg-slate-200 hover:text-[#0B4FC4] transition rounded-full flex items-center justify-center cursor-pointer font-bold text-[11px] font-sans"
-                      : "group flex min-h-[40px] items-center gap-2 rounded-full border border-transparent px-2.5 text-sm font-semibold text-[#123E8A] transition hover:border-[#E4EAF2] hover:bg-[#F5F9FF] hover:text-[#0B4FC4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B4FC4]/20 cursor-pointer"
-                  }
+                  className="group flex h-[40px] items-center gap-[8px] text-[15px] font-semibold text-[#111827] transition hover:text-[#1D4ED8] focus-visible:outline-none whitespace-nowrap cursor-pointer"
                   aria-label="Select Language"
                   aria-haspopup="menu"
                   aria-expanded={langOpen}
                 >
-                  {user?.role === Role.CITIZEN ? (
-                    <span>{activeLanguage.shortLabel}</span>
-                  ) : (
-                    <>
-                      <span className="grid h-6 w-8 place-items-center rounded-md bg-[#EEF4FF] text-[11px] font-extrabold tracking-wide text-[#0B4FC4] font-sans">
-                        {activeLanguage.shortLabel}
-                      </span>
-                      <span className="hidden xl:inline font-sans">
-                        {activeLanguage.nativeLabel}
-                      </span>
-                      <ChevronDown
-                        size={14}
-                        className={`text-[#667085] transition-transform group-hover:text-[#0B4FC4] ${
-                          langOpen ? "rotate-180" : ""
-                        }`}
-                      />
-                    </>
-                  )}
+                  <Globe size={18} className="text-[#6B7280] group-hover:text-[#1D4ED8] transition-colors" />
+                  <span>{activeLanguage.shortLabel}</span>
+                  <ChevronDown
+                    size={14}
+                    className={`text-[#6B7280] group-hover:text-[#1D4ED8] transition-all ${
+                      langOpen ? "rotate-180" : ""
+                    }`}
+                  />
                 </button>
 
                 {langOpen && (
@@ -572,19 +514,13 @@ export function Header() {
               <div className="relative" ref={chatRef}>
                 <button
                   onClick={toggleChat}
-                  className={
-                    user.role === Role.CITIZEN
-                      ? "relative w-10 h-10 bg-slate-100 text-[#123E8A] hover:bg-slate-200 hover:text-[#0B4FC4] transition rounded-full flex items-center justify-center cursor-pointer"
-                      : "relative p-2 text-[#123E8A] hover:text-[#0B4FC4] transition rounded-full hover:bg-slate-50 min-w-[40px] min-h-[40px] flex items-center justify-center cursor-pointer"
-                  }
+                  className="relative p-2 text-[#6B7280] hover:text-[#1D4ED8] transition-colors rounded-full hover:bg-slate-50 flex items-center justify-center cursor-pointer"
                   aria-label="Mở danh sách tin nhắn"
                   aria-expanded={chatOpen}
                 >
-                  <MessageSquare size={20} />
+                  <MessageSquare size={22} />
                   {unreadChatCount > 0 && (
-                    <span className="absolute top-0.5 right-0.5 w-[18px] h-[18px] bg-[#0B4FC4] text-white text-[10px] font-bold rounded-full flex items-center justify-center border border-white font-sans animate-pulse">
-                      {unreadChatCount}
-                    </span>
+                    <span className="absolute top-1.5 right-1.5 w-[10px] h-[10px] bg-[#1D4ED8] rounded-full border-2 border-white"></span>
                   )}
                 </button>
 
@@ -781,17 +717,13 @@ export function Header() {
             <div className="relative" ref={notifRef}>
               <button
                 onClick={toggleNotif}
-                className={
-                  user?.role === Role.CITIZEN
-                    ? "relative w-10 h-10 bg-slate-100 text-[#123E8A] hover:bg-slate-200 hover:text-[#0B4FC4] transition rounded-full flex items-center justify-center cursor-pointer"
-                    : "relative p-2 text-[#123E8A] hover:text-[#0B4FC4] transition rounded-full hover:bg-slate-50 min-w-[40px] min-h-[40px] flex items-center justify-center cursor-pointer"
-                }
+                className="relative p-2 text-[#6B7280] hover:text-[#1D4ED8] transition-colors rounded-full hover:bg-slate-50 flex items-center justify-center cursor-pointer"
                 aria-label="Mở danh sách thông báo"
                 aria-expanded={notifOpen}
               >
-                <Bell size={20} />
+                <Bell size={22} />
                 {unreadCount > 0 && (
-                  <span className="absolute top-0.5 right-0.5 w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border border-white font-sans">
+                  <span className="absolute top-0.5 right-0.5 w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white font-sans">
                     {unreadCount}
                   </span>
                 )}
@@ -919,63 +851,39 @@ export function Header() {
               )}
             </div>
 
+            {/* Vertical Divider */}
+            {user && <div className="h-[28px] w-[1px] bg-[#E5E7EB] hidden md:block" />}
+
             {/* Authentication Area & Dropdown */}
             {user ? (
               <div className="relative" ref={userRef}>
                 <button
                   onClick={toggleUser}
-                  className={
-                    user.role === Role.CITIZEN
-                      ? "relative w-10 h-10 rounded-full focus:outline-none group cursor-pointer shrink-0 select-none flex items-center justify-center"
-                      : "flex items-center gap-2 border-l border-[#E4EAF2] pl-2 sm:pl-3 md:pl-4 lg:pl-6 focus:outline-none group min-h-[40px] text-left cursor-pointer"
-                  }
+                  className="flex items-center gap-3 hover:opacity-80 transition cursor-pointer group focus:outline-none"
                   aria-expanded={userOpen}
                   aria-haspopup="true"
                 >
-                  {user.role === Role.CITIZEN ? (
-                    <>
-                      {user.avatarUrl ? (
-                        <img
-                          src={user.avatarUrl}
-                          alt={user.name}
-                          className="w-10 h-10 rounded-full object-cover border border-[#E4EAF2] group-hover:opacity-90 transition shrink-0"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-[#EFF6FF] text-[#0F5BD8] font-bold flex items-center justify-center text-sm border border-[#E4EAF2] font-sans group-hover:bg-[#E0E7FF] transition shrink-0">
-                          {user.name.trim().split(" ").at(-1)?.[0]?.toUpperCase() || "U"}
-                        </div>
-                      )}
-                      <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center shadow-md border border-slate-200 dark:border-slate-700">
-                        <ChevronDown size={10} className="text-[#667085]" />
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[#0B4FC4] border border-[#E4EAF2] group-hover:bg-[#F5F9FF] transition shrink-0">
-                        {user.avatarUrl ? (
-                          <img
-                            src={user.avatarUrl}
-                            alt={user.name}
-                            className="w-8 h-8 rounded-full object-cover"
-                          />
-                        ) : (
-                          <User size={16} />
-                        )}
-                      </div>
-                      <div className="text-right leading-tight hidden md:block">
-                        <div className="text-sm font-bold text-[#123E8A] font-sans group-hover:text-[#0B4FC4] transition flex items-center gap-1">
-                          {user.name}
-                          <ChevronDown
-                            size={14}
-                            className="text-[#667085] group-hover:text-[#0B4FC4] transition"
-                          />
-                        </div>
-                        <div className="text-[9px] uppercase tracking-widest text-[#667085] font-extrabold font-sans">
-                          {ROLE_LABEL[user.role][locale]}
-                        </div>
-                      </div>
-                    </>
-                  )}
+                  <div className="w-[40px] h-[40px] rounded-full bg-slate-100 border border-[#E5E7EB] flex items-center justify-center overflow-hidden shrink-0">
+                    {user.avatarUrl ? (
+                      <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <User size={20} className="text-[#6B7280]" />
+                    )}
+                  </div>
+                  <div className="hidden lg:flex flex-col items-start leading-tight">
+                    <span className="text-[15px] font-semibold text-[#111827] font-sans">
+                      {user.name}
+                    </span>
+                    <span className="text-[12px] font-normal text-[#6B7280] font-sans">
+                      {ROLE_LABEL[user.role as Role]?.[locale] || "Lãnh đạo Thành phố"}
+                    </span>
+                  </div>
+                  <ChevronDown
+                    size={16}
+                    className={`text-[#6B7280] hidden lg:block ml-1 transition-transform ${
+                      userOpen ? "rotate-180" : ""
+                    }`}
+                  />
                 </button>
 
                 {/* User Dropdown Menu */}

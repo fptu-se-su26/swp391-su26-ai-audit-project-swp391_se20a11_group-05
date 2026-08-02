@@ -29,7 +29,7 @@ public class GeminiAdapter implements AiProviderAdapter {
 
     private static final String GEMINI_BASE_URL = "https://generativelanguage.googleapis.com";
 
-    @Value("${gemini.model:gemini-1.5-flash}")
+    @Value("${gemini.model:gemini-flash-latest}")
     private String model;
 
     private final GeminiKeyPool keyPool;
@@ -73,7 +73,8 @@ public class GeminiAdapter implements AiProviderAdapter {
 
         String finalApiKey = apiKey;
         return webClient.post()
-                .uri(java.net.URI.create(GEMINI_BASE_URL + "/v1beta/models/" + model + ":generateContent?key=" + apiKey))
+                .uri("/v1beta/models/" + model + ":generateContent")
+                .header("X-goog-api-key", apiKey)
                 .bodyValue(body)
                 .retrieve()
                 .bodyToMono(Map.class)
@@ -115,7 +116,8 @@ public class GeminiAdapter implements AiProviderAdapter {
 
         String finalApiKey = apiKey;
         return webClient.post()
-                .uri(java.net.URI.create(GEMINI_BASE_URL + "/v1beta/models/" + model + ":generateContent?key=" + apiKey))
+                .uri("/v1beta/models/" + model + ":generateContent")
+                .header("X-goog-api-key", apiKey)
                 .bodyValue(body)
                 .retrieve()
                 .bodyToMono(Map.class)
@@ -178,7 +180,8 @@ public class GeminiAdapter implements AiProviderAdapter {
         );
 
         return webClient.post()
-                .uri(java.net.URI.create(GEMINI_BASE_URL + "/v1beta/models/" + model + ":streamGenerateContent?alt=sse&key=" + apiKey))
+                .uri("/v1beta/models/" + model + ":streamGenerateContent?alt=sse")
+                .header("X-goog-api-key", apiKey)
                 .bodyValue(body)
                 .retrieve()
                 .bodyToFlux(String.class)
@@ -255,27 +258,52 @@ public class GeminiAdapter implements AiProviderAdapter {
 
     private String buildMockAiAnalysisFallback(String userMessage) {
         String safeDesc = userMessage.replace("\"", "\\\"").replace("\n", " ");
+        // [HOTFIX] Thêm Regex cơ bản để che CCCD và Số điện thoại ngay trong Mock
+        safeDesc = safeDesc.replaceAll("(?i)(SĐT|SDT|điện thoại|phone)[:\\s]*[0-9\\.\\-\\s]{9,11}", "$1 ***");
+        safeDesc = safeDesc.replaceAll("(?i)(CCCD|CMND|căn cước)[:\\s]*[0-9\\.\\-\\s]{9,12}", "$1 ***");
+
         String priority = "MEDIUM";
         String domain = "KHAC";
         String reason = "Phân tích tự động (Mock Mode)";
         
         String lowerMsg = userMessage.toLowerCase();
-        if (lowerMsg.contains("chửi") || lowerMsg.contains("đm") || lowerMsg.contains("ngu")) {
+        boolean isToxicWord = lowerMsg.contains("chửi") || lowerMsg.contains("đm") || lowerMsg.contains("đcm")
+            || lowerMsg.contains("ngu") || lowerMsg.contains("địt") || lowerMsg.contains("cc")
+            || lowerMsg.contains("đ*") || lowerMsg.contains("đéo") || lowerMsg.contains("vcl")
+            || lowerMsg.contains("cặc") || lowerMsg.contains("lồn") || lowerMsg.contains("buồi")
+            || lowerMsg.contains("súc vật") || lowerMsg.contains("mẹ mày") || lowerMsg.contains("bố mày")
+            || lowerMsg.contains("chó chết") || lowerMsg.contains("ăn tiền");
+
+        if (isToxicWord) {
             return String.format(
-                "{\"is_toxic\": true, \"masked_description\": \"%s\", \"trust_score\": 90, \"reason\": \"Phát hiện ngôn từ độc hại\", \"priority\": \"MEDIUM\", \"domain\": \"KHAC\"}",
+                "{\"is_toxic\": true, \"masked_description\": \"%s\", \"trust_score\": 90, \"reason\": \"Phát hiện ngôn từ độc hại / xúc phạm\", \"priority\": \"MEDIUM\", \"domain\": \"KHAC\"}",
                 safeDesc
             );
         }
-        if (lowerMsg.contains("giao thông") || lowerMsg.contains("tai nạn") || lowerMsg.contains("kẹt xe") || lowerMsg.contains("ổ gà") || lowerMsg.contains("đường")) {
-            domain = "GIAO_THONG";
-            if (lowerMsg.contains("tai nạn")) priority = "HIGH";
-        } else if (lowerMsg.contains("cây") || lowerMsg.contains("cống") || lowerMsg.contains("hạ tầng") || lowerMsg.contains("ngập")) {
-            domain = "HA_TANG";
-            if (lowerMsg.contains("ngập")) priority = "HIGH";
-        } else if (lowerMsg.contains("rác") || lowerMsg.contains("môi trường") || lowerMsg.contains("mùi") || lowerMsg.contains("ồn")) {
+        if (userMessage.trim().split("\\s+").length < 3) {
+            return String.format(
+                "{\"is_toxic\": false, \"masked_description\": \"%s\", \"trust_score\": 30, \"reason\": \"Nội dung quá ngắn\", \"priority\": \"LOW\", \"domain\": \"KHAC\"}",
+                safeDesc
+            );
+        }
+        if (lowerMsg.contains("rác") || lowerMsg.contains("phế thải") || lowerMsg.contains("môi trường") || lowerMsg.contains("mùi") || lowerMsg.contains("hôi") || lowerMsg.contains("thối") || lowerMsg.contains("dơ") || lowerMsg.contains("bẩn") || lowerMsg.contains("ô nhiễm") || lowerMsg.contains("côn trùng") || lowerMsg.contains("ruồi") || lowerMsg.contains("muỗi") || lowerMsg.contains("vệ sinh")) {
             domain = "MOI_TRUONG";
-        } else if (lowerMsg.contains("an ninh") || lowerMsg.contains("trộm") || lowerMsg.contains("đánh nhau")) {
+            reason = "Phát hiện vấn đề vệ sinh môi trường, rác thải, ô nhiễm";
+        } else if (lowerMsg.contains("giao thông") || lowerMsg.contains("tai nạn") || lowerMsg.contains("kẹt xe") || lowerMsg.contains("ùn tắc") || lowerMsg.contains("đèn đỏ") || lowerMsg.contains("đèn tín hiệu") || lowerMsg.contains("ngã tư") || lowerMsg.contains("ổ gà") || lowerMsg.contains("đường")) {
+            domain = "GIAO_THONG";
+            reason = "Phát hiện vấn đề trật tự an toàn giao thông, đèn tín hiệu";
+            if (lowerMsg.contains("tai nạn")) priority = "HIGH";
+        } else if (lowerMsg.contains("cây") || lowerMsg.contains("cống") || lowerMsg.contains("nắp cống") || lowerMsg.contains("hạ tầng") || lowerMsg.contains("ngập") || lowerMsg.contains("điện") || lowerMsg.contains("sụt lún")) {
+            domain = "HA_TANG";
+            reason = "Phát hiện sự cố hạ tầng đô thị, cây xanh, cống rãnh";
+            if (lowerMsg.contains("ngập")) priority = "HIGH";
+        } else if (lowerMsg.contains("an ninh") || lowerMsg.contains("trộm") || lowerMsg.contains("cướp") || lowerMsg.contains("đánh nhau") || lowerMsg.contains("gây rối") || lowerMsg.contains("mất trật tự") || lowerMsg.contains("karaoke") || lowerMsg.contains("ồn ào")) {
             domain = "AN_NINH";
+            reason = "Phát hiện vấn đề an ninh trật tự khu dân cư";
+            priority = "HIGH";
+        } else if (lowerMsg.contains("y tế") || lowerMsg.contains("dịch bệnh") || lowerMsg.contains("ngộ độc") || lowerMsg.contains("cấp cứu")) {
+            domain = "Y_TE";
+            reason = "Phát hiện vấn đề y tế cộng đồng";
             priority = "HIGH";
         }
         
@@ -338,7 +366,8 @@ public class GeminiAdapter implements AiProviderAdapter {
 
         String finalApiKey = apiKey;
         return webClient.post()
-                .uri(java.net.URI.create(GEMINI_BASE_URL + "/v1beta/models/" + model + ":generateContent?key=" + apiKey))
+                .uri("/v1beta/models/" + model + ":generateContent")
+                .header("X-goog-api-key", apiKey)
                 .bodyValue(body)
                 .retrieve()
                 .bodyToMono(Map.class)

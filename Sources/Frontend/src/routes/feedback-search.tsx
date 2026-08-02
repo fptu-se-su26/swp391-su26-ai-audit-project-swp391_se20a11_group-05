@@ -41,6 +41,10 @@ import {
   Smartphone,
   Building,
   Eye,
+  Check,
+  ArrowRight,
+  Mail,
+  Phone,
 } from "lucide-react";
 import { mapStatus } from "@/lib/status";
 import { toast } from "sonner";

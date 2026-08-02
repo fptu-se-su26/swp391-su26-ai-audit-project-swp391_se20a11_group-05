@@ -198,10 +198,10 @@ public class ChatbotService {
         ChatIntent intent = detectIntent(question, historyContext);
         log.info("🎯 [Intent] Phân tích nhanh intent: {}", intent);
 
-        // Định tuyến AI Provider động bằng AiRouterService
-        AiProviderAdapter bestProvider = aiRouterService.routeToBestProvider(String.valueOf(userId), question);
-        String activeProviderName = bestProvider != null ? bestProvider.getProviderName() : "MOCK";
-        log.info("🔌 [Router] Định tuyến câu hỏi sang Provider: {}", activeProviderName);
+        // [CỐ ĐỊNH GROQ] Ép toàn bộ Chatbot dùng Groq để giảm tải và tránh xung đột với Gemini API
+        AiProviderAdapter bestProvider = groqAdapter;
+        String activeProviderName = "GROQ_LLAMA3";
+        log.info("🔌 [Router] Chatbot cố định câu hỏi sang Provider: {}", activeProviderName);
 
         Map<String, Object> responseData;
 
@@ -353,8 +353,7 @@ public class ChatbotService {
         
         String reply = "Dạ, hệ thống đang bận, bạn vui lòng thử lại sau nhé!";
         try {
-            AiProviderAdapter activeProvider = aiRouterService.routeToBestProvider("1", question);
-            reply = aiRouterService.executeWithFallback(activeProvider, systemPrompt, question).join();
+            reply = aiRouterService.executeWithFallback(groqAdapter, systemPrompt, question).join();
         } catch (Exception e) {
             log.error("Lỗi khi sinh câu trả lời LOOKUP", e);
         }
@@ -683,8 +682,7 @@ public class ChatbotService {
         
         String reply = "Dạ Bé Rồng em nghe đây ạ! 🐉 Em có thể hỗ trợ cô chú tra cứu phản ánh sự cố đô thị, hướng dẫn thủ tục hành chính hoặc tiếp nhận báo cáo nhanh tại Đà Nẵng ạ.";
         try {
-            AiProviderAdapter activeProvider = aiRouterService.routeToBestProvider("1", question);
-            reply = aiRouterService.executeWithFallback(activeProvider, systemPrompt, question).join();
+            reply = aiRouterService.executeWithFallback(groqAdapter, systemPrompt, question).join();
         } catch (Exception e) {
             log.error("Lỗi khi dùng LLM để sinh câu trả lời chat thông thường", e);
         }

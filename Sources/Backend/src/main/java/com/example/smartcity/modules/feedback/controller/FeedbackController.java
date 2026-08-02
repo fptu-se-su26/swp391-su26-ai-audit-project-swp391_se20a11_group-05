@@ -413,15 +413,27 @@ public class FeedbackController extends BaseGenericController<Feedback, Feedback
                 .orElse(null));
         response.setTimeline(timeline);
 
-        String latestNote = timeline.stream()
-                .filter(log -> log.getNote() != null && !log.getNote().isBlank())
-                .findFirst()
-                .map(FeedbackLogResponse::getNote)
-                .orElse(feedback.getResolutionNote());
+        // Ưu tiên resolutionNote (message thân thiện do AI/cán bộ set).
+        // Chỉ fallback sang FeedbackLog note nếu resolutionNote không có.
+        String friendlyNote = (feedback.getResolutionNote() != null && !feedback.getResolutionNote().isBlank())
+                ? feedback.getResolutionNote()
+                : timeline.stream()
+                    .filter(log -> log.getNote() != null && !log.getNote().isBlank()
+                            && !log.getNote().startsWith("[AI") && !log.getNote().startsWith("🔄")
+                            && !log.getNote().startsWith("🟢") && !log.getNote().startsWith("🟡")
+                            && !log.getNote().startsWith("🔴"))
+                    .findFirst()
+                    .map(FeedbackLogResponse::getNote)
+                    .orElse(null);
         if (feedback.getStatus() == FeedbackStatus.REJECTED) {
-            response.setRejectionReason(latestNote);
+            response.setRejectionReason(friendlyNote);
         }
         if (feedback.getStatus() == FeedbackStatus.RESOLVED) {
+            String latestNote = timeline.stream()
+                    .filter(log -> log.getNote() != null && !log.getNote().isBlank())
+                    .findFirst()
+                    .map(FeedbackLogResponse::getNote)
+                    .orElse(feedback.getResolutionNote());
             response.setResultContent(latestNote);
         }
 

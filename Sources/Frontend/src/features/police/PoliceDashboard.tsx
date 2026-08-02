@@ -738,8 +738,6 @@ export function PoliceDashboard() {
           sidebarCollapsed ? "md:pl-[76px]" : "md:pl-[240px]"
         }`}
       >
-      >
-
         {/* ─── 2. TOP WHITE HEADER ─── */}
         <header className="h-[76px] bg-white border-b border-[#E4EAF2] flex items-center justify-between px-6 sticky top-0 z-35 shadow-sm shrink-0">
           {/* Title & Hamburger */}

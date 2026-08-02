@@ -397,15 +397,15 @@ function ReportPage() {
   const initialLat =
     state?.initialLatitude !== undefined
       ? state.initialLatitude
-      : (storedLocation && isWithinVietnam(storedLocation.latitude, storedLocation.longitude)
+      : storedLocation && isWithinVietnam(storedLocation.latitude, storedLocation.longitude)
         ? storedLocation.latitude
-        : null);
+        : null;
   const initialLng =
     state?.initialLongitude !== undefined
       ? state.initialLongitude
-      : (storedLocation && isWithinVietnam(storedLocation.latitude, storedLocation.longitude)
+      : storedLocation && isWithinVietnam(storedLocation.latitude, storedLocation.longitude)
         ? storedLocation.longitude
-        : null);
+        : null;
 
   const [title, setTitle] = useState(state?.initialTitle || "");
   const [description, setDescription] = useState(state?.initialDescription || "");
@@ -476,7 +476,10 @@ function ReportPage() {
       if (!state.initialAddressDetails) {
         void loadAddress(state.initialLatitude, state.initialLongitude);
       }
-    } else if (storedLocation && isWithinVietnam(storedLocation.latitude, storedLocation.longitude)) {
+    } else if (
+      storedLocation &&
+      isWithinVietnam(storedLocation.latitude, storedLocation.longitude)
+    ) {
       void loadAddress(storedLocation.latitude, storedLocation.longitude);
     } else {
       detectLocation();
@@ -487,6 +490,7 @@ function ReportPage() {
 
   useEffect(() => {
     if (state?.initialAttachments && state.initialAttachments.length > 0) {
+      const initialAtts = state.initialAttachments;
       const loadAttachments = async () => {
         setDownloadingAttachments(true);
         const fetchedPhotos: File[] = [];
@@ -500,7 +504,7 @@ function ReportPage() {
             : "Loading previous media files...",
         );
 
-        for (const att of state.initialAttachments) {
+        for (const att of initialAtts) {
           try {
             const response = await fetch(att.fileUrl);
             const blob = await response.blob();

@@ -58,7 +58,6 @@ class FeedbackServiceTest {
     @Mock private com.example.smartcity.rag.ingestion.EmbeddingClientFacade embeddingFacade;
     @Mock private AiTaskRepository aiTaskRepository;
     @Mock private com.example.smartcity.ai_orchestrator.adapter.GeminiAdapter geminiAdapter;
-    @Mock private com.example.smartcity.ai_orchestrator.adapter.GroqAdapter groqAdapter;
     private CategoryRoutingService categoryRoutingService;
 
     private FeedbackService feedbackService;
@@ -72,6 +71,7 @@ class FeedbackServiceTest {
 
     @BeforeEach
     void setUp() {
+        FeedbackService.clearRateLimitCache();
         categoryRoutingService = new CategoryRoutingService();
         feedbackService = new FeedbackService(
                 feedbackRepository,
@@ -89,8 +89,7 @@ class FeedbackServiceTest {
                 jdbcTemplate,
                 embeddingFacade,
                 aiTaskRepository,
-                geminiAdapter,
-                groqAdapter
+                geminiAdapter
         );
 
         citizen = new User("citizen1", "encoded", "Người Dân", "0905123456",

@@ -1,0 +1,44 @@
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: danangketnoi-backend
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/firebase-service-account.json
+      JAVA_OPTS: -XX:MaxRAMPercentage=75 -XX:+UseContainerSupport
+    volumes:
+      - ./secrets/firebase-service-account.json:/run/secrets/firebase-service-account.json:ro
+    expose:
+      - "8081"
+    networks:
+      - app-network
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: danangketnoi-caddy
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:

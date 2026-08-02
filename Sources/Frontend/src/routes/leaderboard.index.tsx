@@ -1,6 +1,6 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { wardRankingApi, type WardRankingEntry, getToken } from "@/lib/api";
+import { API_BASE, wardRankingApi, type WardRankingEntry, getToken } from "@/lib/api";
 import { WardChoroplethMap } from "@/features/wardRanking/components/WardChoroplethMap";
 import { WardDetailModal } from "@/features/wardRanking/components/WardDetailModal";
 import { WardCompareView } from "@/features/wardRanking/components/WardCompareView";
@@ -114,7 +114,7 @@ function LeaderboardPage() {
   ];
 
   const handleRecalculate = () => {
-    toast.promise(fetch("http://localhost:8081/api/ward-ranking/recalculate", { method: "POST" }), {
+    toast.promise(fetch(`${API_BASE}/api/ward-ranking/recalculate`, { method: "POST" }), {
       loading: "Đang tính toán dữ liệu...",
       success: () => {
         setTimeout(() => window.location.reload(), 1000);

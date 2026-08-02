@@ -36,4 +36,9 @@ build/
 # Local maven repo
 .m2/
 
+# Production credentials and deployment secrets
+src/main/resources/serviceAccountKey.json
+deploy/.env.production
+deploy/secrets/
+
 

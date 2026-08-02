@@ -7,10 +7,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseToken;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
-
-import java.io.InputStream;
 
 @Service
 @Slf4j
@@ -20,15 +17,14 @@ public class FirebaseService {
     public void initialize() {
         try {
             if (FirebaseApp.getApps().isEmpty()) {
-                InputStream serviceAccount = new ClassPathResource("serviceAccountKey.json").getInputStream();
                 FirebaseOptions options = FirebaseOptions.builder()
-                        .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                        .setCredentials(GoogleCredentials.getApplicationDefault())
                         .build();
                 FirebaseApp.initializeApp(options);
                 log.info("Firebase Admin SDK initialized successfully.");
             }
         } catch (Exception e) {
-            log.error("Failed to initialize Firebase Admin SDK. Please ensure serviceAccountKey.json exists in src/main/resources.", e);
+            log.error("Failed to initialize Firebase Admin SDK. Set GOOGLE_APPLICATION_CREDENTIALS to a service-account JSON file outside the application JAR.", e);
         }
     }
 

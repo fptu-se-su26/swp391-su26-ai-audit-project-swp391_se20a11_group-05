@@ -4,6 +4,7 @@ import com.example.smartcity.modules.campaign.service.CampaignService;
 import com.example.smartcity.security.CustomUserDetailsService;
 import com.example.smartcity.security.jwt.JwtTokenProvider;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.config.ChannelRegistration;
@@ -19,6 +20,7 @@ import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
 import java.security.Principal;
+import java.util.Arrays;
 
 @Configuration
 @EnableWebSocketMessageBroker
@@ -27,15 +29,21 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     private final JwtTokenProvider jwtTokenProvider;
     private final CustomUserDetailsService userDetailsService;
     private final CampaignService campaignService;
+    private final String[] allowedOrigins;
 
     public WebSocketConfig(
             JwtTokenProvider jwtTokenProvider,
             CustomUserDetailsService userDetailsService,
-            @org.springframework.context.annotation.Lazy CampaignService campaignService
+            @org.springframework.context.annotation.Lazy CampaignService campaignService,
+            @Value("${app.cors.allowed-origins}") String allowedOrigins
     ) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.userDetailsService = userDetailsService;
         this.campaignService = campaignService;
+        this.allowedOrigins = Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isEmpty())
+                .toArray(String[]::new);
     }
 
     @Override
@@ -47,9 +55,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws-native")
-                .setAllowedOriginPatterns("*");
+                .setAllowedOrigins(allowedOrigins);
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*")
+                .setAllowedOrigins(allowedOrigins)
                 .withSockJS();
     }
 

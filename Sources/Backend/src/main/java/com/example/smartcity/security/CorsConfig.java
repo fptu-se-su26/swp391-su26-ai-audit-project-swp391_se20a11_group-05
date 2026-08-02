@@ -2,11 +2,13 @@ package com.example.smartcity.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
+import java.util.Arrays;
 
 /**
  * Global CORS Configuration — cho phép Frontend (React) kết nối Backend.
@@ -20,28 +22,21 @@ import java.util.List;
 @Configuration
 public class CorsConfig {
 
+    private final List<String> allowedOrigins;
+
+    public CorsConfig(@Value("${app.cors.allowed-origins}") String allowedOrigins) {
+        this.allowedOrigins = Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isEmpty())
+                .toList();
+    }
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
         // Allowed origins — thêm domain production khi deploy
-        config.setAllowedOrigins(List.of(
-            "http://localhost:5173",   // Vite dev server
-            "http://localhost:5174",
-            "http://localhost:5175",
-            "http://localhost:5176",
-            "http://localhost:5177",
-            "http://localhost:8080",   // Lovable sandbox port
-            "http://localhost:3000",   // Alternative dev port
-            "http://localhost:4173",   // Vite preview
-            "http://127.0.0.1:5173",
-            "http://127.0.0.1:5174",
-            "http://127.0.0.1:5175",
-            "http://127.0.0.1:5176",
-            "http://127.0.0.1:5177",
-            "http://127.0.0.1:8080",
-            "http://127.0.0.1:3000"
-        ));
+        config.setAllowedOrigins(allowedOrigins);
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));

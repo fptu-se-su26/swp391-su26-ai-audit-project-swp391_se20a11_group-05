@@ -1,0 +1,9 @@
+.git
+.gitignore
+.m2
+target
+target_new
+deploy/.env.production
+deploy/secrets
+src/main/resources/serviceAccountKey.json
+*.log

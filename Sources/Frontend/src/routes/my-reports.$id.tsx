@@ -328,72 +328,9 @@ function ReportDetail() {
     return originalAttachments.length > 0 ? originalAttachments : defaultImages;
   }, [attachments, defaultImages]);
 
-  if (isLoading) {
-    return (
-      <div className="max-w-[1440px] mx-auto px-4 md:px-8 py-16 min-h-[60vh] grid place-items-center">
-        <div className="flex flex-col items-center gap-4 text-[#0B4FC4]">
-          <Loader2 className="animate-spin text-[#0B4FC4]" size={36} />
-          <span className="font-semibold text-slate-600 text-sm">
-            {locale === "vi" ? "Đang tải thông tin chi tiết..." : "Loading report details..."}
-          </span>
-        </div>
-      </div>
-    );
-  }
-
-  if (isError || !report) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 md:px-8 py-12">
-        <ErrorState
-          message={
-            error instanceof Error
-              ? error.message
-              : locale === "vi"
-                ? "Không tìm thấy thông tin phản ánh này."
-                : "Report not found or permission denied."
-          }
-          onRetry={() => refetch()}
-        />
-        <div className="flex justify-center mt-6">
-          <Link to="/my-reports" search={{ q: "" }} className="btn-civic btn-civic-ghost">
-            <ArrowLeft size={18} />
-            {locale === "vi" ? "Quay lại danh sách" : "Back to list"}
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  const statusInfo = mapStatus(report.status);
-  const mockCode = report.trackingCode || report.code || `#DN-2026-0615-${report.id}`;
-
-  // 1. Breadcrumbs helper
-  const breadcrumbs = [
-    { label: isVi ? "Trang chủ" : "Home", path: "/" },
-    { label: isVi ? "Báo cáo của tôi" : "My Reports", path: "/my-reports" },
-    { label: isVi ? "Chi tiết phản ánh" : "Report Detail", path: undefined },
-  ];
-
-  // 3. Map details
-  const reportLat = report.latitude || 16.0544;
-  const reportLng = report.longitude || 108.2022;
-  const mapCenter: [number, number] = [reportLat, reportLng];
-
-  const mapMarkers = [
-    {
-      position: mapCenter,
-      title: report.title,
-      description: report.description || report.content,
-      status: report.status,
-    },
-  ];
-
-  // 4. Processing Timeline (preserves dynamic logs and enriches them with photos/details)
-  const dynamicTimeline = buildTimeline(report.timeline ?? [], report.status, locale);
-
   // Highlight steps according to status
   const currentStatusIndex = (() => {
-    switch (report.status as any) {
+    switch (report?.status as any) {
       case "PENDING":
       case "PENDING_RECEIVE":
       case "SUBMITTED":
@@ -414,7 +351,7 @@ function ReportDetail() {
   })();
 
   const staticTimelineSteps = useMemo(() => {
-    const baseDate = report.createdAt ? new Date(report.createdAt) : new Date();
+    const baseDate = report?.createdAt ? new Date(report.createdAt) : new Date();
 
     const addTime = (minutes: number) => {
       const d = new Date(baseDate.getTime() + minutes * 60 * 1000);
@@ -491,7 +428,151 @@ function ReportDetail() {
         tone: currentStatusIndex >= 6 ? ("completed" as const) : ("pending" as const),
       },
     ];
-  }, [report.createdAt, locale, isVi, currentStatusIndex]);
+  }, [report?.createdAt, locale, isVi, currentStatusIndex]);
+
+  const slaInfo = useMemo(() => {
+    if (!report?.createdAt) {
+      return {
+        targetDateStr: "N/A",
+        remainingStr: "N/A",
+        durationStr: isVi ? "4 ngày" : "4 days",
+        isOverdue: false,
+        statusText: isVi ? "Đang tiến hành đúng hạn" : "On schedule",
+        statusColor: "text-slate-400",
+      };
+    }
+
+    const created = new Date(report.createdAt);
+    const durationDays = 4;
+    const target = new Date(created.getTime() + durationDays * 24 * 60 * 60 * 1000);
+
+    const targetDateStr = new Intl.DateTimeFormat(isVi ? "vi-VN" : "en-US", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(target);
+
+    const now = new Date();
+    const isCompleted = report.status === "RESOLVED" || (report.status as string) === "CLOSED";
+
+    if (isCompleted) {
+      const resolvedAtDate = report.resolvedAt ? new Date(report.resolvedAt) : now;
+      const isMetSLA = resolvedAtDate.getTime() <= target.getTime();
+      return {
+        targetDateStr,
+        remainingStr: isVi ? "Đã xử lý xong" : "Processed",
+        durationStr: isVi ? `${durationDays} ngày` : `${durationDays} days`,
+        isOverdue: !isMetSLA,
+        statusText: isMetSLA
+          ? isVi
+            ? "Hoàn thành đúng hạn"
+            : "Completed on time"
+          : isVi
+            ? "Hoàn thành quá hạn"
+            : "Completed late",
+        statusColor: isMetSLA ? "text-emerald-500" : "text-rose-500",
+      };
+    }
+
+    const diffMs = target.getTime() - now.getTime();
+    const isOverdue = diffMs < 0;
+
+    if (isOverdue) {
+      const absDiff = Math.abs(diffMs);
+      const diffDays = Math.floor(absDiff / (24 * 60 * 60 * 1000));
+      const diffHours = Math.floor((absDiff % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+      const remainingStr = isVi
+        ? `Trễ ${diffDays} ngày ${diffHours} giờ`
+        : `${diffDays}d ${diffHours}h late`;
+      return {
+        targetDateStr,
+        remainingStr,
+        durationStr: isVi ? `${durationDays} ngày` : `${durationDays} days`,
+        isOverdue,
+        statusText: isVi ? "Đã quá hạn xử lý!" : "Overdue!",
+        statusColor: "text-rose-500 font-extrabold animate-pulse",
+      };
+    } else {
+      const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+      const diffHours = Math.floor((diffMs % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+      const remainingStr = isVi
+        ? `${diffDays} ngày ${diffHours} giờ`
+        : `${diffDays}d ${diffHours}h`;
+      return {
+        targetDateStr,
+        remainingStr,
+        durationStr: isVi ? `${durationDays} ngày` : `${durationDays} days`,
+        isOverdue,
+        statusText: isVi ? "Đang tiến hành đúng hạn" : "On schedule",
+        statusColor: "text-emerald-500",
+      };
+    }
+  }, [report?.createdAt, report?.status, report?.resolvedAt, isVi]);
+
+  if (isLoading) {
+    return (
+      <div className="max-w-[1440px] mx-auto px-4 md:px-8 py-16 min-h-[60vh] grid place-items-center">
+        <div className="flex flex-col items-center gap-4 text-[#0B4FC4]">
+          <Loader2 className="animate-spin text-[#0B4FC4]" size={36} />
+          <span className="font-semibold text-slate-600 text-sm">
+            {locale === "vi" ? "Đang tải thông tin chi tiết..." : "Loading report details..."}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError || !report) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 md:px-8 py-12">
+        <ErrorState
+          message={
+            error instanceof Error
+              ? error.message
+              : locale === "vi"
+                ? "Không tìm thấy thông tin phản ánh này."
+                : "Report not found or permission denied."
+          }
+          onRetry={() => refetch()}
+        />
+        <div className="flex justify-center mt-6">
+          <Link to="/my-reports" search={{ q: "" }} className="btn-civic btn-civic-ghost">
+            <ArrowLeft size={18} />
+            {locale === "vi" ? "Quay lại danh sách" : "Back to list"}
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const statusInfo = mapStatus(report.status);
+  const mockCode = report.trackingCode || report.code || `#DN-2026-0615-${report.id}`;
+
+  // 1. Breadcrumbs helper
+  const breadcrumbs = [
+    { label: isVi ? "Trang chủ" : "Home", path: "/" },
+    { label: isVi ? "Báo cáo của tôi" : "My Reports", path: "/my-reports" },
+    { label: isVi ? "Chi tiết phản ánh" : "Report Detail", path: undefined },
+  ];
+
+  // 3. Map details
+  const reportLat = report.latitude || 16.0544;
+  const reportLng = report.longitude || 108.2022;
+  const mapCenter: [number, number] = [reportLat, reportLng];
+
+  const mapMarkers = [
+    {
+      position: mapCenter,
+      title: report.title,
+      description: report.description || report.content,
+      status: report.status,
+    },
+  ];
+
+  // 4. Processing Timeline (preserves dynamic logs and enriches them with photos/details)
+  const dynamicTimeline = buildTimeline(report.timeline ?? [], report.status, locale);
+
+
 
   // Merge database logs if present, otherwise use realistic timeline from the screenshot
   const timelineSteps = (() => {
@@ -641,84 +722,7 @@ function ReportDetail() {
     }
   })();
 
-  const slaInfo = useMemo(() => {
-    if (!report?.createdAt) {
-      return {
-        targetDateStr: "N/A",
-        remainingStr: "N/A",
-        durationStr: isVi ? "4 ngày" : "4 days",
-        isOverdue: false,
-        statusText: isVi ? "Đang tiến hành đúng hạn" : "On schedule",
-        statusColor: "text-slate-400",
-      };
-    }
 
-    const created = new Date(report.createdAt);
-    const durationDays = 4;
-    const target = new Date(created.getTime() + durationDays * 24 * 60 * 60 * 1000);
-
-    const targetDateStr = new Intl.DateTimeFormat(isVi ? "vi-VN" : "en-US", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }).format(target);
-
-    const now = new Date();
-    const isCompleted = report.status === "RESOLVED" || (report.status as string) === "CLOSED";
-
-    if (isCompleted) {
-      const resolvedAtDate = report.resolvedAt ? new Date(report.resolvedAt) : now;
-      const isMetSLA = resolvedAtDate.getTime() <= target.getTime();
-      return {
-        targetDateStr,
-        remainingStr: isVi ? "Đã xử lý xong" : "Processed",
-        durationStr: isVi ? `${durationDays} ngày` : `${durationDays} days`,
-        isOverdue: !isMetSLA,
-        statusText: isMetSLA
-          ? isVi
-            ? "Hoàn thành đúng hạn"
-            : "Completed on time"
-          : isVi
-            ? "Hoàn thành quá hạn"
-            : "Completed late",
-        statusColor: isMetSLA ? "text-emerald-500" : "text-rose-500",
-      };
-    }
-
-    const diffMs = target.getTime() - now.getTime();
-    const isOverdue = diffMs < 0;
-
-    if (isOverdue) {
-      const absDiff = Math.abs(diffMs);
-      const diffDays = Math.floor(absDiff / (24 * 60 * 60 * 1000));
-      const diffHours = Math.floor((absDiff % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
-      const remainingStr = isVi
-        ? `Trễ ${diffDays} ngày ${diffHours} giờ`
-        : `${diffDays}d ${diffHours}h late`;
-      return {
-        targetDateStr,
-        remainingStr,
-        durationStr: isVi ? `${durationDays} ngày` : `${durationDays} days`,
-        isOverdue,
-        statusText: isVi ? "Đã quá hạn xử lý!" : "Overdue!",
-        statusColor: "text-rose-500 font-extrabold animate-pulse",
-      };
-    } else {
-      const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
-      const diffHours = Math.floor((diffMs % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
-      const remainingStr = isVi
-        ? `${diffDays} ngày ${diffHours} giờ`
-        : `${diffDays}d ${diffHours}h`;
-      return {
-        targetDateStr,
-        remainingStr,
-        durationStr: isVi ? `${durationDays} ngày` : `${durationDays} days`,
-        isOverdue,
-        statusText: isVi ? "Đang tiến hành đúng hạn" : "On schedule",
-        statusColor: "text-emerald-500",
-      };
-    }
-  }, [report?.createdAt, report?.status, report?.resolvedAt, isVi]);
 
   // Rating stars subtext
   const ratingTexts = [
@@ -976,6 +980,16 @@ function ReportDetail() {
                     initialTitle: report.title,
                     initialDescription: (report as any).content || report.description,
                     initialCategoryCode: report.categoryCode || report.category,
+                    initialLatitude: report.latitude,
+                    initialLongitude: report.longitude,
+                    initialAddressDetails: report.addressDetails,
+                    initialAttachments: (report.attachments ?? [])
+                      .filter((a: any) => a.attachmentPurpose !== "RESOLUTION_EVIDENCE")
+                      .map((a: any) => ({
+                        fileUrl: a.fileUrl,
+                        fileName: a.fileName,
+                        fileType: a.fileType,
+                      })),
                   } as any
                 }
                 className="inline-flex items-center gap-2 mt-3 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-4 py-2 transition-colors"

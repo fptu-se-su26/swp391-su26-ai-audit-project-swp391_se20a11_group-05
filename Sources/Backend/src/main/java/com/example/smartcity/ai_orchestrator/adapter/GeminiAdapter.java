@@ -51,17 +51,14 @@ public class GeminiAdapter implements AiProviderAdapter {
     public String getProviderName() { return "GEMINI"; }
 
     @Override
-    @io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker(name = "geminiLLM", fallbackMethod = "fallbackToGroq")
     public CompletableFuture<String> generateResponseAsync(String systemPrompt, String userMessage) {
         if (!keyPool.isConfigured()) {
-            log.warn("⚠️  [Gemini] Pool chưa cấu hình → Mock.");
-            return CompletableFuture.completedFuture(buildMockFallback(userMessage));
+            return CompletableFuture.failedFuture(new RuntimeException("Gemini Pool chưa cấu hình."));
         }
 
         String apiKey = keyPool.nextKey();
         if (apiKey == null) {
-            log.warn("⚠️  [Gemini] Không có key ACTIVE → Mock.");
-            return CompletableFuture.completedFuture(buildMockFallback(userMessage));
+            return CompletableFuture.failedFuture(new RuntimeException("Gemini không có key ACTIVE (đang bị quá tải)."));
         }
 
         log.info("🔵 [Gemini] Gọi API | model={} | key={}...", model, apiKey.substring(0, Math.min(8, apiKey.length())));
@@ -89,19 +86,17 @@ public class GeminiAdapter implements AiProviderAdapter {
                         keyPool.markRateLimited(finalApiKey);
                     }
                 })
-                .onErrorReturn(buildMockFallback(userMessage))
                 .toFuture();
     }
 
-    @io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker(name = "geminiLLM", fallbackMethod = "fallbackToGroqStructured")
     public CompletableFuture<String> generateStructuredResponseAsync(String systemPrompt, String userMessage) {
         if (!keyPool.isConfigured()) {
-            return CompletableFuture.completedFuture(buildMockStructuredFallback(userMessage));
+            return CompletableFuture.failedFuture(new RuntimeException("Gemini Pool chưa cấu hình."));
         }
 
         String apiKey = keyPool.nextKey();
         if (apiKey == null) {
-            return CompletableFuture.completedFuture(buildMockStructuredFallback(userMessage));
+            return CompletableFuture.failedFuture(new RuntimeException("Gemini không có key ACTIVE."));
         }
 
         log.info("🔵 [Gemini] Gọi API Structured JSON | model={} | key={}...", model, apiKey.substring(0, Math.min(8, apiKey.length())));
@@ -133,18 +128,7 @@ public class GeminiAdapter implements AiProviderAdapter {
                         keyPool.markRateLimited(finalApiKey);
                     }
                 })
-                .onErrorReturn(buildMockStructuredFallback(userMessage))
                 .toFuture();
-    }
-
-    public CompletableFuture<String> fallbackToMock(String systemPrompt, String userMessage, Throwable t) {
-        log.warn("🚨 [CircuitBreaker] Gemini API sập. Kích hoạt Mock Fallback an toàn. Lỗi: {}", t.getMessage());
-        return CompletableFuture.completedFuture(buildMockFallback(userMessage));
-    }
-
-    public CompletableFuture<String> fallbackToMockStructured(String systemPrompt, String userMessage, Throwable t) {
-        log.warn("🚨 [CircuitBreaker] Gemini Structured API sập. Kích hoạt Mock Fallback. Lỗi: {}", t.getMessage());
-        return CompletableFuture.completedFuture(buildMockStructuredFallback(userMessage));
     }
 
     private String parseGeminiResponse(Map<?, ?> response) {
@@ -177,12 +161,12 @@ public class GeminiAdapter implements AiProviderAdapter {
     @Override
     public reactor.core.publisher.Flux<String> generateStream(String systemPrompt, String userMessage) {
         if (!keyPool.isConfigured()) {
-            return reactor.core.publisher.Flux.just(buildMockFallback(userMessage));
+            return reactor.core.publisher.Flux.error(new RuntimeException("Gemini Pool chưa cấu hình."));
         }
 
         String apiKey = keyPool.nextKey();
         if (apiKey == null) {
-            return reactor.core.publisher.Flux.just(buildMockFallback(userMessage));
+            return reactor.core.publisher.Flux.error(new RuntimeException("Gemini không có key ACTIVE (đang bị quá tải)."));
         }
 
         Map<String, Object> body = Map.of(
@@ -199,8 +183,7 @@ public class GeminiAdapter implements AiProviderAdapter {
                 .retrieve()
                 .bodyToFlux(String.class)
                 .map(this::parseGeminiStreamChunk)
-                .filter(chunk -> !chunk.isEmpty())
-                .onErrorResume(e -> reactor.core.publisher.Flux.just("\n[Lỗi kết nối Stream Gemini: " + e.getMessage() + "]"));
+                .filter(chunk -> !chunk.isEmpty());
     }
 
     /**

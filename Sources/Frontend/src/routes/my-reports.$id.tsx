@@ -336,7 +336,6 @@ function ReportDetail() {
       case "SUBMITTED":
         return 1;
       case "NEED_LOCATION_REVIEW":
-        return 2;
       case "ASSIGNED":
         return 2;
       case "IN_PROGRESS":
@@ -453,7 +452,7 @@ function ReportDetail() {
     }).format(target);
 
     const now = new Date();
-    const isCompleted = report.status === "RESOLVED" || (report.status as string) === "CLOSED";
+    const isCompleted = report?.status === "RESOLVED" || (report?.status as string) === "CLOSED";
 
     if (isCompleted) {
       const resolvedAtDate = report.resolvedAt ? new Date(report.resolvedAt) : now;
@@ -571,8 +570,6 @@ function ReportDetail() {
 
   // 4. Processing Timeline (preserves dynamic logs and enriches them with photos/details)
   const dynamicTimeline = buildTimeline(report.timeline ?? [], report.status, locale);
-
-
 
   // Merge database logs if present, otherwise use realistic timeline from the screenshot
   const timelineSteps = (() => {

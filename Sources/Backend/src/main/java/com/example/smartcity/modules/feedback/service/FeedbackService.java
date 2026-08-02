@@ -245,80 +245,96 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
             return;
         }
 
-        // TIER 1: Rate Limit 60 giây chống Spam (ngăn Race Condition)
+        // TIER 1: Rate Limit 5 giây chống Spam (ngăn Race Condition)
         if (username != null) {
             long now = System.currentTimeMillis();
             Long lastSubmit = userLastSubmitTime.getIfPresent(username);
-            if (lastSubmit != null && (now - lastSubmit < 60000)) {
-                throw new CustomException("Bạn thao tác quá nhanh. Vui lòng đợi 1 phút trước khi gửi phản ánh mới để hệ thống kiểm tra trùng lặp.", HttpStatus.TOO_MANY_REQUESTS.value());
+            if (lastSubmit != null && (now - lastSubmit < 5000)) {
+                throw new CustomException("Bạn thao tác quá nhanh. Vui lòng đợi vài giây trước khi gửi phản ánh mới.", HttpStatus.TOO_MANY_REQUESTS.value());
             }
             userLastSubmitTime.put(username, now);
         }
 
         try {
             float[] descriptionVector = embeddingFacade.embed(description);
-
-            // [BUG FIX] Nếu không có Gemini API key → embeddingFacade trả về mock vector ngẫu nhiên.
-            // Mock vector không có ngữ nghĩa thực → cosine distance luôn > 0.70 → không bao giờ tìm thấy ứng viên.
-            // Giải pháp: kiểm tra xem vector có phải mock không bằng cách dùng norm check.
-            // Vector mock dùng Random(text.hashCode()) có norm = 1 (sau khi normalize) → không thể phân biệt.
-            // Thay vào đó, kiểm tra trực tiếp pool có key thật không. Nếu không → bỏ qua TIER 1 vector search,
-            // để nó ném exception giả và rơi vào TIER 2 fallback text matching bên dưới.
-            boolean hasRealEmbedding = embeddingFacade.isConfigured();
-            if (!hasRealEmbedding) {
-                log.warn("[Duplicate Detection] Gemini key chưa cấu hình → bỏ qua TIER 1 Vector Search, dùng TIER 2 Text Matching.");
-                throw new IllegalStateException("Embedding không khả dụng — chuyển sang Tier 2 fallback");
-            }
-
             String vectorString = java.util.Arrays.toString(descriptionVector);
 
             String sql;
             Object[] params;
             if (wardId != null) {
-                // Lấy Top 3 ứng viên trong cùng phường
+                // Lấy Top 5 ứng viên trong cùng phường — similarity > 50% (cosine distance < 0.50)
                 sql = """
-                    SELECT tracking_code, description
+                    SELECT tracking_code, description, status, resolved_at
                     FROM feedbacks
                     WHERE ward_id = ?
-                      AND description_vector <=> ?::vector < 0.70
-                      AND ST_DWithin(location, ST_SetSRID(ST_Point(?, ?), 4326), 0.005)
+                      AND description_vector <=> ?::vector < 0.50
+                      AND ST_DWithin(location, ST_SetSRID(ST_Point(?, ?), 4326), 0.02)
                       AND (
-                          status IN ('PENDING', 'IN_PROGRESS', 'SUBMITTED', 'NEED_LOCATION_REVIEW', 'PENDING_RECEIVE', 'WAITING_INFO')
-                          OR
-                          (status = 'RESOLVED' AND resolved_at >= NOW() - INTERVAL '7 days')
+                          status NOT IN ('REJECTED')
+                          AND (status != 'RESOLVED' OR resolved_at >= NOW() - INTERVAL '7 days')
                       )
                     ORDER BY description_vector <=> ?::vector ASC
-                    LIMIT 3
+                    LIMIT 5
                 """;
                 params = new Object[]{ wardId, vectorString, longitude, latitude, vectorString };
             } else {
                 log.warn("[Duplicate Detection] wardId null, fallback dùng tọa độ để check trùng lặp.");
                 sql = """
-                    SELECT tracking_code, description
+                    SELECT tracking_code, description, status, resolved_at
                     FROM feedbacks
-                    WHERE description_vector <=> ?::vector < 0.70
-                      AND ST_DWithin(location, ST_SetSRID(ST_Point(?, ?), 4326), 0.005)
+                    WHERE description_vector <=> ?::vector < 0.50
+                      AND ST_DWithin(location, ST_SetSRID(ST_Point(?, ?), 4326), 0.02)
                       AND (
-                          status IN ('PENDING', 'IN_PROGRESS', 'SUBMITTED', 'NEED_LOCATION_REVIEW', 'PENDING_RECEIVE', 'WAITING_INFO')
-                          OR
-                          (status = 'RESOLVED' AND resolved_at >= NOW() - INTERVAL '7 days')
+                          status NOT IN ('REJECTED')
+                          AND (status != 'RESOLVED' OR resolved_at >= NOW() - INTERVAL '7 days')
                       )
                     ORDER BY description_vector <=> ?::vector ASC
-                    LIMIT 3
+                    LIMIT 5
                 """;
                 params = new Object[]{ vectorString, longitude, latitude, vectorString };
             }
 
             List<Map<String, Object>> candidates = jdbcTemplate.queryForList(sql, params);
 
+            // Nếu Vector search không ra do mock hoặc distance lớn, thử tìm candidate gần vị trí
+            if (candidates.isEmpty()) {
+                String nearbySql;
+                Object[] nearbyParams;
+                if (wardId != null) {
+                    nearbySql = """
+                        SELECT tracking_code, description, status, resolved_at
+                        FROM feedbacks
+                        WHERE ward_id = ?
+                          AND ST_DWithin(location, ST_SetSRID(ST_Point(?, ?), 4326), 0.02)
+                          AND status NOT IN ('REJECTED')
+                          AND (status != 'RESOLVED' OR resolved_at >= NOW() - INTERVAL '7 days')
+                        LIMIT 10
+                    """;
+                    nearbyParams = new Object[]{ wardId, longitude, latitude };
+                } else {
+                    nearbySql = """
+                        SELECT tracking_code, description, status, resolved_at
+                        FROM feedbacks
+                        WHERE ST_DWithin(location, ST_SetSRID(ST_Point(?, ?), 4326), 0.02)
+                          AND status NOT IN ('REJECTED')
+                          AND (status != 'RESOLVED' OR resolved_at >= NOW() - INTERVAL '7 days')
+                        LIMIT 10
+                    """;
+                    nearbyParams = new Object[]{ longitude, latitude };
+                }
+                candidates = jdbcTemplate.queryForList(nearbySql, nearbyParams);
+            }
+
             if (!candidates.isEmpty()) {
-                log.info("[DUPLICATE-DETECTION] Tìm thấy {} ứng viên tiềm năng bằng Vector Search. Gọi Gemini để xác minh...", candidates.size());
+                log.info("[DUPLICATE-DETECTION] Tìm thấy {} ứng viên tiềm năng trong khu vực. Gọi Gemini để xác minh...", candidates.size());
                 
+                // Truyền cả status vào prompt để AI biết ngữ cảnh
                 StringBuilder oldFeedbacks = new StringBuilder();
                 for (int i = 0; i < candidates.size(); i++) {
                     String tc = (String) candidates.get(i).get("tracking_code");
                     String desc = (String) candidates.get(i).get("description");
-                    oldFeedbacks.append("[").append(tc).append("]: \"").append(desc).append("\"\n");
+                    String st = (String) candidates.get(i).get("status");
+                    oldFeedbacks.append("[").append(tc).append("] (Trạng thái: ").append(st).append("): \"").append(desc).append("\"\n");
                 }
 
                 String systemPrompt = "Bạn là AI kiểm duyệt sự cố của hệ thống Smart City.";
@@ -341,94 +357,84 @@ public class FeedbackService extends BaseServiceImpl<Feedback, Long> {
                 """;
                 String finalPrompt = String.format(prompt, description, oldFeedbacks.toString());
                 
-                String aiRawResult = geminiAdapter.generateStructuredResponseAsync(systemPrompt, finalPrompt).get(15, java.util.concurrent.TimeUnit.SECONDS);
-                
-                String jsonStr = aiRawResult.replace("```json", "").replace("```", "").trim();
-                int startIndex = jsonStr.indexOf("{");
-                int endIndex = jsonStr.lastIndexOf("}");
-                if (startIndex >= 0 && endIndex >= 0 && startIndex <= endIndex) {
-                    jsonStr = jsonStr.substring(startIndex, endIndex + 1);
+                String aiRawResult;
+                try {
+                    aiRawResult = geminiAdapter.generateStructuredResponseAsync(systemPrompt, finalPrompt)
+                            .get(10, java.util.concurrent.TimeUnit.SECONDS);
+                } catch (Exception e) {
+                    log.warn("[DUPLICATE-DETECTION] Gemini API chưa phản hồi ({}), fallback kiểm tra tương đồng từ khóa.", e.getMessage());
+                    aiRawResult = null;
                 }
                 
-                ObjectMapper mapper = new ObjectMapper();
-                JsonNode rootNode = mapper.readTree(jsonStr);
-                boolean isDuplicate = rootNode.path("is_duplicate").asBoolean(false);
-                String dupTrackingCode = rootNode.path("tracking_code").asText(null);
-                String reason = rootNode.path("reason").asText("");
-                
-                if (isDuplicate && dupTrackingCode != null && !dupTrackingCode.equals("null") && !dupTrackingCode.isEmpty()) {
-                    log.warn("[DUPLICATE-DETECTION] AI xác nhận trùng lặp với {}. Lý do: {}", dupTrackingCode, reason);
-                    throw new CustomException(
-                        "Sự cố tương tự đã được chính quyền địa phương tiếp nhận hoặc xử lý (Mã đơn: " + dupTrackingCode +
-                        "). Nếu sự cố chưa dứt điểm, bạn vui lòng bấm nút 'Yêu cầu mở lại đơn " + dupTrackingCode + "' thay vì tạo đơn mới.",
-                        HttpStatus.CONFLICT.value()
-                    );
+                if (aiRawResult != null && !aiRawResult.isBlank()) {
+                    String jsonStr = aiRawResult.replace("```json", "").replace("```", "").trim();
+                    int startIndex = jsonStr.indexOf("{");
+                    int endIndex = jsonStr.lastIndexOf("}");
+                    if (startIndex >= 0 && endIndex >= 0 && startIndex <= endIndex) {
+                        jsonStr = jsonStr.substring(startIndex, endIndex + 1);
+                    }
+                    
+                    ObjectMapper mapper = new ObjectMapper();
+                    JsonNode rootNode = mapper.readTree(jsonStr);
+                    boolean isDuplicate = rootNode.path("is_duplicate").asBoolean(false);
+                    String dupTrackingCode = rootNode.path("tracking_code").asText(null);
+                    String reason = rootNode.path("reason").asText("");
+                    
+                    if (isDuplicate && dupTrackingCode != null && !dupTrackingCode.equals("null") && !dupTrackingCode.isEmpty()) {
+                        log.warn("[DUPLICATE-DETECTION] AI xác nhận trùng lặp với {}. Lý do: {}", dupTrackingCode, reason);
+
+                        String matchedStatus = candidates.stream()
+                            .filter(c -> dupTrackingCode.equals(c.get("tracking_code")))
+                            .map(c -> (String) c.get("status"))
+                            .findFirst()
+                            .orElse("UNKNOWN");
+
+                        String errorMessage;
+                        if ("RESOLVED".equals(matchedStatus)) {
+                            errorMessage = "Sự cố tương tự đã được cơ quan chức năng giải quyết gần đây (Mã đơn: " + dupTrackingCode +
+                                "). Nếu sự cố tái diễn, vui lòng đợi ít nhất 7 ngày kể từ ngày giải quyết trước khi gửi đơn mới.";
+                        } else {
+                            errorMessage = "Sự cố này đang được cơ quan chức năng tiếp nhận và xử lý (Mã đơn: " + dupTrackingCode +
+                                "). Vui lòng theo dõi tiến độ xử lý thay vì tạo đơn mới.";
+                        }
+                        throw new CustomException(errorMessage, HttpStatus.CONFLICT.value());
+                    } else {
+                        log.info("[DUPLICATE-DETECTION] AI xác nhận KHÔNG trùng lặp. Cho phép lưu đơn.");
+                    }
                 } else {
-                    log.info("[DUPLICATE-DETECTION] AI xác nhận KHÔNG trùng lặp. Cho phép lưu đơn.");
+                    // Fallback Text Jaccard / Keyword Match khi AI API offline
+                    Set<String> inputWords = new java.util.HashSet<>(java.util.Arrays.asList(description.toLowerCase().split("\\s+")));
+                    inputWords.removeIf(w -> w.length() < 3);
+
+                    for (Map<String, Object> row : candidates) {
+                        String oldDesc = (String) row.get("description");
+                        String tc = (String) row.get("tracking_code");
+                        if (oldDesc != null) {
+                            Set<String> oldWords = new java.util.HashSet<>(java.util.Arrays.asList(oldDesc.toLowerCase().split("\\s+")));
+                            oldWords.removeIf(w -> w.length() < 3);
+
+                            Set<String> intersection = new java.util.HashSet<>(inputWords);
+                            intersection.retainAll(oldWords);
+
+                            Set<String> union = new java.util.HashSet<>(inputWords);
+                            union.addAll(oldWords);
+
+                            double jaccard = union.isEmpty() ? 0 : (double) intersection.size() / union.size();
+                            if (jaccard > 0.25) { // Ngưỡng 25% tương đồng từ khóa
+                                log.warn("[DUPLICATE-DETECTION-FALLBACK] Bắt được trùng lặp qua keyword với {} (jaccard: {})", tc, jaccard);
+                                throw new CustomException(
+                                    "Hệ thống ghi nhận sự cố của bạn khá giống với một phản ánh đã được gửi gần đây (Mã đơn: " + tc + "). Vui lòng tránh báo cáo trùng lặp.",
+                                    HttpStatus.CONFLICT.value()
+                                );
+                            }
+                        }
+                    }
                 }
             }
         } catch (CustomException ex) {
             throw ex; // Pass through CustomExceptions (Rate Limit, Duplicates)
         } catch (Exception e) {
-            log.error("❌ [Duplicate Detection] AI/Vector Lỗi: {}. Chuyển sang TIER 2: Fallback Text Matching...", e.getMessage());
-            
-            // TIER 2: Fallback Text Keyword Matching (khi Gemini sập hoặc lỗi DB)
-            try {
-                String fallbackSql;
-                Object[] fallbackParams;
-                if (wardId != null) {
-                    fallbackSql = """
-                        SELECT tracking_code, description
-                        FROM feedbacks
-                        WHERE ward_id = ?
-                          AND ST_DWithin(location, ST_SetSRID(ST_Point(?, ?), 4326), 0.005)
-                          AND status IN ('PENDING', 'IN_PROGRESS', 'SUBMITTED', 'NEED_LOCATION_REVIEW', 'PENDING_RECEIVE', 'WAITING_INFO')
-                        LIMIT 20
-                    """;
-                    fallbackParams = new Object[]{ wardId, longitude, latitude };
-                } else {
-                    fallbackSql = """
-                        SELECT tracking_code, description
-                        FROM feedbacks
-                        WHERE ST_DWithin(location, ST_SetSRID(ST_Point(?, ?), 4326), 0.005)
-                          AND status IN ('PENDING', 'IN_PROGRESS', 'SUBMITTED', 'NEED_LOCATION_REVIEW', 'PENDING_RECEIVE', 'WAITING_INFO')
-                        LIMIT 20
-                    """;
-                    fallbackParams = new Object[]{ longitude, latitude };
-                }
-                
-                List<Map<String, Object>> fallbackCandidates = jdbcTemplate.queryForList(fallbackSql, fallbackParams);
-                Set<String> inputWords = new java.util.HashSet<>(java.util.Arrays.asList(description.toLowerCase().split("\\s+")));
-                inputWords.removeIf(w -> w.length() < 3); // Lọc từ quá ngắn
-                
-                for (Map<String, Object> row : fallbackCandidates) {
-                    String oldDesc = (String) row.get("description");
-                    String tc = (String) row.get("tracking_code");
-                    if (oldDesc != null) {
-                        Set<String> oldWords = new java.util.HashSet<>(java.util.Arrays.asList(oldDesc.toLowerCase().split("\\s+")));
-                        oldWords.removeIf(w -> w.length() < 3);
-                        
-                        Set<String> intersection = new java.util.HashSet<>(inputWords);
-                        intersection.retainAll(oldWords);
-                        
-                        Set<String> union = new java.util.HashSet<>(inputWords);
-                        union.addAll(oldWords);
-                        
-                        double jaccard = union.isEmpty() ? 0 : (double) intersection.size() / union.size();
-                        if (jaccard > 0.4) { // Ngưỡng chung 40% từ khóa giống nhau
-                            log.warn("[DUPLICATE-DETECTION-FALLBACK] Bắt được trùng lặp qua keyword với {} (jaccard: {})", tc, jaccard);
-                            throw new CustomException(
-                                "Hệ thống ghi nhận sự cố của bạn khá giống với một phản ánh đã được gửi gần đây (Mã đơn: " + tc + "). Vui lòng tránh báo cáo trùng lặp.",
-                                HttpStatus.CONFLICT.value()
-                            );
-                        }
-                    }
-                }
-            } catch (CustomException ex) {
-                throw ex; // Pass duplicate found in fallback
-            } catch (Exception fallbackEx) {
-                log.error("❌ [Duplicate Detection Fallback] Lỗi Tier 2: {}", fallbackEx.getMessage());
-            }
+            log.error("❌ [Duplicate Detection] Lỗi xử lý duplicate: {}", e.getMessage());
         }
     }
 

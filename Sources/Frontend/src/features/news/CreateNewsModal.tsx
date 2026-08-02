@@ -3,8 +3,6 @@ import { useCreateNews, useUpdateNews } from "@/hooks/useNews";
 import { API_BASE, getToken, type NewsResponse } from "@/lib/api";
 import { sanitizeNewsHtml } from "@/lib/sanitizeHtml";
 import { compressImageIfNeeded } from "@/lib/imageCompression";
-import { clientOnly } from "@/components/ClientOnly";
-import "react-quill-new/dist/quill.snow.css";
 import { toast } from "sonner";
 import {
   FileText,
@@ -18,11 +16,6 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
-
-// Lazy load ReactQuill to avoid SSR issues
-const ReactQuill = clientOnly(
-  () => import("react-quill-new").then((mod) => ({ default: mod.default }))
-) as any;
 
 const TEMPLATES = [
   {
@@ -336,18 +329,28 @@ export function CreateNewsModal({
                             <select 
                               onChange={(e) => {
                                 const templateId = e.target.value;
+                                console.log('[Template] Selected:', templateId);
                                 if (!templateId) return;
                                 const template = TEMPLATES.find(t => t.id === templateId);
                                 if (template) {
+                                  console.log('[Template] Found template, content length:', template.content.length);
+                                  const newContent = formData.content ? formData.content + "<br><br>" + template.content : template.content;
+                                  console.log('[Template] New content length:', newContent.length);
                                   setFormData(prev => ({
                                     ...prev,
-                                    content: prev.content ? prev.content + "<br><br>" + template.content : template.content
+                                    content: newContent
                                   }));
-                                  setEditorKey(prev => prev + 1);
+                                  setEditorKey(prev => {
+                                    const newKey = prev + 1;
+                                    console.log('[Template] New editor key:', newKey);
+                                    return newKey;
+                                  });
+                                } else {
+                                  console.log('[Template] Template not found!');
                                 }
                                 e.target.value = "";
                               }}
-                              defaultValue=""
+                              value=""
                               className="text-[13px] border border-[#E5E7EB] rounded-[4px] px-3 py-1.5 focus:border-[#1E4ED8] focus:ring-1 focus:ring-[#1E4ED8] outline-none bg-white text-[#374151] font-medium cursor-pointer shadow-sm hover:border-slate-300 transition-colors"
                             >
                               <option value="" disabled>-- Chọn mẫu văn bản --</option>
@@ -357,16 +360,17 @@ export function CreateNewsModal({
                             </select>
                           </div>
                         </div>
-                        <div className={`bg-white overflow-hidden rounded-[4px] ${!isContentEmpty(formData.content) ? 'hide-quill-placeholder' : ''}`}>
-                          <ReactQuill
-                            key={`${editingNews?.id || "new"}-${editorKey}`}
-                            theme="snow"
-                            defaultValue={formData.content}
-                            onChange={(content: string) => setFormData((prev) => ({ ...prev, content }))}
-                            modules={QUILL_MODULES}
-                            className="bg-white"
-                            placeholder="Soạn thảo nội dung..."
+                        <div className="bg-white overflow-hidden rounded-[4px] border border-[#E5E7EB]">
+                          <textarea
+                            key={editorKey}
+                            value={formData.content}
+                            onChange={(e) => setFormData((prev) => ({ ...prev, content: e.target.value }))}
+                            className="w-full min-h-[450px] px-4 py-3 text-[14px] text-[#374151] focus:border-[#1E4ED8] focus:ring-1 focus:ring-[#1E4ED8] outline-none transition-all placeholder:text-slate-400 resize-y font-mono leading-relaxed"
+                            placeholder="Soạn thảo nội dung (hỗ trợ HTML)..."
                           />
+                          <div className="px-4 py-2 bg-slate-50 border-t border-[#E5E7EB] text-[11px] text-slate-500">
+                            💡 Mẹo: Chọn mẫu văn bản ở dropdown trên để tự động chèn nội dung có sẵn
+                          </div>
                         </div>
                       </div>
                     </div>

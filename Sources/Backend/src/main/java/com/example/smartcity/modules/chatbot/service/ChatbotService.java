@@ -425,7 +425,7 @@ public class ChatbotService {
             return new java.util.HashMap<>(Map.of(
                 "intent", "SEARCH_PUBLIC_FEEDBACKS",
                 "emotion", "NEUTRAL",
-                "reply", "Dạ em đang gặp sự cố mạng, không thể tra cứu phản ánh công cộng lúc này. Cố chú thử lại sau nhé!"
+                "reply", "Dạ em đang gặp sự cố mạng, không thể tra cứu phản ánh công cộng lúc này. Cô chú thử lại sau nhé!"
             ));
         }
     }

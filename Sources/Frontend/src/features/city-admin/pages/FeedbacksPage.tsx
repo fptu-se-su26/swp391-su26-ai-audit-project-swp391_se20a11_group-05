@@ -160,7 +160,13 @@ export function FeedbacksPage() {
     }
 
     // Status filter
-    if (statusFilter) data = data.filter((f) => f.status === statusFilter);
+    if (statusFilter) {
+      if (statusFilter === "PENDING_ALL") {
+        data = data.filter((f) => !["RESOLVED", "REJECTED"].includes(f.status));
+      } else {
+        data = data.filter((f) => f.status === statusFilter);
+      }
+    }
 
     // Category filter
     if (categoryFilter) data = data.filter((f) => f.categoryName === categoryFilter);
@@ -416,6 +422,7 @@ export function FeedbacksPage() {
             iconColor: "text-blue-600",
             bg: "bg-blue-50/50",
             trend: stats.trends.total,
+            onClick: () => clearFilters(),
           },
           {
             label: "Chờ xử lý",
@@ -425,6 +432,10 @@ export function FeedbacksPage() {
             iconColor: "text-orange-500",
             bg: "bg-orange-50/50",
             trend: stats.trends.pending,
+            onClick: () => {
+              clearFilters();
+              setStatusFilter("PENDING_ALL");
+            },
           },
           {
             label: "Đã giải quyết",
@@ -434,6 +445,10 @@ export function FeedbacksPage() {
             iconColor: "text-emerald-500",
             bg: "bg-emerald-50/50",
             trend: stats.trends.resolved,
+            onClick: () => {
+              clearFilters();
+              setStatusFilter("RESOLVED");
+            },
           },
           {
             label: "Ưu tiên cao",
@@ -443,13 +458,18 @@ export function FeedbacksPage() {
             iconColor: "text-red-500",
             bg: "bg-red-50/50",
             trend: { value: "+2", isUp: false },
+            onClick: () => {
+              clearFilters();
+              setPriorityFilter("HIGH");
+            },
           },
         ].map((stat, i) => {
           const Icon = stat.icon;
           return (
             <div
               key={i}
-              className="bg-white rounded-2xl p-5 border border-slate-200/70 shadow-sm flex flex-col justify-between"
+              onClick={stat.onClick}
+              className="bg-white rounded-2xl p-5 border border-slate-200/70 shadow-sm flex flex-col justify-between cursor-pointer hover:border-[#0B4FC4] hover:shadow-md transition-all active:scale-95"
             >
               <div className="flex items-center gap-3 mb-4">
                 <div
@@ -542,6 +562,7 @@ export function FeedbacksPage() {
             className="px-3 py-2 text-sm font-medium border border-slate-200/60 bg-slate-50/50 hover:bg-slate-100/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:bg-white cursor-pointer transition-all"
           >
             <option value="">Trạng thái (Tất cả)</option>
+            <option value="PENDING_ALL">Chờ xử lý (Tất cả)</option>
             <option value="SUBMITTED">Vừa gửi</option>
             <option value="PENDING">Đang chờ</option>
             <option value="IN_PROGRESS">Đang xử lý</option>

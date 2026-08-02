@@ -72,7 +72,7 @@ export function FeedbackDetailModal({ feedbackId, onClose }: Props) {
   return (
     // Backdrop
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 font-sans"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 font-sans"
       style={{ backgroundColor: "rgba(18,24,38,0.45)" }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();

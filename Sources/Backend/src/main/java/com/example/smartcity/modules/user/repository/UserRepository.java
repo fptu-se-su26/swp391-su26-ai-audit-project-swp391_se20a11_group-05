@@ -15,10 +15,12 @@ public interface UserRepository extends BaseRepository<User, Long> {
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"ward"})
     org.springframework.data.domain.Page<User> findAll(org.springframework.data.domain.Pageable pageable);
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"ward"})
     Optional<User> findByUsername(String username);
 
     Optional<User> findByUsernameIgnoreCase(String username);
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"ward"})
     Optional<User> findByEmail(String email);
 
     Optional<User> findByEmailIgnoreCase(String email);

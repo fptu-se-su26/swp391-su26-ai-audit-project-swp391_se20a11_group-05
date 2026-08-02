@@ -13,6 +13,7 @@ import {
   Filter,
   FileText,
   MapPin,
+  Trash2,
   User,
   Calendar,
   Tag,
@@ -39,16 +40,16 @@ import { mapStatus } from "@/lib/status";
 import { FeedbackDetailModal } from "./FeedbackDetailModal";
 import { toast } from "sonner";
 
-const STATUS_COLORS: Record<string, string> = {
-  SUBMITTED: "bg-slate-100 text-slate-700 border-slate-200",
-  PENDING_RECEIVE: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  PENDING: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  NEED_LOCATION_REVIEW: "bg-orange-100 text-orange-800 border-orange-200",
-  IN_PROGRESS: "bg-blue-100 text-blue-800 border-blue-200",
-  ASSIGNED: "bg-purple-100 text-purple-800 border-purple-200",
-  WAITING_INFO: "bg-indigo-100 text-indigo-800 border-indigo-200",
-  RESOLVED: "bg-green-100 text-green-800 border-green-200",
-  REJECTED: "bg-red-100 text-red-800 border-red-200",
+const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
+  SUBMITTED: { bg: "bg-slate-50", text: "text-slate-600", dot: "bg-slate-400" },
+  PENDING_RECEIVE: { bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-500" },
+  PENDING: { bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-500" },
+  NEED_LOCATION_REVIEW: { bg: "bg-orange-50", text: "text-orange-700", dot: "bg-orange-500" },
+  IN_PROGRESS: { bg: "bg-blue-50", text: "text-blue-700", dot: "bg-blue-500" },
+  ASSIGNED: { bg: "bg-purple-50", text: "text-purple-700", dot: "bg-purple-500" },
+  WAITING_INFO: { bg: "bg-indigo-50", text: "text-indigo-700", dot: "bg-indigo-500" },
+  RESOLVED: { bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-500" },
+  REJECTED: { bg: "bg-red-50", text: "text-red-700", dot: "bg-red-500" },
 };
 
 const PRIORITY_LEVELS = {
@@ -159,7 +160,13 @@ export function FeedbacksPage() {
     }
 
     // Status filter
-    if (statusFilter) data = data.filter((f) => f.status === statusFilter);
+    if (statusFilter) {
+      if (statusFilter === "PENDING_ALL") {
+        data = data.filter((f) => !["RESOLVED", "REJECTED"].includes(f.status));
+      } else {
+        data = data.filter((f) => f.status === statusFilter);
+      }
+    }
 
     // Category filter
     if (categoryFilter) data = data.filter((f) => f.categoryName === categoryFilter);
@@ -304,6 +311,19 @@ export function FeedbacksPage() {
     }
   };
 
+  const handleDeleteFeedback = async (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.confirm("Bạn có chắc chắn muốn xóa phản ánh này? Hành động này không thể hoàn tác.")) {
+      try {
+        await feedbackApi.delete(id);
+        await queryClient.invalidateQueries({ queryKey: ["admin", "feedbacks", "all"] });
+        toast.success("Đã xóa phản ánh thành công");
+      } catch (error) {
+        toast.error("Không thể xóa phản ánh");
+      }
+    }
+  };
+
   const exportFeedbacks = () => {
     // Mock export functionality
     const csv =
@@ -342,57 +362,47 @@ export function FeedbacksPage() {
     <div className="space-y-6">
       {/* Modern Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-[#1D2939] flex items-center gap-2">
-            <FileText className="text-[#0B4FC4]" size={24} />
-            Quản lý phản ánh
-            <div className="flex items-center gap-1 ml-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-xs text-slate-500 font-medium">Realtime</span>
-            </div>
-          </h2>
-          <p className="text-slate-500 mt-1">
-            Quản lý và xử lý phản ánh từ người dân thành phố Đà Nẵng
-          </p>
-        </div>
+        <div className="hidden lg:block"></div>
 
         <div className="flex items-center gap-3">
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="flex items-center gap-2 px-3 py-2 text-slate-600 hover:text-slate-800 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all disabled:opacity-50"
+            className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-slate-900 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 shadow-sm font-medium bg-white"
           >
-            <RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} />
+            <RefreshCw size={14} className={isRefreshing ? "animate-spin" : ""} />
             <span className="hidden sm:block">Làm mới</span>
           </button>
           <button
             onClick={exportFeedbacks}
-            className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-xl transition-all hover:scale-105"
+            className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 text-sm font-medium rounded-lg transition-colors shadow-sm"
           >
-            <Download size={16} />
+            <Download size={14} />
             Xuất Excel
           </button>
-          <div className="flex items-center gap-2 bg-slate-100 rounded-xl p-1">
+          
+          {/* Segmented Control */}
+          <div className="flex items-center p-1 bg-slate-100/80 rounded-lg border border-slate-200/60 shadow-inner">
             <button
               onClick={() => setViewMode("table")}
-              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition ${
-                viewMode === "table" ? "bg-white text-slate-800 shadow-sm" : "text-slate-600"
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                viewMode === "table" ? "bg-white text-slate-800 shadow-sm border border-slate-200/50" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
               }`}
             >
               Bảng
             </button>
             <button
               onClick={() => setViewMode("grid")}
-              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition ${
-                viewMode === "grid" ? "bg-white text-slate-800 shadow-sm" : "text-slate-600"
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                viewMode === "grid" ? "bg-white text-slate-800 shadow-sm border border-slate-200/50" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
               }`}
             >
               Lưới
             </button>
             <button
               onClick={() => setViewMode("kanban")}
-              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition ${
-                viewMode === "kanban" ? "bg-white text-slate-800 shadow-sm" : "text-slate-600"
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                viewMode === "kanban" ? "bg-white text-slate-800 shadow-sm border border-slate-200/50" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
               }`}
             >
               Kanban
@@ -401,88 +411,90 @@ export function FeedbacksPage() {
         </div>
       </div>
 
-      {/* Enhanced Analytics Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      {/* Minimalist KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
         {[
           {
             label: "Tổng phản ánh",
             value: stats.total,
             icon: FileText,
-            color: "text-[#0B4FC4]",
-            bg: "bg-blue-50",
+            color: "text-slate-900",
+            iconColor: "text-blue-600",
+            bg: "bg-blue-50/50",
             trend: stats.trends.total,
+            onClick: () => clearFilters(),
           },
           {
-            label: "Chưa xử lý",
+            label: "Chờ xử lý",
             value: stats.pending,
             icon: Clock,
-            color: "text-orange-600",
-            bg: "bg-orange-50",
+            color: "text-slate-900",
+            iconColor: "text-orange-500",
+            bg: "bg-orange-50/50",
             trend: stats.trends.pending,
-          },
-          {
-            label: "Đang xử lý",
-            value: stats.inProgress,
-            icon: Activity,
-            color: "text-blue-600",
-            bg: "bg-blue-50",
-            trend: { value: "+3%", isUp: true },
+            onClick: () => {
+              clearFilters();
+              setStatusFilter("PENDING_ALL");
+            },
           },
           {
             label: "Đã giải quyết",
             value: stats.resolved,
             icon: CheckCircle,
-            color: "text-green-600",
-            bg: "bg-green-50",
+            color: "text-slate-900",
+            iconColor: "text-emerald-500",
+            bg: "bg-emerald-50/50",
             trend: stats.trends.resolved,
+            onClick: () => {
+              clearFilters();
+              setStatusFilter("RESOLVED");
+            },
           },
           {
             label: "Ưu tiên cao",
             value: stats.highPriority,
             icon: AlertCircle,
-            color: "text-red-600",
-            bg: "bg-red-50",
-            trend: { value: "-2", isUp: false },
-          },
-          {
-            label: "Quá hạn",
-            value: stats.overdue,
-            icon: Target,
-            color: "text-red-600",
-            bg: "bg-red-50",
-            trend: stats.trends.overdue,
+            color: "text-slate-900",
+            iconColor: "text-red-500",
+            bg: "bg-red-50/50",
+            trend: { value: "+2", isUp: false },
+            onClick: () => {
+              clearFilters();
+              setPriorityFilter("HIGH");
+            },
           },
         ].map((stat, i) => {
           const Icon = stat.icon;
           return (
             <div
               key={i}
-              className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 hover:shadow-md transition-all group"
+              onClick={stat.onClick}
+              className="bg-white rounded-2xl p-5 border border-slate-200/70 shadow-sm flex flex-col justify-between cursor-pointer hover:border-[#0B4FC4] hover:shadow-md transition-all active:scale-95"
             >
-              <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center gap-3 mb-4">
                 <div
-                  className={`w-12 h-12 rounded-xl ${stat.bg} ${stat.color} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}
+                  className={`w-10 h-10 rounded-full ${stat.bg} ${stat.iconColor} flex items-center justify-center shrink-0`}
                 >
-                  <Icon size={20} />
+                  <Icon size={18} />
                 </div>
-                <div className="text-right">
-                  <div className={`text-2xl font-black ${stat.color}`}>
-                    {isLoading ? "—" : stat.value.toLocaleString("vi-VN")}
-                  </div>
-                  {stat.trend && (
-                    <div
-                      className={`text-xs font-bold flex items-center gap-1 mt-1 ${
-                        stat.trend.isUp ? "text-green-600" : "text-red-600"
-                      }`}
-                    >
-                      {stat.trend.isUp ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-                      {stat.trend.value}
-                    </div>
-                  )}
+                <div className="text-xs font-semibold text-slate-500 tracking-wide uppercase">
+                  {stat.label}
                 </div>
               </div>
-              <div className="text-xs font-bold text-slate-600 uppercase tracking-wider">
-                {stat.label}
+              <div className="flex items-end justify-between">
+                <div className={`text-3xl font-bold tracking-tight ${stat.color}`}>
+                  {isLoading ? "—" : stat.value.toLocaleString("vi-VN")}
+                </div>
+                {stat.trend && (
+                  <div
+                    className={`text-xs font-bold flex items-center gap-1 ${
+                      stat.trend.isUp ? "text-emerald-600" : "text-red-600"
+                    }`}
+                  >
+                    {stat.trend.isUp ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                    {stat.trend.value}
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -490,30 +502,53 @@ export function FeedbacksPage() {
       </div>
 
       {/* Advanced Filters & Controls */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-        <div className="flex items-center gap-3 mb-4">
-          <Filter className="text-slate-500" size={18} />
-          <h3 className="font-bold text-slate-700">Bộ lọc nâng cao</h3>
-          {filtered.length !== allFeedbacks.length && (
-            <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">
-              {filtered.length}/{allFeedbacks.length} kết quả
-            </span>
-          )}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/70 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Filter className="text-slate-500" size={16} />
+            <h3 className="text-sm font-bold text-slate-800">Bộ lọc & Tìm kiếm</h3>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">
+              <span className="text-xs font-semibold text-slate-500">Sắp xếp:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="bg-transparent text-xs font-bold text-slate-700 focus:outline-none cursor-pointer border-none p-0 pr-4"
+              >
+                <option value="createdAt">Ngày tạo</option>
+                <option value="priority">Độ ưu tiên</option>
+                <option value="status">Trạng thái</option>
+              </select>
+              <button
+                onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                className="text-slate-400 hover:text-[#0B4FC4] p-1 rounded transition-colors"
+              >
+                <ArrowUpDown size={14} />
+              </button>
+            </div>
+            
+            {filtered.length !== allFeedbacks.length && (
+              <span className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-lg border border-blue-100">
+                {filtered.length} kết quả
+              </span>
+            )}
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
           {/* Search */}
-          <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <div className="relative lg:col-span-1">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Tìm mã, tiêu đề, địa điểm..."
+              placeholder="Mã, tiêu đề..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
                 setPage(0);
               }}
-              className="w-full pl-10 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:border-[#0B4FC4] transition-all"
+              className="w-full pl-9 pr-3 py-2 text-sm font-medium border border-slate-200/60 bg-slate-50/50 hover:bg-slate-100/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:bg-white transition-all"
             />
           </div>
 
@@ -524,15 +559,16 @@ export function FeedbacksPage() {
               setStatusFilter(e.target.value);
               setPage(0);
             }}
-            className="px-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 cursor-pointer"
+            className="px-3 py-2 text-sm font-medium border border-slate-200/60 bg-slate-50/50 hover:bg-slate-100/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:bg-white cursor-pointer transition-all"
           >
-            <option value="">🔄 Mọi trạng thái</option>
-            <option value="SUBMITTED">📝 Vừa gửi</option>
-            <option value="PENDING">⏳ Đang chờ</option>
-            <option value="IN_PROGRESS">⚙️ Đang xử lý</option>
-            <option value="WAITING_INFO">❓ Chờ bổ sung</option>
-            <option value="RESOLVED">✅ Đã giải quyết</option>
-            <option value="REJECTED">❌ Từ chối</option>
+            <option value="">Trạng thái (Tất cả)</option>
+            <option value="PENDING_ALL">Chờ xử lý (Tất cả)</option>
+            <option value="SUBMITTED">Vừa gửi</option>
+            <option value="PENDING">Đang chờ</option>
+            <option value="IN_PROGRESS">Đang xử lý</option>
+            <option value="WAITING_INFO">Chờ bổ sung</option>
+            <option value="RESOLVED">Đã giải quyết</option>
+            <option value="REJECTED">Từ chối</option>
           </select>
 
           {/* Priority Filter */}
@@ -542,12 +578,12 @@ export function FeedbacksPage() {
               setPriorityFilter(e.target.value);
               setPage(0);
             }}
-            className="px-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 cursor-pointer"
+            className="px-3 py-2 text-sm font-medium border border-slate-200/60 bg-slate-50/50 hover:bg-slate-100/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:bg-white cursor-pointer transition-all"
           >
-            <option value="">🎯 Mọi mức độ</option>
-            <option value="HIGH">🔴 Khẩn cấp</option>
-            <option value="MEDIUM">🟡 Quan trọng</option>
-            <option value="LOW">🔵 Thông thường</option>
+            <option value="">Mức độ (Tất cả)</option>
+            <option value="HIGH">Khẩn cấp</option>
+            <option value="MEDIUM">Quan trọng</option>
+            <option value="LOW">Thông thường</option>
           </select>
 
           {/* Ward Filter */}
@@ -557,12 +593,12 @@ export function FeedbacksPage() {
               setWardFilter(e.target.value);
               setPage(0);
             }}
-            className="px-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 cursor-pointer"
+            className="px-3 py-2 text-sm font-medium border border-slate-200/60 bg-slate-50/50 hover:bg-slate-100/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:bg-white cursor-pointer transition-all"
           >
-            <option value="">📍 Mọi khu vực</option>
+            <option value="">Khu vực (Tất cả)</option>
             {WARD_LIST.map((ward) => (
               <option key={ward} value={ward}>
-                📍 {ward}
+                {ward}
               </option>
             ))}
           </select>
@@ -574,71 +610,43 @@ export function FeedbacksPage() {
               setDateFilter(e.target.value);
               setPage(0);
             }}
-            className="px-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 cursor-pointer"
+            className="px-3 py-2 text-sm font-medium border border-slate-200/60 bg-slate-50/50 hover:bg-slate-100/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:bg-white cursor-pointer transition-all"
           >
-            <option value="">📅 Mọi thời gian</option>
-            <option value="today">📅 Hôm nay</option>
-            <option value="week">📅 Tuần này</option>
-            <option value="month">📅 Tháng này</option>
+            <option value="">Thời gian (Tất cả)</option>
+            <option value="today">Hôm nay</option>
+            <option value="week">Tuần này</option>
+            <option value="month">Tháng này</option>
           </select>
         </div>
 
-        {/* Sort & Actions */}
-        <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <ArrowUpDown size={14} className="text-slate-500" />
-              <span className="text-sm font-medium text-slate-600">Sắp xếp:</span>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-white cursor-pointer"
-              >
-                <option value="createdAt">Ngày tạo</option>
-                <option value="priority">Mức độ ưu tiên</option>
-                <option value="status">Trạng thái</option>
-                <option value="title">Tiêu đề</option>
-              </select>
-              <button
-                onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-                className="p-1.5 text-slate-500 hover:text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 transition"
-              >
-                {sortOrder === "asc" ? "↑" : "↓"}
-              </button>
-            </div>
-
-            {(search || statusFilter || priorityFilter || wardFilter || dateFilter) && (
-              <button
-                onClick={clearFilters}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 border border-red-200 bg-red-50 rounded-lg hover:bg-red-100 transition"
-              >
-                <X size={12} />
-                Xóa tất cả bộ lọc
-              </button>
-            )}
+        {/* Active Filters Clear Button */}
+        {(search || statusFilter || priorityFilter || wardFilter || dateFilter) && (
+          <div className="mt-3 flex justify-end">
+            <button
+              onClick={clearFilters}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 border border-red-200 bg-red-50 rounded-lg hover:bg-red-100 transition"
+            >
+              <X size={12} />
+              Xóa tất cả bộ lọc
+            </button>
           </div>
-
-          <div className="text-sm text-slate-500 font-medium">
-            <span className="font-bold text-[#0B4FC4]">{filtered.length}</span> /{" "}
-            {allFeedbacks.length} phản ánh
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-200/60">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-slate-50 border-b border-slate-100">
-              <tr className="text-[10px] uppercase font-bold text-slate-500">
-                <th className="px-5 py-3.5">Mã phản ánh</th>
-                <th className="px-4 py-3.5">Tiêu đề</th>
-                <th className="px-4 py-3.5">Người gửi</th>
-                <th className="px-4 py-3.5">Khu vực</th>
-                <th className="px-4 py-3.5">Lĩnh vực</th>
-                <th className="px-4 py-3.5 text-center">Trạng thái</th>
-                <th className="px-4 py-3.5 text-right">Ngày gửi</th>
-                <th className="px-4 py-3.5 text-center">Xem</th>
+          <table className="w-full text-left border-collapse">
+            <thead className="bg-slate-50/80 border-b border-slate-200/70">
+              <tr className="text-[11px] uppercase font-bold text-slate-500 tracking-wider">
+                <th className="px-5 py-4">Mã phản ánh</th>
+                <th className="px-4 py-4">Tiêu đề</th>
+                <th className="px-4 py-4">Người gửi</th>
+                <th className="px-4 py-4">Khu vực</th>
+                <th className="px-4 py-4">Lĩnh vực</th>
+                <th className="px-4 py-4 text-center">Trạng thái</th>
+                <th className="px-4 py-4 text-right">Ngày gửi</th>
+                <th className="px-4 py-4 text-center">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -660,50 +668,66 @@ export function FeedbacksPage() {
                 paginated.map((fb) => (
                   <tr 
                     key={fb.id} 
-                    className="hover:bg-slate-50/60 transition-colors group cursor-pointer"
+                    className="hover:bg-slate-50 transition-colors group cursor-pointer"
                     onClick={() => setSelectedId(fb.id)}
                   >
-                    <td className="px-5 py-3.5 font-mono text-xs font-bold text-slate-700 group-hover:text-[#0B4FC4]">
+                    <td className="px-5 py-4 font-mono text-[13px] font-bold text-slate-700 group-hover:text-[#0B4FC4] transition-colors">
                       {fb.trackingCode || `#${fb.id}`}
                     </td>
-                    <td className="px-4 py-3.5 text-sm text-slate-800 max-w-[200px] truncate font-medium">
-                      {fb.title}
+                    <td className="px-4 py-4">
+                      <div className="text-sm font-semibold text-slate-800 line-clamp-2 max-w-[250px] leading-snug">
+                        {fb.title}
+                      </div>
                     </td>
-                    <td className="px-4 py-3.5 text-xs text-slate-600">{fb.citizenName || "—"}</td>
-                    <td className="px-4 py-3.5 text-xs text-slate-600">{fb.wardName || "—"}</td>
-                    <td className="px-4 py-3.5 text-xs text-slate-600">{fb.categoryName || "—"}</td>
-                    <td className="px-4 py-3.5 text-center">
-                      <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase border ${STATUS_COLORS[fb.status] || "bg-slate-100 text-slate-600"}`}
-                      >
-                        {mapStatus(fb.status)}
+                    <td className="px-4 py-4 text-sm font-medium text-slate-600">{fb.citizenName || "—"}</td>
+                    <td className="px-4 py-4 text-sm text-slate-600">{fb.wardName || "—"}</td>
+                    <td className="px-4 py-4">
+                      <span className="inline-flex px-2.5 py-1 bg-slate-100 text-slate-600 text-[11px] font-bold rounded-lg border border-slate-200">
+                        {fb.categoryName || "—"}
                       </span>
                     </td>
-                    <td className="px-4 py-3.5 text-right text-xs text-slate-500">
+                    <td className="px-4 py-4 text-center">
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-50 border border-slate-200/60">
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${STATUS_COLORS[fb.status]?.dot || "bg-slate-400"}`}
+                        />
+                        <span className={`text-[11px] font-bold uppercase tracking-wide ${STATUS_COLORS[fb.status]?.text || "text-slate-600"}`}>
+                          {mapStatus(fb.status)}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 text-right text-sm text-slate-500 font-medium">
                       {fb.createdAt ? new Date(fb.createdAt).toLocaleDateString("vi-VN") : "—"}
                     </td>
-                    <td className="px-4 py-3.5 text-center">
-                      <div className="flex items-center justify-center gap-1">
+                    <td className="px-4 py-4">
+                      <div className="flex items-center justify-center gap-1.5">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedId(fb.id);
                           }}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-[#0B4FC4] hover:bg-blue-50 transition cursor-pointer"
-                          title="Xem nhanh"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-[#0B4FC4] hover:bg-blue-50 transition-colors cursor-pointer bg-white border border-slate-200 shadow-sm"
+                          title="Xem chi tiết"
                         >
-                          <Eye size={15} />
+                          <Eye size={16} />
                         </button>
                         <a
                           href={`/my-reports/${fb.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer inline-block"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors cursor-pointer bg-white border border-slate-200 shadow-sm inline-block"
                           title="Xem trên trang người dân"
                         >
-                          <ExternalLink size={15} />
+                          <ExternalLink size={16} />
                         </a>
+                        <button
+                          onClick={(e) => handleDeleteFeedback(fb.id, e)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer bg-white border border-slate-200 shadow-sm"
+                          title="Xóa phản ánh"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       </div>
                     </td>
                   </tr>

@@ -621,10 +621,10 @@ export function WardDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50 text-slate-800 font-sans antialiased flex">
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased flex">
       {/* ─── 1. FIXED LEFT SIDEBAR ─── */}
       <aside
-        className={`bg-slate-950 text-white flex flex-col z-[2010] transition-all duration-300 fixed inset-y-0 left-0 ${
+        className={`bg-[#0B1F4D] text-white flex flex-col z-[2010] transition-all duration-300 fixed inset-y-0 left-0 border-r border-[#1E3A8A]/50 ${
           sidebarCollapsed ? "w-[76px]" : "w-[240px]"
         } ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
       >
@@ -661,10 +661,10 @@ export function WardDashboard() {
                 key={idx}
                 type="button"
                 onClick={() => handleSectionChange(item.section)}
-                className={`w-full text-left flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-200 ${
+                className={`w-full text-left flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-[6px] transition-all duration-200 ${
                   isActive
-                    ? "bg-indigo-600 text-white shadow-sm"
-                    : "text-slate-400 hover:bg-white/10 hover:text-white"
+                    ? "bg-white/10 text-white font-bold"
+                    : "text-slate-300 hover:bg-white/5 hover:text-white"
                 }`}
               >
                 <Icon size={18} className="shrink-0" />
@@ -704,7 +704,7 @@ export function WardDashboard() {
         }`}
       >
         {/* ─── 2. TOP WHITE HEADER ─── */}
-        <header className="h-[76px] bg-white border-b border-slate-100 flex items-center justify-between px-6 sticky top-0 z-[2000] shadow-sm shrink-0">
+        <header className="h-[64px] bg-white border-b flex items-center justify-between px-6 sticky top-0 z-[2000] shadow-sm shrink-0" style={{ borderColor: "#D9E1EC" }}>
           {/* Title & Hamburger */}
           <div className="flex items-center gap-4">
             <button
@@ -715,7 +715,7 @@ export function WardDashboard() {
               <Menu size={20} />
             </button>
             <div className="flex flex-col">
-              <h2 className="text-[17px] font-extrabold text-slate-900 tracking-tight font-sans leading-tight">
+              <h2 className="text-[17px] font-bold text-[#0B1F4D] tracking-tight font-sans leading-tight">
                 {activeSectionTitle}
               </h2>
               {activeSection === "overview" && (
@@ -835,13 +835,12 @@ export function WardDashboard() {
                   setNotifOpen(!notifOpen);
                   setUserOpen(false);
                 }}
-                className="relative p-2 text-slate-500 hover:text-indigo-600 hover:bg-slate-50 rounded-full transition-all flex items-center justify-center min-w-[40px] min-h-[40px] border border-slate-100 cursor-pointer"
+                className="relative p-2 rounded hover:bg-slate-50 transition-colors shrink-0"
+                style={{ color: "#0B1F4D" }}
               >
                 <Bell size={20} />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 w-[16px] h-[16px] bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-white font-sans">
-                    {unreadCount}
-                  </span>
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full border border-white animate-pulse bg-red-600"></span>
                 )}
               </button>
 
@@ -924,17 +923,17 @@ export function WardDashboard() {
                 }}
                 className="flex items-center gap-3 focus:outline-none cursor-pointer text-left pl-2 border-l border-slate-100"
               >
-                <div className="w-9 h-9 rounded-full bg-slate-50 text-indigo-600 flex items-center justify-center font-bold border border-slate-100 shrink-0">
-                  <User size={18} />
-                </div>
-                <div className="leading-tight hidden sm:block">
-                  <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <div className="leading-tight hidden sm:block text-right mr-1">
+                  <div className="text-[12px] font-bold text-slate-800 flex items-center gap-1.5 justify-end">
                     {user?.name || "Nguyễn Văn Nam"}
                     <ChevronDown size={14} className="text-slate-400" />
                   </div>
                   <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block mt-0.5">
                     {authorityUnitLabel}
                   </span>
+                </div>
+                <div className="w-8 h-8 rounded bg-[#E3F2FD] text-[#0B1F4D] flex items-center justify-center font-bold text-sm border border-blue-100 shrink-0">
+                  {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
                 </div>
               </button>
 

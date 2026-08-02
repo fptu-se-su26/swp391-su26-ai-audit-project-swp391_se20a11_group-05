@@ -35,11 +35,19 @@ import {
   Loader2,
   X,
   User,
+  Mail,
+  Phone,
+  ArrowRight,
   BookOpen,
   FileCheck,
   HelpCircle,
   Smartphone,
+  Bell,
+  LogOut,
+  Sliders,
+  Globe,
   Building,
+  Check,
   Eye,
   Check,
   ArrowRight,
@@ -48,8 +56,8 @@ import {
 } from "lucide-react";
 import { mapStatus } from "@/lib/status";
 import { toast } from "sonner";
-import { Role } from "@/lib/roles";
-import { feedbackApi, type FeedbackStatus } from "@/lib/api";
+import { Role, getLoginPathForRole, getDashboardPathForRole } from "@/lib/roles";
+import { authApi, feedbackApi, type FeedbackStatus } from "@/lib/api";
 import { OFFICIAL_CATEGORIES } from "@/lib/categoryConfig";
 import { WardFeedbackManagementPage } from "@/features/ward/WardFeedbackManagementPage";
 import toanhatraibap from "@/assets/toanhatraibap.png";
@@ -206,6 +214,7 @@ function PublicFeedbackLookup() {
   const [dateRangeOpen, setDateRangeOpen] = useState(false);
   const [sortBy, setSortBy] = useState("newest");
 
+
   // Dropdown refs
   const langRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -256,11 +265,20 @@ function PublicFeedbackLookup() {
     );
   }, [filters]);
 
-  // Close category dropdown on outside click
+  // Close dropdowns on outside click
   useEffect(() => {
     const handleOutside = (e: MouseEvent) => {
       if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(e.target as Node)) {
         setCategoryDropdownOpen(false);
+      }
+      if (langRef.current && !langRef.current.contains(e.target as Node)) {
+        setLangOpen(false);
+      }
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false);
+      }
+      if (userRef.current && !userRef.current.contains(e.target as Node)) {
+        setUserOpen(false);
       }
     };
     document.addEventListener("mousedown", handleOutside);
@@ -666,7 +684,51 @@ function PublicFeedbackLookup() {
     });
   };
 
+  const handleLogout = async () => {
+    const loginPath = getLoginPathForRole(currentUser?.role);
+    try {
+      await authApi.logout().catch(() => {});
+    } catch (err) {
+      // noop
+    }
+    logout();
+    void navigate({ to: loginPath });
+    setTimeout(() => {
+      queryClient.clear();
+    }, 0);
+  };
 
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllRead.mutateAsync();
+      toast.success(
+        locale === "vi" ? "Đã đánh dấu đọc tất cả thông báo" : "All notifications marked as read",
+      );
+    } catch (err) {
+      toast.error(locale === "vi" ? "Thao tác thất bại" : "Action failed");
+    }
+  };
+
+  const handleNotifClick = async (item: any) => {
+    const feedbackId = item.feedbackId ?? item.referenceId;
+    setNotifOpen(false);
+    try {
+      if (!item.isRead) {
+        await markRead.mutateAsync(item.id);
+      }
+      if (feedbackId) {
+        if (item.type?.startsWith("CAMPAIGN")) {
+          await navigate({ to: "/campaigns/$id", params: { id: String(feedbackId) } });
+        } else {
+          await navigate({ to: "/my-reports/$id", params: { id: String(feedbackId) } });
+        }
+      } else {
+        await navigate({ to: "/notifications" });
+      }
+    } catch (err) {
+      // noop
+    }
+  };
 
   const getStatusInfo = (status: string) => {
     switch (status) {

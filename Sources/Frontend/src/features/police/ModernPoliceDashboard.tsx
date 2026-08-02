@@ -50,11 +50,13 @@ import {
   ExternalLink,
   Layers,
   Sparkles,
+  FileText,
 } from "lucide-react";
 import policeEmblemImg from "@/assets/police-emblem.png";
 import { PoliceCampaignPage } from "./PoliceCampaignPage";
 import { FeedbackDetailPageComponent } from "@/routes/_auth.authority.feedback.$feedbackId";
 import { PoliceStatisticalReports } from "./PoliceStatisticalReports";
+import { NewsManagement } from "../news/NewsManagement";
 
 const HeatmapMap = clientOnly(
   () => import("@/components/site/HeatmapMap").then((m) => ({ default: m.HeatmapMap })) as any,
@@ -1095,6 +1097,7 @@ export function ModernPoliceDashboard() {
     { id: "overview", name: "Tổng quan", icon: Home },
     { id: "manage", name: "Quản lý phản ánh", icon: ClipboardList },
     { id: "campaigns", name: "Chiến dịch", icon: Flag },
+    { id: "news", name: "Tin tức", icon: FileText },
     { id: "schedule", name: "Lịch trực ban", icon: Calendar },
     { id: "reports", name: "Báo cáo thống kê", icon: BarChart2 },
     { id: "go_home", name: "Về trang chủ", icon: ExternalLink },
@@ -2068,6 +2071,7 @@ export function ModernPoliceDashboard() {
               </div>
             )}
             {activeTab === "campaigns" && <PoliceCampaignPage />}
+            {activeTab === "news" && <NewsManagement />}
             {activeTab === "schedule" && <DutyRoster onSave={fetchCurrentWeekSchedule} />}
             {activeTab === "reports" && (
               <PoliceStatisticalReports feedbacks={feedbacksData || []} />

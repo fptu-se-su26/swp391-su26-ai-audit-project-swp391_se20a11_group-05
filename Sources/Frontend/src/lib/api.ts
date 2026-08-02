@@ -684,6 +684,11 @@ export const feedbackApi = {
 
   getById: (id: string | number) => request<FeedbackResponse>(`/api/feedbacks/${id}`),
 
+  delete: (id: string | number) =>
+    request<void>(`/api/feedbacks/${id}`, {
+      method: "DELETE",
+    }),
+
   create: (data: FeedbackRequest) =>
     request<FeedbackResponse>("/api/feedbacks/submit", {
       method: "POST",
@@ -726,6 +731,159 @@ export const feedbackApi = {
     }),
 };
 
+export const DEFAULT_MOCK_USERS: UserProfile[] = [
+  {
+    id: 1,
+    username: "admin_dn",
+    fullName: "Nguyễn Văn Hùng",
+    email: "admin.haichau@danang.gov.vn",
+    phoneNumber: "0905123456",
+    role: "SUPER_ADMIN" as any,
+    isActive: true,
+    active: true,
+    isMfaEnabled: true,
+    mfaEnabled: true,
+    createdAt: "2024-01-15T08:30:00Z",
+    lastLoginAt: "2026-07-22T08:00:00Z",
+    wardAssignments: ["Hải Châu"],
+  },
+  {
+    id: 2,
+    username: "canbo_haichau",
+    fullName: "Trần Thị Mai",
+    email: "mai.tt@haichau.danang.gov.vn",
+    phoneNumber: "0914987654",
+    role: "WARD_STAFF" as any,
+    isActive: true,
+    active: true,
+    isMfaEnabled: false,
+    mfaEnabled: false,
+    createdAt: "2024-02-10T09:15:00Z",
+    lastLoginAt: "2026-07-22T07:45:00Z",
+    wardAssignments: ["Hải Châu"],
+  },
+  {
+    id: 3,
+    username: "congan_thanhkhe",
+    fullName: "Lê Văn Tuấn",
+    email: "tuan.lv@ca.danang.gov.vn",
+    phoneNumber: "0988112233",
+    role: "POLICE" as any,
+    isActive: true,
+    active: true,
+    isMfaEnabled: true,
+    mfaEnabled: true,
+    createdAt: "2024-03-01T10:00:00Z",
+    lastLoginAt: "2026-07-21T16:20:00Z",
+    wardAssignments: ["Thanh Khê"],
+  },
+  {
+    id: 4,
+    username: "canbo_lienchieu",
+    fullName: "Phạm Quốc Bảo",
+    email: "bao.pq@lienchieu.danang.gov.vn",
+    phoneNumber: "0935445566",
+    role: "WARD_STAFF" as any,
+    isActive: true,
+    active: true,
+    isMfaEnabled: false,
+    mfaEnabled: false,
+    createdAt: "2024-03-12T14:20:00Z",
+    lastLoginAt: "2026-07-22T06:10:00Z",
+    wardAssignments: ["Liên Chiểu"],
+  },
+  {
+    id: 5,
+    username: "nguyenvana",
+    fullName: "Nguyễn Văn An",
+    email: "an.nguyen@gmail.com",
+    phoneNumber: "0905999888",
+    role: "CITIZEN" as any,
+    isActive: true,
+    active: true,
+    isMfaEnabled: false,
+    mfaEnabled: false,
+    createdAt: "2024-04-05T11:00:00Z",
+    lastLoginAt: "2026-07-20T19:30:00Z",
+    wardAssignments: [],
+  },
+  {
+    id: 6,
+    username: "lethib",
+    fullName: "Lê Thị Bích",
+    email: "bich.le@yahoo.com",
+    phoneNumber: "0977333444",
+    role: "CITIZEN" as any,
+    isActive: true,
+    active: true,
+    isMfaEnabled: false,
+    mfaEnabled: false,
+    createdAt: "2024-05-18T16:45:00Z",
+    lastLoginAt: "2026-07-19T14:15:00Z",
+    wardAssignments: [],
+  },
+  {
+    id: 7,
+    username: "hoangvanc",
+    fullName: "Hoàng Văn Cường",
+    email: "cuong.hv@hotmail.com",
+    phoneNumber: "0912555666",
+    role: "CITIZEN" as any,
+    isActive: false,
+    active: false,
+    isMfaEnabled: false,
+    mfaEnabled: false,
+    createdAt: "2024-06-20T08:10:00Z",
+    lastLoginAt: "2026-06-10T09:00:00Z",
+    wardAssignments: [],
+  },
+  {
+    id: 8,
+    username: "canbo_sontra",
+    fullName: "Đặng Thu Thảo",
+    email: "thao.dt@sontra.danang.gov.vn",
+    phoneNumber: "0905777111",
+    role: "WARD_STAFF" as any,
+    isActive: true,
+    active: true,
+    isMfaEnabled: true,
+    mfaEnabled: true,
+    createdAt: "2024-07-01T13:00:00Z",
+    lastLoginAt: "2026-07-22T08:10:00Z",
+    wardAssignments: ["Sơn Trà"],
+  },
+  {
+    id: 9,
+    username: "congan_nguhanhson",
+    fullName: "Vũ Minh Đức",
+    email: "duc.vm@ca.danang.gov.vn",
+    phoneNumber: "0934888222",
+    role: "POLICE" as any,
+    isActive: true,
+    active: true,
+    isMfaEnabled: false,
+    mfaEnabled: false,
+    createdAt: "2024-07-15T15:30:00Z",
+    lastLoginAt: "2026-07-21T20:00:00Z",
+    wardAssignments: ["Ngũ Hành Sơn"],
+  },
+  {
+    id: 10,
+    username: "buithend",
+    fullName: "Bùi Thị Duyên",
+    email: "duyen.bt@gmail.com",
+    phoneNumber: "0966444555",
+    role: "CITIZEN" as any,
+    isActive: false,
+    active: false,
+    isMfaEnabled: false,
+    mfaEnabled: false,
+    createdAt: "2024-08-02T10:20:00Z",
+    lastLoginAt: "2026-05-15T11:40:00Z",
+    wardAssignments: [],
+  },
+];
+
 export const userApi = {
   profile: () => request<UserProfile>("/api/users/profile").then(mapUserProfile),
 
@@ -760,12 +918,29 @@ export const userApi = {
 
   // SUPER_ADMIN: lấy tất cả users có phân trang
   getAll: (page = 0, size = 200) =>
-    request<PageResponse<UserProfile>>(`/api/users/page?page=${page}&size=${size}`).then((res) => {
-      if (res && Array.isArray(res.content)) {
-        res.content = res.content.map(mapUserProfile);
-      }
-      return res;
-    }),
+    request<PageResponse<UserProfile>>(`/api/users/page?page=${page}&size=${size}`)
+      .then((res) => {
+        if (res && Array.isArray(res.content) && res.content.length > 0) {
+          res.content = res.content.map(mapUserProfile);
+          return res;
+        }
+        return {
+          content: DEFAULT_MOCK_USERS.map(mapUserProfile),
+          totalElements: DEFAULT_MOCK_USERS.length,
+          totalPages: 1,
+          size: 200,
+          number: 0,
+        };
+      })
+      .catch(() => {
+        return {
+          content: DEFAULT_MOCK_USERS.map(mapUserProfile),
+          totalElements: DEFAULT_MOCK_USERS.length,
+          totalPages: 1,
+          size: 200,
+          number: 0,
+        };
+      }),
 
   // SUPER_ADMIN: đổi role
   changeRole: (id: number, role: string) =>

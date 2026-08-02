@@ -8,7 +8,7 @@
 | Mã môn học | SWP391 |
 | Lớp | SE20A11 |
 | Học kỳ | 5 |
-| Tên bài tập / Project | City Connect System |
+| Tên bài tập / Project | The City Connect |
 | Tên sinh viên / Nhóm | Phạm Tuấn Việt / Nhóm 5 |
 | MSSV / Danh sách MSSV | DE190714 |
 | Giảng viên hướng dẫn | QuangLTN3 |

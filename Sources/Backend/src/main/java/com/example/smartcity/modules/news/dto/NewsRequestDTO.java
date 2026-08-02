@@ -12,14 +12,16 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class NewsRequestDTO {
 
-    @NotBlank(message = "Title is required")
+    @NotBlank(message = "Tiêu đề không được để trống")
     private String title;
 
+    @NotBlank(message = "Tóm tắt không được để trống")
     private String summary;
     
+    @NotBlank(message = "Nội dung không được để trống")
     private String content;
 
-    @NotBlank(message = "Category is required")
+    @NotBlank(message = "Chuyên mục không được để trống")
     private String category;
 
     private String imageUrl;

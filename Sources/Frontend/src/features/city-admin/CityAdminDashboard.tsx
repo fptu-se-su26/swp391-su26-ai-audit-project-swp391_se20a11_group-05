@@ -28,7 +28,6 @@ import { FeedbacksPage } from "./pages/FeedbacksPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { UsersPage } from "./pages/UsersPage";
 import { PermissionsPage } from "./pages/PermissionsPage";
-import { AiDashboardPage } from "./pages/AiDashboardPage";
 import { NewsManagement } from "../news/NewsManagement";
 import { toast } from "sonner";
 import {
@@ -145,14 +144,12 @@ export function CityAdminDashboard() {
 
   // State controls for headers/sidebar
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<
-    "overview" | "feedbacks" | "reports" | "users" | "news" | "permissions" | "ai_stats"
+    "overview" | "feedbacks" | "reports" | "users" | "news" | "permissions"
   >("overview");
-  const [fullscreen, setFullscreen] = useState(false);
 
   // Filter states
   const [selectedWard, setSelectedWard] = useState<string | undefined>(undefined);
@@ -161,6 +158,12 @@ export function CityAdminDashboard() {
 
   const notifRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
+
+  const [currentTime, setCurrentTime] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Click outside listener for dropdowns
   useEffect(() => {
@@ -175,6 +178,18 @@ export function CityAdminDashboard() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const colors = {
+    primaryNavy: "#0B1F4D",
+    secondaryBlue: "#234E9B",
+    policeGold: "#C9A227",
+    criticalRed: "#C62828",
+    successGreen: "#2E7D32",
+    background: "#F5F7FA",
+    border: "#D9E1EC",
+    textPrimary: "#1B1F23",
+    textSecondary: "#6B7280",
+  };
 
   // Fetch real backend data — dùng admin endpoint để lấy toàn bộ phản ánh thành phố
   const {
@@ -265,7 +280,7 @@ export function CityAdminDashboard() {
       name: "Phản ánh",
       tab: "feedbacks" as const,
       icon: FileText,
-      badge: unresolvedCount > 0 ? unresolvedCount : null,
+      badge: null,
       description: "Quản lý phản ánh từ dân",
     },
     {
@@ -281,13 +296,6 @@ export function CityAdminDashboard() {
       icon: Users,
       badge: null,
       description: "Quản lý người dùng",
-    },
-    {
-      name: "Thống kê AI",
-      tab: "ai_stats" as const,
-      icon: Zap,
-      badge: null,
-      description: "Hiệu suất AI Auto-Dispatch",
     },
     {
       name: "Tin tức",
@@ -584,362 +592,133 @@ export function CityAdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F7FAFF] to-[#EDF4FF] flex text-[#1D2939] font-sans antialiased overflow-x-hidden">
-      <style>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.2s ease-out;
-        }
-        
-        @keyframes pulse-subtle {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.8; }
-        }
-        .animate-pulse-subtle {
-          animation: pulse-subtle 2s ease-in-out infinite;
-        }
-      `}</style>
-      {/* 1. LEFT MODERN SIDEBAR */}
-      <aside
-        className={`fixed inset-y-0 left-0 bg-gradient-to-b from-[#0647A5] to-[#043A8F] text-white flex flex-col z-40 transform transition-all duration-300 ease-in-out shadow-2xl ${
-          sidebarCollapsed ? "w-16" : "w-64"
-        } ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
-      >
-        {/* Branding */}
-        <div
-          className={`p-5 flex items-center border-b border-[#053d8e] shrink-0 transition-all duration-300 ${
-            sidebarCollapsed ? "justify-center" : "gap-3"
-          }`}
-        >
-          <img
-            src={logoImg}
-            alt="Đà Nẵng Connect Logo"
-            className="w-10 h-10 object-contain shrink-0"
-          />
-          {!sidebarCollapsed && (
-            <>
-              <div className="flex flex-col leading-none flex-1">
-                <span className="font-extrabold text-base tracking-tight uppercase font-sans">
-                  ĐÀ NẴNG
-                </span>
-                <span className="font-extrabold text-base tracking-tight uppercase font-sans">
-                  KẾT NỐI
-                </span>
-                <span className="text-[7.5px] text-[#A6C5F7] font-bold uppercase tracking-wider mt-0.5 leading-tight font-sans">
-                  NỀN TẢNG PHẢN ÁNH HIỆN TRƯỜNG
-                </span>
-              </div>
-              {/* Collapse Toggle Button - moved here next to logo */}
-              <button
-                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                className="w-8 h-8 flex items-center justify-center text-[#B8D4FF] hover:text-white hover:bg-[#0753BF] rounded-lg transition-all shrink-0"
-                title="Thu gọn"
-              >
-                <ChevronRight
-                  size={14}
-                  className="transform transition-transform duration-300 rotate-180"
-                />
-              </button>
-            </>
-          )}
-          {sidebarCollapsed && (
-            <button
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="absolute top-3 right-3 w-6 h-6 flex items-center justify-center text-[#B8D4FF] hover:text-white hover:bg-[#0753BF] rounded-lg transition-all"
-              title="Mở rộng"
-            >
-              <ChevronRight
-                size={12}
-                className="transform transition-transform duration-300 rotate-0"
-              />
-            </button>
-          )}
+    <div className="min-h-screen flex font-sans" style={{ backgroundColor: colors.background, color: colors.textPrimary }}>
+      {/* LEFT SIDEBAR */}
+      <aside className="w-[260px] flex flex-col shrink-0" style={{ backgroundColor: colors.primaryNavy }}>
+        <div className="p-6 pb-4 border-b border-white/10 flex flex-col items-center">
+          <img src={logoImg} alt="Emblem" className="w-16 h-16 object-contain mb-3 drop-shadow-md" />
+          <h1 className="text-center font-bold text-[13px] text-white uppercase leading-snug w-full px-1">
+            ĐÀ NẴNG KẾT NỐI
+          </h1>
         </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto">
-          {navItems.map((item, index) => {
+        
+        <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
+          {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.tab;
             return (
-              <div key={index} className="relative group">
-                <button
-                  onClick={() => {
-                    setActiveTab(item.tab);
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between rounded-xl transition-all relative overflow-hidden ${
-                    sidebarCollapsed ? "px-3 py-3.5" : "px-4 py-3.5"
-                  } ${
-                    isActive
-                      ? "bg-white/95 text-[#0647A5] shadow-lg font-bold transform scale-[1.02] backdrop-blur-sm"
-                      : "text-[#B8D4FF] hover:bg-white/10 hover:text-white hover:transform hover:scale-[1.01] hover:shadow-md"
-                  }`}
-                  title={sidebarCollapsed ? `${item.name} - ${item.description}` : undefined}
-                >
-                  {/* Gradient overlay for active state */}
-                  {isActive && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-purple-50 opacity-80 rounded-xl"></div>
-                  )}
-
-                  <div
-                    className={`flex items-center relative z-10 ${sidebarCollapsed ? "justify-center" : "gap-3"}`}
+              <button
+                key={item.tab}
+                onClick={() => {
+                  setActiveTab(item.tab);
+                  setSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-[8px] text-sm font-medium transition-colors ${
+                  isActive ? "text-white" : "text-slate-300 hover:text-white hover:bg-white/5"
+                }`}
+                style={{ backgroundColor: isActive ? colors.secondaryBlue : "transparent" }}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon size={18} strokeWidth={2} />
+                  <span>{item.name}</span>
+                </div>
+                {item.badge && (
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[9.5px] font-black relative z-10 ${
+                      String(item.badge) === "NEW"
+                        ? "bg-emerald-500 text-white shadow-sm"
+                        : "bg-red-500 text-white shadow-sm"
+                    }`}
                   >
-                    <Icon size={18} className={`shrink-0 ${isActive ? "text-[#0647A5]" : ""}`} />
-                    {!sidebarCollapsed && (
-                      <div className="flex flex-col items-start">
-                        <span className="text-sm font-semibold">{item.name}</span>
-                        <span
-                          className={`text-[10px] font-medium opacity-75 ${
-                            isActive ? "text-slate-600" : "text-[#A6C5F7]"
-                          }`}
-                        >
-                          {item.description}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {item.badge && !sidebarCollapsed && (
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-black relative z-10 ${
-                        String(item.badge) === "NEW"
-                          ? "bg-gradient-to-r from-emerald-400 to-emerald-600 text-white shadow-sm"
-                          : isActive
-                            ? "bg-red-100 text-red-600"
-                            : "bg-red-500 text-white shadow-sm"
-                      }`}
-                    >
-                      {item.badge}
-                    </span>
-                  )}
-
-                  {item.badge && sidebarCollapsed && (
-                    <div
-                      className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${
-                        String(item.badge) === "NEW" ? "bg-emerald-500" : "bg-red-500"
-                      } shadow-sm`}
-                    ></div>
-                  )}
-                </button>
-
-                {/* Tooltip for collapsed sidebar */}
-                {sidebarCollapsed && (
-                  <div className="absolute left-full ml-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap shadow-lg">
-                    <div className="font-semibold">{item.name}</div>
-                    <div className="text-slate-300 text-[10px]">{item.description}</div>
-                    <div className="absolute left-0 top-1/2 -translate-x-1 -translate-y-1/2 w-2 h-2 bg-slate-800 rotate-45"></div>
-                  </div>
+                    {item.badge}
+                  </span>
                 )}
-              </div>
+              </button>
             );
           })}
-
-          {!sidebarCollapsed && (
-            <>
-              {/* Elegant Separator */}
-              <div className="relative my-6 px-2">
-                <div className="h-px bg-gradient-to-r from-transparent via-[#053d8e] to-transparent"></div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-2 h-2 bg-[#053d8e] rounded-full"></div>
-                </div>
-              </div>
-
-              {/* Enhanced System Stats */}
-              <div className="px-4 py-4 bg-gradient-to-br from-[#053c8c] to-[#042f6b] rounded-xl border border-[#0753BF]/30 shadow-inner">
-                <div className="text-xs font-bold text-white mb-3 flex items-center gap-2">
-                  <Activity size={14} className="text-emerald-400" />
-                  Tình trạng hệ thống
-                </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] text-[#A6C5F7] font-medium">
-                      Phản ánh chưa xử lý
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-white">{unresolvedCount}</span>
-                      <div
-                        className={`w-2 h-2 rounded-full ${unresolvedCount > 0 ? "bg-orange-400 animate-pulse" : "bg-green-400"}`}
-                      ></div>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] text-[#A6C5F7] font-medium">Báo cáo quá hạn</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-red-300">{overdueCount}</span>
-                      <div
-                        className={`w-2 h-2 rounded-full ${overdueCount > 0 ? "bg-red-400 animate-pulse" : "bg-green-400"}`}
-                      ></div>
-                    </div>
-                  </div>
-                  <div className="h-px bg-white/10 my-2"></div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] text-emerald-300 font-semibold">
-                      Hiệu suất xử lý
-                    </span>
-                    <span className="text-xs font-bold text-emerald-300">
-                      {feedbacks.length > 0
-                        ? Math.round(
-                            ((feedbacks.length - unresolvedCount) / feedbacks.length) * 100,
-                          )
-                        : 0}
-                      %
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
         </nav>
-
-        {/* Bottom account summary */}
-        <div className="p-4 border-t border-[#053d8e] bg-[#053c8c] flex items-center gap-3 shrink-0">
-          <div className="w-9 h-9 rounded-full bg-[#002B73] border border-blue-400/20 flex items-center justify-center shrink-0">
-            <Shield className="w-5 h-5 text-amber-400" />
-          </div>
-          <div className="flex flex-col min-w-0">
-            <span className="font-bold text-sm truncate text-white">Super Admin</span>
-            <span className="text-[10px] text-[#A6C5F7] font-medium leading-none mt-0.5">
-              Quyền cao nhất
-            </span>
-          </div>
-        </div>
       </aside>
 
-      {/* Drawer Overlay for Mobile */}
-      {sidebarOpen && (
-        <div
-          onClick={() => setSidebarOpen(false)}
-          className="fixed inset-0 bg-slate-900/40 z-30 md:hidden transition-opacity duration-300"
-        />
-      )}
-
-      {/* Main Container Wrapper */}
-      <div
-        className={`flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-300 ${
-          sidebarCollapsed ? "md:pl-16" : "md:pl-64"
-        }`}
-      >
-        {/* 2. TOP MODERN HEADER */}
-        <header className="h-16 bg-white/95 backdrop-blur-sm border-b border-[#E4EAF2] flex items-center justify-between px-6 sticky top-0 z-30 shadow-sm shrink-0">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="md:hidden text-slate-500 hover:text-[#0B4FC4] p-1.5 rounded-lg border border-slate-200 bg-slate-50 transition-all hover:scale-105"
-              aria-label="Toggle menu"
-            >
-              <Menu size={20} />
-            </button>
-            <h2 className="text-xl font-bold font-heading text-gov-blue-deep flex items-center gap-2">
-              {activeTab === "overview" && (
-                <>
-                  <Home size={20} className="text-[#0B4FC4]" />
-                  Tổng quan
-                </>
-              )}
-              {activeTab === "feedbacks" && (
-                <>
-                  <FileText size={20} className="text-[#0B4FC4]" />
-                  Phản ánh
-                  {unresolvedCount > 0 && (
-                    <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full">
-                      {unresolvedCount} chưa xử lý
-                    </span>
-                  )}
-                </>
-              )}
-              {activeTab === "reports" && (
-                <>
-                  <BarChart3 size={20} className="text-[#0B4FC4]" />
-                  Báo cáo & Thống kê
-                </>
-              )}
-              {activeTab === "users" && (
-                <>
-                  <Users size={20} className="text-[#0B4FC4]" />
-                  Quản lý tài khoản
-                </>
-              )}
-              {/* Tạm ẩn header Phân quyền */}
-              {/* {activeTab === "permissions" && (
-                <>
-                  <Shield size={20} className="text-[#0B4FC4]" />
-                  Phân quyền & Ủy quyền
-                  <span className="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">
-                    MỚI
-                  </span>
-                </>
-              )} */}
-            </h2>
-          </div>
-
-          {/* Search field */}
-          <div className="hidden md:flex items-center relative w-96">
-            <input
-              type="text"
-              placeholder="Tìm kiếm phản ánh, khu vực, mã..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-10 pl-4 pr-10 rounded-lg border border-[#E4EAF2] text-sm focus:border-[#0B4FC4] outline-none bg-slate-50/50"
-            />
-            <Search size={16} className="absolute right-3.5 text-slate-400 pointer-events-none" />
-          </div>
-
-          {/* User profile dropdown and notification controls */}
-          <div className="flex items-center gap-3">
-            {/* Quick Actions */}
-            <div className="hidden lg:flex items-center gap-2">
-              <button
-                onClick={() => setFullscreen(!fullscreen)}
-                className="p-2 text-slate-500 hover:text-[#0B4FC4] transition rounded-lg hover:bg-slate-100 flex items-center justify-center"
-                title={fullscreen ? "Thu nhỏ" : "Toàn màn hình"}
-              >
-                {fullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-              </button>
-
-              <button
-                onClick={() => {
-                  // Refresh data instead of reloading page
-                  if (activeTab === "feedbacks") {
-                    queryClient.invalidateQueries({ queryKey: ["admin", "feedbacks", "all"] });
-                  } else if (activeTab === "users") {
-                    queryClient.invalidateQueries({ queryKey: ["admin", "users", "all"] });
-                  } else {
-                    queryClient.invalidateQueries();
-                  }
-                  toast.success("Đã làm mới dữ liệu");
-                }}
-                className="p-2 text-slate-500 hover:text-[#0B4FC4] transition rounded-lg hover:bg-slate-100 flex items-center justify-center"
-                title="Làm mới dữ liệu"
-              >
-                <RefreshCw size={18} />
-              </button>
+      {/* MAIN CONTENT WRAPPER */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* HEADER */}
+        <header className="min-h-[90px] py-3 bg-white border-b px-6 flex items-center justify-between shrink-0 gap-6" style={{ borderColor: colors.border, fontFamily: 'Inter, sans-serif' }}>
+          {/* LEFT SECTION */}
+          <div className="flex-[2] xl:flex-[2.5] flex items-center gap-3 lg:gap-4 min-w-0">
+            <img src={logoImg} alt="Emblem" className="w-[45px] h-[45px] lg:w-[50px] lg:h-[50px] object-contain drop-shadow-sm shrink-0" />
+            <div className="flex flex-col min-w-0">
+              <h2 className="text-[14px] md:text-[16px] lg:text-[17px] font-bold leading-tight whitespace-normal break-words" style={{ color: colors.primaryNavy }}>
+                TRUNG TÂM ĐIỀU HÀNH THÀNH PHỐ ĐÀ NẴNG
+              </h2>
+              <span className="text-[12px] lg:text-[13px] font-medium mt-0.5 truncate hidden sm:block" style={{ color: colors.textSecondary }}>
+                Hệ thống quản lý đô thị - <strong className="text-red-600">Phân hệ Super Admin</strong>
+              </span>
+              <style>{`
+                @keyframes marquee {
+                  from { transform: translateX(100%); }
+                  to { transform: translateX(-100%); }
+                }
+                .marquee-text {
+                  display: inline-block;
+                  white-space: nowrap;
+                  animation: marquee 20s linear infinite;
+                }
+              `}</style>
+              <div className="mt-1.5 hidden md:flex items-center rounded text-[13px] font-normal w-full max-w-[500px] overflow-hidden relative" style={{ backgroundColor: "#E3F2FD", color: colors.secondaryBlue, padding: "2px 0" }}>
+                <div className="absolute left-0 top-0 bottom-0 px-2.5 flex items-center z-10" style={{ backgroundColor: "#E3F2FD" }}>
+                  <span className="text-[14px]">🇻🇳</span>
+                </div>
+                <div className="flex-1 overflow-hidden w-full pl-10 pr-2">
+                  <div className="marquee-text">Chào mừng Quản trị viên, chúc bạn một ngày làm việc hiệu quả và thành công.</div>
+                </div>
+              </div>
             </div>
+          </div>
+          
+          {/* CENTER SECTION */}
+          <div className="flex-1 flex justify-center px-4 min-w-0">
+            <div className="relative w-full max-w-[400px]">
+              <input 
+                type="text" 
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  if (e.target.value.trim() !== "") {
+                    setActiveTab("feedbacks");
+                  }
+                }}
+                placeholder="Tìm kiếm mã phản ánh, nội dung, khu vực..." 
+                className="w-full h-10 pl-10 pr-4 rounded-[4px] border text-sm focus:outline-none focus:ring-1 bg-slate-50 transition-all"
+                style={{ borderColor: colors.border }}
+              />
+              <Search size={16} className="absolute left-3.5 top-3 text-slate-400" />
+            </div>
+          </div>
 
-            {/* Notification Bell */}
+          {/* RIGHT SECTION */}
+          <div className="flex items-center justify-end gap-5 shrink-0 relative">
+            <div className="text-[13px] font-medium text-right leading-tight hidden lg:block whitespace-nowrap" style={{ color: colors.textSecondary }}>
+              <div className="text-[14px]">{currentTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</div>
+              <div>{currentTime.toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+            </div>
+            
             <div className="relative" ref={notifRef}>
-              <button
+              <button 
                 onClick={() => {
                   setNotifOpen(!notifOpen);
                   setUserOpen(false);
                 }}
-                className="relative p-2 text-slate-500 hover:text-[#0B4FC4] transition rounded-full hover:bg-slate-100 flex items-center justify-center cursor-pointer min-w-[36px] min-h-[36px]"
-                aria-label="Thông báo"
+                className="relative p-2 rounded hover:bg-slate-50 transition-colors shrink-0" 
+                style={{ color: colors.primaryNavy }}
               >
                 <Bell size={20} />
                 {unreadCount > 0 && (
-                  <span className="absolute top-0.5 right-0.5 w-[16px] h-[16px] bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-white">
-                    {unreadCount}
-                  </span>
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full border border-white animate-pulse" style={{ backgroundColor: colors.criticalRed }}></span>
                 )}
               </button>
 
-              {/* Notification Dropdown */}
               {notifOpen && (
-                <div className="absolute right-0 mt-2 w-[320px] bg-white border border-[#E4EAF2] rounded-xl shadow-lg py-2.5 z-50 animate-fade-in">
+                <div className="absolute right-0 mt-2 w-[320px] bg-white border border-[#E4EAF2] rounded-xl shadow-lg py-2.5 z-50">
                   <div className="flex items-center justify-between px-4 pb-2 border-b border-slate-100">
                     <span className="text-xs font-bold text-slate-700">
                       {locale === "vi" ? "Thông báo mới" : "New Notifications"}
@@ -979,64 +758,86 @@ export function CityAdminDashboard() {
                       ))
                     )}
                   </div>
-                  <div className="pt-2 text-center border-t border-slate-100">
-                    <Link
-                      to="/notifications"
-                      onClick={() => setNotifOpen(false)}
-                      className="text-xs font-bold text-[#0B4FC4] hover:underline inline-block py-0.5"
-                    >
-                      {locale === "vi" ? "Xem tất cả" : "See all"}
-                    </Link>
-                  </div>
                 </div>
               )}
             </div>
 
-            {/* User Dropdown */}
-            <div className="relative" ref={userRef}>
-              <button
+            <div className="flex items-center pl-5 border-l shrink-0 relative" style={{ borderColor: colors.border }} ref={userRef}>
+              <div className="mr-3 text-right hidden sm:block">
+                <div className="text-[12px] font-bold text-slate-800 leading-tight">{user?.name || "Super Admin"}</div>
+                <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Quản trị viên</div>
+              </div>
+              <button 
                 onClick={() => {
                   setUserOpen(!userOpen);
                   setNotifOpen(false);
                 }}
-                className="flex items-center gap-2 focus:outline-none cursor-pointer text-left"
+                className="relative w-[48px] h-[34px] rounded overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.1)] border border-black/5 cursor-pointer hover:shadow-md transition-all waving-flag-container" 
+                title="Tài khoản & Thiết lập"
               >
-                <div className="w-8.5 h-8.5 rounded-full bg-blue-100 text-[#0B4FC4] flex items-center justify-center font-bold text-sm border border-slate-200">
-                  {user?.name ? user.name.charAt(0).toUpperCase() : "S"}
+                <div className="relative w-full h-full scale-[1.15]">
+                  <svg viewBox="0 0 300 200" className="w-full h-full">
+                    <rect width="300" height="200" fill="#DA251D"/>
+                    <g transform="translate(150, 100) scale(60)">
+                      <polygon points="0,-1 0.2245,-0.309 0.951,-0.309 0.363,0.118 0.587,0.809 0,0.382 -0.587,0.809 -0.363,0.118 -0.951,-0.309 -0.2245,-0.309" fill="#FFFF00"/>
+                    </g>
+                  </svg>
+                  <div className="absolute inset-0 wind-ripple mix-blend-overlay"></div>
                 </div>
-                <div className="leading-tight hidden sm:block">
-                  <div className="text-xs font-bold text-[#1D2939] flex items-center gap-1">
-                    {user?.name || "Super Admin"}
-                    <ChevronDown size={14} className="text-slate-400" />
-                  </div>
-                  <span className="text-[10px] text-slate-400 font-semibold">Super Admin</span>
-                </div>
+                <style>{`
+                  @keyframes flag-wave {
+                    0%   { transform: perspective(400px) rotateY(-10deg) rotateX(2deg) scaleY(1); }
+                    30%  { transform: perspective(400px) rotateY(5deg) rotateX(-1deg) scaleY(1.05); }
+                    60%  { transform: perspective(400px) rotateY(-5deg) rotateX(3deg) scaleY(0.95); }
+                    100% { transform: perspective(400px) rotateY(-10deg) rotateX(2deg) scaleY(1); }
+                  }
+                  @keyframes wind-ripple-anim {
+                    0% { background-position: 200% 0; opacity: 0.2; }
+                    50% { opacity: 0.6; }
+                    100% { background-position: -200% 0; opacity: 0.2; }
+                  }
+                  .waving-flag-container {
+                    animation: flag-wave 1.5s ease-in-out infinite;
+                    transform-origin: left center;
+                  }
+                  .wind-ripple {
+                    background: linear-gradient(
+                      90deg, 
+                      rgba(0,0,0,0) 0%, 
+                      rgba(255,255,255,0.4) 25%, 
+                      rgba(0,0,0,0.4) 50%, 
+                      rgba(255,255,255,0.4) 75%, 
+                      rgba(0,0,0,0) 100%
+                    );
+                    background-size: 200% 100%;
+                    animation: wind-ripple-anim 1.5s linear infinite;
+                    pointer-events: none;
+                  }
+                `}</style>
               </button>
 
-              {/* User settings menu dropdown */}
               {userOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-[#E4EAF2] rounded-xl shadow-lg py-1.5 z-50 animate-fade-in">
-                  <div className="px-4 py-2 border-b border-slate-100 mb-1">
-                    <div className="text-xs font-bold text-slate-700 truncate">
-                      {user?.name || "Super Admin"}
-                    </div>
-                    <div className="text-[10px] text-slate-400 font-semibold truncate mt-0.5">
-                      super_admin@danang.gov.vn
-                    </div>
+                <div className="absolute top-[120%] right-0 w-60 bg-white rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] border border-slate-100 py-2 z-50">
+                  <div className="px-4 py-3 border-b border-slate-50 mb-1 bg-slate-50/50">
+                    <p className="text-[14px] font-bold text-slate-800 leading-tight">{user?.name || "Super Admin"}</p>
+                    <p className="text-[11px] font-semibold text-blue-600 mt-1 uppercase tracking-wide truncate">
+                      Quản trị viên hệ thống
+                    </p>
                   </div>
-                  <Link
+                  <Link 
                     to="/profile"
                     onClick={() => setUserOpen(false)}
-                    className="w-full text-left px-4 py-2 text-xs font-semibold text-[#1D2939] hover:bg-slate-50 transition flex items-center gap-2"
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                   >
-                    <Settings size={14} className="text-slate-400" />
+                    <Settings size={16} />
                     Cấu hình tài khoản
                   </Link>
-                  <button
+                  <div className="h-px bg-slate-100 my-1"></div>
+                  <button 
                     onClick={() => void handleLogout()}
-                    className="w-full text-left px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50/50 transition flex items-center gap-2 cursor-pointer border-t border-slate-100 mt-1"
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-red-600 hover:bg-red-50 transition-colors"
                   >
-                    <LogOut size={14} />
+                    <LogOut size={16} />
                     Đăng xuất
                   </button>
                 </div>
@@ -1046,10 +847,8 @@ export function CityAdminDashboard() {
         </header>
 
         {/* 3. MAIN DASHBOARD CONTENT */}
-        <main
-          className={`flex-1 overflow-y-auto transition-all duration-300 ${fullscreen ? "p-2" : "p-6 md:p-8"}`}
-        >
-          <div className={`${fullscreen ? "max-w-none" : "max-w-7xl mx-auto"}`}>
+        <main className="flex-1 overflow-y-auto bg-[#F5F7FA] relative transition-all duration-300 p-6 md:p-8">
+          <div className="max-w-[1600px] mx-auto">
             {/* Loading State */}
             {(feedbacksLoading || kpiLoading) && activeTab === "overview" && (
               <div className="space-y-6">
@@ -1070,7 +869,6 @@ export function CityAdminDashboard() {
                 {activeTab === "reports" && <ReportsPage />}
                 {activeTab === "users" && <UsersPage />}
                 {activeTab === "news" && <NewsManagement />}
-                {activeTab === "ai_stats" && <AiDashboardPage />}
               </>
             )}
           </div>

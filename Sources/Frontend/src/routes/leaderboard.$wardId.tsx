@@ -136,26 +136,26 @@ function WardDetailPage() {
       <div className="max-w-[1440px] mx-auto px-6 md:px-8 mb-6">
         <section className="relative h-[220px] w-full overflow-hidden rounded-[16px] bg-[#1E40AF] shadow-sm border border-blue-900/10">
           {/* Background Image placed on the right */}
-          <div 
+          <div
             className="absolute inset-0 bg-no-repeat opacity-90 mix-blend-luminosity"
             style={{ backgroundImage: `url(${causonghanImg})`, backgroundPosition: 'right center', backgroundSize: 'cover' }}
           >
             <div className="absolute inset-0 bg-gradient-to-r from-[#1E40AF] via-[#1E40AF]/90 to-transparent w-full md:w-2/3"></div>
           </div>
-          
+
           <div className="relative h-full flex items-center justify-between px-10">
             <div className="flex items-center gap-8">
               {/* Ward Icon/Emblem */}
               <div className="w-[120px] h-[120px] rounded-full border border-white/20 bg-[#1e3a8a]/50 flex items-center justify-center p-2 backdrop-blur-sm">
-                 <div className="w-full h-full rounded-full border border-white/10 flex items-center justify-center text-white/50">
-                    <MapPin size={48} />
-                 </div>
+                <div className="w-full h-full rounded-full border border-white/10 flex items-center justify-center text-white/50">
+                  <MapPin size={48} />
+                </div>
               </div>
-              
+
               <div className="text-white">
                 <h1 className="font-sans text-[36px] font-bold tracking-tight mb-1">{ward.wardName}</h1>
                 <p className="text-blue-100 text-[15px] font-medium mb-4">Phường {ward.wardName}, Quận {ward.wardName === 'Hòa Xuân' ? 'Cẩm Lệ' : 'Liên Chiểu'}</p>
-                
+
                 <div className="inline-flex items-center gap-2 rounded-full border border-[#D97706]/40 bg-[#D97706]/20 px-3 py-1.5 text-[13px] font-semibold text-amber-300">
                   <div className="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center text-[10px] font-bold shadow-sm">
                     {ward.currentRank}
@@ -166,22 +166,22 @@ function WardDetailPage() {
             </div>
 
             <div className="text-right border-l border-white/20 pl-10">
-               <div className="text-sm font-semibold text-blue-200 mb-1 tracking-wider uppercase">ĐIỂM TỔNG HỢP</div>
-               <div className="flex items-baseline justify-end gap-1 mb-2">
-                 <span className="text-[56px] font-black text-white leading-none">{ward.currentScore.toFixed(1)}</span>
-                 <span className="text-xl font-bold text-blue-200">/100</span>
-               </div>
-               <div className="flex items-center justify-end gap-1.5 text-[14px] font-semibold text-emerald-400">
-                 <TrendingUp size={16} />
-                 +4.2 điểm so với tháng trước
-               </div>
+              <div className="text-sm font-semibold text-blue-200 mb-1 tracking-wider uppercase">ĐIỂM TỔNG HỢP</div>
+              <div className="flex items-baseline justify-end gap-1 mb-2">
+                <span className="text-[56px] font-black text-white leading-none">{ward.currentScore.toFixed(1)}</span>
+                <span className="text-xl font-bold text-blue-200">/100</span>
+              </div>
+              <div className="flex items-center justify-end gap-1.5 text-[14px] font-semibold text-emerald-400">
+                <TrendingUp size={16} />
+                +4.2 điểm so với tháng trước
+              </div>
             </div>
           </div>
         </section>
       </div>
 
       <div className="max-w-[1440px] mx-auto px-6 md:px-8">
-        
+
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-5 mb-6">
           <KPICard title="Tốc độ xử lý" score={ward.speedScore} weight="35% trọng số" icon={Zap} color="text-[#2563EB]" barColor="bg-[#2563EB]" desc="SLA 48h" />
@@ -193,23 +193,23 @@ function WardDetailPage() {
 
         {/* Top Right Action Buttons */}
         <div className="flex justify-end gap-3 mb-4">
-           <button className="flex items-center gap-2 bg-white border border-slate-200 text-[#1E40AF] px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-slate-50 transition-colors">
-              <Share2 size={16} /> Chia sẻ
-           </button>
-           <button className="flex items-center gap-2 bg-[#1E40AF] text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-[#1e3a8a] transition-colors">
-              <Download size={16} /> Xuất PDF
-           </button>
+          <button className="flex items-center gap-2 bg-white border border-slate-200 text-[#1E40AF] px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-slate-50 transition-colors">
+            <Share2 size={16} /> Chia sẻ
+          </button>
+          <button className="flex items-center gap-2 bg-[#1E40AF] text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-[#1e3a8a] transition-colors">
+            <Download size={16} /> Xuất PDF
+          </button>
         </div>
 
         {/* Content Grid (70% - 30%) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          
+
           {/* LEFT COLUMN (70%) */}
           <div className="lg:col-span-8 flex flex-col gap-6">
-            
+
             {/* Charts Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
+
               {/* Radar Chart */}
               <div className="bg-white rounded-[16px] border border-slate-200 shadow-sm p-6">
                 <h3 className="font-sans text-[13px] font-bold text-slate-500 uppercase tracking-wider mb-6">PHÂN TÍCH ĐIỂM</h3>
@@ -230,11 +230,11 @@ function WardDetailPage() {
               {/* Line Chart */}
               <div className="bg-white rounded-[16px] border border-slate-200 shadow-sm p-6 relative">
                 <h3 className="font-sans text-[13px] font-bold text-slate-500 uppercase tracking-wider mb-6">XU HƯỚNG ĐIỂM TỔNG HỢP (12 THÁNG)</h3>
-                
+
                 {/* Highlight Badge */}
                 <div className="absolute right-6 top-14 bg-[#1E40AF] text-white px-3 py-1.5 rounded-lg text-xs font-bold text-center shadow-md">
-                   <div>Th6/2026</div>
-                   <div>{ward.currentScore.toFixed(1)} điểm</div>
+                  <div>Th6/2026</div>
+                  <div>{ward.currentScore.toFixed(1)} điểm</div>
                 </div>
 
                 <div className="h-[220px] w-full mt-4">
@@ -243,9 +243,9 @@ function WardDetailPage() {
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                       <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 10, angle: -45, textAnchor: 'end' } as any} tickLine={false} axisLine={false} />
                       <YAxis domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 11 }} tickLine={false} axisLine={false} />
-                      <RechartsTooltip 
-                         contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                         labelStyle={{ color: '#475569', fontWeight: 600, fontSize: '12px', marginBottom: '4px' }}
+                      <RechartsTooltip
+                        contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                        labelStyle={{ color: '#475569', fontWeight: 600, fontSize: '12px', marginBottom: '4px' }}
                       />
                       <Line type="monotone" dataKey="Điểm" stroke="#2563EB" strokeWidth={3} dot={{ r: 4, fill: '#2563EB', strokeWidth: 0 }} activeDot={{ r: 6, fill: '#1E40AF' }} />
                     </LineChart>
@@ -256,230 +256,230 @@ function WardDetailPage() {
 
             {/* Recent Reports Table */}
             <div className="bg-white rounded-[16px] border border-slate-200 shadow-sm overflow-hidden">
-               <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-                 <h3 className="font-sans text-[14px] font-bold text-slate-700 uppercase tracking-wider">DANH SÁCH PHẢN ÁNH GẦN NHẤT</h3>
-               </div>
-               <div className="overflow-x-auto">
-                 <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase">
-                         <th className="py-3 px-4 font-semibold w-12 text-center">#</th>
-                         <th className="py-3 px-4 font-semibold w-32">Mã phản ánh</th>
-                         <th className="py-3 px-4 font-semibold">Nội dung</th>
-                         <th className="py-3 px-4 font-semibold w-32 text-center">Loại phản ánh</th>
-                         <th className="py-3 px-4 font-semibold w-36 text-center">Ngày phản ánh</th>
-                         <th className="py-3 px-4 font-semibold w-32 text-center">Thời gian xử lý</th>
-                         <th className="py-3 px-4 font-semibold w-28 text-center">Trạng thái</th>
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="font-sans text-[14px] font-bold text-slate-700 uppercase tracking-wider">DANH SÁCH PHẢN ÁNH GẦN NHẤT</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase">
+                      <th className="py-3 px-4 font-semibold w-12 text-center">#</th>
+                      <th className="py-3 px-4 font-semibold w-32">Mã phản ánh</th>
+                      <th className="py-3 px-4 font-semibold">Nội dung</th>
+                      <th className="py-3 px-4 font-semibold w-32 text-center">Loại phản ánh</th>
+                      <th className="py-3 px-4 font-semibold w-36 text-center">Ngày phản ánh</th>
+                      <th className="py-3 px-4 font-semibold w-32 text-center">Thời gian xử lý</th>
+                      <th className="py-3 px-4 font-semibold w-28 text-center">Trạng thái</th>
+                    </tr>
+                  </thead>
+                  <tbody className={`text-[13px] text-slate-700 transition-opacity ${isFetchingReports ? "opacity-50" : ""}`}>
+                    {recentReports.length > 0 ? recentReports.map((report, idx) => {
+                      const timeToResolve = report.resolvedAt ? differenceInHours(new Date(report.resolvedAt), new Date(report.createdAt)) : differenceInHours(new Date(), new Date(report.createdAt));
+                      const processingTimeStr = timeToResolve > 24 ? `${Math.floor(timeToResolve / 24)} ngày` : `${timeToResolve} giờ`;
+                      return (
+                        <tr key={report.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                          <td className="py-3 px-4 text-center text-slate-400 font-medium">{page * pageSize + idx + 1}</td>
+                          <td className="py-3 px-4 font-semibold text-slate-600">{report.trackingCode || `PA-${report.id}`}</td>
+                          <td className="py-3 px-4 font-medium max-w-[200px] truncate" title={report.title}>{report.title}</td>
+                          <td className="py-3 px-4 text-center"><CategoryBadge category={report.categoryName || 'Khác'} /></td>
+                          <td className="py-3 px-4 text-center text-slate-500">{format(new Date(report.createdAt), "dd/MM/yyyy HH:mm")}</td>
+                          <td className="py-3 px-4 text-center font-medium">{processingTimeStr}</td>
+                          <td className="py-3 px-4 text-center"><StatusBadge status={report.status} /></td>
+                        </tr>
+                      )
+                    }) : (
+                      <tr>
+                        <td colSpan={7} className="py-8 text-center text-slate-400">Chưa có phản ánh nào gần đây</td>
                       </tr>
-                    </thead>
-                    <tbody className={`text-[13px] text-slate-700 transition-opacity ${isFetchingReports ? "opacity-50" : ""}`}>
-                       {recentReports.length > 0 ? recentReports.map((report, idx) => {
-                         const timeToResolve = report.resolvedAt ? differenceInHours(new Date(report.resolvedAt), new Date(report.createdAt)) : differenceInHours(new Date(), new Date(report.createdAt));
-                         const processingTimeStr = timeToResolve > 24 ? `${Math.floor(timeToResolve/24)} ngày` : `${timeToResolve} giờ`;
-                         return (
-                         <tr key={report.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                            <td className="py-3 px-4 text-center text-slate-400 font-medium">{page * pageSize + idx + 1}</td>
-                            <td className="py-3 px-4 font-semibold text-slate-600">{report.trackingCode || `PA-${report.id}`}</td>
-                            <td className="py-3 px-4 font-medium max-w-[200px] truncate" title={report.title}>{report.title}</td>
-                            <td className="py-3 px-4 text-center"><CategoryBadge category={report.categoryName || 'Khác'} /></td>
-                            <td className="py-3 px-4 text-center text-slate-500">{format(new Date(report.createdAt), "dd/MM/yyyy HH:mm")}</td>
-                            <td className="py-3 px-4 text-center font-medium">{processingTimeStr}</td>
-                            <td className="py-3 px-4 text-center"><StatusBadge status={report.status} /></td>
-                         </tr>
-                       )}) : (
-                          <tr>
-                            <td colSpan={7} className="py-8 text-center text-slate-400">Chưa có phản ánh nào gần đây</td>
-                          </tr>
-                       )}
-                    </tbody>
-                 </table>
-               </div>
-               {totalReports > 0 && (
-               <div className="p-4 border-t border-slate-100 flex items-center justify-between text-sm text-slate-500 font-medium">
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              {totalReports > 0 && (
+                <div className="p-4 border-t border-slate-100 flex items-center justify-between text-sm text-slate-500 font-medium">
                   <div>Hiển thị {page * pageSize + 1} - {Math.min((page + 1) * pageSize, totalReports)} trong tổng số {totalReports}</div>
                   <div className="flex items-center gap-1">
-                     <button
-                        onClick={() => setPage((p) => Math.max(0, p - 1))}
-                        disabled={page === 0}
-                        aria-label="Trang trước"
-                        className="w-8 h-8 flex items-center justify-center rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
-                     ><ChevronLeft size={16} /></button>
-                     {getPageItems(page, totalPages).map((item, i) =>
-                        item === "..." ? (
-                           <span key={`ellipsis-${i}`} className="px-1">...</span>
-                        ) : (
-                           <button
-                              key={item}
-                              onClick={() => setPage(item)}
-                              className={`w-8 h-8 flex items-center justify-center rounded ${
-                                 item === page
-                                    ? "bg-[#2563EB] text-white font-bold"
-                                    : "border border-slate-200 hover:bg-slate-50"
-                              }`}
-                           >{item + 1}</button>
-                        )
-                     )}
-                     <button
-                        onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                        disabled={page >= totalPages - 1}
-                        aria-label="Trang sau"
-                        className="w-8 h-8 flex items-center justify-center rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
-                     ><ChevronRight size={16} /></button>
-                     <select
-                        value={pageSize}
-                        onChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }}
-                        className="ml-2 border border-slate-200 rounded px-2 py-1 outline-none text-slate-600 bg-white"
-                     >
-                        <option value={5}>5 / trang</option>
-                        <option value={10}>10 / trang</option>
-                     </select>
+                    <button
+                      onClick={() => setPage((p) => Math.max(0, p - 1))}
+                      disabled={page === 0}
+                      aria-label="Trang trước"
+                      className="w-8 h-8 flex items-center justify-center rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
+                    ><ChevronLeft size={16} /></button>
+                    {getPageItems(page, totalPages).map((item, i) =>
+                      item === "..." ? (
+                        <span key={`ellipsis-${i}`} className="px-1">...</span>
+                      ) : (
+                        <button
+                          key={item}
+                          onClick={() => setPage(item)}
+                          className={`w-8 h-8 flex items-center justify-center rounded ${item === page
+                              ? "bg-[#2563EB] text-white font-bold"
+                              : "border border-slate-200 hover:bg-slate-50"
+                            }`}
+                        >{item + 1}</button>
+                      )
+                    )}
+                    <button
+                      onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                      disabled={page >= totalPages - 1}
+                      aria-label="Trang sau"
+                      className="w-8 h-8 flex items-center justify-center rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
+                    ><ChevronRight size={16} /></button>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }}
+                      className="ml-2 border border-slate-200 rounded px-2 py-1 outline-none text-slate-600 bg-white"
+                    >
+                      <option value={5}>5 / trang</option>
+                      <option value={10}>10 / trang</option>
+                    </select>
                   </div>
-               </div>
-               )}
+                </div>
+              )}
             </div>
           </div>
-          
+
           {/* RIGHT COLUMN (30%) */}
           <div className="lg:col-span-4 flex flex-col gap-6">
-             
-             {/* Ranking Information */}
-             <div className="bg-white rounded-[16px] border border-slate-200 shadow-sm p-6 text-center relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-bl-full -z-0 opacity-50"></div>
-                <h3 className="font-sans text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-2 text-left relative z-10">THÔNG TIN XẾP HẠNG</h3>
-                <div className="flex items-center gap-6 mt-4 relative z-10">
-                   <div className="relative">
-                      {/* Dynamic Medal */}
-                      <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-                         <circle cx="32" cy="32" r="30" fill={getRankStyle(ward.currentRank).color} stroke={getRankStyle(ward.currentRank).border} strokeWidth="4"/>
-                         <circle cx="32" cy="32" r="24" fill={getRankStyle(ward.currentRank).bg}/>
-                         <text x="32" y="42" fontSize="24" fontWeight="900" fill={getRankStyle(ward.currentRank).textFill} textAnchor="middle">{ward.currentRank}</text>
-                      </svg>
-                      <div className="absolute -bottom-2 -left-2 -right-2 flex justify-center">
-                         <div className="text-white text-[10px] font-black px-2 py-0.5 rounded shadow-sm" style={{ backgroundColor: getRankStyle(ward.currentRank).border }}>
-                            {getRankStyle(ward.currentRank).text}
-                         </div>
-                      </div>
-                   </div>
-                   <div className="text-left">
-                      <div className="text-[22px] font-black text-slate-800 leading-tight">Hạng #{ward.currentRank}/56</div>
-                      <div className="text-[13px] font-medium text-slate-500 mb-2">Trong bảng xếp hạng 56 phường xã</div>
-                      <Link to="/leaderboard" className="text-[12px] font-bold text-[#2563EB] hover:underline flex items-center gap-1">
-                         Xem bảng xếp hạng chi tiết <ArrowRight size={14} />
-                      </Link>
-                   </div>
-                </div>
-             </div>
 
-             {/* Comparison with City Average */}
-             <div className="bg-white rounded-[16px] border border-slate-200 shadow-sm p-6">
-                <h3 className="font-sans text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-6">SO SÁNH TRUNG BÌNH THÀNH PHỐ</h3>
-                <div className="flex items-end justify-between gap-4 h-[120px] px-4">
-                   <div className="flex-1 flex flex-col items-center gap-2">
-                      <div className="w-12 bg-slate-300 rounded-t-sm relative" style={{ height: '60.4%' }}>
-                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-slate-600">60.4</div>
-                      </div>
-                      <div className="text-[12px] font-bold text-slate-500 text-center leading-tight">Trung bình TP</div>
-                   </div>
-                   <div className="flex-1 flex flex-col items-center gap-2">
-                      <div className="w-12 bg-[#2563EB] rounded-t-sm relative" style={{ height: `${ward.currentScore}%` }}>
-                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-[#2563EB]">{ward.currentScore.toFixed(1)}</div>
-                      </div>
-                      <div className="text-[12px] font-bold text-slate-700 text-center">{ward.wardName}</div>
-                   </div>
-                   
-                   {/* Annotation */}
-                   <div className="flex-1 flex flex-col justify-center pb-8 pl-4 border-l border-slate-100">
-                      <div className="text-[12px] font-semibold text-slate-500 mb-1">Điểm trung bình</div>
-                      <div className="text-[28px] font-black text-slate-800 leading-none mb-2">60.4<span className="text-sm text-slate-400">/100</span></div>
-                      <div className="text-[12px] text-slate-600 font-medium">Phường {ward.wardName} cao hơn</div>
-                      <div className="text-[13px] font-bold text-emerald-600 flex items-center gap-1 mt-1"><ArrowUpRight size={14}/> +{(ward.currentScore - 60.4).toFixed(1)} điểm</div>
-                   </div>
+            {/* Ranking Information */}
+            <div className="bg-white rounded-[16px] border border-slate-200 shadow-sm p-6 text-center relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-bl-full -z-0 opacity-50"></div>
+              <h3 className="font-sans text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-2 text-left relative z-10">THÔNG TIN XẾP HẠNG</h3>
+              <div className="flex items-center gap-6 mt-4 relative z-10">
+                <div className="relative">
+                  {/* Dynamic Medal */}
+                  <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="32" cy="32" r="30" fill={getRankStyle(ward.currentRank).color} stroke={getRankStyle(ward.currentRank).border} strokeWidth="4" />
+                    <circle cx="32" cy="32" r="24" fill={getRankStyle(ward.currentRank).bg} />
+                    <text x="32" y="42" fontSize="24" fontWeight="900" fill={getRankStyle(ward.currentRank).textFill} textAnchor="middle">{ward.currentRank}</text>
+                  </svg>
+                  <div className="absolute -bottom-2 -left-2 -right-2 flex justify-center">
+                    <div className="text-white text-[10px] font-black px-2 py-0.5 rounded shadow-sm" style={{ backgroundColor: getRankStyle(ward.currentRank).border }}>
+                      {getRankStyle(ward.currentRank).text}
+                    </div>
+                  </div>
                 </div>
-             </div>
+                <div className="text-left">
+                  <div className="text-[22px] font-black text-slate-800 leading-tight">Hạng #{ward.currentRank}/56</div>
+                  <div className="text-[13px] font-medium text-slate-500 mb-2">Trong bảng xếp hạng 56 phường xã</div>
+                  <Link to="/leaderboard" className="text-[12px] font-bold text-[#2563EB] hover:underline flex items-center gap-1">
+                    Xem bảng xếp hạng chi tiết <ArrowRight size={14} />
+                  </Link>
+                </div>
+              </div>
+            </div>
 
-             {/* Ward Location Map */}
-             <div className="bg-white rounded-[16px] border border-slate-200 shadow-sm p-6">
-                <h3 className="font-sans text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-4">VỊ TRÍ TRÊN BẢN ĐỒ</h3>
-                <WardMiniMap wardName={ward.wardName} />
-                <div className="text-[13px] font-semibold text-slate-700 mb-3">Phường {ward.wardName}, Quận {ward.wardName === 'Hòa Xuân' ? 'Cẩm Lệ' : 'Liên Chiểu'}, TP. Đà Nẵng</div>
-                <button className="w-full py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-[#2563EB] font-bold text-[13px] flex items-center justify-center gap-2 transition-colors">
-                   <MapPin size={16} /> Xem trên bản đồ lớn
-                </button>
-             </div>
+            {/* Comparison with City Average */}
+            <div className="bg-white rounded-[16px] border border-slate-200 shadow-sm p-6">
+              <h3 className="font-sans text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-6">SO SÁNH TRUNG BÌNH THÀNH PHỐ</h3>
+              <div className="flex items-end justify-between gap-4 h-[120px] px-4">
+                <div className="flex-1 flex flex-col items-center gap-2">
+                  <div className="w-12 bg-slate-300 rounded-t-sm relative" style={{ height: '60.4%' }}>
+                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-slate-600">60.4</div>
+                  </div>
+                  <div className="text-[12px] font-bold text-slate-500 text-center leading-tight">Trung bình TP</div>
+                </div>
+                <div className="flex-1 flex flex-col items-center gap-2">
+                  <div className="w-12 bg-[#2563EB] rounded-t-sm relative" style={{ height: `${ward.currentScore}%` }}>
+                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-[#2563EB]">{ward.currentScore.toFixed(1)}</div>
+                  </div>
+                  <div className="text-[12px] font-bold text-slate-700 text-center">{ward.wardName}</div>
+                </div>
 
-             {/* Quick Statistics */}
-             <div className="bg-white rounded-[16px] border border-slate-200 shadow-sm p-6">
-                <h3 className="font-sans text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-5">THỐNG KÊ THỰC TẾ</h3>
-                <div className="flex flex-col gap-5">
-                   <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600"><FileText size={20}/></div>
-                      <div className="flex-1">
-                         <div className="text-[12px] font-semibold text-slate-500">Tổng phản ánh</div>
-                         <div className="text-[16px] font-black text-slate-800">{ward.totalFeedbacks}</div>
-                      </div>
-                   </div>
-                   <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600"><CheckCircle2 size={20}/></div>
-                      <div className="flex-1">
-                         <div className="text-[12px] font-semibold text-slate-500">Đã xử lý</div>
-                         <div className="text-[16px] font-black text-slate-800">{ward.resolvedCount} <span className="text-sm font-bold text-emerald-600">({((ward.resolvedCount/ward.totalFeedbacks)*100).toFixed(0)}%)</span></div>
-                      </div>
-                   </div>
-                   <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600"><Clock size={20}/></div>
-                      <div className="flex-1">
-                         <div className="text-[12px] font-semibold text-slate-500">Đang xử lý</div>
-                         <div className="text-[16px] font-black text-slate-800">1 <span className="text-sm font-bold text-amber-600">(50%)</span></div>
-                      </div>
-                   </div>
-                   <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center text-red-600"><AlertCircle size={20}/></div>
-                      <div className="flex-1">
-                         <div className="text-[12px] font-semibold text-slate-500">Quá hạn</div>
-                         <div className="text-[16px] font-black text-slate-800">0 <span className="text-sm font-bold text-red-600">(0%)</span></div>
-                      </div>
-                   </div>
-                   <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600"><Clock size={20}/></div>
-                      <div className="flex-1">
-                         <div className="text-[12px] font-semibold text-slate-500">Thời gian xử lý trung bình</div>
-                         <div className="text-[16px] font-black text-slate-800">{ward.avgResolutionHours.toFixed(0)} giờ</div>
-                      </div>
-                   </div>
+                {/* Annotation */}
+                <div className="flex-1 flex flex-col justify-center pb-8 pl-4 border-l border-slate-100">
+                  <div className="text-[12px] font-semibold text-slate-500 mb-1">Điểm trung bình</div>
+                  <div className="text-[28px] font-black text-slate-800 leading-none mb-2">60.4<span className="text-sm text-slate-400">/100</span></div>
+                  <div className="text-[12px] text-slate-600 font-medium">Phường {ward.wardName} cao hơn</div>
+                  <div className="text-[13px] font-bold text-emerald-600 flex items-center gap-1 mt-1"><ArrowUpRight size={14} /> +{(ward.currentScore - 60.4).toFixed(1)} điểm</div>
                 </div>
-             </div>
+              </div>
+            </div>
 
-             {/* Process Timeline */}
-             <div className="bg-white rounded-[16px] border border-slate-200 shadow-sm p-6">
-                <h3 className="font-sans text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-6">QUY TRÌNH XỬ LÝ PHẢN ÁNH</h3>
-                <div className="flex items-start justify-between relative px-2">
-                   {/* Connector Line */}
-                   <div className="absolute top-4 left-6 right-6 h-0.5 bg-slate-200 -z-10"></div>
-                   <div className="absolute top-4 left-6 w-1/3 h-0.5 bg-[#2563EB] -z-10"></div>
-                   
-                   <div className="flex flex-col items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-[#2563EB] text-white flex items-center justify-center shadow-sm text-xs"><ArrowUpRight size={16}/></div>
-                      <div className="text-[11px] font-bold text-slate-700 text-center">Tiếp nhận<br/><span className="text-slate-400 font-medium">0 - 6 giờ</span></div>
-                   </div>
-                   <div className="flex flex-col items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-white border-2 border-[#2563EB] text-[#2563EB] flex items-center justify-center shadow-sm text-xs">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                      </div>
-                      <div className="text-[11px] font-bold text-slate-700 text-center">Phân công<br/><span className="text-slate-400 font-medium">≤ 24 giờ</span></div>
-                   </div>
-                   <div className="flex flex-col items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-white border-2 border-slate-300 text-slate-400 flex items-center justify-center shadow-sm text-xs"><Clock size={16}/></div>
-                      <div className="text-[11px] font-bold text-slate-400 text-center">Đang xử lý<br/><span className="text-slate-400 font-medium">≤ 48 giờ</span></div>
-                   </div>
-                   <div className="flex flex-col items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-sm text-xs"><CheckCircle2 size={16}/></div>
-                      <div className="text-[11px] font-bold text-emerald-600 text-center">Hoàn thành<br/><span className="text-slate-400 font-medium">≤ 72 giờ</span></div>
-                   </div>
+            {/* Ward Location Map */}
+            <div className="bg-white rounded-[16px] border border-slate-200 shadow-sm p-6">
+              <h3 className="font-sans text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-4">VỊ TRÍ TRÊN BẢN ĐỒ</h3>
+              <WardMiniMap wardName={ward.wardName} />
+              <div className="text-[13px] font-semibold text-slate-700 mb-3">Phường {ward.wardName}, Quận {ward.wardName === 'Hòa Xuân' ? 'Cẩm Lệ' : 'Liên Chiểu'}, TP. Đà Nẵng</div>
+              <button className="w-full py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-[#2563EB] font-bold text-[13px] flex items-center justify-center gap-2 transition-colors">
+                <MapPin size={16} /> Xem trên bản đồ lớn
+              </button>
+            </div>
+
+            {/* Quick Statistics */}
+            <div className="bg-white rounded-[16px] border border-slate-200 shadow-sm p-6">
+              <h3 className="font-sans text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-5">THỐNG KÊ THỰC TẾ</h3>
+              <div className="flex flex-col gap-5">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600"><FileText size={20} /></div>
+                  <div className="flex-1">
+                    <div className="text-[12px] font-semibold text-slate-500">Tổng phản ánh</div>
+                    <div className="text-[16px] font-black text-slate-800">{ward.totalFeedbacks}</div>
+                  </div>
                 </div>
-                <div className="mt-6 bg-slate-50 border border-slate-100 rounded-lg p-3 text-[11px] font-medium text-slate-500 text-center">
-                   Tất cả phản ánh đều được xử lý đúng quy trình và giám sát chặt chẽ
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600"><CheckCircle2 size={20} /></div>
+                  <div className="flex-1">
+                    <div className="text-[12px] font-semibold text-slate-500">Đã xử lý</div>
+                    <div className="text-[16px] font-black text-slate-800">{ward.resolvedCount} <span className="text-sm font-bold text-emerald-600">({((ward.resolvedCount / ward.totalFeedbacks) * 100).toFixed(0)}%)</span></div>
+                  </div>
                 </div>
-             </div>
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600"><Clock size={20} /></div>
+                  <div className="flex-1">
+                    <div className="text-[12px] font-semibold text-slate-500">Đang xử lý</div>
+                    <div className="text-[16px] font-black text-slate-800">1 <span className="text-sm font-bold text-amber-600">(50%)</span></div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center text-red-600"><AlertCircle size={20} /></div>
+                  <div className="flex-1">
+                    <div className="text-[12px] font-semibold text-slate-500">Quá hạn</div>
+                    <div className="text-[16px] font-black text-slate-800">0 <span className="text-sm font-bold text-red-600">(0%)</span></div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600"><Clock size={20} /></div>
+                  <div className="flex-1">
+                    <div className="text-[12px] font-semibold text-slate-500">Thời gian xử lý trung bình</div>
+                    <div className="text-[16px] font-black text-slate-800">{ward.avgResolutionHours.toFixed(0)} giờ</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Process Timeline */}
+            <div className="bg-white rounded-[16px] border border-slate-200 shadow-sm p-6">
+              <h3 className="font-sans text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-6">QUY TRÌNH XỬ LÝ PHẢN ÁNH</h3>
+              <div className="flex items-start justify-between relative px-2">
+                {/* Connector Line */}
+                <div className="absolute top-4 left-6 right-6 h-0.5 bg-slate-200 -z-10"></div>
+                <div className="absolute top-4 left-6 w-1/3 h-0.5 bg-[#2563EB] -z-10"></div>
+
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-[#2563EB] text-white flex items-center justify-center shadow-sm text-xs"><ArrowUpRight size={16} /></div>
+                  <div className="text-[11px] font-bold text-slate-700 text-center">Tiếp nhận<br /><span className="text-slate-400 font-medium">0 - 6 giờ</span></div>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-white border-2 border-[#2563EB] text-[#2563EB] flex items-center justify-center shadow-sm text-xs">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                  </div>
+                  <div className="text-[11px] font-bold text-slate-700 text-center">Phân công<br /><span className="text-slate-400 font-medium">≤ 24 giờ</span></div>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-white border-2 border-slate-300 text-slate-400 flex items-center justify-center shadow-sm text-xs"><Clock size={16} /></div>
+                  <div className="text-[11px] font-bold text-slate-400 text-center">Đang xử lý<br /><span className="text-slate-400 font-medium">≤ 48 giờ</span></div>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-sm text-xs"><CheckCircle2 size={16} /></div>
+                  <div className="text-[11px] font-bold text-emerald-600 text-center">Hoàn thành<br /><span className="text-slate-400 font-medium">≤ 72 giờ</span></div>
+                </div>
+              </div>
+              <div className="mt-6 bg-slate-50 border border-slate-100 rounded-lg p-3 text-[11px] font-medium text-slate-500 text-center">
+                Tất cả phản ánh đều được xử lý đúng quy trình và giám sát chặt chẽ
+              </div>
+            </div>
 
           </div>
         </div>
@@ -498,52 +498,52 @@ function KPICard({
   const hasScore = score !== null && score !== undefined;
   return (
     <div className="bg-white rounded-[16px] border border-slate-200 shadow-sm p-5 relative overflow-hidden group hover:border-[#1E40AF]/30 transition-colors">
-       <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-2 text-slate-700 font-bold text-[14px]">
-             <Icon size={18} className={color} /> {title}
-             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-300 cursor-help ml-0.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center gap-2 text-slate-700 font-bold text-[14px]">
+          <Icon size={18} className={color} /> {title}
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-300 cursor-help ml-0.5"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>
+        </div>
+      </div>
+      {hasScore ? (
+        <>
+          <div className="flex items-baseline gap-1 mb-3">
+            <div className={`text-3xl font-black ${color}`}>{score.toFixed(0)}</div>
+            <div className="text-[13px] font-bold text-slate-400">/ 100</div>
           </div>
-       </div>
-       {hasScore ? (
-         <>
-           <div className="flex items-baseline gap-1 mb-3">
-              <div className={`text-3xl font-black ${color}`}>{score.toFixed(0)}</div>
-              <div className="text-[13px] font-bold text-slate-400">/ 100</div>
-           </div>
-           <div className="w-full bg-slate-100 h-1.5 rounded-full mb-3 overflow-hidden">
-              <div className={`h-full ${barColor} rounded-full`} style={{ width: `${score}%` }}></div>
-           </div>
-         </>
-       ) : (
-         <div className="flex items-baseline gap-1 mb-3 h-[calc(1.875rem+0.375rem+0.75rem)]">
-            <div className="text-sm font-semibold text-slate-400">Chưa có đánh giá</div>
-         </div>
-       )}
-       <div className="flex items-center justify-between text-[11px] font-bold">
-          <span className="text-slate-500">{weight}</span>
-       </div>
-       <div className="text-[11px] text-slate-400 mt-1">{desc}</div>
+          <div className="w-full bg-slate-100 h-1.5 rounded-full mb-3 overflow-hidden">
+            <div className={`h-full ${barColor} rounded-full`} style={{ width: `${score}%` }}></div>
+          </div>
+        </>
+      ) : (
+        <div className="flex items-baseline gap-1 mb-3 h-[calc(1.875rem+0.375rem+0.75rem)]">
+          <div className="text-sm font-semibold text-slate-400">Chưa có đánh giá</div>
+        </div>
+      )}
+      <div className="flex items-center justify-between text-[11px] font-bold">
+        <span className="text-slate-500">{weight}</span>
+      </div>
+      <div className="text-[11px] text-slate-400 mt-1">{desc}</div>
     </div>
   );
 }
 
 function ArrowRight(props: any) {
-  return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+  return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
 }
 
 function ArrowUpRight(props: any) {
-  return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>
+  return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M7 17L17 7" /><path d="M7 7h10v10" /></svg>
 }
 
 function RefreshCw(props: any) {
-  return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+  return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></svg>
 }
 
 // ─── Ward Mini Map ───────────────────────────────────────────
 
 function WardMiniMap({ wardName }: { wardName: string }) {
   const [leaflet, setLeaflet] = useState<any>(null);
-  
+
   useEffect(() => {
     let cancelled = false;
     Promise.all([
@@ -593,10 +593,10 @@ function WardMiniMap({ wardName }: { wardName: string }) {
 
   return (
     <div className="w-full h-[140px] rounded-xl mb-3 border border-slate-200 overflow-hidden relative z-0">
-      <MapContainer 
-        center={[16.0544, 108.2022]} 
-        zoom={13} 
-        zoomControl={false} 
+      <MapContainer
+        center={[16.0544, 108.2022]}
+        zoom={13}
+        zoomControl={false}
         attributionControl={false}
         scrollWheelZoom={false}
         dragging={false}

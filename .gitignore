@@ -2,7 +2,6 @@
 .codegraph/
 .claude/
 .agent/
-.kiro/
 CLAUDE.md
 SKILL.md
 
@@ -25,9 +24,6 @@ target_new/
 *.class
 *.log
 
-# Build/tool output
-tsc_output.txt
-
 # React
 node_modules/
 dist/
@@ -41,9 +37,3 @@ application-local.properties
 # Custom AI workflow rules
 dev-workflow-rules.md
 AGENTS.md
-
-# Office documents (không đẩy lên git)
-*.docx
-*.pptx
-*.xlsx
-~$*

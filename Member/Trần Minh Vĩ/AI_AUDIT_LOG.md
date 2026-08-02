@@ -8,7 +8,7 @@
 | Mã môn học | SWP391 |
 | Lớp | SE20A11 |
 | Học kỳ | SUMMER 2026 |
-| Tên bài tập / Project | The Listening City Systems |
+| Tên bài tập / Project | The City Connect |
 | Tên sinh viên / Nhóm | Trần Minh Vĩ / Group05 |
 | MSSV / Danh sách MSSV | DE190182 |
 | Giảng viên hướng dẫn | Lê Thiện Nhật Quang |

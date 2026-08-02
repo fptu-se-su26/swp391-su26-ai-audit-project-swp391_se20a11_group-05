@@ -898,7 +898,10 @@ export function UsersPage() {
                         Họ và tên <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
-                        <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <User
+                          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                          size={18}
+                        />
                         <input
                           type="text"
                           className="w-full pl-11 pr-4 py-3 border border-slate-200 bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:border-[#0B4FC4] transition-all hover:border-slate-300 shadow-sm font-medium text-slate-800"
@@ -906,13 +909,16 @@ export function UsersPage() {
                         />
                       </div>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
                         Tên đăng nhập <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
-                        <UserCheck className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <UserCheck
+                          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                          size={18}
+                        />
                         <input
                           type="text"
                           className="w-full pl-11 pr-4 py-3 border border-slate-200 bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:border-[#0B4FC4] transition-all hover:border-slate-300 shadow-sm font-medium text-slate-800"
@@ -926,7 +932,10 @@ export function UsersPage() {
                         Email <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
-                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <Mail
+                          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                          size={18}
+                        />
                         <input
                           type="email"
                           className="w-full pl-11 pr-4 py-3 border border-slate-200 bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:border-[#0B4FC4] transition-all hover:border-slate-300 shadow-sm font-medium text-slate-800"
@@ -940,7 +949,10 @@ export function UsersPage() {
                         Số điện thoại
                       </label>
                       <div className="relative">
-                        <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <Phone
+                          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                          size={18}
+                        />
                         <input
                           type="tel"
                           className="w-full pl-11 pr-4 py-3 border border-slate-200 bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:border-[#0B4FC4] transition-all hover:border-slate-300 shadow-sm font-medium text-slate-800"
@@ -954,7 +966,10 @@ export function UsersPage() {
                         Vai trò <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
-                        <Shield className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <Shield
+                          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                          size={18}
+                        />
                         <select className="w-full pl-11 pr-10 py-3 border border-slate-200 bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:border-[#0B4FC4] transition-all hover:border-slate-300 shadow-sm appearance-none font-bold text-slate-700 cursor-pointer">
                           <option value="CITIZEN">Người dân</option>
                           <option value="WARD_STAFF">Cán bộ phường</option>
@@ -962,7 +977,18 @@ export function UsersPage() {
                           <option value="SUPER_ADMIN">Lãnh đạo TP</option>
                         </select>
                         <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="m6 9 6 6 6-6" />
+                          </svg>
                         </div>
                       </div>
                     </div>
@@ -972,7 +998,10 @@ export function UsersPage() {
                         Mật khẩu tạm thời <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
-                        <Key className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <Key
+                          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                          size={18}
+                        />
                         <input
                           type="password"
                           className="w-full pl-11 pr-4 py-3 border border-slate-200 bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0B4FC4]/20 focus:border-[#0B4FC4] transition-all hover:border-slate-300 shadow-sm font-medium text-slate-800"

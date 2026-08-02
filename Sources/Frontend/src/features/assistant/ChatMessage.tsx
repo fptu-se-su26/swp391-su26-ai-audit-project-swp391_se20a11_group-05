@@ -1,5 +1,20 @@
 import { useState } from "react";
-import { User, Bot, Phone, BookOpen, ThumbsUp, ThumbsDown, ExternalLink, MapPin, Clock, Tag, CheckCircle, AlertCircle, Loader2, Pencil } from "lucide-react";
+import {
+  User,
+  Bot,
+  Phone,
+  BookOpen,
+  ThumbsUp,
+  ThumbsDown,
+  ExternalLink,
+  MapPin,
+  Clock,
+  Tag,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+  Pencil,
+} from "lucide-react";
 import type { Citation } from "@/types/api";
 import { ragApi } from "@/lib/api";
 
@@ -39,16 +54,18 @@ interface ChatMessageProps {
 /** Hiển thị status badge với màu tương ứng */
 function StatusBadge({ status }: { status: string }) {
   const config: Record<string, { label: string; color: string }> = {
-    SUBMITTED:    { label: "Đã gửi",       color: "bg-blue-100 text-blue-700" },
-    PENDING:      { label: "Chờ xử lý",    color: "bg-yellow-100 text-yellow-700" },
-    ASSIGNED:     { label: "Đã phân công", color: "bg-indigo-100 text-indigo-700" },
-    IN_PROGRESS:  { label: "Đang xử lý",   color: "bg-orange-100 text-orange-700" },
-    RESOLVED:     { label: "Đã giải quyết", color: "bg-green-100 text-green-700" },
-    REJECTED:     { label: "Từ chối",       color: "bg-red-100 text-red-700" },
+    SUBMITTED: { label: "Đã gửi", color: "bg-blue-100 text-blue-700" },
+    PENDING: { label: "Chờ xử lý", color: "bg-yellow-100 text-yellow-700" },
+    ASSIGNED: { label: "Đã phân công", color: "bg-indigo-100 text-indigo-700" },
+    IN_PROGRESS: { label: "Đang xử lý", color: "bg-orange-100 text-orange-700" },
+    RESOLVED: { label: "Đã giải quyết", color: "bg-green-100 text-green-700" },
+    REJECTED: { label: "Từ chối", color: "bg-red-100 text-red-700" },
   };
   const c = config[status] ?? { label: status, color: "bg-gray-100 text-gray-600" };
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${c.color}`}>
+    <span
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${c.color}`}
+    >
       {status === "RESOLVED" ? <CheckCircle size={11} /> : <AlertCircle size={11} />}
       {c.label}
     </span>
@@ -199,7 +216,7 @@ function MarkdownText({ text, isUser }: { text: string; isUser: boolean }) {
                 </strong>
               ) : (
                 part
-              )
+              ),
             )}
           </p>
         );
@@ -225,13 +242,13 @@ function getBubbleStyle(emotion?: string, isUser?: boolean) {
 function IntentBadge({ intent }: { intent?: string }) {
   if (!intent || intent === "GENERAL") return null;
   const labels: Record<string, { label: string; color: string }> = {
-    LOOKUP_FEEDBACK:  { label: "🔍 Tra cứu",       color: "bg-blue-100 text-blue-700" },
-    CREATE_FEEDBACK:  { label: "📋 Phản ánh mới",   color: "bg-orange-100 text-orange-700" },
-    QA_LEGAL:         { label: "⚖️ Pháp lý",        color: "bg-purple-100 text-purple-700" },
-    STATISTICS:       { label: "📊 Thống kê",        color: "bg-green-100 text-green-700" },
-    REPORT_COPILOT:   { label: "🤖 AI Copilot",     color: "bg-indigo-100 text-indigo-700" },
-    DISCOVER_CAMPAIGN: { label: "🎯 Chiến dịch",    color: "bg-yellow-100 text-yellow-800" },
-    NAVIGATION_GUIDE: { label: "🗺️ Hướng dẫn",     color: "bg-teal-100 text-teal-700" },
+    LOOKUP_FEEDBACK: { label: "🔍 Tra cứu", color: "bg-blue-100 text-blue-700" },
+    CREATE_FEEDBACK: { label: "📋 Phản ánh mới", color: "bg-orange-100 text-orange-700" },
+    QA_LEGAL: { label: "⚖️ Pháp lý", color: "bg-purple-100 text-purple-700" },
+    STATISTICS: { label: "📊 Thống kê", color: "bg-green-100 text-green-700" },
+    REPORT_COPILOT: { label: "🤖 AI Copilot", color: "bg-indigo-100 text-indigo-700" },
+    DISCOVER_CAMPAIGN: { label: "🎯 Chiến dịch", color: "bg-yellow-100 text-yellow-800" },
+    NAVIGATION_GUIDE: { label: "🗺️ Hướng dẫn", color: "bg-teal-100 text-teal-700" },
   };
   const config = labels[intent];
   if (!config) return null;
@@ -242,7 +259,14 @@ function IntentBadge({ intent }: { intent?: string }) {
   );
 }
 
-export function ChatMessage({ msg, locale, onSuggestedClick, onNavigate, onOpenFeedbackForm, onEditMessage }: ChatMessageProps) {
+export function ChatMessage({
+  msg,
+  locale,
+  onSuggestedClick,
+  onNavigate,
+  onOpenFeedbackForm,
+  onEditMessage,
+}: ChatMessageProps) {
   const isUser = msg.role === "user";
   const [isHovered, setIsHovered] = useState(false);
 
@@ -272,16 +296,25 @@ export function ChatMessage({ msg, locale, onSuggestedClick, onNavigate, onOpenF
         <div
           className={`p-4 rounded-2xl text-base leading-relaxed shadow-sm ${getBubbleStyle(
             msg.emotion,
-            isUser
+            isUser,
           )}`}
         >
           {/* Loading indicator */}
           {msg.isLoading ? (
             <div className="flex items-center gap-2 text-gray-500 py-1">
               <div className="flex gap-1">
-                <span className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: "0ms" }} />
-                <span className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: "150ms" }} />
-                <span className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+                <span
+                  className="w-2 h-2 rounded-full bg-blue-400 animate-bounce"
+                  style={{ animationDelay: "0ms" }}
+                />
+                <span
+                  className="w-2 h-2 rounded-full bg-blue-400 animate-bounce"
+                  style={{ animationDelay: "150ms" }}
+                />
+                <span
+                  className="w-2 h-2 rounded-full bg-blue-400 animate-bounce"
+                  style={{ animationDelay: "300ms" }}
+                />
               </div>
               <span className="text-sm">
                 {locale === "vi" ? "Bé Rồng đang suy nghĩ..." : "AI is thinking..."}
@@ -300,9 +333,7 @@ export function ChatMessage({ msg, locale, onSuggestedClick, onNavigate, onOpenF
               <MarkdownText text={msg.text} isUser={isUser} />
 
               {/* Feedback Lookup Card */}
-              {!isUser && msg.intent === "LOOKUP_FEEDBACK" && (
-                <FeedbackLookupCard msg={msg} />
-              )}
+              {!isUser && msg.intent === "LOOKUP_FEEDBACK" && <FeedbackLookupCard msg={msg} />}
 
               {/* Action buttons */}
               {!isUser && (
@@ -321,9 +352,7 @@ export function ChatMessage({ msg, locale, onSuggestedClick, onNavigate, onOpenF
                   <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-medium">
                     {msg.provider}
                   </span>
-                  {msg.latency && (
-                    <span className="text-gray-400">{msg.latency}ms</span>
-                  )}
+                  {msg.latency && <span className="text-gray-400">{msg.latency}ms</span>}
                 </div>
               )}
 
@@ -333,8 +362,7 @@ export function ChatMessage({ msg, locale, onSuggestedClick, onNavigate, onOpenF
                   <details className="group">
                     <summary className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 cursor-pointer hover:text-blue-600 transition-colors">
                       <BookOpen size={14} />
-                      {msg.citations.length}{" "}
-                      {locale === "vi" ? "nguồn tham khảo" : "citations"}
+                      {msg.citations.length} {locale === "vi" ? "nguồn tham khảo" : "citations"}
                     </summary>
                     <ul className="mt-2 space-y-1.5">
                       {msg.citations.map((c, ci) => (
@@ -367,9 +395,7 @@ export function ChatMessage({ msg, locale, onSuggestedClick, onNavigate, onOpenF
               )}
 
               {/* Reaction buttons (chỉ cho bot, khi có messageId) */}
-              {!isUser && (
-                <ReactionButtons messageId={msg.messageId} locale={locale} />
-              )}
+              {!isUser && <ReactionButtons messageId={msg.messageId} locale={locale} />}
             </>
           )}
         </div>
@@ -387,19 +413,22 @@ export function ChatMessage({ msg, locale, onSuggestedClick, onNavigate, onOpenF
         )}
 
         {/* Suggested follow-up chips (bên dưới bubble, không trong bubble) */}
-        {!isUser && !msg.isLoading && msg.suggestedFollowUps && msg.suggestedFollowUps.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1.5 max-w-full">
-            {msg.suggestedFollowUps.map((q, i) => (
-              <button
-                key={i}
-                onClick={() => onSuggestedClick?.(q)}
-                className="px-3 py-1.5 text-xs rounded-full border border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-100 hover:border-blue-400 transition-all active:scale-95"
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-        )}
+        {!isUser &&
+          !msg.isLoading &&
+          msg.suggestedFollowUps &&
+          msg.suggestedFollowUps.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5 max-w-full">
+              {msg.suggestedFollowUps.map((q, i) => (
+                <button
+                  key={i}
+                  onClick={() => onSuggestedClick?.(q)}
+                  className="px-3 py-1.5 text-xs rounded-full border border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-100 hover:border-blue-400 transition-all active:scale-95"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          )}
       </div>
     </div>
   );

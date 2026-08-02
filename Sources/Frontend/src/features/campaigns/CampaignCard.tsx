@@ -23,7 +23,9 @@ const statusMeta: Record<CampaignStatus, { label: string; className: string }> =
 export function CampaignStatusBadge({ status }: { status: CampaignStatus }) {
   const meta = statusMeta[status] ?? statusMeta.recruiting;
   return (
-    <span className={`inline-flex rounded-md px-2.5 py-1 text-xs font-semibold shadow-sm ${meta.className}`}>
+    <span
+      className={`inline-flex rounded-md px-2.5 py-1 text-xs font-semibold shadow-sm ${meta.className}`}
+    >
       {meta.label}
     </span>
   );
@@ -129,7 +131,11 @@ export function CampaignCard({
             className={`inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-[#D7E2F2] px-3 text-[13px] font-semibold text-[#0A4DA2] transition-colors duration-200 hover:bg-[#F0F5FC] ${showJoin ? "flex-1" : "w-full"}`}
           >
             Xem chi tiết
-            <ArrowRight size={15} className="transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden />
+            <ArrowRight
+              size={15}
+              className="transition-transform duration-200 group-hover:translate-x-0.5"
+              aria-hidden
+            />
           </Link>
         </div>
       </div>

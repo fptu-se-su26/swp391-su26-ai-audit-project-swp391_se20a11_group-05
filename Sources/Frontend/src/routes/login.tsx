@@ -36,8 +36,7 @@ export const Route = createFileRoute("/login")({
         const role = parseBackendRole(user.role);
         if (role === Role.CITIZEN) {
           // Chỉ chấp nhận redirect nội bộ (bắt đầu bằng "/") — chống open redirect
-          const target =
-            search.redirect && search.redirect.startsWith("/") ? search.redirect : "/";
+          const target = search.redirect && search.redirect.startsWith("/") ? search.redirect : "/";
           throw redirect({ to: target });
         }
         if (AUTHORITY_ROLES.has(role)) {

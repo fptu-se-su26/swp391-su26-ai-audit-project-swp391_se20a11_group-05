@@ -1,11 +1,5 @@
 import { FormEvent, useState } from "react";
-import {
-  Loader2,
-  AlertTriangle,
-  Send,
-  Clock,
-  XCircle,
-} from "lucide-react";
+import { Loader2, AlertTriangle, Send, Clock, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   useMyLastCampaignAppealQuery,
@@ -72,17 +66,21 @@ export function CampaignAppealPanel({ locale, isGlobalBan, onSuccess }: Campaign
         <div className="flex-1">
           <h4 className="text-xs font-black uppercase tracking-wider text-rose-750 dark:text-rose-450">
             {isGlobalBan
-              ? (locale === "vi" ? "Tài khoản bị chặn" : "Account Blocked")
-              : (locale === "vi" ? "Đã khóa quyền tham gia" : "Campaign Registration Locked")}
+              ? locale === "vi"
+                ? "Tài khoản bị chặn"
+                : "Account Blocked"
+              : locale === "vi"
+                ? "Đã khóa quyền tham gia"
+                : "Campaign Registration Locked"}
           </h4>
           <p className="text-xs mt-1 leading-normal font-semibold text-rose-800/80 dark:text-rose-300">
             {isGlobalBan
-              ? (locale === "vi"
+              ? locale === "vi"
                 ? "Tài khoản của bạn đang bị chặn gửi phản ánh và tham gia chiến dịch do nhận đủ 3 cảnh cáo hoặc bị cán bộ khóa."
-                : "Your account is blocked from creating feedbacks and joining campaigns due to 3 warnings or manual administrative lock.")
-              : (locale === "vi"
+                : "Your account is blocked from creating feedbacks and joining campaigns due to 3 warnings or manual administrative lock."
+              : locale === "vi"
                 ? "Tài khoản của bạn đã bị tạm dừng đăng ký tham gia các chiến dịch cộng đồng mới do vắng mặt không lý do."
-                : "Your account is temporarily suspended from registering for new community campaigns due to no-show records.")}
+                : "Your account is temporarily suspended from registering for new community campaigns due to no-show records."}
           </p>
         </div>
       </div>

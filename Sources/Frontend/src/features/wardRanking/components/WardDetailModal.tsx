@@ -1,7 +1,16 @@
 import React, { useEffect, useState, useRef } from "react";
 import { wardRankingApi, WardRankingDetail } from "@/lib/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, Download, Share2, Award, Zap, ShieldCheck, Heart, TrendingUp } from "lucide-react";
+import {
+  Loader2,
+  Download,
+  Share2,
+  Award,
+  Zap,
+  ShieldCheck,
+  Heart,
+  TrendingUp,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import html2canvas from "html2canvas";
 
@@ -85,7 +94,9 @@ export function WardDetailModal({ wardId, isOpen, onClose, year, month }: WardDe
                 <h2 className="text-3xl font-black mb-2">{detail.wardName}</h2>
                 <div className="flex items-end gap-4">
                   <div>
-                    <div className="text-blue-100 text-sm uppercase tracking-wider font-semibold">Điểm tổng hợp</div>
+                    <div className="text-blue-100 text-sm uppercase tracking-wider font-semibold">
+                      Điểm tổng hợp
+                    </div>
                     <div className="text-5xl font-black">{detail.currentScore}</div>
                   </div>
                   <div className="pb-1">
@@ -101,7 +112,10 @@ export function WardDetailModal({ wardId, isOpen, onClose, year, month }: WardDe
             {detail.achievements && detail.achievements.length > 0 && (
               <div className="flex gap-2 flex-wrap">
                 {detail.achievements.map((a, i) => (
-                  <div key={i} className="flex items-center gap-2 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 px-3 py-1.5 rounded-full text-sm font-semibold border border-amber-200 dark:border-amber-800">
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 px-3 py-1.5 rounded-full text-sm font-semibold border border-amber-200 dark:border-amber-800"
+                  >
                     <Award className="w-4 h-4" />
                     {a.badgeLabel}
                   </div>
@@ -111,15 +125,37 @@ export function WardDetailModal({ wardId, isOpen, onClose, year, month }: WardDe
 
             {/* Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <StatCard icon={<Zap className="w-5 h-5 text-blue-500" />} title="Tốc độ xử lý" value={`${detail.speedScore}`} desc="SLA 48h (35%)" />
-              <StatCard icon={<ShieldCheck className="w-5 h-5 text-green-500" />} title="Môi trường" value={`${detail.lowIncidenceScore}`} desc="Ít phát sinh (30%)" />
-              <StatCard icon={<Heart className="w-5 h-5 text-red-500" />} title="Hài lòng" value={`${detail.satisfactionScore}`} desc="Đánh giá (20%)" />
-              <StatCard icon={<TrendingUp className="w-5 h-5 text-purple-500" />} title="Xu hướng" value={`${detail.trendScore}`} desc="Cải thiện (15%)" />
+              <StatCard
+                icon={<Zap className="w-5 h-5 text-blue-500" />}
+                title="Tốc độ xử lý"
+                value={`${detail.speedScore}`}
+                desc="SLA 48h (35%)"
+              />
+              <StatCard
+                icon={<ShieldCheck className="w-5 h-5 text-green-500" />}
+                title="Môi trường"
+                value={`${detail.lowIncidenceScore}`}
+                desc="Ít phát sinh (30%)"
+              />
+              <StatCard
+                icon={<Heart className="w-5 h-5 text-red-500" />}
+                title="Hài lòng"
+                value={`${detail.satisfactionScore}`}
+                desc="Đánh giá (20%)"
+              />
+              <StatCard
+                icon={<TrendingUp className="w-5 h-5 text-purple-500" />}
+                title="Xu hướng"
+                value={`${detail.trendScore}`}
+                desc="Cải thiện (15%)"
+              />
             </div>
 
             {/* Details */}
             <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-5 border border-slate-100 dark:border-slate-700">
-              <h3 className="font-bold text-lg mb-4 text-slate-800 dark:text-slate-100">Thông số thực tế</h3>
+              <h3 className="font-bold text-lg mb-4 text-slate-800 dark:text-slate-100">
+                Thông số thực tế
+              </h3>
               <div className="grid grid-cols-2 gap-y-4 text-sm">
                 <div>
                   <div className="text-slate-500 dark:text-slate-400">Tổng phản ánh</div>
@@ -127,7 +163,9 @@ export function WardDetailModal({ wardId, isOpen, onClose, year, month }: WardDe
                 </div>
                 <div>
                   <div className="text-slate-500 dark:text-slate-400">Đã xử lý</div>
-                  <div className="font-semibold text-lg text-emerald-600 dark:text-emerald-400">{detail.resolvedCount} ({detail.resolutionRate}%)</div>
+                  <div className="font-semibold text-lg text-emerald-600 dark:text-emerald-400">
+                    {detail.resolvedCount} ({detail.resolutionRate}%)
+                  </div>
                 </div>
                 <div>
                   <div className="text-slate-500 dark:text-slate-400">Tốc độ trung bình</div>
@@ -144,12 +182,20 @@ export function WardDetailModal({ wardId, isOpen, onClose, year, month }: WardDe
   );
 }
 
-function StatCard({ icon, title, value, desc }: { icon: React.ReactNode, title: string, value: string, desc: string }) {
+function StatCard({
+  icon,
+  title,
+  value,
+  desc,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  value: string;
+  desc: string;
+}) {
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex justify-between items-start mb-2">
-        {icon}
-      </div>
+      <div className="flex justify-between items-start mb-2">{icon}</div>
       <div className="text-2xl font-black text-slate-800 dark:text-slate-100">{value}</div>
       <div className="text-sm font-semibold text-slate-700 dark:text-slate-300 mt-1">{title}</div>
       <div className="text-xs text-slate-500 dark:text-slate-500 mt-0.5">{desc}</div>

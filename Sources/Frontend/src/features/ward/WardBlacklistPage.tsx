@@ -28,7 +28,7 @@ interface WardBlacklistPageProps {
 
 export default function WardBlacklistPage({ defaultAppealId }: WardBlacklistPageProps) {
   const [activeTab, setActiveTab] = useState<"platform" | "appeals">(
-    defaultAppealId ? "appeals" : "platform"
+    defaultAppealId ? "appeals" : "platform",
   );
   const [search, setSearch] = useState("");
 
@@ -38,13 +38,23 @@ export default function WardBlacklistPage({ defaultAppealId }: WardBlacklistPage
       setSelectedAppealId(defaultAppealId);
     }
   }, [defaultAppealId]);
-  
+
   // Platform blacklist hooks
-  const { data: bannedUsers = [], isLoading: isBlacklistLoading, error: blacklistError, refetch: refetchBlacklist } = useBlacklistQuery();
+  const {
+    data: bannedUsers = [],
+    isLoading: isBlacklistLoading,
+    error: blacklistError,
+    refetch: refetchBlacklist,
+  } = useBlacklistQuery();
   const unbanMutation = useUnbanUserMutation();
 
   // Appeal hooks
-  const { data: pendingAppeals = [], isLoading: isAppealsLoading, error: appealsError, refetch: refetchAppeals } = usePendingCampaignAppealsQuery();
+  const {
+    data: pendingAppeals = [],
+    isLoading: isAppealsLoading,
+    error: appealsError,
+    refetch: refetchAppeals,
+  } = usePendingCampaignAppealsQuery();
   const approveAppealMutation = useApproveCampaignAppealMutation();
   const rejectAppealMutation = useRejectCampaignAppealMutation();
 
@@ -112,8 +122,7 @@ export default function WardBlacklistPage({ defaultAppealId }: WardBlacklistPage
   const filteredAppeals = pendingAppeals.filter((appeal) => {
     const term = search.toLowerCase();
     return (
-      appeal.citizenName.toLowerCase().includes(term) ||
-      appeal.reason.toLowerCase().includes(term)
+      appeal.citizenName.toLowerCase().includes(term) || appeal.reason.toLowerCase().includes(term)
     );
   });
 
@@ -127,14 +136,18 @@ export default function WardBlacklistPage({ defaultAppealId }: WardBlacklistPage
             Danh sách chặn & giải trình
           </h2>
           <p className="text-sm font-medium text-slate-500 mt-1">
-            Quản lý tài khoản bị chặn trên hệ thống và xử lý các đơn xin mở khóa quyền tham gia chiến dịch.
+            Quản lý tài khoản bị chặn trên hệ thống và xử lý các đơn xin mở khóa quyền tham gia
+            chiến dịch.
           </p>
         </div>
         <button
           onClick={handleRefresh}
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-800 border border-slate-200 hover:border-slate-350 bg-white rounded-lg transition-all cursor-pointer shadow-sm hover:shadow"
         >
-          <RefreshCw size={13} className={isBlacklistLoading || isAppealsLoading ? "animate-spin" : ""} />
+          <RefreshCw
+            size={13}
+            className={isBlacklistLoading || isAppealsLoading ? "animate-spin" : ""}
+          />
           Tải lại
         </button>
       </div>
@@ -142,7 +155,10 @@ export default function WardBlacklistPage({ defaultAppealId }: WardBlacklistPage
       {/* Tabs */}
       <div className="flex border-b border-slate-200">
         <button
-          onClick={() => { setActiveTab("platform"); setSearch(""); }}
+          onClick={() => {
+            setActiveTab("platform");
+            setSearch("");
+          }}
           className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-all cursor-pointer ${
             activeTab === "platform"
               ? "border-indigo-600 text-indigo-600 font-extrabold"
@@ -152,7 +168,10 @@ export default function WardBlacklistPage({ defaultAppealId }: WardBlacklistPage
           Tài khoản bị chặn ({bannedUsers.length})
         </button>
         <button
-          onClick={() => { setActiveTab("appeals"); setSearch(""); }}
+          onClick={() => {
+            setActiveTab("appeals");
+            setSearch("");
+          }}
           className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-all cursor-pointer ${
             activeTab === "appeals"
               ? "border-indigo-600 text-indigo-600 font-extrabold"
@@ -210,9 +229,7 @@ export default function WardBlacklistPage({ defaultAppealId }: WardBlacklistPage
               <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
                 Không có tài khoản bị chặn
               </p>
-              <p className="text-xs text-slate-450 mt-1">
-                Không tìm thấy kết quả nào phù hợp.
-              </p>
+              <p className="text-xs text-slate-450 mt-1">Không tìm thấy kết quả nào phù hợp.</p>
             </div>
           ) : (
             <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-150/80 dark:border-slate-800/80 overflow-hidden">
@@ -252,7 +269,9 @@ export default function WardBlacklistPage({ defaultAppealId }: WardBlacklistPage
                               <div className="font-bold text-slate-800 dark:text-slate-200">
                                 {user.fullName}
                               </div>
-                              <div className="text-xs text-slate-400 font-medium">@{user.username}</div>
+                              <div className="text-xs text-slate-400 font-medium">
+                                @{user.username}
+                              </div>
                             </div>
                           </div>
                         </td>
@@ -320,7 +339,9 @@ export default function WardBlacklistPage({ defaultAppealId }: WardBlacklistPage
           {isAppealsLoading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-150/80 dark:border-slate-800/80 shadow-sm">
               <div className="h-9 w-9 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-sm font-semibold text-slate-500">Đang tải danh sách đơn giải trình...</p>
+              <p className="text-sm font-semibold text-slate-500">
+                Đang tải danh sách đơn giải trình...
+              </p>
             </div>
           ) : appealsError ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3 bg-rose-50/50 dark:bg-rose-950/5 border border-rose-100 dark:border-rose-900/50 rounded-xl">

@@ -21,16 +21,8 @@ interface MiniMsg {
   suggestedFollowUps?: string[];
 }
 
-const QUICK_SUGGESTIONS_VI = [
-  "App có gì?",
-  "Gửi phản ánh sự cố",
-  "Tra cứu phản ánh",
-];
-const QUICK_SUGGESTIONS_EN = [
-  "What can you do?",
-  "Submit a report",
-  "Track my report",
-];
+const QUICK_SUGGESTIONS_VI = ["App có gì?", "Gửi phản ánh sự cố", "Tra cứu phản ánh"];
+const QUICK_SUGGESTIONS_EN = ["What can you do?", "Submit a report", "Track my report"];
 
 const FLOATING_SESSION_KEY = "dn_floating_chat_v1";
 
@@ -66,7 +58,9 @@ export function FloatingChatbot() {
     if (saved) {
       try {
         setMessages(JSON.parse(saved));
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
   }, []);
 
@@ -84,40 +78,47 @@ export function FloatingChatbot() {
     }
   }, [isOpen, messages]);
 
-  const send = useCallback(async (text?: string) => {
-    const userText = (text ?? input).trim();
-    if (!userText || sending) return;
+  const send = useCallback(
+    async (text?: string) => {
+      const userText = (text ?? input).trim();
+      if (!userText || sending) return;
 
-    setMessages((m) => [...m, { role: "user", text: userText }]);
-    setInput("");
-    setSending(true);
-    setMessages((m) => [...m, { role: "bot", text: "", isLoading: true }]);
+      setMessages((m) => [...m, { role: "user", text: userText }]);
+      setInput("");
+      setSending(true);
+      setMessages((m) => [...m, { role: "bot", text: "", isLoading: true }]);
 
-    try {
-      const result = await ragApi.chatbot(userText, 1, sessionId);
-      const reply = (result as any).reply || result.answer || "";
-      const action = (result as any).action;
-      const navigateTo = (result as any).navigateTo;
-      const suggestedFollowUps = (result as any).suggestedFollowUps as string[] | undefined;
+      try {
+        const result = await ragApi.chatbot(userText, 1, sessionId);
+        const reply = (result as any).reply || result.answer || "";
+        const action = (result as any).action;
+        const navigateTo = (result as any).navigateTo;
+        const suggestedFollowUps = (result as any).suggestedFollowUps as string[] | undefined;
 
-      setMessages((m) => {
-        const filtered = m.filter((msg) => !msg.isLoading);
-        return [...filtered, { role: "bot", text: reply, action, navigateTo, suggestedFollowUps }];
-      });
+        setMessages((m) => {
+          const filtered = m.filter((msg) => !msg.isLoading);
+          return [
+            ...filtered,
+            { role: "bot", text: reply, action, navigateTo, suggestedFollowUps },
+          ];
+        });
 
-      if (!isOpen) {
-        setHasNewMsg(true);
+        if (!isOpen) {
+          setHasNewMsg(true);
+        }
+      } catch (err) {
+        setMessages((m) => m.filter((msg) => !msg.isLoading));
+        const errText =
+          err instanceof ApiError
+            ? `⚠️ Lỗi ${err.status}. Thử lại sau nhé!`
+            : "⚠️ Backend chưa kết nối. Gọi 1022 để hỗ trợ khẩn cấp.";
+        setMessages((m) => [...m, { role: "bot", text: errText }]);
+      } finally {
+        setSending(false);
       }
-    } catch (err) {
-      setMessages((m) => m.filter((msg) => !msg.isLoading));
-      const errText = err instanceof ApiError
-        ? `⚠️ Lỗi ${err.status}. Thử lại sau nhé!`
-        : "⚠️ Backend chưa kết nối. Gọi 1022 để hỗ trợ khẩn cấp.";
-      setMessages((m) => [...m, { role: "bot", text: errText }]);
-    } finally {
-      setSending(false);
-    }
-  }, [input, sending, isOpen, sessionId]);
+    },
+    [input, sending, isOpen, sessionId],
+  );
 
   const openFullChat = () => {
     // Lưu session ID hiện tại để AssistantPage có thể đọc và đồng bộ tiếp
@@ -246,7 +247,10 @@ export function FloatingChatbot() {
 
           {/* Input */}
           <form
-            onSubmit={(e) => { e.preventDefault(); send(); }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              send();
+            }}
             className="flex gap-2 p-3 bg-white border-t border-gray-100"
           >
             <input

@@ -99,19 +99,32 @@ function VerifyOtpPage() {
 
         <form onSubmit={handleVerify} className="p-8 space-y-6">
           <div className="flex justify-center">
-            <InputOTP
-              maxLength={6}
-              value={otpCode}
-              onChange={setOtpCode}
-              autoFocus
-            >
+            <InputOTP maxLength={6} value={otpCode} onChange={setOtpCode} autoFocus>
               <InputOTPGroup>
-                <InputOTPSlot index={0} className="w-10 h-12 sm:w-12 sm:h-14 text-xl sm:text-2xl font-bold bg-white" />
-                <InputOTPSlot index={1} className="w-10 h-12 sm:w-12 sm:h-14 text-xl sm:text-2xl font-bold bg-white" />
-                <InputOTPSlot index={2} className="w-10 h-12 sm:w-12 sm:h-14 text-xl sm:text-2xl font-bold bg-white" />
-                <InputOTPSlot index={3} className="w-10 h-12 sm:w-12 sm:h-14 text-xl sm:text-2xl font-bold bg-white" />
-                <InputOTPSlot index={4} className="w-10 h-12 sm:w-12 sm:h-14 text-xl sm:text-2xl font-bold bg-white" />
-                <InputOTPSlot index={5} className="w-10 h-12 sm:w-12 sm:h-14 text-xl sm:text-2xl font-bold bg-white" />
+                <InputOTPSlot
+                  index={0}
+                  className="w-10 h-12 sm:w-12 sm:h-14 text-xl sm:text-2xl font-bold bg-white"
+                />
+                <InputOTPSlot
+                  index={1}
+                  className="w-10 h-12 sm:w-12 sm:h-14 text-xl sm:text-2xl font-bold bg-white"
+                />
+                <InputOTPSlot
+                  index={2}
+                  className="w-10 h-12 sm:w-12 sm:h-14 text-xl sm:text-2xl font-bold bg-white"
+                />
+                <InputOTPSlot
+                  index={3}
+                  className="w-10 h-12 sm:w-12 sm:h-14 text-xl sm:text-2xl font-bold bg-white"
+                />
+                <InputOTPSlot
+                  index={4}
+                  className="w-10 h-12 sm:w-12 sm:h-14 text-xl sm:text-2xl font-bold bg-white"
+                />
+                <InputOTPSlot
+                  index={5}
+                  className="w-10 h-12 sm:w-12 sm:h-14 text-xl sm:text-2xl font-bold bg-white"
+                />
               </InputOTPGroup>
             </InputOTP>
           </div>

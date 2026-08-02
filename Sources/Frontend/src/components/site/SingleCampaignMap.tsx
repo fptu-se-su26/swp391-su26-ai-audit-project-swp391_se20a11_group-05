@@ -201,7 +201,10 @@ export function SingleCampaignMap({
   }
 
   return (
-    <div className="relative z-0 w-full overflow-hidden rounded-2xl border border-slate-100 bg-white" style={{ height }}>
+    <div
+      className="relative z-0 w-full overflow-hidden rounded-2xl border border-slate-100 bg-white"
+      style={{ height }}
+    >
       {/* Floating Map Controls */}
       <div
         ref={dropdownRef}
@@ -267,10 +270,7 @@ export function SingleCampaignMap({
         touchZoom={!staticMode}
         attributionControl={false}
       >
-        <TileLayer
-          attribution={layers[layerType].attribution}
-          url={layers[layerType].url}
-        />
+        <TileLayer attribution={layers[layerType].attribution} url={layers[layerType].url} />
         {boundaryElement}
         <Marker position={position} icon={customIcon || undefined} />
       </MapContainer>

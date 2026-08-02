@@ -2,11 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { ArrowRight, CalendarDays } from "lucide-react";
 import type { NewsResponse } from "@/lib/api";
-import {
-  CATEGORY_ICONS,
-  NEWS_CATEGORIES,
-  NEWS_FALLBACK_IMAGE,
-} from "./newsCategories";
+import { CATEGORY_ICONS, NEWS_CATEGORIES, NEWS_FALLBACK_IMAGE } from "./newsCategories";
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (

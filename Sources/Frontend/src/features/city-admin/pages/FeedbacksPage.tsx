@@ -658,8 +658,8 @@ export function FeedbacksPage() {
                 </tr>
               ) : (
                 paginated.map((fb) => (
-                  <tr 
-                    key={fb.id} 
+                  <tr
+                    key={fb.id}
                     className="hover:bg-slate-50/60 transition-colors group cursor-pointer"
                     onClick={() => setSelectedId(fb.id)}
                   >

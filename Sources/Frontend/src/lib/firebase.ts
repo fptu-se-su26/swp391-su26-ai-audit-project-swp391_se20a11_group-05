@@ -8,13 +8,7 @@
  */
 
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
-import {
-  getAuth,
-  GoogleAuthProvider,
-  signInWithPopup,
-  signOut,
-  type Auth,
-} from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, type Auth } from "firebase/auth";
 
 // ─── Firebase Config (from VITE env vars) ─────────────────────
 const firebaseConfig = {

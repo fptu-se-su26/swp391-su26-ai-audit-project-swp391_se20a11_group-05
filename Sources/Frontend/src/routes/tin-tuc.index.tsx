@@ -48,8 +48,13 @@ function NewsSkeleton() {
   return (
     <div className="space-y-8" aria-hidden>
       {[0, 1, 2].map((i) => (
-        <div key={i} className={`grid animate-pulse gap-5 ${i === 0 ? "md:grid-cols-[340px_1fr]" : "md:grid-cols-[220px_1fr]"}`}>
-          <div className={`rounded-xl bg-[#EEF2F8] ${i === 0 ? "aspect-[16/9]" : "aspect-[16/10] max-h-[150px]"}`} />
+        <div
+          key={i}
+          className={`grid animate-pulse gap-5 ${i === 0 ? "md:grid-cols-[340px_1fr]" : "md:grid-cols-[220px_1fr]"}`}
+        >
+          <div
+            className={`rounded-xl bg-[#EEF2F8] ${i === 0 ? "aspect-[16/9]" : "aspect-[16/10] max-h-[150px]"}`}
+          />
           <div className="space-y-3 py-1">
             <div className="h-5 w-24 rounded bg-[#EEF2F8]" />
             <div className="h-5 w-4/5 rounded bg-[#EEF2F8]" />
@@ -112,9 +117,7 @@ function NewsPage() {
   const { data: topNewsData } = useNewsList(0, 20, "Tất cả", "");
   const topNews = useMemo(
     () =>
-      [...(topNewsData?.content ?? [])]
-        .sort((a, b) => (b.views ?? 0) - (a.views ?? 0))
-        .slice(0, 5),
+      [...(topNewsData?.content ?? [])].sort((a, b) => (b.views ?? 0) - (a.views ?? 0)).slice(0, 5),
     [topNewsData],
   );
 

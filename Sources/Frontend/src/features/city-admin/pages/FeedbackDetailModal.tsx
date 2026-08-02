@@ -230,7 +230,9 @@ export function FeedbackDetailModal({ feedbackId, onClose }: Props) {
                   </p>
                 </div>
                 <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                  {fb.description || fb.content || <span className="italic text-slate-400">Không có nội dung phản ánh.</span>}
+                  {fb.description || fb.content || (
+                    <span className="italic text-slate-400">Không có nội dung phản ánh.</span>
+                  )}
                 </p>
               </div>
 

@@ -16,8 +16,8 @@ export async function compressImageIfNeeded(file: File): Promise<File> {
   }
 
   const options = {
-    maxSizeMB: 1,            // Dung lượng tối đa mong muốn (1MB)
-    maxWidthOrHeight: 1920,  // Kích thước tối đa chiều ngang hoặc dọc
+    maxSizeMB: 1, // Dung lượng tối đa mong muốn (1MB)
+    maxWidthOrHeight: 1920, // Kích thước tối đa chiều ngang hoặc dọc
     useWebWorker: true,
   };
 

@@ -327,7 +327,10 @@ export const dict: Dict = {
     en: "Describe the issue, its impact, and information the authorities need to know...",
   },
   "report.form.privateLabel": { vi: "Không công khai phản ánh", en: "Submit report privately" },
-  "report.form.privateHint": { vi: "Bật tùy chọn này nếu bạn không muốn phản ánh của mình hiển thị công khai trên bản đồ và danh sách công cộng.", en: "Enable this if you don't want this report to appear publicly on maps and lists." },
+  "report.form.privateHint": {
+    vi: "Bật tùy chọn này nếu bạn không muốn phản ánh của mình hiển thị công khai trên bản đồ và danh sách công cộng.",
+    en: "Enable this if you don't want this report to appear publicly on maps and lists.",
+  },
   "report.form.submitting": { vi: "Đang gửi...", en: "Submitting..." },
 
   /* ──────────── Report location ──────────── */

@@ -646,7 +646,8 @@ export function CampaignDetailPageComponent({
                             Giải trình để mở khóa
                           </button>
                           <p className="text-[11px] font-semibold text-rose-650 text-center leading-normal">
-                            Tài khoản bị cấm đăng ký tham gia chiến dịch do vắng mặt. Vui lòng gửi đơn giải trình để được xem xét mở khóa.
+                            Tài khoản bị cấm đăng ký tham gia chiến dịch do vắng mặt. Vui lòng gửi
+                            đơn giải trình để được xem xét mở khóa.
                           </p>
                         </div>
                       ) : (
@@ -1209,8 +1210,14 @@ function RegulationsCard({ theme }: { theme: Record<string, string> }) {
       </h2>
       <ul className="space-y-2 text-xs font-semibold text-slate-600 list-disc pl-4 leading-relaxed">
         <li>Tích lũy điểm cống hiến và ghi nhận thành tích tình nguyện.</li>
-        <li><strong>Vắng mặt lần 2:</strong> Nhận thông báo cảnh cáo từ Cán bộ Phường.</li>
-        <li><strong>Vắng mặt lần 3:</strong> <span className="text-red-600 font-bold">Cấm tham gia</span> các chiến dịch mới trên toàn hệ thống.</li>
+        <li>
+          <strong>Vắng mặt lần 2:</strong> Nhận thông báo cảnh cáo từ Cán bộ Phường.
+        </li>
+        <li>
+          <strong>Vắng mặt lần 3:</strong>{" "}
+          <span className="text-red-600 font-bold">Cấm tham gia</span> các chiến dịch mới trên toàn
+          hệ thống.
+        </li>
       </ul>
     </section>
   );

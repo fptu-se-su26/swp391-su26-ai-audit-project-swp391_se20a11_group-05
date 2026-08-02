@@ -192,11 +192,18 @@ export function HeatmapMap({ hotspots }: HeatmapMapProps) {
 
       {showSurge && (
         <div className="absolute bottom-6 right-4 z-[1000] bg-white/95 backdrop-blur-sm p-3.5 rounded-xl shadow-lg border border-slate-100 text-xs min-w-[140px] transition-all">
-          <div className="flex items-center justify-between mb-2 cursor-pointer" onClick={() => setIsLegendOpen(!isLegendOpen)}>
+          <div
+            className="flex items-center justify-between mb-2 cursor-pointer"
+            onClick={() => setIsLegendOpen(!isLegendOpen)}
+          >
             <p className="font-extrabold text-slate-800 uppercase tracking-wide text-[10px]">
               Lưu lượng phản ánh
             </p>
-            {isLegendOpen ? <ChevronDown size={14} className="text-slate-600" /> : <ChevronUp size={14} className="text-slate-600" />}
+            {isLegendOpen ? (
+              <ChevronDown size={14} className="text-slate-600" />
+            ) : (
+              <ChevronUp size={14} className="text-slate-600" />
+            )}
           </div>
           {isLegendOpen && (
             <div className="animate-in fade-in slide-in-from-top-2">

@@ -19,8 +19,12 @@ import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { toast } from "sonner";
 import { compressImageIfNeeded } from "@/lib/imageCompression";
-import ReactQuill from "react-quill-new";
-import "react-quill-new/dist/quill.snow.css";
+import { clientOnly } from "@/components/ClientOnly";
+import type { NewsRichTextEditorProps } from "@/components/editor/NewsRichTextEditor";
+
+const NewsRichTextEditor = clientOnly<NewsRichTextEditorProps>(
+  () => import("@/components/editor/NewsRichTextEditor"),
+);
 
 const API_BASE: string =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) || "";
@@ -604,8 +608,7 @@ export function NewsManagement() {
                       </span>
                     </label>
                     <div className="border border-[#E4EAF2] rounded-xl overflow-hidden focus-within:border-[#0F5BD8] focus-within:ring-1 focus-within:ring-[#0F5BD8] transition-all bg-white min-h-[300px]">
-                      <ReactQuill
-                        theme="snow"
+                      <NewsRichTextEditor
                         value={formData.content}
                         onChange={(content: string) =>
                           setFormData((prev) => ({ ...prev, content }))

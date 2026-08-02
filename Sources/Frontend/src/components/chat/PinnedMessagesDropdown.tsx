@@ -42,7 +42,10 @@ export function PinnedMessagesDropdown({
       >
         <Pin size={13} className="text-amber-500 fill-amber-500 rotate-45 shrink-0" />
         <span>Ghim ({pinnedMessages.length})</span>
-        <ChevronDown size={13} className={`transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""}`} />
+        <ChevronDown
+          size={13}
+          className={`transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""}`}
+        />
       </button>
 
       {/* Dropdown Panel */}

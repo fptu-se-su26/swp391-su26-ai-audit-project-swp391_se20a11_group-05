@@ -55,14 +55,28 @@ function formatFullDate(value?: string | null) {
 }
 
 function mapCategoryName(feedback: FeedbackResponse) {
-  const source = `${feedback.categoryCode || ""} ${feedback.categoryName || ""} ${feedback.category || ""}`.toLowerCase();
-  if (source.includes("environment") || source.includes("moi truong") || source.includes("môi trường") || source.includes("rác")) {
+  const source =
+    `${feedback.categoryCode || ""} ${feedback.categoryName || ""} ${feedback.category || ""}`.toLowerCase();
+  if (
+    source.includes("environment") ||
+    source.includes("moi truong") ||
+    source.includes("môi trường") ||
+    source.includes("rác")
+  ) {
     return "Môi trường";
   }
-  if (source.includes("construction") || source.includes("xay dung") || source.includes("xây dựng")) {
+  if (
+    source.includes("construction") ||
+    source.includes("xay dung") ||
+    source.includes("xây dựng")
+  ) {
     return "Xây dựng";
   }
-  if (source.includes("traffic") || source.includes("giao thong") || source.includes("giao thông")) {
+  if (
+    source.includes("traffic") ||
+    source.includes("giao thong") ||
+    source.includes("giao thông")
+  ) {
     return "Giao thông";
   }
   if (source.includes("fire") || source.includes("pccc") || source.includes("phòng cháy")) {
@@ -135,7 +149,11 @@ interface WardStatisticsPageProps {
   hideHeader?: boolean;
 }
 
-export function WardStatisticsPage({ range: propRange, setRange: propSetRange, hideHeader = false }: WardStatisticsPageProps = {}) {
+export function WardStatisticsPage({
+  range: propRange,
+  setRange: propSetRange,
+  hideHeader = false,
+}: WardStatisticsPageProps = {}) {
   const { user } = useAuth();
   const [localRange, setLocalRange] = useState<RangeKey>("30d");
   const range = propRange ?? localRange;
@@ -178,7 +196,10 @@ export function WardStatisticsPage({ range: propRange, setRange: propSetRange, h
 
   const trendData = useMemo(() => {
     const days = range === "7d" ? 7 : range === "30d" ? 30 : range === "90d" ? 90 : 30;
-    const buckets = new Map<string, { date: string; label: string; total: number; resolved: number }>();
+    const buckets = new Map<
+      string,
+      { date: string; label: string; total: number; resolved: number }
+    >();
 
     for (let index = days - 1; index >= 0; index -= 1) {
       const date = new Date();
@@ -215,18 +236,22 @@ export function WardStatisticsPage({ range: propRange, setRange: propSetRange, h
   }, [filteredFeedbacks]);
 
   const statusData = useMemo(
-    () => [
-      { name: "Chờ xử lý", value: metrics.pending, color: STATUS_COLORS.pending },
-      { name: "Đang xử lý", value: metrics.inProgress, color: STATUS_COLORS.inProgress },
-      { name: "Đã xử lý", value: metrics.resolved, color: STATUS_COLORS.resolved },
-      { name: "Quá hạn", value: metrics.overdue, color: STATUS_COLORS.overdue },
-    ].filter((item) => item.value > 0),
+    () =>
+      [
+        { name: "Chờ xử lý", value: metrics.pending, color: STATUS_COLORS.pending },
+        { name: "Đang xử lý", value: metrics.inProgress, color: STATUS_COLORS.inProgress },
+        { name: "Đã xử lý", value: metrics.resolved, color: STATUS_COLORS.resolved },
+        { name: "Quá hạn", value: metrics.overdue, color: STATUS_COLORS.overdue },
+      ].filter((item) => item.value > 0),
     [metrics],
   );
 
   const hotspots = useMemo(() => {
     return [...filteredFeedbacks]
-      .filter((feedback) => isOverdue(feedback) || getGroupedFeedbackStatus(feedback.status) !== "RESOLVED")
+      .filter(
+        (feedback) =>
+          isOverdue(feedback) || getGroupedFeedbackStatus(feedback.status) !== "RESOLVED",
+      )
       .sort((a, b) => {
         const overdueDiff = Number(isOverdue(b)) - Number(isOverdue(a));
         if (overdueDiff !== 0) return overdueDiff;
@@ -265,10 +290,34 @@ export function WardStatisticsPage({ range: propRange, setRange: propSetRange, h
       )}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard icon={FileText} label="Tổng phản ánh" value={metrics.total} tone="indigo" loading={isLoading} />
-        <StatCard icon={Clock} label="Đang xử lý" value={metrics.inProgress} tone="amber" loading={isLoading} />
-        <StatCard icon={CheckCircle2} label="Đã xử lý" value={metrics.resolved} tone="emerald" loading={isLoading} />
-        <StatCard icon={TimerReset} label="Quá hạn" value={metrics.overdue} tone="rose" loading={isLoading} />
+        <StatCard
+          icon={FileText}
+          label="Tổng phản ánh"
+          value={metrics.total}
+          tone="indigo"
+          loading={isLoading}
+        />
+        <StatCard
+          icon={Clock}
+          label="Đang xử lý"
+          value={metrics.inProgress}
+          tone="amber"
+          loading={isLoading}
+        />
+        <StatCard
+          icon={CheckCircle2}
+          label="Đã xử lý"
+          value={metrics.resolved}
+          tone="emerald"
+          loading={isLoading}
+        />
+        <StatCard
+          icon={TimerReset}
+          label="Quá hạn"
+          value={metrics.overdue}
+          tone="rose"
+          loading={isLoading}
+        />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(360px,0.9fr)]">
@@ -282,11 +331,37 @@ export function WardStatisticsPage({ range: propRange, setRange: propSetRange, h
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={trendData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 10, fill: "#94a3b8" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fontSize: 10, fill: "#94a3b8" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
                   <Tooltip content={<CustomTooltip />} />
-                  <Line type="monotone" dataKey="total" name="Tổng phản ánh" stroke="#4F46E5" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="resolved" name="Đã xử lý" stroke="#059669" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
+                  <Line
+                    type="monotone"
+                    dataKey="total"
+                    name="Tổng phản ánh"
+                    stroke="#4F46E5"
+                    strokeWidth={2.5}
+                    dot={false}
+                    activeDot={{ r: 4 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="resolved"
+                    name="Đã xử lý"
+                    stroke="#059669"
+                    strokeWidth={2.5}
+                    dot={false}
+                    activeDot={{ r: 4 }}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             )}
@@ -304,7 +379,13 @@ export function WardStatisticsPage({ range: propRange, setRange: propSetRange, h
                 <div className="relative h-[190px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie data={statusData} innerRadius={58} outerRadius={82} paddingAngle={4} dataKey="value">
+                      <Pie
+                        data={statusData}
+                        innerRadius={58}
+                        outerRadius={82}
+                        paddingAngle={4}
+                        dataKey="value"
+                      >
                         {statusData.map((entry) => (
                           <Cell key={entry.name} fill={entry.color} />
                         ))}
@@ -313,15 +394,25 @@ export function WardStatisticsPage({ range: propRange, setRange: propSetRange, h
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-                    <span className="text-3xl font-black font-mono tracking-tight text-slate-900">{metrics.completionRate}%</span>
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">Hoàn tất</span>
+                    <span className="text-3xl font-black font-mono tracking-tight text-slate-900">
+                      {metrics.completionRate}%
+                    </span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">
+                      Hoàn tất
+                    </span>
                   </div>
                 </div>
                 <div className="space-y-2.5">
                   {statusData.map((item) => (
-                    <div key={item.name} className="flex items-center justify-between text-xs font-bold text-slate-600">
+                    <div
+                      key={item.name}
+                      className="flex items-center justify-between text-xs font-bold text-slate-600"
+                    >
                       <span className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                        <span
+                          className="h-2.5 w-2.5 rounded-full"
+                          style={{ backgroundColor: item.color }}
+                        />
                         {item.name}
                       </span>
                       <span className="font-mono font-bold text-slate-900">{item.value}</span>
@@ -347,10 +438,26 @@ export function WardStatisticsPage({ range: propRange, setRange: propSetRange, h
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={categoryData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fontSize: 10, fill: "#94a3b8" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fontSize: 10, fill: "#94a3b8" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
                   <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="value" name="Số phản ánh" radius={[6, 6, 0, 0]} fill="#4F46E5" maxBarSize={48} />
+                  <Bar
+                    dataKey="value"
+                    name="Số phản ánh"
+                    radius={[6, 6, 0, 0]}
+                    fill="#4F46E5"
+                    maxBarSize={48}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -400,11 +507,13 @@ export function WardStatisticsPage({ range: propRange, setRange: propSetRange, h
                           {formatFullDate(feedback.createdAt)}
                         </p>
                       </div>
-                      <span className={`grid h-7 w-7 place-items-center rounded-lg border ${
-                        overdueStatus 
-                          ? "bg-rose-50 text-rose-600 border-rose-100/50" 
-                          : "bg-amber-50 text-amber-600 border-amber-100/50"
-                      }`}>
+                      <span
+                        className={`grid h-7 w-7 place-items-center rounded-lg border ${
+                          overdueStatus
+                            ? "bg-rose-50 text-rose-600 border-rose-100/50"
+                            : "bg-amber-50 text-amber-600 border-amber-100/50"
+                        }`}
+                      >
                         <AlertCircle size={14} />
                       </span>
                     </div>
@@ -453,7 +562,9 @@ function StatCard({
   return (
     <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm hover:shadow-md transition-all duration-300">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">{label}</span>
+        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+          {label}
+        </span>
         <span className={`grid h-9 w-9 place-items-center rounded-xl border ${styles[tone]}`}>
           <Icon size={18} />
         </span>
@@ -474,7 +585,9 @@ function EmptyChart() {
         <FileText size={28} strokeWidth={1.5} />
       </span>
       <p className="text-xs font-bold text-slate-400">Chưa có dữ liệu thống kê</p>
-      <p className="text-[10px] text-slate-400 mt-1 max-w-[200px]">Không tìm thấy phản ánh nào trong phạm vi thời gian này.</p>
+      <p className="text-[10px] text-slate-400 mt-1 max-w-[200px]">
+        Không tìm thấy phản ánh nào trong phạm vi thời gian này.
+      </p>
     </div>
   );
 }

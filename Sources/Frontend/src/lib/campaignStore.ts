@@ -12,7 +12,13 @@ export type CampaignCategory =
   | "construction"
   | "fire_safety";
 
-export type CampaignStatus = "recruiting" | "inProgress" | "completed" | "active" | "ended" | "cancelled";
+export type CampaignStatus =
+  | "recruiting"
+  | "inProgress"
+  | "completed"
+  | "active"
+  | "ended"
+  | "cancelled";
 
 export interface Campaign {
   id: string;
@@ -43,7 +49,16 @@ export interface Campaign {
   privateLocationText?: string;
   requiredTools?: string;
   organizerContact?: string;
-  currentUserJoinStatus?: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "WAITLIST" | "PENDING_CONFIRM" | "NO_SHOW" | "CONFIRMED" | "MAYBE";
+  currentUserJoinStatus?:
+    | "PENDING"
+    | "APPROVED"
+    | "REJECTED"
+    | "CANCELLED"
+    | "WAITLIST"
+    | "PENDING_CONFIRM"
+    | "NO_SHOW"
+    | "CONFIRMED"
+    | "MAYBE";
   privateDetailsVisible?: boolean;
   canJoin?: boolean;
   canLeave?: boolean;
@@ -88,7 +103,7 @@ function readStorage(): Campaign[] {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return SEED_CAMPAIGNS;
     let parsed = JSON.parse(raw) as Campaign[];
-    
+
     // Clean up test campaigns ("Tạo cho vui")
     const initialLength = parsed.length;
     parsed = parsed.filter(
@@ -96,7 +111,7 @@ function readStorage(): Campaign[] {
         c.name !== "Tạo cho vui" &&
         c.nameEn !== "Tạo cho vui" &&
         c.desc !== "Tạo cho vui" &&
-        c.descEn !== "Tạo cho vui"
+        c.descEn !== "Tạo cho vui",
     );
     if (parsed.length !== initialLength) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));

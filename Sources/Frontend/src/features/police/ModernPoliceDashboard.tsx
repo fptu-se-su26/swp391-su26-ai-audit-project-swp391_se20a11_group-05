@@ -1772,7 +1772,7 @@ export function ModernPoliceDashboard() {
                           <ChevronDown size={14} style={{ color: colors.primaryNavy }} />
                         )}
                       </div>
-                      
+
                       {/* Month and Year Selectors */}
                       <div className="flex items-center gap-1 mb-3">
                         <select

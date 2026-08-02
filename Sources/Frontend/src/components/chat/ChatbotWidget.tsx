@@ -35,14 +35,35 @@ const SUGGESTED_QUESTIONS = [
 
 // ─── Context-aware greeting map (Feature 3) ──────────────────────────────
 const CONTEXT_GREETINGS: Record<string, { text: string; chip?: string }> = {
-  "/report":       { text: "📋 Bạn đang xem trang Gửi Phản Ánh! Tôi có thể giúp bạn điền thông tin nếu cần.", chip: "Hướng dẫn điền form" },
-  "/my-reports":   { text: "🔍 Tôi có thể tra cứu trạng thái bất kỳ phản ánh nào của bạn. Nhập mã FB-... để bắt đầu!", chip: "Tra cứu phản ánh của tôi" },
-  "/campaigns":    { text: "🎯 Bạn đang khám phá các Chiến Dịch Tình Nguyện! Muốn tôi giới thiệu các chiến dịch phù hợp với bạn không?", chip: "Giới thiệu chiến dịch" },
-  "/feedback-search": { text: "🔍 Tôi có thể tra cứu thông tin phản ánh nhanh hơn bằng giọng nói hoặc mã số!", chip: "Tra cứu theo mã số" },
-  "/tin-tuc":      { text: "📰 Bạn đang đọc tin tức Đà Nẵng. Tôi có thể tóm tắt bất kỳ nội dung nào bạn muốn!", chip: "Tóm tắt bài viết" },
-  "/profile":      { text: "👤 Cần giúp đỡ gì với tài khoản của bạn?", chip: "Hỏi về tài khoản" },
-  "/notifications":{ text: "🔔 Bạn có thông báo mới! Tôi có thể giải thích nội dung nếu cần.", chip: "Giải thích thông báo" },
-  "/":             { text: "🏙️ Xin chào! Tôi là Bé Rồng — trợ lý AI của Đà Nẵng Kết Nối. Hôm nay tôi có thể giúp gì cho bạn?", chip: undefined },
+  "/report": {
+    text: "📋 Bạn đang xem trang Gửi Phản Ánh! Tôi có thể giúp bạn điền thông tin nếu cần.",
+    chip: "Hướng dẫn điền form",
+  },
+  "/my-reports": {
+    text: "🔍 Tôi có thể tra cứu trạng thái bất kỳ phản ánh nào của bạn. Nhập mã FB-... để bắt đầu!",
+    chip: "Tra cứu phản ánh của tôi",
+  },
+  "/campaigns": {
+    text: "🎯 Bạn đang khám phá các Chiến Dịch Tình Nguyện! Muốn tôi giới thiệu các chiến dịch phù hợp với bạn không?",
+    chip: "Giới thiệu chiến dịch",
+  },
+  "/feedback-search": {
+    text: "🔍 Tôi có thể tra cứu thông tin phản ánh nhanh hơn bằng giọng nói hoặc mã số!",
+    chip: "Tra cứu theo mã số",
+  },
+  "/tin-tuc": {
+    text: "📰 Bạn đang đọc tin tức Đà Nẵng. Tôi có thể tóm tắt bất kỳ nội dung nào bạn muốn!",
+    chip: "Tóm tắt bài viết",
+  },
+  "/profile": { text: "👤 Cần giúp đỡ gì với tài khoản của bạn?", chip: "Hỏi về tài khoản" },
+  "/notifications": {
+    text: "🔔 Bạn có thông báo mới! Tôi có thể giải thích nội dung nếu cần.",
+    chip: "Giải thích thông báo",
+  },
+  "/": {
+    text: "🏙️ Xin chào! Tôi là Bé Rồng — trợ lý AI của Đà Nẵng Kết Nối. Hôm nay tôi có thể giúp gì cho bạn?",
+    chip: undefined,
+  },
 };
 
 type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
@@ -96,13 +117,15 @@ export function ChatbotWidget() {
     if (isOpen && messages.length === 0 && contextGreetingShown !== pathname) {
       const greeting = CONTEXT_GREETINGS[pathname] ?? CONTEXT_GREETINGS["/"];
       // Dùng sendMessage giả lập như thể bot tự chào
-      setMessages([{
-        id: Date.now().toString(),
-        role: "assistant",
-        content: greeting.text,
-        // Chíp câu gợi ý nhanh nếu có
-        suggestedFollowUps: greeting.chip ? [greeting.chip] : SUGGESTED_QUESTIONS.slice(0, 3),
-      }]);
+      setMessages([
+        {
+          id: Date.now().toString(),
+          role: "assistant",
+          content: greeting.text,
+          // Chíp câu gợi ý nhanh nếu có
+          suggestedFollowUps: greeting.chip ? [greeting.chip] : SUGGESTED_QUESTIONS.slice(0, 3),
+        },
+      ]);
       setContextGreetingShown(pathname);
     }
   }, [isOpen, pathname]);
@@ -390,82 +413,122 @@ export function ChatbotWidget() {
                         {(msg.intent as any).trackingCode}
                       </span>
                     </div>
-                    
+
                     <div className="text-xs space-y-2">
                       <div className="flex justify-between items-center">
                         <span className="text-slate-500">Lĩnh vực:</span>
-                        <span className="font-semibold text-slate-800">{(msg.intent as any).feedbackCategory || "Chưa xác định"}</span>
+                        <span className="font-semibold text-slate-800">
+                          {(msg.intent as any).feedbackCategory || "Chưa xác định"}
+                        </span>
                       </div>
                       <div className="flex justify-between items-start">
                         <span className="text-slate-500 flex-shrink-0">Địa điểm:</span>
-                        <span className="font-semibold text-slate-800 text-right">{(msg.intent as any).feedbackAddress || "Không xác định"}</span>
+                        <span className="font-semibold text-slate-800 text-right">
+                          {(msg.intent as any).feedbackAddress || "Không xác định"}
+                        </span>
                       </div>
-                      {((msg.intent as any).feedbackDescription) && (
+                      {(msg.intent as any).feedbackDescription && (
                         <div className="flex justify-between items-start border-t border-slate-50 pt-2 mt-1">
                           <span className="text-slate-500 flex-shrink-0">Mô tả:</span>
-                          <span className="text-slate-600 text-right italic line-clamp-2 max-w-[70%]">{(msg.intent as any).feedbackDescription}</span>
+                          <span className="text-slate-600 text-right italic line-clamp-2 max-w-[70%]">
+                            {(msg.intent as any).feedbackDescription}
+                          </span>
                         </div>
                       )}
                     </div>
 
                     {/* Timeline Tracker */}
                     <div className="mt-2 border-t border-slate-100 pt-3">
-                      <div className="text-[11px] font-semibold text-slate-400 mb-3 uppercase tracking-wide">Tiến độ xử lý</div>
+                      <div className="text-[11px] font-semibold text-slate-400 mb-3 uppercase tracking-wide">
+                        Tiến độ xử lý
+                      </div>
                       <div className="flex items-center justify-between relative px-2">
                         {/* Connecting Line */}
                         <div className="absolute top-[9px] left-[10%] right-[10%] h-[2px] bg-slate-200 z-0"></div>
-                        <div 
+                        <div
                           className="absolute top-[9px] left-[10%] h-[2px] bg-emerald-500 z-0 transition-all duration-500"
                           style={{
-                            width: 
-                              (msg.intent as any).feedbackStatus === "RESOLVED" || (msg.intent as any).feedbackStatus === "REJECTED" ? "80%" : 
-                              (msg.intent as any).feedbackStatus === "ASSIGNED" || (msg.intent as any).feedbackStatus === "IN_PROGRESS" ? "40%" : "0%"
+                            width:
+                              (msg.intent as any).feedbackStatus === "RESOLVED" ||
+                              (msg.intent as any).feedbackStatus === "REJECTED"
+                                ? "80%"
+                                : (msg.intent as any).feedbackStatus === "ASSIGNED" ||
+                                    (msg.intent as any).feedbackStatus === "IN_PROGRESS"
+                                  ? "40%"
+                                  : "0%",
                           }}
                         ></div>
 
                         {/* Step 1: SUBMITTED */}
                         <div className="flex flex-col items-center z-10 relative">
-                          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                            ["SUBMITTED", "PENDING_RECEIVE", "PENDING", "NEED_LOCATION_REVIEW", "ASSIGNED", "IN_PROGRESS", "RESOLVED", "REJECTED"].includes((msg.intent as any).feedbackStatus)
-                              ? "bg-emerald-500 text-white shadow-sm ring-4 ring-emerald-50"
-                              : "bg-slate-200 text-slate-600"
-                          }`}>
+                          <div
+                            className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                              [
+                                "SUBMITTED",
+                                "PENDING_RECEIVE",
+                                "PENDING",
+                                "NEED_LOCATION_REVIEW",
+                                "ASSIGNED",
+                                "IN_PROGRESS",
+                                "RESOLVED",
+                                "REJECTED",
+                              ].includes((msg.intent as any).feedbackStatus)
+                                ? "bg-emerald-500 text-white shadow-sm ring-4 ring-emerald-50"
+                                : "bg-slate-200 text-slate-600"
+                            }`}
+                          >
                             ✓
                           </div>
-                          <span className="text-[10px] mt-1 font-medium text-slate-600">Đã gửi</span>
+                          <span className="text-[10px] mt-1 font-medium text-slate-600">
+                            Đã gửi
+                          </span>
                         </div>
 
                         {/* Step 2: IN_PROGRESS */}
                         <div className="flex flex-col items-center z-10 relative">
-                          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                            ["ASSIGNED", "IN_PROGRESS", "RESOLVED", "REJECTED"].includes((msg.intent as any).feedbackStatus)
-                              ? "bg-emerald-500 text-white shadow-sm ring-4 ring-emerald-50"
-                              : (msg.intent as any).feedbackStatus === "WAITING_INFO"
-                                ? "bg-amber-500 text-white shadow-sm ring-4 ring-amber-50"
-                                : "bg-slate-200 text-slate-600"
-                          }`}>
+                          <div
+                            className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                              ["ASSIGNED", "IN_PROGRESS", "RESOLVED", "REJECTED"].includes(
+                                (msg.intent as any).feedbackStatus,
+                              )
+                                ? "bg-emerald-500 text-white shadow-sm ring-4 ring-emerald-50"
+                                : (msg.intent as any).feedbackStatus === "WAITING_INFO"
+                                  ? "bg-amber-500 text-white shadow-sm ring-4 ring-amber-50"
+                                  : "bg-slate-200 text-slate-600"
+                            }`}
+                          >
                             {(msg.intent as any).feedbackStatus === "WAITING_INFO" ? "!" : "2"}
                           </div>
                           <span className="text-[10px] mt-1 font-medium text-slate-600">
-                            {(msg.intent as any).feedbackStatus === "WAITING_INFO" ? "Cần bổ sung" : "Đang xử lý"}
+                            {(msg.intent as any).feedbackStatus === "WAITING_INFO"
+                              ? "Cần bổ sung"
+                              : "Đang xử lý"}
                           </span>
                         </div>
 
                         {/* Step 3: RESOLVED / REJECTED */}
                         <div className="flex flex-col items-center z-10 relative">
-                          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                            (msg.intent as any).feedbackStatus === "RESOLVED"
-                              ? "bg-emerald-500 text-white shadow-sm ring-4 ring-emerald-50"
-                              : (msg.intent as any).feedbackStatus === "REJECTED"
-                                ? "bg-red-500 text-white shadow-sm ring-4 ring-red-50"
-                                : "bg-slate-200 text-slate-600"
-                          }`}>
+                          <div
+                            className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                              (msg.intent as any).feedbackStatus === "RESOLVED"
+                                ? "bg-emerald-500 text-white shadow-sm ring-4 ring-emerald-50"
+                                : (msg.intent as any).feedbackStatus === "REJECTED"
+                                  ? "bg-red-500 text-white shadow-sm ring-4 ring-red-50"
+                                  : "bg-slate-200 text-slate-600"
+                            }`}
+                          >
                             {(msg.intent as any).feedbackStatus === "REJECTED" ? "✗" : "3"}
                           </div>
-                          <span className={`text-[10px] mt-1 font-medium ${
-                            (msg.intent as any).feedbackStatus === "REJECTED" ? "text-red-500" : "text-slate-600"
-                          }`}>
-                            {(msg.intent as any).feedbackStatus === "REJECTED" ? "Từ chối" : "Hoàn thành"}
+                          <span
+                            className={`text-[10px] mt-1 font-medium ${
+                              (msg.intent as any).feedbackStatus === "REJECTED"
+                                ? "text-red-500"
+                                : "text-slate-600"
+                            }`}
+                          >
+                            {(msg.intent as any).feedbackStatus === "REJECTED"
+                              ? "Từ chối"
+                              : "Hoàn thành"}
                           </span>
                         </div>
                       </div>
@@ -504,28 +567,34 @@ export function ChatbotWidget() {
           </div>
 
           {/* Quick Actions Carousel — dynamic suggestedFollowUps từ backend hoặc fallback */}
-          {!isLoading && messages.length > 0 && (() => {
-            const lastBot = [...messages].reverse().find(m => m.role === "assistant" && !m.isError);
-            const chips = lastBot?.suggestedFollowUps?.length
-              ? lastBot.suggestedFollowUps
-              : (messages.length === 0 || (messages[messages.length - 1].role === "assistant" && messages[messages.length - 1].intent?.intent === "SMALLTALK"))
-                ? SUGGESTED_QUESTIONS
-                : [];
-            if (!chips.length) return null;
-            return (
-              <div className="px-3 pb-2 pt-1 flex gap-2 overflow-x-auto scrollbar-none snap-x bg-white/50 backdrop-blur-sm border-t border-slate-50">
-                {chips.map((q, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleSubmit(undefined, q)}
-                    className="snap-start flex-shrink-0 text-xs bg-white text-slate-600 border border-slate-200 px-3 py-2 rounded-xl hover:border-gov-blue hover:text-gov-blue transition-colors flex items-center gap-1 shadow-sm"
-                  >
-                    {q}
-                  </button>
-                ))}
-              </div>
-            );
-          })()}
+          {!isLoading &&
+            messages.length > 0 &&
+            (() => {
+              const lastBot = [...messages]
+                .reverse()
+                .find((m) => m.role === "assistant" && !m.isError);
+              const chips = lastBot?.suggestedFollowUps?.length
+                ? lastBot.suggestedFollowUps
+                : messages.length === 0 ||
+                    (messages[messages.length - 1].role === "assistant" &&
+                      messages[messages.length - 1].intent?.intent === "SMALLTALK")
+                  ? SUGGESTED_QUESTIONS
+                  : [];
+              if (!chips.length) return null;
+              return (
+                <div className="px-3 pb-2 pt-1 flex gap-2 overflow-x-auto scrollbar-none snap-x bg-white/50 backdrop-blur-sm border-t border-slate-50">
+                  {chips.map((q, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleSubmit(undefined, q)}
+                      className="snap-start flex-shrink-0 text-xs bg-white text-slate-600 border border-slate-200 px-3 py-2 rounded-xl hover:border-gov-blue hover:text-gov-blue transition-colors flex items-center gap-1 shadow-sm"
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
 
           {/* Ô nhập liệu */}
           <form
@@ -563,7 +632,7 @@ export function ChatbotWidget() {
             {isLoading ? (
               <button
                 type="button"
-                onClick={() => setMessages(prev => prev.filter(m => m.content !== ""))}
+                onClick={() => setMessages((prev) => prev.filter((m) => m.content !== ""))}
                 className="p-3 bg-red-500 text-white rounded-xl flex-shrink-0 transition-all hover:bg-red-600 shadow-md mb-1 flex items-center gap-1.5"
                 title="Dừng phản hồi"
               >

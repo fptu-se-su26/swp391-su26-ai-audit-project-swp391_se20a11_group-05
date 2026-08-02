@@ -44,9 +44,7 @@ export function useFeedbackNotification(feedbackId?: number | string) {
             `SUBSCRIBE\nid:feedback-${feedbackId}\ndestination:/topic/feedback/${feedbackId}\n\n\0`,
           );
         }
-        ws.send(
-          `SUBSCRIBE\nid:staff\ndestination:/topic/staff\n\n\0`,
-        );
+        ws.send(`SUBSCRIBE\nid:staff\ndestination:/topic/staff\n\n\0`);
       };
 
       ws.onmessage = (event) => {

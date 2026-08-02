@@ -1009,7 +1009,7 @@ function HomePage() {
                                 : "Cộng đồng"}
                         </span>
                       </div>
-                      
+
                       {campaign.daysLeft !== undefined && (
                         <div className="absolute bottom-2 right-2">
                           <span className="px-2 py-0.5 bg-black/60 backdrop-blur-sm text-white rounded text-[10px] font-bold font-sans">
@@ -1049,7 +1049,9 @@ function HomePage() {
                           <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                             <div
                               className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-500"
-                              style={{ width: `${Math.min(100, Math.round((campaign.participants / campaign.target) * 100))}%` }}
+                              style={{
+                                width: `${Math.min(100, Math.round((campaign.participants / campaign.target) * 100))}%`,
+                              }}
                             />
                           </div>
                         )}

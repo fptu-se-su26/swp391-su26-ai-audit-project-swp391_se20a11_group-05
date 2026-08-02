@@ -141,7 +141,8 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
     return () => clearTimeout(timer);
   }, [locationText]);
 
-  const canCreate = isAuthenticated && (user?.role === Role.WARD_STAFF || user?.role === Role.POLICE);
+  const canCreate =
+    isAuthenticated && (user?.role === Role.WARD_STAFF || user?.role === Role.POLICE);
   const startTime = combineDateTime(startDate, startClock);
   const endTime = combineDateTime(endDate, endClock);
 
@@ -348,8 +349,9 @@ export function CampaignCreateContent({ onBack, onSuccess }: CampaignCreateConte
         </div>
         <h1 className="text-2xl font-black text-slate-900">Quyền truy cập bị giới hạn</h1>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Chỉ có cán bộ địa phương hoặc lực lượng Công an phụ trách được cấp quyền tạo các chiến dịch cộng đồng mới.
-          Người dân có thể đăng ký tham gia các chiến dịch khi đã được phê duyệt chính thức.
+          Chỉ có cán bộ địa phương hoặc lực lượng Công an phụ trách được cấp quyền tạo các chiến
+          dịch cộng đồng mới. Người dân có thể đăng ký tham gia các chiến dịch khi đã được phê duyệt
+          chính thức.
         </p>
         {onBack ? (
           <button

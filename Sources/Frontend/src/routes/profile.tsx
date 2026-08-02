@@ -40,11 +40,7 @@ import {
 } from "@/hooks";
 import { useI18n } from "@/lib/i18n";
 import { CampaignAppealPanel } from "@/components/site/CampaignAppealPanel";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 export const Route = createFileRoute("/profile")({
   beforeLoad: () => {
@@ -180,7 +176,11 @@ function ProfilePage() {
       setCountdown(60);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : (locale === "vi" ? "Gửi mã OTP thất bại!" : "Failed to send OTP!"),
+        error instanceof Error
+          ? error.message
+          : locale === "vi"
+            ? "Gửi mã OTP thất bại!"
+            : "Failed to send OTP!",
       );
     }
   };
@@ -337,13 +337,17 @@ function ProfilePage() {
       toast.success(
         locale === "vi"
           ? "Đã gửi mã OTP. Vui lòng kiểm tra email!"
-          : "OTP sent. Please check your email!"
+          : "OTP sent. Please check your email!",
       );
       setDeleteCountdown(60);
       setDeleteStep(2);
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : (locale === "vi" ? "Gửi mã OTP thất bại!" : "Failed to send OTP!")
+        err instanceof Error
+          ? err.message
+          : locale === "vi"
+            ? "Gửi mã OTP thất bại!"
+            : "Failed to send OTP!",
       );
     }
   };
@@ -369,7 +373,11 @@ function ProfilePage() {
       navigate({ to: "/" });
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : (locale === "vi" ? "Lỗi xóa tài khoản. Vui lòng thử lại!" : "Error deleting account. Try again!"),
+        err instanceof Error
+          ? err.message
+          : locale === "vi"
+            ? "Lỗi xóa tài khoản. Vui lòng thử lại!"
+            : "Error deleting account. Try again!",
         { id: toastId },
       );
     }
@@ -409,13 +417,24 @@ function ProfilePage() {
     }
 
     if (!otpCode) {
-      toast.error(locale === "vi" ? "Vui lòng nhập mã OTP xác thực!" : "Please enter the OTP verification code!");
+      toast.error(
+        locale === "vi"
+          ? "Vui lòng nhập mã OTP xác thực!"
+          : "Please enter the OTP verification code!",
+      );
       return;
     }
 
     try {
-      await changePasswordMutation.mutateAsync({ currentPassword, newPassword, confirmPassword, otpCode });
-      toast.success(locale === "vi" ? "Đổi mật khẩu thành công!" : "Password changed successfully!");
+      await changePasswordMutation.mutateAsync({
+        currentPassword,
+        newPassword,
+        confirmPassword,
+        otpCode,
+      });
+      toast.success(
+        locale === "vi" ? "Đổi mật khẩu thành công!" : "Password changed successfully!",
+      );
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -763,14 +782,18 @@ function ProfilePage() {
                           const val = e.target.value;
                           setWardSearch(val);
                           // Try to match ward immediately
-                          const match = wards?.find((w) => w.name.toLowerCase() === val.trim().toLowerCase());
+                          const match = wards?.find(
+                            (w) => w.name.toLowerCase() === val.trim().toLowerCase(),
+                          );
                           if (match) {
                             setWardId(match.id);
                           } else {
                             setWardId(undefined);
                           }
                         }}
-                        placeholder={locale === "vi" ? "Nhập để tìm Phường/Xã..." : "Type to search ward..."}
+                        placeholder={
+                          locale === "vi" ? "Nhập để tìm Phường/Xã..." : "Type to search ward..."
+                        }
                         disabled={profile.role !== "CITIZEN"}
                         className="w-full min-h-[48px] pl-11 pr-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus:border-[#0B4FC4] focus:ring-1 focus:ring-[#0B4FC4] focus:outline-none text-sm font-semibold transition-all duration-200 disabled:opacity-75 disabled:cursor-not-allowed"
                       />
@@ -930,21 +953,38 @@ function ProfilePage() {
                     {/* Mã xác nhận OTP */}
                     <div className="pt-2">
                       <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
-                        {locale === "vi" ? "Mã xác thực OTP (Email)" : "OTP Verification Code (Email)"} <span className="text-rose-500">*</span>
+                        {locale === "vi"
+                          ? "Mã xác thực OTP (Email)"
+                          : "OTP Verification Code (Email)"}{" "}
+                        <span className="text-rose-500">*</span>
                       </label>
                       <div className="flex gap-3">
-                        <InputOTP
-                          maxLength={6}
-                          value={otpCode}
-                          onChange={setOtpCode}
-                        >
+                        <InputOTP maxLength={6} value={otpCode} onChange={setOtpCode}>
                           <InputOTPGroup>
-                            <InputOTPSlot index={0} className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800" />
-                            <InputOTPSlot index={1} className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800" />
-                            <InputOTPSlot index={2} className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800" />
-                            <InputOTPSlot index={3} className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800" />
-                            <InputOTPSlot index={4} className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800" />
-                            <InputOTPSlot index={5} className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800" />
+                            <InputOTPSlot
+                              index={0}
+                              className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800"
+                            />
+                            <InputOTPSlot
+                              index={1}
+                              className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800"
+                            />
+                            <InputOTPSlot
+                              index={2}
+                              className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800"
+                            />
+                            <InputOTPSlot
+                              index={3}
+                              className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800"
+                            />
+                            <InputOTPSlot
+                              index={4}
+                              className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800"
+                            />
+                            <InputOTPSlot
+                              index={5}
+                              className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800"
+                            />
                           </InputOTPGroup>
                         </InputOTP>
                         <button
@@ -957,8 +997,10 @@ function ProfilePage() {
                             <Loader2 className="animate-spin h-4 w-4" />
                           ) : countdown > 0 ? (
                             `${countdown}s`
+                          ) : locale === "vi" ? (
+                            "Gửi mã OTP"
                           ) : (
-                            locale === "vi" ? "Gửi mã OTP" : "Send OTP"
+                            "Send OTP"
                           )}
                         </button>
                       </div>
@@ -1023,9 +1065,7 @@ function ProfilePage() {
             <div className="flex items-center gap-2 text-rose-600 mb-4">
               <AlertTriangle className="h-6 w-6" />
               <h3 className="text-lg font-extrabold">
-                {locale === "vi"
-                  ? "Xác thực xóa tài khoản"
-                  : "Verify Account Deletion"}
+                {locale === "vi" ? "Xác thực xóa tài khoản" : "Verify Account Deletion"}
               </h3>
             </div>
 
@@ -1034,9 +1074,13 @@ function ProfilePage() {
                 ? "Hành động này sẽ vô hiệu hóa hoàn toàn tài khoản của bạn. Vì lý do bảo mật, vui lòng "
                 : "This action is irreversible. For security reasons, please "}
               <strong className="text-slate-800 dark:text-slate-100 font-black">
-                {deleteStep === 1 
-                  ? (locale === "vi" ? "nhập mật khẩu của bạn để nhận mã OTP." : "enter your password to receive an OTP.") 
-                  : (locale === "vi" ? "nhập mã OTP đã được gửi đến email của bạn." : "enter the OTP sent to your email.")}
+                {deleteStep === 1
+                  ? locale === "vi"
+                    ? "nhập mật khẩu của bạn để nhận mã OTP."
+                    : "enter your password to receive an OTP."
+                  : locale === "vi"
+                    ? "nhập mã OTP đã được gửi đến email của bạn."
+                    : "enter the OTP sent to your email."}
               </strong>
             </p>
 
@@ -1055,12 +1099,30 @@ function ProfilePage() {
               <div className="mb-6 flex justify-center">
                 <InputOTP maxLength={6} value={deleteOtp} onChange={setDeleteOtp}>
                   <InputOTPGroup>
-                    <InputOTPSlot index={0} className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800" />
-                    <InputOTPSlot index={1} className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800" />
-                    <InputOTPSlot index={2} className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800" />
-                    <InputOTPSlot index={3} className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800" />
-                    <InputOTPSlot index={4} className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800" />
-                    <InputOTPSlot index={5} className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800" />
+                    <InputOTPSlot
+                      index={0}
+                      className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800"
+                    />
+                    <InputOTPSlot
+                      index={1}
+                      className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800"
+                    />
+                    <InputOTPSlot
+                      index={2}
+                      className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800"
+                    />
+                    <InputOTPSlot
+                      index={3}
+                      className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800"
+                    />
+                    <InputOTPSlot
+                      index={4}
+                      className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800"
+                    />
+                    <InputOTPSlot
+                      index={5}
+                      className="w-10 h-11 text-base font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800"
+                    />
                   </InputOTPGroup>
                 </InputOTP>
               </div>
@@ -1081,13 +1143,17 @@ function ProfilePage() {
               {deleteStep === 1 ? (
                 <button
                   onClick={handleSendDeleteOtp}
-                  disabled={!deletePassword || sendDeleteOtpMutation.isPending || deleteCountdown > 0}
+                  disabled={
+                    !deletePassword || sendDeleteOtpMutation.isPending || deleteCountdown > 0
+                  }
                   className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-black text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 cursor-pointer"
                 >
                   {sendDeleteOtpMutation.isPending && <Loader2 className="animate-spin h-4 w-4" />}
-                  {deleteCountdown > 0 
-                    ? `${deleteCountdown}s` 
-                    : (locale === "vi" ? "Gửi mã OTP" : "Send OTP")}
+                  {deleteCountdown > 0
+                    ? `${deleteCountdown}s`
+                    : locale === "vi"
+                      ? "Gửi mã OTP"
+                      : "Send OTP"}
                 </button>
               ) : (
                 <button

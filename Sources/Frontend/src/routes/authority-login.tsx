@@ -162,7 +162,11 @@ function AuthorityLoginPage() {
         login({
           name: data.username,
           role,
-          org: data.org || (role === Role.POLICE ? getPoliceUnitLabel(data.wardType, data.wardName) : getAdministrativeUnitLabel(data.wardType, data.wardName)),
+          org:
+            data.org ||
+            (role === Role.POLICE
+              ? getPoliceUnitLabel(data.wardType, data.wardName)
+              : getAdministrativeUnitLabel(data.wardType, data.wardName)),
           wardName: data.wardName,
           wardType: data.wardType,
           wardId: data.wardId,
@@ -216,7 +220,11 @@ function AuthorityLoginPage() {
       login({
         name: data.username,
         role,
-        org: data.org || (role === Role.POLICE ? getPoliceUnitLabel(data.wardType, data.wardName) : getAdministrativeUnitLabel(data.wardType, data.wardName)),
+        org:
+          data.org ||
+          (role === Role.POLICE
+            ? getPoliceUnitLabel(data.wardType, data.wardName)
+            : getAdministrativeUnitLabel(data.wardType, data.wardName)),
         wardName: data.wardName,
         wardType: data.wardType,
         wardId: data.wardId,

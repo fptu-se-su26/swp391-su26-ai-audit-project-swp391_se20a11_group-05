@@ -317,7 +317,9 @@ export function OverviewPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-7 bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col min-h-[440px]">
           <div className="p-4 border-b border-slate-100 bg-slate-50/50">
-            <h3 className="text-lg font-bold font-heading text-[#0B4FC4]">Bản đồ điểm nóng theo khu vực</h3>
+            <h3 className="text-lg font-bold font-heading text-[#0B4FC4]">
+              Bản đồ điểm nóng theo khu vực
+            </h3>
           </div>
           <div className="flex-1 relative min-h-[300px]">
             <Suspense

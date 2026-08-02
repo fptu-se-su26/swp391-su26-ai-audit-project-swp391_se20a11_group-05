@@ -1088,7 +1088,11 @@ export function FeedbackDetailPageComponent({
                               isActive ? details.activeColorClass : details.colorClass
                             } disabled:opacity-50 disabled:cursor-not-allowed`}
                           >
-                            {isRestoreAction ? <RotateCcw size={14} /> : <IconComponent size={14} />}
+                            {isRestoreAction ? (
+                              <RotateCcw size={14} />
+                            ) : (
+                              <IconComponent size={14} />
+                            )}
                             <span>{displayLabel}</span>
                           </button>
                         );

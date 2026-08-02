@@ -1,7 +1,20 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useI18n } from "@/lib/i18n";
 import { ragApi, ApiError } from "@/lib/api";
-import { Bot, Send, Loader2, ChevronDown, Mic, MicOff, X, Square, Plus, MessageSquare, Menu, History } from "lucide-react";
+import {
+  Bot,
+  Send,
+  Loader2,
+  ChevronDown,
+  Mic,
+  MicOff,
+  X,
+  Square,
+  Plus,
+  MessageSquare,
+  Menu,
+  History,
+} from "lucide-react";
 import { ChatMessage, type Msg } from "./ChatMessage";
 import { useNavigate } from "@tanstack/react-router";
 
@@ -9,12 +22,12 @@ import { useNavigate } from "@tanstack/react-router";
 const ONBOARDING_STEPS_VI = [
   "🐉 Xin chào! Tôi là **Bé Rồng** — Trợ lý AI của Đà Nẵng Kết Nối.\n\nTôi có thể giúp cô chú:",
   "📋 **Gửi phản ánh** sự cố đường phố, vỉa hè, môi trường...\n🔍 **Tra cứu trạng thái** phản ánh bằng mã FB-...\n⚖️ **Hỏi quy định** pháp luật đô thị Đà Nẵng\n📊 **Xem thống kê** sự cố cộng đồng\n🎯 **Khám phá chiến dịch** tình nguyện",
-  "💡 Thử hỏi tôi: **'Tôi muốn báo ổ gà đường Nguyễn Văn Linh'** hoặc **'tra cứu FB-001'** nhé!"
+  "💡 Thử hỏi tôi: **'Tôi muốn báo ổ gà đường Nguyễn Văn Linh'** hoặc **'tra cứu FB-001'** nhé!",
 ];
 const ONBOARDING_STEPS_EN = [
   "🐉 Hello! I'm **Baby Dragon** — Da Nang Connect's AI assistant.",
   "📋 **Submit reports** for potholes, sidewalks, environment...\n🔍 **Track status** of your reports using FB-... codes\n⚖️ **Ask about laws** and urban regulations\n📊 **View statistics** on community issues\n🎯 **Discover volunteer** campaigns",
-  "💡 Try asking: **'I want to report a pothole on Nguyen Van Linh'** or **'track FB-001'**"
+  "💡 Try asking: **'I want to report a pothole on Nguyen Van Linh'** or **'track FB-001'**",
 ];
 
 // ─── Loading steps (multi-phase indicator) ─────────────────────
@@ -73,11 +86,14 @@ export function AssistantPage() {
   const [loadingStep, setLoadingStep] = useState(0);
   const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [voiceSupported] = useState(
-    typeof window !== "undefined" && ("SpeechRecognition" in window || "webkitSpeechRecognition" in window)
+    typeof window !== "undefined" &&
+      ("SpeechRecognition" in window || "webkitSpeechRecognition" in window),
   );
 
   // ─── Feature 4: Session History States ───────────────────────
-  const [sessions, setSessions] = useState<Array<{ sessionId: string; sessionName: string; lastMessage: string; messageCount: number }>>([]);
+  const [sessions, setSessions] = useState<
+    Array<{ sessionId: string; sessionName: string; lastMessage: string; messageCount: number }>
+  >([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [showSidebar, setShowSidebar] = useState(false); // Collapsible on mobile
 
@@ -89,18 +105,25 @@ export function AssistantPage() {
   const [acIndex, setAcIndex] = useState(-1);
   const autocompletePool = locale === "vi" ? AUTOCOMPLETE_POOL_VI : AUTOCOMPLETE_POOL_EN;
 
-  const filterSuggestions = useCallback((text: string) => {
-    if (!text.trim() || text.length < 2) { setAcSuggestions([]); return; }
-    const lastBotFollowUps = [...messages].reverse()
-      .find(m => m.role === "bot" && m.suggestedFollowUps?.length)?.suggestedFollowUps ?? [];
-    const combined = [...autocompletePool, ...lastBotFollowUps];
-    const lower = text.toLowerCase();
-    const filtered = combined
-      .filter(s => s.toLowerCase().includes(lower) && s.toLowerCase() !== lower)
-      .slice(0, 5);
-    setAcSuggestions(filtered);
-    setAcIndex(-1);
-  }, [messages, autocompletePool]);
+  const filterSuggestions = useCallback(
+    (text: string) => {
+      if (!text.trim() || text.length < 2) {
+        setAcSuggestions([]);
+        return;
+      }
+      const lastBotFollowUps =
+        [...messages].reverse().find((m) => m.role === "bot" && m.suggestedFollowUps?.length)
+          ?.suggestedFollowUps ?? [];
+      const combined = [...autocompletePool, ...lastBotFollowUps];
+      const lower = text.toLowerCase();
+      const filtered = combined
+        .filter((s) => s.toLowerCase().includes(lower) && s.toLowerCase() !== lower)
+        .slice(0, 5);
+      setAcSuggestions(filtered);
+      setAcIndex(-1);
+    },
+    [messages, autocompletePool],
+  );
 
   // ─── Edit message (Feature 2) ─────────────────────────────────
   const handleEditMessage = (text: string) => {
@@ -148,7 +171,7 @@ export function AssistantPage() {
     setShowSidebar(false);
     try {
       const dbMsgs = await ragApi.getSessionMessages(sessionId, 1);
-      const mappedMsgs: Msg[] = dbMsgs.map(m => ({
+      const mappedMsgs: Msg[] = dbMsgs.map((m) => ({
         role: m.question ? "user" : "bot",
         text: m.question ? m.question : m.answer,
         messageId: m.messageId,
@@ -159,7 +182,7 @@ export function AssistantPage() {
 
       // if a message contains both question and answer in history, we parse it as 2 messages
       const finalMsgs: Msg[] = [];
-      dbMsgs.forEach(m => {
+      dbMsgs.forEach((m) => {
         if (m.question) {
           finalMsgs.push({
             role: "user",
@@ -192,12 +215,15 @@ export function AssistantPage() {
       sessionStorage.setItem("dn_active_session_id", newId);
     }
     setActiveSessionId(newId);
-    setMessages([{
-      role: "bot",
-      text: locale === "vi"
-        ? "Xin chào! 🐉 Bé Rồng đây. Hôm nay cô chú cần hỗ trợ gì ạ?"
-        : "Hello! 🐉 Baby Dragon here. How can I help you today?"
-    }]);
+    setMessages([
+      {
+        role: "bot",
+        text:
+          locale === "vi"
+            ? "Xin chào! 🐉 Bé Rồng đây. Hôm nay cô chú cần hỗ trợ gì ạ?"
+            : "Hello! 🐉 Baby Dragon here. How can I help you today?",
+      },
+    ]);
     setAcSuggestions([]);
     setShowSidebar(false);
   }, [locale]);
@@ -208,12 +234,15 @@ export function AssistantPage() {
     const newId = crypto.randomUUID();
     sessionStorage.setItem("dn_active_session_id", newId);
     setActiveSessionId(newId);
-    setMessages([{
-      role: "bot",
-      text: locale === "vi"
-        ? "Xin chào! 🐉 Bé Rồng đây. Hôm nay cô chú cần hỗ trợ gì ạ?"
-        : "Hello! 🐉 Baby Dragon here. How can I help you today?"
-    }]);
+    setMessages([
+      {
+        role: "bot",
+        text:
+          locale === "vi"
+            ? "Xin chào! 🐉 Bé Rồng đây. Hôm nay cô chú cần hỗ trợ gì ạ?"
+            : "Hello! 🐉 Baby Dragon here. How can I help you today?",
+      },
+    ]);
     setAcSuggestions([]);
     setShowSidebar(false);
   }, [locale]);
@@ -262,7 +291,7 @@ export function AssistantPage() {
   const stopSending = () => {
     abortControllerRef.current?.abort();
     setSending(false);
-    setMessages(m => m.filter(msg => !msg.isLoading));
+    setMessages((m) => m.filter((msg) => !msg.isLoading));
   };
 
   // ─── Voice Input ──────────────────────────────────────────────
@@ -362,7 +391,6 @@ export function AssistantPage() {
 
       // Reload sessions list to update names
       loadSessions();
-
     } catch (err) {
       setMessages((m) => m.filter((msg) => !msg.isLoading));
 
@@ -403,16 +431,21 @@ export function AssistantPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 flex gap-6 min-h-[85vh]">
       {/* ─── Sidebar (Feature 4) ─────────────────────────────────── */}
-      <aside className={`w-80 border-r border-slate-200 pr-6 flex flex-col gap-4 shrink-0 transition-all md:flex ${
-        showSidebar ? "fixed inset-0 bg-white z-40 p-6 flex" : "hidden"
-      }`}>
+      <aside
+        className={`w-80 border-r border-slate-200 pr-6 flex flex-col gap-4 shrink-0 transition-all md:flex ${
+          showSidebar ? "fixed inset-0 bg-white z-40 p-6 flex" : "hidden"
+        }`}
+      >
         <div className="flex items-center justify-between">
           <h2 className="font-heading text-lg font-bold text-gov-blue flex items-center gap-2">
             <History size={18} />
             {locale === "vi" ? "Lịch sử trò chuyện" : "Chat History"}
           </h2>
           {showSidebar && (
-            <button onClick={() => setShowSidebar(false)} className="md:hidden p-1.5 rounded-lg hover:bg-slate-100">
+            <button
+              onClick={() => setShowSidebar(false)}
+              className="md:hidden p-1.5 rounded-lg hover:bg-slate-100"
+            >
               <X size={18} />
             </button>
           )}
@@ -447,7 +480,9 @@ export function AssistantPage() {
                   <span className="truncate">{s.sessionName}</span>
                 </div>
                 <div className="text-[11px] text-slate-400 flex justify-between">
-                  <span>{s.messageCount} {locale === "vi" ? "tin nhắn" : "msgs"}</span>
+                  <span>
+                    {s.messageCount} {locale === "vi" ? "tin nhắn" : "msgs"}
+                  </span>
                 </div>
               </button>
             ))
@@ -555,18 +590,25 @@ export function AssistantPage() {
                 <button
                   key={i}
                   type="button"
-                  onMouseDown={(e) => { e.preventDefault(); setInput(s); setAcSuggestions([]); inputRef.current?.focus(); }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setInput(s);
+                    setAcSuggestions([]);
+                    inputRef.current?.focus();
+                  }}
                   className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 hover:text-blue-700 transition-colors flex items-center gap-2 ${
                     i === acIndex ? "bg-blue-50 text-blue-700" : "text-slate-700"
                   }`}
                 >
                   <span className="text-blue-400 text-xs">↳</span>
-                  <span dangerouslySetInnerHTML={{
-                    __html: s.replace(
-                      new RegExp(input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'),
-                      (match) => `<strong class="text-blue-600">${match}</strong>`
-                    )
-                  }} />
+                  <span
+                    dangerouslySetInnerHTML={{
+                      __html: s.replace(
+                        new RegExp(input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"),
+                        (match) => `<strong class="text-blue-600">${match}</strong>`,
+                      ),
+                    }}
+                  />
                 </button>
               ))}
               <div className="px-4 py-1.5 text-[10px] text-slate-400 border-t border-slate-100 flex items-center gap-1">
@@ -597,25 +639,31 @@ export function AssistantPage() {
           <input
             ref={inputRef}
             value={input}
-            onChange={(e) => { setInput(e.target.value); filterSuggestions(e.target.value); }}
+            onChange={(e) => {
+              setInput(e.target.value);
+              filterSuggestions(e.target.value);
+            }}
             onKeyDown={(e) => {
               if (e.key === "Tab" && acSuggestions.length > 0) {
                 e.preventDefault();
                 const pick = acIndex >= 0 ? acSuggestions[acIndex] : acSuggestions[0];
-                setInput(pick); setAcSuggestions([]);
+                setInput(pick);
+                setAcSuggestions([]);
               } else if (e.key === "ArrowDown") {
                 e.preventDefault();
-                setAcIndex(i => Math.min(i + 1, acSuggestions.length - 1));
+                setAcIndex((i) => Math.min(i + 1, acSuggestions.length - 1));
               } else if (e.key === "ArrowUp") {
                 e.preventDefault();
-                setAcIndex(i => Math.max(i - 1, 0));
+                setAcIndex((i) => Math.max(i - 1, 0));
               } else if (e.key === "Escape") {
                 setAcSuggestions([]);
               }
             }}
             placeholder={
               isOnboarding
-                ? (locale === "vi" ? "Đợi giới thiệu xong nhé..." : "Wait for the intro...")
+                ? locale === "vi"
+                  ? "Đợi giới thiệu xong nhé..."
+                  : "Wait for the intro..."
                 : t("assistant.placeholder")
             }
             disabled={sending || isOnboarding}

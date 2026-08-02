@@ -376,8 +376,6 @@ export function useSendDeleteProfileOtpMutation() {
   });
 }
 
-
-
 export function useRegisterMutation() {
   return useMutation({
     mutationFn: ({

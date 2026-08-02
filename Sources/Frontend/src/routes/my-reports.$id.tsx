@@ -719,8 +719,6 @@ function ReportDetail() {
     }
   })();
 
-
-
   // Rating stars subtext
   const ratingTexts = [
     isVi ? "Rất không hài lòng" : "Very dissatisfied",

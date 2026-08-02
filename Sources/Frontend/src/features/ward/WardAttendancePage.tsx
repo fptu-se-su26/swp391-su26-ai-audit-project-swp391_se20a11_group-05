@@ -1,5 +1,13 @@
 import { useState, useMemo, useRef } from "react";
-import { ArrowLeft, Search, Save, CheckCircle, XCircle, UserCheck, AlertCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  Search,
+  Save,
+  CheckCircle,
+  XCircle,
+  UserCheck,
+  AlertCircle,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useLookupParticipantByPhone, useBulkSaveAttendance } from "@/hooks/useCampaigns";
 import type { CampaignParticipantResponse } from "@/lib/api";
@@ -13,12 +21,15 @@ type WardAttendancePageProps = {
   theme: any;
 };
 
-export function WardAttendancePage({ campaign, participants, onBack, theme }: WardAttendancePageProps) {
+export function WardAttendancePage({
+  campaign,
+  participants,
+  onBack,
+  theme,
+}: WardAttendancePageProps) {
   // Lọc ra những người có trạng thái APPROVED hoặc NO_SHOW (những người đã được duyệt)
   const attendanceList = useMemo(() => {
-    return participants.filter(
-      (p) => p.joinStatus === "APPROVED" || p.joinStatus === "NO_SHOW"
-    );
+    return participants.filter((p) => p.joinStatus === "APPROVED" || p.joinStatus === "NO_SHOW");
   }, [participants]);
 
   // Local state để lưu kết quả điểm danh trước khi bấm Save
@@ -68,7 +79,10 @@ export function WardAttendancePage({ campaign, participants, onBack, theme }: Wa
         }, 5000);
       }
     } catch (err: any) {
-      toast.error(err?.message || "Không tìm thấy người tham gia với số điện thoại này hoặc người đó chưa được duyệt.");
+      toast.error(
+        err?.message ||
+          "Không tìm thấy người tham gia với số điện thoại này hoặc người đó chưa được duyệt.",
+      );
     }
   };
 
@@ -184,9 +198,12 @@ export function WardAttendancePage({ campaign, participants, onBack, theme }: Wa
         {totalEligible === 0 ? (
           <div className="py-12 text-center space-y-3">
             <AlertCircle className="w-12 h-12 text-slate-300 mx-auto" />
-            <div className="text-slate-500 font-medium">Không có tình nguyện viên nào trong danh sách được duyệt</div>
+            <div className="text-slate-500 font-medium">
+              Không có tình nguyện viên nào trong danh sách được duyệt
+            </div>
             <p className="text-sm text-slate-400">
-              Chỉ những tình nguyện viên đã xác nhận tham gia (CONFIRMED) và được cán bộ duyệt mới xuất hiện ở đây.
+              Chỉ những tình nguyện viên đã xác nhận tham gia (CONFIRMED) và được cán bộ duyệt mới
+              xuất hiện ở đây.
             </p>
           </div>
         ) : (
@@ -210,10 +227,11 @@ export function WardAttendancePage({ campaign, participants, onBack, theme }: Wa
                       ref={(el) => {
                         rowRefs.current[p.id] = el;
                       }}
-                      className={`transition-all duration-300 ${isHighlighted
+                      className={`transition-all duration-300 ${
+                        isHighlighted
                           ? "bg-amber-50/80 ring-2 ring-amber-400 ring-inset"
                           : "hover:bg-slate-50/30"
-                        }`}
+                      }`}
                     >
                       {/* Tên */}
                       <td className="py-4 px-6">
@@ -248,10 +266,11 @@ export function WardAttendancePage({ campaign, participants, onBack, theme }: Wa
                           <button
                             type="button"
                             onClick={() => handleToggleAttendance(p.id, false)}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${!isPresent
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                              !isPresent
                                 ? "bg-white text-rose-600 shadow-sm"
                                 : "text-slate-500 hover:text-slate-700"
-                              }`}
+                            }`}
                           >
                             <XCircle className="w-3.5 h-3.5" />
                             Vắng mặt
@@ -259,10 +278,11 @@ export function WardAttendancePage({ campaign, participants, onBack, theme }: Wa
                           <button
                             type="button"
                             onClick={() => handleToggleAttendance(p.id, true)}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${isPresent
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                              isPresent
                                 ? "bg-white text-emerald-600 shadow-sm"
                                 : "text-slate-500 hover:text-slate-700"
-                              }`}
+                            }`}
                           >
                             <UserCheck className="w-3.5 h-3.5" />
                             Có mặt

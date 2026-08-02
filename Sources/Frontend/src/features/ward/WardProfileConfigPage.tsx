@@ -221,9 +221,7 @@ function ConfigField({
           <Icon
             size={16}
             className={`shrink-0 transition-colors ${
-              readOnly
-                ? "text-slate-400"
-                : "text-slate-400 group-focus-within:text-[#0F5BD8]"
+              readOnly ? "text-slate-400" : "text-slate-400 group-focus-within:text-[#0F5BD8]"
             }`}
           />
         )}

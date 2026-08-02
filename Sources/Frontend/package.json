@@ -58,7 +58,6 @@
     "firebase": "^12.15.0",
     "html2canvas": "^1.4.1",
     "input-otp": "^1.4.2",
-    "isomorphic-dompurify": "^3.19.0",
     "jimp": "^1.6.1",
     "leaflet": "^1.9.4",
     "leaflet.heat": "^0.2.0",

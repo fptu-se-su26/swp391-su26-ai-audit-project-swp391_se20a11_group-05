@@ -10,9 +10,9 @@ export interface ChatMessage {
   latency?: number;
   isError?: boolean;
   suggestedFollowUps?: string[]; // [NEW] Câu hỏi gợi ý từ backend
-  action?: string;               // [NEW] NAVIGATE | OPEN_FEEDBACK_FORM
-  navigateTo?: string;           // [NEW] /feedback/create etc.
-  messageId?: string;            // [NEW] UUID để rating
+  action?: string; // [NEW] NAVIGATE | OPEN_FEEDBACK_FORM
+  navigateTo?: string; // [NEW] /feedback/create etc.
+  messageId?: string; // [NEW] UUID để rating
 }
 
 export function useChatbot() {

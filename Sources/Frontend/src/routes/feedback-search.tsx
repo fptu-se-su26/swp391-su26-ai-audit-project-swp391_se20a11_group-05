@@ -666,8 +666,6 @@ function PublicFeedbackLookup() {
     });
   };
 
-
-
   const getStatusInfo = (status: string) => {
     switch (status) {
       case "RESOLVED":

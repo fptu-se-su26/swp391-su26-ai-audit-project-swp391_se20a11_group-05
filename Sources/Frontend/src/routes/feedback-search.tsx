@@ -214,14 +214,7 @@ function PublicFeedbackLookup() {
   const [dateRangeOpen, setDateRangeOpen] = useState(false);
   const [sortBy, setSortBy] = useState("newest");
 
-<<<<<<< HEAD
-  // Dropdown states for custom header
-  const [langOpen, setLangOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
-  const [userOpen, setUserOpen] = useState(false);
 
-=======
->>>>>>> origin/Product
   // Dropdown refs
   const langRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);

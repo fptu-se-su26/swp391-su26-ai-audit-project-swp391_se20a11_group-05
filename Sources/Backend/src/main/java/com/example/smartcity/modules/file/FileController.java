@@ -4,10 +4,9 @@ import com.example.smartcity.modules.feedback.entity.Attachment;
 import com.example.smartcity.modules.feedback.entity.Feedback;
 import com.example.smartcity.modules.feedback.repository.AttachmentRepository;
 import com.example.smartcity.modules.feedback.repository.FeedbackRepository;
-import com.example.smartcity.modules.feedback.service.SupabaseStorageService;
+import com.example.smartcity.modules.user.repository.UserRepository;
 import com.example.smartcity.modules.user.entity.User;
 import com.example.smartcity.modules.user.entity.Role;
-import com.example.smartcity.modules.user.repository.UserRepository;
 import com.example.smartcity.common.exception.ResourceNotFoundException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +30,7 @@ import java.util.stream.Collectors;
 public class FileController {
 
     private final FileStorageService fileStorageService;
-    private final SupabaseStorageService supabaseStorageService;
+    private final CloudinaryStorageService cloudinaryStorageService;
     private final AttachmentRepository attachmentRepository;
     private final FeedbackRepository feedbackRepository;
     private final UserRepository userRepository;
@@ -48,7 +47,7 @@ public class FileController {
         }
 
         validateImageOrVideo(file);
-        String fileUrl = supabaseStorageService.upload(file, 0L);
+        String fileUrl = cloudinaryStorageService.upload(file, 0L);
         log.info("[FileUpload] {} upload {}", authentication.getName(), file.getOriginalFilename());
         return ResponseEntity.ok(UploadResponse.success(fileUrl, file));
     }
@@ -72,7 +71,7 @@ public class FileController {
                 .orElseThrow(() -> new ResourceNotFoundException("User: " + authentication.getName()));
 
         validateImageOrVideo(file);
-        String fileUrl = supabaseStorageService.upload(file, feedbackId);
+        String fileUrl = cloudinaryStorageService.upload(file, feedbackId);
 
         Attachment attachment = new Attachment();
         attachment.setFeedback(feedback);
@@ -115,7 +114,7 @@ public class FileController {
         }
 
         validateImageOrVideo(file);
-        String fileUrl = supabaseStorageService.upload(file, feedbackId);
+        String fileUrl = cloudinaryStorageService.upload(file, feedbackId);
 
         Attachment attachment = new Attachment();
         attachment.setFeedback(feedback);

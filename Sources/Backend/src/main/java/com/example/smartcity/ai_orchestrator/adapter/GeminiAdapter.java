@@ -76,7 +76,7 @@ public class GeminiAdapter implements AiProviderAdapter {
 
         String finalApiKey = apiKey;
         return webClient.post()
-                .uri("/v1beta/models/" + model + ":generateContent?key=" + apiKey)
+                .uri(java.net.URI.create(GEMINI_BASE_URL + "/v1beta/models/" + model + ":generateContent?key=" + apiKey))
                 .bodyValue(body)
                 .retrieve()
                 .bodyToMono(Map.class)
@@ -120,7 +120,7 @@ public class GeminiAdapter implements AiProviderAdapter {
 
         String finalApiKey = apiKey;
         return webClient.post()
-                .uri("/v1beta/models/" + model + ":generateContent?key=" + apiKey)
+                .uri(java.net.URI.create(GEMINI_BASE_URL + "/v1beta/models/" + model + ":generateContent?key=" + apiKey))
                 .bodyValue(body)
                 .retrieve()
                 .bodyToMono(Map.class)
@@ -194,7 +194,7 @@ public class GeminiAdapter implements AiProviderAdapter {
         );
 
         return webClient.post()
-                .uri("/v1beta/models/" + model + ":streamGenerateContent?alt=sse&key=" + apiKey)
+                .uri(java.net.URI.create(GEMINI_BASE_URL + "/v1beta/models/" + model + ":streamGenerateContent?alt=sse&key=" + apiKey))
                 .bodyValue(body)
                 .retrieve()
                 .bodyToFlux(String.class)
@@ -270,6 +270,38 @@ public class GeminiAdapter implements AiProviderAdapter {
         );
     }
 
+    private String buildMockAiAnalysisFallback(String userMessage) {
+        String safeDesc = userMessage.replace("\"", "\\\"").replace("\n", " ");
+        String priority = "MEDIUM";
+        String domain = "KHAC";
+        String reason = "Phân tích tự động (Mock Mode)";
+        
+        String lowerMsg = userMessage.toLowerCase();
+        if (lowerMsg.contains("chửi") || lowerMsg.contains("đm") || lowerMsg.contains("ngu")) {
+            return String.format(
+                "{\"is_toxic\": true, \"masked_description\": \"%s\", \"trust_score\": 90, \"reason\": \"Phát hiện ngôn từ độc hại\", \"priority\": \"MEDIUM\", \"domain\": \"KHAC\"}",
+                safeDesc
+            );
+        }
+        if (lowerMsg.contains("giao thông") || lowerMsg.contains("tai nạn") || lowerMsg.contains("kẹt xe") || lowerMsg.contains("ổ gà") || lowerMsg.contains("đường")) {
+            domain = "GIAO_THONG";
+            if (lowerMsg.contains("tai nạn")) priority = "HIGH";
+        } else if (lowerMsg.contains("cây") || lowerMsg.contains("cống") || lowerMsg.contains("hạ tầng") || lowerMsg.contains("ngập")) {
+            domain = "HA_TANG";
+            if (lowerMsg.contains("ngập")) priority = "HIGH";
+        } else if (lowerMsg.contains("rác") || lowerMsg.contains("môi trường") || lowerMsg.contains("mùi") || lowerMsg.contains("ồn")) {
+            domain = "MOI_TRUONG";
+        } else if (lowerMsg.contains("an ninh") || lowerMsg.contains("trộm") || lowerMsg.contains("đánh nhau")) {
+            domain = "AN_NINH";
+            priority = "HIGH";
+        }
+        
+        return String.format(
+            "{\"is_toxic\": false, \"masked_description\": \"%s\", \"trust_score\": 90, \"reason\": \"%s\", \"priority\": \"%s\", \"domain\": \"%s\"}",
+            safeDesc, reason, priority, domain
+        );
+    }
+
     public static class GeminiResponse {
         private final String text;
         private final int inputTokens;
@@ -320,7 +352,7 @@ public class GeminiAdapter implements AiProviderAdapter {
 
         String finalApiKey = apiKey;
         return webClient.post()
-                .uri("/v1beta/models/" + model + ":generateContent?key=" + apiKey)
+                .uri(java.net.URI.create(GEMINI_BASE_URL + "/v1beta/models/" + model + ":generateContent?key=" + apiKey))
                 .bodyValue(body)
                 .retrieve()
                 .bodyToMono(Map.class)
@@ -348,7 +380,7 @@ public class GeminiAdapter implements AiProviderAdapter {
                         keyPool.markRateLimited(finalApiKey);
                     }
                 })
-                .onErrorReturn(new GeminiResponse(buildMockStructuredFallback(userMessage), 0, 0))
+                .onErrorReturn(new GeminiResponse(buildMockAiAnalysisFallback(userMessage), 0, 0))
                 .toFuture();
     }
 
@@ -377,9 +409,9 @@ public class GeminiAdapter implements AiProviderAdapter {
         try {
             return groqAdapter.generateStructuredResponseAsync(systemPrompt, userMessage)
                     .thenApply(text -> new GeminiResponse(text, 0, 0))
-                    .exceptionally(ex -> new GeminiResponse(buildMockStructuredFallback(userMessage), 0, 0));
+                    .exceptionally(ex -> new GeminiResponse(buildMockAiAnalysisFallback(userMessage), 0, 0));
         } catch (Exception e) {
-            return CompletableFuture.completedFuture(new GeminiResponse(buildMockStructuredFallback(userMessage), 0, 0));
+            return CompletableFuture.completedFuture(new GeminiResponse(buildMockAiAnalysisFallback(userMessage), 0, 0));
         }
     }
 }

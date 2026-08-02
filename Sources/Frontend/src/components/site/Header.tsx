@@ -137,7 +137,7 @@ export function Header() {
     queryKey: ["my-chat-rooms"],
     queryFn: () => campaignApi.getMyChatRooms(),
     enabled: !!user,
-    refetchInterval: 15000,
+    refetchInterval: 60000,
   });
 
   const unreadChatCount = chatRooms.filter((room) => {
@@ -356,59 +356,6 @@ export function Header() {
 
   return (
     <>
-      {/* Top Government Bar */}
-      <div className="relative z-50 w-full bg-[#063A94] text-white border-b border-blue-900/40">
-        <div className="max-w-[1440px] mx-auto px-4 md:px-8 h-10 flex items-center justify-between text-xs font-semibold">
-          <div className="flex items-center gap-3">
-            <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center p-0.5 shadow-sm">
-              <img src={logoUrl} alt="Crest" className="h-full w-full object-contain" />
-            </div>
-            <span className="tracking-wider uppercase font-bold text-slate-100 sm:block hidden">
-              {locale === "vi"
-                ? "Ủy ban Nhân dân Thành phố Đà Nẵng"
-                : "Da Nang City People's Committee"}
-            </span>
-            <span className="tracking-wider uppercase font-bold text-slate-100 sm:hidden">
-              {locale === "vi" ? "UBND TP Đà Nẵng" : "Da Nang City"}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-6 text-slate-200">
-            <a
-              href="tel:1022"
-              className="hover:text-white transition flex items-center gap-1.5 font-bold"
-            >
-              <Phone size={12} className="text-blue-300" />
-              <span>1022</span>
-            </a>
-            <a
-              href="mailto:gopy@danang.gov.vn"
-              className="hover:text-white transition md:flex hidden items-center gap-1.5 font-bold"
-            >
-              <Mail size={12} className="text-blue-300" />
-              <span>gopy@danang.gov.vn</span>
-            </a>
-            <span className="h-3 w-px bg-blue-800 md:block hidden" />
-            <div className="flex items-center gap-2">
-              <Globe size={12} className="text-blue-300" />
-              <button
-                onClick={() => setLocale("vi")}
-                className={`hover:text-white transition uppercase text-[10px] ${locale === "vi" ? "text-white font-extrabold" : "text-slate-400"}`}
-              >
-                VI
-              </button>
-              <span className="text-blue-800 text-[10px]">|</span>
-              <button
-                onClick={() => setLocale("en")}
-                className={`hover:text-white transition uppercase text-[10px] ${locale === "en" ? "text-white font-extrabold" : "text-slate-400"}`}
-              >
-                EN
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <header className="sticky top-0 z-50 bg-white border-b border-[#E4EAF2] shadow-sm">
         <div className="max-w-[1440px] mx-auto px-4 md:px-8 h-[76px] flex items-center justify-between">
           {/* Left: Brand logo & text */}

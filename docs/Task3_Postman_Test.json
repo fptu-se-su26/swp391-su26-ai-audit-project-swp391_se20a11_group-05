@@ -1,0 +1,141 @@
+﻿{
+    "info":  {
+                 "name":  "SmartCity - Task 3 (Create Campaign Tests)",
+                 "description":  "Collection test cho chá»©c nÄƒng táº¡o chiáº¿n dá»‹ch cÃ³ sáºµn pháº§n ÄÄƒng nháº­p tá»± Ä‘á»™ng láº¥y Token",
+                 "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+                 "_postman_id":  "54198003-a5ab-4d1b-b4d3-edbade5ddb73"
+             },
+    "item":  [
+                 {
+                     "name":  "1. ÄÄƒng nháº­p Citizen (Tá»± Ä‘á»™ng láº¥y Token)",
+                     "event":  [
+                                   {
+                                       "listen":  "test",
+                                       "script":  {
+                                                      "exec":  [
+                                                                   "pm.test(\"Login thÃ nh cÃ´ng\", function () {",
+                                                                   "    pm.response.to.have.status(200);",
+                                                                   "});",
+                                                                   "",
+                                                                   "// Tá»± Ä‘á»™ng trÃ­ch xuáº¥t token tá»« response vÃ  lÆ°u vÃ o biáº¿n citizen_token",
+                                                                   "var jsonData = pm.response.json();",
+                                                                   "if (jsonData.data \u0026\u0026 jsonData.data.accessToken) {",
+                                                                   "    pm.collectionVariables.set(\"citizen_token\", jsonData.data.accessToken);",
+                                                                   "    console.log(\"ÄÃ£ lÆ°u token tá»± Ä‘á»™ng!\");",
+                                                                   "} else if (jsonData.accessToken) {",
+                                                                   "    pm.collectionVariables.set(\"citizen_token\", jsonData.accessToken);",
+                                                                   "}"
+                                                               ],
+                                                      "type":  "text/javascript",
+                                                      "packages":  {
+
+                                                                   }
+                                                  }
+                                   }
+                               ],
+                     "request":  {
+                                     "method":  "POST",
+                                     "header":  [
+                                                    {
+                                                        "key":  "Content-Type",
+                                                        "value":  "application/json"
+                                                    }
+                                                ],
+                                     "body":  {
+                                                  "mode":  "raw",
+                                                  "raw":  "{\n  \"username\": \"citizen_test\",\n  \"password\": \"Password123\"\n}"
+                                              },
+                                     "url":  {
+                                                 "raw":  "http://localhost:8081/api/auth/login",
+                                                 "protocol":  "http",
+                                                 "host":  [
+                                                              "localhost"
+                                                          ],
+                                                 "port":  "8081",
+                                                 "path":  [
+                                                              "api",
+                                                              "auth",
+                                                              "login"
+                                                          ]
+                                             }
+                                 },
+                     "response":  [
+
+                                  ]
+                 },
+                 {
+                     "name":  "2. TC_CC_01: Citizen táº¡o chiáº¿n dá»‹ch (Expect 403)",
+                     "event":  [
+                                   {
+                                       "listen":  "test",
+                                       "script":  {
+                                                      "exec":  [
+                                                                   "pm.test(\"Status code is 403 (Forbidden) - Backend pháº£i cháº·n Citizen\", function () {",
+                                                                   "    pm.response.to.have.status(403);",
+                                                                   "});",
+                                                                   "",
+                                                                   "pm.test(\"Response body contains error message\", function () {",
+                                                                   "    var jsonData = pm.response.json();",
+                                                                   "    pm.expect(jsonData.message).to.include(\"Báº¡n khÃ´ng cÃ³ quyá»n\");",
+                                                                   "});",
+                                                                   "",
+                                                                   "pm.test(\"KhÃ´ng tráº£ vá» thÃ´ng tin chiáº¿n dá»‹ch má»›i\", function () {",
+                                                                   "    var jsonData = pm.response.json();",
+                                                                   "    pm.expect(jsonData.id).to.be.undefined;",
+                                                                   "});"
+                                                               ],
+                                                      "type":  "text/javascript",
+                                                      "packages":  {
+
+                                                                   }
+                                                  }
+                                   }
+                               ],
+                     "request":  {
+                                     "auth":  {
+                                                  "type":  "bearer",
+                                                  "bearer":  [
+                                                                 {
+                                                                     "key":  "token",
+                                                                     "value":  "{{citizen_token}}",
+                                                                     "type":  "string"
+                                                                 }
+                                                             ]
+                                              },
+                                     "method":  "POST",
+                                     "header":  [
+                                                    {
+                                                        "key":  "Content-Type",
+                                                        "value":  "application/json"
+                                                    }
+                                                ],
+                                     "body":  {
+                                                  "mode":  "raw",
+                                                  "raw":  "{\n  \"title\": \"Chiáº¿n dá»‹ch test cá»§a Citizen\",\n  \"privateLocationText\": \"BÃ£i biá»ƒn\",\n  \"requiredTools\": \"GÄƒng tay, bao rÃ¡c\",\n  \"organizerContact\": \"0901234567\",\n  \"minParticipants\": 5,\n  \"maxParticipants\": 20,\n  \"startTime\": \"2026-07-25T07:00:00\",\n  \"endTime\": \"2026-07-25T11:00:00\"\n}"
+                                              },
+                                     "url":  {
+                                                 "raw":  "http://localhost:8081/api/campaigns",
+                                                 "protocol":  "http",
+                                                 "host":  [
+                                                              "localhost"
+                                                          ],
+                                                 "port":  "8081",
+                                                 "path":  [
+                                                              "api",
+                                                              "campaigns"
+                                                          ]
+                                             }
+                                 },
+                     "response":  [
+
+                                  ]
+                 }
+             ],
+    "variable":  [
+                     {
+                         "key":  "citizen_token",
+                         "value":  "",
+                         "type":  "string"
+                     }
+                 ]
+}

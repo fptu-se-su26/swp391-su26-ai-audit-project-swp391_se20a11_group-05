@@ -38,12 +38,12 @@ public class ContentGuardrailService {
     // ─── BLOCK patterns (reject ngay) ─────────────────────────────
     private static final List<Pattern> BLOCK_PATTERNS = List.of(
         Pattern.compile("(ignore|bo qua).*(previous|instruct|prompt)", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("bỏ qua.*chỉ dẫn"),
+        Pattern.compile("bo qua.*chi dan"),
         Pattern.compile("lam sao.*che tao.*vu khi"),
         Pattern.compile("hack|crack|exploit|bypass.*security", Pattern.CASE_INSENSITIVE),
         Pattern.compile("jailbreak|dan.*mode|developer.*mode", Pattern.CASE_INSENSITIVE),
         Pattern.compile("forget.*instructions|pretend.*no.*rules", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("you are now|từ bây giờ bạn là", Pattern.CASE_INSENSITIVE)
+        Pattern.compile("you are now|tu bay gio ban la", Pattern.CASE_INSENSITIVE)
     );
 
     // ─── WARN patterns (log nhưng không block ngay) ───────────────

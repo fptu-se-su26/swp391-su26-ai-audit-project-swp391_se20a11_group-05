@@ -39,8 +39,11 @@ public class PoliceFeedbackController {
      * GET /api/police/feedbacks/hotspots - Lấy dữ liệu điểm nóng cho bản đồ nhiệt
      */
     @GetMapping("/hotspots")
-    public ResponseEntity<ApiResponse<List<HotspotResponse>>> getHotspots(Authentication authentication) {
-        List<HotspotResponse> hotspots = feedbackService.getHotspots(authentication.getName());
+    public ResponseEntity<ApiResponse<List<HotspotResponse>>> getHotspots(
+            Authentication authentication,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer year) {
+        List<HotspotResponse> hotspots = feedbackService.getHotspots(authentication.getName(), month, year);
         return ResponseEntity.ok(ApiResponse.success("Lấy dữ liệu điểm nóng thành công", hotspots));
     }
 
@@ -106,8 +109,16 @@ public class PoliceFeedbackController {
      * GET /api/police/feedbacks/analyze-duplicates - Sử dụng AI để phân tích và gom nhóm các phản ánh trùng lặp
      */
     @GetMapping("/analyze-duplicates")
-    public ResponseEntity<ApiResponse<List<com.example.smartcity.modules.police.dto.AiDeduplicationResponse>>> analyzeDuplicates(Authentication authentication) {
-        List<com.example.smartcity.modules.police.dto.AiDeduplicationResponse> res = feedbackService.analyzeDuplicates(authentication.getName());
+    public ResponseEntity<ApiResponse<List<com.example.smartcity.modules.police.dto.AiDeduplicationResponse>>> analyzeDuplicates(
+            Authentication authentication,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer year) {
+        
+        // Mặc định là tháng hiện tại nếu không truyền
+        int m = month != null ? month : java.time.LocalDate.now().getMonthValue();
+        int y = year != null ? year : java.time.LocalDate.now().getYear();
+
+        List<com.example.smartcity.modules.police.dto.AiDeduplicationResponse> res = feedbackService.analyzeDuplicates(authentication.getName(), m, y);
         return ResponseEntity.ok(ApiResponse.success("Phân tích trùng lặp bằng AI thành công", res));
     }
 }

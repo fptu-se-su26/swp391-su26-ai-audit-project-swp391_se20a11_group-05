@@ -1,44 +1,31 @@
 package com.example.smartcity.modules.feedback.service;
 
 import com.example.smartcity.ai_orchestrator.adapter.GeminiAdapter;
-import com.example.smartcity.modules.feedback.entity.Attachment;
+import com.example.smartcity.modules.feedback.entity.AiAnalysisLog;
+import com.example.smartcity.modules.feedback.entity.AiTask;
 import com.example.smartcity.modules.feedback.entity.Feedback;
 import com.example.smartcity.modules.feedback.entity.FeedbackLog;
 import com.example.smartcity.modules.feedback.entity.FeedbackStatus;
-import com.example.smartcity.modules.feedback.repository.AttachmentRepository;
+import com.example.smartcity.modules.feedback.repository.AiAnalysisLogRepository;
+import com.example.smartcity.modules.feedback.repository.AiTaskRepository;
 import com.example.smartcity.modules.feedback.repository.FeedbackLogRepository;
 import com.example.smartcity.modules.feedback.repository.FeedbackRepository;
 import com.example.smartcity.modules.notification.WebSocketNotificationService;
-import com.example.smartcity.modules.user.entity.Role;
-import com.example.smartcity.modules.user.entity.User;
-import com.example.smartcity.modules.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.example.smartcity.modules.file.FileStorageService;
-import org.springframework.core.io.Resource;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import java.io.InputStream;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import com.example.smartcity.modules.feedback.entity.AiTask;
-import com.example.smartcity.modules.feedback.repository.AiTaskRepository;
-import com.example.smartcity.modules.feedback.entity.AiAnalysisLog;
-import com.example.smartcity.modules.feedback.repository.AiAnalysisLogRepository;
-
 /**
- * [ENTERPRISE FEATURE] AUTO-DISPATCH & ROUTING (Multimodal & Advanced Business Logic)
+ * [ENTERPRISE FEATURE] AUTO-DISPATCH & ROUTING (Text-Only AI & Advanced Business Logic)
  */
 @Service
 @RequiredArgsConstructor
@@ -48,21 +35,29 @@ public class AutoDispatchService {
     private final GeminiAdapter geminiAdapter;
     private final FeedbackRepository feedbackRepository;
     private final FeedbackLogRepository feedbackLogRepository;
-    private final AttachmentRepository attachmentRepository;
-    private final UserRepository userRepository;
-    private final FileStorageService fileStorageService;
     private final WebSocketNotificationService notificationService;
     private final com.example.smartcity.modules.notification.service.NotificationService citizenNotificationService;
     private final AiTaskRepository aiTaskRepository;
     private final AiAnalysisLogRepository aiAnalysisLogRepository;
+    private final com.example.smartcity.modules.feedback.repository.CategoryRepository categoryRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @org.springframework.beans.factory.annotation.Autowired
     @org.springframework.context.annotation.Lazy
     private AutoDispatchService self;
 
+    public void setSelf(AutoDispatchService self) {
+        this.self = self;
+    }
+
+    private AutoDispatchService getSelf() {
+        return self != null ? self : this;
+    }
+
     @Data
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
     public static class AiAnalysisResult {
+        @com.fasterxml.jackson.annotation.JsonProperty("is_toxic")
         private boolean is_toxic;
         private String masked_description;
         private int trust_score;
@@ -113,19 +108,25 @@ public class AutoDispatchService {
             return;
         }
 
-        log.info("🚀 [Auto-Dispatch Worker] Bắt đầu phân tích AI Multimodal cho Feedback #{}", feedback.getTrackingCode());
-
-        // [MULTIMODAL] Lấy hình ảnh chuyển sang Base64
-        List<String> base64Images = fetchBase64Images(feedbackId);
+        log.info("🚀 [Auto-Dispatch Worker] Bắt đầu phân tích AI cho Feedback #{}", feedback.getTrackingCode());
 
         String systemPrompt = """
             Bạn là một Chuyên gia phân tích dữ liệu Đô thị Thông minh và Kiểm duyệt nội dung cho Chính quyền.
-            Nhiệm vụ: Đánh giá độ tin cậy, kiểm duyệt ngôn từ, che giấu thông tin cá nhân và phân loại sự cố dựa trên mô tả và HÌNH ẢNH đính kèm.
+            Nhiệm vụ: Đánh giá độ tin cậy, kiểm duyệt ngôn từ, che giấu thông tin cá nhân và phân loại sự cố DỰA HOÀN TOÀN VÀO VĂN BẢN MÔ TẢ.
             
             QUY TẮC KIỂM DUYỆT (BẮT BUỘC):
-            1. is_toxic: Đặt thành true nếu mô tả có từ ngữ chửi thề, thóa mạ. Nếu là khẩn cấp cứu hộ, có thể bỏ qua.
+            1. is_toxic: Đặt thành true nếu mô tả có từ ngữ chửi thề, thóa mạ. Nếu là khẩn cấp cứu hộ (cháy, tai nạn, đánh nhau), có thể bỏ qua.
             2. masked_description: Tìm và che Số điện thoại, CCCD bằng chuỗi "***".
-            3. trust_score: Phải đối chiếu hình ảnh. Ảnh không khớp nội dung -> Dưới 30 điểm. Ảnh khớp -> Trên 80 điểm.
+            3. trust_score: Đánh giá dựa trên độ chi tiết của văn bản theo công thức (kết quả từ 0-100):
+               - Điểm cơ sở: 50
+               - +15 nếu có địa điểm chi tiết (số nhà, tên đường, ngã tư, phường/xã)
+               - +10 nếu có mốc thời gian cụ thể (hôm nay lúc 14h, sáng nay, chiều qua)
+               - +15 nếu mô tả hiện trạng rõ ràng (kích thước, màu sắc, số lượng, mức độ nguy hiểm)
+               - +10 nếu mô tả dài, chi tiết (từ 50 từ trở lên, rõ ràng, mạch lạc)
+               - -30 nếu mô tả dưới 5 từ hoặc chỉ là 1-2 từ đơn lẻ (quá ngắn để xác minh)
+               - -20 nếu mô tả chung chung, không có địa điểm và không có thông tin cụ thể nào
+               - -20 nếu nội dung lặp lại từ/câu vô nghĩa, hoặc rõ ràng là test/spam (ví dụ: "abc abc abc", "test 123", "aaaa")
+               - -25 nếu nội dung hoàn toàn không liên quan đến sự cố đô thị (hỏi thủ tục hành chính, chào hỏi, quảng cáo)
             
             QUY TẮC PHÂN LOẠI DOMAIN (BẮT BUỘC):
             - AN_NINH: Đánh nhau, cờ bạc, ma túy, trộm cắp, đe dọa bằng hung khí (Giao cho CÔNG AN).
@@ -155,8 +156,8 @@ public class AutoDispatchService {
         long startTime = System.currentTimeMillis();
         GeminiAdapter.GeminiResponse geminiResponse;
         try {
-            geminiResponse = geminiAdapter.generateMultimodalResponseWithUsageAsync(systemPrompt, userMessage, base64Images)
-                    .get(30, TimeUnit.SECONDS);
+            geminiResponse = geminiAdapter.generateStructuredResponseWithUsageAsync(systemPrompt, userMessage)
+                    .get(15, TimeUnit.SECONDS);
         } catch (Exception e) {
             log.warn("⚠️ [Auto-Dispatch Worker] AI phân tích thất bại cho Feedback {}. Lý do: {}", feedback.getTrackingCode(), e.getMessage());
             self.handleAiFallbackAndRetry(task.getId(), feedbackId, e.getMessage());
@@ -170,12 +171,21 @@ public class AutoDispatchService {
 
         log.info("🤖 [Auto-Dispatch Worker] Raw AI Output: {}", aiRawResult);
 
+        // Guard: Nếu response không chứa '{' thì là mock fallback (Gemini bị rate limit)
+        // → không parse JSON, retry luôn để tránh lỗi confusing "Unexpected character"
+        if (!aiRawResult.contains("{")) {
+            log.warn("⚠️ [Auto-Dispatch Worker] AI trả về mock fallback (có thể do rate limit), kích hoạt retry. Response: {}",
+                    aiRawResult.substring(0, Math.min(100, aiRawResult.length())));
+            self.handleAiFallbackAndRetry(task.getId(), feedbackId, "AI mock fallback: " + aiRawResult.substring(0, Math.min(80, aiRawResult.length())));
+            return;
+        }
+
         // Clean markdown if present and extract only the JSON object
         String jsonStr = aiRawResult;
         jsonStr = jsonStr.replace("```json", "");
         jsonStr = jsonStr.replace("```", "");
         jsonStr = jsonStr.trim();
-        
+
         int startIndex = jsonStr.indexOf("{");
         int endIndex = jsonStr.lastIndexOf("}");
         if (startIndex >= 0 && endIndex >= 0 && startIndex <= endIndex) {
@@ -247,10 +257,32 @@ public class AutoDispatchService {
 
             log.info("📊 [Auto-Dispatch] Result parsed: Trust={}, Priority={}, Domain={}", aiResult.getTrust_score(), safePriority, safeDomain);
 
+            // [AUTO-FIX CATEGORY] AI phát hiện chọn sai danh mục thì tự động sửa lại
+            String suggestedCategoryCode = null;
+            switch(safeDomain) {
+                case "AN_NINH": suggestedCategoryCode = "PUBLIC_SECURITY"; break;
+                case "GIAO_THONG": suggestedCategoryCode = "TRAFFIC"; break;
+                case "MOI_TRUONG": suggestedCategoryCode = "ENVIRONMENT"; break;
+                case "HA_TANG": suggestedCategoryCode = "URBAN_INFRASTRUCTURE"; break;
+            }
+            if (suggestedCategoryCode != null && !suggestedCategoryCode.equals(feedback.getCategoryCode())) {
+                String oldCategoryName = feedback.getCategoryName();
+                com.example.smartcity.modules.feedback.entity.Category newCat = categoryRepository.findByCodeAndActiveTrue(suggestedCategoryCode).orElse(null);
+                if (newCat != null) {
+                    feedback.setCategoryCode(newCat.getCode());
+                    feedback.setCategoryName(newCat.getNameVi() != null ? newCat.getNameVi() : newCat.getName());
+                    
+                    FeedbackLog catLog = new FeedbackLog(feedback, feedback.getCitizen(), oldStatus, oldStatus, 
+                        "🔄 [AI AUTO-FIX] Đã tự động điều chỉnh danh mục từ '" + oldCategoryName + "' sang '" + feedback.getCategoryName() + "' dựa trên ngữ cảnh sự cố.");
+                    feedbackLogRepository.save(catLog);
+                    log.info("🔄 [Auto-Dispatch] Auto-Fixed Category from {} to {}", oldCategoryName, feedback.getCategoryName());
+                }
+            }
+
             // 3. TRUST SCORE < 40 -> SPAM/REJECT
             if (aiResult.getTrust_score() < 40) {
-                String friendlyMsg = "Hình ảnh hoặc nội dung mô tả trong phản ánh chưa đủ rõ ràng để xác minh. " +
-                    "Vui lòng bổ sung ảnh/video thực tế, góc chụp rõ và mô tả chi tiết hơn, sau đó gửi lại.";
+                String friendlyMsg = "Nội dung mô tả trong phản ánh chưa đủ rõ ràng để xác minh. " +
+                    "Vui lòng bổ sung địa điểm cụ thể (số nhà, tên đường, phường/xã), mốc thời gian và mô tả hiện trạng chi tiết hơn, sau đó gửi lại.";
                 feedback.setStatus(FeedbackStatus.REJECTED);
                 feedback.setResolutionNote(friendlyMsg);
                 feedbackRepository.save(feedback);
@@ -282,10 +314,14 @@ public class AutoDispatchService {
                     }
                 }
                 
-                feedback.setStatus(FeedbackStatus.ASSIGNED);
+                if (aiResult.getTrust_score() <= 70) {
+                    feedback.setStatus(FeedbackStatus.PENDING);
+                } else {
+                    feedback.setStatus(FeedbackStatus.ASSIGNED);
+                }
                 feedbackRepository.save(feedback);
 
-                if ("WARD_STAFF".equals(receiverType)) {
+                if ("WARD_STAFF".equals(receiverType) && aiResult.getTrust_score() > 70) {
                     TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                         @Override
                         public void afterCommit() {
@@ -295,11 +331,20 @@ public class AutoDispatchService {
                 }
 
                 if (aiResult.getTrust_score() <= 70) {
-                    FeedbackLog logEntry = new FeedbackLog(feedback, feedback.getCitizen(), oldStatus, oldStatus, 
+                    FeedbackLog logEntry = new FeedbackLog(feedback, feedback.getCitizen(), oldStatus, FeedbackStatus.PENDING, 
                         "🟡 [AI WARNING] Trust Score trung bình (" + aiResult.getTrust_score() + "%). Yêu cầu duyệt kỹ. AI phân loại: " + safePriority + " - " + safeDomain + ". Lý do: " + aiResult.getReason());
                     feedbackLogRepository.save(logEntry);
+                    
+                    final String trackingCode = feedback.getTrackingCode();
+                    TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            notificationService.notifyFeedbackStatusChange(feedbackId, "PENDING", 
+                                "Phản ánh " + trackingCode + " đang được xem xét thêm chi tiết.");
+                        }
+                    });
                 } else {
-                    FeedbackLog logEntry = new FeedbackLog(feedback, feedback.getCitizen(), oldStatus, oldStatus, 
+                    FeedbackLog logEntry = new FeedbackLog(feedback, feedback.getCitizen(), oldStatus, FeedbackStatus.ASSIGNED, 
                         "🟢 [AI CLASSIFIED] Mức độ: " + safePriority + ", Lĩnh vực: " + safeDomain + ", Uy tín: " + aiResult.getTrust_score() + "%.");
                     feedbackLogRepository.save(logEntry);
                 }
@@ -342,17 +387,39 @@ public class AutoDispatchService {
         if (retry >= 3) {
             aiTask.setStatus("FAILED");
             log.error("❌ [Outbox Worker] Tác vụ AI cho Feedback #{} thất bại hoàn toàn sau 3 lần thử.", feedback != null ? feedback.getTrackingCode() : feedbackId);
-            
+
             if (feedback != null) {
-                FeedbackLog logEntry = new FeedbackLog(feedback, feedback.getCitizen(), feedback.getStatus(), feedback.getStatus(), 
-                    "⚠️ [HỆ THỐNG] Phân tích AI thất bại hoàn toàn sau 3 lần thử (" + errorMessage + "). Báo cáo chuyển sang luồng Duyệt Thủ Công.");
+                // [BUG FIX] Fallback: AI chưa kịp set managedByRole (vì fail trước khi phân loại xong)
+                // → mặc định chuyển về WARD_STAFF để feedback không bị "mồ côi"
+                if (feedback.getManagedByRole() == null || feedback.getManagedByRole().isBlank()) {
+                    feedback.setManagedByRole("WARD_STAFF");
+                    feedback.setReceiverType("WARD_STAFF");
+                    feedback.setAssignedToRole("WARD_STAFF");
+                    if (feedback.getWard() != null) {
+                        feedback.setAssignedUnitName(feedback.getWard().getName() + " Ward People's Committee");
+                    }
+                    log.warn("⚠️ [Fallback] managedByRole chưa được set bởi AI → mặc định WARD_STAFF để tránh feedback mồ côi.");
+                }
+
+                // Luôn chuyển status về PENDING_RECEIVE để phường/cán bộ nhìn thấy và xét duyệt thủ công
+                FeedbackStatus oldStatus = feedback.getStatus();
+                feedback.setStatus(FeedbackStatus.PENDING_RECEIVE);
+                feedbackRepository.save(feedback);
+
+                String wardName = feedback.getWard() != null ? feedback.getWard().getName() : "địa phương";
+                FeedbackLog logEntry = new FeedbackLog(feedback, feedback.getCitizen(), oldStatus, FeedbackStatus.PENDING_RECEIVE,
+                    "⚠️ [Hệ thống] Hệ thống phân tích tự động hiện đang quá tải. Phản ánh đã được chuyển giao cho cán bộ Phường " + wardName + " để tiếp nhận và xử lý thủ công.");
                 feedbackLogRepository.save(logEntry);
 
-                if ("WARD_STAFF".equals(feedback.getManagedByRole()) && feedback.getWard() != null) {
+                // Notify phường (bất kể role là gì) nếu có ward → đảm bảo có người tiếp nhận
+                if (feedback.getWard() != null) {
                     TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                         @Override
                         public void afterCommit() {
                             citizenNotificationService.createFeedbackAssignedToWardNotification(feedbackId);
+                            // Message hướng đến citizen — không lộ thông tin nội bộ AI
+                            notificationService.notifyFeedbackStatusChange(feedbackId, FeedbackStatus.PENDING_RECEIVE.name(),
+                                "📋 Phản ánh " + feedback.getTrackingCode() + " của bạn đã được tiếp nhận và đang chờ xử lý.");
                         }
                     });
                 }
@@ -374,59 +441,14 @@ public class AutoDispatchService {
         }
     }
 
-    // --- Helpers để tải hình ảnh Base64 cho Multimodal ---
-    List<String> fetchBase64Images(Long feedbackId) {
-        List<Attachment> attachments = attachmentRepository.findByFeedbackId(feedbackId);
-        List<String> base64Images = new ArrayList<>();
-        int count = 0;
-        for (Attachment att : attachments) {
-            if (count >= 2) break; // Chỉ phân tích tối đa 2 ảnh để tiết kiệm thời gian
-            if (att.getFileType() != null && att.getFileType().startsWith("IMAGE")) {
-                try {
-                    String fileUrl = att.getFileUrl();
-                    String fileName = null;
-                    if (fileUrl != null) {
-                        if (fileUrl.contains("/api/files/")) {
-                            fileName = fileUrl.substring(fileUrl.indexOf("/api/files/") + "/api/files/".length());
-                        } else if (!fileUrl.startsWith("http://") && !fileUrl.startsWith("https://")) {
-                            if (fileUrl.contains("/")) {
-                                fileName = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
-                            } else {
-                                fileName = fileUrl;
-                            }
-                        }
-                    }
-
-                    if (fileName != null) {
-                        log.info("ℹ️ Tải ảnh từ thư mục cục bộ thông qua FileStorageService, fileName: {}", fileName);
-                        Resource resource = fileStorageService.loadFile(fileName);
-                        try (InputStream is = resource.getInputStream()) {
-                            byte[] bytes = is.readAllBytes();
-                            base64Images.add(Base64.getEncoder().encodeToString(bytes));
-                            count++;
-                        }
-                    } else {
-                        log.info("ℹ️ Tải ảnh từ URL: {}", fileUrl);
-                        URL url = new URL(fileUrl);
-                        try (InputStream is = url.openStream()) {
-                            byte[] bytes = is.readAllBytes();
-                            base64Images.add(Base64.getEncoder().encodeToString(bytes));
-                            count++;
-                        }
-                    }
-                } catch (Exception e) {
-                    log.warn("⚠️ Lỗi tải ảnh {}: {}", att.getFileUrl(), e.getMessage());
-                }
-            }
-        }
-        return base64Images;
-    }
-
     // --- Helpers để chống ảo giác (Hallucination) từ AI ---
     private String sanitizePriority(String rawPriority) {
         if (rawPriority == null) return "MEDIUM";
         String p = rawPriority.toUpperCase().trim();
-        return (p.contains("CRITICAL") || p.contains("HIGH") || p.contains("LOW")) ? p : "MEDIUM";
+        if (p.contains("CRITICAL")) return "CRITICAL";
+        if (p.contains("HIGH")) return "HIGH";
+        if (p.contains("LOW")) return "LOW";
+        return "MEDIUM";
     }
 
     private String sanitizeDomain(String rawDomain) {

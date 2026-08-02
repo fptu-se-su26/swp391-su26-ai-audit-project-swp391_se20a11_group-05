@@ -192,7 +192,7 @@ export interface TokenResponse {
   token: string;
   tokenType: string;
   username: string;
-  role: BackendRole;
+  role: RawBackendRole;
   wardName?: string | null;
   wardType?: string | null;
   wardId?: number | null;
@@ -209,7 +209,7 @@ export interface TokenPairResponse {
   tokenType: string;
   expiresIn: number;
   username: string;
-  role: BackendRole;
+  role: RawBackendRole;
   wardName?: string | null;
   wardType?: string | null;
   wardId?: number | null;
@@ -223,6 +223,7 @@ export interface MfaRequiredResponse {
 }
 
 export type BackendRole = "CITIZEN" | "WARD_STAFF" | "POLICE" | "SUPER_ADMIN";
+export type RawBackendRole = BackendRole | `ROLE_${BackendRole}`;
 
 export interface UserProfile {
   id: number;
@@ -745,9 +746,16 @@ export const userApi = {
       method: "POST",
     }),
 
-  deleteOwnProfile: () =>
+  sendDeleteProfileOtp: (data: { password?: string }) =>
+    request<string>("/api/users/profile/delete/otp", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  deleteOwnProfile: (data: { password?: string; otpCode?: string }) =>
     request<void>("/api/users/profile", {
       method: "DELETE",
+      body: JSON.stringify(data),
     }),
 
   // SUPER_ADMIN: lấy tất cả users có phân trang
@@ -834,10 +842,19 @@ export const policeApi = {
       body: JSON.stringify({ reason }),
     }),
 
-  getHotspots: () =>
-    request<unknown[]>("/api/police/feedbacks/hotspots", {
+  getHotspots: (params?: { month?: number; year?: number }) => {
+    let url = "/api/police/feedbacks/hotspots";
+    if (params) {
+      const queryParams = new URLSearchParams();
+      if (params.month) queryParams.append("month", params.month.toString());
+      if (params.year) queryParams.append("year", params.year.toString());
+      const queryString = queryParams.toString();
+      if (queryString) url += `?${queryString}`;
+    }
+    return request<unknown[]>(url, {
       method: "GET",
-    }),
+    });
+  },
 
   acceptFeedback: (id: number | string) =>
     request<PoliceFeedbackResponse>(`/api/police/feedbacks/${id}/accept`, {
@@ -856,10 +873,15 @@ export const policeApi = {
       body: JSON.stringify({ resultNote }),
     }),
 
-  analyzeDuplicates: () =>
-    request<any[]>("/api/police/feedbacks/analyze-duplicates", {
+  analyzeDuplicates: (month?: number, year?: number) => {
+    let url = "/api/police/feedbacks/analyze-duplicates";
+    if (month && year) {
+      url += `?month=${month}&year=${year}`;
+    }
+    return request<any[]>(url, {
       method: "GET",
-    }),
+    });
+  },
 
   getSchedule: (mondayKey: string) =>
     request<any>(`/api/police/schedule?mondayKey=${mondayKey}`, {
@@ -1427,8 +1449,13 @@ export const wardRankingApi = {
   getTop: (limit = 3) =>
     request<WardRankingEntry[]>(`/api/ward-ranking/top?limit=${limit}`, { skipAuth: true }),
 
-  getWardDetail: (wardId: number | string) =>
-    request<WardRankingDetail>(`/api/ward-ranking/${wardId}`, { skipAuth: true }),
+  getWardDetail: (wardId: number | string, year?: number, month?: number) => {
+    const params = new URLSearchParams();
+    if (year) params.set("year", String(year));
+    if (month) params.set("month", String(month));
+    const qs = params.toString() ? `?${params.toString()}` : "";
+    return request<WardRankingDetail>(`/api/ward-ranking/${wardId}${qs}`, { skipAuth: true });
+  },
 
   recalculate: (year?: number, month?: number) => {
     const params = new URLSearchParams();

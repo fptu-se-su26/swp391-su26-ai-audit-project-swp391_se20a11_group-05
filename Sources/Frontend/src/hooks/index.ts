@@ -312,10 +312,10 @@ export function useSupplementFeedbackInfo() {
   });
 }
 
-export function useHotspots() {
+export function useHotspots(params?: { month?: number; year?: number }) {
   return useQuery<unknown[]>({
-    queryKey: ["feedbacks", "hotspots"],
-    queryFn: () => policeApi.getHotspots(),
+    queryKey: ["feedbacks", "hotspots", params?.month, params?.year],
+    queryFn: () => policeApi.getHotspots(params),
     staleTime: 60_000, // 1 min cache
   });
 }
@@ -370,6 +370,14 @@ export function useLoginMutation() {
   });
 }
 
+export function useSendDeleteProfileOtpMutation() {
+  return useMutation({
+    mutationFn: (data: { password?: string }) => userApi.sendDeleteProfileOtp(data),
+  });
+}
+
+
+
 export function useRegisterMutation() {
   return useMutation({
     mutationFn: ({
@@ -423,7 +431,11 @@ export function useUpdateProfileMutation() {
 }
 
 export function useChangePasswordMutation() {
-  return useMutation<void, Error, { currentPassword: string; newPassword: string; confirmPassword: string; otpCode: string }>({
+  return useMutation<
+    void,
+    Error,
+    { currentPassword: string; newPassword: string; confirmPassword: string; otpCode: string }
+  >({
     mutationFn: (data) => userApi.changePassword(data),
   });
 }
@@ -448,8 +460,8 @@ export function useCitizenParticipationHistory(
 
 export function useDeleteOwnProfileMutation() {
   const queryClient = useQueryClient();
-  return useMutation<void, Error, void>({
-    mutationFn: () => userApi.deleteOwnProfile(),
+  return useMutation<void, Error, { password?: string; otpCode?: string }>({
+    mutationFn: (data) => userApi.deleteOwnProfile(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.auth.profile });
       queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
@@ -464,7 +476,7 @@ export function useNotifications(enabled = true) {
     queryFn: () => notificationApi.getAll(),
     staleTime: 30_000,
     enabled: enabled && !!token,
-    refetchInterval: 10_000,
+    refetchInterval: 60_000,
   });
 }
 
@@ -475,7 +487,7 @@ export function useNotificationUnreadCount(enabled = true) {
     queryFn: () => notificationApi.getUnreadCount(),
     staleTime: 30_000,
     enabled: enabled && !!token,
-    refetchInterval: 10_000,
+    refetchInterval: 60_000,
   });
 }
 
@@ -490,8 +502,7 @@ export function useInfiniteNotifications(size = 5) {
       return lastPage.hasNext ? currentPage + 1 : undefined;
     },
     staleTime: 30_000,
-    refetchInterval: 10_000,
-    enabled: !!token,
+    refetchInterval: 60_000,
   });
 }
 

@@ -63,8 +63,8 @@ import {
 import { lazy, Suspense, useState, useEffect } from "react";
 import { staticNews, staticFaqs } from "@/lib/static-content";
 
-const CivicMap = clientOnly(() =>
-  import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
+const CivicMap = clientOnly(
+  () => import("@/components/site/CivicMap").then((m) => ({ default: m.CivicMap })) as any,
 ) as any;
 
 // ── Da Nang city slideshow images (Unsplash)
@@ -169,7 +169,7 @@ function HomePage() {
     data: recentPage,
     isLoading: recentLoading,
     refetch: refetchRecent,
-  } = useRecentPublicFeedback(5);
+  } = useRecentPublicFeedback(5, { status: "RESOLVED" });
 
   const { data: newsData, isLoading: isNewsLoading } = useNewsList(0, 6);
   const realNews = newsData?.content || [];
@@ -509,7 +509,8 @@ function HomePage() {
     return 0;
   };
 
-  const recentMockReports = [...mockReports]
+  const recentMockReports = mockReports
+    .filter((r) => r.status === "resolved" || r.status === "RESOLVED")
     .sort((a, b) => getMockReportTime(b) - getMockReportTime(a))
     .slice(0, 5);
 
@@ -689,7 +690,10 @@ function HomePage() {
 
               <button
                 type="button"
-                onClick={() => { setGuideStep(0); setShowGuide(true); }}
+                onClick={() => {
+                  setGuideStep(0);
+                  setShowGuide(true);
+                }}
                 className="px-5 py-3 bg-white text-[#0B4FC4] border border-[#0B4FC4] rounded-lg text-sm font-semibold hover:bg-blue-50 transition flex items-center gap-2 shadow-sm font-sans cursor-pointer"
               >
                 <PlayCircle size={18} />
@@ -861,7 +865,7 @@ function HomePage() {
           </div>
 
           {/* Grouped Bar Chart - hidden by design, wrapped in conditional false to prevent mounting warnings */}
-          {false && (
+          {import.meta.env.VITE_SHOW_HOME_CHART === "true" && (
             <div className="hidden w-full bg-white border border-[#E4EAF2] rounded-xl p-5 hover:shadow-sm transition">
               <div className="h-[320px] md:h-[400px]">
                 <ResponsiveContainer width="100%" height="100%" minWidth={0}>
@@ -949,9 +953,180 @@ function HomePage() {
         </section>
 
         {/* Sections 3, 4, 5, 6 — MAIN CONTENT GRID */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-          {/* Left Column: Recent reports (Section 4) */}
-          <section className="lg:col-span-8 bg-white rounded-2xl border border-[#E4EAF2] p-5 md:p-6 animate-fade-in-up stagger-3">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* DÒNG 1 - CỘT TRÁI: Chiến dịch đang gọi đăng ký (8 cols) */}
+          {activeCampaigns.length > 0 && (
+            <section className="lg:col-span-8 bg-white rounded-2xl border border-[#E4EAF2] p-5 md:p-6 animate-fade-in-up flex flex-col h-full">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-6 bg-[#0B4FC4] rounded-sm" />
+                  <h2 className="text-[#123E8A] font-bold text-lg md:text-xl font-sans flex items-center gap-2">
+                    <Rocket size={20} className="text-[#0B4FC4] animate-pulse" />
+                    Chiến dịch đang gọi đăng ký
+                  </h2>
+                </div>
+                <Link
+                  to="/campaigns"
+                  className="text-sm font-semibold text-[#0B4FC4] hover:underline flex items-center gap-1 font-sans"
+                >
+                  Xem tất cả &rarr;
+                </Link>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                {activeCampaigns.map((campaign) => (
+                  <Link
+                    key={campaign.id}
+                    to="/campaigns/$id"
+                    params={{ id: campaign.id.toString() }}
+                    className="bg-white rounded-xl border border-[#E4EAF2] hover:border-[#0B4FC4] overflow-hidden hover:shadow-[0_12px_24px_rgba(11,79,196,0.06)] hover:-translate-y-1 transition-all duration-300 group flex flex-col h-full"
+                  >
+                    {/* Top banner image */}
+                    <div className="h-28 w-full overflow-hidden bg-slate-50 relative shrink-0">
+                      <img
+                        src={
+                          campaign.coverImageUrl && campaign.coverImageUrl.trim() !== ""
+                            ? campaign.coverImageUrl
+                            : campaign.category === "infrastructure"
+                              ? "https://images.unsplash.com/photo-1590069261209-f8e9b8642343?auto=format&fit=crop&w=400&q=80"
+                              : campaign.category === "fire_safety"
+                                ? "https://images.unsplash.com/photo-1508873696983-2df519f0397e?auto=format&fit=crop&w=400&q=80"
+                                : campaign.category === "public_safety"
+                                  ? "https://images.unsplash.com/photo-1557597774-9d273605dfa9?auto=format&fit=crop&w=400&q=80"
+                                  : "https://images.unsplash.com/photo-1559027615-cd44874e96e4?auto=format&fit=crop&w=400&q=80"
+                        }
+                        alt=""
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute top-2 left-2">
+                        <span className="px-2 py-0.5 bg-white/95 backdrop-blur-sm text-[#0B4FC4] border border-[#BFDBFE] rounded text-[10px] font-bold uppercase tracking-wider font-sans shadow-sm">
+                          {campaign.category === "infrastructure"
+                            ? "Hạ tầng"
+                            : campaign.category === "fire_safety"
+                              ? "PCCC"
+                              : campaign.category === "public_safety"
+                                ? "An ninh"
+                                : "Cộng đồng"}
+                        </span>
+                      </div>
+                      
+                      {campaign.daysLeft !== undefined && (
+                        <div className="absolute bottom-2 right-2">
+                          <span className="px-2 py-0.5 bg-black/60 backdrop-blur-sm text-white rounded text-[10px] font-bold font-sans">
+                            Còn {campaign.daysLeft} ngày
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="p-4 flex-1 flex flex-col justify-between">
+                      <div>
+                        <h3 className="text-sm font-bold text-[#123E8A] group-hover:text-[#0B4FC4] transition-colors line-clamp-2 mb-2 leading-snug font-sans">
+                          {campaign.name}
+                        </h3>
+
+                        {/* Location */}
+                        <div className="flex items-center text-xs font-semibold text-slate-500 gap-1.5 mb-3 truncate font-sans">
+                          <MapPin size={13} className="shrink-0 text-slate-400" />
+                          <span className="truncate">
+                            {campaign.locationText || campaign.ward || "Đà Nẵng"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Progress Bar & Registered Count */}
+                      <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-500 font-semibold flex items-center gap-1 font-sans">
+                            <Users size={12} className="text-slate-400" />
+                            Số lượng đăng ký
+                          </span>
+                          <span className="font-bold text-[#0B4FC4] font-sans">
+                            {campaign.participants}/{campaign.target || "∞"}
+                          </span>
+                        </div>
+                        {campaign.target > 0 && (
+                          <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-500"
+                              style={{ width: `${Math.min(100, Math.round((campaign.participants / campaign.target) * 100))}%` }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* DÒNG 1 - CỘT PHẢI: Bản đồ phản ánh trực tuyến (4 cols) */}
+          <section className="lg:col-span-4 bg-white rounded-2xl border border-[#E4EAF2] p-5 animate-fade-in-up stagger-3 flex flex-col h-full">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-6 bg-[#0B4FC4] rounded-sm" />
+                <h2 className="text-[#123E8A] font-bold text-base md:text-lg font-sans">
+                  {t("home.map.title")}
+                </h2>
+              </div>
+              <Link
+                to="/ward"
+                className="text-xs font-semibold text-[#0B4FC4] hover:underline font-sans"
+              >
+                {t("home.map.viewOnMap")} &rarr;
+              </Link>
+            </div>
+
+            <div className="flex-1 min-h-[300px] rounded-xl overflow-hidden border border-[#E4EAF2] mb-1">
+              <Suspense fallback={<div className="w-full h-full bg-slate-100 animate-pulse" />}>
+                <CivicMap
+                  markers={
+                    hasApiData
+                      ? apiFeedbacks
+                          .filter((f) => f.latitude && f.longitude)
+                          .map((f) => ({
+                            position: [f.latitude!, f.longitude!] as [number, number],
+                            title: f.title,
+                            description: f.description,
+                            status: mapStatus(f.status),
+                          }))
+                      : [
+                          {
+                            position: [16.062, 108.222],
+                            title: mockReports[0].title.vi,
+                            description: mockReports[0].description.vi,
+                            status: mockReports[0].status,
+                          },
+                          {
+                            position: [16.08, 108.155],
+                            title: mockReports[1].title.vi,
+                            description: mockReports[1].description.vi,
+                            status: mockReports[1].status,
+                          },
+                          {
+                            position: [16.078, 108.158],
+                            title: mockReports[2].title.vi,
+                            description: mockReports[2].description.vi,
+                            status: mockReports[2].status,
+                          },
+                          {
+                            position: [16.06, 108.228],
+                            title: mockReports[3].title.vi,
+                            description: mockReports[3].description.vi,
+                            status: mockReports[3].status,
+                          },
+                        ]
+                  }
+                  height="100%"
+                  interactive={true}
+                />
+              </Suspense>
+            </div>
+          </section>
+
+          {/* DÒNG 2: Phản ánh gần đây (12 cols - Rộng đầy đủ) */}
+          <section className="col-span-12 bg-white rounded-2xl border border-[#E4EAF2] p-5 md:p-6 animate-fade-in-up stagger-3 mt-2">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-6 bg-[#0B4FC4] rounded-sm" />
@@ -1125,158 +1300,6 @@ function HomePage() {
                 ))}
             </div>
           </section>
-
-          {/* NEW SECTION: ACTIVE CAMPAIGNS */}
-          {activeCampaigns.length > 0 && (
-            <section className="lg:col-span-8 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border border-emerald-200 p-5 md:p-6 animate-fade-in-up mt-6">
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-6 bg-emerald-600 rounded-sm" />
-                  <h2 className="text-emerald-900 font-bold text-lg md:text-xl font-sans flex items-center gap-2">
-                    <Rocket size={20} className="text-emerald-600 animate-pulse" />
-                    Chiến dịch đang gọi đăng ký
-                  </h2>
-                </div>
-                <Link
-                  to="/campaigns"
-                  className="text-sm font-semibold text-emerald-700 hover:underline flex items-center gap-1 font-sans"
-                >
-                  Xem tất cả &rarr;
-                </Link>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                {activeCampaigns.map((campaign) => (
-                  <Link
-                    key={campaign.id}
-                    to="/campaigns/$id"
-                    params={{ id: campaign.id.toString() }}
-                    className="bg-white rounded-xl border border-emerald-100 p-4 hover:shadow-[0_8px_24px_rgba(5,150,105,0.12)] hover:-translate-y-1 transition-all group flex flex-col"
-                  >
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[10px] font-bold uppercase tracking-wider font-sans">
-                        {campaign.category === "infrastructure" ? "Hạ tầng" : campaign.category === "fire_safety" ? "PCCC" : campaign.category === "public_safety" ? "An ninh" : "Cộng đồng"}
-                      </span>
-                      <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 flex items-center gap-1">
-                        <Users size={12} />
-                        {campaign.participants}/{campaign.target || "∞"}
-                      </span>
-                    </div>
-                    <h3 className="text-base font-bold text-slate-900 group-hover:text-emerald-600 transition-colors line-clamp-2 mb-3 leading-tight font-sans flex-1">
-                      {campaign.name}
-                    </h3>
-                    <div className="flex items-center text-xs font-medium text-slate-500 gap-1.5 mb-4 truncate font-sans">
-                      <MapPin size={14} className="shrink-0 text-slate-400" />
-                      <span className="truncate">{campaign.locationText || campaign.ward || "Đà Nẵng"}</span>
-                    </div>
-                    <div className="w-full bg-emerald-600 text-white text-sm font-bold py-2.5 rounded-lg text-center group-hover:bg-emerald-700 transition-colors font-sans shadow-sm">
-                      Tham gia ngay
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Right Column: Map + Hotline (Sections 5, 6) */}
-          <div className="lg:col-span-4 flex flex-col justify-between lg:space-y-0 space-y-6">
-            {/* Map Section */}
-            <section className="bg-white rounded-2xl border border-[#E4EAF2] p-5 animate-fade-in-up stagger-3">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-6 bg-[#0B4FC4] rounded-sm" />
-                  <h2 className="text-[#123E8A] font-bold text-base md:text-lg font-sans">
-                    {t("home.map.title")}
-                  </h2>
-                </div>
-                <Link
-                  to="/ward"
-                  className="text-xs font-semibold text-[#0B4FC4] hover:underline font-sans"
-                >
-                  {t("home.map.viewOnMap")} &rarr;
-                </Link>
-              </div>
-
-              <div className="aspect-[4/3] rounded-xl overflow-hidden border border-[#E4EAF2] mb-1">
-                <Suspense fallback={<div className="w-full h-full bg-slate-100 animate-pulse" />}>
-                  <CivicMap
-                    markers={
-                      hasApiData
-                        ? apiFeedbacks
-                            .filter((f) => f.latitude && f.longitude)
-                            .map((f) => ({
-                              position: [f.latitude!, f.longitude!] as [number, number],
-                              title: f.title,
-                              description: f.description,
-                              status: mapStatus(f.status),
-                            }))
-                        : [
-                            {
-                              position: [16.062, 108.222],
-                              title: mockReports[0].title.vi,
-                              description: mockReports[0].description.vi,
-                              status: mockReports[0].status,
-                            },
-                            {
-                              position: [16.08, 108.155],
-                              title: mockReports[1].title.vi,
-                              description: mockReports[1].description.vi,
-                              status: mockReports[1].status,
-                            },
-                            {
-                              position: [16.078, 108.158],
-                              title: mockReports[2].title.vi,
-                              description: mockReports[2].description.vi,
-                              status: mockReports[2].status,
-                            },
-                            {
-                              position: [16.06, 108.228],
-                              title: mockReports[3].title.vi,
-                              description: mockReports[3].description.vi,
-                              status: mockReports[3].status,
-                            },
-                          ]
-                    }
-                    height="100%"
-                    interactive={true}
-                  />
-                </Suspense>
-              </div>
-            </section>
-
-            {/* Hotline Section */}
-            <section className="bg-white rounded-2xl border border-[#E4EAF2] p-5 animate-fade-in-up stagger-4">
-              <h2 className="text-[#123E8A] font-bold text-base md:text-lg mb-3 font-sans">
-                {t("home.hotline.support")}
-              </h2>
-              <p className="text-[#667085] text-xs font-semibold mb-1 font-sans">
-                {t("home.hotline.desc")}
-              </p>
-              <div className="text-3xl font-extrabold text-[#0B4FC4] tracking-wide font-sans mb-1">
-                1022
-              </div>
-              <p className="text-[#667085] text-[11px] font-semibold mb-4 font-sans">
-                24/7 &middot; {t("home.hotline.free")}
-              </p>
-
-              <div className="grid grid-cols-2 gap-3">
-                <Link
-                  to="/assistant"
-                  className="flex items-center justify-center gap-1.5 py-2.5 bg-[#F5F9FF] text-[#0B4FC4] hover:bg-[#0B4FC4] hover:text-white rounded-lg text-xs font-bold border border-transparent hover:border-[#E4EAF2] transition font-sans"
-                >
-                  <User size={14} />
-                  {t("home.hotline.chat")}
-                </Link>
-                <a
-                  href="mailto:gopy@danang.gov.vn"
-                  className="flex items-center justify-center gap-1.5 py-2.5 bg-[#F5F9FF] text-[#0B4FC4] hover:bg-[#0B4FC4] hover:text-white rounded-lg text-xs font-bold border border-transparent hover:border-[#E4EAF2] transition font-sans"
-                >
-                  <Send size={14} />
-                  {t("home.hotline.email")}
-                </a>
-              </div>
-            </section>
-          </div>
         </div>
 
         {/* Section 7 — QUY TRÌNH GỬI PHẢN ÁNH */}
@@ -1412,7 +1435,11 @@ function HomePage() {
                     >
                       <div className="aspect-[16/10] overflow-hidden bg-slate-100 relative">
                         <img
-                          src={n.imageUrl || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&q=80"}
+                          src={
+                            n.imageUrl && n.imageUrl !== "111" && n.imageUrl.trim() !== ""
+                              ? n.imageUrl
+                              : "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&q=80"
+                          }
                           alt={n.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition duration-200"
                         />
@@ -1609,9 +1636,9 @@ const GUIDE_STEPS: GuideStep[] = [
   },
   {
     icon: Camera,
-    title: { vi: "Bước 2: Nhấn \"Gửi phản ánh ngay\"", en: 'Step 2: Click "Submit Report"' },
+    title: { vi: 'Bước 2: Nhấn "Gửi phản ánh ngay"', en: 'Step 2: Click "Submit Report"' },
     desc: {
-      vi: "Trên trang chủ, nhấn nút \"Gửi phản ánh ngay\" hoặc vào menu \"Gửi phản ánh\" để bắt đầu tạo phản ánh mới.",
+      vi: 'Trên trang chủ, nhấn nút "Gửi phản ánh ngay" hoặc vào menu "Gửi phản ánh" để bắt đầu tạo phản ánh mới.',
       en: 'On the homepage, click the "Submit Report" button or go to the "Submit Report" menu to start creating a new report.',
     },
     color: "#7C3AED",
@@ -1651,7 +1678,7 @@ const GUIDE_STEPS: GuideStep[] = [
     icon: SendHorizontal,
     title: { vi: "Bước 6: Gửi phản ánh", en: "Step 6: Submit the report" },
     desc: {
-      vi: "Kiểm tra lại thông tin và nhấn \"Gửi phản ánh\". Hệ thống sẽ cấp mã theo dõi để bạn tra cứu tình trạng xử lý.",
+      vi: 'Kiểm tra lại thông tin và nhấn "Gửi phản ánh". Hệ thống sẽ cấp mã theo dõi để bạn tra cứu tình trạng xử lý.',
       en: 'Review your information and click "Submit Report". The system will issue a tracking code so you can check the processing status.',
     },
     color: "#0B4FC4",
@@ -1661,7 +1688,7 @@ const GUIDE_STEPS: GuideStep[] = [
     icon: ClipboardCheck,
     title: { vi: "Bước 7: Theo dõi kết quả", en: "Step 7: Track the result" },
     desc: {
-      vi: "Vào \"Tra cứu phản ánh\" để theo dõi tình trạng xử lý. Bạn sẽ nhận thông báo khi phản ánh được tiếp nhận, đang xử lý hoặc đã hoàn thành.",
+      vi: 'Vào "Tra cứu phản ánh" để theo dõi tình trạng xử lý. Bạn sẽ nhận thông báo khi phản ánh được tiếp nhận, đang xử lý hoặc đã hoàn thành.',
       en: 'Go to "Track Reports" to monitor the processing status. You will receive notifications when your report is received, being processed, or completed.',
     },
     color: "#16A34A",
@@ -1691,10 +1718,7 @@ function GuideModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
       <div className="relative w-full max-w-[640px] bg-white rounded-2xl shadow-2xl border border-[#E4EAF2] overflow-hidden animate-fade-in">
@@ -1724,11 +1748,7 @@ function GuideModal({
                 type="button"
                 onClick={() => setStep(i)}
                 className={`h-1.5 flex-1 rounded-full transition-all duration-300 cursor-pointer ${
-                  i === step
-                    ? "bg-[#0B4FC4]"
-                    : i < step
-                      ? "bg-[#0B4FC4]/30"
-                      : "bg-slate-200"
+                  i === step ? "bg-[#0B4FC4]" : i < step ? "bg-[#0B4FC4]/30" : "bg-slate-200"
                 }`}
               />
             ))}

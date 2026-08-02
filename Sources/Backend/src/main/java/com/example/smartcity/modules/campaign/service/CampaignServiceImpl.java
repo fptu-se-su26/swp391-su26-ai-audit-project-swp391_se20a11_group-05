@@ -45,7 +45,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -97,7 +99,27 @@ public class CampaignServiceImpl implements CampaignService {
             campaigns = campaignRepository.findVisibleCampaignsForUser(normalizedStatus, currentUser.getId(), now, pageable);
         }
 
-        return campaigns.map(campaign -> toResponse(campaign, currentUser));
+        List<Long> campaignIds = campaigns.stream().map(Campaign::getId).toList();
+        Map<Long, Long> participantCounts = campaignIds.isEmpty()
+                ? Map.of()
+                : participantRepository.countByCampaignIdsAndJoinStatus(campaignIds, JOIN_APPROVED).stream()
+                        .collect(Collectors.toMap(
+                                CampaignParticipantRepository.CampaignParticipantCount::getCampaignId,
+                                CampaignParticipantRepository.CampaignParticipantCount::getParticipantCount));
+
+        Map<Long, CampaignParticipant> userParticipants = Map.of();
+        Map<Long, Boolean> userFeedbacks = Map.of();
+        if (currentUser != null && currentUser.getRole() == Role.CITIZEN && !campaignIds.isEmpty()) {
+            userParticipants = participantRepository.findByCampaign_IdInAndCitizen_Id(campaignIds, currentUser.getId()).stream()
+                    .collect(Collectors.toMap(p -> p.getCampaign().getId(), p -> p));
+            userFeedbacks = feedbackRepository.findByCampaign_IdInAndParticipant_Citizen_Id(campaignIds, currentUser.getId()).stream()
+                    .collect(Collectors.toMap(f -> f.getCampaign().getId(), f -> true));
+        }
+
+        final Map<Long, CampaignParticipant> finalUserParticipants = userParticipants;
+        final Map<Long, Boolean> finalUserFeedbacks = userFeedbacks;
+        return campaigns.map(campaign ->
+                toResponse(campaign, currentUser, participantCounts.getOrDefault(campaign.getId(), 0L), finalUserParticipants.get(campaign.getId()), finalUserFeedbacks.getOrDefault(campaign.getId(), false)));
     }
 
     @Override
@@ -712,9 +734,22 @@ public class CampaignServiceImpl implements CampaignService {
 
     private CampaignResponse toResponse(Campaign campaign, User currentUser) {
         long participantCount = participantRepository.countByCampaign_IdAndJoinStatus(campaign.getId(), JOIN_APPROVED);
-        Optional<CampaignParticipant> currentParticipant = currentUser == null
+        return toResponse(campaign, currentUser, participantCount);
+    }
+
+    private CampaignResponse toResponse(Campaign campaign, User currentUser, long participantCount) {
+        Optional<CampaignParticipant> currentParticipant =
+                currentUser == null || currentUser.getRole() != Role.CITIZEN
                 ? Optional.empty()
                 : participantRepository.findByCampaign_IdAndCitizen_Id(campaign.getId(), currentUser.getId());
+        boolean hasFeedback = currentParticipant
+                .map(p -> feedbackRepository.existsByCampaign_IdAndParticipant_Id(campaign.getId(), p.getId()))
+                .orElse(false);
+        return toResponse(campaign, currentUser, participantCount, currentParticipant.orElse(null), hasFeedback);
+    }
+
+    private CampaignResponse toResponse(Campaign campaign, User currentUser, long participantCount, CampaignParticipant currentParticipantVal, boolean hasFeedbackVal) {
+        Optional<CampaignParticipant> currentParticipant = Optional.ofNullable(currentParticipantVal);
 
         LocalDateTime now = LocalDateTime.now();
         // DB status là source of truth. Chỉ override sang ENDED nếu đã quá endTime
@@ -733,7 +768,7 @@ public class CampaignServiceImpl implements CampaignService {
         boolean isEnded = "ENDED".equals(displayStatus);
 
         boolean canManage = currentUser != null && canManage(campaign, currentUser);
-        boolean privateDetailsVisible = currentUser != null && canViewPrivateDetails(campaign, currentUser);
+        boolean privateDetailsVisible = currentUser != null && canViewPrivateDetails(campaign, currentUser, currentParticipantVal);
         boolean canJoin = currentUser != null
                 && currentUser.getRole() == Role.CITIZEN
                 && !isEnded
@@ -756,11 +791,10 @@ public class CampaignServiceImpl implements CampaignService {
             log.info("CAN_LEAVE_DEBUG: currentUser={}, role={}, hasParticipant={}", currentUser != null ? currentUser.getUsername() : "null", currentUser != null ? currentUser.getRole() : "null", currentParticipant.isPresent());
         }
 
-        boolean canComment = currentUser != null && canComment(campaign, currentUser);
+        boolean canComment = currentUser != null && canViewPrivateDetails(campaign, currentUser, currentParticipantVal);
         boolean canFeedback = currentParticipant
                 .filter(p -> JOIN_APPROVED.equals(p.getJoinStatus()))
-                .map(p -> isEnded
-                        && !feedbackRepository.existsByCampaign_IdAndParticipant_Id(campaign.getId(), p.getId()))
+                .map(p -> isEnded && !hasFeedbackVal)
                 .orElse(false);
 
         return CampaignResponse.builder()
@@ -973,13 +1007,17 @@ public class CampaignServiceImpl implements CampaignService {
     }
 
     private boolean canViewPrivateDetails(Campaign campaign, User user) {
+        Optional<CampaignParticipant> participant = user == null ? Optional.empty()
+                : participantRepository.findByCampaign_IdAndCitizen_Id(campaign.getId(), user.getId());
+        return canViewPrivateDetails(campaign, user, participant.orElse(null));
+    }
+
+    private boolean canViewPrivateDetails(Campaign campaign, User user, CampaignParticipant currentParticipant) {
         return canManage(campaign, user)
-                || (user != null && participantRepository
-                .findByCampaign_IdAndCitizen_Id(campaign.getId(), user.getId())
-                .map(participant -> JOIN_APPROVED.equals(participant.getJoinStatus())
-                        || JOIN_CONFIRMED.equals(participant.getJoinStatus())
-                        || JOIN_MAYBE.equals(participant.getJoinStatus()))
-                .orElse(false));
+                || (user != null && currentParticipant != null
+                && (JOIN_APPROVED.equals(currentParticipant.getJoinStatus())
+                        || JOIN_CONFIRMED.equals(currentParticipant.getJoinStatus())
+                        || JOIN_MAYBE.equals(currentParticipant.getJoinStatus())));
     }
 
     private boolean canComment(Campaign campaign, User user) {

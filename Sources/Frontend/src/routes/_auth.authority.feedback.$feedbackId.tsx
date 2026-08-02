@@ -22,6 +22,7 @@ import {
   Rocket,
   Eye,
   Clock,
+  RotateCcw,
   type LucideIcon,
 } from "lucide-react";
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -80,7 +81,7 @@ const VALID_TRANSITIONS: Record<FeedbackStatus, FeedbackStatus[]> = {
   IN_PROGRESS: ["WAITING_INFO", "RESOLVED", "REJECTED"],
   WAITING_INFO: ["IN_PROGRESS", "RESOLVED", "REJECTED"],
   RESOLVED: [],
-  REJECTED: [],
+  REJECTED: ["IN_PROGRESS"],
   PRE_EMPTIVE: [],
 };
 
@@ -415,9 +416,15 @@ export function FeedbackDetailPageComponent({
       }
     }
 
-    if (selectedStatus === "REJECTED" && !statusNote.trim()) {
-      toast.error("Vui lòng nhập lý do từ chối xử lý.");
-      return;
+    if (selectedStatus === "REJECTED") {
+      if (!statusNote.trim()) {
+        toast.error("Vui lòng nhập lý do từ chối xử lý.");
+        return;
+      }
+      const confirmReject = window.confirm("Bạn có chắc chắn muốn từ chối phản ánh này không?");
+      if (!confirmReject) {
+        return;
+      }
     }
 
     try {
@@ -1062,6 +1069,8 @@ export function FeedbackDetailPageComponent({
 
                         const IconComponent = details.icon;
                         const isActive = selectedStatus === target;
+                        const isRestoreAction = report?.status === "REJECTED";
+                        const displayLabel = isRestoreAction ? "Khôi phục xử lý" : details.btnLabel;
 
                         return (
                           <button
@@ -1079,8 +1088,8 @@ export function FeedbackDetailPageComponent({
                               isActive ? details.activeColorClass : details.colorClass
                             } disabled:opacity-50 disabled:cursor-not-allowed`}
                           >
-                            <IconComponent size={14} />
-                            <span>{details.btnLabel}</span>
+                            {isRestoreAction ? <RotateCcw size={14} /> : <IconComponent size={14} />}
+                            <span>{displayLabel}</span>
                           </button>
                         );
                       })}

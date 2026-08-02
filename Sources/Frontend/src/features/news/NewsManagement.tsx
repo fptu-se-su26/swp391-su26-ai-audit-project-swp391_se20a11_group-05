@@ -48,6 +48,12 @@ export function NewsManagement() {
     selectedCategory || undefined,
     keyword || undefined,
   );
+  
+  // Debug logging
+  useEffect(() => {
+    console.log("[NewsManagement] newsData:", newsData);
+    console.log("[NewsManagement] isLoading:", isLoading);
+  }, [newsData, isLoading]);
   const createMutation = useCreateNews();
   const updateMutation = useUpdateNews();
   const deleteMutation = useDeleteNews();
@@ -83,7 +89,22 @@ export function NewsManagement() {
     setEditingNews(null);
   };
 
-
+  const handleDelete = async (id: number) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa bản tin này?")) {
+      return;
+    }
+    
+    try {
+      await deleteMutation.mutateAsync(id);
+      // Nếu trang hiện tại không còn dữ liệu sau khi xóa, quay về trang trước
+      if (newsData && newsData.content.length === 1 && page > 0) {
+        setPage(page - 1);
+      }
+    } catch (error) {
+      console.error("Lỗi khi xóa tin tức:", error);
+      alert("Không thể xóa tin tức. Vui lòng thử lại.");
+    }
+  };
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-[#E4EAF2] flex flex-col h-full min-h-[500px]">

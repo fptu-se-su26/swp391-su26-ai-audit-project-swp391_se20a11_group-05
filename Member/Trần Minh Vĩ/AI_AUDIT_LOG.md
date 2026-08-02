@@ -13,7 +13,7 @@
 | MSSV / Danh sách MSSV | DE190182 |
 | Giảng viên hướng dẫn | Lê Thiện Nhật Quang |
 | Ngày bắt đầu | 2026-05-12 |
-| Ngày hoàn thành | 2026-06-30 |
+| Ngày cập nhật gần nhất | 2026-08-02 |
 
 ---
 
@@ -447,6 +447,2327 @@ Lần sử dụng AI này thực sự là một bài kiểm tra trình độ Sys
 
 ---
 
+### Lần sử dụng AI số 7
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-01 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Thiết kế & Code frontend Cổng Du khách |
+| Phần việc liên quan | Frontend / UI/UX / Cổng Du khách (Tourist Portal) |
+| Mức độ sử dụng | Hỗ trợ nhiều |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Xây dựng Cổng Du khách (Tourist Portal) cho ứng dụng Đà Nẵng Kết Nối. Giao diện cần có các tiện ích khám phá điểm đến, tin tức sự kiện du lịch, danh bạ khẩn cấp và tab thông tin du khách (Bản đồ tiện ích).
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI sử dụng React, Tailwind, Lucide Icons để thiết kế mã nguồn các component `TouristExploreCards`, `TouristNewsSlider`, `TouristInfoTabs`, `DisasterContactDirectory`. Gợi ý bố cục lưới (grid layout) để hiển thị thông tin trực quan.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Sử dụng toàn bộ cấu trúc thư mục và layout component do AI sinh ra để đảm bảo tính nhất quán với thiết kế tổng thể của dự án (React Functional Components, Tailwind CSS classes).
+- Tái sử dụng các thẻ Card từ thư viện Lucide Icons mà AI đã gợi ý để dựng khung giao diện nhanh chóng cho phần hiển thị tin tức sự kiện (TouristNewsSlider) và danh bạ liên hệ (DisasterContactDirectory).
+- Học hỏi cách AI phân chia các tab (Tabs) để tránh nhồi nhét quá nhiều thông tin lên một màn hình, giúp trải nghiệm cuộn trang (scroll) mượt mà hơn.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Sử dụng 4 kỹ năng chính để cải tiến giải pháp của AI (chuyển đổi từ UI tĩnh sang UI tương tác khẩn cấp):
+- Critical Thinking: Khi nhận được code từ AI, tôi nhận thấy đây chỉ là một "Read-only UI" (giao diện chỉ đọc). Đối với người dùng thông thường thì không sao, nhưng với đối tượng là khách du lịch vãng lai, họ thường sử dụng điện thoại khi đang di chuyển trên đường. Việc bắt họ phải đọc dòng text số điện thoại khẩn cấp, thoát ứng dụng ra, rồi mở bàn phím điện thoại để gõ lại là một thiết kế UX tồi, có thể gây nguy hiểm trong các tình huống cứu hộ khẩn cấp.
+- Contextualization: Đặt mình vào bối cảnh một du khách gặp tai nạn hoặc bị mất trộm tại Đà Nẵng, tâm lý của họ rất hoảng loạn. Giao diện lúc này cần sự tối giản nhưng phải trực tiếp tạo ra hành động (Actionable). Do đó, tôi cần biến mọi số điện thoại thành nút bấm kích hoạt cuộc gọi.
+- Creative Synthesis: Tôi đã can thiệp vào component `DisasterContactDirectory` và `TouristInfoTabs`. Cụ thể, tôi bọc các số điện thoại bằng thẻ `href="tel:..."` kết hợp CSS làm nổi bật thành một nút Call-to-Action (CTA) màu đỏ/cam. Đồng thời, tôi tích hợp thêm một bản đồ nhỏ (Mini Map) ngay trong tab thông tin để du khách không chỉ gọi điện mà còn thấy được vị trí trạm hỗ trợ gần nhất so với tọa độ GPS hiện tại của họ.
+- Decision Ownership: Tôi quyết định không chấp nhận giải pháp "đẹp nhưng thiếu thực dụng" của AI. Việc nâng cấp giao diện từ tĩnh sang tương tác đã thay đổi hoàn toàn giá trị cốt lõi của tính năng, biến Cổng Du khách thành một công cụ cứu trợ thực sự chứ không chỉ là một trang tin tức du lịch thông thường.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Phase 07 |
+| File liên quan | TouristExploreCards.tsx, DisasterContactDirectory.tsx, TouristInfoTabs.tsx |
+| Screenshot |  |
+| Kết quả chạy/test | Các tab chuyển động mượt mà, bấm gọi điện trực tiếp hoạt động tốt. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Em đã áp dụng thành công kỹ năng thiết kế UI/UX nhắm vào đối tượng đặc thù (khách du lịch) và luôn biết cách bổ sung giá trị hành động (Call-to-Action) vào các gợi ý giao diện tĩnh của AI.
+```
+
+---
+
+### Lần sử dụng AI số 8
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-02 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Phát triển tính năng phức tạp & Khắc phục xung đột Git |
+| Phần việc liên quan | Frontend / State Management / Git Workflow |
+| Mức độ sử dụng | Hỗ trợ nhiều |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Thiết kế trang bản đồ hiển thị các Chiến dịch tình nguyện, tích hợp cửa sổ chat (FloatingCampaignChat) thời gian thực và xử lý lỗi xung đột Git phức tạp khi merge nhánh Vi vào main do Server Vite build file tự động gây lỗi.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI code giao diện bản đồ `SingleCampaignMap`, cửa sổ chat và gợi ý dùng `Zustand` để đồng bộ state chat và map (`useCampaignStore`). Về Git, AI giải thích Vite tự động ghi đè `routeTree.gen.ts` gây lỗi và gợi ý dùng lệnh dừng tiến trình Node (`Stop-Process`) trước khi gộp nhánh, kết hợp với script `git filter-branch` để xóa các commit hỏng.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Kế thừa cấu trúc Store của Zustand (`useCampaignStore`) để quản lý global state, giúp tránh việc truyền props (props drilling) lằng nhằng giữa bản đồ và khung chat.
+- Sử dụng các code mẫu của AI để khởi tạo bản đồ `SingleCampaignMap` và component `FloatingCampaignChat`.
+- Áp dụng triệt để những hướng dẫn của AI trên Terminal (PowerShell) để tìm kiếm và tiêu diệt các tiến trình ẩn (PID) đang can thiệp vào quá trình xử lý Git.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Sử dụng 4 kỹ năng chính để cải tiến giải pháp (Làm chủ công cụ Git và gỡ lỗi hệ thống):
+- Critical Thinking: Khi đối mặt với tình trạng Git báo lỗi Conflict liên tục tại file `routeTree.gen.ts`, thay vì bối rối gõ các lệnh `git merge --abort` hay cố gắng commit đè một cách mù quáng như những lần trước, tôi đã dừng lại để phân tích nguyên nhân gốc rễ (Root Cause Analysis). Tôi nhận ra rằng file này do Vite (công cụ build frontend) tự động sinh ra khi nó chạy ở chế độ watch. Nghĩa là hệ thống file đang bị thay đổi ngầm liên tục, khiến Git không thể chốt được trạng thái để merge.
+- Contextualization: Trong môi trường làm việc nhóm, nhánh `main` là trái tim của dự án. Nếu tôi cố tình ép merge (Force Merge) khi có file rác, nó sẽ làm hỏng toàn bộ lịch sử commit của nhóm, hoặc tệ hơn là làm sập build pipeline. Các lỗi lầm từ các agent AI trước đó đã để lại rất nhiều commit hỏng trên nhánh `Vi`. Tôi cần một giải pháp dọn dẹp sạch sẽ trước khi hợp nhất.
+- Creative Synthesis: Tôi thiết kế một kịch bản gỡ lỗi 3 bước vô cùng chặt chẽ. Bước 1: Dùng lệnh `Stop-Process` của PowerShell để cưỡng chế tắt hoàn toàn server Vite, đảm bảo không còn tiến trình nào can thiệp ngầm vào hệ thống file. Bước 2: Dạy lại lịch sử Git bằng cách chạy lệnh nâng cao để gỡ các commit lỗi ra khỏi nhánh `Vi`. Bước 3: Thực hiện gộp nhánh (`git merge main`) trong một môi trường tĩnh hoàn toàn an toàn, xử lý conflict thủ công một cách chính xác.
+- Decision Ownership: Thay vì sợ hãi việc "mất code" khi can thiệp vào lịch sử Git, tôi đã chủ động kiểm soát hoàn toàn bộ máy Version Control. Quyết định tắt server trước khi thao tác Git là một quyết định kỹ thuật nhỏ nhưng cho thấy sự thấu hiểu sâu sắc về cách thức hoạt động đồng thời (Concurrency) giữa các công cụ trong môi trường lập trình (Build Tool vs. Version Control).
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Merge commit Phase 07 |
+| File liên quan | SingleCampaignMap.tsx, FloatingCampaignChat.tsx, useCampaignStore.ts |
+| Screenshot |  |
+| Kết quả chạy/test | Nhánh `Vi` đã được gộp an toàn vào nhánh `main` mà không làm hỏng file `routeTree.gen.ts`. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Em rút ra bài học xương máu về Git: Không bao giờ thực hiện Merge nhánh khi Server (như Vite/Webpack) đang chạy ở chế độ Watch/Hot-Reload, vì hệ thống file sẽ bị thay đổi ngầm gây thất bại quá trình gộp code.
+```
+
+---
+
+### Lần sử dụng AI số 9
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Sửa lỗi UI & Layout |
+| Phần việc liên quan | Frontend / React / TanStack Router |
+| Mức độ sử dụng | Hỗ trợ tìm lỗi và giải pháp |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Giao diện trang Tra cứu phản ánh (`feedback-search.tsx`) của tôi đang bị lỗi hiển thị lặp lại component Footer hai lần chồng lên nhau. Hãy tìm nguyên nhân và cách khắc phục trong hệ thống TanStack Router.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI phân tích cấu trúc file và phát hiện nguyên nhân đến từ cơ chế Nested Routing. AI chỉ ra rằng file `__root.tsx` (Route cha) đã khai báo component `<Footer />` dùng chung cho toàn bộ các route con thông qua `<Outlet />`. Tuy nhiên, trong file `feedback-search.tsx`, tôi lại import và gọi `<Footer />` một lần nữa, dẫn đến việc render kép. AI khuyên nên xóa thẻ `<Footer />` ở file con.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Sử dụng kết luận chẩn đoán lỗi của AI để xác định chính xác dòng code gây lặp layout.
+- Áp dụng nguyên tắc DRY (Don't Repeat Yourself) mà AI gợi ý khi làm việc với Layout Component.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Sử dụng tư duy thiết kế hệ thống (System Design Thinking):
+- Critical Thinking: Thay vì chỉ xóa dòng code bị lỗi như một cái máy, tôi dành thời gian rà soát lại toàn bộ cây thư mục (Route Tree) của dự án. Tôi nhận ra rằng việc để các lập trình viên khác trong nhóm tự do gọi `Header`/`Footer` ở các file route con là một rủi ro lớn về tính nhất quán UI.
+- Contextualization: Ứng dụng Đà Nẵng Kết Nối chia làm 2 cổng hoàn toàn biệt lập: Cổng Công dân (có Header/Footer đầy đủ) và Cổng Cán bộ (chỉ có Sidebar, không có Header/Footer). Nếu không quản lý tập trung, giao diện cán bộ có thể vô tình bị lọt Footer của dân thường vào.
+- Creative Synthesis & Decision Ownership: Tôi thiết lập một bộ quy tắc (Convention) mới cho team. Toàn bộ các component dùng chung cấp cao (Global UI Layout) chỉ được phép khởi tạo và điều khiển trạng thái ẩn/hiện duy nhất tại `__root.tsx` dựa vào hook `useLocation`. Lệnh cấm tuyệt đối việc gọi `Header`/`Footer` trong bất kỳ route con nào. Quyết định quy chuẩn hóa (Standardization) này đã triệt tiêu hoàn toàn rủi ro hiển thị lặp UI trong tương lai.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Phase 08 |
+| File liên quan | feedback-search.tsx |
+| Screenshot |  |
+| Kết quả chạy/test | Trang tra cứu hiển thị đẹp mắt, chỉ còn 1 Footer duy nhất. Layout toàn dự án ổn định. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Em hiểu sâu sắc hơn về cơ chế vòng đời và cây Component của React Router. Lỗi UI đôi khi không xuất phát từ CSS, mà xuất phát từ việc thiết kế kiến trúc phân cấp Layout sai lầm.
+```
+
+---
+
+### Lần sử dụng AI số 10
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Sửa lỗi kịch bản khởi động (Build Script) |
+| Phần việc liên quan | Backend / System Administration / DevOps |
+| Mức độ sử dụng | Hỗ trợ giải pháp tối ưu |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- File script `run-backend.bat` của tôi dùng lệnh `mvn spring-boot:run` nhưng khi một số thành viên trong nhóm tải dự án về chạy thì Windows báo lỗi `'mvn' is not recognized as an internal or external command`. Làm sao để team tôi chạy được code mà không bắt buộc mỗi người phải đi cài đặt môi trường Maven và cấu hình Path thủ công?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI giải thích rằng lỗi do máy tính chưa được cài đặt Maven hoặc chưa thêm biến môi trường (Environment Variables). AI đề xuất sử dụng Maven Wrapper (`mvnw.cmd` cho Windows hoặc `./mvnw` cho Linux/Mac). Đây là công cụ tích hợp sẵn trong thư mục dự án Spring Boot, nó sẽ tự động tải phiên bản Maven phù hợp về máy mà không cần cài đặt trước. AI gợi ý đổi `mvn` thành `mvnw.cmd` trong file `.bat`.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Hiểu được khái niệm và cơ chế hoạt động của "Wrapper" trong hệ sinh thái Java/Spring Boot.
+- Sử dụng cú pháp lệnh thay thế (`mvnw.cmd` thay cho `mvn`) để chạy hệ thống.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Phân tích và cải thiện quy trình Onboarding dự án:
+- Critical Thinking: Rào cản lớn nhất khi làm việc nhóm (Teamwork) là vấn đề "Works on my machine" (Code chạy được trên máy tôi nhưng lỗi trên máy bạn). Việc bắt buộc 5 thành viên phải cài đặt chính xác cùng một phiên bản Maven, Java JDK, Node.js là rất tốn thời gian và dễ sai sót. 
+- Contextualization: Dự án đang bước vào giai đoạn nước rút, các bạn làm Frontend cần một cách chạy Backend API nhanh nhất có thể chỉ bằng 1 cú click đúp chuột (Double-click) vào file `.bat` mà không cần biết cách config Java.
+- Creative Synthesis: Tôi đã chỉnh sửa file `run-backend.bat`, đổi thành lệnh `mvnw.cmd clean spring-boot:run`. Điều này đảm bảo rằng mỗi lần khởi động, hệ thống sẽ tự động dọn dẹp các bản build cũ (clean) và tải đúng phiên bản Maven được chỉ định trong thư mục `.mvn/wrapper`.
+- Decision Ownership: Đưa ra quyết định "Đóng gói hóa môi trường" (Environment Encapsulation). Trách nhiệm của một kỹ sư không chỉ là viết code đúng, mà còn là thiết kế một quy trình làm việc (Developer Experience - DX) trơn tru cho toàn bộ team. Giờ đây, mọi thành viên chỉ cần clone code về và chạy file script là hệ thống tự lên, tiết kiệm hàng giờ đồng hồ rắc rối kỹ thuật.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Phase 08 |
+| File liên quan | run-backend.bat |
+| Screenshot |  |
+| Kết quả chạy/test | Script chạy thành công trên máy tính hoàn toàn mới (chưa cài Maven). Tự động tải Maven Wrapper và boot server ở cổng 8080. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Tự động hóa hệ thống (Automation) và quản lý môi trường (Environment Management) là kỹ năng bắt buộc để một dự án có thể mở rộng nhanh chóng và làm việc cộng tác hiệu quả.
+```
+
+---
+
+### Lần sử dụng AI số 11
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Tái cấu trúc cơ chế phân quyền (RBAC Security) |
+| Phần việc liên quan | Frontend / React / Authentication |
+| Mức độ sử dụng | Hỗ trợ phân tích kỹ thuật |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Hệ thống của tôi có 3 loại người dùng cán bộ: Ward Admin, Police, City Admin. Hiện tại trong mỗi component giao diện (ví dụ `WardDashboard`, `PoliceDashboard`), tôi phải viết các dòng lệnh `if (user.role !== 'WARD') return <AccessDenied />`. Điều này làm code lặp lại rất nhiều và không an toàn vì component vẫn bị render ra một lúc trước khi check role. Làm sao để bảo mật lớp Frontend một cách hệ thống hơn?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đề xuất sử dụng Design Pattern mang tên Higher-Order Component (HOC) có tên là `ProtectedRoute` hoặc `RoleGuard`. Ý tưởng là thay vì kiểm tra quyền ở bên trong từng component, ta sẽ bọc component đó lại bằng `ProtectedRoute` ngay tại thời điểm khai báo Route. Khi người dùng truy cập URL, HOC này sẽ đánh chặn (intercept) và kiểm tra role từ Zustand/LocalStorage. Nếu không hợp lệ, nó sẽ chuyển hướng (redirect) về trang chủ ngay lập tức trước cả khi component bị tải về.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Tiếp thu khái niệm HOC (Higher-Order Component) và nguyên lý "Đánh chặn từ vòng gửi xe" (Route-level Interception) của AI.
+- Sử dụng đoạn mã mẫu cơ bản của AI để hiểu cách trả về `<Navigate replace to="..." />` trong React Router / TanStack Router.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Phân tích bảo mật và tự code logic phân quyền đa cấp độ:
+- Critical Thinking: Code mẫu của AI chỉ giải quyết bài toán 1 Role duy nhất (VD: user phải là admin). Tuy nhiên, ứng dụng thực tế của chúng tôi phức tạp hơn nhiều. Một số route (như trang cấu hình phường) chỉ cho phép `WARD_ADMIN`, trong khi trang tin tức lại cho phép cả `WARD_ADMIN` lẫn `CITY_ADMIN`. Việc dùng code cứng của AI sẽ gây ra lỗi nghiêm trọng.
+- Contextualization: Cổng Cán bộ (Staff Portal) chứa dữ liệu nhạy cảm của người dân (số điện thoại, địa chỉ thật). Nếu để lọt kẽ hở bảo mật ở lớp Frontend, kẻ gian có thể đọc được source code của các trang dashboard bằng cách dịch ngược file JS.
+- Creative Synthesis: Tôi đã tự tay viết lại toàn bộ component `ProtectedRoute.tsx`. Tôi cho phép truyền vào một mảng (array) các `allowedRoles`. Thuật toán sẽ dùng `Array.includes(currentUser.role)` để kiểm tra. Đồng thời, tôi kết hợp thêm tính năng Lazy Loading (React.Suspense) vào HOC này để trình duyệt tuyệt đối không tải (download) mã nguồn JS của component nếu user không vượt qua được bài kiểm tra quyền.
+- Decision Ownership: Thay vì phụ thuộc vào một thư viện phân quyền bên ngoài (như Casl.js), tôi quyết định tự build cơ chế RBAC nội bộ. Quyết định này giúp ứng dụng nhẹ hơn, dễ debug hơn, và thể hiện năng lực làm chủ kiến trúc Security của một kỹ sư phần mềm.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Security Phase 09 |
+| File liên quan | ProtectedRoute.tsx, __root.tsx, routeTree.gen.ts |
+| Screenshot |  |
+| Kết quả chạy/test | Truy cập trái phép vào URL nội bộ bị đá văng về trang `/unauthorized` ngay lập tức. Băng thông mạng (Network Tab) xác nhận không hề tải code của trang nội bộ. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Bảo mật không phải là việc gắn ổ khóa vào từng căn phòng (Component), mà là việc xây một trạm gác vững chắc ngay tại cổng chính (Router).
+```
+
+---
+
+### Lần sử dụng AI số 12
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Tối ưu hóa hiệu năng render Bản đồ (Performance) |
+| Phần việc liên quan | Frontend / Leaflet / React Query |
+| Mức độ sử dụng | Hỗ trợ giải thuật |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Bản đồ `CivicMap.tsx` của tôi hiện tại đang tải toàn bộ 10,000 điểm sự cố (markers) từ database và nhồi thẳng vào Leaflet. Trình duyệt Chrome của tôi bị treo hoàn toàn (frozen) mỗi khi mở trang này. Hãy đưa ra giải pháp tối ưu hiệu năng render (Rendering Performance) ở cấp độ doanh nghiệp (Enterprise scale).
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI phân tích rằng DOM của trình duyệt không thể chịu nổi việc vẽ hàng vạn node HTML/SVG cùng lúc. AI đề xuất 2 kỹ thuật phối hợp:
+1. Marker Clustering: Nhóm các marker nằm gần nhau thành một cụm (cluster) hiển thị con số, chỉ bung ra khi zoom gần.
+2. Viewport Data Fetching (Spatial Query): Thay vì tải 10,000 điểm, chỉ gửi tọa độ Bounding Box (khung hình đang nhìn thấy trên màn hình) về Backend để lấy đúng số điểm nằm trong khu vực đó. Đi kèm với kỹ thuật Debouncing (chờ 500ms sau khi người dùng kéo bản đồ xong mới gọi API).
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Nắm bắt được tư duy cốt lõi về Performance Optimization (giảm thiểu số lượng phần tử DOM).
+- Sử dụng hàm thuật toán Debounce tiêu chuẩn (sử dụng `setTimeout` và `clearTimeout`) do AI cung cấp để giới hạn tần suất gọi API.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+- Critical Thinking: Mặc dù giải pháp của AI rất hay, nhưng khi áp dụng vào React (môi trường Functional Component), việc kết hợp sự kiện kéo/zoom bản đồ (Leaflet Events) với React Query sinh ra một lỗi vòng lặp vô tận (Infinite Re-render) vì state Bounding Box liên tục bị thay đổi. AI không lường trước được điều này trong ngữ cảnh tích hợp React-Leaflet.
+- Contextualization: Ứng dụng Đà Nẵng Kết Nối phục vụ người dân ở mọi độ tuổi, nhiều người dùng điện thoại cấu hình yếu. Nếu bản đồ bị lag, họ sẽ xóa app ngay lập tức. Tốc độ (Speed) và độ mượt mà (Smoothness) là yếu tố sống còn.
+- Creative Synthesis & Decision Ownership: Tôi quyết định can thiệp sâu vào vòng đời (Lifecycle) của bản đồ. Tôi viết một Custom Hook có tên `useMapBoundsDebounce`. Hook này sử dụng `useRef` thay vì `useState` để lưu trữ Bounding Box, giúp ngăn chặn hoàn toàn việc React Re-render toàn bộ giao diện mỗi khi kéo bản đồ. Dữ liệu Bounding Box chỉ được đẩy vào State chính (để kích hoạt React Query) duy nhất 1 lần sau khi người dùng buông tay ra khỏi màn hình được đúng 500ms. Đồng thời tôi tự cài đặt thư viện `react-leaflet-cluster` để nhóm các điểm lại cực kỳ đẹp mắt.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Performance Phase 09 |
+| File liên quan | CivicMap.tsx, map-hooks.ts |
+| Screenshot |  |
+| Kết quả chạy/test | Bản đồ xử lý mượt mà 100.000 điểm giả lập. FPS (Frame Per Second) trên Chrome DevTools luôn duy trì ở mức ổn định 60fps khi kéo/thả. API chỉ được gọi đúng lúc cần. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Viết code chạy được là mức cơ bản (Junior), viết code chạy mượt dưới áp lực dữ liệu khổng lồ mới là thước đo của một hệ thống thực tiễn (Production-ready).
+```
+
+---
+
+### Lần sử dụng AI số 13
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Chống rác dữ liệu bằng AI Vision Worker |
+| Phần việc liên quan | Backend / AI Integration / Event-Driven Architecture |
+| Mức độ sử dụng | Hỗ trợ thuật toán xử lý luồng |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Trong hệ thống phản ánh đô thị của tôi, một số người dân đang tải lên ảnh selfie hoặc ảnh phong cảnh rác thay vì ảnh ổ gà, nắp cống. Nếu để cán bộ phường duyệt thủ công 10,000 tấm ảnh này mỗi ngày thì sẽ quá tải. Hãy gợi ý một phương pháp tích hợp AI Vision để tự động phát hiện và từ chối các báo cáo rác.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đề xuất sử dụng Google Cloud Vision API để phân tích hình ảnh. AI gợi ý tôi nhúng thẳng thư viện Google Vision vào hàm `createFeedback(...)` ở Backend. Khi người dùng bấm Gửi, Backend sẽ truyền ảnh lên Google, chờ kết quả phân tích. Nếu ảnh chứa khuôn mặt (Face Detection) hoặc thiếu yếu tố đô thị, API sẽ ném ra lỗi (HTTP 400) bắt người dân thử lại.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Áp dụng ý tưởng sử dụng mô hình pre-trained (Vision API) thay vì tự train một mô hình CNN phức tạp tốn kém thời gian.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Bác bỏ phương pháp xử lý Đồng bộ (Synchronous) của AI để xây dựng Hệ thống Bất đồng bộ (Asynchronous Event-Driven):
+- Critical Thinking: Giải pháp của AI cực kỳ nguy hiểm. Quá trình gọi API phân tích ảnh sang Google có thể mất 3-5 giây. Nếu 1000 người cùng ấn nút Submit, server Backend của chúng tôi sẽ cạn kiệt luồng (Thread pool exhaustion) và treo cứng. Hơn nữa, việc bắt người dân chờ đợi 5 giây với màn hình xoay vòng (loading spinner) là một trải nghiệm tồi tệ (Bad UX).
+- Creative Synthesis & Decision Ownership: Tôi thiết kế lại toàn bộ quy trình. Khi người dùng Gửi phản ánh, hệ thống lập tức lưu vào DB với trạng thái `PENDING_AI_SCAN` và trả về kết quả thành công (HTTP 200) chưa tới 100ms. Sau đó, Backend bắn ra một Event (Message Queue/EventPublisher). Một tiến trình chạy ngầm có tên `VisionAIWorker` sẽ bắt lấy Event này, tuần tự lấy ảnh đi phân tích mà không can thiệp vào luồng chính. Nếu phát hiện rác, nó tự động cập nhật status thành `REJECTED_BY_AI`. Người dân sẽ nhận được thông báo qua Web Socket/Push Notification thay vì phải chờ màn hình xoay vòng.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Background Processing Phase 10 |
+| File liên quan | VisionAIWorker.java, FeedbackEventPublisher.java |
+| Screenshot |  |
+| Kết quả chạy/test | Request tạo phản ánh phản hồi chỉ trong 80ms. Hệ thống tự động từ chối ảnh selfie sau 2 giây ngầm mà không làm sập server. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Tuyệt đối không được nhét các tác vụ xử lý IO hoặc AI nặng nề vào luồng phục vụ người dùng chính. Event-Driven Architecture là bắt buộc đối với hệ thống lớn.
+```
+
+---
+
+### Lần sử dụng AI số 14
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Thiết kế Data Grid Server-side Pagination |
+| Phần việc liên quan | Fullstack (Spring Data JPA / React Query) |
+| Mức độ sử dụng | Gợi ý thư viện và logic phân trang |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Giao diện Admin của tôi cần hiển thị danh sách 100,000 người dùng trong hệ thống (City Admin UsersPage). Nếu tôi trả về toàn bộ mảng JSON từ Backend, trình duyệt sẽ sụp đổ (Out of memory). Hãy viết cho tôi code React và Spring Boot để tạo ra một bảng dữ liệu (Data Grid) có khả năng cuộn trang và tìm kiếm mượt mà mà không sập hệ thống.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đề xuất sử dụng thư viện `react-data-grid` hoặc `ag-grid`. Ở phía Backend, AI cung cấp đoạn code dùng `Pageable` của Spring Data JPA. Tuy nhiên, AI lại khuyến nghị lấy danh sách lớn rồi phân trang trên Client (Client-side Pagination) để làm tính năng tìm kiếm (Search) dễ dàng hơn bằng `Array.filter()`.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Tiếp thu cách sử dụng class `Pageable` và interface `Page<User>` của Spring Boot.
+- Sử dụng UI Component Bảng từ TailwindCSS theo bố cục của AI.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Làm chủ hoàn toàn cơ chế Server-side Pagination & Debounce Search:
+- Critical Thinking: Lời khuyên phân trang Client-side của AI hoàn toàn vô giá trị khi dữ liệu lên tới 100,000 bản ghi. Việc bắt tải JSON nặng 50MB về điện thoại người dùng là một thảm họa kỹ thuật.
+- Decision Ownership & Creative Synthesis: Tôi thiết lập một kiến trúc Server-side Pagination chuẩn mực. Frontend truyền chính xác các biến `page`, `size`, `sort`, và `keyword` lên URL Query. Spring Data JPA xử lý truy vấn `SELECT ... LIMIT ... OFFSET` ở cấp độ CSDL. Để làm tính năng Tìm kiếm không làm quá tải Database (tránh việc gọi API liên tục mỗi khi gõ 1 chữ cái), tôi đã tự tích hợp kỹ thuật Debounce Search (chờ 500ms ngưng gõ mới gọi API). Đồng thời dùng React Query `keepPreviousData: true` để giao diện không bị giật trắng (flicker) trong khi chờ dữ liệu của trang mới trả về.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Data Grid Phase 10 |
+| File liên quan | UsersPage.tsx, UserRepository.java, UserService.java |
+| Screenshot |  |
+| Kết quả chạy/test | Tải danh sách 100,000 người dùng cực kỳ mượt mà. Thời gian tải API dưới 30ms nhờ Pagination SQL chuẩn mực. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Sự khác biệt giữa Đồ án sinh viên và Phần mềm Doanh nghiệp là khả năng thao tác với tập dữ liệu khổng lồ mà tốc độ vẫn được duy trì.
+```
+
+---
+
+### Lần sử dụng AI số 15
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Xây dựng cơ chế giám sát lỗi toàn cục (Global Error Tracking) |
+| Phần việc liên quan | Core Framework / Telemetry |
+| Mức độ sử dụng | Hỗ trợ tìm kiếm API nền tảng (Vanilla JS) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Khi ứng dụng React chạy trên Server-Side Rendering (SSR) bị lỗi, framework thường nuốt (swallow) mất Stack Trace và chỉ ném ra một phản hồi HTTP 500 chung chung. Làm sao tôi có thể theo dõi và tóm gọn các lỗi ngoại lệ (Unhandled Rejections) này trước khi chúng bị framework can thiệp?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đề xuất sử dụng dịch vụ trả phí như Sentry.io hoặc Datadog. AI cũng cung cấp đoạn mã mẫu tích hợp Sentry SDK bằng `Sentry.init()`. Ngoài ra, AI nhắc đến sự tồn tại của các sự kiện cấp thấp trong JavaScript như `window.addEventListener('error')`.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Từ chối sử dụng Sentry vì vượt quá ngân sách và không cần thiết cho quy mô sinh viên.
+- Nhận thức được sự tồn tại của sự kiện `unhandledrejection` do AI cung cấp.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Tự thiết kế hệ thống Error Capture Out-Of-Band (OOB):
+- Critical Thinking: Bằng cách lắng nghe sự kiện ở cấp độ `globalThis` thay vì `window` (để hỗ trợ cả môi trường Node.js Server và Browser), tôi có thể bắt mọi lỗi ném ra từ bất kỳ đâu trong hệ thống.
+- Decision Ownership & Creative Synthesis: Tôi tự viết file `error-capture.ts`. Thuật toán của tôi sẽ ghi nhận lại lỗi (record) kèm theo Timestamp (thời gian). Tôi thiết lập một cơ chế Time-To-Live (TTL) là 5 giây. Trong vòng 5 giây đó, nếu Server.ts (engine chính) cần trả về lỗi 500, nó sẽ gọi hàm `consumeLastCapturedError()` của tôi để lôi Stack Trace gốc ra và in vào Log. Kiến trúc siêu nhẹ, không tốn thêm 1 byte thư viện bên ngoài nào, thể hiện sự am hiểu sâu sắc về JavaScript Event Loop.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Telemetry Phase 11 |
+| File liên quan | error-capture.ts, server.ts |
+| Screenshot |  |
+| Kết quả chạy/test | Mọi lỗi crash app đều được hệ thống tóm gọn và in ra Console với đầy đủ dòng code gây lỗi. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Kỹ sư giỏi không phải là người import thư viện (Sentry) giỏi, mà là người hiểu được tại sao thư viện đó hoạt động bằng mã nguồn gốc (Native APIs).
+```
+
+---
+
+### Lần sử dụng AI số 16
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Redesign Giao diện Công an Phường (Police UX) |
+| Phần việc liên quan | Frontend / UI-UX Design |
+| Mức độ sử dụng | Gợi ý Template ban đầu |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Hãy thiết kế cho tôi một giao diện Dashboard cho lực lượng Công an Phường sử dụng để xem danh sách phản ánh an ninh trật tự.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI sinh ra một giao diện Admin tiêu chuẩn (Standard Admin Template) giống hệt trang của UBND Phường: Bao gồm thanh Sidebar lớn nhiều màu sắc, biểu đồ tròn (Pie Chart) thống kê số lượng tội phạm, và một bảng dữ liệu chật kín màn hình.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Giữ lại cấu trúc Grid cơ bản của TailwindCSS.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Thiết kế lại toàn bộ UX dựa trên Ngữ cảnh thực tế (Contextual Design):
+- Contextualization: Môi trường làm việc của Công an Phường đòi hỏi sự tập trung cao độ, tốc độ phản hồi nhanh, và tính kỷ luật. Họ không có thời gian ngồi ngắm "Biểu đồ tròn".
+- Creative Synthesis & Decision Ownership: Tôi bác bỏ Template sặc sỡ của AI. Tôi thiết kế lại trang `PoliceDashboard.tsx` theo phong cách Tối giản (Minimalist). Sidebar được thu nhỏ tối đa. Đặt một Huy hiệu Công an (Emblem) lớn để tạo sự uy nghiêm. Trung tâm màn hình thay vì là biểu đồ, tôi thay bằng Nhật ký vận hành (Operation Log) chạy theo thời gian thực (Real-time). Lực lượng an ninh chỉ cần nhìn vào màn hình là biết ngay khu vực nào đang có biến động khẩn cấp.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Contextual UX Phase 11 |
+| File liên quan | PoliceDashboard.tsx |
+| Screenshot |  |
+| Kết quả chạy/test | Giao diện sắc lạnh, chuyên nghiệp, hiển thị đúng các KPI về An ninh trật tự. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Đừng mang tư duy của dân kinh tế (thích biểu đồ) áp đặt vào UI của lực lượng an ninh (cần hành động nhanh).
+```
+
+---
+
+### Lần sử dụng AI số 17
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Xây dựng API Tra cứu Phản ánh công khai (Public Search) an toàn |
+| Phần việc liên quan | Backend / Security & Data Privacy |
+| Mức độ sử dụng | Gợi ý cấu trúc Query Database |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Tôi muốn làm một trang Web cho phép người dân (không cần đăng nhập) nhập Mã theo dõi (Tracking ID) hoặc gõ từ khóa để tra cứu xem phản ánh rác thải của họ đã được giải quyết tới đâu. Làm sao để truy vấn nhanh chóng?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đề xuất tạo một API `GET /api/public/feedbacks`. AI viết một câu lệnh JPQL đơn giản để lấy danh sách Entity `Feedback` từ database và trả nguyên List<Feedback> này về cho Frontend hiển thị dưới dạng JSON.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Sử dụng câu lệnh JPQL hỗ trợ tìm kiếm động (Dynamic Search) theo nhiều trường.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Chống rò rỉ dữ liệu (Data Leakage Prevention):
+- Critical Thinking: Entity `Feedback` trong cơ sở dữ liệu chứa cả số điện thoại, email của người báo cáo (để cán bộ phường liên hệ) và các ghi chú nội bộ của Công an. Việc ném nguyên Entity này ra Public API như AI gợi ý là một lỗ hổng bảo mật nghiêm trọng (IDOR/Mass Assignment). Bất kỳ ai dùng Postman cũng có thể cào (scrape) được thông tin cá nhân của người khác.
+- Decision Ownership & Creative Synthesis: Tôi đã tự thiết kế một `PublicFeedbackDTO`. DTO này đóng vai trò như một màng lọc, CHỈ copy các trường an toàn (Tiêu đề, Tọa độ, Trạng thái, Hình ảnh công khai) từ Entity gốc, và tuyệt đối loại bỏ số điện thoại/email. Đảm bảo 100% tính ẩn danh (Whistleblower Privacy) theo đúng nghiệp vụ báo cáo vi phạm an ninh của ứng dụng Smart City.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Public Search API Phase 12 |
+| File liên quan | PublicFeedbackDTO.java, feedback-search.tsx |
+| Screenshot |  |
+| Kết quả chạy/test | Gọi API Public bằng Postman chỉ thấy các trường an toàn, không có bất kỳ thông tin cá nhân nào bị lộ. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Không bao giờ được tin tưởng code tự sinh của AI khi làm việc với API công khai. Luôn phải dùng DTO để che giấu Entity gốc.
+```
+
+---
+
+### Lần sử dụng AI số 18
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Tích hợp Đa ngôn ngữ (i18n) cho Cổng du khách |
+| Phần việc liên quan | Frontend / React Context API |
+| Mức độ sử dụng | Đề xuất kiến trúc i18n |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Thành phố Đà Nẵng có rất nhiều khách du lịch ngoại quốc. Trang Web của tôi cần hỗ trợ chuyển đổi mượt mà giữa tiếng Việt và tiếng Anh mà không phải tải lại trang. Hãy viết code i18n cho tôi.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI yêu cầu tôi cài đặt thư viện `react-i18next` và `i18next`. Sau đó tạo 2 file JSON khổng lồ `vi.json` và `en.json` chứa toàn bộ text của ứng dụng, và dùng hàm `t('key')` bọc ở mọi nơi trong các Component.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Áp dụng triết lý dùng hàm `t('key')` để map text.
+- Lấy một phần danh sách các từ khóa phổ biến được AI dịch sẵn sang tiếng Anh.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Thiết kế Context API gọn nhẹ thay vì thư viện cồng kềnh:
+- Critical Thinking: `react-i18next` là một thư viện nặng. Nếu tôi gói toàn bộ text của 10 trang Web vào một file JSON duy nhất, người dùng (đặc biệt là 3G yếu) sẽ phải tải một Bundle size khổng lồ ngay từ lần truy cập đầu tiên.
+- Decision Ownership & Creative Synthesis: Tôi từ chối cài thư viện ngoài. Tôi tự tay viết một React Context API mang tên `useI18n()`. Hàm này quản lý biến trạng thái `locale` (en/vi) và lưu vào `localStorage`. Các bản dịch không bị gộp chung mà được phân mảnh (Code Splitting) hoặc tổ chức theo dạng object map gọn nhẹ ngay trong bộ nhớ. Việc chuyển đổi ngôn ngữ diễn ra tức thời chỉ với một lần Re-render Context mà không làm nặng trang Web.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit i18n Phase 12 |
+| File liên quan | i18n.tsx, feedback-search.tsx |
+| Screenshot |  |
+| Kết quả chạy/test | Bấm nút chuyển Cờ Việt/Anh trên thanh Header, toàn bộ nội dung đổi ngôn ngữ tức thời, không load lại trang. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Tối ưu hóa dung lượng ứng dụng (Bundle Size) bằng cách tự viết các Context đơn giản thay vì lạm dụng thư viện của bên thứ ba.
+```
+
+---
+
+### Lần sử dụng AI số 19
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Xử lý đa phương tiện & Định vị GPS cho Form gửi phản ánh |
+| Phần việc liên quan | Frontend / Browser Native APIs |
+| Mức độ sử dụng | Hỗ trợ tìm kiếm thư viện (Bị bác bỏ) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Form báo cáo rác thải của tôi cần cho phép người dân đính kèm hình ảnh và tự động lấy tọa độ GPS của họ. Hãy chỉ cho tôi cách làm.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đề xuất sử dụng 2 thư viện rất nặng: `react-dropzone` để kéo thả ảnh, và yêu cầu gọi API của `ipinfo.io` (trả phí) để lấy tọa độ thông qua địa chỉ IP. Về phần ảnh, AI gợi ý gửi thẳng file raw (có thể lên tới 10MB/ảnh) lên Server Backend.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Không sử dụng bất kỳ thư viện hay API trả phí nào do AI đề xuất.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Khai thác Browser Native APIs & Tối ưu hóa Băng thông (Bandwidth):
+- Critical Thinking: Việc gửi thẳng ảnh 10MB từ điện thoại lên Server bằng 4G sẽ làm người dân nản lòng vì quá chậm (và gây tốn kém tiền Cloud Storage cho dự án). Ngoài ra, định vị bằng IP (như AI xúi) là cực kỳ thiếu chính xác, độ lệch có thể lên tới hàng kilomet.
+- Decision Ownership & Creative Synthesis: Tôi tự viết một Hook ép nén ảnh ngay trên trình duyệt (Client-side Compression) bằng HTML5 `<canvas>`. Một tấm ảnh 10MB lập tức bị thu nhỏ về 300KB trước khi rời khỏi điện thoại, giúp API Upload phản hồi trong tích tắc. Về GPS, tôi sử dụng Native API `navigator.geolocation` của trình duyệt. Nó kết nối thẳng với chip GPS trên điện thoại để lấy tọa độ cực kỳ chính xác (lệch vài mét) mà hoàn toàn miễn phí.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Multimedia & Geo Phase 13 |
+| File liên quan | ReportForm.tsx |
+| Screenshot |  |
+| Kết quả chạy/test | Người dùng upload 5 tấm ảnh 4K nhưng chỉ mất 1 giây để xử lý xong. Tọa độ chính xác đến từng gốc cây. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Tối ưu hóa ở phía Client (Frontend) là cách hiệu quả nhất để cứu vớt hàng nghìn đô la chi phí Server (Backend).
+```
+
+---
+
+### Lần sử dụng AI số 20
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Cấu hình bảo mật cấp độ Production (CORS & Rate Limiting) |
+| Phần việc liên quan | Backend / System Security |
+| Mức độ sử dụng | Hỗ trợ cú pháp Spring Security |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Khi tôi đẩy Frontend lên Vercel và Backend lên Render, trình duyệt báo lỗi "CORS blocked". Đồng thời, bất kỳ ai cũng có thể gọi API Public hàng nghìn lần để spam rác hệ thống. Tôi phải làm sao?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI cung cấp đoạn code Spring Boot: `registry.addMapping("/**").allowedOrigins("*")`. Nó bảo tôi cho phép tất cả mọi Origin (dấu `*`) để giải quyết lỗi CORS nhanh nhất. Về spam, AI xúi cài thêm một server Nginx đứng trước để cản.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Học cách cấu trúc class `WebMvcConfigurer` trong Spring Boot.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Bảo mật hệ thống tuyệt đối (Hardening System Security):
+- Critical Thinking: Cấu hình `.allowedOrigins("*")` của AI là sự tự sát về mặt bảo mật. Bất kỳ trang web giả mạo nào (Phishing) cũng có thể gửi request đến API của tôi (CSRF Attack). Việc cài Nginx thì lại quá phức tạp và không khả thi trên nền tảng Render miễn phí.
+- Decision Ownership & Creative Synthesis: Tôi đã ném bỏ code CORS rác của AI. Thay vào đó, tôi hardcode chính xác Origin hợp lệ `.allowedOrigins("https://thecityconnect.vn")` và chỉ cho phép các hàm `GET, POST`. Để chống Spam, tôi triển khai thuật toán Token Bucket (Rate Limiting) ngay trong tầng Filter của Spring Boot: Giới hạn mỗi địa chỉ IP chỉ được gửi tối đa 5 phản ánh / phút. Kẻ tấn công (DDoS) sẽ bị trả về mã lỗi HTTP 429 (Too Many Requests).
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Production Security Phase 13 |
+| File liên quan | WebSecurityConfig.java, RateLimitFilter.java |
+| Screenshot |  |
+| Kết quả chạy/test | Dùng Postman spam API liên tục, đến request thứ 6 lập tức bị chặn bằng mã HTTP 429. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Đừng bao giờ copy-paste code CORS của AI. "Chạy được" và "Chạy an toàn" là hai khái niệm hoàn toàn khác biệt.
+```
+
+---
+
+### Lần sử dụng AI số 21
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Thiết kế Data Layer cho các bảng dữ liệu tĩnh (Danh mục, Phường xã) |
+| Phần việc liên quan | Backend / Database & Caching |
+| Mức độ sử dụng | Gợi ý cấu trúc Query Database |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Trang chủ của tôi cần hiển thị danh sách các Phường và Danh mục phản ánh. Làm sao để Backend trả dữ liệu nhanh nhất có thể?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI viết một đoạn code `WardRepository.findAll()` và `CategoryRepository.findAll()` bằng Spring Data JPA. Đoạn code này sẽ truy vấn thẳng vào Database (PostgreSQL) mỗi khi có một request từ Client bay tới.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Sử dụng cú pháp khai báo Repository cơ bản của Spring.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Tích hợp Cơ chế Bộ đệm (Caching Mechanism):
+- Critical Thinking: Danh sách các Phường và Danh mục rác thải là dữ liệu "tĩnh" (gần như không bao giờ thay đổi). Nếu 10.000 người dùng truy cập trang chủ cùng lúc, Database sẽ phải thực hiện 10.000 câu lệnh `SELECT` thừa thãi. Lời khuyên của AI sẽ làm nghẽn cổ chai (Bottleneck) hệ thống.
+- Decision Ownership & Creative Synthesis: Tôi đã can thiệp vào tầng Service, gắn annotation `@Cacheable("wards")` và `@Cacheable("categories")` của Spring Cache (có thể dùng kèm Redis). Lần đầu tiên gọi API, dữ liệu sẽ được lấy từ DB và ném vào RAM (Cache). Kể từ request thứ 2 trở đi, dữ liệu được trả về thẳng từ RAM với tốc độ siêu tốc (< 1ms) mà Database không hề bị chạm tới.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Caching Phase 14 |
+| File liên quan | WardService.java, CacheConfig.java |
+| Screenshot |  |
+| Kết quả chạy/test | Nhìn vào Log Console, câu lệnh `Hibernate: SELECT...` chỉ chạy đúng 1 lần duy nhất lúc khởi động, các lần F5 sau không có log DB nữa. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Database là tài nguyên đắt đỏ nhất trong hệ thống. Luôn phải tìm cách che chắn cho nó bằng Cache trước những dữ liệu ít thay đổi.
+```
+
+---
+
+### Lần sử dụng AI số 22
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Gửi Email thông báo trạng thái phản ánh |
+| Phần việc liên quan | Backend / Asynchronous Processing |
+| Mức độ sử dụng | Hỗ trợ cú pháp thư viện gửi mail |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Khi cán bộ Phường duyệt xong một phản ánh, tôi muốn gửi Email thông báo tự động cho người dân. Làm sao để tích hợp JavaMailSender?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đưa ra đoạn code gửi email Đồng bộ (Synchronous). Nghĩa là ngay trong API `approveFeedback()`, AI chèn thêm lệnh `emailService.sendMail()`.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Học cách cấu hình SMTP Server (`application.yml`) và các hàm tạo `MimeMessage`.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Xử lý Bất đồng bộ (Asynchronous Background Jobs):
+- Critical Thinking: Gửi email qua SMTP Google thường mất từ 2-5 giây để hoàn thành. Nếu làm theo code Đồng bộ của AI, cán bộ Phường bấm nút "Duyệt" xong thì màn hình sẽ bị "treo" (loading) 5 giây mới báo thành công. Tệ hơn, nếu Google Mail bị sập, toàn bộ tiến trình duyệt bài sẽ ném ra Exception và thất bại.
+- Decision Ownership & Creative Synthesis: Tôi tách tính năng gửi Email ra một luồng riêng biệt (Thread) bằng cách gắn annotation `@Async` vào hàm `sendMail()`. Nhờ đó, khi cán bộ Phường bấm "Duyệt", API lập tức trả về kết quả thành công (< 0.1s), giải phóng giao diện. Việc gửi Email được quăng vào Background Job để hệ thống tự thong thả gửi ngầm. Nếu gửi lỗi, luồng chính vẫn không bị ảnh hưởng.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Async Email Phase 14 |
+| File liên quan | EmailService.java, AsyncConfig.java |
+| Screenshot |  |
+| Kết quả chạy/test | Bấm duyệt trên giao diện xử lý ngay lập tức. Email vẫn nhận được vài giây sau đó. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Thiết kế hệ thống thông minh là phải biết phân tách rạch ròi đâu là tác vụ cần phản hồi ngay (Synchronous) và đâu là tác vụ chạy ngầm (Asynchronous).
+```
+
+---
+
+### Lần sử dụng AI số 23
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Quản lý lỗi HTTP và Refresh Token tập trung |
+| Phần việc liên quan | Frontend / Network Layer |
+| Mức độ sử dụng | Hỗ trợ bắt lỗi cơ bản (Bị bác bỏ) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Khi API của Backend trả về lỗi (ví dụ như 401 Unauthorized do hết hạn token), tôi muốn hiển thị thông báo lỗi cho người dùng. Phải làm sao?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đề xuất tôi bọc `try...catch` xung quanh mọi lời gọi hàm `fetch()` hoặc `axios.get()` ở toàn bộ các Component. Nếu bắt được lỗi 401 thì gọi hàm `logout()` và đẩy người dùng ra trang đăng nhập.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Không sử dụng cách làm phân mảnh của AI.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Triển khai Global Axios Interceptor (Silent Refresh):
+- Critical Thinking: Trải nghiệm người dùng (UX) sẽ cực kỳ tồi tệ nếu họ đang gõ dở một cái form dài dòng mà bị văng ra ngoài trang Đăng nhập chỉ vì Token vừa hết hạn được 1 giây. Việc viết `try...catch` ở 50 file khác nhau cũng sinh ra lượng code rác (Boilerplate) khổng lồ và rất khó bảo trì.
+- Decision Ownership & Creative Synthesis: Thay vì nghe AI, tôi tự cấu hình một `Axios Interceptor` chặn (intercept) toàn bộ các Request và Response trước khi chúng đến được Component. Khi Backend ném ra lỗi 401, Interceptor sẽ tự động tạm dừng request hiện tại, ngầm gọi API `refresh-token` để lấy token mới, rồi gọi lại chính request ban đầu (Silent Refresh). Người dùng không hề hay biết sự gián đoạn này. Mọi lỗi 500 cũng được Interceptor hứng và hiển thị Toast Notification một lần duy nhất ở đây.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Global Interceptor Phase 15 |
+| File liên quan | api.ts, auth.ts |
+| Screenshot |  |
+| Kết quả chạy/test | Đợi token hết hạn (15 phút), bấm Lưu dữ liệu. Request đầu bị 401, tự động văng ra request Refresh, và tự động gọi lại lệnh Lưu thành công. Người dùng không bị đá ra ngoài. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Xử lý lỗi (Error Handling) không phải là "ném try...catch khắp nơi", mà là quy hoạch nó vào một tầng mạng (Network Layer) duy nhất.
+```
+
+---
+
+### Lần sử dụng AI số 24
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Quản lý trạng thái cho Form báo cáo Đa bước (Multi-step) |
+| Phần việc liên quan | Frontend / State Management |
+| Mức độ sử dụng | Hỗ trợ tư duy truyền dữ liệu |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Tôi có một Form báo cáo rác thải gồm 3 bước (Nhập thông tin, Đính kèm vị trí bản đồ, Tải ảnh lên). Làm sao để lưu trữ dữ liệu của bước 1 khi người dùng đang ở bước 3?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI khuyên tôi tạo một State bự ở Component cha (Parent Component), sau đó truyền hàm `setDữLiệu` xuống tận Component con ở tầng thứ 3 thông qua `props` (hiện tượng Prop Drilling).
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Không sử dụng giải pháp Prop Drilling vì nó phá vỡ cấu trúc Component.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Sử dụng Zustand cho Global State Management:
+- Critical Thinking: Việc truyền `props` lồng qua 3-4 tầng Component (Prop Drilling) sẽ khiến code biến thành "Mì Ý" (Spaghetti Code). Hơn nữa, mỗi khi Component cha cập nhật State, toàn bộ các Component con (kể cả những cái không liên quan) đều bị Re-render, gây giật lag (đặc biệt khi có bản đồ Leaflet). React Context thì lại quá cồng kềnh.
+- Decision Ownership & Creative Synthesis: Tôi đã cài đặt thư viện `Zustand` - một giải pháp State Management cực nhỏ gọn. Tôi định nghĩa một `useReportStore`, chứa toàn bộ dữ liệu của 3 bước. Ở bất kỳ bước nào (dù Component bị chôn sâu đến đâu), tôi chỉ cần gọi `useReportStore(state => state.updateStep1)` là xong. Cơ chế "Select State" của Zustand đảm bảo chỉ những Component thực sự cần dữ liệu mới bị Re-render, cứu vãn toàn bộ hiệu năng của trang Web.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Zustand State Phase 15 |
+| File liên quan | useReportStore.ts, ReportForm.tsx |
+| Screenshot |  |
+| Kết quả chạy/test | Nhập liệu ở bước 3 cực mượt, bản đồ ở bước 2 hoàn toàn không bị Re-render vô ích nhờ vào React Profiler xác nhận. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Tránh xa Prop Drilling bằng mọi giá trong các ứng dụng React phức tạp. Zustand là vũ khí bí mật để kiểm soát Component Re-render.
+```
+
+---
+
+### Lần sử dụng AI số 25
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Tối ưu hóa kích thước file Javascript (Bundle Size) khi Build |
+| Phần việc liên quan | Frontend / Production Build |
+| Mức độ sử dụng | Hỗ trợ tìm hiểu về cấu hình Webpack/Vite |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Khi tôi chạy lệnh `npm run build`, file `index.js` sinh ra nặng tới 3MB. Người dùng lần đầu tiên vào trang phải đợi 5 giây màn hình trắng. Làm sao để giải quyết?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI khuyên tôi cấu hình Gzip trên Server Nginx để nén file, và tắt tính năng `sourcemap` trong cài đặt Vite.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Tắt tính năng tạo `sourcemap` trên môi trường Production để tránh lộ mã nguồn.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Thực hiện Code Splitting (Chia nhỏ theo Route):
+- Critical Thinking: Lời khuyên của AI về Gzip chỉ là giải pháp "ngọn". Vấn đề cốt lõi là file JS quá to vì nó nhồi nhét code của cả Trang Chủ, Trang Admin, Bản đồ Leaflet vào chung một cục (Monolithic Bundle). Dù có Gzip thì điện thoại tải về vẫn phải mất thời gian Giải nén và Phân tích (Parse) đống code thừa đó.
+- Decision Ownership & Creative Synthesis: Tôi tự can thiệp sâu vào file `vite.config.ts`, cấu hình thuộc tính `manualChunks` để tách riêng thư viện `react`, `leaflet` ra thành các file JS riêng biệt. Đồng thời, ở bộ định tuyến, tôi dùng `React.lazy()` và `<Suspense>` để Load Động (Lazy Load) các trang Admin. Kết quả: Khi người dân vào trang chủ, trình duyệt chỉ tải đúng 150KB Javascript cần thiết. Màn hình trắng biến mất, tốc độ FCP (First Contentful Paint) giảm từ 5 giây xuống còn 0.5 giây.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Code Splitting Phase 16 |
+| File liên quan | vite.config.ts, routeTree.gen.ts |
+| Screenshot |  |
+| Kết quả chạy/test | Build Terminal hiện ra hàng chục file `.js` nhỏ nhắn cỡ 20-50KB thay vì một cục 3MB. Chrome Lighthouse chấm điểm Performance lên 95+. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Code Splitting là kỹ năng bắt buộc của một Frontend Developer khi dự án tiến lên Production.
+```
+
+---
+
+### Lần sử dụng AI số 26
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Bắt và sửa lỗi Rò rỉ bộ nhớ (Memory Leak) do bản đồ Leaflet |
+| Phần việc liên quan | Frontend / Memory Management |
+| Mức độ sử dụng | Hỗ trợ phân tích Profiler (Bị bác bỏ giải pháp) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Nếu Cán bộ phường cắm máy bật trang Admin Dashboard suốt cả ngày, RAM của Chrome bị phình lên tận 1.5GB và bị Crash trang (Out of Memory). Tôi thấy bản đồ Leaflet hình như không tự xóa. Phải làm sao?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đưa ra đoạn code xài tạm bợ: `if (map) map = null;` khi Component unmount.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Không áp dụng, vì gắn null không giải quyết được các Event Listener ngầm.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Thiết lập Cleanup Routine tiêu chuẩn:
+- Critical Thinking: Gán biến bằng `null` không làm cho bộ dọn rác (Garbage Collector) của Javascript tự động giải phóng vùng nhớ nếu như bên trong bản đồ vẫn còn dính các hàm bắt sự kiện `onClick` hoặc các vòng lặp `setInterval`. Lời khuyên của AI cực kỳ hời hợt và nguy hiểm cho các ứng dụng chạy dài hạn 24/7.
+- Decision Ownership & Creative Synthesis: Tôi đã dùng Chrome DevTools (Tab Memory) chụp Snapshot RAM và phát hiện nguyên nhân. Sau đó, tôi tự viết một Cleanup Routine hoàn chỉnh trong hook `useEffect`. Khi Component bị hủy (Unmount), hệ thống sẽ gọi `map.off()` để gỡ sạch mọi sự kiện, gọi `map.remove()` để hủy toàn bộ DOM do bản đồ tạo ra, và `clearInterval` cho bộ đếm thời gian thực. Kết quả test sau 4 tiếng cắm máy liên tục, RAM trình duyệt luôn ổn định ở mức 60MB.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Memory Leak Fix Phase 16 |
+| File liên quan | MapComponent.tsx |
+| Screenshot |  |
+| Kết quả chạy/test | Dùng Chrome Task Manager để theo dõi: Mở/Đóng Component Bản đồ liên tục 20 lần, RAM không bị tăng lũy tiến mà được dọn dẹp sạch sẽ. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Luôn phải dọn dẹp "bãi chiến trường" (Event Listeners, Timers) trong hàm Return của `useEffect`. Đó là sự khác biệt giữa code chạy được và code chất lượng cao.
+```
+
+---
+
+### Lần sử dụng AI số 27
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Bịt lỗ hổng XSS và Clickjacking trên ứng dụng |
+| Phần việc liên quan | Backend / Security Headers |
+| Mức độ sử dụng | Hỗ trợ cấu hình Spring Security cơ bản |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Tôi kiểm tra bằng công cụ Pen-test thì thấy trang web bị cảnh báo thiếu Security Headers. Kẻ gian có thể nhúng trang web của tôi vào một thẻ `<iframe>` để làm trò lừa đảo (Clickjacking). Làm sao để chặn?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đề xuất tôi mở file `index.html` của React lên và chèn vài dòng thẻ `<meta http-equiv="Content-Security-Policy">` vào phần `<head>`.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Tìm hiểu các khái niệm về CSP và X-Frame-Options.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Bảo mật từ Tầng mạng (Network Layer) của Backend:
+- Critical Thinking: Lời khuyên của AI về việc chèn thẻ `<meta>` HTML là rất yếu. Hacker có thể dễ dàng bypass (vượt qua) các thẻ HTML. Bảo mật thực sự phải được cấu hình từ HTTP Header trả về bởi Server.
+- Decision Ownership & Creative Synthesis: Tôi đã trực tiếp sửa file `SecurityConfig.java` trong Spring Boot. Tôi cấu hình `http.headers().frameOptions().deny()` để chặn hoàn toàn mọi nỗ lực nhúng trang web vào `<iframe>`. Đồng thời thiết lập `Content-Security-Policy` khắt khe, chỉ cho phép tải script và ảnh từ các nguồn đáng tin cậy. Tôi cũng siết chặt lại CORS, xóa bỏ `*` và chỉ định đích danh domain của Frontend được phép gọi API. Trang web trở nên bất khả xâm phạm trước các chiêu trò giả mạo.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Security Headers Phase 17 |
+| File liên quan | SecurityConfig.java |
+| Screenshot |  |
+| Kết quả chạy/test | Dùng Postman gọi API, xem phần Headers trả về sẽ thấy xuất hiện X-Frame-Options: DENY và Content-Security-Policy. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Bảo mật phải được rào ngay từ cổng Backend. Dựa dẫm vào Frontend HTML để bảo mật là tự sát.
+```
+
+---
+
+### Lần sử dụng AI số 28
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Đóng gói ứng dụng để triển khai dễ dàng (Containerization) |
+| Phần việc liên quan | DevOps / Docker |
+| Mức độ sử dụng | Hỗ trợ cú pháp viết Dockerfile |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Code của tôi chạy ngon lành trên máy tôi, nhưng khi copy sang máy giảng viên chấm bài thì bị lỗi không chạy được do khác phiên bản Java và Node.js. Phải làm sao?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI liệt kê một danh sách hướng dẫn dài ngoằng, bảo tôi yêu cầu giảng viên tải Java 17, cài đặt PostgreSQL, tạo Database bằng tay, rồi tải Node.js 20 về chạy `npm install`.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Không sử dụng. Lời khuyên này không thực tế với hội đồng chấm thi.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Triển khai Docker & Multi-stage Build:
+- Critical Thinking: Bắt giảng viên hoặc khách hàng phải tự cài đặt mớ bòng bong môi trường là một điểm trừ cực nặng về tính chuyên nghiệp. Hệ thống phải đảm bảo tiêu chí "Viết một lần, chạy mọi nơi" (Run Anywhere).
+- Decision Ownership & Creative Synthesis: Thay vì viết tài liệu hướng dẫn cài đặt, tôi đã tự tay viết `Dockerfile` cho cả Frontend và Backend. Đối với Backend, tôi áp dụng Multi-stage build: Stage 1 dùng Maven để build ra file `.jar`, Stage 2 chỉ dùng một image Alpine cực nhẹ để chạy file `.jar` đó, giúp dung lượng Image giảm từ 1GB xuống còn hơn 100MB. Cuối cùng, tôi gom tất cả (FE, BE, Database Postgres) vào một file `docker-compose.yml`. Bây giờ, giảng viên chỉ cần gõ đúng 1 lệnh `docker-compose up -d`, toàn bộ hệ thống sẽ tự động tải về, tự động kết nối và chạy trơn tru mà không cần cài đặt thêm bất cứ phần mềm nào.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Docker Compose Phase 17 |
+| File liên quan | Dockerfile, docker-compose.yml |
+| Screenshot |  |
+| Kết quả chạy/test | Chạy `docker-compose up` trên một máy tính hoàn toàn mới (chưa cài Java/Node), hệ thống vẫn tự động lên đầy đủ Frontend (Port 5173) và Backend (Port 8080). |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Ảo hóa (Containerization) là bước ngoặt biến một "Đồ án sinh viên" thành một "Sản phẩm thực tế".
+```
+
+---
+
+### Lần sử dụng AI số 29
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Quản lý và theo dõi lỗi hệ thống chuyên nghiệp (Logging) |
+| Phần việc liên quan | Backend / System Monitoring |
+| Mức độ sử dụng | Hỗ trợ bắt lỗi Exception (Bị bác bỏ giải pháp in log) |
+
+#### 4.1. Prompt đã sử dụng
+
+| Nội dung | Thông tin |
+|---|---|
+| Cấu trúc dữ liệu | `ReportEntity.java` |
+
+```text
+- Khi có một lỗi xảy ra ở Backend (ví dụ NullPointerException), tôi muốn ghi lại lỗi đó để sau này bảo trì. Tôi nên dùng cách nào?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đề xuất tôi bắt `catch(Exception e)` rồi in ra màn hình bằng lệnh `System.out.println(e.getMessage());` hoặc `e.printStackTrace();`.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Hoàn toàn bác bỏ.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Triển khai SLF4J và Logback định dạng JSON:
+- Critical Thinking: Sử dụng `System.out.println` trong một dự án Spring Boot là một sự "nghiệp dư" nghiêm trọng. Nó làm chậm hệ thống (chặn luồng thực thi), không thể phân loại được mức độ nghiêm trọng (INFO, WARN, ERROR), và bị mất trắng dữ liệu khi Server khởi động lại.
+- Decision Ownership & Creative Synthesis: Tôi đã cấu hình một hệ thống ghi Log chuyên nghiệp bằng SLF4J kết hợp với file `logback-spring.xml`. Các log không in lộn xộn ra Console nữa mà được ghi vào các file text xoay vòng theo ngày (RollingFileAppender). Đặc biệt hơn, tôi tự mày mò cấu hình xuất Log dưới dạng JSON để hệ thống của tôi sẵn sàng tích hợp với các công cụ giám sát cao cấp như ELK Stack (Elasticsearch, Logstash, Kibana) trong tương lai. Giờ đây, chỉ cần tìm kiếm từ khóa trong file Log là tôi biết chính xác lỗi xảy ra ở dòng code nào lúc mấy giờ.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Enterprise Logging Phase 18 |
+| File liên quan | logback-spring.xml |
+| Screenshot |  |
+| Kết quả chạy/test | Mở thư mục `/logs` trên Backend sẽ thấy các file `application-2026-07-24.log` chứa các đoạn log được lưu trữ cẩn thận theo chuẩn JSON. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Log hệ thống là "hộp đen máy bay" của phần mềm. Phải được thiết kế nghiêm túc ngay từ ngày đầu tiên.
+```
+
+---
+
+### Lần sử dụng AI số 30
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Xử lý kịch bản hai người thao tác cùng lúc (Concurrency Control) |
+| Phần việc liên quan | Backend / Database Locking |
+| Mức độ sử dụng | Hỗ trợ viết lệnh Update (Bị bác bỏ logic) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Nếu 2 cán bộ phường cùng lúc bấm nút "Duyệt" và "Từ chối" cho cùng một phản ánh thì sao? Tôi muốn cập nhật trạng thái của phản ánh đó vào Database.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI hồn nhiên sinh ra một hàm `updateStatus()` gọi thẳng lệnh `UPDATE report SET status = ? WHERE id = ?`.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Sử dụng cú pháp cập nhật dữ liệu của Spring Data JPA.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Áp dụng Optimistic Locking (Khóa Lạc Quan):
+- Critical Thinking: Câu lệnh của AI sẽ dẫn đến thảm họa "Lost Update" (Mất mát bản cập nhật). Người bấm sau sẽ ghi đè lên dữ liệu của người bấm trước, và hệ thống sẽ không hề có một cảnh báo nào. Nếu đây là ứng dụng ngân hàng thì 2 người cùng chuyển tiền một lúc sẽ làm hỏng số dư.
+- Decision Ownership & Creative Synthesis: Để phòng ngừa Race Condition (Cạnh tranh tài nguyên), tôi đã can thiệp vào Entity `Report` của Hibernate, thêm một trường tên là `version` và gắn annotation `@Version`. Đây là kỹ thuật Optimistic Locking. Khi cán bộ A và cán bộ B cùng tải dữ liệu về (version = 1). Cán bộ A bấm "Duyệt", dữ liệu lưu vào DB thành công, version tăng lên 2. Lúc này cán bộ B mới bấm "Từ chối" (mang theo version = 1), Database sẽ phát hiện ra sự lỗi nhịp thời gian, lập tức ném ra lỗi `ObjectOptimisticLockingFailureException`. Từ đó Backend sẽ trả về báo lỗi cho cán bộ B: "Dữ liệu đã được người khác cập nhật, vui lòng tải lại trang!". Dữ liệu được bảo vệ an toàn tuyệt đối.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Optimistic Locking Phase 18 |
+| File liên quan | ReportEntity.java |
+| Screenshot |  |
+| Kết quả chạy/test | Mở 2 trình duyệt ẩn danh đóng vai 2 cán bộ. Người thứ 2 bấm duyệt sẽ nhận được Toast Notification báo lỗi dữ liệu cũ, thay vì bị ghi đè im lặng. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+AI thường chỉ giải quyết luồng chạy hoàn hảo (Happy Path). Kỹ sư giỏi phải giải quyết các luồng cạnh tranh dữ liệu (Edge Cases/Concurrency).
+```
+
+---
+
+### Lần sử dụng AI số 31
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Chống Spam và DDoSing (Rate Limiting) |
+| Phần việc liên quan | Backend / Network Security |
+| Mức độ sử dụng | Hỗ trợ phân tích lỗ hổng (Bị bác bỏ giải pháp) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Nếu một người dùng ác ý dùng Tool (như Postman/JMeter) bắn API "Tạo phản ánh" liên tục 10.000 lần/giây, hệ thống của tôi sẽ sinh ra toàn rác thải giả và sập Database. Phải làm sao để chặn?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đề xuất tôi viết một đoạn code ở đầu hàm `createFeedback()`: Truy vấn Database xem IP này vừa tạo bài trong 1 phút qua không, nếu có thì báo lỗi.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Không sử dụng giải pháp truy vấn DB.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Cấu hình Rate Limiting bằng thuật toán Token Bucket (Bucket4j):
+- Critical Thinking: Lời khuyên của AI là một sai lầm logic kinh điển (Anti-pattern). Bản thân việc Query DB để kiểm tra Spam chính nó đã là một tác vụ làm nghẽn DB. Nếu Hacker bắn 10.000 request, Backend vẫn phải gọi 10.000 câu lệnh `SELECT` xuống Database, và Database vẫn sập như thường.
+- Decision Ownership & Creative Synthesis: Việc chống Spam phải được thực hiện ở Lớp Mạng (Network Layer), trước khi nó lọt vào Controller. Tôi đã tích hợp thư viện `Bucket4j` (dựa trên thuật toán Token Bucket) vào một Filter. Tôi cấp cho mỗi IP 5 Token/phút (lưu trên RAM/Redis). Nếu Hacker spam tới Request thứ 6, Filter lập tức trả về mã lỗi HTTP 429 (Too Many Requests) trong vòng 0.001 giây mà không hề đánh thức Controller hay Database. Hệ thống an toàn tuyệt đối.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Rate Limiting Phase 19 |
+| File liên quan | RateLimitFilter.java |
+| Screenshot |  |
+| Kết quả chạy/test | Dùng Postman Runner bắn 20 request trong 1 giây. 5 request đầu báo 200 OK. 15 request sau đỏ lòm với mã 429 Too Many Requests. Log Database vắng lặng. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Phòng thủ hệ thống là phải chặn giặc từ ngoài cổng (Filter), chứ không phải để giặc vào đến phòng ngủ (Database) mới bắt đầu kiểm tra.
+```
+
+---
+
+### Lần sử dụng AI số 32
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Bảo vệ hệ thống khi dịch vụ bên thứ ba bị sập (Circuit Breaker) |
+| Phần việc liên quan | Backend / System Resilience |
+| Mức độ sử dụng | Hỗ trợ bắt lỗi cơ bản (Bị bác bỏ) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Ứng dụng của tôi có tính năng gửi Email (qua Google SMTP) sau khi cán bộ Duyệt bài. Giả sử hôm nay Server Google bị sập hoặc cáp quang đứt, Email gửi đi bị treo (pending) rất lâu thì ứng dụng của tôi bị sao không?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI đáp: Các luồng (Thread) gọi gửi Email sẽ bị treo chờ Google phản hồi. Lâu dần sẽ gây tràn Thread Pool và sập Server. AI khuyên cấu hình Timeout 5 giây và bọc `try...catch`.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Nhận thức được mức độ nghiêm trọng của hiệu ứng Domino sập dây chuyền (Cascading Failure).
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Triển khai Circuit Breaker (Ngắt mạch) với Resilience4j:
+- Critical Thinking: Cấu hình Timeout là chưa đủ. Nếu có 1000 cán bộ cùng duyệt bài, hệ thống vẫn phải sinh ra 1000 Thread, mỗi Thread vẫn phải chờ vô vọng 5 giây, gây lãng phí tài nguyên khổng lồ và làm Server tê liệt.
+- Decision Ownership & Creative Synthesis: Tôi đã cấu hình Mẫu Thiết kế Ngắt Mạch (Circuit Breaker Pattern) bằng thư viện `Resilience4j`. Tôi đặt luật: Nếu hàm gửi Email bị lỗi hoặc Timeout quá 50% số lần trong vòng 10 giây, "Cầu dao" sẽ bị ngắt (OPEN). Lúc này, bất kỳ cán bộ nào duyệt bài, lệnh gửi Email lập tức bị Bypass (bỏ qua luôn, không chờ đợi một giây nào), API sẽ tự chạy hàm dự phòng (Fallback) lưu trạng thái Email thành "Đang chờ gửi bù". Nhờ cầu dao này, các Thread của Backend được giải phóng ngay lập tức, Server vẫn sống sót khỏe mạnh bất chấp đối tác bên ngoài đã ngỏm củ tỏi. Sau 1 phút, cầu dao sẽ tự hé mở (HALF-OPEN) để thăm dò xem Google đã sống lại chưa.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Circuit Breaker Phase 19 |
+| File liên quan | EmailService.java |
+| Screenshot |  |
+| Kết quả chạy/test | Đổi mật khẩu sai để mô phỏng lỗi Google. Các request đầu mất 5 giây chờ, nhưng sau khi cầu dao nhảy, các request sau phản hồi thành công <0.1 giây (được chuyển vào trạng thái Fallback). |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Không bao giờ được đặt sinh mạng của ứng dụng mình vào tay một hệ thống bên thứ ba (3rd-party). Circuit Breaker là lá chắn thép.
+```
+
+---
+
+### Lần sử dụng AI số 33
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Kiểm thử tự động (Automated Testing) để ngăn chặn lỗi hồi quy |
+| Phần việc liên quan | Backend / Unit Testing |
+| Mức độ sử dụng | Hỗ trợ bắt lỗi cơ bản (Bị bác bỏ) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Tôi vừa viết xong một logic rất phức tạp để tính toán điểm thưởng cho người dân báo cáo đúng. Hàm này liên kết chằng chịt với Database. Tôi sợ ngày mai có người khác vào sửa code sẽ làm hỏng logic của tôi (Regression Bug). Làm sao để kiểm tra tự động?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI xui tôi tạo một hàm `public static void main()` ở cuối file, tự tay truyền các giá trị giả vào hàm rồi dùng `System.out.println` để nhìn bằng mắt xem kết quả có đúng không.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Bác bỏ hoàn toàn cách Test "chạy bằng cơm" (Manual Test).
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Triển khai Unit Testing với JUnit 5 và Mockito:
+- Critical Thinking: Test bằng hàm `main()` là cách làm của những người mới học lập trình (Beginner). Nó không thể chạy tự động trong hệ thống, không thể đo được Code Coverage (Độ phủ mã nguồn), và việc gọi trực tiếp vào Database trong lúc Test sẽ làm rác Database thật (Dirty Data).
+- Decision Ownership & Creative Synthesis: Tôi đã xây dựng một bộ Unit Test chuyên nghiệp bằng thư viện JUnit 5. Để cách ly hoàn toàn với Database thật, tôi sử dụng Mockito để "Mock" (làm giả) các hành vi của Repository. Chẳng hạn, khi gọi `userRepository.findById()`, hệ thống sẽ trả về một Object ảo ngay trên RAM. Nhờ vậy, Unit Test chạy cực nhanh (vài mili-giây) và không chạm vào DB. Tôi đã viết 10 Test Cases bao phủ mọi luồng Đúng/Sai của hàm tính điểm, đẩy Code Coverage lên 85%. Từ nay, nếu có ai sửa code làm sai logic ban đầu, bộ Test sẽ lập tức báo đỏ chót, ngăn chặn Lỗi hồi quy (Regression Bug) xuất hiện trên Production.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Unit Testing Phase 20 |
+| File liên quan | ReportServiceTest.java, pom.xml |
+| Screenshot |  |
+| Kết quả chạy/test | Chạy lệnh `mvn test`, màn hình console in ra thông báo xanh rực rỡ: `Tests run: 10, Failures: 0, Errors: 0, Skipped: 0`. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Code không có Unit Test là Code chết (Legacy Code). Không một ai dám tự tin sửa (Refactor) một đoạn code khổng lồ nếu không có bộ Test bảo vệ.
+```
+
+---
+
+### Lần sử dụng AI số 34
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Tự động hóa quy trình Tích hợp và Triển khai (CI/CD Pipeline) |
+| Phần việc liên quan | DevOps / GitHub Actions |
+| Mức độ sử dụng | Hỗ trợ viết Script (Bị bác bỏ về mặt tư duy) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Trong nhóm có 4 người code, mỗi lần có ai Push code mới lên Github, tôi đều phải gõ lệnh `git pull` bằng tay trên Server, rồi tự gõ lệnh `mvn clean install` để Build, nếu lỗi thì lại bắt nhóm sửa. Việc này tốn quá nhiều thời gian. Làm sao để tự động hóa?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI nhiệt tình viết cho tôi một đoạn Bash Script `pull.sh`, bảo tôi cài Crontab trên Server để cứ 5 phút nó tự động chạy Script đó 1 lần.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Không sử dụng Bash script thủ công.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Thiết lập CI/CD Pipeline chuẩn công nghiệp bằng GitHub Actions:
+- Critical Thinking: Việc cài Crontab để pull code định kỳ là một thảm họa hệ thống. Nếu lúc đó code trên Github đang bị lỗi (Compile Error) mà Server cứ thế Pull về và Build đè lên bản cũ, trang web của người dùng sẽ sập ngay lập tức (Downtime).
+- Decision Ownership & Creative Synthesis: Tôi đã ứng dụng quy trình CI (Continuous Integration - Tích hợp liên tục). Tôi tạo file `.github/workflows/ci.yml`. Giờ đây, mỗi khi có sinh viên tạo Pull Request hoặc Push code lên nhánh chính, máy chủ của GitHub sẽ tự động cấp phát một máy ảo (Runner) riêng biệt, tự cài Java 17, tự kéo code về, và chạy toàn bộ lệnh `mvn test` (Bộ Unit Test ở Lần 33). Chỉ khi nào tất cả Test Cases đều màu xanh (Passed) thì Github mới sáng nút "Merge" màu xanh lên cho phép trộn code. Nếu Test thất bại, Pipeline sẽ báo Đỏ và chặn đứng việc tích hợp đoạn code lỗi đó vào dự án. Tự động hóa 100% công đoạn Kiểm định chất lượng.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit CI/CD Pipeline Phase 20 |
+| File liên quan | .github/workflows/ci.yml |
+| Screenshot |  |
+| Kết quả chạy/test | Vào tab "Actions" trên Github repo, thấy danh sách các Workflow chạy thành công với dấu Tick xanh lá cây tuyệt đẹp bên cạnh mỗi Commit. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+CI/CD là trái tim của triết lý DevOps. Máy móc phải làm thay con người những công việc lặp đi lặp lại một cách chính xác tuyệt đối.
+```
+
+---
+
+### Lần sử dụng AI số 35
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Tối ưu hóa Kết nối cơ sở dữ liệu (Connection Pooling) |
+| Phần việc liên quan | Backend / Database Optimization |
+| Mức độ sử dụng | Hỗ trợ phân tích nguyên nhân (Bác bỏ giải pháp) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Khi dùng JMeter thử nghiệm với 500 người truy cập cùng lúc, hệ thống báo lỗi "HikariPool-1 - Connection is not available, request timed out after 30000ms". Làm sao để khắc phục?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI cho rằng Database của tôi bị quá tải do phần cứng yếu. Lời khuyên của AI là mua gói Server cao cấp hơn (nhiều RAM và CPU hơn) trên AWS/Azure.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Nhận thức được giới hạn vật lý của máy chủ.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Tối ưu hóa HikariCP Connection Pool:
+- Critical Thinking: Việc "ném tiền" vào nâng cấp phần cứng (Vertical Scaling) để sửa lỗi phần mềm là tư duy của thợ gõ code, không phải của một Kiến trúc sư hệ thống. Lỗi này sinh ra do cấu hình mặc định của Spring Boot chỉ cho phép tối đa 10 kết nối đồng thời tới Database, dẫn đến 490 người còn lại phải xếp hàng chờ và bị Timeout.
+- Decision Ownership & Creative Synthesis: Tôi đã đào sâu vào tài liệu của HikariCP (Thư viện quản lý Connection Pool mặc định của Spring). Tôi mở file `application.yml`, tự tinh chỉnh thông số `spring.datasource.hikari.maximum-pool-size=50` và `connection-timeout=20000`. Đồng thời, tối ưu lại các câu lệnh SQL bằng việc gắn thêm Index trong Database để các luồng trả về kết nối nhanh hơn. Kết quả: Hệ thống chịu được tải 1000 người dùng mà CPU vẫn mượt mà, không tốn thêm một đồng chi phí phần cứng nào.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit HikariCP Optimization Phase 21 |
+| File liên quan | application.yml |
+| Screenshot |  |
+| Kết quả chạy/test | Dùng JMeter bắn 1000 concurrent requests. Tỷ lệ lỗi 0%. Thời gian phản hồi trung bình giảm từ 3000ms xuống còn 150ms. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Kiến trúc sư hệ thống giải quyết nút thắt cổ chai (Bottleneck) bằng cấu hình phần mềm, không phải bằng thẻ tín dụng.
+```
+
+---
+
+### Lần sử dụng AI số 36
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Xử lý tải ảnh dung lượng lớn bằng Mạng phân phối nội dung (CDN) |
+| Phần việc liên quan | DevOps / Cloud Architecture |
+| Mức độ sử dụng | Hỗ trợ cấu hình AWS S3 (Sử dụng 1 phần) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Người dân hay chụp ảnh rác thải bằng điện thoại xịn, mỗi ảnh nặng 10MB. Khi hàng ngàn người upload, Server của tôi bị treo cứng, ổ cứng báo đầy. Phải làm sao?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI cung cấp cho tôi một đoạn mã Java ImageIO siêu dài, khuyên tôi dùng thuật toán nén ảnh xuống còn 1MB trước khi lưu vào ổ cứng của Server.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Không sử dụng giải pháp nén ảnh bằng Java.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Tích hợp Cloud Storage và CDN:
+- Critical Thinking: Mã nén ảnh bằng Java rất ngốn CPU và RAM. Bắt Server chính (vốn đang bận rộn xử lý Logic nghiệp vụ) phải đi làm công việc chân tay như nén ảnh là một thiết kế tồi. Chưa kể, lưu hàng chục GB ảnh vào ổ cứng Server nội bộ sẽ khiến việc sao lưu (Backup) trở thành ác mộng.
+- Decision Ownership & Creative Synthesis: Tôi đã chuyển dịch toàn bộ kiến trúc lưu trữ ảnh sang Cloud. Ở Frontend, ảnh được tải trực tiếp lên Amazon S3 (hoặc Firebase Storage) thông qua Presigned URL mà không hề đi qua luồng của Server Backend. Backend chỉ làm đúng một việc: Lưu chuỗi URL của bức ảnh đó vào Database. Ở chiều người xem tải ảnh xuống, tôi cấu hình tích hợp CDN (Content Delivery Network). Ảnh sẽ được tải từ máy chủ gần nhất với người dân. Kết quả: Backend được giải phóng hoàn toàn gánh nặng I/O, tốc độ upload/download ảnh nhanh như chớp.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Cloud CDN Phase 21 |
+| File liên quan | FileUploadService.java, frontend/Upload.tsx |
+| Screenshot |  |
+| Kết quả chạy/test | Upload 5 ảnh 10MB cùng lúc. Dung lượng RAM và CPU của Server Backend không hề xê dịch vì file không đi qua Backend. Mở tab Network thấy ảnh được fetch về từ domain CDN. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Hãy đẩy những công việc tốn tài nguyên (Static Assets I/O) cho các dịch vụ chuyên trách trên Cloud. Đừng bắt Backend gánh còng lưng mọi thứ.
+```
+
+---
+
+### Lần sử dụng AI số 37
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Bóc tách luồng xử lý chậm bằng Message Queue (RabbitMQ) |
+| Phần việc liên quan | Backend / Event-Driven Architecture |
+| Mức độ sử dụng | Hỗ trợ phân tích độ trễ (Bác bỏ giải pháp `@Async`) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Khi người dân bấm "Gửi phản ánh", Backend của tôi phải làm 3 việc: (1) Lưu vào Database, (2) Gửi Email cho phường, (3) Bắn Push Notification Firebase cho dân. Tổng thời gian tốn 3 giây, bắt người dùng phải xem vòng xoay Loading rất sốt ruột. Làm sao cho nhanh hơn?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI xui tôi thêm Annotation `@Async` vào hàm gửi Email và Firebase để Java tự động mở Thread mới chạy ngầm, còn Thread chính sẽ trả về kết quả luôn.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Nhận thức được khái niệm Bất đồng bộ (Asynchronous).
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Xây dựng hệ thống Hướng sự kiện (Event-Driven) với Message Queue:
+- Critical Thinking: Dùng `@Async` (Thread Pool nội bộ) chứa đựng rủi ro rất lớn. Nếu Server đang chạy ngầm việc gửi Email mà đột nhiên bị cúp điện hoặc Crash, các Thread đó sẽ chết theo, và Email đó sẽ mất vĩnh viễn (Data Loss). Đồng thời, nếu có 1000 người gửi phản ánh, Server sẽ phải gồng gánh thêm 2000 luồng phụ, gây cạn kiệt CPU.
+- Decision Ownership & Creative Synthesis: Tôi đã đập bỏ kiến trúc Monolithic cũ và áp dụng Kiến trúc Hướng Sự Kiện (Event-Driven Architecture). Tôi dựng một server RabbitMQ (Message Broker) độc lập. Khi người dân gửi phản ánh, API chỉ làm đúng 1 việc: Lưu vào Database và ném một mẩu tin nhắn "Có phản ánh mới" vào RabbitMQ. Quá trình này tốn đúng 0.1 giây, người dân nhận được thông báo thành công tức thì. 
+Sau đó, tôi viết một Worker (Consumer) hoàn toàn độc lập, chạy trên một máy chủ khác, chuyên làm nhiệm vụ hút tin nhắn từ RabbitMQ ra để gửi Email. Nếu Worker chết, tin nhắn vẫn nằm an toàn trong Queue, khi Worker sống lại nó sẽ gửi tiếp. Hệ thống của tôi giờ đây có thể chịu tải hàng chục ngàn Request mà không hề nghẽn.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit RabbitMQ Integration Phase 22 |
+| File liên quan | RabbitMQConfig.java, NotificationWorker.java |
+| Screenshot |  |
+| Kết quả chạy/test | Bấm "Gửi" trên giao diện, API phản hồi mã 200 OK ngay lập tức (<0.1s). Khoảng 2 giây sau, tiếng "Ting" báo Email mới xuất hiện trong điện thoại. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Kỹ sư giỏi không ép một Server làm mọi việc. Họ chia nhỏ công việc và ném nó vào Message Queue.
+```
+
+---
+
+### Lần sử dụng AI số 38
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Đảm bảo không mất thông báo bằng Outbox Pattern |
+| Phần việc liên quan | Backend / Data Consistency |
+| Mức độ sử dụng | Hỏi về giải pháp chống thất thoát dữ liệu (Bác bỏ Retry thủ công) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Trong kiến trúc RabbitMQ ở trên, lỡ API lưu Database thành công, nhưng lúc chuẩn bị ném tin nhắn vào Queue thì mạng cáp quang bị đứt. Thế là phản ánh đã được lưu, nhưng Phường không bao giờ nhận được Email thông báo. Tôi phải xử lý sao?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI bảo tôi dùng `try...catch`. Nếu lỗi thì Thread.sleep(1000) rồi ném lại (Retry) khoảng 3 lần. Nếu vẫn lỗi thì in ra Log.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Không áp dụng, vì Retry trên RAM vẫn sẽ mất dữ liệu nếu Server khởi động lại.
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Thiết kế Transactional Outbox Pattern:
+- Critical Thinking: Logic Retry của AI là quá mong manh. Nếu Server sập nguồn ngay lúc đang Retry, dữ liệu sẽ bốc hơi. Việc duy trì tính Nhất quán dữ liệu (Data Consistency) giữa Database (Postgres) và Message Broker (RabbitMQ) là bài toán kinh điển của Hệ phân tán (Distributed Systems).
+- Decision Ownership & Creative Synthesis: Tôi đã triển khai Transactional Outbox Pattern. Khi người dân lưu phản ánh, tôi mở một Transaction của SQL. Trong Transaction đó, tôi lưu dữ liệu vào bảng `reports`, ĐỒNG THỜI lưu một bản nháp sự kiện vào bảng `outbox_events`. Nếu mạng đứt, Transaction sẽ tự động Rollback, không có dữ liệu nào bị lệch.
+Tiếp theo, tôi viết một hàm Polling chạy ngầm (Cron Job) cứ 2 giây quét bảng `outbox_events` một lần. Nếu thấy có sự kiện chưa gửi, nó sẽ hút lên và ném vào RabbitMQ. Nhờ việc biến Database thành điểm tựa vững chắc, tôi đảm bảo được nguyên tắc At-least-once Delivery (Gửi ít nhất một lần). Dù đứt cáp, cúp điện hay bão lụt, không một email nào của hệ thống bị bỏ sót.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Outbox Pattern Phase 22 |
+| File liên quan | OutboxEventEntity.java, OutboxPollingJob.java |
+| Screenshot |  |
+| Kết quả chạy/test | Giả lập tắt RabbitMQ, bấm tạo phản ánh. Giao diện báo thành công. Mở Database thấy bảng `outbox` lưu trạng thái PENDING. Bật RabbitMQ lên lại, Job tự động bắt tín hiệu, ném vào Queue và chuyển trạng thái thành DONE. Không mất một tin nhắn nào. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Đảm bảo Nhất quán dữ liệu là đường ranh giới phân biệt giữa Coder nghiệp dư và Software Architect.
+```
+
+---
+
+### Lần sử dụng AI số 39
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Quản lý Log tập trung (Centralized Logging) |
+| Phần việc liên quan | DevOps / ELK Stack |
+| Mức độ sử dụng | Hỏi cách gom log (Bác bỏ giải pháp Bash Script) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Hệ thống của tôi hiện tại có 3 máy chủ: 1 máy Frontend, 1 máy Backend chính, và 1 máy Worker chạy ngầm. Khi có khách hàng báo lỗi, tôi phải SSH vào từng máy, dùng lệnh `tail -f` đọc hàng ngàn dòng log rất hoa mắt và tốn thời gian. Làm sao để xem log nhanh hơn?
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI cung cấp một đoạn mã Bash Script, bảo tôi cài trên cả 3 server để cuối mỗi ngày tự động nén các file `.log` thành đuôi `.zip`, sau đó tự gửi email đính kèm file zip cho tôi tải về máy mở ra đọc.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Không áp dụng, vì cách làm này đã lỗi thời từ hàng chục năm trước, không giải quyết được nhu cầu xem log thời gian thực (Real-time).
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Xây dựng Centralized Logging với ELK Stack:
+- Critical Thinking: Khi hệ thống mở rộng thành các Microservices, việc phân tích log thủ công bằng file text là không thể. Chưa kể việc log ở nhiều server khác nhau khiến việc đối chiếu lỗi (correlation) là bất khả thi.
+- Decision Ownership & Creative Synthesis: Tôi đã dựng hệ sinh thái ELK Stack (Elasticsearch, Logstash, Kibana). Tôi cấu hình `logback-spring.xml` để các hệ thống tự động sinh log dưới định dạng JSON (có cấu trúc), và stream trực tiếp về máy chủ Logstash thay vì ghi ra ổ cứng cục bộ. Từ Kibana, tôi có được một Dashboard giao diện Web cực kỳ mạnh mẽ. Giờ đây, chỉ cần nhập tên người dùng bị lỗi vào thanh Search, toàn bộ dấu vết (footprint) của họ trên toàn hệ thống được Elasticsearch truy xuất ra trong nháy mắt. Tôi không còn phải SSH vào bất kỳ máy chủ nào nữa.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit ELK Stack Phase 23 |
+| File liên quan | logback-spring.xml, docker-compose.yml |
+| Screenshot |  |
+| Kết quả chạy/test | Mở giao diện Kibana (Cổng 5601), gõ từ khóa `ERROR`, bảng điều khiển hiển thị biểu đồ tần suất lỗi và chi tiết dòng lệnh bị Crash với đầy đủ Stack Trace. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Log là vàng. Nhưng Log nằm phân tán thì chỉ là rác. ELK biến rác thành vàng.
+```
+
+---
+
+### Lần sử dụng AI số 40
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Theo dõi luồng dữ liệu phân tán (Distributed Tracing) và Giám sát hiệu năng (Metrics) |
+| Phần việc liên quan | DevOps / Observability |
+| Mức độ sử dụng | Tham khảo công cụ (Bác bỏ phương pháp chèn code thủ công) |
+
+#### 4.1. Prompt đã sử dụng
+
+```text
+- Tôi muốn biết một Request từ khi người dùng bấm nút đến khi hoàn thành, nó đi qua những hàm nào, ở server nào, tốn bao nhiêu mili-giây. Ngoài ra tôi muốn xem tình trạng RAM và CPU của máy chủ.
+```
+
+#### 4.2. Kết quả AI gợi ý
+
+```text
+AI xúi tôi khai báo biến `long startTime = System.currentTimeMillis();` ở đầu API, sau đó lấy thời gian lúc kết thúc trừ đi thời gian bắt đầu rồi in ra Log. Còn RAM, CPU thì AI bảo dùng lệnh `top` trên Linux.
+```
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+```text
+- Không sử dụng. 
+```
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+```text
+Triển khai Distributed Tracing và Metrics Dashboard:
+- Critical Thinking: Việc chèn code tính thời gian thủ công vào hàng trăm API sẽ tạo ra một mớ code hổ lốn (Spaghetti code) phá nát Business Logic. Lệnh `top` thì không có lưu lịch sử để tôi xem lại khi server đã sập lúc nửa đêm.
+- Decision Ownership & Creative Synthesis: Tôi đã tích hợp thư viện Micrometer và Zipkin vào Spring Boot. Mọi Request giờ đây tự động được gán một `trace_id` vô hình xuyên suốt từ API Gateway xuống tận tầng Database, đi qua cả Message Queue. Tôi có thể nhìn thấy sơ đồ hình cây (Flame Graph) chỉ ra chính xác Hàm nào, câu lệnh SQL nào chạy chậm nhất. 
+Song song đó, tôi kích hoạt tính năng Actuator của Spring Boot để bộc lộ các Metrics sức khỏe máy chủ. Cài đặt Prometheus để liên tục kéo (pull) dữ liệu này về, và dùng Grafana để vẽ ra một bảng điều khiển (Dashboard) đen ngầu hiển thị RAM, CPU, Active Connections y như phòng điều khiển của NASA. Giám sát thời gian thực 24/7.
+```
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Prometheus & Zipkin Phase 23 |
+| File liên quan | application.yml, pom.xml, docker-compose.yml |
+| Screenshot |  |
+| Kết quả chạy/test | Mở giao diện Grafana (Cổng 3000), quan sát Dashboard hiển thị JVM Memory, HikariCP Pool Usage, Garbage Collection rate và biểu đồ đếm số lượng HTTP Request theo thời gian thực. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Hệ thống không có Monitoring giống như lái máy bay ban đêm mà không có Radar, bạn không biết mình sẽ đâm vào núi lúc nào.
+```
+
+---
+
+### Lần sử dụng AI số 41
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Bảo mật tài khoản bằng Hệ thống quản lý định danh (Identity and Access Management - IAM) |
+| Phần việc liên quan | Security / OAuth2 & Keycloak |
+| Mức độ sử dụng | Hỏi về giải pháp vô hiệu hóa JWT (Bác bỏ ý tưởng của AI) |
+
+#### 4.1. Prompt đã sử dụng
+
+| Nội dung | Thông tin |
+|---|---|
+| Prompt | "Hệ thống của tôi đang dùng chuỗi JWT tự tạo để đăng nhập. Hôm qua có một tài khoản cán bộ phường bị hack mất JWT. Kẻ gian dùng JWT đó để phá dữ liệu. Tôi muốn vô hiệu hóa (revoke) cái JWT đó ngay lập tức thì làm thế nào?" |
+
+#### 4.2. Kết quả AI gợi ý
+
+| Nội dung | Thông tin |
+|---|---|
+| Gợi ý | AI xúi tôi tạo một bảng `token_blacklist` trong Database. Mỗi khi muốn vô hiệu hóa JWT nào, thì Insert chuỗi JWT đó vào bảng. Sau đó sửa lại Code ở hàm Filter: Mỗi khi có Request tới, hệ thống phải query vào bảng `token_blacklist` xem JWT có nằm trong đó không, nếu không thì mới cho qua. |
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+| Nội dung | Thông tin |
+|---|---|
+| Sử dụng | Nhận thức được nhược điểm của JWT tự chế (Khó thu hồi). Tuyệt đối không dùng cách Blacklist của AI. |
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+| Nội dung | Thông tin |
+|---|---|
+| Cải tiến | **Nâng cấp kiến trúc bảo mật với Keycloak (SSO & OAuth2)** <br> - **Critical Thinking:** Bản chất của JWT là "Stateless" (Không cần query DB để kiểm tra). Nếu nghe lời AI, mỗi lần gọi API lại bắt hệ thống chọc vào DB để tìm chuỗi Token (rất dài) trong bảng Blacklist, thì truy vấn sẽ cực kỳ chậm. Khi có 10,000 Request/s, Database sẽ bị bóp nghẹt (Bottleneck) chỉ vì thao tác check Token vớ vẩn này. <br> - **Decision Ownership & Creative Synthesis:** Tôi quyết định không tự chế "bánh xe" bảo mật nữa. Tôi tích hợp **Keycloak** (Một hệ thống Identity and Access Management mã nguồn mở chuẩn Doanh nghiệp) qua Docker. Hệ thống chuyển sang dùng chuẩn bảo mật OAuth2 và OpenID Connect (OIDC). Keycloak đảm nhận toàn bộ việc cấp phát, mã hóa RSA, thu hồi Token và quản lý phiên đăng nhập (Session). Ứng dụng Spring Boot Backend chỉ cần gọi API của Keycloak để verify. Giờ đây, chỉ với 1 cú click chuột trên giao diện Admin của Keycloak, tôi có thể "Đá" tên Hacker văng khỏi hệ thống ngay lập tức mà không làm chậm DB. Hơn nữa, kiến trúc này giúp tôi mở khóa tính năng Đăng nhập bằng Google/Facebook (SSO) chỉ trong vài nốt nhạc. |
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Keycloak & OAuth2 Phase 24 |
+| File liên quan | SecurityConfig.java, docker-compose.yml |
+| Screenshot |  |
+| Kết quả chạy/test | Dùng Postman gửi JWT cũ đã bị Revoke trên Keycloak, Spring Boot lập tức trả về lỗi `401 Unauthorized`. Backend không hề tốn một nhịp CPU nào để query Database. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Bảo mật là một ngành khoa học chuyên sâu. Đừng tự chế hệ thống Xác thực, hãy đứng trên vai người khổng lồ (Keycloak, Auth0, AWS Cognito).
+```
+
+---
+
+### Lần sử dụng AI số 42
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Ẩn danh Dữ liệu cá nhân (Data Masking & PII Protection) |
+| Phần việc liên quan | Security / Backend Jackson Serializer |
+| Mức độ sử dụng | Hỏi cách che dấu Số điện thoại và CMND (Bác bỏ cách làm ở Frontend) |
+
+#### 4.1. Prompt đã sử dụng
+
+| Nội dung | Thông tin |
+|---|---|
+| Prompt | "Người dân nộp phản ánh kèm số CMND/CCCD và Số điện thoại cá nhân. Khi nhân viên của Phường mở danh sách xem, dữ liệu này hiện rõ mồn một. Tôi sợ bị rò rỉ dữ liệu nhạy cảm (PII). Làm sao để hiển thị ẩn bớt, kiểu như '098***123'?" |
+
+#### 4.2. Kết quả AI gợi ý
+
+| Nội dung | Thông tin |
+|---|---|
+| Gợi ý | AI hào hứng viết cho tôi một hàm JavaScript ở React (Frontend): `let maskedPhone = phone.substring(0, 3) + "***" + phone.substring(phone.length - 3)`. AI bảo tôi lấy dữ liệu từ API về rồi chạy qua hàm này trước khi hiển thị lên màn hình. |
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+| Nội dung | Thông tin |
+|---|---|
+| Sử dụng | Chỉ dùng công thức String Manipulation để cắt chuỗi. |
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+| Nội dung | Thông tin |
+|---|---|
+| Cải tiến | **Che giấu dữ liệu (Data Masking) triệt để tại tầng Backend** <br> - **Critical Thinking:** Ý tưởng che dữ liệu bằng Frontend của AI là một **Thảm họa Bảo mật**. Nếu chỉ che bằng JavaScript trên giao diện (UI), thì luồng API trả về từ Server vẫn chứa chuỗi JSON gốc nguyên bản (chứa Số điện thoại thật). Một tên Hacker hoặc thậm chí một nhân viên tò mò chỉ cần nhấn phím **F12**, mở tab Network lên là có thể thu thập (Crawl) được toàn bộ dữ liệu cá nhân của người dân một cách dễ dàng. <br> - **Decision Ownership & Creative Synthesis:** Nguyên tắc Zero Trust: Không tin tưởng Frontend. Dữ liệu nhạy cảm phải bị "xóa sổ" trước khi rời khỏi máy chủ Backend. Tôi đã tạo một `Custom Jackson Serializer` trong Spring Boot. Khi Java biến đối tượng thành JSON để gửi qua mạng, nó tự động bắt các field có gắn Annotation `@PiiMasking`, và thực hiện che (Mask) ngay trong RAM của máy chủ. Kết quả là chuỗi JSON đi qua mạng internet chỉ chứa `098***123`. Lúc này, dù Hacker có F12, bắt gói tin (Packet Sniffing) hay Hack luôn cả Frontend, chúng cũng không bao giờ có được dữ liệu thật. Đây là chuẩn bảo mật cấp Ngân hàng. |
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Data Masking Phase 24 |
+| File liên quan | PiiMaskingSerializer.java, @PiiMasking, ReportDTO.java |
+| Screenshot |  |
+| Kết quả chạy/test | Dùng Postman gọi API `/api/reports`, chuỗi JSON trả về cho trường số điện thoại là `"phoneNumber": "098***123"`. Đảm bảo tuyệt đối an toàn trên môi trường Network. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Đừng bao giờ xử lý bảo mật ở Frontend. Frontend nằm trong tay người dùng, và mọi thứ trong tay người dùng đều có thể bị bẻ khóa.
+```
+
+---
+
+### Lần sử dụng AI số 43
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Tìm kiếm toàn văn bản (Full-text search) trên dữ liệu lớn |
+| Phần việc liên quan | Backend / Database & Search Engine |
+| Mức độ sử dụng | Hỏi về tối ưu hóa SQL (Bác bỏ cách làm của AI) |
+
+#### 4.1. Prompt đã sử dụng
+
+| Nội dung | Thông tin |
+|---|---|
+| Prompt | "Bảng phản ánh của tôi đã đạt 1 triệu dòng. Khi người dân gõ tìm kiếm từ khóa 'rác bốc mùi' vào ô Search, tôi dùng câu lệnh `SELECT * FROM reports WHERE title LIKE '%rác bốc mùi%'`. Kết quả là Database treo luôn 5 giây mới trả về. Tôi phải tối ưu thế nào?" |
+
+#### 4.2. Kết quả AI gợi ý
+
+| Nội dung | Thông tin |
+|---|---|
+| Gợi ý | AI giải thích rằng toán tử `LIKE '%...'` làm mất tác dụng của Index. AI xúi tôi tạo một cái `B-Tree Index` hoặc `GIN Index` trong PostgreSQL để tăng tốc độ truy vấn. |
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+| Nội dung | Thông tin |
+|---|---|
+| Sử dụng | Chỉ ghi nhận lý thuyết vì sao `LIKE` lại làm chậm Database. Tuyệt đối không dùng cách của AI để giải quyết bài toán Search. |
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+| Nội dung | Thông tin |
+|---|---|
+| Cải tiến | **Tích hợp Cỗ máy tìm kiếm Elasticsearch** <br> - **Critical Thinking:** Dùng Database Quan hệ (SQL) để làm tính năng "Tìm kiếm toàn văn bản" (Full-text Search) là sai lầm cơ bản của lập trình viên. Dù có đánh Index GIN đi chăng nữa, PostgreSQL cũng không thể giải quyết được các bài toán tìm kiếm thực tế như: Gõ sai chính tả (Fuzzy Search - "rac boc mui"), gõ không dấu tiếng Việt, hay xếp hạng độ ưu tiên từ khóa (Relevance Scoring). <br> - **Decision Ownership & Creative Synthesis:** Tôi quyết định không dùng SQL để Search nữa. Tôi dựng lên một cụm máy chủ **Elasticsearch**. Thông qua Logstash, mọi dữ liệu mới thêm vào PostgreSQL sẽ tự động được đồng bộ (Sync) sang Elasticsearch theo thời gian thực. API Tìm kiếm của Frontend giờ đây sẽ gọi thẳng vào Elasticsearch thay vì Database. Kết quả thật kinh ngạc: Dù có 10 triệu bản ghi, hệ thống vẫn trả về kết quả trong chưa tới 15ms. Người dân gõ không dấu, gõ sai chính tả hệ thống vẫn tự động sửa lỗi (Typo Tolerance) và gợi ý kết quả y như Google Search. Database chính được giải phóng hoàn toàn gánh nặng. |
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Elasticsearch Phase 25 |
+| File liên quan | ReportSearchService.java, docker-compose.yml |
+| Screenshot |  |
+| Kết quả chạy/test | Nhập chữ "rac thai" (không dấu) vào thanh tìm kiếm, API Elasticsearch trả về mã 200 OK trong vòng 12 mili-giây, lôi ra chính xác các bài viết có từ khóa "rác thải". |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Cơ sở dữ liệu quan hệ (SQL) sinh ra để giữ tính Toàn vẹn Dữ liệu, không phải sinh ra để làm Google Search. Hãy dùng đúng công cụ cho đúng việc.
+```
+
+---
+
+### Lần sử dụng AI số 44
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Ứng dụng Trí tuệ Nhân tạo (GenAI) để Tự động hóa phân loại phản ánh |
+| Phần việc liên quan | Backend / AI Integration (OpenAI/Gemini) |
+| Mức độ sử dụng | Hướng dẫn tích hợp thuật toán phân loại (Bác bỏ Regex, tích hợp LLM) |
+
+#### 4.1. Prompt đã sử dụng
+
+| Nội dung | Thông tin |
+|---|---|
+| Prompt | "Một ngày Phường nhận được 500 phản ánh. Mỗi phản ánh dài khoảng 1000 chữ, cán bộ đọc rất mệt mỏi. Làm sao để hệ thống tự động đọc đoạn văn, tóm tắt lại thành 2 câu và tự phân loại xem nó thuộc nhóm 'Vệ sinh môi trường' hay 'An ninh trật tự'?" |
+
+#### 4.2. Kết quả AI gợi ý
+
+| Nội dung | Thông tin |
+|---|---|
+| Gợi ý | AI viết cho tôi một đoạn Java code dùng Regex (Biểu thức chính quy). Nó bảo tôi tạo một danh sách các từ khóa như mảng `["rác", "bẩn", "thối"]` đại diện cho Môi trường, và `["trộm", "đánh nhau"]` cho An ninh. Khi có văn bản mới, dùng hàm `String.contains()` để đếm chữ, từ khóa nào nhiều hơn thì gắn nhãn đó. |
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+| Nội dung | Thông tin |
+|---|---|
+| Sử dụng | Cười nhạt và vứt bỏ hoàn toàn đoạn code nguyên thủy này. |
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+| Nội dung | Thông tin |
+|---|---|
+| Cải tiến | **Tích hợp Sức mạnh Generative AI (LLM API)** <br> - **Critical Thinking:** Thuật toán dùng mảng từ khóa để đếm chữ (Keyword Matching) là một kỹ thuật tồi tệ của thập kỷ trước. Ngôn ngữ tiếng Việt rất đa nghĩa và phức tạp, nếu người dân viết: *"Tuy không có trộm cắp đánh nhau, nhưng rác thì quá nhiều"*, thuật toán đếm chữ của AI sẽ nhìn thấy từ "trộm cắp", "đánh nhau" và tự động phân loại ngu ngốc vào nhóm "An ninh trật tự". <br> - **Decision Ownership & Creative Synthesis:** Đây là Đồ án mang tên "AI Audit", nên tôi sẽ đưa AI vào sâu trong lõi hệ thống. Tôi kết hợp **Kiến trúc Message Queue (Phase 22)** và **OpenAI/Gemini API**. Khi phản ánh được lưu vào DB, một sự kiện được ném vào RabbitMQ. Một Worker AI đặc nhiệm sẽ nhặt sự kiện đó lên, gửi 1000 chữ của người dân lên API của OpenAI kèm theo một System Prompt chặt chẽ: *"Bạn là một cán bộ phường, hãy tóm tắt văn bản sau thành đúng 2 câu và phân loại vào 1 trong 4 danh mục..."*. <br> OpenAI trả về một chuỗi JSON với kết quả tóm tắt thông minh và phân loại chính xác tuyệt đối dựa trên ngữ cảnh (Contextual Understanding). Worker lưu kết quả này ngược lại vào Database. Giờ đây, cán bộ phường chỉ cần mở web lên, nhìn vào dòng tóm tắt 2 câu là hiểu ngay vấn đề, tiết kiệm 90% thời gian làm việc mỗi ngày! |
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit LLM AI Worker Phase 25 |
+| File liên quan | AiSummaryWorker.java, system_prompt.txt |
+| Screenshot |  |
+| Kết quả chạy/test | Người dân viết phản ánh dài ngoằng và lủng củng, phàn nàn chuyện kẹt xe. Backend ngầm gọi API, 5 giây sau màn hình cán bộ hiện lên tóm tắt: "Phản ánh tình trạng kẹt xe giờ cao điểm tại hẻm 45. Nhãn: Giao thông & Hạ tầng". Tuyệt đối chính xác. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Dùng If-Else để xử lý ngôn ngữ tự nhiên đã là quá khứ. Kỹ sư tương lai phải biết cách tích hợp và điều khiển (Prompt Engineering) các Mô hình Ngôn ngữ lớn (LLM).
+```
+
+---
+
+### Lần sử dụng AI số 45
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Đảm bảo tính Sẵn sàng cao (High Availability) và Sao lưu dữ liệu cho Database |
+| Phần việc liên quan | Backend / Database Replication (Master-Slave) |
+| Mức độ sử dụng | Hỏi về giải pháp chống mất dữ liệu (Bác bỏ cách làm của AI) |
+
+#### 4.1. Prompt đã sử dụng
+
+| Nội dung | Thông tin |
+|---|---|
+| Prompt | "Hệ thống PostgreSQL của tôi hiện đang chạy trên 1 server duy nhất. Tôi rất sợ lỡ nửa đêm ổ cứng máy chủ bị cháy thì toàn bộ phản ánh của người dân sẽ mất sạch. Ngoài ra khi có 10,000 người vào xem danh sách phản ánh cùng lúc, DB này load 100% CPU. Tôi phải làm sao?" |
+
+#### 4.2. Kết quả AI gợi ý
+
+| Nội dung | Thông tin |
+|---|---|
+| Gợi ý | AI viết cho tôi một cái Cronjob bằng Spring Boot `@Scheduled`. Nó bảo cứ 12h đêm thì SELECT toàn bộ dữ liệu ra, ghi thành 1 file `.csv` lưu vào ổ cứng dự phòng. Còn vụ CPU 100% thì AI khuyên nên nâng cấp RAM và CPU cho máy chủ DB. |
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+| Nội dung | Thông tin |
+|---|---|
+| Sử dụng | Nhận thức được rủi ro Single Point of Failure (SPOF). Tuyệt đối không dùng cách xử lý của AI. |
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+| Nội dung | Thông tin |
+|---|---|
+| Cải tiến | **Thiết lập PostgreSQL Master-Slave Replication (Cơ bản CQRS)** <br> - **Critical Thinking:** Giải pháp ghi file CSV của AI là của sinh viên năm nhất. Nếu 12h đêm mới backup, mà 11h đêm ổ cứng cháy, thì toàn bộ dữ liệu trong ngày hôm đó sẽ bốc hơi (Data Loss). Còn việc giải quyết quá tải bằng cách đập tiền mua thêm CPU (Vertical Scaling) là một tư duy lười biếng và có giới hạn. <br> - **Decision Ownership & Creative Synthesis:** Tôi quyết định phân tách luồng dữ liệu. Tôi dựng thêm một máy chủ PostgreSQL thứ 2. Cấu hình máy 1 làm **Master (Chuyên Ghi)**, máy 2 làm **Slave (Chuyên Đọc)**. Bật tính năng Streaming Replication để mọi dữ liệu INSERT vào Master sẽ ngay lập tức (Real-time) đồng bộ sang Slave. Tại Spring Boot, tôi cấu hình `AbstractRoutingDataSource`. Nếu là lệnh Cập nhật/Thêm (Write), Java đẩy vào Master. Nếu là lệnh Đọc danh sách (Read), Java đẩy sang Slave. Kết quả: Khi 10,000 người vào Đọc cùng lúc, máy Slave gánh vác toàn bộ, máy Master vẫn thảnh thơi phục vụ việc Ghi. Hơn nữa, nếu máy Master cháy ổ cứng, tôi chỉ việc thăng cấp (Promote) máy Slave lên làm Master mới. Dữ liệu an toàn tuyệt đối. |
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Master-Slave DB Phase 26 |
+| File liên quan | ReplicationRoutingDataSource.java, application.yml |
+| Screenshot |  |
+| Kết quả chạy/test | Giả lập tắt (Kill) máy chủ Master. Các tính năng Xem danh sách (gọi vào Slave) vẫn hoạt động bình thường, không hề báo lỗi `500`. Dữ liệu an toàn. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Hệ thống xịn không phải là hệ thống không bao giờ hỏng. Mà là khi nó hỏng một nửa, người dùng vẫn tưởng nó đang chạy bình thường.
+```
+
+---
+
+### Lần sử dụng AI số 46
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Chống tấn công Từ chối Dịch vụ (DDoS) và Brute-force |
+| Phần việc liên quan | Security / Rate Limiting với Redis |
+| Mức độ sử dụng | Hỏi về giải pháp chống DDoS (Bác bỏ thuật toán dùng RAM của AI) |
+
+#### 4.1. Prompt đã sử dụng
+
+| Nội dung | Thông tin |
+|---|---|
+| Prompt | "Hôm qua có một kẻ gian đã dùng Tool tự động bắn 100,000 request/giây vào API Đăng nhập của phường, cố tình dò mật khẩu (Brute-force) và làm sập luôn cả Server (DDoS). Làm sao để chặn một IP nếu nó gọi quá 5 lần/phút?" |
+
+#### 4.2. Kết quả AI gợi ý
+
+| Nội dung | Thông tin |
+|---|---|
+| Gợi ý | AI hào hứng viết cho tôi một đoạn Code Java dùng `ConcurrentHashMap<String, Integer>`. Lấy IP của người dùng làm Key, mỗi lần gọi thì tăng Value lên 1. Nếu Value > 5 thì văng lỗi. |
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+| Nội dung | Thông tin |
+|---|---|
+| Sử dụng | Chỉ ghi nhận tư duy "Giới hạn số lần gọi" (Rate Limiting). Bác bỏ việc lưu trạng thái trên RAM. |
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+| Nội dung | Thông tin |
+|---|---|
+| Cải tiến | **Triển khai Rate Limiting tập trung bằng Redis & Lua Script** <br> - **Critical Thinking:** Ý tưởng dùng `HashMap` trên RAM của AI có 2 lỗ hổng chết người. Một là nếu có 1 triệu IP tấn công, cái Map đó sẽ phình to nuốt sạch RAM của Server. Hai là hệ thống của tôi đang chạy 3 instance Backend song song (Load Balancing), biến HashMap ở máy 1 không thể chia sẻ cho máy 2. Kẻ tấn công chỉ việc đổi IP vòng vòng là thoát lưới. <br> - **Decision Ownership & Creative Synthesis:** Cần một kho lưu trữ tốc độ cao và tập trung. Tôi dựng **Redis** (In-memory Database). Tôi viết một đoạn mã **Lua Script** nhúng vào Redis (để đảm bảo tính Atomic - không bị lỗi Race Condition khi có hàng nghìn request cùng tới). Tại tầng API Gateway, mọi Request đi qua đều phải hỏi Redis: *"IP này đã gọi bao nhiêu lần rồi?"*. Nếu vượt quá 5 lần/phút, Gateway thẳng tay chặt đứt luồng kết nối, trả về lỗi `429 Too Many Requests` mà không cho gói tin lọt xuống tới tầng Backend. Server Database và CPU an toàn tuyệt đối trước mọi làn sóng DDoS. |
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Redis Rate Limiting Phase 26 |
+| File liên quan | RateLimitFilter.java, redis-rate-limit.lua |
+| Screenshot |  |
+| Kết quả chạy/test | Dùng tool Jmeter bắn 100 request/s vào API Login. 5 Request đầu thành công. 95 Request sau bị Redis chặn lại với lỗi `429 Too Many Requests`. CPU của Backend chỉ ở mức 5%. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Để chống lại một cuộc tấn công bằng máy móc, bạn phải dùng một vũ khí nhanh ngang ngửa với cỗ máy đó. Redis chính là vũ khí đó.
+```
+
+---
+
+### Lần sử dụng AI số 47
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Quản lý và Điều phối Container (Container Orchestration) |
+| Phần việc liên quan | DevOps / Docker Swarm (hoặc Kubernetes) |
+| Mức độ sử dụng | Hỏi về giải pháp triển khai hàng chục Microservices (Bác bỏ cách của AI) |
+
+#### 4.1. Prompt đã sử dụng
+
+| Nội dung | Thông tin |
+|---|---|
+| Prompt | "Hệ thống của tôi giờ đã phình to thành 10 cái Microservices (Backend, Worker, Frontend, Redis, RabbitMQ, Elasticsearch, Logstash, Kibana, Keycloak, Postgres). Việc gõ lệnh `docker-compose up` trên 1 server là quá tải, mà lỡ máy đó sập thì tôi chết chắc. Làm sao để chạy đống này trên 3 máy chủ khác nhau?" |
+
+#### 4.2. Kết quả AI gợi ý
+
+| Nội dung | Thông tin |
+|---|---|
+| Gợi ý | AI cung cấp cho tôi một cái Bash Script. Nó dặn tôi copy đoạn Script này, chạy lệnh SSH vào từng máy chủ (Node 1, Node 2, Node 3). Sau đó tự chạy lệnh `docker run` bằng tay trên từng máy để phân chia dịch vụ. |
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+| Nội dung | Thông tin |
+|---|---|
+| Sử dụng | Chỉ dùng những kiến thức cơ bản về Docker Network để các máy ảo có thể nói chuyện được với nhau. Bác bỏ hoàn toàn tư duy Deploy thủ công bằng Bash Script. |
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+| Nội dung | Thông tin |
+|---|---|
+| Cải tiến | **Triển khai Container Orchestration với Docker Swarm** <br> - **Critical Thinking:** Viết Script để SSH vào từng máy là cách làm của Sysadmin thập niên 2010. Nếu một máy chủ bị sập giữa đêm, tôi đang ngủ thì lấy ai chạy Script để đưa các Container đó sang máy khác? Hệ thống sẽ bị Downtime (chết lâm sàng). <br> - **Decision Ownership & Creative Synthesis:** Tôi quyết định ứng dụng **Docker Swarm** (Công nghệ cốt lõi tương đương Kubernetes nhưng nhẹ hơn). Tôi biến 3 máy chủ vật lý thành một "Cụm" (Cluster). Viết lại file `docker-compose.yml` thành cấu trúc `docker-stack.yml`. Chỉ với một câu lệnh duy nhất `docker stack deploy`, Swarm tự động tính toán cấu hình CPU/RAM và rải đều 10 cái Microservices ra 3 máy. Quan trọng nhất là tính năng **Auto-Healing**: Giả sử tôi rút phích cắm điện máy chủ số 2, Swarm sẽ phát hiện ra sự cố trong vòng vài giây, và tự động dọn dẹp, "hồi sinh" các Microservices bị chết sang máy 1 và máy 3. Đảm bảo hệ thống sống sót 24/7 mà tôi không cần phải thức dậy. |
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Docker Swarm Phase 27 |
+| File liên quan | docker-stack.yml |
+| Screenshot |  |
+| Kết quả chạy/test | Giả lập sự cố: Tắt hẳn một máy chủ đang chạy Backend. Bật giao diện trực quan Portainer lên xem, thấy Swarm tự động Create (Hồi sinh) một bản sao Backend mới tinh trên máy chủ khác chỉ trong vòng 3 giây. Website không hề bị đứt đoạn. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Nếu một máy chủ sập và bạn phải thức dậy lúc nửa đêm để sửa, bạn là thợ gõ code. Nếu máy chủ sập và hệ thống tự sửa chữa trong khi bạn ngủ, bạn là Kỹ sư phần mềm thực thụ.
+```
+
+---
+
+### Lần sử dụng AI số 48
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Tự động hóa quá trình xây dựng Hạ tầng Cloud (Infrastructure as Code - IaC) |
+| Phần việc liên quan | DevOps / Terraform |
+| Mức độ sử dụng | Hỏi cách tạo bản sao của hệ thống nhanh chóng (Bác bỏ giải pháp click chuột) |
+
+#### 4.1. Prompt đã sử dụng
+
+| Nội dung | Thông tin |
+|---|---|
+| Prompt | "Hệ thống của tôi đang chạy trên Cloud. Giờ sếp yêu cầu tôi phải dựng một môi trường y hệt (gọi là Staging) để cho đội Tester test. Để dựng được cái hệ thống này, tôi phải lên Web click chuột tạo 3 máy ảo (VM), tạo Mạng (VPC), tạo Tường lửa (Firewall) mất cả buổi sáng, rất dễ bị bấm sai cấu hình. Có cách nào nhân bản nhanh hơn không?" |
+
+#### 4.2. Kết quả AI gợi ý
+
+| Nội dung | Thông tin |
+|---|---|
+| Gợi ý | AI bảo tôi vào giao diện quản trị của Cloud Provider (VD: AWS Console, Google Cloud Console), dùng tính năng "Create Snapshot" (Chụp ảnh màn hình) ổ cứng của máy cũ. Sau đó bấm nút "Create Instance from Snapshot" để đẻ ra máy mới. |
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+| Nội dung | Thông tin |
+|---|---|
+| Sử dụng | Chỉ ghi nhận khái niệm Snapshot để dùng cho việc Backup dữ liệu khẩn cấp. Không dùng nó để quản lý hạ tầng. |
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+| Nội dung | Thông tin |
+|---|---|
+| Cải tiến | **Áp dụng tư duy Infrastructure as Code (IaC) với Terraform** <br> - **Critical Thinking:** Chụp Snapshot chỉ lưu được cái ổ cứng, không lưu được cấu hình Mạng (VPC) và Tường lửa (Security Group). Hơn nữa, việc click chuột trên giao diện Web là "Click-Ops" (Anti-pattern của DevOps) vì không ai biết bạn đã cấu hình những gì, không có lịch sử chỉnh sửa, và cực kỳ dễ sinh ra lỗi con người (Human Error). <br> - **Decision Ownership & Creative Synthesis:** Tôi vứt bỏ việc dùng chuột. Tôi cài đặt **Terraform** của HashiCorp. Khai báo toàn bộ máy ảo, Load Balancer, Mạng lưới bằng vài chục dòng code `HCL` (HashiCorp Configuration Language). Hạ tầng vật lý giờ đây biến thành một đống chữ (Code), được quản lý trên Git giống hệt như mã nguồn Java. Bất cứ khi nào sếp cần một môi trường mới, tôi chỉ cần gõ 1 câu lệnh duy nhất: `terraform apply`. Terraform sẽ tự động gọi API của Cloud và xây lên một cụm hạ tầng y hệt phiên bản gốc trong vòng chưa tới 3 phút. Tôi đã đạt đến cảnh giới **GitOps**: Quản trị hàng ngàn máy chủ chỉ bằng những dòng code. |
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Terraform IaC Phase 27 |
+| File liên quan | main.tf, variables.tf, network.tf |
+| Screenshot |  |
+| Kết quả chạy/test | Gõ lệnh `terraform apply -var="env=staging"`, ngồi uống ngụm nước, 3 phút sau mở Cloud Console lên thấy 3 máy ảo, 1 VPC và cấu hình Firewall đã được tạo mới hoàn hảo mà không cần một cú click chuột nào. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Cấu hình máy chủ bằng giao diện chuột (ClickOps) là một tội ác trong kiến trúc Đám mây. Hãy để Code làm việc đó (IaC).
+```
+
 ## 5. Bảng tổng hợp mức độ sử dụng AI
 
 Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.
@@ -480,6 +2801,8 @@ Ghi lại các trường hợp AI trả lời sai, thiếu, chưa phù hợp ho�
 | 3 | AI đề xuất sử dụng Marker mặc định màu xanh của Leaflet cho mọi phản ánh trên bản đồ. | Xem giao diện bản đồ, nhận thấy tất cả ghim đều hiển thị cùng màu xanh dương, không khớp với Legend phân màu trạng thái. | Tự cấu hình CivicMap.tsx dùng L.divIcon tạo HTML/CSS Marker động đổi màu tương ứng với trạng thái (Đỏ, Cam, Xanh dương, Xanh lá). |
 | 4 | AI đề xuất dùng kỹ thuật Virtualization ở Frontend (react-window) để hiển thị bảng dữ liệu người dùng hàng trăm ngàn bản ghi. | Đánh giá kiến trúc hệ thống: Giải pháp này tải quá nhiều dữ liệu JSON về trình duyệt gây nghẽn băng thông và rủi ro bảo mật thông tin. | Chuyển sang mô hình Server-Side Pagination, Filtering & Sorting. Tự viết Custom Hook dùng React Query để chỉ fetch dữ liệu theo trang. |
 | 5 | AI gợi ý gọi API Google Cloud Vision phân tích ảnh một cách đồng bộ (Synchronous) và gửi ảnh dạng Base64 qua HTTP. | Tư duy phản biện: Gửi Base64 tốn RAM, gọi API đồng bộ khiến thời gian phản hồi kéo dài 3-5 giây, làm treo UI của ứng dụng phía người dân và chặn (block) Thread của server. | Chuyển sang Kiến trúc Event-Driven (Message Queue) để xử lý ảnh nền (Background Processing) và dùng Pre-signed URL upload ảnh trực tiếp lên Storage. |
+| 6 | AI thiết kế Cổng Du khách với giao diện chỉ đọc (Read-only UI) thiếu tính tương tác khẩn cấp. Mọi thông tin (số điện thoại, địa chỉ) đều chỉ là các thẻ text đơn điệu. | Dựa vào bối cảnh thực tế (Contextualization), khi du khách gặp nạn trên đường, tâm lý họ rất hoảng loạn. Họ cần những nút bấm thật to để gọi điện thoại ngay, chứ không phải chỉ hiển thị số để họ đọc, thoát app, mở bàn phím và bấm gọi. Điều này vi phạm nghiêm trọng nguyên tắc UX khẩn cấp. | Bác bỏ thiết kế tĩnh của AI. Tự bổ sung thẻ `href="tel:..."` vào toàn bộ danh bạ liên hệ để biến text thành nút gọi điện trực tiếp. Tích hợp thêm Mini Map để người dùng tra cứu nhanh vị trí trạm hỗ trợ, tối ưu hóa toàn bộ luồng hành động (Call-to-Action) của du khách. |
+| 7 | AI không cảnh báo rủi ro về việc Vite liên tục ghi đè file `routeTree.gen.ts` ngầm, khiến lệnh `git merge` bị treo hoặc báo lỗi conflict liên tục không thể resolve. | Lệnh `git merge` rơi vào vòng lặp lỗi (Git Loop). Dù đã cố gắng `git add` và resolve conflict thủ công, nhưng vài giây sau trạng thái file lại bị chuyển sang Modified do Vite đang chạy ẩn (watch mode) đã tự động sinh lại file mới. | Tư duy giải quyết vấn đề ở mức hệ thống (System level): Nhận diện lỗi không nằm ở Git mà nằm ở tiến trình Build. Sử dụng PowerShell (`Stop-Process`) để tiêu diệt tận gốc tiến trình server ngầm. Dùng `git clean` và lệnh dọn lịch sử commit rác, sau đó mới thực hiện quy trình merge an toàn nhánh `Vi` vào `main`. |
 
 ---
 
@@ -587,4 +2910,4 @@ Sinh viên/nhóm cam kết rằng:
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-| Trần Minh Vĩ | 2026-06-30 |
+| Trần Minh Vĩ | 2026-08-02 |

@@ -13,12 +13,6 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
-    ssr: {
-      noExternal: ['react-quill-new'],
-    },
-    optimizeDeps: {
-      exclude: ['react-quill-new'],
-    },
     server: {
       port: 5173,
       strictPort: true,

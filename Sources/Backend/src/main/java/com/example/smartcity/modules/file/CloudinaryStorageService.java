@@ -22,6 +22,14 @@ public class CloudinaryStorageService {
     private String cloudName;
 
     public String upload(MultipartFile file, Long feedbackId) {
+        return uploadToFolder(file, "feedback/" + feedbackId);
+    }
+
+    public String uploadNews(MultipartFile file) {
+        return uploadToFolder(file, "news");
+    }
+
+    private String uploadToFolder(MultipartFile file, String folder) {
         // Fallback for local development when Cloudinary is not configured
         if (cloudName == null || cloudName.trim().isEmpty()) {
             log.warn("[Cloudinary] Credentials not configured. Using dummy image URL for local development.");
@@ -31,9 +39,6 @@ public class CloudinaryStorageService {
         try {
             String contentType = file.getContentType();
             String resourceType = (contentType != null && contentType.startsWith("video/")) ? "video" : "image";
-            
-            // Tổ chức file theo thư mục feedback/<id> để dễ quản lý trên dashboard Cloudinary
-            String folder = "feedback/" + feedbackId;
 
             Map<?, ?> params = ObjectUtils.asMap(
                     "folder", folder,

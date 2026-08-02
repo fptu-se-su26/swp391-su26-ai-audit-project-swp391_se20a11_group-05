@@ -314,7 +314,6 @@ export function Header() {
     { to: "/feedback-search", label: locale === "vi" ? "Tra cứu" : "Search" },
     { to: "/campaigns", label: locale === "vi" ? "Chiến dịch" : "Campaigns" },
     { to: "/leaderboard", label: locale === "vi" ? "Xếp hạng" : "Leaderboard" },
-    { to: "/tourist", label: locale === "vi" ? "Du khách" : "Tourist" },
   ];
   const isAuthority =
     user && ([Role.WARD_STAFF, Role.POLICE, Role.SUPER_ADMIN] as Role[]).includes(user.role);

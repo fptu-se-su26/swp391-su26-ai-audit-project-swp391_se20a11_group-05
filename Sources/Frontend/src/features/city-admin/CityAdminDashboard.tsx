@@ -645,32 +645,21 @@ export function CityAdminDashboard() {
         <header className="min-h-[90px] py-3 bg-white border-b px-6 flex items-center justify-between shrink-0 gap-6" style={{ borderColor: colors.border, fontFamily: 'Inter, sans-serif' }}>
           {/* LEFT SECTION */}
           <div className="flex-[2] xl:flex-[2.5] flex items-center gap-3 lg:gap-4 min-w-0">
-            <img src={logoImg} alt="Emblem" className="w-[45px] h-[45px] lg:w-[50px] lg:h-[50px] object-contain drop-shadow-sm shrink-0" />
+            <img src={logoImg} alt="Da Nang Logo" className="h-10 w-auto object-contain hidden sm:block" />
             <div className="flex flex-col min-w-0">
-              <h2 className="text-[14px] md:text-[16px] lg:text-[17px] font-bold leading-tight whitespace-normal break-words" style={{ color: colors.primaryNavy }}>
+              <h1 className="text-[16px] lg:text-[18px] font-black tracking-tight text-[#0B1F4D] uppercase truncate font-sans">
                 TRUNG TÂM ĐIỀU HÀNH THÀNH PHỐ ĐÀ NẴNG
-              </h2>
-              <span className="text-[12px] lg:text-[13px] font-medium mt-0.5 truncate hidden sm:block" style={{ color: colors.textSecondary }}>
-                Hệ thống quản lý đô thị - <strong className="text-red-600">Phân hệ Super Admin</strong>
-              </span>
-              <style>{`
-                @keyframes marquee {
-                  from { transform: translateX(100%); }
-                  to { transform: translateX(-100%); }
-                }
-                .marquee-text {
-                  display: inline-block;
-                  white-space: nowrap;
-                  animation: marquee 20s linear infinite;
-                }
-              `}</style>
-              <div className="mt-1.5 hidden md:flex items-center rounded text-[13px] font-normal w-full max-w-[500px] overflow-hidden relative" style={{ backgroundColor: "#E3F2FD", color: colors.secondaryBlue, padding: "2px 0" }}>
-                <div className="absolute left-0 top-0 bottom-0 px-2.5 flex items-center z-10" style={{ backgroundColor: "#E3F2FD" }}>
-                  <span className="text-[14px]">🇻🇳</span>
-                </div>
-                <div className="flex-1 overflow-hidden w-full pl-10 pr-2">
-                  <div className="marquee-text">Chào mừng Quản trị viên, chúc bạn một ngày làm việc hiệu quả và thành công.</div>
-                </div>
+              </h1>
+              <p className="text-[13px] text-slate-500 font-medium truncate mt-0.5 font-sans">
+                Hệ thống quản lý đô thị - <span className="text-red-600 font-bold">Phân hệ Super Admin</span>
+              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 text-[10px] font-bold tracking-wider">
+                  VN
+                </span>
+                <span className="text-[12px] text-slate-500 hidden sm:block">
+                  Chào mừng Quản trị viên, chúc bạn một ngày làm việc hiệu quả
+                </span>
               </div>
             </div>
           </div>
@@ -763,27 +752,30 @@ export function CityAdminDashboard() {
             </div>
 
             <div className="flex items-center pl-5 border-l shrink-0 relative" style={{ borderColor: colors.border }} ref={userRef}>
-              <div className="mr-3 text-right hidden sm:block">
-                <div className="text-[12px] font-bold text-slate-800 leading-tight">{user?.name || "Super Admin"}</div>
-                <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Quản trị viên</div>
-              </div>
               <button 
                 onClick={() => {
                   setUserOpen(!userOpen);
                   setNotifOpen(false);
                 }}
-                className="relative w-[48px] h-[34px] rounded overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.1)] border border-black/5 cursor-pointer hover:shadow-md transition-all waving-flag-container" 
+                className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer outline-none"
                 title="Tài khoản & Thiết lập"
               >
-                <div className="relative w-full h-full scale-[1.15]">
-                  <svg viewBox="0 0 300 200" className="w-full h-full">
-                    <rect width="300" height="200" fill="#DA251D"/>
-                    <g transform="translate(150, 100) scale(60)">
-                      <polygon points="0,-1 0.2245,-0.309 0.951,-0.309 0.363,0.118 0.587,0.809 0,0.382 -0.587,0.809 -0.363,0.118 -0.951,-0.309 -0.2245,-0.309" fill="#FFFF00"/>
-                    </g>
-                  </svg>
-                  <div className="absolute inset-0 wind-ripple mix-blend-overlay"></div>
+                <div className="text-right hidden sm:block">
+                  <div className="text-[12px] font-bold text-slate-800 leading-tight">{user?.name || "Super Admin"}</div>
+                  <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Quản trị viên</div>
                 </div>
+                <div className="relative w-[48px] h-[34px] rounded overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.1)] border border-black/5 waving-flag-container">
+                  <div className="relative w-full h-full scale-[1.15]">
+                    <svg viewBox="0 0 300 200" className="w-full h-full">
+                      <rect width="300" height="200" fill="#DA251D"/>
+                      <g transform="translate(150, 100) scale(60)">
+                        <polygon points="0,-1 0.2245,-0.309 0.951,-0.309 0.363,0.118 0.587,0.809 0,0.382 -0.587,0.809 -0.363,0.118 -0.951,-0.309 -0.2245,-0.309" fill="#FFFF00"/>
+                      </g>
+                    </svg>
+                    <div className="absolute inset-0 wind-ripple mix-blend-overlay"></div>
+                  </div>
+                </div>
+                <ChevronDown size={16} className={`text-slate-400 transition-transform duration-200 ${userOpen ? "rotate-180" : ""}`} />
                 <style>{`
                   @keyframes flag-wave {
                     0%   { transform: perspective(400px) rotateY(-10deg) rotateX(2deg) scaleY(1); }

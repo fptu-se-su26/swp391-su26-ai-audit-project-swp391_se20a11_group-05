@@ -12,7 +12,7 @@
 | Tên sinh viên / Nhóm | Trần Minh Vĩ / Group05 |
 | MSSV / Danh sách MSSV | DE190182 |
 | Giảng viên hướng dẫn | Lê Thiện Nhật Quang |
-| Ngày hoàn thành reflection | 2026-06-15 |
+| Ngày hoàn thành reflection | 2026-08-02 |
 
 ---
 
@@ -35,7 +35,7 @@ Reflection cần thể hiện:
 Mô tả ngắn gọn quá trình sử dụng AI trong bài tập/project này.
 
 ```text
-Em đã sử dụng AI ở các giai đoạn phân tích yêu cầu (Requirement) để phân rã bài toán lớn và nhận diện rủi ro thực tế; thiết kế kiến trúc hệ thống để xử lý các tác vụ bất đồng bộ; và phát triển giao diện (Implementation) để tái thiết kế lại giao diện dashboard của UBND và Công an Phường. Công cụ dùng nhiều nhất là Gemini và Antigravity. AI giúp nâng tầm thiết kế giao diện và code khung nhanh, nhưng em luôn trực tiếp cải tiến logic để phù hợp với nghiệp vụ hành chính công thực địa.
+Em đã sử dụng AI ở các giai đoạn phân tích yêu cầu (Requirement) để phân rã bài toán lớn và nhận diện rủi ro thực tế; thiết kế kiến trúc hệ thống để xử lý các tác vụ bất đồng bộ; phát triển giao diện (Implementation) để tái thiết kế lại giao diện dashboard của UBND và Công an Phường, xây dựng Cổng Du khách (Tourist Portal); và cuối cùng là hỗ trợ phát triển tính năng chat thời gian thực cho Chiến dịch tình nguyện và gỡ lỗi xung đột Git (Git Conflict Resolution). Công cụ dùng nhiều nhất là Gemini và Antigravity. AI giúp nâng tầm thiết kế giao diện và code khung nhanh, nhưng em luôn trực tiếp cải tiến logic để phù hợp với nghiệp vụ hành chính công thực địa và bảo vệ an toàn cho hệ thống mã nguồn.
 ```
 
 ---
@@ -186,6 +186,20 @@ Em đã áp dụng Critical Thinking để bác bỏ những đề xuất chưa 
 - **Cách sửa đổi:** Tự thiết lập CivicMap.tsx để sử dụng L.divIcon tạo HTML/CSS Marker động tùy biến màu sắc dựa trên trạng thái (Đỏ, Cam, Xanh dương, Xanh lá). Tự viết hàm trích xuất tên đường phố động từ chuỗi địa chỉ đầy đủ của các phản ánh được fetch từ database và sắp xếp theo số lượng phản ánh giảm dần để xác định khu vực cần ưu tiên.
 - **Bài học rút ra:** Luôn phân tích nghiệp vụ thực tế của người sử dụng (cán bộ) trước khi chấp nhận các giải pháp giao diện đơn giản từ AI. Cần động hóa các thành phần hiển thị dựa trên dữ liệu thật để hệ thống có tính thực tiễn cao.
 
+### Ví dụ 7: Lỗi logic bảo mật (RBAC) do AI code cứng điều kiện
+- **AI đã gợi ý gì:** Khi yêu cầu phân quyền cho giao diện Cán bộ, AI gợi ý tôi kiểm tra quyền `if (user.role !== 'WARD_ADMIN')` ở ngay trên cùng của mỗi component hiển thị.
+- **Vì sao chưa phù hợp:** Phương pháp này quá thủ công (Manual) và không an toàn. Khi số lượng trang web tăng lên, việc copy-paste dòng `if` này đi khắp nơi sẽ gây ra trùng lặp code. Ngoài ra, việc check quyền bên trong Component đồng nghĩa với việc trình duyệt đã kịp tải toàn bộ mã nguồn của trang đó về máy (dù chưa hiển thị ra). Điều này dẫn đến nguy cơ lộ lọt dữ liệu nội bộ qua việc dịch ngược (Reverse Engineering).
+- **Phát hiện bằng cách nào:** Thông qua việc theo dõi thẻ Network trên Chrome DevTools. Tôi thấy file JS của trang `PoliceDashboard` vẫn bị tải về dù tôi đang đăng nhập bằng tài khoản dân thường.
+- **Cách sửa đổi:** Bác bỏ cách làm tủn mủn của AI. Tôi thiết kế lại toàn bộ bằng Higher-Order Component (HOC) `ProtectedRoute` kết hợp với React Suspense (Lazy Loading). HOC này hoạt động như một trạm gác ở lớp Router. Nó chặn toàn bộ người dùng trái phép và ngắt kết nối tải file JS trước cả khi component kịp khởi tạo. Đồng thời tôi mở rộng để HOC có thể nhận vào nhiều Role cùng lúc (Mảng `allowedRoles`).
+- **Bài học rút ra:** Bảo mật (Security) không thể giải quyết bằng các dòng `if-else` cục bộ. Nó phải được quy hoạch thành một kiến trúc tổng thể (System Architecture) nằm ở tầng cao nhất của ứng dụng.
+
+### Ví dụ 8: Hiệu năng bản đồ sụp đổ do lạm dụng React State
+- **AI đã gợi ý gì:** Khi gặp lỗi treo trình duyệt do hiển thị 10.000 điểm sự kiện trên bản đồ, AI đã đề xuất sử dụng Bounding Box và cung cấp một thuật toán Debounce dùng `useState` để lưu tọa độ giới hạn của bản đồ mỗi khi người dùng kéo (drag).
+- **Vì sao chưa phù hợp:** Mặc dù về lý thuyết là đúng, nhưng AI không hiểu rõ môi trường React-Leaflet. Việc dùng `useState` cho tọa độ khi người dùng đang vuốt bản đồ sẽ kích hoạt (trigger) cơ chế Re-render liên tục của React. Kết quả là bản đồ không những không nhanh hơn mà còn giật cục (lag) tồi tệ hơn, tạo ra vòng lặp vô tận (Infinite Re-render).
+- **Phát hiện bằng cách nào:** Ứng dụng bị đơ cứng, quạt tản nhiệt của máy tính hú lên và console báo lỗi Maximum Update Depth Exceeded.
+- **Cách sửa đổi:** Tự tay viết một Custom Hook `useMapBoundsDebounce`. Thay vì dùng `useState`, tôi dùng `useRef` để theo dõi tọa độ ngầm (không gây re-render). Dữ liệu chỉ được chuyển vào state chính sau khi người dùng buông tay 500ms. Kết hợp thêm kỹ thuật Clustering (gộp điểm). Bản đồ trở nên mượt mà hoàn toàn với 100.000 điểm giả lập.
+- **Bài học rút ra:** AI rất giỏi các thuật toán nền tảng (Vanilla JS) nhưng thường thiếu cái nhìn sắc bén về Vòng đời Component (Lifecycle) trong React. Việc mù quáng tin vào code của AI khi làm việc với Dữ liệu lớn (Big Data) ở phía Client là một thảm họa.
+
 ---
 
 ## 9. Phần đóng góp thật sự của sinh viên/nhóm
@@ -193,13 +207,16 @@ Em đã áp dụng Critical Thinking để bác bỏ những đề xuất chưa 
 Mô tả rõ phần nào là đóng góp chính của sinh viên/nhóm, không phải chỉ copy từ AI.
 
 ```text
-- Quyết định đưa cơ chế Spatial Clustering vào thiết kế hệ thống.
-- Quyết định mã hóa danh tính công dân.
-- Quyết định thiết lập GitHub Flow và quy trình phát triển API-First Development cho toàn bộ team.
+Toàn bộ dự án The City Connect là một quá trình làm chủ kiến trúc và hệ thống. Đóng góp của cá nhân/nhóm nằm ở việc liên tục thiết kế lại và bác bỏ các giải pháp sơ sài từ AI:
+- Quyết định đưa cơ chế Spatial Clustering và Bounding Box vào thiết kế hệ thống thay vì để Database Full-Table Scan.
+- Quyết định mã hóa danh tính công dân để bảo vệ quyền riêng tư ngay từ khâu thiết kế.
+- Quyết định thiết lập GitHub Flow và quy trình phát triển API-First Development cho toàn bộ team để làm việc song song mượt mà.
 - Quyết định cấu hình Thread Pool an toàn cho các tác vụ bất đồng bộ và tự triển khai thuật toán Rate Limiting chống DDoS cước phí SMS.
-- Xây dựng tư duy Contextualization cho đặc thù TP Đà Nẵng.
-- Quyết định tối biến Marker Leaflet động bằng CSS/HTML divIcon phân loại mức độ khẩn cấp (Đỏ, Cam, Xanh dương, Xanh lá) trên CivicMap.tsx.
-- Xây dựng giải thuật trích xuất địa bàn từ dữ liệu thật để hiển thị các Tổ dân phố / Khu vực cần ưu tiên động.
+- Xây dựng tư duy Contextualization cho đặc thù TP Đà Nẵng, thiết kế riêng các ứng dụng (Dashboard) cho Phường, Công an và Du khách.
+- Cải biến giao diện tĩnh Cổng Du khách thành giao diện có tính tương tác cao (Actionable UI) với nút bấm gọi điện khẩn cấp.
+- Đưa ra quyết định hệ thống: Dừng hoàn toàn các tiến trình tự động (Vite server) bằng PowerShell trước khi xử lý xung đột Git để bảo vệ an toàn nhánh `main`.
+- Thiết kế hệ thống bảo mật Frontend với `ProtectedRoute` (RBAC) chặn quyền truy cập và rò rỉ mã nguồn từ lớp Routing.
+- Can thiệp sâu vào Lifecycle của React: Tự viết Custom Hook dùng `useRef` để giải quyết lỗi Infinite Re-render của AI, tối ưu hóa bản đồ đạt mức 60FPS khi tải dữ liệu lớn.
 ```
 
 ---
@@ -208,9 +225,10 @@ Mô tả rõ phần nào là đóng góp chính của sinh viên/nhóm, không p
 
 | Nội dung | Trước khi dùng AI | Sau khi dùng AI | Cải thiện đạt được |
 |---|---|---|---|
-| Hiểu yêu cầu | Tư duy làm app CRUD đơn giản | Nâng tầm thành hệ thống có kiến trúc chịu tải, bảo mật | Thay đổi toàn bộ tư duy thiết kế cốt lõi |
-| Cộng tác nhóm | Phân chia việc mơ hồ, dễ xung đột code | Thống nhất API Contract, dùng GitHub Flow có review chéo | Triệt tiêu 90% lỗi git conflict, team làm việc song song mượt mà |
-| Giao diện cán bộ | Giao diện cũ đơn giản, dùng chung Header/Footer của Citizen | Redesign độc lập, giao diện dashboard nghiệp vụ chuẩn chỉ, bản đồ trực quan | Trực quan hóa thông tin hiệu quả cho cán bộ ra quyết định |
+| Hiểu yêu cầu (Requirement) | Tư duy làm app CRUD (Thêm, sửa, xóa) đơn giản, chỉ tập trung vào việc lưu dữ liệu thành công. | Nâng tầm thành hệ thống có kiến trúc chịu tải (Performance), bảo mật (Security), và Event-Driven. | Thay đổi toàn bộ tư duy thiết kế cốt lõi. Từ một đồ án sinh viên trở thành một sản phẩm có tính thực tiễn cao (Production-ready). |
+| Cộng tác nhóm (Teamwork) | Phân chia việc mơ hồ, thường xuyên chờ nhau hoàn thành code, dễ sinh ra xung đột khi gộp nhánh. | Thống nhất API Contract (Mock API trước), dùng GitHub Flow có review chéo. | Triệt tiêu 90% lỗi git conflict, team làm việc song song mượt mà, Onboarding nhanh chóng thông qua Maven Wrapper. |
+| Giao diện cán bộ (UI/UX) | Giao diện cũ đơn giản, dùng chung Header/Footer của Citizen gây rối loạn nghiệp vụ. | Redesign độc lập, giao diện dashboard nghiệp vụ chuẩn chỉ, bản đồ trực quan với Clustering và Marker động. | Trực quan hóa thông tin hiệu quả cho cán bộ ra quyết định, tuyệt đối không lặp lại layout nhờ Centralized Routing. |
+| Hiệu năng và Tối ưu (Optimization) | Viết code chạy được là đủ, không quan tâm đến bộ nhớ RAM hay tốc độ CPU. | Nắm vững kỹ thuật Debouncing, Lazy Loading, Background Worker (Async). | Bản đồ không còn bị treo cứng. Server không bị quá tải khi xử lý ảnh hoặc gửi SMS hàng loạt. |
 
 ---
 
@@ -219,7 +237,9 @@ Mô tả rõ phần nào là đóng góp chính của sinh viên/nhóm, không p
 Sau bài tập/project này, em/nhóm học được gì về kiến thức môn học?
 
 ```text
-Một đồ án sinh viên và phần mềm thực tế khác xa nhau nằm ở cách ta bảo vệ hệ thống trước dữ liệu lớn. Em hiểu sâu hơn về phần nghiệp vụ của trang web phản ánh đô thị.
+Một đồ án sinh viên và phần mềm thực tế khác xa nhau hoàn toàn. Qua môn học SWP391 và quá trình xây dựng The City Connect, em nhận ra rằng "Code chạy được" chỉ chiếm 20% thành công của dự án. 80% còn lại nằm ở Kiến trúc hệ thống (Architecture), Quy trình làm việc (Workflow), Bảo mật (Security) và Tối ưu hiệu năng (Performance).
+- Em hiểu sâu hơn về tính chất nghiệp vụ phức tạp của một nền tảng phản ánh đô thị thông minh (Smart City), nơi mỗi quyết định thiết kế (như chặn spam SMS, che giấu danh tính người dùng) đều tác động trực tiếp đến an sinh xã hội.
+- Em học được cách quản trị dự án, thiết lập môi trường (Environment Setup) để toàn bộ 5 thành viên có thể code độc lập, không vướng mắc rào cản kỹ thuật máy móc.
 ```
 
 ---
@@ -229,7 +249,9 @@ Một đồ án sinh viên và phần mềm thực tế khác xa nhau nằm ở 
 Sau bài tập/project này, em/nhóm học được gì về việc sử dụng AI một cách minh bạch, có trách nhiệm?
 
 ```text
-Không phụ thuộc hoàn toàn vào giải pháp kỹ thuật AI đưa ra. Phải làm chủ quyết định (Decision Ownership), tự chịu trách nhiệm về tính khả thi của dự án và chọn lọc những gì phù hợp nhất.
+Sử dụng AI không phải là "nhờ AI làm bài hộ", mà là biến AI thành một "Bậc thầy phản biện" (Sparring Partner).
+- Em học được nguyên tắc Decision Ownership (Làm chủ quyết định): AI có thể tạo ra hàng ngàn dòng code trong vài giây, nhưng người chịu trách nhiệm cuối cùng nếu hệ thống sập, dữ liệu bị rò rỉ hay trình duyệt bị treo chính là người Kỹ sư.
+- Không phụ thuộc mù quáng: Đã rất nhiều lần giải pháp của AI (như dùng ST_Distance_Sphere, hay dùng react-window, hay dùng useState trên Map) trông có vẻ hoàn hảo nhưng lại tiềm ẩn thảm họa hiệu năng. Việc luôn giữ tư duy hoài nghi, tự mình đọc tài liệu chính thống và thử nghiệm thực tế là cách duy nhất để sử dụng AI một cách an toàn và có trách nhiệm.
 ```
 
 ---
@@ -307,4 +329,4 @@ Em/nhóm cam kết rằng nội dung reflection này phản ánh trung thực qu
 
 | Đại diện sinh viên/nhóm | Ngày xác nhận |
 |---|---|
-| Trần Minh Vĩ | 2026-06-15 |
+| Trần Minh Vĩ | 2026-08-02 |

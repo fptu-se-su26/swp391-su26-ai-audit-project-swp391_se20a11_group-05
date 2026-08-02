@@ -41,6 +41,10 @@ import {
   Smartphone,
   Building,
   Eye,
+  Check,
+  ArrowRight,
+  Mail,
+  Phone,
 } from "lucide-react";
 import { mapStatus } from "@/lib/status";
 import { toast } from "sonner";
@@ -201,7 +205,6 @@ function PublicFeedbackLookup() {
 
   const [dateRangeOpen, setDateRangeOpen] = useState(false);
   const [sortBy, setSortBy] = useState("newest");
-
 
   // Dropdown refs
   const langRef = useRef<HTMLDivElement>(null);
@@ -729,7 +732,6 @@ function PublicFeedbackLookup() {
       {/* Modern gradient blobs */}
       <div className="absolute top-[-10%] left-[-15%] w-[60%] aspect-square rounded-full bg-gradient-to-tr from-[#1E88E5]/5 to-transparent blur-[140px] pointer-events-none" />
       <div className="absolute bottom-[20%] right-[-15%] w-[50%] aspect-square rounded-full bg-gradient-to-br from-[#0B4DBB]/5 to-transparent blur-[140px] pointer-events-none" />
-
 
       {/* HERO SECTION */}
       <section
@@ -1618,7 +1620,6 @@ function PublicFeedbackLookup() {
         </div>
       </div>
 
-
       {/* FOOTER SECTION */}
       <footer className="relative z-30 bg-[#051D45] text-slate-300 mt-20 border-t-4 border-[#0B4DBB]">
         <div className="max-w-[1440px] mx-auto px-6 md:px-12 py-12 md:py-16">
@@ -1672,7 +1673,7 @@ function PublicFeedbackLookup() {
                     className="hover:text-white transition flex items-center gap-1 text-slate-400"
                   >
                     <ArrowRight size={10} />
-                    <span>{locale === "vi" ? "Tin tức & Thông báo" : "News & Announcements"}</span>
+                    <span>{locale === "vi" ? "Tin tức & Thông báo" : "News & Notices"}</span>
                   </Link>
                 </li>
                 <li>
@@ -1681,9 +1682,7 @@ function PublicFeedbackLookup() {
                     className="hover:text-white transition flex items-center gap-1 text-slate-400"
                   >
                     <ArrowRight size={10} />
-                    <span>
-                      {locale === "vi" ? "Tra cứu phản ánh trực tuyến" : "Online Feedback Lookup"}
-                    </span>
+                    <span>{locale === "vi" ? "Tra cứu ý kiến cử tri" : "Voter Lookup"}</span>
                   </Link>
                 </li>
                 <li>
@@ -1692,73 +1691,45 @@ function PublicFeedbackLookup() {
                     className="hover:text-white transition flex items-center gap-1 text-slate-400"
                   >
                     <ArrowRight size={10} />
-                    <span>
-                      {locale === "vi" ? "Chiến dịch dọn vệ sinh" : "Civic Clean campaigns"}
-                    </span>
+                    <span>{locale === "vi" ? "Chiến dịch tình nguyện" : "Campaigns"}</span>
                   </Link>
                 </li>
               </ul>
             </div>
 
-            {/* Col 3: Legal & Help info */}
+            {/* Col 3: Legal policies */}
             <div className="space-y-4">
               <h4 className="text-white text-xs font-black uppercase tracking-widest border-l-2 border-[#0B4DBB] pl-2.5">
-                {locale === "vi" ? "Văn bản pháp lý" : "Resources"}
+                {locale === "vi" ? "Quy định & Chính sách" : "Regulations"}
               </h4>
-              <ul className="space-y-2 text-xs font-semibold">
-                <li>
-                  <a
-                    href="#quy-trinh"
-                    className="hover:text-white transition flex items-center gap-1 text-slate-400"
-                  >
-                    <ArrowRight size={10} />
-                    <span>
-                      {locale === "vi" ? "Quy trình giải quyết 1022" : "Workflow Resolution 1022"}
-                    </span>
-                  </a>
+              <ul className="space-y-2 text-xs font-semibold text-slate-400">
+                <li className="hover:text-white transition cursor-pointer">
+                  {locale === "vi" ? "Quy chế tiếp nhận xử lý" : "Receiving Regulations"}
                 </li>
-                <li>
-                  <a
-                    href="#bao-mat"
-                    className="hover:text-white transition flex items-center gap-1 text-slate-400"
-                  >
-                    <ArrowRight size={10} />
-                    <span>{locale === "vi" ? "Chính sách quyền riêng tư" : "Privacy Policy"}</span>
-                  </a>
+                <li className="hover:text-white transition cursor-pointer">
+                  {locale === "vi" ? "Chính sách bảo mật thông tin" : "Privacy Policy"}
                 </li>
-                <li>
-                  <a
-                    href="#dieu-khoan"
-                    className="hover:text-white transition flex items-center gap-1 text-slate-400"
-                  >
-                    <ArrowRight size={10} />
-                    <span>{locale === "vi" ? "Điều khoản dịch vụ" : "Terms of Service"}</span>
-                  </a>
+                <li className="hover:text-white transition cursor-pointer">
+                  {locale === "vi" ? "Điều khoản sử dụng cổng" : "Terms of Service"}
                 </li>
-                <li>
-                  <a
-                    href="#gop-y"
-                    className="hover:text-white transition flex items-center gap-1 text-slate-400"
-                  >
-                    <ArrowRight size={10} />
-                    <span>{locale === "vi" ? "Câu hỏi & Giải đáp FAQ" : "FAQ Help Center"}</span>
-                  </a>
+                <li className="hover:text-white transition cursor-pointer">
+                  {locale === "vi" ? "Quy trình xác minh thông tin" : "Verification Process"}
                 </li>
               </ul>
             </div>
 
-            {/* Col 4: Contact details */}
+            {/* Col 4: Contact Authority info */}
             <div className="space-y-4">
               <h4 className="text-white text-xs font-black uppercase tracking-widest border-l-2 border-[#0B4DBB] pl-2.5">
-                {locale === "vi" ? "Thông tin liên hệ" : "Contact Information"}
+                {locale === "vi" ? "Thông tin liên hệ" : "Contact Info"}
               </h4>
-              <div className="space-y-3.5 text-xs text-slate-400 font-semibold pt-1">
-                <p className="leading-relaxed flex items-start gap-2">
-                  <MapPin size={16} className="text-[#0B4DBB] shrink-0 mt-0.5" />
+              <div className="space-y-3 text-xs font-semibold text-slate-400 leading-normal">
+                <p className="flex items-start gap-2">
+                  <MapPin size={14} className="text-[#0B4DBB] shrink-0 mt-0.5" />
                   <span>
                     {locale === "vi"
-                      ? "Tòa nhà Trung tâm Hành chính, số 24 Trần Phú, Hải Châu, Đà Nẵng, Việt Nam"
-                      : "Administrative Center Building, 24 Tran Phu St, Hai Chau Dist, Da Nang, Vietnam"}
+                      ? "Ủy ban Nhân dân Thành phố Đà Nẵng. Số 24 Trần Phú, Hải Châu, Đà Nẵng."
+                      : "Da Nang People's Committee. 24 Tran Phu St, Hai Chau, Da Nang."}
                   </span>
                 </p>
                 <p className="flex items-center gap-2">
@@ -1770,11 +1741,6 @@ function PublicFeedbackLookup() {
                   <span>
                     {locale === "vi" ? "Đường dây nóng: 1022 (Trong nước)" : "Hotline: 1022"}
                   </span>
-                </p>
-                <p className="text-[10px] text-slate-500 font-extrabold italic pl-6 leading-none">
-                  {locale === "vi"
-                    ? "Giờ làm việc: 24/7 các ngày trong tuần"
-                    : "Working Hours: 24/7"}
                 </p>
               </div>
             </div>
@@ -1797,7 +1763,6 @@ function PublicFeedbackLookup() {
           </div>
         </div>
       </footer>
-
     </div>
   );
 }

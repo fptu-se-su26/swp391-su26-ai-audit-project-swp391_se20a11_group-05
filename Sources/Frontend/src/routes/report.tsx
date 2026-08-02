@@ -1,8 +1,10 @@
 import { clientOnly } from "@/components/ClientOnly";
+import type { ReportMapProps } from "@/components/site/ReportMap";
 import { createFileRoute, Link, redirect, useLocation } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
+import { useProfile } from "@/hooks";
 import { useCategories, useCreateFeedbackWithMedia } from "@/lib/hooks";
 import { ApiError, wardApi, getToken } from "@/lib/api";
 import { getVideoDurationSeconds } from "@/lib/citizenFeedbackMediaApi";
@@ -14,6 +16,8 @@ import {
   storeGpsLocation,
 } from "@/lib/location";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { vi } from "date-fns/locale";
 import {
   Building2,
   Camera,
@@ -28,7 +32,24 @@ import {
   TreePine,
   Upload,
   X,
+  ExternalLink,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  User,
+  Phone,
+  Mail,
+  Map,
+  ClipboardList,
+  CheckSquare,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/report")({
   beforeLoad: () => {
@@ -57,7 +78,7 @@ export const Route = createFileRoute("/report")({
   component: ReportPage,
 });
 
-const ReportMap = clientOnly<any>(() =>
+const ReportMap = clientOnly<ReportMapProps>(() =>
   import("@/components/site/ReportMap").then((m) => ({ default: m.ReportMap })),
 );
 
@@ -116,6 +137,33 @@ const OFFICIAL_CATEGORY_CONTENT: Record<
     descriptionVi: "Nguy cơ cháy nổ, lối thoát hiểm và thiết bị PCCC",
     descriptionEn: "Fire hazards, emergency exits, and fire safety equipment",
   },
+};
+
+const OFFICIAL_CATEGORY_TEMPLATES: Record<string, string> = {
+  TRAFFIC: `1. Loại sự cố giao thông (Ổ gà, biển hiệu hỏng, xe đỗ trái phép...): 
+2. Vị trí/Làn đường cụ thể xảy ra sự việc: 
+3. Mức độ cản trở, ảnh hưởng giao thông: 
+4. Đề xuất khắc phục của người dân: `,
+
+  URBAN_INFRASTRUCTURE: `1. Hiện trạng sự cố hạ tầng (Mất điện chiếu sáng, cống tràn, sụt lún vỉa hè...): 
+2. Mức độ nguy hiểm hoặc bất tiện cho người dân: 
+3. Đề xuất kiểm tra, khắc phục: `,
+
+  ENVIRONMENT: `1. Loại ô nhiễm/sự cố (Rác thải bừa bãi, xả nước thải bẩn, cây đổ, tiếng ồn...): 
+2. Phạm vi và mức độ ảnh hưởng đến khu dân cư: 
+3. Đề xuất thu gom, dọn dẹp hoặc xử lý vi phạm: `,
+
+  PUBLIC_SECURITY: `1. Hành vi vi phạm trật tự (Gây rối trật tự, lấn chiếm lòng đường, trộm cắp...): 
+2. Thời gian hoặc đối tượng thường xuyên xảy ra sự việc: 
+3. Đề xuất lực lượng chức năng kiểm tra/tuần tra: `,
+
+  CONSTRUCTION: `1. Hiện trạng công trình (Xây dựng không phép, không rào chắn, gây cát bụi/tiếng ồn...): 
+2. Mức độ ảnh hưởng đến an toàn của các hộ lân cận: 
+3. Đề xuất cơ quan chức năng kiểm tra kiểm soát: `,
+
+  FIRE_SAFETY: `1. Nguy cơ cháy nổ phát hiện (Lối thoát hiểm bị bịt kín, thiết bị PCCC hỏng/thiếu...): 
+2. Địa điểm cụ thể trong khu dân cư/tòa nhà: 
+3. Đề xuất kiểm tra PCCC khẩn cấp: `,
 };
 
 interface NominatimReverseResponse {
@@ -199,18 +247,145 @@ function detectPii(text: string): boolean {
   return PII_PHONE_RE.test(text) || PII_CCCD_RE.test(text);
 }
 
+interface SignaturePadProps {
+  onSave: (dataUrl: string | null) => void;
+}
+
+function SignaturePad({ onSave }: SignaturePadProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const lastX = useRef(0);
+  const lastY = useRef(0);
+
+  const getCoordinates = (e: MouseEvent | TouchEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+
+    if ("touches" in e) {
+      if (e.touches.length === 0) return { x: 0, y: 0 };
+      return {
+        x: e.touches[0].clientX - rect.left,
+        y: e.touches[0].clientY - rect.top,
+      };
+    } else {
+      return {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      };
+    }
+  };
+
+  const startDrawing = (
+    e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>,
+  ) => {
+    if (e.cancelable) e.preventDefault();
+    const { x, y } = getCoordinates(e.nativeEvent);
+    lastX.current = x;
+    lastY.current = y;
+    setIsDrawing(true);
+  };
+
+  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+    if (e.cancelable) e.preventDefault();
+
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) return;
+
+    const { x, y } = getCoordinates(e.nativeEvent);
+
+    ctx.beginPath();
+    ctx.moveTo(lastX.current, lastY.current);
+    ctx.lineTo(x, y);
+    ctx.strokeStyle = "#0b5ed7";
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.stroke();
+
+    lastX.current = x;
+    lastY.current = y;
+  };
+
+  const stopDrawing = () => {
+    if (!isDrawing) return;
+    setIsDrawing(false);
+
+    const canvas = canvasRef.current;
+    if (canvas) {
+      onSave(canvas.toDataURL("image/png"));
+    }
+  };
+
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (canvas && ctx) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      onSave(null);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="relative border border-slate-200 rounded-xl overflow-hidden bg-white shadow-inner max-w-[320px]">
+        <canvas
+          ref={canvasRef}
+          width={320}
+          height={140}
+          onMouseDown={startDrawing}
+          onMouseMove={draw}
+          onMouseUp={stopDrawing}
+          onMouseLeave={stopDrawing}
+          onTouchStart={startDrawing}
+          onTouchMove={draw}
+          onTouchEnd={stopDrawing}
+          className="w-full cursor-crosshair touch-none"
+        />
+        <button
+          type="button"
+          onClick={clearCanvas}
+          className="absolute right-2 bottom-2 text-[10px] font-bold text-slate-400 hover:text-slate-600 px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg shadow-sm cursor-pointer"
+        >
+          Xóa chữ ký
+        </button>
+      </div>
+      <p className="text-[10px] text-slate-400 font-medium">
+        Vẽ trực tiếp bằng ngón tay hoặc chuột lên khung trên để ký tên.
+      </p>
+    </div>
+  );
+}
+
 function ReportPage() {
   const { t, locale } = useI18n();
   const { user } = useAuth();
   const location = useLocation();
   const state = location.state as
-    | { initialTitle?: string; initialDescription?: string; initialCategoryCode?: string }
+    | {
+        initialTitle?: string;
+        initialDescription?: string;
+        initialCategoryCode?: string;
+        initialLatitude?: number;
+        initialLongitude?: number;
+        initialAddressDetails?: string;
+        initialAttachments?: Array<{ fileUrl: string; fileName: string; fileType: string }>;
+      }
     | undefined;
 
   const [submitted, setSubmitted] = useState(false);
   const [trackingCode, setTrackingCode] = useState("");
   const [piiError, setPiiError] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
+  const { data: profile } = useProfile();
+  const [isAgreed, setIsAgreed] = useState(false);
+  const [contactAddress, setContactAddress] = useState("");
+  const [isOpenMapModal, setIsOpenMapModal] = useState(false);
+  const [incidentAddress, setIncidentAddress] = useState(state?.initialAddressDetails || "");
+  const [signatureMode, setSignatureMode] = useState<"auto" | "draw">("auto");
+  const [customSignature, setCustomSignature] = useState<string | null>(null);
 
   const { data: categories } = useCategories();
   const [categoryCode, setCategoryCode] = useState<string | undefined>(
@@ -220,13 +395,17 @@ function ReportPage() {
 
   const storedLocation = getStoredGpsLocation();
   const initialLat =
-    storedLocation && isWithinVietnam(storedLocation.latitude, storedLocation.longitude)
-      ? storedLocation.latitude
-      : null;
+    state?.initialLatitude !== undefined
+      ? state.initialLatitude
+      : (storedLocation && isWithinVietnam(storedLocation.latitude, storedLocation.longitude)
+        ? storedLocation.latitude
+        : null);
   const initialLng =
-    storedLocation && isWithinVietnam(storedLocation.latitude, storedLocation.longitude)
-      ? storedLocation.longitude
-      : null;
+    state?.initialLongitude !== undefined
+      ? state.initialLongitude
+      : (storedLocation && isWithinVietnam(storedLocation.latitude, storedLocation.longitude)
+        ? storedLocation.longitude
+        : null);
 
   const [title, setTitle] = useState(state?.initialTitle || "");
   const [description, setDescription] = useState(state?.initialDescription || "");
@@ -235,7 +414,7 @@ function ReportPage() {
   const [locationLoading, setLocationLoading] = useState(false);
   const [addressLoading, setAddressLoading] = useState(false);
   const [locationError, setLocationError] = useState("");
-  const [address, setAddress] = useState("");
+  const [address, setAddress] = useState(state?.initialAddressDetails || "");
   const [addressError, setAddressError] = useState("");
   const [detectedWard, setDetectedWard] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
@@ -243,6 +422,7 @@ function ReportPage() {
   const [videos, setVideos] = useState<File[]>([]);
   const [videoPreviews, setVideoPreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [downloadingAttachments, setDownloadingAttachments] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const geocodeAbortRef = useRef<AbortController | null>(null);
@@ -278,6 +458,8 @@ function ReportPage() {
     videos.length > 0 &&
     description.trim().length > 0 &&
     hasLocation &&
+    isAgreed &&
+    (signatureMode === "auto" || !!customSignature) &&
     !locationLoading &&
     !createFeedback.isPending &&
     !uploading;
@@ -289,7 +471,12 @@ function ReportPage() {
   }, [categoryCode]);
 
   useEffect(() => {
-    if (storedLocation && isWithinVietnam(storedLocation.latitude, storedLocation.longitude)) {
+    if (state?.initialLatitude !== undefined && state?.initialLongitude !== undefined) {
+      // Already has prefilled location, no need to detect or load address
+      if (!state.initialAddressDetails) {
+        void loadAddress(state.initialLatitude, state.initialLongitude);
+      }
+    } else if (storedLocation && isWithinVietnam(storedLocation.latitude, storedLocation.longitude)) {
       void loadAddress(storedLocation.latitude, storedLocation.longitude);
     } else {
       detectLocation();
@@ -297,6 +484,69 @@ function ReportPage() {
     // Auto GPS runs once on page open.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (state?.initialAttachments && state.initialAttachments.length > 0) {
+      const loadAttachments = async () => {
+        setDownloadingAttachments(true);
+        const fetchedPhotos: File[] = [];
+        const fetchedVideos: File[] = [];
+        const photoUrls: string[] = [];
+        const videoUrls: string[] = [];
+
+        const toastId = toast.loading(
+          locale === "vi"
+            ? "Đang tải dữ liệu hình ảnh, video cũ..."
+            : "Loading previous media files...",
+        );
+
+        for (const att of state.initialAttachments) {
+          try {
+            const response = await fetch(att.fileUrl);
+            const blob = await response.blob();
+            const file = new File([blob], att.fileName || "attachment", {
+              type: blob.type || att.fileType,
+            });
+
+            const isVideo =
+              (att.fileType || "").toLowerCase().includes("video") ||
+              (att.fileUrl || "").toLowerCase().endsWith(".mp4") ||
+              (att.fileUrl || "").toLowerCase().endsWith(".mov") ||
+              (att.fileUrl || "").toLowerCase().endsWith(".webm");
+
+            if (isVideo) {
+              fetchedVideos.push(file);
+              videoUrls.push(att.fileUrl);
+            } else {
+              fetchedPhotos.push(file);
+              photoUrls.push(att.fileUrl);
+            }
+          } catch (error) {
+            console.error("Error downloading attachment:", att.fileUrl, error);
+          }
+        }
+
+        if (fetchedPhotos.length > 0) {
+          setPhotos((prev) => [...prev, ...fetchedPhotos]);
+          setPhotoPreviews((prev) => [...prev, ...photoUrls]);
+        }
+        if (fetchedVideos.length > 0) {
+          setVideos((prev) => [...prev, ...fetchedVideos]);
+          setVideoPreviews((prev) => [...prev, ...videoUrls]);
+        }
+        setDownloadingAttachments(false);
+        toast.dismiss(toastId);
+        toast.success(
+          locale === "vi"
+            ? "Tải dữ liệu hình ảnh, video cũ thành công!"
+            : "Loaded previous media files successfully!",
+        );
+      };
+
+      void loadAttachments();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state?.initialAttachments]);
 
   const getCategoryIcon = (code: string) => {
     if (code === "TRAFFIC") return <Car size={24} />;
@@ -472,6 +722,7 @@ function ReportPage() {
         controller.signal,
       );
       setAddress(resolvedAddress);
+      setIncidentAddress(resolvedAddress);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         return;
@@ -525,6 +776,7 @@ function ReportPage() {
       setLatitude(null);
       setLongitude(null);
       setAddress("");
+      setIncidentAddress("");
       setAddressError("");
       setLocationError(message);
       toast.error(message);
@@ -575,6 +827,14 @@ function ReportPage() {
       toast.error(msg);
       return false;
     }
+    if (!isAgreed) {
+      toast.error(
+        locale === "vi"
+          ? "Vui lòng cam đoan thông tin phản ánh là đúng sự thật."
+          : "Please confirm that the reported information is true.",
+      );
+      return false;
+    }
     setPiiError("");
     return true;
   };
@@ -592,7 +852,7 @@ function ReportPage() {
           description: description.trim(),
           latitude,
           longitude,
-          addressDetails: address || detectedWard || `${latitude}, ${longitude}`,
+          addressDetails: incidentAddress || address || detectedWard || `${latitude}, ${longitude}`,
           categoryCode,
           videoDurationsSeconds,
           publicVisible: !isPrivate,
@@ -611,6 +871,46 @@ function ReportPage() {
       } else {
         toast.error(t("report.err.generic"));
       }
+    }
+  };
+
+  const sections = [
+    {
+      id: "section-1",
+      num: 1,
+      label: locale === "vi" ? "Thông tin cá nhân" : "Personal Info",
+      desc: locale === "vi" ? "Thông tin người phản ánh" : "Reporter profile info",
+    },
+    {
+      id: "section-2",
+      num: 2,
+      label: locale === "vi" ? "Nội dung phản ánh" : "Incident Fields",
+      desc: locale === "vi" ? "Tiêu đề và Lĩnh vực sự cố" : "Specify title & category",
+    },
+    {
+      id: "section-3",
+      num: 3,
+      label: locale === "vi" ? "Chi tiết phản ánh" : "Incident Details",
+      desc: locale === "vi" ? "Địa điểm và mô tả chi tiết" : "Location and description",
+    },
+    {
+      id: "section-4",
+      num: 4,
+      label: locale === "vi" ? "Tài liệu đính kèm" : "Attachments",
+      desc: locale === "vi" ? "Thêm hình ảnh, video minh chứng" : "Upload photos and videos",
+    },
+    {
+      id: "section-5",
+      num: 5,
+      label: locale === "vi" ? "Xác nhận & gửi đơn" : "Review & Sign",
+      desc: locale === "vi" ? "Cam đoan và ký xác nhận" : "Terms & signature",
+    },
+  ];
+
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   };
 
@@ -638,280 +938,687 @@ function ReportPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 md:py-12">
-      <h1 className="font-heading text-4xl md:text-5xl text-gov-blue mb-6">{t("report.title")}</h1>
+    <div
+      className="min-h-screen py-10 px-4 sm:px-6 lg:px-8 transition-colors duration-300"
+      style={{
+        backgroundColor: "#F4EDE4",
+        backgroundImage: "radial-gradient(#E8E0D5 1.5px, transparent 1.5px)",
+        backgroundSize: "24px 24px",
+      }}
+    >
+      <div className="max-w-6xl mx-auto">
+        <header className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="font-heading text-3xl md:text-4xl text-gov-blue font-extrabold tracking-tight">
+              {t("report.title")}
+            </h1>
+            <p className="text-sm text-slate-650 mt-1 font-sans">
+              {locale === "vi"
+                ? "Mẫu đơn phản ánh hiện trường trực tuyến"
+                : "Online field petition form"}
+            </p>
+          </div>
+          <Link
+            to="/"
+            className="btn-civic btn-civic-ghost bg-white hover:bg-slate-50 border border-slate-200 self-start text-xs font-bold uppercase tracking-wider py-2"
+          >
+            <ChevronLeft size={16} /> {locale === "vi" ? "Quay lại Trang chủ" : "Home"}
+          </Link>
+        </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.9fr)] gap-6 lg:gap-8 items-start">
-        <section className="card-civic p-5 md:p-8 animate-fade-in-up">
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-bold mb-2">{t("report.form.titleLabel")}</label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full min-h-[48px] px-4 rounded-lg border-2 border-slate-200 text-base focus:border-gov-blue outline-none bg-white"
-                placeholder={t("report.form.titlePlaceholder")}
-              />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          <aside className="lg:col-span-3 lg:sticky lg:top-[96px] bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 md:p-5">
+            <div className="mb-4">
+              <h2 className="text-sm font-black uppercase text-gov-blue tracking-tight">
+                ĐƠN PHẢN ÁNH HIỆN TRƯỜNG
+              </h2>
+              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1">
+                Mỗi ý kiến của bạn là sự thay đổi cho thành phố tốt hơn
+              </p>
             </div>
 
-            <div>
-              <label className="block text-sm font-bold mb-2">{t("report.form.category")}</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {categoryOptions.map((category) => {
-                  const selected = categoryCode === category.code;
-                  return (
-                    <button
-                      key={category.code}
-                      type="button"
-                      onClick={() => setCategoryCode(category.code)}
-                      className={`relative p-4 rounded-lg border-2 text-left transition-all duration-200 ${
-                        selected
-                          ? "border-[var(--status-success)] bg-[var(--status-success)]/5 shadow-sm ring-2 ring-[var(--status-success)]/20"
-                          : "border-slate-200 bg-white hover:border-gov-blue/40 hover:shadow-sm"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <span className="text-gov-blue shrink-0">
-                          {getCategoryIcon(category.code)}
-                        </span>
-                        {selected && (
-                          <span className="w-6 h-6 rounded-full bg-[var(--status-success)] text-white grid place-items-center shrink-0 animate-scale-in">
-                            <Check size={14} strokeWidth={3} />
-                          </span>
-                        )}
-                      </div>
-                      <div className="mt-2 font-semibold text-sm">{category.name}</div>
-                      <p className="mt-1 text-xs leading-5 text-ink-soft">{category.description}</p>
-                    </button>
-                  );
-                })}
-              </div>
+            <div className="w-full h-[1px] bg-slate-100 my-4" />
+
+            <div className="hidden lg:flex flex-col gap-4 relative">
+              <div className="absolute left-4.5 top-3 bottom-3 w-[2px] bg-slate-100 -z-10" />
+
+              {sections.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => scrollToSection(s.id)}
+                  className="flex items-start gap-4 text-left transition-all duration-200 cursor-pointer hover:translate-x-1"
+                >
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 border-2 font-bold text-sm bg-white border-slate-200 text-slate-400 hover:border-gov-blue hover:text-gov-blue transition-colors shadow-sm">
+                    {s.num}
+                  </div>
+                  <div>
+                    <p className="text-xs font-extrabold text-slate-650 leading-tight hover:text-gov-blue transition-colors">
+                      {s.label}
+                    </p>
+                    <p className="text-[9px] text-slate-400 mt-0.5 leading-normal">{s.desc}</p>
+                  </div>
+                </button>
+              ))}
             </div>
 
-            <div>
-              <label className="block text-sm font-bold mb-2">{t("report.form.media")}</label>
-              <div className="grid sm:grid-cols-2 gap-4">
+            <div className="flex lg:hidden overflow-x-auto gap-4 py-1 -mx-2 px-2 scrollbar-none snap-x">
+              {sections.map((s) => (
                 <button
+                  key={s.id}
                   type="button"
-                  onClick={() => photoInputRef.current?.click()}
-                  className="w-full border-2 border-dashed border-gov-blue rounded-lg p-8 min-h-[148px] flex flex-col items-center justify-center gap-3 text-gov-blue hover:bg-gov-blue/5 transition-all duration-200"
+                  onClick={() => scrollToSection(s.id)}
+                  className="flex items-center gap-2 shrink-0 snap-center pb-1 text-slate-400 hover:text-gov-blue"
                 >
-                  <Camera size={42} />
-                  <span className="font-bold text-base">{t("report.form.uploadPhoto")}</span>
+                  <div className="w-6.5 h-6.5 rounded-full flex items-center justify-center font-bold text-[10px] shrink-0 bg-slate-100 text-slate-400">
+                    {s.num}
+                  </div>
+                  <span className="text-xs font-extrabold">{s.label}</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => videoInputRef.current?.click()}
-                  className="w-full border-2 border-dashed border-[var(--status-pending)] rounded-lg p-8 min-h-[148px] flex flex-col items-center justify-center gap-3 text-[var(--status-pending)] hover:bg-[var(--status-pending)]/5 transition-all duration-200"
-                >
-                  <Upload size={42} />
-                  <span className="font-bold text-base">{t("report.form.uploadVideo")}</span>
-                </button>
+              ))}
+            </div>
+          </aside>
+
+          <main className="lg:col-span-9 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.06)] border border-[#E2DFD6] rounded-[24px] p-6 md:p-12 relative overflow-hidden animate-fade-in-up">
+            <div className="hidden md:block">
+              <svg
+                className="absolute -top-5 right-12 w-8 h-20 text-slate-400/90 drop-shadow-md z-20 transform rotate-6 pointer-events-none"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+              </svg>
+            </div>
+
+            <div className="space-y-10 relative z-10 font-sans text-slate-800">
+              <div className="text-center space-y-1 pb-6 border-b-2 border-slate-900/10 font-serif">
+                <h3 className="font-extrabold tracking-wider text-xs md:text-sm uppercase text-slate-850">
+                  CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+                </h3>
+                <h4 className="font-bold text-[10px] md:text-xs text-slate-700">
+                  Độc lập - Tự do - Hạnh phúc
+                </h4>
+                <div className="w-24 h-[1px] bg-slate-400 mx-auto my-1.5" />
+                <h1 className="text-lg md:text-2xl font-black text-gov-blue tracking-tight uppercase font-sans mt-4">
+                  ĐƠN PHẢN ÁNH, KIẾN NGHỊ HIỆN TRƯỜNG
+                </h1>
+                <p className="text-[10px] md:text-xs text-slate-500 font-semibold italic mt-1 font-sans">
+                  Kính gửi: Ủy ban Nhân dân và các Cơ quan chức năng Thành phố Đà Nẵng
+                </p>
               </div>
-              <input
-                ref={photoInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={(e) => handlePhotoFilesSelected(e.target.files)}
-                multiple
-              />
-              <input
-                ref={videoInputRef}
-                type="file"
-                accept="video/*"
-                className="hidden"
-                onChange={(e) => handleVideoFileSelected(e.target.files)}
-              />
-              {photoPreviews.length > 0 && (
-                <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {photoPreviews.map((preview, idx) => (
-                    <div key={`${preview}-${idx}`} className="relative group aspect-square">
-                      {photos[idx]?.type.startsWith("video/") ? (
-                        <video
-                          src={preview}
-                          className="w-full h-full object-cover rounded-lg border border-slate-200 bg-black"
-                          muted
-                        />
-                      ) : (
-                        <img
-                          src={preview}
-                          alt=""
-                          className="w-full h-full object-cover rounded-lg border border-slate-200"
-                        />
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => removePhoto(idx)}
-                        className="absolute top-1 right-1 w-7 h-7 bg-red-600 text-white rounded-full grid place-items-center opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity"
-                        aria-label={t("report.err.removeFile")}
-                      >
-                        <X size={15} />
-                      </button>
+
+              <section id="section-1" className="space-y-4 pt-2 scroll-mt-24">
+                <h3 className="font-extrabold text-sm md:text-base uppercase text-gov-blue tracking-wider flex items-center gap-2 border-b border-slate-200/80 pb-2">
+                  <span className="bg-gov-blue text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px]">
+                    1
+                  </span>
+                  I. THÔNG TIN NGƯỜI PHẢN ÁNH
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                      Họ và tên
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-3 text-slate-400" size={18} />
+                      <input
+                        type="text"
+                        readOnly
+                        value={profile?.fullName || user?.name || "---"}
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-650 font-bold focus:outline-none"
+                      />
                     </div>
-                  ))}
-                </div>
-              )}
-              {videoPreviews.length > 0 && (
-                <div className="mt-4">
-                  <div className="relative group aspect-video max-w-xl overflow-hidden rounded-lg border border-slate-200 bg-black">
-                    <video
-                      src={videoPreviews[0]}
-                      className="w-full h-full object-cover"
-                      muted
-                      controls
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                      Số điện thoại
+                    </label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-3 text-slate-400" size={18} />
+                      <input
+                        type="text"
+                        readOnly
+                        value={profile?.phoneNumber || "---"}
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-650 font-mono font-bold focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                      Địa chỉ Email
+                    </label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-3 text-slate-400" size={18} />
+                      <input
+                        type="text"
+                        readOnly
+                        value={profile?.email || "---"}
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-650 font-mono font-bold focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block flex justify-between items-center">
+                      <span>Địa chỉ liên hệ chính xác</span>
+                      <span className="text-[10px] text-slate-400 lowercase font-medium">
+                        không bắt buộc
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      value={contactAddress}
+                      onChange={(e) => setContactAddress(e.target.value)}
+                      placeholder="Nhập địa chỉ nhà riêng hoặc địa chỉ liên lạc thường trú của bạn..."
+                      className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:border-gov-blue focus:ring-1 focus:ring-gov-blue/20 outline-none text-slate-805 text-sm font-medium"
                     />
-                    <button
-                      type="button"
-                      onClick={removeVideo}
-                      className="absolute top-2 right-2 w-8 h-8 bg-red-600 text-white rounded-full grid place-items-center opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity"
-                      aria-label={t("report.err.removeVideo")}
-                    >
-                      <X size={16} />
-                    </button>
                   </div>
                 </div>
-              )}
-            </div>
+              </section>
 
-            <div>
-              <label className="block text-sm font-bold mb-2">{t("report.form.content")}</label>
-              <textarea
-                value={description}
-                onChange={(e) => {
-                  setDescription(e.target.value);
-                  if (piiError) setPiiError("");
-                }}
-                className={`w-full min-h-[150px] p-4 rounded-lg border-2 text-base focus:border-gov-blue outline-none bg-white transition-colors ${piiError ? "border-red-400" : "border-slate-200"}`}
-                placeholder={t("report.form.contentPlaceholder")}
-              />
-              {piiError && (
-                <div className="mt-2 flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 animate-fade-in">
-                  <span className="text-lg leading-none">🔒</span>
-                  <span>{piiError}</span>
-                </div>
-              )}
-            </div>
+              <section id="section-2" className="space-y-4 pt-2 scroll-mt-24">
+                <h3 className="font-extrabold text-sm md:text-base uppercase text-gov-blue tracking-wider flex items-center gap-2 border-b border-slate-200/80 pb-2">
+                  <span className="bg-gov-blue text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px]">
+                    2
+                  </span>
+                  II. LĨNH VỰC & TIÊU ĐỀ PHẢN ÁNH
+                </h3>
 
-            <div className="rounded-lg border border-slate-200 bg-white p-4 flex items-start justify-between gap-4 transition-all hover:shadow-sm">
-              <div className="flex gap-3">
-                <span className="text-xl leading-none text-gov-blue shrink-0 mt-0.5">🔒</span>
-                <div>
-                  <label htmlFor="private-toggle" className="font-bold text-ink cursor-pointer block select-none">
-                    {t("report.form.privateLabel")}
-                  </label>
-                  <p className="text-xs text-ink-soft mt-1 leading-relaxed">
-                    {t("report.form.privateHint")}
-                  </p>
-                </div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-0.5">
-                <input
-                  id="private-toggle"
-                  type="checkbox"
-                  checked={isPrivate}
-                  onChange={(e) => setIsPrivate(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gov-blue"></div>
-              </label>
-            </div>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+                      Tiêu đề đơn phản ánh
+                    </label>
+                    <input
+                      type="text"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className="w-full min-h-[44px] px-4 rounded-xl border border-slate-200 text-sm focus:border-gov-blue focus:ring-1 focus:ring-gov-blue/20 outline-none bg-white font-bold text-slate-800"
+                      placeholder={t("report.form.titlePlaceholder")}
+                    />
+                  </div>
 
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="font-bold text-ink">{t("report.loc.title")}</p>
-                  <p
-                    className={`text-sm font-semibold ${
-                      locationLoading
-                        ? "text-ink-soft"
-                        : hasLocation
-                          ? "text-[var(--status-success)]"
-                          : "text-[var(--status-danger)]"
-                    }`}
-                  >
-                    {locationLoading
-                      ? t("report.loc.loading")
-                      : hasLocation
-                        ? t("report.loc.confirmed")
-                        : t("report.loc.none")}
-                  </p>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+                      Tôi xin phản ánh về lĩnh vực sự cố
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {categoryOptions.map((category) => {
+                        const selected = categoryCode === category.code;
+                        return (
+                          <button
+                            key={category.code}
+                            type="button"
+                            onClick={() => setCategoryCode(category.code)}
+                            className={`relative p-3.5 rounded-xl border text-left transition-all duration-205 cursor-pointer ${
+                              selected
+                                ? "border-[var(--status-success)] bg-[var(--status-success)]/5 shadow-sm ring-2 ring-[var(--status-success)]/20"
+                                : "border-slate-200 bg-white hover:border-gov-blue/40 hover:shadow-sm"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <span className="text-gov-blue shrink-0">
+                                {getCategoryIcon(category.code)}
+                              </span>
+                              {selected && (
+                                <span className="w-5 h-5 rounded-full bg-[var(--status-success)] text-white grid place-items-center shrink-0 animate-scale-in">
+                                  <Check size={11} strokeWidth={3} />
+                                </span>
+                              )}
+                            </div>
+                            <div className="mt-1.5 font-bold text-xs text-slate-800">
+                              {category.name}
+                            </div>
+                            <p className="mt-0.5 text-[10px] leading-4 text-slate-400 font-medium">
+                              {category.description}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={detectLocation}
-                  disabled={locationLoading}
-                  className="btn-civic btn-civic-ghost disabled:opacity-50"
-                >
-                  {locationLoading ? (
-                    <Loader2 size={20} className="animate-spin" />
-                  ) : (
-                    <LocateFixed size={20} />
+              </section>
+
+              <section id="section-3" className="space-y-4 pt-2 scroll-mt-24">
+                <h3 className="font-extrabold text-sm md:text-base uppercase text-gov-blue tracking-wider flex items-center gap-2 border-b border-slate-200/80 pb-2">
+                  <span className="bg-gov-blue text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px]">
+                    3
+                  </span>
+                  III. ĐỊA ĐIỂM & MÔ TẢ CHI TIẾT SỰ VIỆC
+                </h3>
+
+                <div className="space-y-4">
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+                      <div>
+                        <p className="font-bold text-slate-850 text-xs uppercase tracking-wider">
+                          Địa điểm xảy ra sự cố
+                        </p>
+                        <p
+                          className={`text-[10px] font-bold mt-0.5 ${
+                            locationLoading
+                              ? "text-slate-450 animate-pulse"
+                              : hasLocation
+                                ? "text-[var(--status-success)]"
+                                : "text-[var(--status-danger)]"
+                          }`}
+                        >
+                          {locationLoading
+                            ? t("report.loc.loading")
+                            : hasLocation
+                              ? t("report.loc.confirmed")
+                              : t("report.loc.none")}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={detectLocation}
+                          disabled={locationLoading}
+                          className="btn-civic btn-civic-ghost bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold py-1.5 px-3 flex items-center gap-1.5 cursor-pointer"
+                        >
+                          {locationLoading ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : (
+                            <LocateFixed size={14} />
+                          )}
+                          GPS
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsOpenMapModal(true)}
+                          className="btn-civic bg-gov-blue hover:brightness-95 text-white rounded-lg text-xs font-bold py-1.5 px-3 flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Map size={14} />
+                          {locale === "vi" ? "Xem trên bản đồ" : "Map View"}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-3.5 text-gov-blue" size={18} />
+                      <textarea
+                        value={incidentAddress}
+                        onChange={(e) => setIncidentAddress(e.target.value)}
+                        placeholder="Nhập thủ công hoặc kéo ghim bản đồ để điền địa chỉ xảy ra sự cố..."
+                        className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:border-gov-blue outline-none text-slate-700 text-sm bg-white font-medium min-h-[60px]"
+                      />
+                    </div>
+                    {expectedWard && (
+                      <p className="mt-2 text-xs font-bold text-gov-blue">
+                        🧭 {t("report.loc.expectedWard")} {expectedWard}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+                        Mô tả chi tiết nội dung sự việc
+                      </label>
+                      {categoryCode && OFFICIAL_CATEGORY_TEMPLATES[categoryCode] && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const template = OFFICIAL_CATEGORY_TEMPLATES[categoryCode];
+                            setDescription(template);
+                            toast.info(
+                              locale === "vi"
+                                ? "Đã áp dụng mẫu mô tả gợi ý."
+                                : "Description template applied.",
+                            );
+                          }}
+                          className="text-[10px] font-bold text-gov-blue hover:underline cursor-pointer bg-blue-50 border border-blue-100 rounded px-2 py-0.5 flex items-center gap-1"
+                        >
+                          📝 {locale === "vi" ? "Áp dụng mẫu mô tả" : "Apply template"}
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="relative rounded-xl border border-slate-200 overflow-hidden bg-slate-50/50 p-2">
+                      <textarea
+                        value={description}
+                        onChange={(e) => {
+                          setDescription(e.target.value);
+                          if (piiError) setPiiError("");
+                        }}
+                        className={`w-full min-h-[220px] px-6 pt-2 pb-2 outline-none text-base bg-transparent font-sans leading-relaxed text-slate-800 resize-none ${
+                          piiError ? "border-red-400" : "border-transparent"
+                        }`}
+                        style={{
+                          backgroundImage: "linear-gradient(transparent 96%, #cbd5e1 96%)",
+                          backgroundSize: "100% 2.2rem",
+                          backgroundPosition: "0 0.5rem",
+                          lineHeight: "2.2rem",
+                        }}
+                        placeholder={t("report.form.contentPlaceholder")}
+                      />
+                    </div>
+                    {piiError && (
+                      <div className="mt-2 flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 animate-fade-in">
+                        <span className="text-lg leading-none">🔒</span>
+                        <span>{piiError}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </section>
+
+              <section id="section-4" className="space-y-4 pt-2 scroll-mt-24">
+                <h3 className="font-extrabold text-sm md:text-base uppercase text-gov-blue tracking-wider flex items-center gap-2 border-b border-slate-200/80 pb-2">
+                  <span className="bg-gov-blue text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px]">
+                    4
+                  </span>
+                  IV. TÀI LIỆU ĐÍNH KÈM MINH CHỨNG
+                </h3>
+
+                <div className="space-y-4">
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <button
+                      type="button"
+                      onClick={() => photoInputRef.current?.click()}
+                      className="w-full border-2 border-dashed border-gov-blue/50 rounded-xl p-6 min-h-[120px] flex flex-col items-center justify-center gap-2 text-gov-blue hover:bg-gov-blue/5 transition-all duration-200 cursor-pointer"
+                    >
+                      <Camera size={32} />
+                      <span className="font-bold text-sm">{t("report.form.uploadPhoto")}</span>
+                      <span className="text-[10px] text-slate-400 lowercase font-medium">
+                        tối đa 5 ảnh, dưới 10MB
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => videoInputRef.current?.click()}
+                      className="w-full border-2 border-dashed border-[var(--status-pending)]/50 rounded-xl p-6 min-h-[120px] flex flex-col items-center justify-center gap-2 text-[var(--status-pending)] hover:bg-[var(--status-pending)]/5 transition-all duration-200 cursor-pointer"
+                    >
+                      <Upload size={32} />
+                      <span className="font-bold text-sm">{t("report.form.uploadVideo")}</span>
+                      <span className="text-[10px] text-slate-400 lowercase font-medium">
+                        tối đa 1 video, dưới 50MB
+                      </span>
+                    </button>
+                  </div>
+
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={(e) => handlePhotoFilesSelected(e.target.files)}
+                    multiple
+                  />
+                  <input
+                    ref={videoInputRef}
+                    type="file"
+                    accept="video/*"
+                    className="hidden"
+                    onChange={(e) => handleVideoFileSelected(e.target.files)}
+                  />
+
+                  {photoPreviews.length > 0 && (
+                    <div className="mt-3">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+                        Hình ảnh đã chọn ({photos.length})
+                      </label>
+                      <div className="flex flex-wrap gap-2.5">
+                        {photoPreviews.map((preview, idx) => (
+                          <div
+                            key={`${preview}-${idx}`}
+                            className="relative group w-16 h-16 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 shadow-sm shrink-0"
+                          >
+                            <img src={preview} alt="" className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => removePhoto(idx)}
+                              className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-650/95 text-white rounded-full grid place-items-center shadow-md hover:bg-red-750 transition-colors cursor-pointer animate-scale-in"
+                            >
+                              <X size={10} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   )}
-                  {t("report.loc.refresh")}
-                </button>
-              </div>
 
-              <div className="mt-4 rounded-lg bg-white border border-slate-200 p-4 text-sm">
-                <div className="flex items-start gap-3">
-                  <MapPin className="mt-0.5 shrink-0 text-gov-blue" size={20} />
-                  <p className="min-w-0 leading-6 text-ink">
-                    {locationLoading
-                      ? t("report.loc.gpsRequest")
-                      : addressLoading
-                        ? t("report.loc.addressLoading")
-                        : address ||
-                          addressError ||
-                          (hasLocation ? t("report.loc.noAddress") : t("report.loc.clickRefresh"))}
-                  </p>
+                  {videoPreviews.length > 0 && (
+                    <div className="mt-3">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+                        Video đã chọn ({videos.length})
+                      </label>
+                      <div className="relative group aspect-video max-w-sm overflow-hidden rounded-xl border border-slate-200 bg-black shadow-md">
+                        <video
+                          src={videoPreviews[0]}
+                          className="w-full h-full object-cover"
+                          muted
+                          controls
+                        />
+                        <button
+                          type="button"
+                          onClick={removeVideo}
+                          className="absolute top-2 right-2 w-7 h-7 bg-red-650/90 text-white rounded-full grid place-items-center shadow-md hover:bg-red-750 transition-colors cursor-pointer animate-scale-in"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
+              </section>
+
+              <section id="section-5" className="space-y-6 pt-2 scroll-mt-24">
+                <h3 className="font-extrabold text-sm md:text-base uppercase text-gov-blue tracking-wider flex items-center gap-2 border-b border-slate-200/80 pb-2">
+                  <span className="bg-gov-blue text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px]">
+                    5
+                  </span>
+                  V. XÁC NHẬN & CAM KẾT PHÁP LÝ
+                </h3>
+
+                {/* Chọn hình thức ký tên */}
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                      <p className="font-bold text-slate-800 text-xs uppercase tracking-wider">
+                        Hình thức ký đơn
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-0.5 font-medium">
+                        Chọn ký tay trực tiếp hoặc chữ ký số tự động
+                      </p>
+                    </div>
+                    <div className="flex bg-slate-200 p-0.5 rounded-lg text-xs self-start sm:self-auto select-none">
+                      <button
+                        type="button"
+                        onClick={() => setSignatureMode("auto")}
+                        className={`px-3 py-1.5 rounded-md font-bold transition-all cursor-pointer ${
+                          signatureMode === "auto"
+                            ? "bg-white text-gov-blue shadow-sm"
+                            : "text-slate-500 hover:text-slate-850"
+                        }`}
+                      >
+                        Ký số tự động
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSignatureMode("draw")}
+                        className={`px-3 py-1.5 rounded-md font-bold transition-all cursor-pointer ${
+                          signatureMode === "draw"
+                            ? "bg-white text-gov-blue shadow-sm"
+                            : "text-slate-500 hover:text-slate-850"
+                        }`}
+                      >
+                        Tự tay ký
+                      </button>
+                    </div>
+                  </div>
+
+                  {signatureMode === "draw" && (
+                    <div className="pt-2 animate-fade-in">
+                      <SignaturePad onSave={setCustomSignature} />
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 hover:shadow-sm transition-all select-none">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isAgreed}
+                      onChange={(e) => setIsAgreed(e.target.checked)}
+                      className="mt-1 w-4 h-4 rounded text-gov-blue border-slate-300 focus:ring-gov-blue cursor-pointer"
+                    />
+                    <div className="text-xs md:text-sm font-semibold text-slate-700 leading-normal">
+                      Tôi xin cam đoan các thông tin phản ánh trên là đúng sự thật và chịu trách
+                      nhiệm trước pháp luật về nội dung phản ánh.
+                    </div>
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-900/10 items-center">
+                  <div className="flex items-center justify-center relative">
+                    <div className="relative w-24 h-24 border-4 border-red-500/70 rounded-full flex items-center justify-center p-1 select-none pointer-events-none opacity-80 transform -rotate-12 scale-90 sm:scale-100">
+                      <div className="absolute inset-1.5 border border-dashed border-red-500/70 rounded-full" />
+                      <div className="text-center font-bold text-red-500/80 leading-tight uppercase font-sans text-[7px] flex flex-col items-center justify-center">
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <svg className="w-full h-full" viewBox="0 0 100 100">
+                            <path
+                              id="stamp-text-path-sub"
+                              d="M 50,50 m -36,0 a 36,36 0 1,1 72,0 a 36,36 0 1,1 -72,0"
+                              fill="none"
+                            />
+                            <text className="fill-red-500/85 font-extrabold text-[7.5px] uppercase tracking-widest font-sans">
+                              <textPath
+                                href="#stamp-text-path-sub"
+                                startOffset="50%"
+                                textAnchor="middle"
+                              >
+                                UY BAN NHAN DAN TP DA NANG •
+                              </textPath>
+                            </text>
+                          </svg>
+                        </div>
+                        <div className="text-[9px] font-black border-y border-red-500/70 px-1 py-0.5 z-10">
+                          DA NANG
+                        </div>
+                        <div className="text-[7.5px] font-bold mt-0.5 z-10">KET NOI</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-center font-serif flex flex-col items-center justify-center">
+                    <p className="text-[9px] md:text-xs text-slate-500 italic">
+                      Đà Nẵng,{" "}
+                      {format(new Date(), "eeee, 'ngày' dd 'tháng' MM 'năm' yyyy", { locale: vi })
+                        .replace("Thứ Bảy", "ngày")
+                        .replace("Thứ", "ngày")}
+                    </p>
+                    <p className="text-xs md:text-sm font-extrabold text-slate-800 mt-1 uppercase font-sans">
+                      Người làm đơn
+                    </p>
+                    <p className="text-[9px] text-slate-450 italic mt-0.5 font-sans">
+                      (Ký và ghi rõ họ tên)
+                    </p>
+                    {signatureMode === "draw" && customSignature ? (
+                      <div className="h-16 flex items-center justify-center my-1 select-none pointer-events-none">
+                        <img
+                          src={customSignature}
+                          alt="Chữ ký"
+                          className="max-h-full max-w-[150px] object-contain opacity-90"
+                        />
+                      </div>
+                    ) : (
+                      <div
+                        className="text-center select-none pointer-events-none italic text-2xl tracking-wide opacity-85 text-sky-805 my-2 h-16 flex items-center justify-center"
+                        style={{
+                          fontFamily: "'Caveat', 'Great Vibes', 'Brush Script MT', cursive",
+                        }}
+                      >
+                        {profile?.fullName || user?.name || "Binh"}
+                      </div>
+                    )}
+                    <p className="text-xs md:text-sm font-extrabold text-slate-755 font-sans">
+                      {profile?.fullName || user?.name || "---"}
+                    </p>
+                  </div>
+                </div>
+              </section>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 flex items-start justify-between gap-4 transition-all hover:shadow-sm">
+                <div className="flex gap-3">
+                  <span className="text-xl leading-none text-gov-blue shrink-0 mt-0.5">🔒</span>
+                  <div>
+                    <label
+                      htmlFor="private-toggle"
+                      className="font-bold text-slate-800 cursor-pointer block select-none text-sm"
+                    >
+                      {t("report.form.privateLabel")}
+                    </label>
+                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                      {t("report.form.privateHint")}
+                    </p>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-0.5">
+                  <input
+                    id="private-toggle"
+                    type="checkbox"
+                    checked={isPrivate}
+                    onChange={(e) => setIsPrivate(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gov-blue"></div>
+                </label>
               </div>
 
-              {expectedWard && (
-                <p className="mt-3 text-sm font-semibold text-gov-blue">
-                  {t("report.loc.expectedWard")} {expectedWard}
+              <div className="rounded-xl border-2 border-amber-200/60 bg-amber-50/20 p-4 text-xs font-semibold text-slate-750 space-y-2">
+                <h4 className="font-extrabold text-gov-blue uppercase flex items-center gap-1.5 border-b border-amber-200/85 pb-1">
+                  <span>⚖️</span>
+                  Căn cứ pháp lý & Trách nhiệm phản ánh
+                </h4>
+                <p className="leading-relaxed text-slate-650">
+                  Khi gửi đơn phản ánh, công dân chịu trách nhiệm trước pháp luật về tính trung thực
+                  của các thông tin và tài liệu đính kèm. Hành vi cố ý vu khống sẽ bị xử lý nghiêm
+                  theo quy định của Luật Tiếp công dân và Bộ luật Hình sự.
                 </p>
-              )}
-              {locationLoading && (
-                <p className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-ink-soft">
-                  <Loader2 size={16} className="animate-spin" />
-                  {t("report.loc.gpsLoading")}
-                </p>
-              )}
-              {locationError && (
-                <p className="mt-3 text-sm font-semibold text-[var(--status-danger)]">
-                  {locationError}
-                </p>
-              )}
+              </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={!canSubmit}
-              className="btn-civic bg-status-success text-white shadow-lg hover:brightness-90 active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none w-full sm:w-auto"
-            >
-              {createFeedback.isPending ? (
-                <Loader2 size={20} className="animate-spin" />
-              ) : (
-                <Check size={20} />
-              )}
-              {createFeedback.isPending ? t("report.form.submitting") : t("report.submit")}
-            </button>
-          </div>
-        </section>
-
-        <aside className="card-civic p-4 md:p-5 animate-fade-in-up lg:sticky lg:top-[120px] lg:self-start">
-          <div className="mb-4">
-            <div>
-              <h2 className="text-2xl font-heading text-gov-blue">{t("report.loc.mapTitle")}</h2>
-              <p className="text-sm text-ink-soft mt-1">{t("report.loc.mapHint")}</p>
+            <div className="flex items-center justify-end border-t border-slate-100 pt-6 mt-8">
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={!canSubmit}
+                className="btn-civic bg-[var(--status-success)] text-white shadow-lg hover:brightness-90 active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none w-full sm:w-auto font-bold py-3 px-10 rounded-xl flex items-center justify-center gap-2 cursor-pointer text-base"
+              >
+                {createFeedback.isPending ? (
+                  <Loader2 size={20} className="animate-spin" />
+                ) : (
+                  <Check size={20} />
+                )}
+                {createFeedback.isPending ? t("report.form.submitting") : t("report.submit")}
+              </button>
             </div>
-          </div>
+          </main>
+        </div>
+      </div>
 
-          <div className="relative h-[300px] sm:h-[360px] lg:h-[520px] overflow-hidden rounded-[20px] border border-slate-200 bg-slate-100">
+      <Dialog open={isOpenMapModal} onOpenChange={setIsOpenMapModal}>
+        <DialogContent className="max-w-4xl h-[90vh] md:h-[80vh] overflow-hidden bg-white rounded-2xl shadow-2xl border-0 p-0 flex flex-col z-[10000]">
+          <DialogHeader className="p-4 md:p-6 border-b border-slate-100 flex flex-col items-start justify-center shrink-0">
+            <DialogTitle className="text-xl font-bold text-gov-blue">
+              Bản đồ vị trí sự cố
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 mt-1">
+              Kéo ghim đỏ hoặc nhấp trực tiếp trên bản đồ để xác định chính xác vị trí xảy ra sự cố.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 relative bg-slate-50">
             <Suspense
               fallback={
                 <div className="w-full h-full flex items-center justify-center text-[#667085] font-sans">
@@ -932,8 +1639,22 @@ function ReportPage() {
               />
             </Suspense>
           </div>
-        </aside>
-      </div>
+          <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between shrink-0">
+            <p className="text-xs font-semibold text-slate-600 min-w-0 max-w-[70%] truncate">
+              📍 Vị trí hiện tại:{" "}
+              <span className="font-bold text-slate-800">
+                {incidentAddress || address || "Chưa ghim vị trí"}
+              </span>
+            </p>
+            <button
+              onClick={() => setIsOpenMapModal(false)}
+              className="bg-gov-blue hover:brightness-95 text-white font-bold text-xs py-2 px-5 rounded-lg cursor-pointer"
+            >
+              Xác nhận vị trí
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -24,6 +24,7 @@ import com.example.smartcity.modules.feedback.service.AutoDispatchService;
 import lombok.RequiredArgsConstructor;
 import com.example.smartcity.modules.feedback.entity.AiTask;
 import com.example.smartcity.modules.feedback.repository.AiTaskRepository;
+import com.example.smartcity.modules.file.CloudinaryStorageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -58,7 +59,7 @@ public class CitizenFeedbackMediaService {
     private final UserRepository userRepository;
     private final AttachmentRepository attachmentRepository;
     private final FeedbackLogRepository feedbackLogRepository;
-    private final SupabaseStorageService supabaseStorageService;
+    private final CloudinaryStorageService cloudinaryStorageService;
     private final LocationResolutionService locationResolutionService;
     private final NotificationService notificationService;
     private final CategoryRoutingService categoryRoutingService;
@@ -215,7 +216,7 @@ public class CitizenFeedbackMediaService {
     private List<Attachment> saveAttachments(Feedback feedback, User citizen, List<MultipartFile> files) {
         List<Attachment> savedAttachments = new ArrayList<>();
         for (MultipartFile file : files) {
-            String fileUrl = supabaseStorageService.upload(file, feedback.getId());
+            String fileUrl = cloudinaryStorageService.upload(file, feedback.getId());
 
             Attachment attachment = new Attachment();
             attachment.setFeedback(feedback);

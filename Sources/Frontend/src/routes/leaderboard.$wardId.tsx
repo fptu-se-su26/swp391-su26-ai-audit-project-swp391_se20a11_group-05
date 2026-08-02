@@ -20,19 +20,6 @@ import {
 import causonghanImg from "@/assets/causonghan.png";
 
 export const Route = createFileRoute("/leaderboard/$wardId")({
-  beforeLoad: ({ location }) => {
-    if (typeof window !== "undefined") {
-      const token = getToken();
-      if (!token) {
-        throw redirect({
-          to: "/login",
-          search: {
-            redirect: location.href,
-          },
-        });
-      }
-    }
-  },
   component: WardDetailPage,
 });
 

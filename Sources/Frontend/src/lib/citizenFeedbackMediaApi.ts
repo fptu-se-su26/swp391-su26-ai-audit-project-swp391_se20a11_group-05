@@ -1,4 +1,5 @@
 import { ApiError, getToken } from "./api";
+import { compressImageIfNeeded } from "./imageCompression";
 
 const API_BASE: string =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) || "";
@@ -60,7 +61,8 @@ export async function submitCitizenFeedbackMedia(
 ): Promise<CitizenFeedbackMediaResponse> {
   const formData = new FormData();
   formData.append("data", new Blob([JSON.stringify(data)], { type: "application/json" }));
-  files.forEach((file) => formData.append("files", file));
+  const compressedFiles = await Promise.all(files.map(compressImageIfNeeded));
+  compressedFiles.forEach((file) => formData.append("files", file));
 
   const headers: Record<string, string> = {};
   const token = getToken();
@@ -115,7 +117,8 @@ export async function uploadResolutionEvidence(
   file: File,
 ): Promise<{ fileUrl: string; fileName: string; fileType: string }> {
   const formData = new FormData();
-  formData.append("file", file);
+  const compressedFile = await compressImageIfNeeded(file);
+  formData.append("file", compressedFile);
 
   const headers: Record<string, string> = {};
   const token = getToken();

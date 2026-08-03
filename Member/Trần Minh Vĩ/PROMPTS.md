@@ -3117,6 +3117,279 @@ Tận dụng hệ thống RabbitMQ (ở Phase 22), tôi lập trình một "AI W
 
 ---
 
+### Lần 45: Phục hồi thảm họa với Database Master-Slave Replication
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 2/5 |
+| Mục đích | Đảm bảo tính Sẵn sàng cao (HA), chống mất dữ liệu và giảm tải cho Database chính |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Tôi nhận ra hệ thống Database hiện tại là Single Point of Failure (Điểm chết duy nhất). Nếu ổ cứng của máy chủ DB bốc khói, toàn bộ dữ liệu sẽ bốc hơi. Hơn nữa, khi 10.000 người vào Đọc (Read) danh sách phản ánh cùng lúc, Database load 100% CPU.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI đề xuất tôi dùng Spring Boot `@Scheduled` viết code để mỗi đêm 12h tự động xuất Database ra thành file `.csv` lưu cất đi. Còn để chống nghẽn thì xúi đập tiền mua thêm RAM, CPU.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Tuyệt đối không dùng cách Backup thủ công, cũng không đập tiền mua phần cứng một cách thiếu não.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Triển khai CQRS cơ bản với PostgreSQL Replication:
+- Critical Thinking: Code tự xuất CSV của AI là của một sinh viên gà mờ. Nếu 12h đêm mới Backup, lỡ 11h đêm ổ cứng cháy thì toàn bộ dữ liệu cả ngày hôm đó sẽ biến mất (Data Loss). Nâng cấp RAM/CPU (Vertical Scaling) cũng sẽ đến lúc chạm trần giới hạn phần lý.
+- Decision Ownership & Creative Synthesis: Tôi đã phân tách hệ thống thành 2 máy chủ PostgreSQL. Cấu hình máy số 1 làm Master (Chuyên Ghi), máy số 2 làm Slave (Chuyên Đọc). Dùng cơ chế Streaming Replication để dữ liệu từ Master tự động "chảy" sang Slave theo thời gian thực (Real-time). Tại Spring Boot, tôi cấu hình `AbstractRoutingDataSource`. Lệnh INSERT/UPDATE tự động chạy vào Master. Lệnh SELECT tự động chạy vào Slave. 
+Kết quả tuyệt vời: Dù có 100.000 người vào đọc, chỉ có máy Slave phải chịu tải, máy Master vẫn khỏe re để phục vụ việc Ghi. Nếu máy Master bốc cháy, tôi thăng cấp (Promote) máy Slave lên làm Master. Hệ thống Sống sót qua mọi thảm họa.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Tư duy backup cổ đại, thiếu tính sẵn sàng cao)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Master-Slave DB Phase 26 |
+| File liên quan | ReplicationRoutingDataSource.java, application.yml |
+| Screenshot | |
+| Kết quả chạy/test | Giả lập rút điện máy chủ Master. Các tính năng Đọc (Xem danh sách, Xem chi tiết) vẫn gọi vào máy Slave và hiển thị bình thường. Hệ thống không bị tê liệt hoàn toàn. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Hệ thống hoàn hảo không phải là hệ thống không thể vỡ, mà là hệ thống vỡ một nửa nhưng người dùng vẫn không hề nhận ra.
+```
+
+---
+
+### Lần 46: Chống tấn công DDoS bằng Rate Limiting (Redis)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 2/5 |
+| Mục đích | Bảo vệ hệ thống khỏi các đợt tấn công từ chối dịch vụ (DDoS) và dò mật khẩu (Brute-force) |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Có kẻ xấu dùng công cụ (Tool) tự động gọi vào API Đăng nhập 100.000 lần/giây để dò mật khẩu cán bộ, khiến máy chủ quá tải và treo cứng. Tôi cần chặn đứng những IP gọi API quá 5 lần/phút.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI viết một đoạn Code Java dùng `ConcurrentHashMap<String, Integer>`. Key là địa chỉ IP, Value là số lần gọi. Mỗi lần IP đó gọi API thì cộng Value lên 1. Lớn hơn 5 thì báo lỗi.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Bác bỏ việc dùng RAM của Backend để lưu trữ dữ liệu chống DDoS.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Sử dụng Redis & Lua Script tại tầng API Gateway:
+- Critical Thinking: Dùng `HashMap` của Java để chặn DDoS là tự sát. Nếu có 1 triệu IP tấn công, Map sẽ phình to và làm sập chính RAM của máy chủ Backend (Out Of Memory). Hơn nữa, vì hệ thống của tôi chạy 3 máy chủ Backend song song, Map ở máy 1 không đồng bộ với máy 2. Hacker chỉ việc đổi IP vòng vòng là qua mặt dễ dàng.
+- Decision Ownership & Creative Synthesis: Đã chống lại máy móc thì phải dùng vũ khí của máy móc. Tôi dựng In-memory Database chuyên dụng là **Redis**. Tôi viết một mã **Lua Script** nhúng sâu vào Redis để đảm bảo tính nguyên tử (Atomic). Đặt cơ chế này tại tầng API Gateway (Cửa ngõ của hệ thống). Khi Request vừa tới cổng, Gateway hỏi ngay Redis. Nếu IP gọi quá 5 lần/phút, Gateway thẳng tay chặn đứng (Lỗi `429 Too Many Requests`), không cho Request đó lọt xuống tầng Backend hay Database. Nhờ vậy, máy chủ Backend vẫn bình yên vô sự dù đang hứng chịu hàng trăm ngàn lượt tấn công ngoài cổng.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Tư duy xử lý trên RAM máy chủ con, không phù hợp kiến trúc phân tán)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Redis Rate Limiting Phase 26 |
+| File liên quan | RateLimitFilter.java, redis-rate-limit.lua |
+| Screenshot | |
+| Kết quả chạy/test | Dùng công cụ Jmeter bắn 100 request/giây vào API Login. Đúng 5 request đầu tiên lọt vào Backend. 95 request còn lại bị Redis chặn đứng ở Gateway. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Hãy chặn hỏa tiễn ở tầng bình lưu (Gateway), đừng đợi nó rơi xuống mặt đất (Backend) rồi mới tìm cách đỡ.
+```
+
+---
+
+### Lần 47: Điều phối Container tự động (Docker Swarm)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 2/5 |
+| Mục đích | Giải quyết bài toán triển khai (Deploy) hàng chục Microservices trên nhiều máy chủ mà không bị chết hệ thống (Downtime) |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Hệ thống hiện tại có quá nhiều thành phần (Backend, Frontend, Redis, RabbitMQ, Elasticsearch, DB...). Nếu tôi cài tất cả lên 1 máy chủ vật lý, nó sẽ nổ tung vì cạn RAM. Tôi mua 3 máy chủ, nhưng không biết làm sao để gõ lệnh `docker run` quản lý đống này một cách nhẹ nhàng.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI đề xuất tôi viết một Bash Script. Đoạn Script này sẽ tự động dùng lệnh SSH để kết nối vào từng máy chủ (Node 1, Node 2), sau đó copy code sang và chạy lệnh `docker run` trên đó.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Tuyệt đối không dùng Script để SSH và Deploy thủ công.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Triển khai Container Orchestration (Docker Swarm):
+- Critical Thinking: Viết Script SSH để Deploy là cách làm cổ lỗ sĩ của thập niên trước. Nhược điểm chí mạng là: Nếu giữa đêm máy số 2 bị hỏng RAM và tắt phụt, ai sẽ chạy Script để đưa các Microservice đang nằm trên máy 2 sang máy 1? Chẳng nhẽ tôi phải thức dậy lúc 3h sáng để gõ lệnh bằng tay?
+- Decision Ownership & Creative Synthesis: Tôi đã nâng cấp kiến trúc lên tầm cao mới với **Docker Swarm**. Tôi kết nối 3 máy chủ lại thành một cụm (Cluster) duy nhất. Cấu trúc lại file triển khai thành `docker-stack.yml`. Chỉ với 1 câu lệnh `docker stack deploy`, Swarm tự động phân bổ 10 cái Microservices rải đều ra 3 máy tùy theo lượng RAM còn trống. Đỉnh cao nhất là tính năng Auto-Healing (Tự phục hồi): Tôi cố tình rút điện máy chủ số 2, chỉ 3 giây sau, Swarm phát hiện ra và tự động "Hồi sinh" các container đã chết sang máy 1 và máy 3. Hệ thống của tôi không bao giờ chết!
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Tư duy quản trị hệ thống thủ công, không có tính tự phục hồi)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Docker Swarm Phase 27 |
+| File liên quan | docker-stack.yml |
+| Screenshot | |
+| Kết quả chạy/test | Dùng giao diện Portainer quan sát cụm Swarm. Tắt đột ngột 1 máy ảo (Node) trên Cloud. Ngay lập tức thấy Swarm lên lịch (Scheduling) và tạo ra các Container mới trên các Node còn sống. Trang web vẫn truy cập bình thường. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Hãy để máy móc quản lý máy móc. Con người chỉ quản lý cấu hình.
+```
+
+---
+
+### Lần 48: Quản lý Hạ tầng bằng Code (Terraform IaC)
+
+#### 5.1. Thông tin chung
+
+| Tiêu chí | Thông tin |
+|---|---|
+| Ngày tạo | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Số lượng prompt | 2 |
+| Mức độ hài lòng | 2/5 |
+| Mục đích | Loại bỏ việc cấu hình Cloud bằng tay, tự động hóa quy trình xây dựng máy chủ ảo và mạng lưới |
+
+#### 5.2. Bối cảnh khi viết prompt
+
+```text
+Sếp yêu cầu tạo một hệ thống y hệt (Môi trường Staging) để Tester làm việc. Bình thường tôi phải đăng nhập lên Web của Cloud, ngồi click chuột tạo Mạng (VPC), tạo Tường lửa (Firewall), rồi tạo 3 cái Máy ảo (VM). Mất nguyên cả ngày mà click lộn một phát là lỗi mạng không kết nối được.
+```
+
+#### 5.3. Kết quả AI trả về
+
+```text
+AI đề xuất tôi dùng tính năng "Create Snapshot" của Cloud để chụp ảnh ổ cứng máy chủ cũ. Sau đó dùng ảnh đó (Image) để click chuột đẻ ra các máy chủ mới.
+```
+
+#### 5.4. Kết quả đã áp dụng vào bài
+
+```text
+Bác bỏ cách làm Click-Ops và chụp Snapshot của AI.
+```
+
+#### 5.5. Phần sinh viên/nhóm đã chỉnh sửa hoặc cải tiến
+
+```text
+Áp dụng Infrastructure as Code (IaC) với Terraform:
+- Critical Thinking: Snapshot chỉ lưu được dữ liệu trên ổ cứng, không lưu được cấu hình Mạng, IP hay Firewall. Hơn nữa, việc thao tác bằng chuột (Click-Ops) là kẻ thù của DevOps. Nó không có lịch sử (History) để xem ai đã chỉnh sửa cái gì, và không thể review trước khi chạy.
+- Decision Ownership & Creative Synthesis: Tôi đã số hóa toàn bộ hạ tầng vật lý của mình bằng **Terraform** (Hệ thống IaC số 1 thế giới). Tôi viết cấu hình Firewall, Network và Máy ảo bằng ngôn ngữ HCL (`main.tf`, `variables.tf`). Toàn bộ hạ tầng giờ biến thành vài chục dòng Code và được tôi đẩy lên Git (GitOps). Bất cứ lúc nào cần tạo một môi trường mới, tôi chỉ việc mở Terminal gõ `terraform apply`. Terraform sẽ gọi API của Cloud và xây dựng lên một Cụm 3 máy chủ với mạng lưới hoàn chỉnh chỉ trong 3 phút. Nếu không dùng nữa, gõ `terraform destroy` là xóa sạch sẽ, tiết kiệm hàng triệu đồng tiền Cloud.
+```
+
+#### 5.6. Đánh giá chất lượng prompt
+
+- [x] Prompt rõ ràng
+- [ ] Prompt có đủ bối cảnh
+- [ ] Prompt còn thiếu thông tin
+- [ ] Prompt tạo ra kết quả tốt
+- [x] Prompt tạo ra kết quả chưa phù hợp (Tư duy Click-Ops thủ công, khó bảo trì và mở rộng)
+- [ ] Cần hỏi lại AI nhiều lần
+- [x] Cần tự kiểm tra và chỉnh sửa nhiều
+- [ ] Kết quả AI có lỗi hoặc chưa chính xác
+
+#### 5.7. Minh chứng liên quan
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Terraform IaC Phase 27 |
+| File liên quan | main.tf, variables.tf, network.tf |
+| Screenshot | |
+| Kết quả chạy/test | Chạy lệnh `terraform plan` để xem trước các thay đổi. Chạy `terraform apply` và ngồi nhìn Cloud tự động cấp phát IP, tạo Firewall và khởi động 3 máy ảo VM thành công 100% không chạm một lần chuột. |
+| Link tài liệu/báo cáo | |
+| Ghi chú khác | |
+
+#### 5.8. Ghi chú thêm
+
+```text
+Cấu hình máy chủ bằng giao diện chuột (ClickOps) là một tội ác trong kiến trúc Đám mây. Hãy để Code (IaC) làm việc đó.
+```
+
+---
+
 ## 6. Prompt quan trọng nhất
 
 Chọn một prompt có ảnh hưởng lớn nhất đến bài tập/project.

@@ -2556,6 +2556,218 @@ Cơ sở dữ liệu quan hệ (SQL) sinh ra để giữ tính Toàn vẹn Dữ 
 Dùng If-Else để xử lý ngôn ngữ tự nhiên đã là quá khứ. Kỹ sư tương lai phải biết cách tích hợp và điều khiển (Prompt Engineering) các Mô hình Ngôn ngữ lớn (LLM).
 ```
 
+---
+
+### Lần sử dụng AI số 45
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Đảm bảo tính Sẵn sàng cao (High Availability) và Sao lưu dữ liệu cho Database |
+| Phần việc liên quan | Backend / Database Replication (Master-Slave) |
+| Mức độ sử dụng | Hỏi về giải pháp chống mất dữ liệu (Bác bỏ cách làm của AI) |
+
+#### 4.1. Prompt đã sử dụng
+
+| Nội dung | Thông tin |
+|---|---|
+| Prompt | "Hệ thống PostgreSQL của tôi hiện đang chạy trên 1 server duy nhất. Tôi rất sợ lỡ nửa đêm ổ cứng máy chủ bị cháy thì toàn bộ phản ánh của người dân sẽ mất sạch. Ngoài ra khi có 10,000 người vào xem danh sách phản ánh cùng lúc, DB này load 100% CPU. Tôi phải làm sao?" |
+
+#### 4.2. Kết quả AI gợi ý
+
+| Nội dung | Thông tin |
+|---|---|
+| Gợi ý | AI viết cho tôi một cái Cronjob bằng Spring Boot `@Scheduled`. Nó bảo cứ 12h đêm thì SELECT toàn bộ dữ liệu ra, ghi thành 1 file `.csv` lưu vào ổ cứng dự phòng. Còn vụ CPU 100% thì AI khuyên nên nâng cấp RAM và CPU cho máy chủ DB. |
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+| Nội dung | Thông tin |
+|---|---|
+| Sử dụng | Nhận thức được rủi ro Single Point of Failure (SPOF). Tuyệt đối không dùng cách xử lý của AI. |
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+| Nội dung | Thông tin |
+|---|---|
+| Cải tiến | **Thiết lập PostgreSQL Master-Slave Replication (Cơ bản CQRS)** <br> - **Critical Thinking:** Giải pháp ghi file CSV của AI là của sinh viên năm nhất. Nếu 12h đêm mới backup, mà 11h đêm ổ cứng cháy, thì toàn bộ dữ liệu trong ngày hôm đó sẽ bốc hơi (Data Loss). Còn việc giải quyết quá tải bằng cách đập tiền mua thêm CPU (Vertical Scaling) là một tư duy lười biếng và có giới hạn. <br> - **Decision Ownership & Creative Synthesis:** Tôi quyết định phân tách luồng dữ liệu. Tôi dựng thêm một máy chủ PostgreSQL thứ 2. Cấu hình máy 1 làm **Master (Chuyên Ghi)**, máy 2 làm **Slave (Chuyên Đọc)**. Bật tính năng Streaming Replication để mọi dữ liệu INSERT vào Master sẽ ngay lập tức (Real-time) đồng bộ sang Slave. Tại Spring Boot, tôi cấu hình `AbstractRoutingDataSource`. Nếu là lệnh Cập nhật/Thêm (Write), Java đẩy vào Master. Nếu là lệnh Đọc danh sách (Read), Java đẩy sang Slave. Kết quả: Khi 10,000 người vào Đọc cùng lúc, máy Slave gánh vác toàn bộ, máy Master vẫn thảnh thơi phục vụ việc Ghi. Hơn nữa, nếu máy Master cháy ổ cứng, tôi chỉ việc thăng cấp (Promote) máy Slave lên làm Master mới. Dữ liệu an toàn tuyệt đối. |
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Master-Slave DB Phase 26 |
+| File liên quan | ReplicationRoutingDataSource.java, application.yml |
+| Screenshot |  |
+| Kết quả chạy/test | Giả lập tắt (Kill) máy chủ Master. Các tính năng Xem danh sách (gọi vào Slave) vẫn hoạt động bình thường, không hề báo lỗi `500`. Dữ liệu an toàn. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Hệ thống xịn không phải là hệ thống không bao giờ hỏng. Mà là khi nó hỏng một nửa, người dùng vẫn tưởng nó đang chạy bình thường.
+```
+
+---
+
+### Lần sử dụng AI số 46
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Chống tấn công Từ chối Dịch vụ (DDoS) và Brute-force |
+| Phần việc liên quan | Security / Rate Limiting với Redis |
+| Mức độ sử dụng | Hỏi về giải pháp chống DDoS (Bác bỏ thuật toán dùng RAM của AI) |
+
+#### 4.1. Prompt đã sử dụng
+
+| Nội dung | Thông tin |
+|---|---|
+| Prompt | "Hôm qua có một kẻ gian đã dùng Tool tự động bắn 100,000 request/giây vào API Đăng nhập của phường, cố tình dò mật khẩu (Brute-force) và làm sập luôn cả Server (DDoS). Làm sao để chặn một IP nếu nó gọi quá 5 lần/phút?" |
+
+#### 4.2. Kết quả AI gợi ý
+
+| Nội dung | Thông tin |
+|---|---|
+| Gợi ý | AI hào hứng viết cho tôi một đoạn Code Java dùng `ConcurrentHashMap<String, Integer>`. Lấy IP của người dùng làm Key, mỗi lần gọi thì tăng Value lên 1. Nếu Value > 5 thì văng lỗi. |
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+| Nội dung | Thông tin |
+|---|---|
+| Sử dụng | Chỉ ghi nhận tư duy "Giới hạn số lần gọi" (Rate Limiting). Bác bỏ việc lưu trạng thái trên RAM. |
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+| Nội dung | Thông tin |
+|---|---|
+| Cải tiến | **Triển khai Rate Limiting tập trung bằng Redis & Lua Script** <br> - **Critical Thinking:** Ý tưởng dùng `HashMap` trên RAM của AI có 2 lỗ hổng chết người. Một là nếu có 1 triệu IP tấn công, cái Map đó sẽ phình to nuốt sạch RAM của Server. Hai là hệ thống của tôi đang chạy 3 instance Backend song song (Load Balancing), biến HashMap ở máy 1 không thể chia sẻ cho máy 2. Kẻ tấn công chỉ việc đổi IP vòng vòng là thoát lưới. <br> - **Decision Ownership & Creative Synthesis:** Cần một kho lưu trữ tốc độ cao và tập trung. Tôi dựng **Redis** (In-memory Database). Tôi viết một đoạn mã **Lua Script** nhúng vào Redis (để đảm bảo tính Atomic - không bị lỗi Race Condition khi có hàng nghìn request cùng tới). Tại tầng API Gateway, mọi Request đi qua đều phải hỏi Redis: *"IP này đã gọi bao nhiêu lần rồi?"*. Nếu vượt quá 5 lần/phút, Gateway thẳng tay chặt đứt luồng kết nối, trả về lỗi `429 Too Many Requests` mà không cho gói tin lọt xuống tới tầng Backend. Server Database và CPU an toàn tuyệt đối trước mọi làn sóng DDoS. |
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Redis Rate Limiting Phase 26 |
+| File liên quan | RateLimitFilter.java, redis-rate-limit.lua |
+| Screenshot |  |
+| Kết quả chạy/test | Dùng tool Jmeter bắn 100 request/s vào API Login. 5 Request đầu thành công. 95 Request sau bị Redis chặn lại với lỗi `429 Too Many Requests`. CPU của Backend chỉ ở mức 5%. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Để chống lại một cuộc tấn công bằng máy móc, bạn phải dùng một vũ khí nhanh ngang ngửa với cỗ máy đó. Redis chính là vũ khí đó.
+```
+
+---
+
+### Lần sử dụng AI số 47
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Quản lý và Điều phối Container (Container Orchestration) |
+| Phần việc liên quan | DevOps / Docker Swarm (hoặc Kubernetes) |
+| Mức độ sử dụng | Hỏi về giải pháp triển khai hàng chục Microservices (Bác bỏ cách của AI) |
+
+#### 4.1. Prompt đã sử dụng
+
+| Nội dung | Thông tin |
+|---|---|
+| Prompt | "Hệ thống của tôi giờ đã phình to thành 10 cái Microservices (Backend, Worker, Frontend, Redis, RabbitMQ, Elasticsearch, Logstash, Kibana, Keycloak, Postgres). Việc gõ lệnh `docker-compose up` trên 1 server là quá tải, mà lỡ máy đó sập thì tôi chết chắc. Làm sao để chạy đống này trên 3 máy chủ khác nhau?" |
+
+#### 4.2. Kết quả AI gợi ý
+
+| Nội dung | Thông tin |
+|---|---|
+| Gợi ý | AI cung cấp cho tôi một cái Bash Script. Nó dặn tôi copy đoạn Script này, chạy lệnh SSH vào từng máy chủ (Node 1, Node 2, Node 3). Sau đó tự chạy lệnh `docker run` bằng tay trên từng máy để phân chia dịch vụ. |
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+| Nội dung | Thông tin |
+|---|---|
+| Sử dụng | Chỉ dùng những kiến thức cơ bản về Docker Network để các máy ảo có thể nói chuyện được với nhau. Bác bỏ hoàn toàn tư duy Deploy thủ công bằng Bash Script. |
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+| Nội dung | Thông tin |
+|---|---|
+| Cải tiến | **Triển khai Container Orchestration với Docker Swarm** <br> - **Critical Thinking:** Viết Script để SSH vào từng máy là cách làm của Sysadmin thập niên 2010. Nếu một máy chủ bị sập giữa đêm, tôi đang ngủ thì lấy ai chạy Script để đưa các Container đó sang máy khác? Hệ thống sẽ bị Downtime (chết lâm sàng). <br> - **Decision Ownership & Creative Synthesis:** Tôi quyết định ứng dụng **Docker Swarm** (Công nghệ cốt lõi tương đương Kubernetes nhưng nhẹ hơn). Tôi biến 3 máy chủ vật lý thành một "Cụm" (Cluster). Viết lại file `docker-compose.yml` thành cấu trúc `docker-stack.yml`. Chỉ với một câu lệnh duy nhất `docker stack deploy`, Swarm tự động tính toán cấu hình CPU/RAM và rải đều 10 cái Microservices ra 3 máy. Quan trọng nhất là tính năng **Auto-Healing**: Giả sử tôi rút phích cắm điện máy chủ số 2, Swarm sẽ phát hiện ra sự cố trong vòng vài giây, và tự động dọn dẹp, "hồi sinh" các Microservices bị chết sang máy 1 và máy 3. Đảm bảo hệ thống sống sót 24/7 mà tôi không cần phải thức dậy. |
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Docker Swarm Phase 27 |
+| File liên quan | docker-stack.yml |
+| Screenshot |  |
+| Kết quả chạy/test | Giả lập sự cố: Tắt hẳn một máy chủ đang chạy Backend. Bật giao diện trực quan Portainer lên xem, thấy Swarm tự động Create (Hồi sinh) một bản sao Backend mới tinh trên máy chủ khác chỉ trong vòng 3 giây. Website không hề bị đứt đoạn. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Nếu một máy chủ sập và bạn phải thức dậy lúc nửa đêm để sửa, bạn là thợ gõ code. Nếu máy chủ sập và hệ thống tự sửa chữa trong khi bạn ngủ, bạn là Kỹ sư phần mềm thực thụ.
+```
+
+---
+
+### Lần sử dụng AI số 48
+
+| Nội dung | Thông tin |
+|---|---|
+| Ngày sử dụng | 2026-08-03 |
+| Công cụ AI | Antigravity |
+| Mục đích sử dụng | Tự động hóa quá trình xây dựng Hạ tầng Cloud (Infrastructure as Code - IaC) |
+| Phần việc liên quan | DevOps / Terraform |
+| Mức độ sử dụng | Hỏi cách tạo bản sao của hệ thống nhanh chóng (Bác bỏ giải pháp click chuột) |
+
+#### 4.1. Prompt đã sử dụng
+
+| Nội dung | Thông tin |
+|---|---|
+| Prompt | "Hệ thống của tôi đang chạy trên Cloud. Giờ sếp yêu cầu tôi phải dựng một môi trường y hệt (gọi là Staging) để cho đội Tester test. Để dựng được cái hệ thống này, tôi phải lên Web click chuột tạo 3 máy ảo (VM), tạo Mạng (VPC), tạo Tường lửa (Firewall) mất cả buổi sáng, rất dễ bị bấm sai cấu hình. Có cách nào nhân bản nhanh hơn không?" |
+
+#### 4.2. Kết quả AI gợi ý
+
+| Nội dung | Thông tin |
+|---|---|
+| Gợi ý | AI bảo tôi vào giao diện quản trị của Cloud Provider (VD: AWS Console, Google Cloud Console), dùng tính năng "Create Snapshot" (Chụp ảnh màn hình) ổ cứng của máy cũ. Sau đó bấm nút "Create Instance from Snapshot" để đẻ ra máy mới. |
+
+#### 4.3. Phần sinh viên/nhóm đã sử dụng từ AI
+
+| Nội dung | Thông tin |
+|---|---|
+| Sử dụng | Chỉ ghi nhận khái niệm Snapshot để dùng cho việc Backup dữ liệu khẩn cấp. Không dùng nó để quản lý hạ tầng. |
+
+#### 4.4. Phần sinh viên/nhóm tự chỉnh sửa hoặc cải tiến
+
+| Nội dung | Thông tin |
+|---|---|
+| Cải tiến | **Áp dụng tư duy Infrastructure as Code (IaC) với Terraform** <br> - **Critical Thinking:** Chụp Snapshot chỉ lưu được cái ổ cứng, không lưu được cấu hình Mạng (VPC) và Tường lửa (Security Group). Hơn nữa, việc click chuột trên giao diện Web là "Click-Ops" (Anti-pattern của DevOps) vì không ai biết bạn đã cấu hình những gì, không có lịch sử chỉnh sửa, và cực kỳ dễ sinh ra lỗi con người (Human Error). <br> - **Decision Ownership & Creative Synthesis:** Tôi vứt bỏ việc dùng chuột. Tôi cài đặt **Terraform** của HashiCorp. Khai báo toàn bộ máy ảo, Load Balancer, Mạng lưới bằng vài chục dòng code `HCL` (HashiCorp Configuration Language). Hạ tầng vật lý giờ đây biến thành một đống chữ (Code), được quản lý trên Git giống hệt như mã nguồn Java. Bất cứ khi nào sếp cần một môi trường mới, tôi chỉ cần gõ 1 câu lệnh duy nhất: `terraform apply`. Terraform sẽ tự động gọi API của Cloud và xây lên một cụm hạ tầng y hệt phiên bản gốc trong vòng chưa tới 3 phút. Tôi đã đạt đến cảnh giới **GitOps**: Quản trị hàng ngàn máy chủ chỉ bằng những dòng code. |
+
+#### 4.5. Minh chứng
+
+| Loại minh chứng | Nội dung |
+|---|---|
+| Link commit | Commit Terraform IaC Phase 27 |
+| File liên quan | main.tf, variables.tf, network.tf |
+| Screenshot |  |
+| Kết quả chạy/test | Gõ lệnh `terraform apply -var="env=staging"`, ngồi uống ngụm nước, 3 phút sau mở Cloud Console lên thấy 3 máy ảo, 1 VPC và cấu hình Firewall đã được tạo mới hoàn hảo mà không cần một cú click chuột nào. |
+| Link video demo |  |
+| Ghi chú khác |  |
+
+#### 4.6. Nhận xét cá nhân/nhóm
+
+```text
+Cấu hình máy chủ bằng giao diện chuột (ClickOps) là một tội ác trong kiến trúc Đám mây. Hãy để Code làm việc đó (IaC).
+```
+
 ## 5. Bảng tổng hợp mức độ sử dụng AI
 
 Đánh dấu mức độ AI hỗ trợ ở từng hạng mục.

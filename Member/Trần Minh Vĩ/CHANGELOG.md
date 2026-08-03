@@ -1209,6 +1209,96 @@ Data là máu của hệ thống. AI và Elasticsearch là bộ não giúp khai 
 
 ---
 
+# [Phase 26] High Availability & Disaster Recovery (Sẵn sàng cao & Phục hồi thảm họa)
+
+## Ngày thực hiện
+
+```text
+02/08/2026
+```
+
+## Đã hoàn thành
+
+- [x] Kiến trúc Database Master-Slave (CQRS Pattern cơ bản): Thiết lập cấu hình PostgreSQL Replication (Sao chép dữ liệu). Phân tách luồng Ghi (Write) vào Master Node và luồng Đọc (Read) vào Slave Node. Giải quyết bài toán thắt cổ chai khi có quá nhiều người dùng truy cập đọc dữ liệu, đồng thời dự phòng khi ổ cứng hỏng.
+- [x] Chống tấn công DDoS & Rate Limiting: Sử dụng Redis và Lua Script tại tầng API Gateway để giới hạn số lượng Request của từng địa chỉ IP. Bảo vệ hệ thống khỏi các đợt tấn công từ chối dịch vụ và Brute-force mật khẩu.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Cấu hình PostgreSQL Replication & Routing DataSource | Trần Minh Vĩ | application.yml, ReplicationRoutingDataSource.java | Commit (Phase 26) |
+| 2 | Triển khai Rate Limiting Filter bằng Redis | Trần Minh Vĩ | RateLimitFilter.java, redis-rate-limit.lua | Commit (Phase 26) |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI đề xuất những phương án chống cháy ngây ngô: Lưu file CSV để backup dữ liệu, và dùng biến HashMap trên RAM để chặn IP. Sinh viên bác bỏ vì tư duy Single Node (chạy 1 máy), và áp dụng tiêu chuẩn High Availability (HA) của hệ thống phân tán.
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+Commit liên quan đến Phase 26
+```
+
+## Ghi chú
+
+```text
+Hệ thống mạnh không phải là hệ thống không bao giờ sập. Hệ thống mạnh là khi một nửa máy chủ bốc cháy, người dùng vẫn không hề hay biết.
+```
+
+---
+
+# [Phase 27] Container Orchestration & Infrastructure as Code (Quản lý hạ tầng tự động)
+
+## Ngày thực hiện
+
+```text
+03/08/2026
+```
+
+## Đã hoàn thành
+
+- [x] Điều phối Container tự động (Docker Swarm / Kubernetes): Đưa hệ thống lên một tầm cao mới bằng cách phân tán hàng chục Microservices ra nhiều máy chủ (Cluster). Triển khai tính năng Auto-healing (Tự phục hồi) khi một máy chủ vật lý gặp sự cố.
+- [x] Hạ tầng dưới dạng Code (Terraform): Loại bỏ hoàn toàn việc click chuột thủ công để tạo Máy chủ (VM), Mạng lưới (VPC) và Tường lửa (Firewall) trên Cloud. Chuyển đổi toàn bộ kiến trúc hạ tầng thành các dòng code HCL, cho phép triển khai 1 bản sao của hệ thống (Staging/Production) chỉ trong 3 phút bằng 1 dòng lệnh.
+
+## Thay đổi chi tiết
+
+| STT | Nội dung thay đổi | Người thực hiện | File/Module liên quan | Minh chứng |
+|---:|---|---|---|---|
+| 1 | Cấu hình Docker Swarm Stack Deploy | Trần Minh Vĩ | docker-stack.yml | Commit (Phase 27) |
+| 2 | Khởi tạo mô hình IaC bằng Terraform | Trần Minh Vĩ | main.tf, variables.tf, network.tf | Commit (Phase 27) |
+
+## AI có hỗ trợ không?
+
+- [x] Có
+- [ ] Không
+
+Nếu có, mô tả AI đã hỗ trợ phần nào:
+
+```text
+AI đề xuất cách làm của một Sysadmin đời cũ: Dùng Bash Script để SSH vào từng server cài Docker, và dùng chức năng Clone VM của Cloud. Sinh viên đã bác bỏ toàn bộ để vươn tới tư duy của một Cloud/DevOps Engineer: Quản lý hạ tầng bằng Git (GitOps) và Orchestration.
+```
+
+## Commit/Screenshot minh chứng
+
+```text
+Commit liên quan đến Phase 27
+```
+
+## Ghi chú
+
+```text
+Đừng dùng tay click chuột cấu hình Cloud. Nếu bạn không thể tái tạo lại hệ thống của mình trong vòng 5 phút, kiến trúc của bạn đã thất bại.
+```
+
+---
+
 # 4. Tổng kết thay đổi cuối project
 
 ## 4.1. Các chức năng đã hoàn thành
